@@ -1,0 +1,32 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "django": "cd .. && python manage.py runserver",
+    "dev": "concurrently \"yarn serve\" \"yarn django\"",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "ace-builds": "^1.32.5",
+    "axios": "^1.7.3",
+    "bootstrap-vue": "^2.23.1",
+    "concurrently": "^8.2.2",
+    "firebase": "^10.12.5",
+    "punycode": "^2.3.1",
+    "vue": "^3.3.11",
+    "vue-cli-service": "^5.0.10",
+    "vue-router": "^4.4.2",
+    "vue3-ace-editor": "^2.2.4",
+    "vuex": "^4.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.2",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8",
+    "vue-tsc": "^1.8.25"
+  }
+}

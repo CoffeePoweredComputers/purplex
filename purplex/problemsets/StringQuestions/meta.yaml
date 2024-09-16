@@ -1,0 +1,7 @@
+sid: 'strings'
+title: 'String Problems'
+description: 'A collection of python functions that involve the manipulation or processing of strings.'
+problems:
+  - 'reverse_string'
+  - 'palindrome' 
+  - 'anagram'

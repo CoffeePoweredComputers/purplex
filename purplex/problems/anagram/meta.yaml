@@ -1,0 +1,3 @@
+qid: "anagram"
+title: "Is Anagram"
+description: "Write a function that takes two strings and returns (True or False) whether they are anagrams."

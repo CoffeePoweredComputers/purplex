@@ -1,0 +1,62 @@
+[
+    {
+        "name": "Reverse a String",
+        "description": "Reverse the provided string.",
+        "language": "python",
+        "tests": [
+            {
+                "input": "hello",
+                "output": "olleh"
+            },
+            {
+                "input": "Howdy",
+                "output": "ydwoH"
+            },
+            {
+                "input": "Greetings from Earth",
+                "output": "htraE morf sgniteerG"
+            }
+        ],
+        "solution": "def foo(str):\n    newStr = ''\n    for i in range(len(str) - 1, -1, -1):\n        newStr += str[i]\n    return newStr"
+    },
+    {
+        "name": "To Title Case",
+        "description": "Return the provided string with the first letter of each word capitalized.",
+        "language": "python",
+        "tests": [
+            {
+                "input": "I'm a little tea pot",
+                "output": "I'm A Little Tea Pot"
+            },
+            {
+                "input": "this is a title",
+                "output": "This Is A Title"
+            },
+            {
+                "input": "And im a title too!",
+                "output": "And Im A Title Too!"
+            }
+        ],
+        "solution": "def foo(str):\n    arr = str.split(' ')\n    for i in range(len(arr)):\n        arr[i] = arr[i].capitalize()\n    return ' '.join(arr)"
+    },
+    {
+        "name": "Remove duplicate characters",
+        "description": "Removes all duplicate characters from a string in the order they were first encountered.",
+        "language": "python",
+        "tests": [
+            {
+                "input": "hello",
+                "output": "helo"
+            },
+            {
+                "input": "hello world",
+                "output": "helo wrd"
+            },
+            {
+                "input": "this is a test",
+                "output": "this ae"
+            }
+        ],
+        "solution": "def foo(str):\n    newStr = ''\n    for i in str:\n        if i not in newStr:\n            newStr += i\n    return newStr"
+    }
+]
