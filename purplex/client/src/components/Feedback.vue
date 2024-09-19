@@ -16,44 +16,40 @@
     </div>
     <div v-if="slides.length > 0">
       <div class="carousel">
-        <Editor 
-          @update:value="updateSolutionCode" 
-          :value="currentSlideContents" 
-          height="150px" 
-          width="500px" 
-          :highlightMarkers="currentComprehensionResult"
-        />
+        <Editor @update:value="updateSolutionCode" :value="currentSlideContents" height="150px" width="500px"
+          :highlightMarkers="currentComprehensionResult" />
       </div>
 
       <!-- Test Case Results Accordion -->
       <div class="accordion">
         <div v-if="slides.length > 0">
-          <div v-for="(test, i) in slides[currentSlide].tests" :key="test.expected" class="accordion-item">
+          <div v-for="(test, i) in slides[currentSlide].tests" :key="test.expected_output" class="accordion-item">
             <div class="accordion-header" @click="toggleAccordion(i)">
               <div>
-                <span v-if="test.result === test.expected"
-                  :style="{ color: 'red', textAlign: 'left', paddingRight: '5px' }">✅</span>
+                <span v-if="test.pass" :style="{ color: 'red', textAlign: 'left', paddingRight: '5px' }">✅</span>
                 <span v-else :style="{ color: 'red', textAlign: 'left', paddingRight: '5px' }">❌</span>
-                <!--<b>Test Case {{ i + 1 }} : <code>{{ test.call }} == {{ test.expected }}</code></b>-->
-                <b>Test Case {{ i + 1 }}</b>
+                <b>Test Case {{ i + 1 }} : <code>{{ test.function_call }} == {{ test.expected_output }}</code></b>
               </div>
             </div>
             <div v-show="activeAccordion === i" class="accordion-body">
               <table>
                 <tr>
                   <td><b>Function Call</b></td>
-                  <td>{{ test.call }}</td>
+                  <td>{{ test.function_call }}</td>
                 </tr>
                 <tr>
                   <td><b>Expected Result</b></td>
-                  <td>{{ test.expected }}</td>
+                  <td>{{ test.expected_output }}</td>
                 </tr>
                 <tr>
                   <td><b>Actual Result</b></td>
-                  <td>{{ test.result }}</td>
+                  <td>{{ test.actual_output }}</td>
                 </tr>
               </table>
-              <button class="pytutor-btn" @click="openPyTutor(test)"> Open in Python Tutor</button>
+
+              <button class="pytutor-btn" @click="openPyTutor(test)">Open in Python Tutor</button>
+              <PyTutorModal :isVisible="showModal" :pythonTutorUrl="pythonTutorUrl" @close="showModal = false" />
+
             </div>
           </div>
         </div>
@@ -85,9 +81,13 @@
 
 <script>
 import Editor from './Editor.vue';
+import PyTutorModal from '../modals/PyTutorModal.vue'; 
 
 export default {
-  components: { Editor },
+  components: { 
+    Editor,
+    PyTutorModal
+  },
   props: {
     progress: {
       type: Number,
@@ -97,14 +97,6 @@ export default {
       type: Number,
       default: 10,
     },
-    label: {
-      type: String,
-      default: '',
-    },
-    notchLabels: {
-      type: Array,
-      default: () => [],
-    },
     title: {
       type: String,
       default: '',
@@ -113,7 +105,7 @@ export default {
       type: String,
       default: '',
     },
-    codes: {
+    codeResults: {
       type: Array,
       default: () => [],
     },
@@ -126,12 +118,13 @@ export default {
       default: '',
     },
     comprehensionResults: {
-      type: Array,
-      default: () => [],
+      type: String,
+      default: '',
     },
   },
   data() {
     return {
+      showModal: false,
       collapsed: true,
       collapseHeight: 0,
       currentSlide: 0,
@@ -154,15 +147,27 @@ export default {
   },
   computed: {
     slides() {
-      return this.codes.map((code, index) => {
+      var slideResults = this.codeResults.map((code, index) => {
         const tests = this.testResults[index];
-        const allPass = tests.every(test => test.pass);
+        const passing = tests.every(test => test.pass);
         return {
           content: code,
-          correct: allPass,
-          tests: tests.map(test => ({ call: test.func_call, expected: test.expected, result: test.actual })),
+          correct: passing,
+          tests: tests
         };
       });
+      console.log("SLIDES", slideResults);
+      return slideResults;
+    },
+    progress() {
+      if (this.slides.length === 0) {
+        return 0;
+      }
+      var allPass = this.slides.filter(slide => 
+        slide.tests.every(test => test.pass)
+      ).length;
+
+      return allPass;
     },
   },
   methods: {
@@ -170,14 +175,14 @@ export default {
       this.collapsed = !this.collapsed;
     },
     updateSolutionCode() {
+      console.log("UPDATING SOLUTION CODE")
       console.log(this.currentSlide);
-      console.log(this.highlightMarkers);
       if (this.slides.length === 0) {
         this.currentSlideContents = "";
-        this.currentComprehensionResultContent = [];
+        //this.currentComprehensionResultContent = [];
       } else {
         this.currentSlideContents = this.slides[this.currentSlide].content;
-        this.currentComprehensionResult = this.comprehensionResults[0];
+        //this.currentComprehensionResult = this.comprehensionResults[0];
         console.log(this.currentComprehensionResult);
       }
     },
@@ -193,10 +198,10 @@ export default {
       this.activeAccordion = this.activeAccordion === index ? -1 : index;
     },
     openPyTutor(testCase) {
-      /* TODO: Make this a modal */
-      const code = this.slides[this.currentSlide].content + '\n' + testCase.call;
+      const code = this.slides[this.currentSlide].content + '\n' + testCase.function_call;
       const url = `https://pythontutor.com/render.html#code=${encodeURIComponent(code)}&cumulative=false&curInstr=0&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&py=3&rawInputLstJSON=%5B%5D&textReferences=false`;
-      window.open(url, '_blank');
+      this.pythonTutorUrl = url;
+      this.showModal = true;
     },
   },
 };

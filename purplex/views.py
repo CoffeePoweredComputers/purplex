@@ -12,6 +12,7 @@ import json
 import docker
 import openai
 import os, subprocess
+import subprocess
 
 SERVER_URL = 'http://localhost:8000'
 client = openai.OpenAI(
@@ -48,7 +49,7 @@ class GetProblemSet(APIView):
         
         return Response(data)
 
-class AIView(APIView):
+class AIGenerateView(APIView):
     CODE_SYSTEM_PROMPT = """
     Create five functions, each called foo, that are different implementation of a user's description.
     THe function should be interpretable by beginners and should use as few inbuilt function as
@@ -82,7 +83,7 @@ class AIView(APIView):
     Be sure to include the ``` and ``` at the beginning and end of the code block and name each
     function foo. Dont include the language in the markdown formating (e.g., ```python, ```c).
     The student's response is as follows:
-    """  # truncated for brevity
+    """  
 
 
     def post(self, request):
@@ -99,71 +100,50 @@ class AIView(APIView):
         ]
 
         response = client.chat.completions.create(
-                model='gpt-4o',
+                model='gpt-4o-mini',
                 messages=prompt
         )
 
-        generated_code = response.choices[0].message.content.replace("```python", "").replace("```", "").strip()
-        return JsonResponse(generated_code, safe=False)
+        generated_code = list(map(lambda x: x.replace("```", "").strip(), response.choices[0].message.content.split("```")[1::2]))
+        return JsonResponse({"code": generated_code}, safe=False)
 
-def run_test_script(code, input_data, expected_output):
-    print("Running test script")
-    print(f"Code: {code}")
-    print(f"Input: {input_data}")
-    print(f"Expected output: {expected_output}")
+class PythonTestView(APIView):
+    def post(self, request):
 
-    result = subprocess.run(
-        ['sh', 'src/pytest/test_script.sh', code, input_data, expected_output],
-        capture_output=True,
-        text=True
-    )
+        data = request.data
+        generated_code = data.get('generated_code')
+        qid = data.get('qid')
 
-    result_data = result.stdout.split(',')
-    test_result = {
-        'pass': result_data[0].strip() == 'correct',
-        'func_call': result_data[1].strip(),
-        'actual': result_data[2].strip(),
-        'expected': result_data[3].strip()
-    }
+        problem = Problem.objects.get(qid=qid)
+        test_cases_file = problem.test_case_file.path.split('/')[-1]
+        test_case_file_path = problem.test_case_file.path
 
-    print(f"Test result: {test_result}")
-    return test_result
+        client = docker.from_env()
+        result = client.containers.run(
+                "coffeepwrdcomputers/eiplgrader:latest",
+                environment={
+                    "USER_CODE": generated_code,
+                    "TEST_CASES_FILE": test_cases_file
+                },
+                volumes={
+                    test_case_file_path: {'bind': f"/app/{test_cases_file}", 'mode': 'ro'}
+                },
+                working_dir='/app',
+                remove=True,
+                stdout=True,
+                stderr=True,
+                mem_limit='256m',  
+                network_disabled=True
+            )
+        results = json.loads(result)
+        print(results)
 
-def test_view(request):
-    # Assuming POST with JSON containing code, input, and expected output
-    data = request.json()
-    test_result = run_test_script(
-        data['code'],
-        data['input'],
-        data['expected_output']
-    )
-    return JsonResponse(test_result)
+        return JsonResponse({"test_results": results})
 
-#def run_eipl_autograder(submission_file_path, test_case_file_path):
-#    client = docker.from_env()
-#    try:
-#        result = client.containers.run(
-#            "your-docker-image",
-#            volumes={
-#                submission_file_path: {'bind': '/app/submission.py', 'mode': 'ro'},
-#                test_case_file_path: {'bind': '/app/test_cases.py', 'mode': 'ro'}
-#            },
-#            working_dir='/app',
-#            remove=True,
-#            stdout=True,
-#            stderr=True,
-#            mem_limit='256m',  # Memory limit
-#            cpus=1,            # CPU limit
-#            network_disabled=True  # Disable network access
-#        )
-#        return result.decode('utf-8')
-#    except docker.errors.ContainerError as e:
-#        return str(e)
-#
-#def prompt_submission_result(request, submission_id):
-#    submission = get_object_or_404(PromptSubmission, id=submission_id)
-#    return render(request, 'submission_result.html', {'submission': submission})
-#
+def prompt_submission_result(request, submission_id):
+    submission = get_object_or_404(PromptSubmission, id=submission_id)
+    return render(request, 'submission_result.html', {'submission': submission})
+
 def submit_code(request, problem_id):
     if request.method == 'POST':
         data = json.loads(request.body)

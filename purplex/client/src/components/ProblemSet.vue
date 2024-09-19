@@ -14,7 +14,7 @@
                 />
                 <div class="progress-bar">
                     <div v-for="(problem, index) in problems" :key="problem.qid" 
-                        :class="['segment', { 'segment-active': index === currentProblem, 'segment-passed': index < numPassed }]" 
+                        :class="['segment', { 'segment-active': index === currentProblem }]" 
                         :style="{ width: `${100 / problems.length}%` }"
                         @click="setProblem(index)">
                         <span class="segment-index"> Problem {{ index + 1 }}</span>
@@ -44,7 +44,7 @@
                 </button>
             </div>
         </div>
-        <Feedback :progress="promptCorrectness" :notches=6 :codes="codeResults" :testResults="testResults"
+        <Feedback :progress="promptCorrectness" :notches=6 :codeResults="codeResults" :testResults="testResults"
             :comprehensionResults="comprehensionResults" title="Feedback" />
     </div>
 </template>
@@ -85,25 +85,42 @@ export default {
             this.loading = true;
 
             try {
+
+                /* Generating the five code snippets */
                 const response = await fetch('http://localhost:8000/api/generate/', { // Update the URL to match your Django view
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        prompt: this.$refs.prompt_entry.editor.getValue(),
-                        //solution: this.solutionCode,
-                        //problem_id: this.getProblem().qid,  // Pass the problem ID as part of the request
-                        //inputs: this.getProblem().tests.map(test => test.input),
-                        //expected_outputs: this.getProblem().tests.map(test => test.output)
+                        prompt: this.$refs.prompt_entry.editor.getValue()
                     })
                 });
 
                 const result = await response.json();
-                console.log(result)
-
                 this.codeResults = result.code;
-                this.testResults = [];//result.test_results;
+
+
+                /* Testing each o fthe code snippets */
+                const newTestResults = [];
+                for (let i = 0; i < this.codeResults.length; i++) {
+                    const generated_code = this.codeResults[i];//.code;
+                    const response = await fetch('http://localhost:8000/api/test/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            generated_code: generated_code,
+                            qid: this.getProblem().qid,
+                        })
+                    });
+
+                    const testResult = await response.json();
+                    console.log("Test result:", testResult);
+                    newTestResults.push(testResult.test_results);
+                }
+                this.testResults = newTestResults;
 
             } catch (error) {
                 console.error('Error submitting code:', error);
@@ -114,13 +131,13 @@ export default {
     },
     computed: {
         numPassed() {
-            if (this.testResults.length === 0) {
+            if (this.testResults.length == 0) {
                 return 0;
             }
-
             let count = 0;
             for (let i = 0; i < this.testResults.length; i++) {
                 const tests = this.testResults[i];
+                console.log("THESE ARE THE TESTS:", tests);
                 const allPass = tests.every(test => test.pass);
                 count += allPass ? 1 : 0;
             }

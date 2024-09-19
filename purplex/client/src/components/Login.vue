@@ -11,6 +11,7 @@
       <div class="login-btns">
         <button type="button" @click="login">Login</button>
         <button type="button" @click="createAccount">New Account</button>
+        <button type="button" @click="loginWithGoogle">Login with Google</button>
       </div>
 
       <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
@@ -20,6 +21,8 @@
 </template>
 
 <script>
+import { GoogleAuthProvider } from 'firebase/auth/web-extension';
+
 
 export default {
   name: "Login",
@@ -42,6 +45,17 @@ export default {
             this.displayErrorMessage(message); 
           });
       },
+      loginWithGoogle: async function () {
+        const provider = new GoogleAuthProvider();
+        this.$store.dispatch('auth/loginWithGoogle', provider)
+          .then(() => {
+            this.$router.push({ name: "Home" });
+          })
+          .catch((error) => {
+            const message = this.mapFirebaseErrorToMessage(error.code);
+            this.displayErrorMessage(message); 
+          });
+      },
       createAccount: async function () {
         const { email, password } = this;
         this.$store.dispatch('auth/createAccount', { email, password })
@@ -54,7 +68,12 @@ export default {
           });
       },
       mapFirebaseErrorToMessage: function (errorCode) {
-        console.log(errorCode);
+
+        /* We don't want the use just closing the popup to be reported as an error */
+        if (errorCode === "auth/popup-closed-by-user") {
+          return;
+        }
+
         const errorMessages = {
           'auth/email-already-in-use': 'This email is already in use. Please try another one.',
           'auth/weak-password': 'The password is too weak. Please use a stronger password.',
@@ -62,6 +81,7 @@ export default {
           'auth/invalid-credential': 'Your password is invalid.',
           'auth/too-many-requests': 'Too many requests to login. Please try again later.',
         };
+        console.log(errorCode);
         return errorMessages[errorCode] || 'An unexpected error occurred. Please try again.';
       },
       displayErrorMessage: function (message) {

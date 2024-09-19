@@ -1,6 +1,13 @@
 //import AuthService from '../services/auth.service';
 import { firebaseAuth } from '../firebaseConfig';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword,
+    GoogleAuthProvider,
+    signInWithPopup
+} from 'firebase/auth';
+
+const provider = new GoogleAuthProvider();
 
 const DEBUG = true;
 
@@ -21,6 +28,13 @@ export const auth = {
                 commit('loginSuccess', user);
             } else {
                 throw new Error('Invalid credentials.');
+            }
+        },
+        async loginWithGoogle({ commit }) {
+            if (await signInWithPopup(firebaseAuth, provider)) {
+                commit('loginSuccess');
+            } else {
+                throw new Error('Unable to login with Google.');
             }
         },
         logout({ commit }) {

@@ -16,7 +16,7 @@ class Command(BaseCommand):
 
             if os.path.isdir(problem_path):
                 meta_file = os.path.join(problem_path, 'meta.yaml')
-                test_file = os.path.join(problem_path, 'test.py')
+                test_file = os.path.join(problem_path, 'tests.json')
                 solution_file = os.path.join(problem_path, 'solution.py')
 
                 with open(meta_file) as f:
@@ -33,7 +33,7 @@ class Command(BaseCommand):
                 with open(solution_file) as infile:
                     problem.solution = infile.read()
 
-                problem.test_case_file.save(f"{meta_data['qid']}_test.py", File(open(test_file, 'rb')))
+                problem.test_case_file.save(f"{meta_data['qid']}_tests.json", File(open(test_file, 'rb')))
 
                 problem.save()
                 self.stdout.write(self.style.SUCCESS(f"Successfully loaded {problem.qid}"))

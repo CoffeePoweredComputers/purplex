@@ -23,9 +23,10 @@ from django.views.generic import RedirectView
 from .views import ProblemListView
 from .views import ProblemSetListView
 from .views import GetProblemSet
-from .views import AIView
+from .views import AIGenerateView
+from .views import PythonTestView
 
-from purplex.views import submit_code, test_view
+from purplex.views import submit_code
 
 
 urlpatterns = [
@@ -39,8 +40,8 @@ urlpatterns = [
     path('api/problem-sets/', ProblemSetListView.as_view(), name='problem_set_list'),
     path('api/problem-set/<str:sid>', GetProblemSet.as_view(), name='get_problem_set'),
 
-    path('api/generate/', AIView.as_view(), name='ai_generate'),
-    path('api/test/', test_view, name='test_code')
+    path('api/generate/', AIGenerateView.as_view(), name='ai_generate'),
+    path('api/test/', PythonTestView.as_view(), name='test_code')
 
 ] 
 

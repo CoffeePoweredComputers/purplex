@@ -4,9 +4,9 @@
             <li><router-link to="/home"><button>Home</button></router-link></li>
             <li><router-link to="/about"><button>About</button></router-link></li>
             <li><router-link to="/contact"><button>Contact</button></router-link></li>
-            <li class="account-button"><button @click="showModal = true">Account</button></li>
+            <li class="account-button"><button @click="showAccountModal = true">Account</button></li>
         </ul>
-        <AccountModal :isVisible="showModal" @close="showModal = false" />
+        <AccountModal :isVisible="showAccountModal" @close="showAccountModal = false" />
     </nav>
 </template>
 
@@ -21,7 +21,7 @@ export default {
     },
     data() {
         return {
-            showModal: false
+            showAccountModal: false
         };
     },
     methods: {
