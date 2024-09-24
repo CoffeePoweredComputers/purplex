@@ -30,21 +30,24 @@
                 <span v-else :style="{ color: 'red', textAlign: 'left', paddingRight: '5px' }">❌</span>
                 <b>Test Case {{ i + 1 }} : <code>{{ test.function_call }} == {{ test.expected_output }}</code></b>
               </div>
+              <div class="accordion-icon" :class="{ 'accordion-icon-rotate': activeAccordion === i }">
+                <i class="chevron-down"></i>
+              </div>
             </div>
             <div v-show="activeAccordion === i" class="accordion-body">
               <table>
-                <tr>
-                  <td><b>Function Call</b></td>
-                  <td>{{ test.function_call }}</td>
-                </tr>
-                <tr>
-                  <td><b>Expected Result</b></td>
-                  <td>{{ test.expected_output }}</td>
-                </tr>
-                <tr>
-                  <td><b>Actual Result</b></td>
-                  <td>{{ test.actual_output }}</td>
-                </tr>
+              <tr>
+                <td><b>Function Call</b></td>
+                <td>{{ test.function_call }}</td>
+              </tr>
+              <tr>
+                <td><b>Expected Result</b></td>
+                <td>{{ test.expected_output }}</td>
+              </tr>
+              <tr>
+                <td><b>Actual Result</b></td>
+                <td>{{ test.actual_output }}</td>
+              </tr>
               </table>
 
               <button class="pytutor-btn" @click="openPyTutor(test)">Open in Python Tutor</button>
@@ -358,6 +361,26 @@ export default {
   gap: 10px;
 }
 
+.accordion-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.5s ease-in-out;
+  color: white;
+}
+
+.fa-chevron-down {
+  font-size: 1rem;
+}
+
+.fas {
+  font-size: 1rem;
+}
+
+.accordion-icon-rotate {
+  transform: rotate(180deg);
+}
+
 .accordion-item {
   border-radius: 5px;
 }
@@ -383,7 +406,6 @@ export default {
   margin-top: 0;
 }
 
-/* format the code all pretty like */
 code {
   font: optional;
 }
@@ -405,4 +427,13 @@ td {
   cursor: pointer;
   width: 100%;
 }
+
+.chevron-down {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid white;
+}
+
 </style>
