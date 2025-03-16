@@ -2,13 +2,15 @@ import os
 import yaml
 from django.core.files import File
 from django.core.management.base import BaseCommand
-from purplex.models import Problem
+from purplex.problems_app.models import Problem
 
 class Command(BaseCommand):
     help = 'Load problems into the database'
 
     def handle(self, *args, **kwargs):
-        problems_dir = 'purplex/problems/'
+        # Get the base directory of the project
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        problems_dir = os.path.join(base_dir, 'purplex', 'problems')
 
         for problem_dir in os.listdir(problems_dir):
 

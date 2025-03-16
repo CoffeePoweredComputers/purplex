@@ -20,7 +20,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { GoogleAuthProvider } from 'firebase/auth/web-extension';
 
 
@@ -41,7 +41,7 @@ export default {
             this.$router.push({ name: "Home" });
           })
           .catch((error) => {
-            const message = this.mapFirebaseErrorToMessage(error.code);
+            const message = this.mapFirebaseErrorToMessage(error);
             this.displayErrorMessage(message); 
           });
       },
@@ -52,7 +52,7 @@ export default {
             this.$router.push({ name: "Home" });
           })
           .catch((error) => {
-            const message = this.mapFirebaseErrorToMessage(error.code);
+            const message = this.mapFirebaseErrorToMessage(error);
             this.displayErrorMessage(message); 
           });
       },
@@ -63,14 +63,15 @@ export default {
             this.$router.push({ name: "Home" });
           })
           .catch((error) => {
-            const message = this.mapFirebaseErrorToMessage(error.code);
+            const message = this.mapFirebaseErrorToMessage(error);
             this.displayErrorMessage(message); 
           });
       },
-      mapFirebaseErrorToMessage: function (errorCode) {
+      mapFirebaseErrorToMessage: function (error) {
 
-        /* We don't want the use just closing the popup to be reported as an error */
-        if (errorCode === "auth/popup-closed-by-user") {
+        /* We don't want the use just closing the account popup to be reported as an error */
+        /* TODO: I cant remember why this is needed... look into it later */
+        if (error.code === "auth/popup-closed-by-user") {
           return;
         }
 
@@ -80,9 +81,19 @@ export default {
           'auth/internal-error': 'An internal error occurred. Please try again later.',
           'auth/invalid-credential': 'Your password is invalid.',
           'auth/too-many-requests': 'Too many requests to login. Please try again later.',
+          'auth/missing-fields': 'Please enter an email and password.',
+          'auth/no-google-auth-in-debug': 'Google authentication is not available in debug mode.',
+          'auth/registration-failed': 'Registration failed. Unable to register the new user.',
         };
-        console.log(errorCode);
-        return errorMessages[errorCode] || 'An unexpected error occurred. Please try again.';
+
+
+        if (errorMessages[error.code]) {
+          return errorMessages[error.code];
+        } else if (error.message) { // a ditch attempt to get a message
+          return error.message;
+        } else {
+          return 'An unknown error occurred. Please try again later.';
+        }
       },
       displayErrorMessage: function (message) {
         this.errorMessage = message; 

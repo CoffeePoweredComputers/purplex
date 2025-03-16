@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "serve": "vue-cli-service serve",
-    "django": "cd .. && python manage.py runserver",
-    "dev": "concurrently \"yarn serve\" \"yarn django\"",
+    "django": "python ../../manage.py runserver",
+    "dev": "concurrently \"yarn vite --mode development\" \"yarn django\"",
+    "prod": "concurrently \"yarn vite --mode production\" \"yarn django\"",
     "build": "vue-tsc && vite build",
     "preview": "vite preview"
   },

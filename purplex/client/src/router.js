@@ -1,14 +1,14 @@
 import { createWebHistory, createRouter } from "vue-router";
 import { firebaseAuth } from "./firebaseConfig";
+import store from "./store"; // Import the Vuex store
 
+// Import components from their feature folders
 import Home from "./components/Home.vue";
-import Login from "./components/Login.vue";
 import About from "./components/About.vue";
 import Contact from "./components/Contact.vue";
-import ProblemSet from "./components/ProblemSet.vue";
-
-import Feedback from "./components/Feedback.vue";
-
+import Login from "./features/auth/Login.vue";
+import ProblemSet from "./features/problems/ProblemSet.vue";
+import AdminUsers from "./components/AdminUsers.vue";
 
 const routes = [
     {
@@ -39,6 +39,25 @@ const routes = [
         name: "ProblemSet",
         component: ProblemSet,
         meta: {requiresAuth: true}
+    },
+    // Admin routes
+    {
+        path: "/admin/users",
+        name: "AdminUsers",
+        component: AdminUsers,
+        meta: {requiresAuth: true, requiresAdmin: true}
+    },
+    {
+        path: "/admin/problems",
+        name: "AdminProblems",
+        component: () => import("./components/AdminProblems.vue"),
+        meta: {requiresAuth: true, requiresAdmin: true}
+    },
+    {
+        path: "/admin/submissions",
+        name: "AdminSubmissions",
+        component: () => import("./components/AdminSubmissions.vue"),
+        meta: {requiresAuth: true, requiresAdmin: true}
     }
 ];
 
@@ -49,9 +68,20 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-    const isAuthenticated = true; // TODO: remove this after doing debugging stuff
-    if (requiresAuth && !isAuthenticated) {
+    const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
+    
+    // Use persistent state from Vuex store
+    const isAuthenticated = store.getters['auth/isLoggedIn'];
+    const isAdmin = store.getters['auth/isAdmin'];
+    
+    // Use the same debug mode as the rest of the app
+    const debugBypassAuth = process.env.NODE_ENV !== 'production';
+    
+    if (requiresAuth && !isAuthenticated && !debugBypassAuth) {
         next("/");
+    } else if (requiresAdmin && !isAdmin && !debugBypassAuth) {
+        // Redirect non-admin users trying to access admin routes
+        next("/home");
     } else {
         next();
     }

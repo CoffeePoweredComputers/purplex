@@ -83,7 +83,7 @@
 </template>
 
 <script>
-import Editor from './Editor.vue';
+import Editor from '@/features/editor/Editor.vue';
 import PyTutorModal from '../modals/PyTutorModal.vue'; 
 
 export default {

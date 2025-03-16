@@ -18,33 +18,23 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import RedirectView
-
-from .views import ProblemListView
-from .views import ProblemSetListView
-from .views import GetProblemSet
-from .views import AIGenerateView
-from .views import PythonTestView
-
-from purplex.views import submit_code
-
+from .views import csrf_token
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include([
+        path('csrf/', csrf_token, name='csrf_token'),
+        path('', include('purplex.problems_app.urls')),
+        path('', include('purplex.submissions_app.urls')),
+        path('', include('purplex.users_app.urls')),
+    ])),
+]
 
-    path('submit_code/', submit_code),
-    path('submit_code/<int:problem_id>/', submit_code, name='submit_code'),
-
-    path('api/problems/', ProblemListView.as_view(), name='problem_list'),
-
-    path('api/problem-sets/', ProblemSetListView.as_view(), name='problem_set_list'),
-    path('api/problem-set/<str:sid>', GetProblemSet.as_view(), name='get_problem_set'),
-
-    path('api/generate/', AIGenerateView.as_view(), name='ai_generate'),
-    path('api/test/', PythonTestView.as_view(), name='test_code')
-
-] 
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+urlpatterns += static(
+        settings.MEDIA_URL, 
+        document_root=settings.MEDIA_ROOT
+    )
+urlpatterns += static(
+        settings.STATIC_URL, 
+        document_root=settings.STATIC_ROOT
+    )

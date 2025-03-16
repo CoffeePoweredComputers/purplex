@@ -50,8 +50,8 @@
 </template>
 
 <script>
-import Editor from './Editor.vue'
-import Feedback from "./Feedback.vue"
+import Editor from '@/features/editor/Editor.vue'
+import Feedback from "@/components/Feedback.vue"
 
 export default {
     name: 'ProblemSet',

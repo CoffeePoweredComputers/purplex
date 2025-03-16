@@ -1,13 +1,15 @@
 import os
 import yaml
 from django.core.management.base import BaseCommand
-from purplex.models import ProblemSet, Problem
+from purplex.problems_app.models import ProblemSet, Problem
 
 class Command(BaseCommand):
-    help = 'Load problem sets into the database'
+    help = 'Load problem sets into the database (new version)'
 
     def handle(self, *args, **kwargs):
-        problemset_dirs = 'purplex/problemsets/'
+        # Get the base directory of the project
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        problemset_dirs = os.path.join(base_dir, 'purplex', 'problemsets')
 
         for problemset_dir in os.listdir(problemset_dirs):
 
@@ -26,14 +28,10 @@ class Command(BaseCommand):
             with open(problemset_file, 'r') as f:
                 problemset_data = yaml.safe_load(f)
 
-            # if the problem doesn't exist ask if you want to replace it
+            # if the problem set exists, automatically replace it 
             if ProblemSet.objects.filter(sid=problemset_data['sid']).exists():
-                replace = input("This problem set already exists. Do you want to replace it? (y/n): ")
-                if replace.lower() == 'y':
-                    ProblemSet.objects.filter(sid=problemset_data['sid']).delete()
-                else:
-                    print("Skipping...")
-                    continue
+                self.stdout.write(self.style.WARNING(f"Problem set {problemset_data['sid']} already exists. Replacing it."))
+                ProblemSet.objects.filter(sid=problemset_data['sid']).delete()
 
             problem_set = ProblemSet(
                 sid=problemset_data['sid'], 

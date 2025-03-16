@@ -1,5 +1,4 @@
 <template>
-
     <h1 style="display: inline-flex; text-align: center; gap: 10px; margin: 5px; font-size: 80px;">
         <img src="/vite.png" alt="Purplex Logo" style="width: 100px; height: 100px; margin-right: 10px;" />
         Purplex
@@ -9,60 +8,34 @@
         <NavBar/>
         <router-view />
     </div>
-
 </template>
 
 <script lang="ts">
-
-import { ref } from 'vue';
-import problems from './data/problems.json'
+import { defineComponent, computed } from 'vue';
+import { useStore } from 'vuex';
 
 /* Components */
-import Editor from './components/Editor.vue'
-import Feedback from "./components/Feedback.vue"
-import Login from './components/Login.vue';
+import Login from './features/auth/Login.vue';
 import NavBar from './components/NavBar.vue';
-import Home from './components/Home.vue';
-import About from './components/About.vue';
-import Contact from './components/Contact.vue';
-import ProblemSet from './components/ProblemSet.vue';
 
-import AccountModal from './modals/AccountModal.vue';
-
-export default {
+export default defineComponent({
+    name: 'App',
     components: {
         Login,
-        NavBar,
-        Home,
-        About,
-        Contact,
-        Editor,
-        Feedback,
-        AccountModal,
-        ProblemSet
+        NavBar
     },
-    /*
-    methods: {
-        getProblem: function () {
-            return problems[this.problemIndex];
-        },
-        updateSolutionCode: function () {
-            this.solutionCode = this.getProblem().solution;
-            this.codeResults = [];
-            this.testResults = [];
-            this.promptCorrectness = 0;
-        }
-    },*/
-    computed: {
-        loggedIn: function () {
-            return this.$store.state.auth.status.loggedIn;
-        },
-        user: function () {
-            return this.$store.state.auth.user;
-        }
+    setup() {
+        const store = useStore();
+        
+        const loggedIn = computed(() => store.state.auth.status.loggedIn);
+        const user = computed(() => store.state.auth.user);
+        
+        return {
+            loggedIn,
+            user
+        };
     }
-}
-
+});
 </script>
 
 <style>
@@ -133,7 +106,6 @@ export default {
 }
 
 @keyframes bounce {
-
     0%,
     80%,
     100% {
@@ -144,7 +116,6 @@ export default {
         transform: scale(1.0);
     }
 }
-
 
 .spinner {
     border: 16px solid #f3f3f3;

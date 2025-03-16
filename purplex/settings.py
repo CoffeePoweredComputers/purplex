@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,9 +24,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-)i@3fu#_km15tawsvdv$^#92r%v(zwces$*lzx!b6$*w%k!(ng'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.setdefault('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+print(f"Running in DEBUG mode: {DEBUG}")
+
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -40,27 +43,44 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'docker',
-    'purplex'
+    'purplex',
+    'purplex.problems_app',
+    'purplex.submissions_app',
+    'purplex.users_app'
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'corsheaders.middleware.CorsMiddleware'
+    'django.middleware.clickjacking.XFrameOptionsMiddleware'
 ]
 
+# Disable CORS_ALLOW_ALL_ORIGINS when using credentials
 CORS_ALLOW_ALL_ORIGINS = True
 
+# Specify the allowed origins
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:8000",
-    "http://localhost:8080"
+    "http://localhost:8080",
+    "http://localhost:5173"
+]
+
+# Allow credentials
+CORS_ALLOW_CREDENTIALS = True
+
+# CSRF settings
+CSRF_COOKIE_SECURE = False
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "http://localhost:8080",
+    "http://localhost:5173"
 ]
 
 ROOT_URLCONF = 'purplex.urls'
@@ -130,6 +150,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media files (uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -139,6 +164,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Rest Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication'
-    ],
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'purplex.users_app.authentication.DebugAuthentication',
+    ]
 }

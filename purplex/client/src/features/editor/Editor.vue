@@ -8,14 +8,20 @@
       />
 </template>
 
-<script>
-
+<script lang="ts">
+  import { defineComponent, ref } from 'vue';
   import { VAceEditor } from 'vue3-ace-editor';
   import workerJsonUrl from 'ace-builds/src-noconflict/worker-json?url'
   import 'ace-builds/src-noconflict/mode-python';
   import 'ace-builds/src-noconflict/theme-clouds_midnight';
 
-  export default {
+  interface Marker {
+    start_line: number;
+    end_line: number;
+    explanation_portion: string;
+  }
+
+  export default defineComponent({
     name: "Editor",
     components: {
       VAceEditor,
@@ -50,51 +56,59 @@
         default: null,
       },
       highlightMarkers: {
-        type: Array,
+        type: Array as () => Marker[],
         default: () => [],
       },
     },
-    methods: {
-
+    setup(props, { emit }) {
+      const editor = ref(null);
+      
       /* Initialize the editor */
-      editorInit(editor) {
-        this.editor = editor;
-        editor.setOptions({
-          showGutter: this.showGutter,
-          maxLines: this.characterLimit,
-          value: this.value,
+      const editorInit = (editorInstance: any) => {
+        editor.value = editorInstance;
+        editorInstance.setOptions({
+          showGutter: props.showGutter,
+          maxLines: props.characterLimit,
         });
-        if(this.highlightMarkers.length > 0) {
-          this.setHighlightMarkers(this.highlightMarkers);
+        
+        if (props.highlightMarkers.length > 0) {
+          setHighlightMarkers(props.highlightMarkers);
         }
-      },
+      };
 
       /* Setters and getters for the values */
-      setValue(value) {
-        editor.setOptions({
-          value: value,
-        });
-      },
+      const setValue = (value: string) => {
+        if (editor.value) {
+          editor.value.setOptions({
+            value: value,
+          });
+        }
+      };
 
-      getValue() {
-        return this.editor.getValue();
-      },
+      const getValue = () => {
+        return editor.value ? editor.value.getValue() : '';
+      };
 
-      /* Setter for hihgliht markers */
-      setHighlightMarkers(markers) {
-        markers.forEach((marker) => {
+      /* Setter for highlight markers */
+      const setHighlightMarkers = (markers: Marker[]) => {
+        if (!editor.value) return;
+        
+        markers.forEach((marker, index) => {
           const Range = ace.require('ace/range').Range;
-          const markerIndex = markers.indexOf(marker);
-          const color = this.getVirdisColor(markerIndex);
-          const css = `.myMarker${markerIndex} { background: ${color}; position: absolute; z-index: 20; }`;
+          const color = getVirdisColor(index);
+          const css = `.myMarker${index} { background: ${color}; position: absolute; z-index: 20; }`;
           const style = document.createElement('style');
           style.appendChild(document.createTextNode(css));
           document.head.appendChild(style);
-          this.editor.session.addMarker(new Range(marker.start_line - 1, 0, marker.end_line - 1, 2), `myMarker${markerIndex}`, 'fullLine');
+          editor.value.session.addMarker(
+            new Range(marker.start_line - 1, 0, marker.end_line - 1, 2), 
+            `myMarker${index}`, 
+            'fullLine'
+          );
         });
 
         /* add the message to the highlight markers */
-        this.editor.session.setAnnotations(
+        editor.value.session.setAnnotations(
           markers.map((marker) => ({
             row: marker.start_line - 1,
             column: 0,
@@ -102,10 +116,10 @@
             type: 'info',
           }))
         );
-      },
+      };
 
       /* utility function to return virdis color pallete for setting the background for the markers */
-      getVirdisColor(index) {
+      const getVirdisColor = (index: number) => {
         const colors = [
           '#44015482',
           '#48287882',
@@ -119,20 +133,20 @@
           '#FDE72582',
         ];
         return colors[index % colors.length];
-      }
-
-    },
-    data() {
-      return {
-        value: this.value,
       };
-    },
-  }
-
+      
+      return {
+        editor,
+        editorInit,
+        setValue,
+        getValue,
+        setHighlightMarkers
+      };
+    }
+  });
 </script>
 
 <style scoped>
-
   /* make the virdis color pallete */
   .ace-virdis .ace_gutter {
     background: #272822;

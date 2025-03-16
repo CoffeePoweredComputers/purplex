@@ -4,6 +4,7 @@
             <li><router-link to="/home"><button>Home</button></router-link></li>
             <li><router-link to="/about"><button>About</button></router-link></li>
             <li><router-link to="/contact"><button>Contact</button></router-link></li>
+            <li v-if="isAdmin"><router-link to="/admin/users"><button class="admin-button">Admin</button></router-link></li>
             <li class="account-button"><button @click="showAccountModal = true">Account</button></li>
         </ul>
         <AccountModal :isVisible="showAccountModal" @close="showAccountModal = false" />
@@ -11,7 +12,7 @@
 </template>
 
 <script lang="ts">
-
+import { mapGetters } from 'vuex';
 import AccountModal from '../modals/AccountModal.vue';
 
 export default {
@@ -23,6 +24,9 @@ export default {
         return {
             showAccountModal: false
         };
+    },
+    computed: {
+        ...mapGetters('auth', ['isAdmin'])
     },
     methods: {
     }
@@ -65,6 +69,11 @@ button {
     padding: 15px 15px;
     margin: 0px;
     cursor: pointer;
+}
+
+.admin-button {
+    background-color: #dc3545;
+    font-weight: bold;
 }
 
 </style>

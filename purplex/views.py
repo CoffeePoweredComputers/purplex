@@ -1,6 +1,8 @@
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.http import JsonResponse
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from .models import PromptSubmission, Problem, ProblemSet
 from .serializers import ProblemSerializer, ProblemSetSerializer
@@ -167,4 +169,13 @@ def submit_code(request, problem_id):
         return JsonResponse({'result': result})
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@ensure_csrf_cookie
+def csrf_token(request):
+    """
+    View to get a CSRF token. This sets the CSRF cookie.
+    Frontend can call this endpoint to ensure it has a valid CSRF token.
+    """
+    token = get_token(request)
+    return JsonResponse({"csrfToken": token})
 
