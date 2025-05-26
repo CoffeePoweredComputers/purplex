@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,6 +12,7 @@ import openai
 
 from django.contrib.auth.models import User
 from .models import UserProfile, UserRole
+from .authentication import FirebaseAuthentication
 
 # Get API key from environment variable
 client = openai.OpenAI(
@@ -88,10 +89,45 @@ class UserRoleView(APIView):
                 'username': request.user.username,
                 'email': request.user.email,
                 'role': profile.role,
-                'is_admin': profile.is_admin
+                'is_admin': profile.is_admin,
+                'firebase_uid': profile.firebase_uid
             })
         except UserProfile.DoesNotExist:
             return Response({'error': 'User profile not found'}, status=404)
+            
+class AuthStatusView(APIView):
+    """View for validating a Firebase token and returning user information"""
+    
+    def post(self, request):
+        auth = FirebaseAuthentication()
+        
+        # Try to authenticate with the provided token
+        try:
+            user_auth_tuple = auth.authenticate(request)
+            if user_auth_tuple is None:
+                return Response({'authenticated': False, 'message': 'Invalid authentication token'}, status=401)
+                
+            user, _ = user_auth_tuple
+            
+            # Get user profile
+            try:
+                profile = UserProfile.objects.get(user=user)
+                return Response({
+                    'authenticated': True,
+                    'user': {
+                        'id': user.id,
+                        'username': user.username,
+                        'email': user.email,
+                        'role': profile.role,
+                        'is_admin': profile.is_admin,
+                        'firebase_uid': profile.firebase_uid
+                    }
+                })
+            except UserProfile.DoesNotExist:
+                return Response({'authenticated': False, 'message': 'User profile not found'}, status=404)
+                
+        except Exception as e:
+            return Response({'authenticated': False, 'message': str(e)}, status=401)
 
 class AdminUserManagementView(APIView):
     """View for admin users to manage other users' roles"""

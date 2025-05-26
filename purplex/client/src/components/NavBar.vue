@@ -35,8 +35,8 @@ export default {
 
 <style scoped>
 nav {
-    background-color: #333;
-    color: white;
+    background-color: var(--color-bg-input);
+    color: var(--color-text-primary);
     display: flex;
     justify-content: center;
     position: relative;
@@ -46,7 +46,7 @@ nav {
 .nav-list {
     display: flex;
     justify-content: center;
-    gap: 50px;
+    gap: var(--spacing-xxl);
     list-style: none;
     padding: 0;
     margin: 0;
@@ -64,16 +64,28 @@ nav {
 }
 
 button {
-    background-color: #333;
-    color: white;
-    padding: 15px 15px;
-    margin: 0px;
+    background-color: var(--color-bg-input);
+    color: var(--color-text-primary);
+    padding: var(--spacing-base) var(--spacing-base);
+    margin: 0;
     cursor: pointer;
+    border: none;
+    border-radius: var(--radius-xs);
+    transition: var(--transition-base);
+    font-weight: 500;
+}
+
+button:hover {
+    background-color: var(--color-bg-hover);
 }
 
 .admin-button {
-    background-color: #dc3545;
+    background-color: var(--color-error);
     font-weight: bold;
 }
 
+.admin-button:hover {
+    background-color: var(--color-error-bg);
+    color: var(--color-error-text);
+}
 </style>

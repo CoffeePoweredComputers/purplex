@@ -66,16 +66,22 @@ const router = createRouter({
     routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
     const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
+    
+    // Use the debug mode from the Vuex store for consistency
+    const debugBypassAuth = store.state.auth.debug;
+    
+    // If not in debug mode, check auth state
+    if (!debugBypassAuth && (requiresAuth || requiresAdmin)) {
+        // Make sure we have the latest auth state
+        await store.dispatch('auth/checkAuthState');
+    }
     
     // Use persistent state from Vuex store
     const isAuthenticated = store.getters['auth/isLoggedIn'];
     const isAdmin = store.getters['auth/isAdmin'];
-    
-    // Use the same debug mode as the rest of the app
-    const debugBypassAuth = process.env.NODE_ENV !== 'production';
     
     if (requiresAuth && !isAuthenticated && !debugBypassAuth) {
         next("/");

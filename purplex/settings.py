@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)i@3fu#_km15tawsvdv$^#92r%v(zwces$*lzx!b6$*w%k!(ng'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-only-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.setdefault('DJANGO_DEBUG', 'False') == 'True'
@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
-    'docker',
     'purplex',
     'purplex.problems_app',
     'purplex.submissions_app',
@@ -60,16 +59,16 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware'
 ]
 
-# Disable CORS_ALLOW_ALL_ORIGINS when using credentials
-CORS_ALLOW_ALL_ORIGINS = True
-
-# Specify the allowed origins
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:8000",
-    "http://localhost:8080",
-    "http://localhost:5173"
-]
+# CORS configuration
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://localhost:8080",
+        "http://localhost:5173"
+    ]
 
 # Allow credentials
 CORS_ALLOW_CREDENTIALS = True
@@ -164,9 +163,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Rest Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-        'purplex.users_app.authentication.DebugAuthentication',
+        'purplex.users_app.authentication.FirebaseAuthentication',
+        'purplex.users_app.authentication.DebugAuthentication'
     ]
 }
+
+# Firebase configuration
+FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, 'firebase-credentials.json')

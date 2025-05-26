@@ -67,7 +67,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import axios from 'axios';
-import authHeader from '../services/auth-header';
+import AuthService from '../services/auth.service';
 import AdminNavBar from './AdminNavBar.vue';
 
 // Setup axios to include credentials and CSRF token
@@ -113,13 +113,12 @@ export default {
         // First make a GET request to get the CSRF token
         await axios.get('/api/csrf/', { withCredentials: true });
         
-        const headers = {
-          ...authHeader(),
-          'X-CSRFToken': getCookie('csrftoken')
-        };
+        const csrfToken = getCookie('csrftoken');
         
         const response = await axios.get('/api/admin/users/', { 
-          headers: headers,
+          headers: {
+            'X-CSRFToken': csrfToken
+          },
           withCredentials: true 
         });
         
@@ -148,17 +147,15 @@ export default {
           if (parts.length === 2) return parts.pop().split(';').shift();
         }
         
-        // Prepare headers with auth token and CSRF token
-        const headers = {
-          ...authHeader(),
-          'X-CSRFToken': getCookie('csrftoken')
-        };
+        const csrfToken = getCookie('csrftoken');
         
         // Send the request to the server
         await axios.post(`/api/admin/user/${userId}/`, {
           role: newRole
         }, { 
-          headers: headers,
+          headers: {
+            'X-CSRFToken': csrfToken
+          },
           withCredentials: true 
         });
         
@@ -190,45 +187,45 @@ export default {
 
 <style scoped>
 .admin-users {
-  max-width: 1000px;
+  max-width: var(--max-width-panel);
   margin: 0 auto;
-  padding: 20px;
-  background-color: #1e1e1e;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-panel);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-base);
 }
 
 .page-title {
-  font-size: 28px;
-  color: #e0e0e0;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #444;
+  font-size: var(--font-size-xl);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--color-bg-border);
 }
 
 .status-container {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .loading-indicator {
-  padding: 15px;
-  background-color: #333;
-  border-radius: 6px;
-  color: #ddd;
+  padding: var(--spacing-base);
+  background-color: var(--color-bg-input);
+  border-radius: calc(var(--radius-sm) + 1px);
+  color: var(--color-text-tertiary);
 }
 
 .error-message {
-  padding: 15px;
-  background-color: #442a2a;
-  border-radius: 6px;
-  color: #ffadb9;
+  padding: var(--spacing-base);
+  background-color: var(--color-error-bg);
+  border-radius: calc(var(--radius-sm) + 1px);
+  color: var(--color-error-text);
 }
 
 .table-responsive {
   overflow-x: auto;
-  background-color: #272727;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background-color: var(--color-bg-table);
+  border-radius: calc(var(--radius-sm) + 1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .users-table {
@@ -238,25 +235,25 @@ export default {
 }
 
 .users-table th {
-  background-color: #333;
-  color: #ddd;
-  padding: 12px 15px;
+  background-color: var(--color-bg-input);
+  color: var(--color-text-tertiary);
+  padding: var(--spacing-md) var(--spacing-base);
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 0.9rem;
+  font-size: calc(var(--font-size-sm) + 0.05rem);
   letter-spacing: 0.5px;
-  border-bottom: 2px solid #444;
+  border-bottom: 2px solid var(--color-bg-border);
 }
 
 .users-table td {
-  padding: 12px 15px;
-  border-bottom: 1px solid #333;
-  color: #e0e0e0;
+  padding: var(--spacing-md) var(--spacing-base);
+  border-bottom: 1px solid var(--color-bg-input);
+  color: var(--color-text-secondary);
   vertical-align: middle;
 }
 
 .users-table tr:hover {
-  background-color: #2a2a2a;
+  background-color: var(--color-bg-hover);
 }
 
 .users-table tr:last-child td {
@@ -270,61 +267,61 @@ export default {
 
 .badge {
   width: 100px;
-  padding: 6px 12px;
-  border-radius: 30px;
+  padding: calc(var(--spacing-xs) + 2px) var(--spacing-md);
+  border-radius: var(--radius-round);
   font-weight: 500;
-  font-size: 0.8rem;
+  font-size: calc(var(--font-size-xs) + 0.05rem);
   display: inline-block;
   text-align: center;
 }
 
 .admin-badge {
-  background-color: #673ab7;
-  color: white;
+  background-color: var(--color-admin);
+  color: var(--color-text-primary);
 }
 
 .user-badge {
-  background-color: #333;
-  color: white;
+  background-color: var(--color-bg-input);
+  color: var(--color-text-primary);
 }
 
 .active-badge {
-  background-color: #444;
-  color: white;
+  background-color: var(--color-bg-border);
+  color: var(--color-text-primary);
 }
 
 .inactive-badge {
-  background-color: #333;
-  color: white;
+  background-color: var(--color-bg-input);
+  color: var(--color-text-primary);
 }
 
 .action-button {
   width: 150px;
-  padding: 8px 12px;
+  padding: var(--spacing-sm) var(--spacing-md);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-weight: 500;
-  color: white;
+  color: var(--color-text-primary);
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.85rem;
+  transition: var(--transition-fast);
+  font-size: var(--font-size-sm);
   text-align: center;
 }
 
 .promote-button {
-  background-color: #444;
+  background-color: var(--color-bg-border);
 }
 
 .promote-button:hover {
-  background-color: #555;
+  background-color: var(--color-bg-disabled);
 }
 
 .demote-button {
-  background-color: #333;
+  background-color: var(--color-bg-input);
 }
 
 .demote-button:hover {
-  background-color: #444;
+  background-color: var(--color-bg-border);
 }
 
 .button-spinner {

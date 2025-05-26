@@ -5,6 +5,9 @@
       theme="clouds_midnight"
       mode="python"
       :style="{ height: height, width: width }"
+      :value="value"
+      :options="{ readOnly: readOnly }"
+      @input="handleInput"
       />
 </template>
 
@@ -59,6 +62,14 @@
         type: Array as () => Marker[],
         default: () => [],
       },
+      value: {
+        type: String,
+        default: '',
+      },
+      readOnly: {
+        type: Boolean,
+        default: false,
+      },
     },
     setup(props, { emit }) {
       const editor = ref(null);
@@ -69,11 +80,17 @@
         editorInstance.setOptions({
           showGutter: props.showGutter,
           maxLines: props.characterLimit,
+          readOnly: props.readOnly,
         });
         
         if (props.highlightMarkers.length > 0) {
           setHighlightMarkers(props.highlightMarkers);
         }
+      };
+      
+      /* Handle input changes */
+      const handleInput = (value: string) => {
+        emit('update:value', value);
       };
 
       /* Setters and getters for the values */
@@ -140,7 +157,8 @@
         editorInit,
         setValue,
         getValue,
-        setHighlightMarkers
+        setHighlightMarkers,
+        handleInput
       };
     }
   });
@@ -149,11 +167,11 @@
 <style scoped>
   /* make the virdis color pallete */
   .ace-virdis .ace_gutter {
-    background: #272822;
-    color: #F8F8F2;
+    background: var(--color-bg-table);
+    color: var(--color-text-secondary);
   }
 
   .ace-virdis .ace_gutter-cell {
-    color: #F8F8F2;
+    color: var(--color-text-secondary);
   }
 </style>

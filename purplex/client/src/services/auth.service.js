@@ -1,33 +1,53 @@
 import axios from 'axios';
+import { firebaseAuth } from '../firebaseConfig';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signOut,
+  getIdToken
+} from 'firebase/auth';
 
-const API_URL = 'http://localhost:8080/api/auth/';
+const API_URL = '/api/auth/status/';
 
 class AuthService {
-  login(user) {
-    return axios
-      .post(API_URL + 'signin', {
-        username: user.username,
-        password: user.password
-      })
-      .then(response => {
-        if (response.data.accessToken) {
-          localStorage.setItem('user', JSON.stringify(response.data));
+  async validateToken() {
+    try {
+      // Get current Firebase user
+      const user = firebaseAuth.currentUser;
+      if (!user) {
+        return { authenticated: false };
+      }
+      
+      // Get the ID token
+      const token = await getIdToken(user);
+      
+      // Send the token to our backend for validation
+      const response = await axios.post(API_URL, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-
-        return response.data;
       });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return { authenticated: false, error: error.message };
+    }
   }
 
-  logout() {
-    localStorage.removeItem('user');
+  async logout() {
+    try {
+      await signOut(firebaseAuth);
+      localStorage.removeItem('user');
+      return true;
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
   }
 
-  register(user) {
-    return axios.post(API_URL + 'signup', {
-      username: user.username,
-      email: user.email,
-      password: user.password
-    });
+  getCurrentUser() {
+    return firebaseAuth.currentUser;
   }
 }
 

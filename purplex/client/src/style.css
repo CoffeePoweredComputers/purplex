@@ -1,29 +1,19 @@
-:root {
+/* Import CSS variables from App.vue */
+* {
+  box-sizing: border-box;
+}
+
+body {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-
+  color-scheme: dark;
+  color: var(--color-text-default);
+  background-color: var(--color-bg-main);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
   margin: 0;
   display: flex;
   place-items: center;
@@ -31,51 +21,138 @@ body {
   min-height: 50vh;
 }
 
+a {
+  font-weight: 500;
+  color: var(--color-primary-gradient-start);
+  text-decoration: inherit;
+  transition: var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-primary-gradient-end);
+}
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+  margin: 0;
+}
+
+h2 {
+  font-size: var(--font-size-xl);
+  margin: 0;
+}
+
+h3 {
+  font-size: var(--font-size-lg);
+  margin: 0;
 }
 
 button {
-  border-radius: 8px;
+  border-radius: var(--radius-base);
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-primary);
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: var(--transition-base);
 }
+
 button:hover {
-  border-color: #646cff;
+  border-color: var(--color-primary-gradient-start);
+  background-color: var(--color-bg-hover);
 }
+
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-input);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  transition: var(--transition-fast);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-primary-gradient-start);
 }
 
 .card {
-  padding: 2em;
+  padding: var(--spacing-xl);
+  background-color: var(--color-bg-panel);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-base);
 }
 
 #app {
-  max-width: 1280px;
+  max-width: var(--max-width-app);
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
   width: 100%;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-border);
+  border-radius: var(--radius-xs);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-bg-disabled);
+}
+
+/* Selection styling */
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+/* Utility classes */
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.bg-dark {
+  background-color: var(--color-bg-dark);
+}
+
+.bg-panel {
+  background-color: var(--color-bg-panel);
+}
+
+/* Remove light mode for consistency */
+/* All components now use dark theme CSS variables */

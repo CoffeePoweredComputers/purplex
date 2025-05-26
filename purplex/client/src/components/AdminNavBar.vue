@@ -16,19 +16,19 @@ export default {
 
 <style scoped>
 .admin-nav {
-    background-color: #222;
-    color: white;
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-primary);
     display: flex;
     justify-content: center;
     width: 100%;
-    padding: 10px 0;
-    margin-bottom: 20px;
+    padding: var(--spacing-sm) 0;
+    margin-bottom: var(--spacing-lg);
 }
 
 .admin-nav-list {
     display: flex;
     justify-content: center;
-    gap: 30px;
+    gap: var(--spacing-xl);
     list-style: none;
     padding: 0;
     margin: 0;
@@ -40,18 +40,18 @@ export default {
 }
 
 .admin-link {
-    color: white;
+    color: var(--color-text-primary);
     text-decoration: none;
-    padding: 8px 12px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-xs);
+    transition: background-color var(--transition-fast);
 }
 
 .admin-link:hover, .admin-link.router-link-active {
-    background-color: #dc3545;
+    background-color: var(--color-error);
 }
 
 .return-link {
-    background-color: #495057;
+    background-color: var(--color-bg-disabled);
 }
 </style>

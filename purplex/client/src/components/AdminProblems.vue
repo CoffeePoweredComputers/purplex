@@ -64,7 +64,6 @@
 <script>
 import { mapGetters } from 'vuex';
 import axios from 'axios';
-import authHeader from '../services/auth-header';
 import AdminNavBar from './AdminNavBar.vue';
 
 export default {
@@ -100,7 +99,7 @@ export default {
     async fetchProblems() {
       try {
         this.loading = true;
-        const response = await axios.get('/api/admin/problems/', { headers: authHeader() });
+        const response = await axios.get('/api/admin/problems/');
         this.problems = response.data;
         this.loading = false;
       } catch (error) {
@@ -112,7 +111,7 @@ export default {
     
     async fetchProblemSets() {
       try {
-        const response = await axios.get('/api/admin/problem-sets/', { headers: authHeader() });
+        const response = await axios.get('/api/admin/problem-sets/');
         this.problemSets = response.data;
       } catch (error) {
         console.error('Error fetching problem sets:', error);
@@ -157,7 +156,7 @@ export default {
     
     async deleteProblem(problemId) {
       try {
-        await axios.delete(`/api/admin/problem/${problemId}/`, { headers: authHeader() });
+        await axios.delete(`/api/admin/problem/${problemId}/`);
         // Remove the problem from the array
         this.problems = this.problems.filter(problem => problem.id !== problemId);
       } catch (error) {
@@ -171,51 +170,51 @@ export default {
 
 <style scoped>
 .admin-problems {
-  max-width: 1000px;
+  max-width: var(--max-width-panel);
   margin: 0 auto;
-  padding: 20px;
-  background-color: #1e1e1e;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-panel);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-base);
 }
 
 .page-title {
-  font-size: 28px;
-  color: #e0e0e0;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #444;
+  font-size: var(--font-size-xl);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--color-bg-border);
 }
 
 .status-container {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .controls-container {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .loading-indicator {
-  padding: 15px;
-  background-color: #333;
-  border-radius: 6px;
-  color: #ddd;
+  padding: var(--spacing-base);
+  background-color: var(--color-bg-input);
+  border-radius: calc(var(--radius-sm) + 1px);
+  color: var(--color-text-tertiary);
 }
 
 .error-message {
-  padding: 15px;
-  background-color: #442a2a;
-  border-radius: 6px;
-  color: #ffadb9;
+  padding: var(--spacing-base);
+  background-color: var(--color-error-bg);
+  border-radius: calc(var(--radius-sm) + 1px);
+  color: var(--color-error-text);
 }
 
 .table-responsive {
   overflow-x: auto;
-  background-color: #272727;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background-color: var(--color-bg-table);
+  border-radius: calc(var(--radius-sm) + 1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .problems-table {
@@ -225,25 +224,25 @@ export default {
 }
 
 .problems-table th {
-  background-color: #333;
-  color: #ddd;
-  padding: 12px 15px;
+  background-color: var(--color-bg-input);
+  color: var(--color-text-tertiary);
+  padding: var(--spacing-md) var(--spacing-base);
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 0.9rem;
+  font-size: calc(var(--font-size-sm) + 0.05rem);
   letter-spacing: 0.5px;
-  border-bottom: 2px solid #444;
+  border-bottom: 2px solid var(--color-bg-border);
 }
 
 .problems-table td {
-  padding: 12px 15px;
-  border-bottom: 1px solid #333;
-  color: #e0e0e0;
+  padding: var(--spacing-md) var(--spacing-base);
+  border-bottom: 1px solid var(--color-bg-input);
+  color: var(--color-text-secondary);
   vertical-align: middle;
 }
 
 .problems-table tr:hover {
-  background-color: #2a2a2a;
+  background-color: var(--color-bg-hover);
 }
 
 .problems-table tr:last-child td {
@@ -251,52 +250,52 @@ export default {
 }
 
 .badge {
-  padding: 6px 12px;
-  border-radius: 30px;
+  padding: calc(var(--spacing-xs) + 2px) var(--spacing-md);
+  border-radius: var(--radius-round);
   font-weight: 500;
-  font-size: 0.8rem;
+  font-size: calc(var(--font-size-xs) + 0.05rem);
   display: inline-block;
   text-align: center;
 }
 
 .easy-badge {
-  background-color: #2d4d3a;
-  color: #a3e9c1;
+  background-color: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 
 .medium-badge {
-  background-color: #4d4c2d;
-  color: #e9e4a3;
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning-text);
 }
 
 .hard-badge {
-  background-color: #4d2d2d;
-  color: #e9a3a3;
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
 }
 
 .default-badge {
-  background-color: #2d3a4d;
-  color: #a3c9e9;
+  background-color: var(--color-info-bg);
+  color: var(--color-info-text);
 }
 
 .actions-cell {
   display: flex;
-  gap: 10px;
+  gap: var(--spacing-sm);
 }
 
 .action-button {
-  padding: 8px 12px;
+  padding: var(--spacing-sm) var(--spacing-md);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-weight: 500;
-  color: white;
+  color: var(--color-text-primary);
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.85rem;
+  transition: var(--transition-fast);
+  font-size: var(--font-size-sm);
 }
 
 .add-button {
-  background-color: #2d4d3a;
+  background-color: var(--color-success-bg);
 }
 
 .add-button:hover {
@@ -304,7 +303,7 @@ export default {
 }
 
 .manage-sets-button {
-  background-color: #2d3a4d;
+  background-color: var(--color-info-bg);
 }
 
 .manage-sets-button:hover {
@@ -312,7 +311,7 @@ export default {
 }
 
 .edit-button {
-  background-color: #4d4c2d;
+  background-color: var(--color-warning-bg);
 }
 
 .edit-button:hover {
@@ -320,7 +319,7 @@ export default {
 }
 
 .delete-button {
-  background-color: #4d2d2d;
+  background-color: var(--color-error-bg);
 }
 
 .delete-button:hover {

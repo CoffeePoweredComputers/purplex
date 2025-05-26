@@ -1,14 +1,11 @@
 from django.shortcuts import get_object_or_404, render
-from django.utils import timezone
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
 from purplex.users_app.permissions import IsAdmin, IsAdminOrReadOnly, IsAuthenticated
 
 import json
 import docker
-import os
 
 from .models import PromptSubmission
 from purplex.problems_app.models import Problem
@@ -122,7 +119,7 @@ class AdminSubmissionsView(APIView):
                 'problem': submission.problem.title,
                 'username': submission.user.username,
                 'score': submission.score,
-                'submitted_at': submission.submitted_at,
+                'submitted_at': submission.time,
             })
             
         return Response(submissions_data)

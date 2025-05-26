@@ -1,5 +1,3 @@
-from django.shortcuts import render
-from django.http import JsonResponse
 
 from .models import Problem, ProblemSet
 from .serializers import ProblemSerializer, ProblemSetSerializer
@@ -7,9 +5,6 @@ from .serializers import ProblemSerializer, ProblemSetSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from purplex.users_app.permissions import IsAdmin, IsAdminOrReadOnly, IsAuthenticated
-from rest_framework.decorators import permission_classes
-
-import json
 
 SERVER_URL = 'http://localhost:8000'
 

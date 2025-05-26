@@ -107,9 +107,9 @@ export default {
 #login-form {
   margin: 0 auto;
   width: 300px;
-  padding: 20px;
-  border: 2px solid #7d7d7d;
-  border-radius: 5px;
+  padding: var(--spacing-lg);
+  border: 2px solid var(--color-text-muted);
+  border-radius: var(--radius-sm);
 }
 
 form {
@@ -118,22 +118,22 @@ form {
 }
 
 label {
-  margin-bottom: 10px;
+  margin-bottom: var(--spacing-sm);
 }
 
 input {
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #7d7d7d;
-  border-radius: 5px;
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  border: 1px solid var(--color-text-muted);
+  border-radius: var(--radius-sm);
 }
 
 button {
-  padding: 10px;
+  padding: var(--spacing-sm);
   border: none;
-  border-radius: 5px;
-  background-color: #333;
-  color: #fff;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-input);
+  color: var(--color-text-primary);
 }
 
 .login-btns {
@@ -142,12 +142,12 @@ button {
 }
 
 .login-btns button {
-  margin-left: 10px;
-  margin-right: 10px;
+  margin-left: var(--spacing-sm);
+  margin-right: var(--spacing-sm);
 }
 
 .error-message {
-  color: red;
-  margin-top: 10px;
+  color: var(--color-error);
+  margin-top: var(--spacing-sm);
 }
 </style>

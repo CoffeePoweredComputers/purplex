@@ -7,12 +7,17 @@ cd "$(dirname "$0")"
 echo "Activating virtual environment..."
 source env/bin/activate
 
+# migrate
+echo "Migrating database..."
+python manage.py migrate
+
 # Load problems and problem sets
 echo "Loading problems..."
 python manage.py load_problems
 
 echo "Loading problem sets..."
 python manage.py load_problemsets
+
 
 # Install frontend dependencies if needed
 echo "Installing frontend dependencies..."

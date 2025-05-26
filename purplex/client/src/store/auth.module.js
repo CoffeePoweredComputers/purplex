@@ -1,4 +1,4 @@
-//import AuthService from '../services/auth.service';
+import AuthService from '../services/auth.service';
 import { firebaseAuth } from '../firebaseConfig';
 import { 
   signInWithEmailAndPassword, 
@@ -28,6 +28,30 @@ export const auth = {
   namespaced: true,
   state: initialState,
   actions: {
+    // Check auth state and get user data on app init
+    async checkAuthState({ commit, state }) {
+      // Skip if we're already authenticated or in debug mode
+      if (state.debug) return;
+      
+      if (firebaseAuth.currentUser) {
+        try {
+          // Get user role from backend
+          const response = await axios.get('/api/user/me/');
+          console.log('Refreshed user data:', response.data);
+          
+          const userData = {
+            uid: firebaseAuth.currentUser.uid,
+            email: firebaseAuth.currentUser.email,
+            displayName: firebaseAuth.currentUser.displayName,
+            role: response.data.role,
+            isAdmin: response.data.is_admin
+          };
+          commit('loginSuccess', userData);
+        } catch (error) {
+          console.error('Error refreshing user data:', error);
+        }
+      }
+    },
     async login({ commit }, user) {
       console.log('login', user);
       if (!user.email || !user.password) {
@@ -39,8 +63,7 @@ export const auth = {
         const userData = {
           ...user,
           role: 'admin',
-          isAdmin: true,
-          token: 'debug'
+          isAdmin: true
         };
         commit('loginSuccess', userData);
       }
@@ -100,14 +123,15 @@ export const auth = {
         throw { code: 'auth/google-login-failed', message: 'Unable to login with Google', num: 401 };
       }
     },
-    logout({ commit }) {
-      // Sign out from Firebase
-      firebaseAuth.signOut().catch(error => {
-        console.error('Firebase signOut error:', error);
-      }).finally(() => {
-        // Always commit the logout mutation to update store
+    async logout({ commit }) {
+      try {
+        // Use the auth service to sign out
+        await AuthService.logout();
+        // Update store
         commit('logout');
-      });
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
     },
     async createAccount({ commit }, user) {
       // Check for required fields

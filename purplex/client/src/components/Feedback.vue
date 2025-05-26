@@ -16,7 +16,7 @@
     </div>
     <div v-if="slides.length > 0">
       <div class="carousel">
-        <Editor @update:value="updateSolutionCode" :value="currentSlideContents" height="150px" width="500px"
+        <Editor @update:value="updateSolutionCode" :value="currentSlideContents" height="150px" width="100%"
           :highlightMarkers="currentComprehensionResult" />
       </div>
 
@@ -219,19 +219,19 @@ export default {
   height: 20px;
   display: flex;
   flex-direction: column;
-  margin-top: 5px;
+  margin-top: var(--spacing-xs);
 }
 
 .bar {
   width: 100%;
   height: 5px;
-  background-color: #ddd;
+  background-color: var(--color-text-tertiary);
   position: relative;
 }
 
 .progress {
   height: 100%;
-  background-color: #800080;
+  background-color: var(--color-primary);
   transition: 1.5s;
 }
 
@@ -244,14 +244,15 @@ export default {
   height: 10px;
   width: 2px;
   margin-top: 2px;
-  background-color: #888;
+  background-color: var(--color-text-muted);
 }
 
 .feedback-container {
   display: flex;
   flex-direction: column;
-  border-radius: 5px;
-  width: 500px;
+  border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 520px;
 }
 
 .collapse-container {
@@ -266,24 +267,24 @@ export default {
 
 .title {
   font-weight: bold;
-  background-color: #1f1f1f;
-  padding: 0.5rem;
+  background-color: var(--color-bg-panel-light);
+  padding: var(--spacing-sm);
 }
 
 .p-text {
-  background-color: #1f1f1f;
-  padding: 0.5rem;
+  background-color: var(--color-bg-panel-light);
+  padding: var(--spacing-sm);
 }
 
 
 .therm-container {
   display: flex;
-  gap: 1rem;
-  padding-right: 1rem;
-  padding-left: 1rem;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  background-color: #191919;
+  gap: var(--spacing-base);
+  padding-right: var(--spacing-base);
+  padding-left: var(--spacing-base);
+  padding-top: var(--spacing-sm);
+  padding-bottom: var(--spacing-sm);
+  background-color: var(--color-bg-header);
 }
 
 
@@ -295,7 +296,7 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
 }
 
 .carousel-wrapper {
@@ -313,7 +314,7 @@ export default {
 
 .prev-btn,
 .next-btn {
-  color: white;
+  color: var(--color-text-primary);
   border: none;
   cursor: pointer;
   position: relative;
@@ -323,7 +324,7 @@ export default {
   position: relative;
   display: flex;
   justify-content: center;
-  margin-top: 10px;
+  margin-top: var(--spacing-sm);
   margin-bottom: 0px;
 }
 
@@ -331,10 +332,10 @@ export default {
   position: relative;
   width: 10px;
   height: 10px;
-  margin-top: 15px;
-  margin-right: 10px;
-  margin-left: 10px;
-  border-radius: 50%;
+  margin-top: var(--spacing-base);
+  margin-right: var(--spacing-sm);
+  margin-left: var(--spacing-sm);
+  border-radius: var(--radius-circle);
 }
 
 .test-cases {
@@ -344,21 +345,21 @@ export default {
 }
 
 .test-title {
-  padding: 5px;
+  padding: var(--spacing-xs);
   font-weight: bold;
-  background-color: #191919;
+  background-color: var(--color-bg-header);
 }
 
 .test-cases {
   display: flex;
   flex-direction: column;
-  margin-top: 10px;
+  margin-top: var(--spacing-sm);
 }
 
 .accordion {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--spacing-sm);
 }
 
 .accordion-icon {
@@ -382,23 +383,23 @@ export default {
 }
 
 .accordion-item {
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
 }
 
 .accordion-header {
   display: flex;
-  background-color: #191919;
+  background-color: var(--color-bg-header);
   justify-content: space-between;
-  padding: 10px;
+  padding: var(--spacing-sm);
   cursor: pointer;
 }
 
 .accordion-body {
-  padding: 10px;
+  padding: var(--spacing-sm);
 }
 
 .accordion-body div {
-  margin-top: 5px;
+  margin-top: var(--spacing-xs);
   transition: 0.5 ease-in-out;
 }
 
@@ -415,15 +416,15 @@ table {
 }
 
 td {
-  border-bottom: 1px solid #191919;
+  border-bottom: 1px solid var(--color-bg-header);
   text-align: left;
 }
 
 .pytutor-btn {
-  background-color: #191919;
-  color: white;
+  background-color: var(--color-bg-header);
+  color: var(--color-text-primary);
   border: none;
-  padding: 5px;
+  padding: var(--spacing-xs);
   cursor: pointer;
   width: 100%;
 }
@@ -433,7 +434,7 @@ td {
   height: 0;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-top: 5px solid white;
+  border-top: 5px solid var(--color-text-primary);
 }
 
 </style>
