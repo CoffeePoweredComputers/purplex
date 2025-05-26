@@ -2,8 +2,8 @@
   <VAceEditor
       @init="editorInit"
       :lang="lang"
-      theme="clouds_midnight"
-      mode="python"
+      :theme="theme"
+      :mode="mode"
       :style="{ height: height, width: width }"
       :value="value"
       :options="{ readOnly: readOnly }"
@@ -17,6 +17,13 @@
   import workerJsonUrl from 'ace-builds/src-noconflict/worker-json?url'
   import 'ace-builds/src-noconflict/mode-python';
   import 'ace-builds/src-noconflict/theme-clouds_midnight';
+  import 'ace-builds/src-noconflict/theme-chrome';
+  import 'ace-builds/src-noconflict/theme-monokai';
+  import 'ace-builds/src-noconflict/theme-github';
+  import 'ace-builds/src-noconflict/theme-solarized_dark';
+  import 'ace-builds/src-noconflict/theme-solarized_light';
+  import 'ace-builds/src-noconflict/theme-dracula';
+  import 'ace-builds/src-noconflict/theme-tomorrow_night';
 
   interface Marker {
     start_line: number;
@@ -165,13 +172,123 @@
 </script>
 
 <style scoped>
-  /* make the virdis color pallete */
-  .ace-virdis .ace_gutter {
-    background: var(--color-bg-table);
-    color: var(--color-text-secondary);
+  /* Editor wrapper styling to match design system */
+  :deep(.ace_editor) {
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--color-bg-input);
+    box-shadow: var(--shadow-md);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: var(--font-size-sm);
+    transition: var(--transition-base);
   }
 
-  .ace-virdis .ace_gutter-cell {
-    color: var(--color-text-secondary);
+  :deep(.ace_editor:hover) {
+    border-color: var(--color-primary-gradient-start);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Gutter styling */
+  :deep(.ace_gutter) {
+    background: var(--color-bg-hover);
+    color: var(--color-text-muted);
+    border-right: 1px solid var(--color-bg-input);
+  }
+
+  :deep(.ace_gutter-cell) {
+    color: var(--color-text-muted);
+    padding-right: var(--spacing-md);
+    padding-left: var(--spacing-sm);
+  }
+
+  :deep(.ace_gutter-active-line) {
+    background: var(--color-bg-input);
+    color: var(--color-text-primary);
+  }
+
+  /* Scrollbar styling */
+  :deep(.ace_scrollbar::-webkit-scrollbar) {
+    width: 12px;
+    height: 12px;
+  }
+
+  :deep(.ace_scrollbar::-webkit-scrollbar-track) {
+    background: var(--color-bg-hover);
+    border-radius: var(--radius-sm);
+  }
+
+  :deep(.ace_scrollbar::-webkit-scrollbar-thumb) {
+    background: var(--color-bg-border);
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--color-bg-hover);
+  }
+
+  :deep(.ace_scrollbar::-webkit-scrollbar-thumb:hover) {
+    background: var(--color-primary-gradient-start);
+  }
+
+  /* Selection styling */
+  :deep(.ace_selection) {
+    background: rgba(102, 126, 234, 0.3);
+  }
+
+  /* Active line highlighting */
+  :deep(.ace_active-line) {
+    background: rgba(102, 126, 234, 0.1);
+  }
+
+  /* Cursor styling */
+  :deep(.ace_cursor) {
+    color: var(--color-primary-gradient-start);
+    border-left: 2px solid var(--color-primary-gradient-start);
+  }
+
+  /* Bracket matching */
+  :deep(.ace_bracket) {
+    margin: -1px -1px 0 -1px;
+    border: 1px solid var(--color-primary-gradient-start);
+    background: rgba(102, 126, 234, 0.2);
+  }
+
+  /* Search highlights */
+  :deep(.ace_selected-word) {
+    border: 1px solid var(--color-primary-gradient-start);
+    background: rgba(102, 126, 234, 0.2);
+  }
+
+  /* Annotations/Markers */
+  :deep(.ace_marker-layer .ace_info) {
+    background: var(--color-info-bg);
+    border-left: 3px solid var(--color-info);
+  }
+
+  :deep(.ace_marker-layer .ace_warning) {
+    background: var(--color-warning-bg);
+    border-left: 3px solid var(--color-warning);
+  }
+
+  :deep(.ace_marker-layer .ace_error) {
+    background: var(--color-error-bg);
+    border-left: 3px solid var(--color-error);
+  }
+
+  /* Print margin */
+  :deep(.ace_print-margin) {
+    background: var(--color-bg-border);
+    width: 1px;
+  }
+
+  /* Fold widgets */
+  :deep(.ace_fold-widget) {
+    color: var(--color-text-muted);
+  }
+
+  :deep(.ace_fold-widget:hover) {
+    color: var(--color-primary-gradient-start);
+  }
+
+  /* Indent guides */
+  :deep(.ace_indent-guide) {
+    background: none;
+    border-right: 1px solid var(--color-bg-border);
   }
 </style>

@@ -119,45 +119,58 @@ export default {
 
 <style scoped>
 .admin-submissions {
-  max-width: var(--max-width-panel);
+  max-width: var(--max-width-content);
   margin: 0 auto;
   padding: var(--spacing-lg);
-  background-color: var(--color-bg-panel);
-  border-radius: var(--radius-base);
-  box-shadow: var(--shadow-base);
 }
 
 .page-title {
   font-size: var(--font-size-xl);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-lg);
-  padding-bottom: var(--spacing-sm);
-  border-bottom: 2px solid var(--color-bg-border);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-xl) 0;
+  padding-bottom: var(--spacing-base);
+  border-bottom: 2px solid var(--color-bg-input);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
+
 .status-container {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .loading-indicator {
-  padding: var(--spacing-base);
-  background-color: var(--color-bg-input);
-  border-radius: calc(var(--radius-sm) + 1px);
-  color: var(--color-text-tertiary);
+  padding: var(--spacing-xl);
+  background: var(--color-bg-panel);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  text-align: center;
+  box-shadow: var(--shadow-md);
 }
 
 .error-message {
-  padding: var(--spacing-base);
-  background-color: var(--color-error-bg);
-  border-radius: calc(var(--radius-sm) + 1px);
+  padding: var(--spacing-xl);
+  background: var(--color-error-bg);
+  border-radius: var(--radius-lg);
   color: var(--color-error-text);
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-error);
 }
 
 .table-responsive {
   overflow-x: auto;
-  background-color: var(--color-bg-table);
-  border-radius: calc(var(--radius-sm) + 1px);
-  box-shadow: var(--shadow-sm);
+  background: var(--color-bg-panel);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 2px solid transparent;
+  transition: var(--transition-base);
+}
+
+.table-responsive:hover {
+  border-color: var(--color-bg-input);
 }
 
 .submissions-table {
@@ -167,25 +180,23 @@ export default {
 }
 
 .submissions-table th {
-  background-color: var(--color-bg-input);
-  color: var(--color-text-tertiary);
-  padding: var(--spacing-md) var(--spacing-base);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  padding: var(--spacing-lg) var(--spacing-xl);
   font-weight: 600;
-  text-transform: uppercase;
-  font-size: calc(var(--font-size-sm) + 0.05rem);
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid var(--color-bg-border);
+  font-size: var(--font-size-base);
+  border-bottom: 2px solid var(--color-bg-input);
 }
 
 .submissions-table td {
-  padding: var(--spacing-md) var(--spacing-base);
-  border-bottom: 1px solid var(--color-bg-input);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-bg-hover);
   color: var(--color-text-secondary);
   vertical-align: middle;
 }
 
 .submissions-table tr:hover {
-  background-color: var(--color-bg-hover);
+  background: var(--color-bg-hover);
 }
 
 .submissions-table tr:last-child td {
@@ -193,50 +204,79 @@ export default {
 }
 
 .badge {
-  padding: calc(var(--spacing-xs) + 2px) var(--spacing-md);
-  border-radius: var(--radius-round);
-  font-weight: 500;
-  font-size: calc(var(--font-size-xs) + 0.05rem);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-xl);
+  font-weight: 600;
+  font-size: var(--font-size-xs);
   display: inline-block;
   text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .success-badge {
-  background-color: var(--color-success-bg);
-  color: var(--color-success-text);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
 }
 
 .error-badge {
-  background-color: var(--color-error-bg);
-  color: var(--color-error-text);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
 }
 
 .pending-badge {
-  background-color: var(--color-warning-bg);
-  color: var(--color-warning-text);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 .default-badge {
-  background-color: var(--color-info-bg);
-  color: var(--color-info-text);
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
 }
 
 .action-button {
-  padding: var(--spacing-sm) var(--spacing-md);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
   border: none;
-  border-radius: var(--radius-xs);
-  font-weight: 500;
+  border-radius: var(--radius-base);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   cursor: pointer;
-  transition: var(--transition-fast);
-  font-size: var(--font-size-sm);
+  transition: var(--transition-base);
 }
 
 .view-button {
-  background-color: var(--color-success-bg);
+  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  box-shadow: var(--shadow-colored);
 }
 
 .view-button:hover {
-  background-color: #3a6349;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .submissions-table {
+    font-size: var(--font-size-sm);
+  }
+  
+  .submissions-table th,
+  .submissions-table td {
+    padding: var(--spacing-md);
+  }
+  
+  .action-button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>
