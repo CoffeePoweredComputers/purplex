@@ -75,29 +75,63 @@
     </div>
 
     <!-- Add Problem Set Modal -->
-    <div v-if="showAddProblemSetModal" class="modal-backdrop">
+    <div v-if="showAddProblemSetModal" class="modal-backdrop" @click.self="showAddProblemSetModal = false">
       <div class="modal-content">
-        <h2>Add New Problem Set</h2>
-        <form @submit.prevent="createProblemSet">
-          <div class="form-group">
-            <label for="title">Title:</label>
-            <input type="text" id="title" v-model="newProblemSet.title" required>
+        <div class="modal-header">
+          <h2 class="modal-title">Add New Problem Set</h2>
+          <button type="button" @click="showAddProblemSetModal = false" class="modal-close">
+            <span class="close-icon">✕</span>
+          </button>
+        </div>
+        
+        <form @submit.prevent="createProblemSet" class="modal-form">
+          <div class="form-field">
+            <label for="title" class="field-label">
+              <span class="label-text">Title</span>
+              <span class="label-subtitle">Display name for the problem set</span>
+            </label>
+            <input type="text" id="title" v-model="newProblemSet.title" required class="form-input">
           </div>
-          <div class="form-group">
-            <label for="sid">Set ID (unique identifier):</label>
-            <input type="text" id="sid" v-model="newProblemSet.sid" required>
+          
+          <div class="form-field">
+            <label for="sid" class="field-label">
+              <span class="label-text">Set ID</span>
+              <span class="label-subtitle">Unique identifier (lowercase, no spaces)</span>
+            </label>
+            <input type="text" id="sid" v-model="newProblemSet.sid" required class="form-input" pattern="[a-z0-9-_]+">
           </div>
-          <div class="form-group">
-            <label for="description">Description:</label>
-            <textarea id="description" v-model="newProblemSet.description" rows="3"></textarea>
+          
+          <div class="form-field">
+            <label for="description" class="field-label">
+              <span class="label-text">Description</span>
+              <span class="label-subtitle">Brief description of the problem set</span>
+            </label>
+            <textarea id="description" v-model="newProblemSet.description" rows="3" class="form-input form-textarea"></textarea>
           </div>
-          <div class="form-group">
-            <label for="icon">Icon:</label>
-            <input type="file" id="icon" @change="handleFileUpload" accept="image/*">
+          
+          <div class="form-field">
+            <label for="icon" class="field-label">
+              <span class="label-text">Icon</span>
+              <span class="label-subtitle">Upload an image for the problem set</span>
+            </label>
+            <div class="file-input-wrapper">
+              <input type="file" id="icon" @change="handleFileUpload" accept="image/*" class="file-input" hidden>
+              <label for="icon" class="file-input-label">
+                <span class="file-icon">📁</span>
+                <span v-if="!newProblemSet.icon">Choose File</span>
+                <span v-else>{{ newProblemSet.icon.name }}</span>
+              </label>
+            </div>
           </div>
+          
           <div class="modal-actions">
-            <button type="button" @click="showAddProblemSetModal = false" class="cancel-btn">Cancel</button>
-            <button type="submit" class="submit-btn">Create Problem Set</button>
+            <button type="button" @click="showAddProblemSetModal = false" class="btn btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <span class="btn-icon">✨</span>
+              Create Problem Set
+            </button>
           </div>
         </form>
       </div>
@@ -495,81 +529,244 @@
   margin: 0;
 }
 
-/* Modal styles */
+/* Modal Styles */
 .modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 100;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-content {
-  background-color: var(--color-bg-hover);
-  border-radius: var(--radius-base);
-  padding: var(--spacing-lg);
+  background: var(--color-bg-panel);
+  border-radius: var(--radius-lg);
   width: 90%;
-  max-width: 500px;
-  box-shadow: var(--shadow-sm);
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  border: 2px solid var(--color-bg-input);
+  animation: slideIn 0.3s ease-out;
 }
 
-.form-group {
-  margin-bottom: var(--spacing-base);
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: var(--spacing-xs);
-  font-weight: bold;
-  text-align: left;
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-bg-input);
 }
 
-.form-group input, 
-.form-group textarea {
-  width: 100%;
-  padding: var(--spacing-sm);
-  border: 1px solid var(--color-bg-border);
-  border-radius: var(--radius-xs);
-  background-color: var(--color-bg-input);
+.modal-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
   color: var(--color-text-primary);
+  margin: 0;
+}
+
+.modal-close {
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-bg-border);
+  color: var(--color-text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-circle);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  border-color: var(--color-primary-gradient-start);
+}
+
+.close-icon {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.modal-form {
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.label-text {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.label-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.form-input {
+  width: 100%;
+  padding: calc(var(--spacing-md) + 2px) var(--spacing-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  transition: var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary-gradient-start);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.file-input-wrapper {
+  position: relative;
+}
+
+.file-input-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: calc(var(--spacing-md) + 2px) var(--spacing-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.file-input-label:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
+}
+
+.file-icon {
+  font-size: 18px;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
+  gap: var(--spacing-md);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-bg-input);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
   gap: var(--spacing-sm);
-  margin-top: var(--spacing-lg);
-}
-
-.cancel-btn {
-  background-color: var(--color-bg-disabled);
-  color: var(--color-text-primary);
-  border: none;
-  border-radius: var(--radius-xs);
-  padding: var(--spacing-sm) calc(var(--spacing-base) + 1px);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-weight: 600;
   cursor: pointer;
-}
-
-.submit-btn {
-  background-color: var(--color-success);
-  color: var(--color-text-primary);
+  transition: var(--transition-base);
   border: none;
-  border-radius: var(--radius-xs);
-  padding: var(--spacing-sm) calc(var(--spacing-base) + 1px);
-  cursor: pointer;
+  text-decoration: none;
+  box-sizing: border-box;
 }
 
-.cancel-btn:hover {
-  background-color: var(--color-bg-border);
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-colored);
 }
 
-.submit-btn:hover {
-  background-color: #45a049;
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: var(--color-bg-hover);
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-bg-border);
+}
+
+.btn-secondary:hover {
+  background: var(--color-bg-input);
+  border-color: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    margin: var(--spacing-lg);
+  }
+  
+  .modal-header,
+  .modal-form {
+    padding: var(--spacing-lg);
+  }
+  
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 </style>

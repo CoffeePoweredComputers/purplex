@@ -55,7 +55,7 @@ export default {
 .contact-page {
   width: 100%;
   margin: 0;
-  padding: 0;
+  padding: var(--spacing-xl) 0 0 0;
 }
 
 /* Contact Section */
