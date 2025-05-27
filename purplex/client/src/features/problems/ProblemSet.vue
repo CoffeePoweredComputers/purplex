@@ -18,12 +18,12 @@
                         <span class="progress-stat remaining">{{ remainingCount }} remaining</span>
                     </div>
                     <div class="problem-progress">
-                        <div v-for="(problem, index) in problems" :key="problem.qid" 
+                        <div v-for="(problem, index) in problems" :key="problem.slug" 
                             :class="['progress-bar', 
                                 { 'active': index === currentProblem },
-                                { 'completed': getProblemStatus(problem.qid) === 'completed' },
-                                { 'attempted': getProblemStatus(problem.qid) === 'attempted' },
-                                { 'not-tried': getProblemStatus(problem.qid) === 'not-tried' }
+                                { 'completed': getProblemStatus(problem.slug) === 'completed' },
+                                { 'attempted': getProblemStatus(problem.slug) === 'attempted' },
+                                { 'not-tried': getProblemStatus(problem.slug) === 'not-tried' }
                             ]" 
                             @click="setProblem(index)"
                             :title="getProblemTooltip(problem, index)">
@@ -203,7 +203,7 @@ export default {
         },
         getProblem() {
             if (!this.problems || this.problems.length === 0) {
-                return { solution: '', qid: '' };
+                return { solution: '', slug: '' };
             }
             return this.problems[this.currentProblem];
         },
@@ -240,9 +240,9 @@ export default {
                 const newTestResults = [];
                 for (let i = 0; i < this.codeResults.length; i++) {
                     const generated_code = this.codeResults[i];
-                    const response = await axios.post('/api/test/', {
-                        generated_code: generated_code,
-                        qid: this.getProblem().qid,
+                    const response = await axios.post('/api/test-solution/', {
+                        user_code: generated_code,
+                        problem_slug: this.getProblem().slug,
                     });
 
                     const testResult = response.data;
@@ -252,9 +252,9 @@ export default {
                 this.testResults = newTestResults;
                 
                 // Update problem status after submission
-                const currentProblemId = this.getProblem().qid;
+                const currentProblemSlug = this.getProblem().slug;
                 const score = this.calculateScore(newTestResults);
-                this.problemStatuses[currentProblemId] = {
+                this.problemStatuses[currentProblemSlug] = {
                     status: score === 100 ? 'completed' : 'attempted',
                     score: score
                 };
@@ -303,14 +303,25 @@ export default {
             return totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
         },
         loadProblemSet() {
-            const problemSetName = this.$route.params.name;
+            const problemSetSlug = this.$route.params.slug;
             this.isLoading = true;
             
-            console.log(`Loading problem set: ${problemSetName}`);
-            axios.get(`/api/problem-set/${problemSetName}`)
+            console.log(`Loading problem set: ${problemSetSlug}`);
+            axios.get(`/api/problem-sets/${problemSetSlug}`)
                 .then(response => {
                     this.problemSet = response.data;
-                    this.problems = response.data.problems || [];
+                    
+                    // Extract problems from problems_detail array
+                    if (response.data.problems_detail && Array.isArray(response.data.problems_detail)) {
+                        // problems_detail contains objects with { problem: {...}, order: n }
+                        this.problems = response.data.problems_detail.map(pd => pd.problem);
+                    } else if (response.data.problems && Array.isArray(response.data.problems)) {
+                        // Fallback to direct problems array if it exists
+                        this.problems = response.data.problems;
+                    } else {
+                        this.problems = [];
+                    }
+                    
                     console.log("Problems loaded:", this.problems);
                     
                     // Load user's submission history for these problems
@@ -344,21 +355,21 @@ export default {
             this.problems.forEach((problem, index) => {
                 // Simulate different statuses for demo
                 if (index === 0) {
-                    this.problemStatuses[problem.qid] = { status: 'completed', score: 100 };
+                    this.problemStatuses[problem.slug] = { status: 'completed', score: 100 };
                 } else if (index === 1) {
-                    this.problemStatuses[problem.qid] = { status: 'attempted', score: 75 };
+                    this.problemStatuses[problem.slug] = { status: 'attempted', score: 75 };
                 } else {
-                    this.problemStatuses[problem.qid] = { status: 'not-tried', score: 0 };
+                    this.problemStatuses[problem.slug] = { status: 'not-tried', score: 0 };
                 }
             });
         },
         
-        getProblemStatus(problemId) {
-            return this.problemStatuses[problemId]?.status || 'not-tried';
+        getProblemStatus(problemSlug) {
+            return this.problemStatuses[problemSlug]?.status || 'not-tried';
         },
         
         getProblemTooltip(problem, index) {
-            const status = this.problemStatuses[problem.qid];
+            const status = this.problemStatuses[problem.slug];
             const problemName = problem.name || `Problem ${index + 1}`;
             
             if (!status || status.status === 'not-tried') {
@@ -464,8 +475,8 @@ export default {
     
     // Watch for route changes in case user navigates between different problem sets
     watch: {
-        '$route.params.name': function(newName) {
-            if (newName) {
+        '$route.params.slug': function(newSlug) {
+            if (newSlug) {
                 this.loadProblemSet();
             }
         }
