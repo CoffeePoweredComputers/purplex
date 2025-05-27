@@ -28,28 +28,32 @@
         <table class="problems-table">
           <thead>
             <tr>
-              <th>Name</th>
+              <th>Type</th>
+              <th>Title</th>
               <th>Difficulty</th>
-              <th>Category</th>
               <th>Problem Sets</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="problem in problems" :key="problem.id">
-              <td>{{ problem.name }}</td>
+            <tr v-for="problem in problems" :key="problem.slug">
+              <td>
+                <span class="type-badge" :class="problemTypeClass(problem.problem_type)">
+                  {{ getProblemTypeLabel(problem.problem_type) }}
+                </span>
+              </td>
+              <td>{{ problem.title }}</td>
               <td>
                 <span class="badge" :class="difficultyClass(problem.difficulty)">
                   {{ problem.difficulty }}
                 </span>
               </td>
-              <td>{{ problem.category }}</td>
-              <td>{{ getProblemSets(problem) }}</td>
+              <td>{{ getProblemSetNames(problem) }}</td>
               <td class="actions-cell">
-                <button class="action-button edit-button" @click="editProblem(problem.id)">
+                <button class="action-button edit-button" @click="editProblem(problem.slug)">
                   Edit
                 </button>
-                <button class="action-button delete-button" @click="confirmDelete(problem.id)">
+                <button class="action-button delete-button" @click="confirmDelete(problem)">
                   Delete
                 </button>
               </td>
@@ -58,6 +62,48 @@
         </table>
       </div>
     </div>
+
+    <!-- Add Problem Modal -->
+    <AddProblemModal 
+      v-if="showAddProblemModal"
+      :problem-sets="problemSets"
+      @close="showAddProblemModal = false"
+      @problem-added="handleProblemAdded"
+      @error="handleError"
+    />
+
+    <!-- Edit Problem Modal -->
+    <AddProblemModal 
+      v-if="showEditProblemModal"
+      :problem-sets="problemSets"
+      :edit-mode="true"
+      :problem-data="selectedProblem"
+      @close="showEditProblemModal = false"
+      @problem-updated="handleProblemUpdated"
+      @error="handleError"
+    />
+
+    <!-- Problem Sets Management Modal -->
+    <ProblemSetsModal 
+      v-if="showProblemSetsModal"
+      :problem-sets="problemSets"
+      :problems="problems"
+      @close="showProblemSetsModal = false"
+      @problem-set-added="handleProblemSetAdded"
+      @problem-set-deleted="handleProblemSetDeleted"
+      @edit-problem-set="handleEditProblemSet"
+      @error="handleError"
+    />
+
+    <!-- Edit Problem Set Modal -->
+    <EditProblemSetModal
+      v-if="showEditProblemSetModal"
+      :problem-set-slug="selectedProblemSetSlug"
+      :problems="problems"
+      @close="showEditProblemSetModal = false"
+      @problem-set-updated="handleProblemSetUpdated"
+      @error="handleError"
+    />
   </div>
 </template>
 
@@ -65,11 +111,17 @@
 import { mapGetters } from 'vuex';
 import axios from 'axios';
 import AdminNavBar from './AdminNavBar.vue';
+import AddProblemModal from '../modals/AddProblemModal.vue';
+import ProblemSetsModal from '../modals/ManageProblemSetModal.vue';
+import EditProblemSetModal from '../modals/EditProblemSetModal.vue';
 
 export default {
   name: 'AdminProblems',
   components: {
-    AdminNavBar
+    AdminNavBar,
+    AddProblemModal,
+    ProblemSetsModal,
+    EditProblemSetModal
   },
   data() {
     return {
@@ -78,8 +130,11 @@ export default {
       loading: true,
       error: null,
       showAddProblemModal: false,
+      showEditProblemModal: false,
       showProblemSetsModal: false,
-      selectedProblemId: null
+      showEditProblemSetModal: false,
+      selectedProblem: null,
+      selectedProblemSetSlug: null
     };
   },
   computed: {
@@ -118,51 +173,154 @@ export default {
       }
     },
     
-    getProblemSets(problem) {
-      // Extract and format problem sets this problem belongs to
+    getCategoryNames(problem) {
+      if (!problem.categories || problem.categories.length === 0) {
+        return 'None';
+      }
+      return problem.categories.map(cat => cat.name).join(', ');
+    },
+    
+    getProblemSetNames(problem) {
+      // The problem_sets field contains the actual problem sets this problem belongs to
       if (!problem.problem_sets || problem.problem_sets.length === 0) {
         return 'None';
       }
       
-      return problem.problem_sets.map(psId => {
-        const problemSet = this.problemSets.find(ps => ps.id === psId);
-        return problemSet ? problemSet.name : 'Unknown';
-      }).join(', ');
+      // problem_sets is a list of problem set objects with their data
+      return problem.problem_sets.map(ps => ps.title || ps.name || 'Unknown').join(', ');
     },
     
     difficultyClass(difficulty) {
       switch(difficulty.toLowerCase()) {
         case 'easy':
           return 'easy-badge';
-        case 'medium':
+        case 'beginner':
+          return 'easy-badge';
+        case 'intermediate':
           return 'medium-badge';
-        case 'hard':
+        case 'advanced':
           return 'hard-badge';
         default:
           return 'default-badge';
       }
     },
     
-    editProblem(problemId) {
-      this.selectedProblemId = problemId;
-      // Implementation for editing problem
-    },
-    
-    confirmDelete(problemId) {
-      if (confirm('Are you sure you want to delete this problem? This action cannot be undone.')) {
-        this.deleteProblem(problemId);
+    problemTypeClass(type) {
+      switch(type) {
+        case 'eipl':
+          return 'eipl-badge';
+        case 'function_redefinition':
+          return 'function-badge';
+        default:
+          return 'default-type-badge';
       }
     },
     
-    async deleteProblem(problemId) {
+    getProblemTypeLabel(type) {
+      switch(type) {
+        case 'eipl':
+          return 'EiPL';
+        case 'function_redefinition':
+          return 'Function';
+        default:
+          return 'Unknown';
+      }
+    },
+    
+    editProblem(problemSlug) {
+      const problem = this.problems.find(p => p.slug === problemSlug);
+      if (problem) {
+        this.selectedProblem = problem;
+        this.showEditProblemModal = true;
+      }
+    },
+    
+    confirmDelete(problem) {
+      if (confirm(`Are you sure you want to delete the problem "${problem.title}"? This action cannot be undone.`)) {
+        this.deleteProblem(problem);
+      }
+    },
+    
+    async deleteProblem(problem) {
       try {
-        await axios.delete(`/api/admin/problem/${problemId}/`);
+        await axios.delete(`/api/admin/problems/${problem.slug}/`);
         // Remove the problem from the array
-        this.problems = this.problems.filter(problem => problem.id !== problemId);
+        this.problems = this.problems.filter(p => p.slug !== problem.slug);
       } catch (error) {
         this.error = 'Failed to delete problem. Please try again.';
         console.error('Error deleting problem:', error);
       }
+    },
+
+    // Modal event handlers
+    handleProblemAdded(newProblem) {
+      this.problems.push(newProblem);
+      this.showAddProblemModal = false;
+    },
+    
+    handleProblemUpdated(updatedProblem) {
+      const index = this.problems.findIndex(p => p.slug === updatedProblem.slug);
+      if (index !== -1) {
+        this.problems[index] = updatedProblem;
+      }
+      this.showEditProblemModal = false;
+      this.selectedProblem = null;
+    },
+
+    handleProblemSetAdded(newProblemSet) {
+      this.problemSets.push(newProblemSet);
+    },
+
+    handleProblemSetDeleted(deletedData) {
+      console.log('Problem set deletion event received:', deletedData);
+      
+      // Handle both old format (just ID) and new format (object with slug/id)
+      let slug, id;
+      if (typeof deletedData === 'object' && deletedData !== null) {
+        slug = deletedData.slug;
+        id = deletedData.id;
+      } else {
+        // Backward compatibility - assume it's just an ID
+        id = deletedData;
+      }
+      
+      // Use both identifiers for maximum safety - filter out the deleted item
+      this.problemSets = this.problemSets.filter(ps => {
+        // Keep items that don't match either the slug or id
+        const matchesSlug = slug && ps.slug === slug;
+        const matchesId = id && (ps.id === id || ps.id === String(id) || String(ps.id) === String(id));
+        return !matchesSlug && !matchesId;
+      });
+      
+      console.log('Problem sets after deletion:', this.problemSets.length);
+      
+      // Refresh to ensure consistency with backend and update problem associations
+      this.fetchProblemSets();
+    },
+
+    handleEditProblemSet(problemSetSlug) {
+      this.selectedProblemSetSlug = problemSetSlug;
+      this.showEditProblemSetModal = true;
+      this.showProblemSetsModal = false;
+    },
+
+    handleProblemSetUpdated(updatedProblemSet) {
+      // Update the problem set in the local array
+      const index = this.problemSets.findIndex(ps => ps.slug === updatedProblemSet.slug);
+      if (index !== -1) {
+        this.problemSets[index] = updatedProblemSet;
+      }
+      // Refresh problems to update their problem_sets arrays
+      this.fetchProblems();
+      this.showEditProblemSetModal = false;
+    },
+
+    handleError(errorMessage) {
+      this.error = errorMessage;
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        this.error = null;
+      }, 5000);
     }
   }
 }
@@ -186,7 +344,6 @@ export default {
   align-items: center;
   gap: var(--spacing-sm);
 }
-
 
 .status-container {
   margin-bottom: var(--spacing-xl);
@@ -295,6 +452,35 @@ export default {
   border: 1px solid var(--color-info);
 }
 
+.type-badge {
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-xl);
+  font-weight: 600;
+  font-size: var(--font-size-xs);
+  display: inline-block;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.eipl-badge {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #0369a1;
+}
+
+.function-badge {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #6b21a8;
+}
+
+.default-type-badge {
+  background: var(--color-bg-hover);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-bg-border);
+}
+
 .actions-cell {
   display: flex;
   gap: var(--spacing-md);
@@ -330,7 +516,6 @@ export default {
   font-weight: bold;
 }
 
-
 .edit-button {
   background: var(--color-bg-hover);
   color: var(--color-text-tertiary);
@@ -343,7 +528,6 @@ export default {
   color: var(--color-text-primary);
 }
 
-
 .delete-button {
   background: var(--color-error-bg);
   color: var(--color-error);
@@ -355,7 +539,6 @@ export default {
   color: var(--color-text-primary);
   transform: translateY(-1px);
 }
-
 
 /* Responsive Design */
 @media (max-width: 768px) {

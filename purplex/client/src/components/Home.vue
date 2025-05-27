@@ -6,10 +6,6 @@
           <span class="title-icon">📚</span>
           Explain in Plain Language Questions
         </h2>
-        <button v-if="isAdmin" @click="showAddProblemSetModal = true" class="add-btn">
-          <span class="plus-icon">+</span>
-          Add Problem Set
-        </button>
       </div>
       
       <div v-if="loading.codeComprehension" class="gallery-grid">
@@ -31,7 +27,7 @@
         <div 
           class="problem-set-card" 
           v-for="problemSet in problemsSets" 
-          :key="problemSet.name" 
+          :key="problemSet.slug" 
           @click="handleClick(problemSet)"
         >
           <div class="card-content">
@@ -51,7 +47,14 @@
                     :style="{ width: getProgressPercentage(problemSet) + '%' }"
                   ></div>
                 </div>
-                <span class="progress-text">{{ getCompletedCount(problemSet) }} / {{ getTotalProblems(problemSet) }} completed</span>
+                <span class="progress-text">
+                  <template v-if="getTotalProblems(problemSet) === 0">
+                    No problems yet
+                  </template>
+                  <template v-else>
+                    {{ getCompletedCount(problemSet) }} / {{ getTotalProblems(problemSet) }} completed
+                  </template>
+                </span>
               </div>
             </div>
           </div>
@@ -74,68 +77,6 @@
       </div>
     </div>
 
-    <!-- Add Problem Set Modal -->
-    <div v-if="showAddProblemSetModal" class="modal-backdrop" @click.self="showAddProblemSetModal = false">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title">Add New Problem Set</h2>
-          <button type="button" @click="showAddProblemSetModal = false" class="modal-close">
-            <span class="close-icon">✕</span>
-          </button>
-        </div>
-        
-        <form @submit.prevent="createProblemSet" class="modal-form">
-          <div class="form-field">
-            <label for="title" class="field-label">
-              <span class="label-text">Title</span>
-              <span class="label-subtitle">Display name for the problem set</span>
-            </label>
-            <input type="text" id="title" v-model="newProblemSet.title" required class="form-input">
-          </div>
-          
-          <div class="form-field">
-            <label for="sid" class="field-label">
-              <span class="label-text">Set ID</span>
-              <span class="label-subtitle">Unique identifier (lowercase, no spaces)</span>
-            </label>
-            <input type="text" id="sid" v-model="newProblemSet.sid" required class="form-input" pattern="[a-z0-9-_]+">
-          </div>
-          
-          <div class="form-field">
-            <label for="description" class="field-label">
-              <span class="label-text">Description</span>
-              <span class="label-subtitle">Brief description of the problem set</span>
-            </label>
-            <textarea id="description" v-model="newProblemSet.description" rows="3" class="form-input form-textarea"></textarea>
-          </div>
-          
-          <div class="form-field">
-            <label for="icon" class="field-label">
-              <span class="label-text">Icon</span>
-              <span class="label-subtitle">Upload an image for the problem set</span>
-            </label>
-            <div class="file-input-wrapper">
-              <input type="file" id="icon" @change="handleFileUpload" accept="image/*" class="file-input" hidden>
-              <label for="icon" class="file-input-label">
-                <span class="file-icon">📁</span>
-                <span v-if="!newProblemSet.icon">Choose File</span>
-                <span v-else>{{ newProblemSet.icon.name }}</span>
-              </label>
-            </div>
-          </div>
-          
-          <div class="modal-actions">
-            <button type="button" @click="showAddProblemSetModal = false" class="btn btn-secondary">
-              Cancel
-            </button>
-            <button type="submit" class="btn btn-primary">
-              <span class="btn-icon">✨</span>
-              Create Problem Set
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -144,18 +85,12 @@
 
   export default {
     name: 'Gallery',
+    components: {},
     data() {
       return {
         problemsSets: [],
         loading: {
           codeComprehension: true, // Start with loading state as true
-        },
-        showAddProblemSetModal: false,
-        newProblemSet: {
-          title: '',
-          sid: '',
-          description: '',
-          icon: null
         }
       };
     },
@@ -166,18 +101,17 @@
     },
     methods: {
       handleClick(problemSet) {
-        this.$router.push({ path: `/problem-set/${problemSet.sid}`});
+        this.$router.push({ path: `/problem-set/${problemSet.slug}`});
       },
-      handleFileUpload(event) {
-        this.newProblemSet.icon = event.target.files[0];
-      },
-      // Placeholder methods for progress tracking
+      // Progress tracking methods
       getTotalProblems(problemSet) {
-        return problemSet.problems ? problemSet.problems.length : 10; // Default to 10 for demo
+        // Use problems_count from API if available, otherwise fallback to problems array length
+        return problemSet.problems_count || (problemSet.problems ? problemSet.problems.length : 0);
       },
       getCompletedCount(problemSet) {
-        // Placeholder: return a fixed number for demo
-        return 3; // Just return 3 completed for all sets as placeholder
+        // TODO: This needs to be implemented with actual user submission data
+        // For now, return 0 to show accurate progress
+        return 0;
       },
       getProgressPercentage(problemSet) {
         const total = this.getTotalProblems(problemSet);
@@ -186,47 +120,6 @@
       },
       isCompleted(problemSet) {
         return this.getProgressPercentage(problemSet) === 100;
-      },
-      createProblemSet() {
-        // Create FormData object to send form including the file
-        const formData = new FormData();
-        formData.append('title', this.newProblemSet.title);
-        formData.append('sid', this.newProblemSet.sid);
-        // Empty problems array as required by the serializer
-        formData.append('problems', JSON.stringify([]));
-        if (this.newProblemSet.icon) {
-          formData.append('icon', this.newProblemSet.icon);
-        }
-
-        console.log('Creating problem set with:', {
-          title: this.newProblemSet.title,
-          sid: this.newProblemSet.sid,
-          problems: [],
-          icon: this.newProblemSet.icon ? this.newProblemSet.icon.name : 'No icon uploaded'
-        });
-
-        axios.post('/api/admin/problem-sets/', formData)
-          .then(response => {
-            return response.data;
-          })
-          .then(data => {
-            console.log('Problem set created successfully:', data);
-            this.problemsSets.push(data);
-            this.resetForm();
-            this.showAddProblemSetModal = false;
-          })
-          .catch(error => {
-            console.error('Error creating problem set:', error);
-            alert(`Failed to create problem set: ${error.message}`);
-          });
-      },
-      resetForm() {
-        this.newProblemSet = {
-          title: '',
-          sid: '',
-          description: '',
-          icon: null
-        };
       },
       loadProblemSets() {
         // Only load if user is authenticated
@@ -306,31 +199,6 @@
   font-size: 32px;
 }
 
-.add-btn {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
-  border: none;
-  border-radius: var(--radius-base);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  transition: var(--transition-base);
-  box-shadow: var(--shadow-colored);
-}
-
-.add-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.plus-icon {
-  font-size: 18px;
-  font-weight: bold;
-}
 
 /* Skeleton Loading State */
 .problem-set-card.skeleton {
