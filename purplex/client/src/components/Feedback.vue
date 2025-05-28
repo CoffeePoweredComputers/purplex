@@ -106,7 +106,8 @@
 
 <script>
 import Editor from '@/features/editor/Editor.vue';
-import PyTutorModal from '../modals/PyTutorModal.vue'; 
+import PyTutorModal from '../modals/PyTutorModal.vue';
+import { PythonTutorService } from '@/services/pythonTutor.service'; 
 
 export default {
   components: { 
@@ -242,9 +243,12 @@ export default {
     // Debug functionality
     openPyTutor(testCase) {
       if (!testCase) return;
-      const code = this.slides[this.currentSlide].content + '\n' + testCase.function_call;
-      const url = `https://pythontutor.com/render.html#code=${encodeURIComponent(code)}&cumulative=false&curInstr=0&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&py=3&rawInputLstJSON=%5B%5D&textReferences=false`;
-      this.pythonTutorUrl = url;
+      
+      const solutionCode = this.slides[this.currentSlide].content;
+      const formattedCode = PythonTutorService.formatCodeWithTest(solutionCode, testCase);
+      
+      // Generate embed URL using the service
+      this.pythonTutorUrl = PythonTutorService.generateEmbedUrl(formattedCode);
       this.showModal = true;
     },
   },
