@@ -28,6 +28,9 @@ DEBUG = os.environ.setdefault('DJANGO_DEBUG', 'False') == 'True'
 
 print(f"Running in DEBUG mode: {DEBUG}")
 
+# OpenAI API Configuration
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+
 ALLOWED_HOSTS = ["*"]
 
 

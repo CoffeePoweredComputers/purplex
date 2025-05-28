@@ -13,6 +13,11 @@
                     </router-link>
                 </li>
                 <li>
+                    <router-link to="/admin/problem-sets" class="admin-link">
+                        Problem Sets
+                    </router-link>
+                </li>
+                <li>
                     <router-link to="/admin/submissions" class="admin-link">
                         Submissions
                     </router-link>
