@@ -231,3 +231,90 @@ class AdminSubmissionDetailView(APIView):
         }
         
         return Response(submission_data)
+
+class UserLastSubmissionView(APIView):
+    """Get user's most recent submission for a specific problem"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, problem_slug):
+        """Get the user's most recent submission for this problem"""
+        try:
+            # Debug logging
+            print(f"Looking for submissions for user: {request.user.username}, problem_slug: {problem_slug}")
+            
+            # Check if problem exists
+            from purplex.problems_app.models import Problem
+            problem = Problem.objects.filter(slug=problem_slug).first()
+            if not problem:
+                print(f"Problem not found with slug: {problem_slug}")
+                return Response({'has_submission': False, 'error': f'Problem not found: {problem_slug}'})
+            
+            print(f"Problem found: {problem.title}")
+            
+            # Get the user's most recent submission for this problem
+            submission = PromptSubmission.objects.filter(
+                user=request.user,
+                problem=problem
+            ).select_related('problem', 'problem_set').order_by('-time').first()
+            
+            print(f"Submissions found: {PromptSubmission.objects.filter(user=request.user, problem=problem).count()}")
+            
+            if not submission:
+                print("No submission found for this user and problem")
+                return Response({'has_submission': False})
+            
+            print(f"Latest submission found: ID {submission.id}, Score: {submission.score}")
+            print(f"Raw user_solution: {submission.user_solution}")
+            print(f"Type of user_solution: {type(submission.user_solution)}")
+            
+            # Parse the user_solution JSON data
+            user_solution_data = submission.user_solution or {}
+            
+            # Handle case where user_solution might be a string instead of dict
+            if isinstance(user_solution_data, str):
+                try:
+                    import json
+                    user_solution_data = json.loads(user_solution_data)
+                except json.JSONDecodeError:
+                    print(f"Failed to parse user_solution as JSON: {user_solution_data}")
+                    user_solution_data = {}
+            
+            # Also try to parse feedback field which might contain the actual data
+            feedback_data = {}
+            if submission.feedback:
+                try:
+                    import json
+                    feedback_data = json.loads(submission.feedback)
+                    print(f"Parsed feedback data: {feedback_data}")
+                except json.JSONDecodeError:
+                    print(f"Feedback is not JSON: {submission.feedback}")
+            
+            # Use standard field names: variations, results, passing_variations
+            variations = user_solution_data.get('variations', [])
+            results = user_solution_data.get('results', [])
+            
+            # Calculate passing variations from the test results
+            passing_variations = 0
+            if results:
+                for result_set in results:
+                    if isinstance(result_set, list) and all(test.get('pass', False) for test in result_set):
+                        passing_variations += 1
+            
+            print(f"Final data - Variations: {len(variations)}, Results: {len(results)}, Passing: {passing_variations}")
+            
+            return Response({
+                'has_submission': True,
+                'submission_id': submission.id,
+                'score': submission.score,
+                'variations': variations,
+                'results': results,
+                'passing_variations': passing_variations,
+                'submitted_at': submission.time.isoformat() if submission.time else None,
+                'feedback': submission.feedback
+            })
+            
+        except Exception as e:
+            print(f"Error in UserLastSubmissionView: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response({'error': str(e)}, status=500)
