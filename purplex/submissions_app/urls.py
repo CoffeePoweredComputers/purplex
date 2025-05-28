@@ -3,7 +3,9 @@ from .views import (
     PythonTestView, 
     PromptSubmissionResultView, 
     SubmitCodeView,
-    AdminSubmissionsView
+    AdminSubmissionsView,
+    AdminSubmissionExportView,
+    AdminSubmissionDetailView
 )
 
 urlpatterns = [
@@ -14,5 +16,7 @@ urlpatterns = [
     
     # Admin endpoints
     path('admin/submissions/', AdminSubmissionsView.as_view(), name='admin_submissions'),
+    path('admin/submissions/export/', AdminSubmissionExportView.as_view(), name='admin_submissions_export'),
+    path('admin/submissions/<int:submission_id>/', AdminSubmissionDetailView.as_view(), name='admin_submission_detail'),
     path('admin/submission/<int:submission_id>/', AdminSubmissionsView.as_view(), name='admin_submission_delete'),
 ]

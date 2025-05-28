@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
+from django.db import models
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from purplex.users_app.permissions import IsAdmin, IsAdminOrReadOnly, IsAuthenticated
@@ -110,16 +111,26 @@ class AdminSubmissionsView(APIView):
     
     def get(self, request):
         """List all submissions (admin only)"""
-        submissions = PromptSubmission.objects.all().select_related('user', 'problem')
+        submissions = PromptSubmission.objects.all().select_related('user', 'problem', 'problem_set')
         
         submissions_data = []
         for submission in submissions:
+            # Calculate status based on score
+            if submission.score >= 80:
+                status = 'passed'
+            elif submission.score > 0:
+                status = 'partial'
+            else:
+                status = 'failed'
+                
             submissions_data.append({
                 'id': submission.id,
+                'user': submission.user.username,  # Changed from 'username'
                 'problem': submission.problem.title,
-                'username': submission.user.username,
+                'problem_set': submission.problem_set.title if submission.problem_set else 'Unknown',
                 'score': submission.score,
-                'submitted_at': submission.time,
+                'status': status,  # Added missing status
+                'created_at': submission.time,  # Changed from 'submitted_at'
             })
             
         return Response(submissions_data)
@@ -129,3 +140,94 @@ class AdminSubmissionsView(APIView):
         submission = get_object_or_404(PromptSubmission, id=submission_id)
         submission.delete()
         return Response(status=204)
+
+class AdminSubmissionExportView(APIView):
+    """Export submissions data for CSV download (admin only)"""
+    permission_classes = [IsAdmin]
+    
+    def post(self, request):
+        """Get detailed submission data for CSV export"""
+        filters = request.data.get('filters', {})
+        
+        # Start with all submissions
+        submissions = PromptSubmission.objects.all().select_related('user', 'problem', 'problem_set')
+        
+        # Apply filters
+        search_query = filters.get('search', '').strip().lower()
+        if search_query:
+            submissions = submissions.filter(
+                models.Q(user__username__icontains=search_query) |
+                models.Q(problem__title__icontains=search_query) |
+                models.Q(problem_set__title__icontains=search_query)
+            )
+        
+        status_filter = filters.get('status', '').strip()
+        if status_filter:
+            # Filter by score ranges based on status
+            if status_filter == 'passed':
+                submissions = submissions.filter(score__gte=80)
+            elif status_filter == 'partial':
+                submissions = submissions.filter(score__gt=0, score__lt=80)
+            elif status_filter == 'failed':
+                submissions = submissions.filter(score=0)
+        
+        problem_set_filter = filters.get('problem_set', '').strip()
+        if problem_set_filter:
+            submissions = submissions.filter(problem_set__title=problem_set_filter)
+        
+        # Prepare detailed data for export
+        export_data = []
+        for submission in submissions:
+            # Calculate status
+            if submission.score >= 80:
+                status = 'passed'
+            elif submission.score > 0:
+                status = 'partial'
+            else:
+                status = 'failed'
+            
+            export_data.append({
+                'id': submission.id,
+                'user': submission.user.username,
+                'problem': submission.problem.title,
+                'problem_set': submission.problem_set.title if submission.problem_set else 'Unknown',
+                'score': submission.score,
+                'status': status,
+                'created_at': submission.time.isoformat() if submission.time else '',
+                'user_solution': submission.user_solution or '',
+                'feedback': submission.feedback or '',
+                'prompt': submission.prompt or ''
+            })
+        
+        return Response(export_data)
+
+class AdminSubmissionDetailView(APIView):
+    """Get detailed data for a single submission (admin only)"""
+    permission_classes = [IsAdmin]
+    
+    def get(self, request, submission_id):
+        """Get full submission details including user solution and feedback"""
+        submission = get_object_or_404(PromptSubmission, id=submission_id)
+        
+        # Calculate status
+        if submission.score >= 80:
+            status = 'passed'
+        elif submission.score > 0:
+            status = 'partial'
+        else:
+            status = 'failed'
+        
+        submission_data = {
+            'id': submission.id,
+            'user': submission.user.username,
+            'problem': submission.problem.title,
+            'problem_set': submission.problem_set.title if submission.problem_set else 'Unknown',
+            'score': submission.score,
+            'status': status,
+            'created_at': submission.time.isoformat() if submission.time else '',
+            'user_solution': submission.user_solution or '',
+            'feedback': submission.feedback or '',
+            'prompt': submission.prompt or ''
+        }
+        
+        return Response(submission_data)

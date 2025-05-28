@@ -2,7 +2,10 @@ from django.urls import path
 from .views import (
     # Public/Student views
     ProblemListView, ProblemDetailView, ProblemSetListView, ProblemSetDetailView,
-    CategoryListView, TestSolutionView,
+    CategoryListView, TestSolutionView, SubmitSolutionView, EiPLSubmissionView,
+    
+    # Progress views
+    UserProgressView, ProblemSetProgressView, UserProgressSummaryView,
     
     # Admin views
     AdminProblemListView, AdminProblemDetailView, AdminTestProblemView,
@@ -18,6 +21,14 @@ urlpatterns = [
     path('problem-sets/<slug:slug>/', ProblemSetDetailView.as_view(), name='problem_set_detail'),
     path('categories/', CategoryListView.as_view(), name='category_list'),
     path('test-solution/', TestSolutionView.as_view(), name='test_solution'),
+    path('submit-solution/', SubmitSolutionView.as_view(), name='submit_solution'),
+    path('submit-eipl/', EiPLSubmissionView.as_view(), name='submit_eipl'),
+    
+    # Progress endpoints
+    path('progress/', UserProgressView.as_view(), name='user_progress_all'),
+    path('progress/<slug:problem_slug>/', UserProgressView.as_view(), name='user_progress_problem'),
+    path('progress-summary/', UserProgressSummaryView.as_view(), name='user_progress_summary'),
+    path('problem-sets/<slug:slug>/progress/', ProblemSetProgressView.as_view(), name='problem_set_progress'),
     
     # Admin endpoints - Problems
     path('admin/problems/', AdminProblemListView.as_view(), name='admin_problem_list'),

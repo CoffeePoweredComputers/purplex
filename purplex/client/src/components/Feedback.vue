@@ -152,6 +152,14 @@ export default {
     slides() {
       var slideResults = this.codeResults.map((code, index) => {
         const tests = this.testResults[index];
+        // Handle case where tests might be undefined
+        if (!tests || !Array.isArray(tests)) {
+          return {
+            content: code,
+            correct: false,
+            tests: []
+          };
+        }
         const passing = tests.every(test => test.pass);
         return {
           content: code,

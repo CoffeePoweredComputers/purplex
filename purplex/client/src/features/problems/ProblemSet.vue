@@ -228,35 +228,26 @@ export default {
                     return;
                 }
 
-                /* Generating the five code snippets */
-                const response = await axios.post('/api/generate/', {
+                // Use the new unified endpoint
+                const response = await axios.post('/api/submit-eipl/', {
+                    problem_slug: this.getProblem().slug,
+                    problem_set_slug: this.$route.params.slug,
                     prompt: promptText
                 });
 
-                this.codeResults = response.data.code;
-
-
-                /* Testing each of the code snippets */
-                const newTestResults = [];
-                for (let i = 0; i < this.codeResults.length; i++) {
-                    const generated_code = this.codeResults[i];
-                    const response = await axios.post('/api/test-solution/', {
-                        user_code: generated_code,
-                        problem_slug: this.getProblem().slug,
-                    });
-
-                    const testResult = response.data;
-                    console.log("Test result:", testResult);
-                    newTestResults.push(testResult.test_results);
-                }
-                this.testResults = newTestResults;
+                const data = response.data;
+                
+                // Update component state with response data
+                this.codeResults = data.code_variations;
+                this.testResults = data.test_results;
+                this.promptCorrectness = data.passing_variations;
                 
                 // Update problem status after submission
                 const currentProblemSlug = this.getProblem().slug;
-                const score = this.calculateScore(newTestResults);
                 this.problemStatuses[currentProblemSlug] = {
-                    status: score === 100 ? 'completed' : 'attempted',
-                    score: score
+                    status: data.progress.is_completed ? 'completed' : 'attempted',
+                    score: data.score,
+                    attempts: data.progress.attempts
                 };
 
             } catch (error) {
@@ -284,23 +275,6 @@ export default {
             } finally {
                 this.loading = false;
             }
-        },
-        
-        calculateScore(testResults) {
-            // Calculate percentage score based on test results
-            if (!testResults || testResults.length === 0) return 0;
-            
-            let totalTests = 0;
-            let passedTests = 0;
-            
-            testResults.forEach(result => {
-                if (result && Array.isArray(result)) {
-                    totalTests += result.length;
-                    passedTests += result.filter(test => test.pass).length;
-                }
-            });
-            
-            return totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
         },
         loadProblemSet() {
             const problemSetSlug = this.$route.params.slug;
@@ -347,21 +321,44 @@ export default {
         },
         
         loadProblemStatuses() {
-            // TODO: Replace with actual API call to get user's submission history
-            // Example: axios.get('/api/user/submissions/')
-            // For now, using mock data to demonstrate the UI
+            const problemSetSlug = this.$route.params.slug;
             
-            // Mock data - remove when API is available
-            this.problems.forEach((problem, index) => {
-                // Simulate different statuses for demo
-                if (index === 0) {
-                    this.problemStatuses[problem.slug] = { status: 'completed', score: 100 };
-                } else if (index === 1) {
-                    this.problemStatuses[problem.slug] = { status: 'attempted', score: 75 };
-                } else {
-                    this.problemStatuses[problem.slug] = { status: 'not-tried', score: 0 };
-                }
-            });
+            // Load progress data for this problem set
+            axios.get(`/api/problem-sets/${problemSetSlug}/progress/`)
+                .then(response => {
+                    console.log('Progress data loaded:', response.data);
+                    
+                    // Map progress data to our status format
+                    const progressData = response.data.problems_progress || [];
+                    progressData.forEach(progress => {
+                        this.problemStatuses[progress.problem_slug] = {
+                            status: this.mapStatusFromAPI(progress.status, progress.best_score),
+                            score: progress.best_score,
+                            attempts: progress.attempts
+                        };
+                    });
+                    
+                    // Also update overall progress metrics if needed
+                    if (response.data.problem_set) {
+                        this.problemSetProgress = response.data.problem_set;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading progress data:', error);
+                });
+        },
+        
+        mapStatusFromAPI(apiStatus, score) {
+            // Map API status to our UI status
+            if (apiStatus === 'completed' || apiStatus === 'mastered') {
+                return 'completed';
+            } else if (apiStatus === 'not_started') {
+                return 'not-tried';
+            } else if (score > 0) {
+                return 'attempted';
+            } else {
+                return 'not-tried';
+            }
         },
         
         getProblemStatus(problemSlug) {
@@ -385,17 +382,8 @@ export default {
     },
     computed: {
         numPassed() {
-            if (this.testResults.length == 0) {
-                return 0;
-            }
-            let count = 0;
-            for (let i = 0; i < this.testResults.length; i++) {
-                const tests = this.testResults[i];
-                console.log("THESE ARE THE TESTS:", tests);
-                const allPass = tests && tests.every(test => test.pass);
-                count += allPass ? 1 : 0;
-            }
-            return count;
+            // This is now tracked by promptCorrectness from the API response
+            return this.promptCorrectness || 0;
         },
         solutionCode() {
             if (!this.problems || this.problems.length === 0) {
@@ -455,6 +443,7 @@ export default {
             
             /* Problem Status Tracking */
             problemStatuses: {}, // Will store { problemId: { status: 'completed'|'attempted'|'not-tried', score: number } }
+            problemSetProgress: null, // Overall progress for the problem set
             
             /* Editor Settings */
             editorFontSize: 14,
@@ -692,7 +681,7 @@ export default {
     transition: var(--transition-base);
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 0 0 auto;
     min-height: 0;
 }
 

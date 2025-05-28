@@ -15,12 +15,8 @@
       </div>
       
       <div class="controls-container" v-if="!loading && !error">
-        <button class="action-button add-button" @click="showAddProblemModal = true">
+        <button class="action-button add-button" @click="showAddEditProblemModal = true">
           Add New Problem
-        </button>
-        
-        <button class="action-button manage-sets-button" @click="showProblemSetsModal = true">
-          Manage Problem Sets
         </button>
       </div>
       
@@ -64,16 +60,16 @@
     </div>
 
     <!-- Add Problem Modal -->
-    <AddProblemModal 
-      v-if="showAddProblemModal"
+    <AddEditProblemModal 
+      v-if="showAddEditProblemModal"
       :problem-sets="problemSets"
-      @close="showAddProblemModal = false"
+      @close="showAddEditProblemModal = false"
       @problem-added="handleProblemAdded"
       @error="handleError"
     />
 
     <!-- Edit Problem Modal -->
-    <AddProblemModal 
+    <AddEditProblemModal 
       v-if="showEditProblemModal"
       :problem-sets="problemSets"
       :edit-mode="true"
@@ -83,27 +79,6 @@
       @error="handleError"
     />
 
-    <!-- Problem Sets Management Modal -->
-    <ProblemSetsModal 
-      v-if="showProblemSetsModal"
-      :problem-sets="problemSets"
-      :problems="problems"
-      @close="showProblemSetsModal = false"
-      @problem-set-added="handleProblemSetAdded"
-      @problem-set-deleted="handleProblemSetDeleted"
-      @edit-problem-set="handleEditProblemSet"
-      @error="handleError"
-    />
-
-    <!-- Edit Problem Set Modal -->
-    <EditProblemSetModal
-      v-if="showEditProblemSetModal"
-      :problem-set-slug="selectedProblemSetSlug"
-      :problems="problems"
-      @close="showEditProblemSetModal = false"
-      @problem-set-updated="handleProblemSetUpdated"
-      @error="handleError"
-    />
   </div>
 </template>
 
@@ -111,30 +86,23 @@
 import { mapGetters } from 'vuex';
 import axios from 'axios';
 import AdminNavBar from './AdminNavBar.vue';
-import AddProblemModal from '../modals/AddProblemModal.vue';
-import ProblemSetsModal from '../modals/ManageProblemSetModal.vue';
-import EditProblemSetModal from '../modals/EditProblemSetModal.vue';
+import AddEditProblemModal from '../modals/AddEditProblemModal.vue';
 
 export default {
   name: 'AdminProblems',
   components: {
     AdminNavBar,
-    AddProblemModal,
-    ProblemSetsModal,
-    EditProblemSetModal
+    AddEditProblemModal
   },
   data() {
     return {
       problems: [],
-      problemSets: [],
+      problemSets: [], // Add this to store problem sets for the modal
       loading: true,
       error: null,
-      showAddProblemModal: false,
+      showAddEditProblemModal: false,
       showEditProblemModal: false,
-      showProblemSetsModal: false,
-      showEditProblemSetModal: false,
-      selectedProblem: null,
-      selectedProblemSetSlug: null
+      selectedProblem: null
     };
   },
   computed: {
@@ -154,13 +122,38 @@ export default {
     async fetchProblems() {
       try {
         this.loading = true;
+        console.log('Fetching problems from /api/admin/problems/...');
         const response = await axios.get('/api/admin/problems/');
+        console.log('Problems fetched successfully:', response.data);
         this.problems = response.data;
         this.loading = false;
       } catch (error) {
-        this.error = 'Failed to load problems. Please try again.';
+        console.error('Full error object:', error);
+        console.error('Error response:', error.response);
+        console.error('Error status:', error.response?.status);
+        console.error('Error data:', error.response?.data);
+        
+        let errorMessage = 'Failed to load problems. ';
+        if (error.response) {
+          if (error.response.status === 401) {
+            errorMessage += 'Authentication required. Please log in again.';
+          } else if (error.response.status === 403) {
+            errorMessage += 'Access denied. Admin privileges required.';
+          } else if (error.response.status === 404) {
+            errorMessage += 'API endpoint not found.';
+          } else if (error.response.status === 500) {
+            errorMessage += 'Server error. Please try again later.';
+          } else {
+            errorMessage += `Error: ${error.response.data?.detail || error.message}`;
+          }
+        } else if (error.request) {
+          errorMessage += 'No response from server. Check if backend is running.';
+        } else {
+          errorMessage += error.message;
+        }
+        
+        this.error = errorMessage;
         this.loading = false;
-        console.error('Error fetching problems:', error);
       }
     },
     
@@ -170,8 +163,10 @@ export default {
         this.problemSets = response.data;
       } catch (error) {
         console.error('Error fetching problem sets:', error);
+        // Don't set error state here as it's not critical for the page to load
       }
     },
+    
     
     getCategoryNames(problem) {
       if (!problem.categories || problem.categories.length === 0) {
@@ -255,7 +250,7 @@ export default {
     // Modal event handlers
     handleProblemAdded(newProblem) {
       this.problems.push(newProblem);
-      this.showAddProblemModal = false;
+      this.showAddEditProblemModal = false;
     },
     
     handleProblemUpdated(updatedProblem) {
@@ -267,53 +262,6 @@ export default {
       this.selectedProblem = null;
     },
 
-    handleProblemSetAdded(newProblemSet) {
-      this.problemSets.push(newProblemSet);
-    },
-
-    handleProblemSetDeleted(deletedData) {
-      console.log('Problem set deletion event received:', deletedData);
-      
-      // Handle both old format (just ID) and new format (object with slug/id)
-      let slug, id;
-      if (typeof deletedData === 'object' && deletedData !== null) {
-        slug = deletedData.slug;
-        id = deletedData.id;
-      } else {
-        // Backward compatibility - assume it's just an ID
-        id = deletedData;
-      }
-      
-      // Use both identifiers for maximum safety - filter out the deleted item
-      this.problemSets = this.problemSets.filter(ps => {
-        // Keep items that don't match either the slug or id
-        const matchesSlug = slug && ps.slug === slug;
-        const matchesId = id && (ps.id === id || ps.id === String(id) || String(ps.id) === String(id));
-        return !matchesSlug && !matchesId;
-      });
-      
-      console.log('Problem sets after deletion:', this.problemSets.length);
-      
-      // Refresh to ensure consistency with backend and update problem associations
-      this.fetchProblemSets();
-    },
-
-    handleEditProblemSet(problemSetSlug) {
-      this.selectedProblemSetSlug = problemSetSlug;
-      this.showEditProblemSetModal = true;
-      this.showProblemSetsModal = false;
-    },
-
-    handleProblemSetUpdated(updatedProblemSet) {
-      // Update the problem set in the local array
-      const index = this.problemSets.findIndex(ps => ps.slug === updatedProblemSet.slug);
-      if (index !== -1) {
-        this.problemSets[index] = updatedProblemSet;
-      }
-      // Refresh problems to update their problem_sets arrays
-      this.fetchProblems();
-      this.showEditProblemSetModal = false;
-    },
 
     handleError(errorMessage) {
       this.error = errorMessage;

@@ -146,6 +146,8 @@ class AITestGenerationService:
     
     def __init__(self):
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        import openai
+        self.client = openai.OpenAI(api_key=self.openai_api_key) if self.openai_api_key else None
     
     def generate_test_cases(self, problem_description: str, function_name: str, 
                           function_signature: str, reference_solution: str) -> List[Dict]:
@@ -194,6 +196,102 @@ Include edge cases, normal cases, and boundary conditions.
             print(f"Error generating test cases: {e}")
             
         return []
+    
+    def generate_eipl_variations(self, problem, user_prompt: str) -> Dict[str, Any]:
+        """Generate code variations for EiPL problems based on user's description"""
+        if not self.client:
+            return {
+                'success': False,
+                'error': 'OpenAI API key not configured',
+                'variations': []
+            }
+        
+        try:
+            # Create a system prompt specific to the problem
+            system_prompt = f"""
+Create five different implementations of a function called {problem.function_name} based on the user's description.
+The function should match this problem:
+
+Problem Title: {problem.title}
+Problem Description: {problem.description}
+
+Reference solution structure:
+{problem.reference_solution}
+
+Guidelines:
+1. Each implementation should be different but correct
+2. Make the code beginner-friendly and avoid unnecessary built-in functions
+3. Each function must be named exactly: {problem.function_name}
+4. Match the function signature from the reference solution
+5. Return only the function implementations, no additional text or comments
+
+Format your response as:
+```python
+def {problem.function_name}(...):
+    # implementation 1
+```
+```python
+def {problem.function_name}(...):
+    # implementation 2
+```
+```python
+def {problem.function_name}(...):
+    # implementation 3
+```
+```python
+def {problem.function_name}(...):
+    # implementation 4
+```
+```python
+def {problem.function_name}(...):
+    # implementation 5
+```
+"""
+            
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7,
+                max_tokens=2000
+            )
+            
+            content = response.choices[0].message.content
+            
+            # Extract code blocks from the response
+            import re
+            code_blocks = re.findall(r'```python\n(.*?)\n```', content, re.DOTALL)
+            
+            # Filter out empty blocks and ensure we have exactly 5
+            code_blocks = [block.strip() for block in code_blocks if block.strip()]
+            
+            if len(code_blocks) < 5:
+                # Try alternative extraction method
+                code_blocks = re.findall(r'def\s+' + re.escape(problem.function_name) + r'.*?(?=def\s+' + re.escape(problem.function_name) + r'|$)', content, re.DOTALL)
+                code_blocks = [block.strip() for block in code_blocks if block.strip()]
+            
+            # Ensure we have exactly 5 variations
+            if len(code_blocks) > 5:
+                code_blocks = code_blocks[:5]
+            elif len(code_blocks) < 5:
+                # Pad with duplicates if necessary (this shouldn't happen with proper prompting)
+                while len(code_blocks) < 5:
+                    code_blocks.append(code_blocks[-1] if code_blocks else f"def {problem.function_name}():\n    pass")
+            
+            return {
+                'success': True,
+                'variations': code_blocks,
+                'error': None
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'variations': []
+            }
 
 class ProblemValidationService:
     """Service for validating problem definitions"""
