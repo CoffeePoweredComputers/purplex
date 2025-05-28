@@ -152,14 +152,17 @@ export default {
         nextProblem() {
             this.currentProblem = (this.currentProblem + 1) % this.problems.length;
             this.updateSolutionCode();
+            this.loadLastSubmission();
         },
         prevProblem() {
             this.currentProblem = (this.currentProblem - 1 + this.problems.length) % this.problems.length;
             this.updateSolutionCode();
+            this.loadLastSubmission();
         },
         setProblem(index) {
             this.currentProblem = index;
             this.updateSolutionCode();
+            this.loadLastSubmission();
         },
         increaseFontSize() {
             if (this.editorFontSize < 24) {
@@ -238,8 +241,8 @@ export default {
                 const data = response.data;
                 
                 // Update component state with response data
-                this.codeResults = data.code_variations;
-                this.testResults = data.test_results;
+                this.codeResults = data.variations;
+                this.testResults = data.results;
                 this.promptCorrectness = data.passing_variations;
                 
                 // Update problem status after submission
@@ -304,6 +307,8 @@ export default {
                     // If problems exist, update solution code
                     if (this.problems.length > 0) {
                         this.updateSolutionCode();
+                        // Load last submission for the first problem
+                        this.loadLastSubmission();
                         // Set initial font size
                         this.$nextTick(() => {
                             if (this.$refs.entry && this.$refs.entry.editor) {
@@ -377,6 +382,57 @@ export default {
                 return `${problemName} - Completed (Score: ${status.score}%)`;
             }
             return problemName;
+        },
+        
+        async loadLastSubmission() {
+            // Get the current problem slug
+            const currentProblemSlug = this.getProblem().slug;
+            if (!currentProblemSlug) return;
+            
+            try {
+                const response = await axios.get(`/api/user/last-submission/${currentProblemSlug}/`);
+                const data = response.data;
+                
+                console.log('Last submission response:', data);
+                
+                if (data.has_submission) {
+                    console.log('Loading previous submission data:', {
+                        variations: data.variations,
+                        results: data.results,
+                        passing_variations: data.passing_variations
+                    });
+                    
+                    // Update the UI with the last submission data
+                    this.codeResults = data.variations || [];
+                    this.testResults = data.results || [];
+                    this.promptCorrectness = data.passing_variations || 0;
+                    
+                    console.log('Updated component state:', {
+                        codeResults: this.codeResults,
+                        testResults: this.testResults,
+                        promptCorrectness: this.promptCorrectness
+                    });
+                    
+                    // Also update the comprehension results if available
+                    if (data.feedback && typeof data.feedback === 'string') {
+                        this.comprehensionResults = data.feedback;
+                    }
+                } else {
+                    console.log('No previous submission found, clearing results');
+                    // No previous submission - clear the results
+                    this.codeResults = [];
+                    this.testResults = [];
+                    this.promptCorrectness = 0;
+                    this.comprehensionResults = '';
+                }
+            } catch (error) {
+                console.error('Error loading last submission:', error);
+                // On error, just clear the results
+                this.codeResults = [];
+                this.testResults = [];
+                this.promptCorrectness = 0;
+                this.comprehensionResults = '';
+            }
         }
 
     },
@@ -437,6 +493,7 @@ export default {
             /* Feedback */
             codeResults: [],
             testResults: [],
+            promptCorrectness: 0,
 
             /* Comprehension Results */
             comprehensionResults: '',

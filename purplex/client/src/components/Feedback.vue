@@ -1,85 +1,107 @@
 <template>
   <div class="feedback-container">
+    <!-- Header Section -->
+    <header class="feedback-header" v-if="slides.length > 0">
+      <div class="header-title">
+        <h3>{{ title }}</h3>
+        <span class="overall-progress">Overall: {{ Math.round(overallProgressPercent) }}% ({{ passingTests }}/{{ totalTests }} tests)</span>
+      </div>
+    </header>
 
-    <div class="title">{{ title }}</div>
-
-    <!-- The Thermometer -->
-    <div class="therm-container">
-      <div class="thermometer">
-        <div class="bar">
-          <div class="progress" :style="{ width: ((100 / (notches - 1)) * progress) + '%' }"></div>
+    <!-- Main Content -->
+    <div v-if="slides.length > 0" class="feedback-content">
+      <!-- Solution Timeline -->
+      <nav class="solution-timeline">
+        <div 
+          v-for="(slide, index) in slides" 
+          :key="index"
+          class="timeline-node"
+          :data-status="getSlideStatus(slide)"
+          :data-current="currentSlide === index"
+          @click="goToSlide(index)"
+          :title="`Solution ${index + 1}: ${slide.tests.filter(t => t.pass).length}/${slide.tests.length} tests`"
+        >
+          <span class="node-number">{{ index + 1 }}</span>
+          <span class="node-icon">{{ getSlideIcon(slide) }}</span>
         </div>
-        <div class="notches">
-          <div v-for="notch in notches" :key="notch" class="notch"></div>
+      </nav>
+
+      <!-- Code Editor -->
+      <section class="code-section">
+        <div class="code-header">
+          <span>Solution {{ currentSlide + 1 }} of {{ slides.length }}</span>
+        </div>
+        <Editor 
+          @update:value="updateSolutionCode" 
+          :value="currentSlideContents" 
+          height="300px" 
+          width="100%"
+          :highlightMarkers="currentComprehensionResult" 
+        />
+      </section>
+
+      <!-- Test Summary Bar -->
+      <div class="test-summary-bar">
+        <div class="summary-counts">
+          <span class="count-item passing">✓ {{ passingTestsForCurrentSlide.length }} Passing</span>
+          <span class="count-item failing">✗ {{ failingTestsForCurrentSlide.length }} Failing</span>
         </div>
       </div>
-    </div>
-    <div v-if="slides.length > 0">
-      <div class="carousel">
-        <Editor @update:value="updateSolutionCode" :value="currentSlideContents" height="150px" width="100%"
-          :highlightMarkers="currentComprehensionResult" />
-      </div>
 
-      <!-- Test Case Results Accordion -->
-      <div class="accordion">
-        <div v-if="slides.length > 0">
-          <div v-for="(test, i) in slides[currentSlide].tests" :key="test.expected_output" class="accordion-item">
-            <div class="accordion-header" @click="toggleAccordion(i)">
-              <div>
-                <span v-if="test.pass" :style="{ color: 'red', textAlign: 'left', paddingRight: '5px' }">✅</span>
-                <span v-else :style="{ color: 'red', textAlign: 'left', paddingRight: '5px' }">❌</span>
-                <b>Test Case {{ i + 1 }} : <code>{{ test.function_call }} == {{ test.expected_output }}</code></b>
+      <!-- Test Results -->
+      <section class="test-results">
+        <!-- Failing Tests (Expanded by default) -->
+        <details v-if="failingTestsForCurrentSlide.length > 0" open class="test-group">
+          <summary class="test-group-header failing">
+            <span class="group-icon">▼</span>
+            Failing Tests ({{ failingTestsForCurrentSlide.length }})
+          </summary>
+          <div class="test-list">
+            <article 
+              v-for="(test, i) in failingTestsForCurrentSlide" 
+              :key="`fail-${i}`" 
+              class="test-item failing"
+            >
+              <div class="test-content">
+                <code class="test-call">{{ test.function_call }}</code>
+                <div class="test-diff">
+                  <div>Expected: <code class="expected">{{ test.expected_output }}</code></div>
+                  <div>Got: <code class="actual">{{ test.actual_output }}</code></div>
+                </div>
               </div>
-              <div class="accordion-icon" :class="{ 'accordion-icon-rotate': activeAccordion === i }">
-                <i class="chevron-down"></i>
-              </div>
-            </div>
-            <div v-show="activeAccordion === i" class="accordion-body">
-              <table>
-              <tr>
-                <td><b>Function Call</b></td>
-                <td>{{ test.function_call }}</td>
-              </tr>
-              <tr>
-                <td><b>Expected Result</b></td>
-                <td>{{ test.expected_output }}</td>
-              </tr>
-              <tr>
-                <td><b>Actual Result</b></td>
-                <td>{{ test.actual_output }}</td>
-              </tr>
-              </table>
-
-              <button class="pytutor-btn" @click="openPyTutor(test)">Open in Python Tutor</button>
-              <PyTutorModal :isVisible="showModal" :pythonTutorUrl="pythonTutorUrl" @close="showModal = false" />
-
-            </div>
+              <button class="debug-btn" @click="openPyTutor(test)">🔍</button>
+            </article>
           </div>
-        </div>
-      </div>
+        </details>
 
-      <!-- The Dots Clickthrough Thing -->
-      <div class="progress-bar">
-        <button @click="prevSlide" class="prev-btn">Prev</button>
-        <div v-for="segment in slides.length" :key="segment" class="segment" :style="{
-          backgroundColor: (slides[segment - 1].correct ? 'purple' : 'white'),
-          borderRadius: (currentSlide === segment - 1 ? '0' : '50%'),
-          border: (currentSlide === segment - 1 ? '2px solid black' : '2px solid #191919'),
-          transition: 'border-radius 0.75s ease',
-        }">
-        </div>
-        <button @click="nextSlide" class="next-btn">Next</button>
-      </div>
+        <!-- Passing Tests (Collapsed by default) -->
+        <details v-if="passingTestsForCurrentSlide.length > 0" class="test-group">
+          <summary class="test-group-header passing">
+            <span class="group-icon">▶</span>
+            Passing Tests ({{ passingTestsForCurrentSlide.length }})
+          </summary>
+          <div class="test-list">
+            <article 
+              v-for="(test, i) in passingTestsForCurrentSlide" 
+              :key="`pass-${i}`" 
+              class="test-item passing"
+            >
+              <code class="test-call">{{ test.function_call }} → {{ test.expected_output }}</code>
+            </article>
+          </div>
+        </details>
+      </section>
     </div>
 
-    <!-- If There Be No Feedback to Be Had -->
-    <div v-else>
-      <div class="collapse-container">
-        <div class="p-text">Submit a prompt in order to start getting feedback!</div>
-      </div>
+    <!-- Empty State -->
+    <div v-else class="empty-state">
+      <span class="empty-icon">🚀</span>
+      <p>Submit a prompt to start getting feedback!</p>
     </div>
+
+    <!-- PyTutor Modal -->
+    <PyTutorModal :isVisible="showModal" :pythonTutorUrl="pythonTutorUrl" @close="showModal = false" />
   </div>
-
 </template>
 
 <script>
@@ -128,13 +150,10 @@ export default {
   data() {
     return {
       showModal: false,
-      collapsed: true,
-      collapseHeight: 0,
+      pythonTutorUrl: '',
       currentSlide: 0,
       currentSlideContents: "",
       currentComprehensionResult: 0,
-      currentComprehensionResultContent: [],
-      activeAccordion: -1,
     };
   },
   mounted() {
@@ -170,45 +189,59 @@ export default {
       console.log("SLIDES", slideResults);
       return slideResults;
     },
-    progress() {
-      if (this.slides.length === 0) {
-        return 0;
-      }
-      var allPass = this.slides.filter(slide => 
-        slide.tests.every(test => test.pass)
-      ).length;
-
-      return allPass;
+    overallProgressPercent() {
+      if (this.slides.length === 0) return 0;
+      const totalTests = this.slides.reduce((sum, slide) => sum + slide.tests.length, 0);
+      const passingTests = this.slides.reduce((sum, slide) => 
+        sum + slide.tests.filter(test => test.pass).length, 0);
+      return totalTests > 0 ? (passingTests / totalTests) * 100 : 0;
+    },
+    passingTests() {
+      return this.slides.reduce((sum, slide) => 
+        sum + slide.tests.filter(test => test.pass).length, 0);
+    },
+    totalTests() {
+      return this.slides.reduce((sum, slide) => sum + slide.tests.length, 0);
+    },
+    passingTestsForCurrentSlide() {
+      if (this.slides.length === 0 || !this.slides[this.currentSlide]) return [];
+      return this.slides[this.currentSlide].tests.filter(test => test.pass);
+    },
+    failingTestsForCurrentSlide() {
+      if (this.slides.length === 0 || !this.slides[this.currentSlide]) return [];
+      return this.slides[this.currentSlide].tests.filter(test => !test.pass);
     },
   },
   methods: {
-    toggleCollapse() {
-      this.collapsed = !this.collapsed;
-    },
+    // Core navigation methods
     updateSolutionCode() {
-      console.log("UPDATING SOLUTION CODE")
-      console.log(this.currentSlide);
       if (this.slides.length === 0) {
         this.currentSlideContents = "";
-        //this.currentComprehensionResultContent = [];
       } else {
         this.currentSlideContents = this.slides[this.currentSlide].content;
-        //this.currentComprehensionResult = this.comprehensionResults[0];
-        console.log(this.currentComprehensionResult);
       }
     },
-    nextSlide() {
-      this.currentSlide = (this.currentSlide + 1) % this.slides.length;
+    goToSlide(index) {
+      this.currentSlide = index;
       this.updateSolutionCode();
+      this.$emit('solution-changed', index);
     },
-    prevSlide() {
-      this.currentSlide = this.currentSlide === 0 ? this.slides.length - 1 : this.currentSlide - 1;
-      this.updateSolutionCode();
+    
+    // Status helpers
+    getSlideStatus(slide) {
+      if (slide.tests.length === 0) return 'pending';
+      if (slide.correct) return 'passing';
+      return 'failing';
     },
-    toggleAccordion(index) {
-      this.activeAccordion = this.activeAccordion === index ? -1 : index;
+    getSlideIcon(slide) {
+      if (slide.tests.length === 0) return '⏳';
+      if (slide.correct) return '✓';
+      return '✗';
     },
+    
+    // Debug functionality
     openPyTutor(testCase) {
+      if (!testCase) return;
       const code = this.slides[this.currentSlide].content + '\n' + testCase.function_call;
       const url = `https://pythontutor.com/render.html#code=${encodeURIComponent(code)}&cumulative=false&curInstr=0&heapPrimitives=nevernest&mode=display&origin=opt-frontend.js&py=3&rawInputLstJSON=%5B%5D&textReferences=false`;
       this.pythonTutorUrl = url;
@@ -219,216 +252,259 @@ export default {
 </script>
 
 <style scoped>
-/* Main Container */
+/* Main Container - Simple Grid Layout */
 .feedback-container {
-  display: flex;
-  flex-direction: column;
   background: var(--color-bg-panel);
   border-radius: var(--radius-lg);
-  width: 100%;
-  max-width: 520px;
   box-shadow: var(--shadow-md);
-  border: 2px solid transparent;
-  transition: var(--transition-base);
   overflow: hidden;
 }
 
-.feedback-container:hover {
-  border-color: var(--color-bg-input);
-}
-
-/* Title Section */
-.title {
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  background: var(--color-bg-hover);
+/* Header */
+.feedback-header {
   padding: var(--spacing-lg) var(--spacing-xl);
+  background: var(--color-bg-hover);
   border-bottom: 2px solid var(--color-bg-input);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
 }
 
-
-/* Thermometer Component */
-.therm-container {
-  display: flex;
-  gap: var(--spacing-base);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  background: var(--color-bg-panel);
-}
-
-.thermometer {
-  width: 100%;
-  height: 20px;
-  display: flex;
-  flex-direction: column;
-}
-
-.bar {
-  width: 100%;
-  height: 8px;
-  background: var(--color-bg-hover);
-  position: relative;
-  border-radius: var(--radius-xs);
-  overflow: hidden;
-}
-
-.progress {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  transition: width 1.5s ease;
-  border-radius: var(--radius-xs);
-}
-
-.notches {
+.header-title {
   display: flex;
   justify-content: space-between;
-  margin-top: var(--spacing-xs);
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
 }
 
-.notch {
-  height: 12px;
-  width: 2px;
-  background: var(--color-bg-border);
+.header-title h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
 }
 
-/* Carousel Section */
-.carousel {
-  padding: var(--spacing-lg);
-  background: var(--color-bg-panel);
-  border-bottom: 1px solid var(--color-bg-input);
+.overall-progress {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 600;
 }
 
-/* Progress Bar */
-.progress-bar {
+/* Content Grid */
+.feedback-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+/* Solution Timeline */
+.solution-timeline {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: var(--spacing-lg);
   padding: var(--spacing-lg);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-panel);
+  border-bottom: 1px solid var(--color-bg-input);
+  overflow-x: auto;
 }
 
-.prev-btn,
-.next-btn {
-  background: var(--color-bg-input);
-  color: var(--color-text-primary);
-  border: none;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-base);
-  cursor: pointer;
-  font-weight: 600;
-  transition: var(--transition-base);
-}
-
-.prev-btn:hover,
-.next-btn:hover {
-  background: var(--color-bg-border);
-  transform: translateY(-1px);
-}
-
-.segment {
-  width: 12px;
-  height: 12px;
-  border-radius: var(--radius-circle);
-  transition: var(--transition-base);
-  cursor: pointer;
-}
-
-/* Accordion Styles */
-.accordion {
+.timeline-node {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg);
-}
-
-.accordion-item {
-  border-radius: var(--radius-base);
-  overflow: hidden;
-  background: var(--color-bg-hover);
-  border: 1px solid var(--color-bg-input);
-  transition: var(--transition-base);
-}
-
-.accordion-item:hover {
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: var(--shadow-sm);
-}
-
-.accordion-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  min-width: 50px;
   cursor: pointer;
-  background: var(--color-bg-input);
-  transition: var(--transition-base);
+  transition: var(--transition-fast);
 }
 
-.accordion-header:hover {
+.timeline-node::after {
+  content: '';
+  position: absolute;
+  right: -50%;
+  top: 50%;
+  width: var(--spacing-lg);
+  height: 2px;
   background: var(--color-bg-border);
+  transform: translateY(-50%);
 }
 
-.accordion-icon {
+.timeline-node:last-child::after {
+  display: none;
+}
+
+.node-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-circle);
+  background: var(--color-bg-input);
+  border: 2px solid var(--color-bg-border);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  transition: var(--transition-fast);
+}
+
+.node-icon {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+/* Timeline States */
+.timeline-node[data-current="true"] .node-number {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+}
+
+.timeline-node[data-status="passing"] .node-number {
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success-text);
+}
+
+.timeline-node[data-status="failing"] .node-number {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error-text);
+}
+
+.timeline-node:hover .node-number {
+  transform: scale(1.1);
+}
+
+/* Code Section */
+.code-section {
+  background: var(--color-bg-panel);
+}
+
+.code-header {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-hover);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+/* Test Summary Bar */
+.test-summary-bar {
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: transform 0.3s ease;
-  color: var(--color-text-primary);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-hover);
+  border-top: 1px solid var(--color-bg-input);
+  border-bottom: 1px solid var(--color-bg-input);
 }
 
-.accordion-icon-rotate {
-  transform: rotate(180deg);
+.summary-counts {
+  display: flex;
+  gap: var(--spacing-lg);
 }
 
-.chevron-down {
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 6px solid var(--color-text-primary);
+.count-item {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
 }
 
-.accordion-body {
+.count-item.passing {
+  color: var(--color-success);
+}
+
+.count-item.failing {
+  color: var(--color-error);
+}
+
+/* Test Results - Native Collapsible */
+.test-results {
   padding: var(--spacing-lg);
   background: var(--color-bg-panel);
-  animation: slideDown 0.3s ease;
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.test-group {
+  margin-bottom: var(--spacing-md);
 }
 
-/* Table Styles */
-table {
-  width: 100%;
-  margin-bottom: var(--spacing-lg);
+.test-group:last-child {
+  margin-bottom: 0;
 }
 
-td {
-  padding: var(--spacing-sm) 0;
-  border-bottom: 1px solid var(--color-bg-hover);
-  color: var(--color-text-secondary);
-}
-
-td:first-child {
+.test-group-header {
+  cursor: pointer;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-xs);
   font-weight: 600;
-  color: var(--color-text-primary);
-  width: 140px;
+  font-size: var(--font-size-sm);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  transition: var(--transition-fast);
 }
 
-/* Code Styles */
-code {
+.test-group-header:hover {
+  background: var(--color-bg-input);
+}
+
+.test-group-header.failing {
+  border-left: 4px solid var(--color-error);
+}
+
+.test-group-header.passing {
+  border-left: 4px solid var(--color-success);
+}
+
+.group-icon {
+  transition: transform 0.2s;
+  font-size: var(--font-size-xs);
+}
+
+details[open] .group-icon {
+  transform: rotate(0);
+}
+
+details:not([open]) .group-icon {
+  transform: rotate(-90deg);
+}
+
+.test-list {
+  padding: var(--spacing-sm) 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.test-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--color-bg-input);
+  gap: var(--spacing-md);
+}
+
+.test-item.failing {
+  border-color: rgba(220, 53, 69, 0.3);
+}
+
+.test-item.passing {
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.test-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.test-call {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: var(--font-size-sm);
   background: var(--color-bg-input);
@@ -437,58 +513,111 @@ code {
   color: var(--color-primary-gradient-start);
 }
 
-/* PyTutor Button */
-.pytutor-btn {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+.test-diff {
+  font-size: var(--font-size-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.test-diff > div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+}
+
+.expected {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.actual {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.debug-btn {
+  background: var(--color-info);
   color: var(--color-text-primary);
   border: none;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-base);
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-xs);
   cursor: pointer;
-  width: 100%;
-  font-weight: 600;
-  transition: var(--transition-base);
-  box-shadow: var(--shadow-colored);
+  font-size: var(--font-size-sm);
+  min-width: 44px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
 }
 
-.pytutor-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.pytutor-btn::before {
-  content: "🔍 ";
+.debug-btn:hover {
+  background: #1976d2;
+  transform: translateY(-1px);
 }
 
 /* Empty State */
-.collapse-container {
-  background: var(--color-bg-panel);
+.empty-state {
   padding: var(--spacing-xxl);
   text-align: center;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-lg);
 }
 
-.p-text {
+.empty-icon {
+  font-size: 48px;
+  opacity: 0.8;
+}
+
+.empty-state p {
   color: var(--color-text-muted);
   font-size: var(--font-size-base);
-  padding: var(--spacing-xl);
-  background: var(--color-bg-hover);
-  border-radius: var(--radius-base);
+  margin: 0;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .feedback-container {
-    max-width: 100%;
+  .header-title {
+    flex-direction: column;
+    align-items: flex-start;
   }
   
-  .title {
-    font-size: var(--font-size-base);
-    padding: var(--spacing-md) var(--spacing-lg);
+  .solution-timeline {
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
   }
   
-  .accordion-header {
+  .node-number {
+    width: 36px;
+    height: 36px;
+    font-size: var(--font-size-xs);
+  }
+  
+  .test-summary-bar {
     padding: var(--spacing-sm) var(--spacing-md);
-    font-size: var(--font-size-sm);
+  }
+  
+  .summary-counts {
+    justify-content: center;
+  }
+  
+  .test-item {
+    flex-direction: column;
+  }
+  
+  .debug-btn {
+    width: 100%;
   }
 }
 </style>
