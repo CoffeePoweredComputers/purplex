@@ -10,6 +10,15 @@
 
     <!-- Main Content -->
     <div v-if="slides.length > 0" class="feedback-content">
+      <!-- User Prompt Section -->
+      <div v-if="userPrompt" class="user-prompt-section">
+        <div class="submission-header">
+          <span class="submission-icon">💭</span>
+          <span class="submission-label">Your response</span>
+        </div>
+        <div class="prompt-content">{{ userPrompt }}</div>
+      </div>
+
       <!-- Solution Timeline -->
       <nav class="solution-timeline">
         <div 
@@ -147,6 +156,10 @@ export default {
       type: String,
       default: '',
     },
+    userPrompt: {
+      type: String,
+      default: '',
+    },
   },
   data() {
     return {
@@ -262,6 +275,69 @@ export default {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   overflow: hidden;
+}
+
+/* User Prompt Section */
+.user-prompt-section {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-panel);
+  border-bottom: 1px solid var(--color-bg-input);
+  border-left: 3px solid var(--color-bg-border);
+  transition: border-color var(--transition-fast);
+}
+
+.user-prompt-section:hover {
+  border-left-color: var(--color-primary);
+}
+
+.submission-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.submission-icon {
+  font-size: var(--font-size-md);
+  opacity: 0.8;
+}
+
+.submission-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.prompt-content {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  background: var(--color-bg-input);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-xs);
+  max-height: 80px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Subtle scrollbar */
+.prompt-content::-webkit-scrollbar {
+  width: 3px;
+}
+
+.prompt-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.prompt-content::-webkit-scrollbar-thumb {
+  background: var(--color-bg-border);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+.prompt-content:hover::-webkit-scrollbar-thumb {
+  opacity: 1;
 }
 
 /* Header */

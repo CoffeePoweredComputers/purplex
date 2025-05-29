@@ -16,6 +16,7 @@
         <NavBar/>
         <router-view />
     </div>
+    <NotificationToast />
 </template>
 
 <script lang="ts">
@@ -25,12 +26,14 @@ import { useStore } from 'vuex';
 /* Components */
 import Login from './features/auth/Login.vue';
 import NavBar from './components/NavBar.vue';
+import NotificationToast from './components/NotificationToast.vue';
 
 export default defineComponent({
     name: 'App',
     components: {
         Login,
-        NavBar
+        NavBar,
+        NotificationToast
     },
     data() {
         return {

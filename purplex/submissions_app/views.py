@@ -310,7 +310,8 @@ class UserLastSubmissionView(APIView):
                 'results': results,
                 'passing_variations': passing_variations,
                 'submitted_at': submission.time.isoformat() if submission.time else None,
-                'feedback': submission.feedback
+                'feedback': submission.feedback,
+                'user_prompt': submission.prompt or ''
             })
             
         except Exception as e:
