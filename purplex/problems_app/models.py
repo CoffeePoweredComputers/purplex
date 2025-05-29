@@ -324,7 +324,7 @@ class UserProblemSetProgress(models.Model):
     
     total_problems = models.IntegerField(default=0)
     completed_problems = models.IntegerField(default=0)
-    attempted_problems = models.IntegerField(default=0)
+    partially_complete_problems = models.IntegerField(default=0)
     average_score = models.FloatField(default=0)
     
     first_attempt = models.DateTimeField(null=True, blank=True)
@@ -359,7 +359,7 @@ class UserProblemSetProgress(models.Model):
         stats = problem_progresses.aggregate(
             total=Count('id'),
             completed=Count('id', filter=Q(is_completed=True)),
-            attempted=Count('id', filter=~Q(status='not_started')),
+            partially_complete=Count('id', filter=~Q(status='not_started')),
             avg_score=Avg('best_score'),
             first_attempt=Min('first_attempt'),
             last_activity=Max('last_attempt')
@@ -367,7 +367,7 @@ class UserProblemSetProgress(models.Model):
         
         set_progress.total_problems = user_progress.problem_set.problems.count()
         set_progress.completed_problems = stats['completed'] or 0
-        set_progress.attempted_problems = stats['attempted'] or 0
+        set_progress.partially_complete_problems = stats['partially_complete'] or 0
         set_progress.average_score = stats['avg_score'] or 0
         set_progress.first_attempt = stats['first_attempt']
         set_progress.last_activity = stats['last_activity']

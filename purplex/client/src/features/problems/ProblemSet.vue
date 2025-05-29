@@ -6,15 +6,21 @@
         <div class="loading-message">No problems found in this set.</div>
     </div>
     <div v-else class="problem-set-container">
+        <!-- Navigation Loading Overlay - Removed to prevent flashing -->
+        <!-- Consider using a less intrusive loading indicator instead -->
+
         <div class="problem-navigation">
             <div class="problem-selector">
-                <button class="nav-button" @click="prevProblem">
+                <button 
+                    class="nav-button" 
+                    @click="prevProblem"
+                >
                     <span class="arrow-left">‹</span>
                 </button>
                 <div class="problem-info">
                     <div class="progress-summary">
                         <span class="progress-stat completed">{{ completedCount }} completed</span>
-                        <span class="progress-stat attempted">{{ attemptedCount }} attempted</span>
+                        <span class="progress-stat partially-complete">{{ partiallyCompleteCount }} partially complete</span>
                         <span class="progress-stat remaining">{{ remainingCount }} remaining</span>
                     </div>
                     <div class="problem-progress">
@@ -22,7 +28,7 @@
                             :class="['progress-bar', 
                                 { 'active': index === currentProblem },
                                 { 'completed': getProblemStatus(problem.slug) === 'completed' },
-                                { 'attempted': getProblemStatus(problem.slug) === 'attempted' },
+                                { 'partially-complete': getProblemStatus(problem.slug) === 'partially_complete' },
                                 { 'not-tried': getProblemStatus(problem.slug) === 'not-tried' }
                             ]" 
                             @click="setProblem(index)"
@@ -30,7 +36,10 @@
                         </div>
                     </div>
                 </div>
-                <button class="nav-button" @click="nextProblem">
+                <button 
+                    class="nav-button" 
+                    @click="nextProblem"
+                >
                     <span class="arrow-right">›</span>
                 </button>
             </div>
@@ -42,10 +51,7 @@
             <div class="left-panel">
                 <!-- Code editor section -->
                 <div class="editor-section">
-                    <div class="section-header">
-                        <h4>Code Editor</h4>
-                        <p class="editor-hint">Analyze the code and understand what it does</p>
-                    </div>
+                    <div class="section-label">Code Editor</div>
                     <Editor 
                         ref="entry" 
                         lang="python" 
@@ -55,9 +61,9 @@
                         :value="solutionCode"
                         @update:value="updateSolutionCode"
                         :readOnly="true"
-                        :key="editorKey"
                         :showGutter="showLineNumbers"
                         :theme="currentTheme"
+                        :key="`editor-${currentProblem}`"
                     />
                     <div class="editor-toolbar">
                         <div class="toolbar-options">
@@ -96,10 +102,8 @@
 
                 <!-- Submission section -->
                 <div class="submission-section">
-                    <div class="section-header">
-                        <h4>Describe what this function does</h4>
-                        <p class="prompt-hint">Enter your understanding of the problem in the text area below</p>
-                    </div>
+                    <div class="section-label">Describe the code here</div>
+                    <span v-if="draftSaved" class="draft-indicator">✓ Draft saved</span>
                     <div class="prompt-editor-wrapper">
                         <Editor 
                             ref="prompt_entry" 
@@ -111,7 +115,12 @@
                             wrap="free" 
                         />
                     </div>
-                    <button id="submitButton" class="submit-button" @click="submit">
+                    <button 
+                        id="submitButton" 
+                        class="submit-button" 
+                        @click="submit"
+                        :disabled="loading"
+                    >
                         <span class="button-text" v-if="!loading">Submit Solution</span>
                         <div class="bouncing-dots" v-if="loading">
                             <span class="dot"></span>
@@ -130,7 +139,8 @@
                     :codeResults="codeResults" 
                     :testResults="testResults"
                     :comprehensionResults="comprehensionResults" 
-                    title="Test Results" 
+                    :userPrompt="userPrompt"
+                    title="Feedback" 
                 />
             </div>
         </div>
@@ -141,6 +151,8 @@
 import Editor from '@/features/editor/Editor.vue'
 import Feedback from "@/components/Feedback.vue"
 import axios from 'axios'
+import { useNotification } from '@/composables/useNotification'
+import { useOptimisticProgress } from '@/composables/useOptimisticProgress'
 
 export default {
     name: 'ProblemSet',
@@ -148,44 +160,216 @@ export default {
         Editor,
         Feedback
     },
+    setup() {
+        const { notify } = useNotification();
+        const { updateProgress, getProgress, clearOptimistic } = useOptimisticProgress();
+        return { notify, updateProgress, getProgress, clearOptimistic };
+    },
+    data() {
+        return {
+            problemSet: {},
+            problems: [],
+            isLoading: true,
+            
+            /* Navigation State */
+            currentProblem: 0,
+            
+            /* Submission State */
+            loading: false,
+            codeResults: [],
+            testResults: [],
+            promptCorrectness: 0,
+            comprehensionResults: '',
+            userPrompt: '',
+            
+            /* Problem Status Tracking */
+            problemStatuses: {},
+            problemSetProgress: null,
+            
+            /* Editor Settings */
+            editorFontSize: 14,
+            codeCopied: false,
+            showLineNumbers: true,
+            editorTheme: 'dark',
+            
+            /* Draft Management */
+            autoSaveInterval: null,
+            draftSaved: false,
+            
+            /* Submission Data Cache - Simple 5min cache */
+            submissionCache: new Map()
+        };
+    },
+    
+    async mounted() {
+        await this.loadProblemSet();
+        if (this.problems.length > 0) {
+            await this.loadProblemData();
+            this.startAutoSave();
+            this.$nextTick(() => {
+                if (this.$refs.entry && this.$refs.entry.editor) {
+                    this.$refs.entry.editor.setFontSize(this.editorFontSize);
+                }
+            });
+        }
+    },
+    
+    beforeUnmount() {
+        this.stopAutoSave();
+        this.saveDraft(); // Save draft before leaving
+    },
+    
     methods: {
-        nextProblem() {
-            this.currentProblem = (this.currentProblem + 1) % this.problems.length;
-            this.updateSolutionCode();
-            this.loadLastSubmission();
+        async nextProblem() {
+            await this.navigateToProblem((this.currentProblem + 1) % this.problems.length);
         },
-        prevProblem() {
-            this.currentProblem = (this.currentProblem - 1 + this.problems.length) % this.problems.length;
-            this.updateSolutionCode();
-            this.loadLastSubmission();
+        
+        async prevProblem() {
+            await this.navigateToProblem((this.currentProblem - 1 + this.problems.length) % this.problems.length);
         },
-        setProblem(index) {
-            this.currentProblem = index;
-            this.updateSolutionCode();
-            this.loadLastSubmission();
+        
+        async setProblem(index) {
+            await this.navigateToProblem(index);
         },
+        
+        async navigateToProblem(newIndex) {
+            if (newIndex === this.currentProblem) return;
+            
+            try {
+                // Save current draft before switching
+                this.saveDraft();
+                
+                // Pre-fetch data to reduce loading time
+                const problem = this.problems[newIndex];
+                const submissionDataPromise = this.loadSubmissionData(problem.slug);
+                
+                // Update current problem index
+                this.currentProblem = newIndex;
+                
+                // Wait for data and update UI smoothly
+                const submissionData = await submissionDataPromise;
+                
+                // Apply submission data without clearing first
+                this.codeResults = submissionData.variations || [];
+                this.testResults = submissionData.results || [];
+                this.promptCorrectness = submissionData.passing_variations || 0;
+                this.comprehensionResults = submissionData.feedback || '';
+                this.userPrompt = submissionData.user_prompt || '';
+                
+                // Load draft after data is ready
+                await this.$nextTick();
+                this.loadDraft();
+                
+            } catch (error) {
+                console.error('Navigation failed:', error);
+                this.notify.error('Navigation Error', 'Failed to load problem data');
+            }
+        },
+        
+        async loadProblemData() {
+            const problem = this.getCurrentProblem();
+            if (!problem.slug) return;
+            
+            try {
+                // Load submission data with caching
+                const submissionData = await this.loadSubmissionData(problem.slug);
+                
+                // Apply submission data
+                this.codeResults = submissionData.variations || [];
+                this.testResults = submissionData.results || [];
+                this.promptCorrectness = submissionData.passing_variations || 0;
+                this.comprehensionResults = submissionData.feedback || '';
+                this.userPrompt = submissionData.user_prompt || '';
+                
+                // Load draft for this problem
+                await this.$nextTick();
+                this.loadDraft();
+                
+            } catch (error) {
+                console.error('Error loading problem data:', error);
+                // Clear on error
+                this.clearFeedbackData();
+            }
+        },
+        
+        async loadSubmissionData(problemSlug) {
+            const cacheKey = `${this.$route.params.slug}_${problemSlug}`;
+            
+            // Check cache (5 minute expiry)
+            if (this.submissionCache.has(cacheKey)) {
+                const cached = this.submissionCache.get(cacheKey);
+                if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
+                    return cached.data;
+                }
+            }
+            
+            try {
+                const response = await axios.get(`/api/user/last-submission/${problemSlug}/`);
+                const data = response.data;
+                
+                // Cache the response
+                this.submissionCache.set(cacheKey, {
+                    data,
+                    timestamp: Date.now()
+                });
+                
+                return data;
+            } catch (error) {
+                console.error('Error loading submission:', error);
+                return {
+                    has_submission: false,
+                    variations: [],
+                    results: [],
+                    passing_variations: 0,
+                    feedback: '',
+                    user_prompt: ''
+                };
+            }
+        },
+        
+        clearFeedbackData() {
+            this.codeResults = [];
+            this.testResults = [];
+            this.promptCorrectness = 0;
+            this.comprehensionResults = '';
+            this.userPrompt = '';
+        },
+        
+        getCurrentProblem() {
+            if (!this.problems || this.problems.length === 0) {
+                return { solution: '', slug: '', name: 'Loading...' };
+            }
+            return this.problems[this.currentProblem] || this.problems[0];
+        },
+        
+        getProblem() {
+            return this.getCurrentProblem();
+        },
+        
+        updateSolutionCode() {
+            // Solution code is handled by computed property
+        },
+        
         increaseFontSize() {
             if (this.editorFontSize < 24) {
                 this.editorFontSize += 2;
                 this.updateEditorFontSize();
             }
         },
+        
         decreaseFontSize() {
             if (this.editorFontSize > 12) {
                 this.editorFontSize -= 2;
                 this.updateEditorFontSize();
             }
         },
+        
         updateEditorFontSize() {
-            // Force editor to update by changing key
-            this.editorKey += 1;
-            // Apply font size after editor re-renders
-            this.$nextTick(() => {
-                if (this.$refs.entry && this.$refs.entry.editor) {
-                    this.$refs.entry.editor.setFontSize(this.editorFontSize);
-                }
-            });
+            if (this.$refs.entry && this.$refs.entry.editor) {
+                this.$refs.entry.editor.setFontSize(this.editorFontSize);
+            }
         },
+        
         copyCode() {
             const code = this.solutionCode;
             navigator.clipboard.writeText(code).then(() => {
@@ -197,177 +381,177 @@ export default {
                 console.error('Failed to copy code:', err);
             });
         },
+        
         toggleLineNumbers() {
             this.showLineNumbers = !this.showLineNumbers;
-            this.editorKey += 1; // Force re-render
+            if (this.$refs.entry && this.$refs.entry.editor) {
+                this.$refs.entry.editor.renderer.setShowGutter(this.showLineNumbers);
+            }
         },
+        
         updateTheme() {
-            this.editorKey += 1; // Force re-render with new theme
-        },
-        getProblem() {
-            if (!this.problems || this.problems.length === 0) {
-                return { solution: '', slug: '' };
-            }
-            return this.problems[this.currentProblem];
-        },
-        updateSolutionCode() {
-            if (this.problems && this.problems.length > 0) {
-                this.solutionCode = this.getProblem().solution;
-                this.codeResults = [];
-                this.testResults = [];
-                this.promptCorrectness = 0;
+            if (this.$refs.entry && this.$refs.entry.editor) {
+                this.$refs.entry.editor.setTheme(`ace/theme/${this.currentTheme}`);
             }
         },
+        
         async submit() {
+            if (this.loading) return;
+            
             this.loading = true;
-
+            const currentProblemSlug = this.getCurrentProblem().slug;
+            
             try {
                 const promptText = this.$refs.prompt_entry.editor.getValue();
                 
-                // Check if prompt is empty
                 if (!promptText || promptText.trim() === '') {
-                    alert('Please enter a description of what the function does.');
+                    this.notify.warning('Please enter a description of what the function does.');
                     this.loading = false;
                     return;
                 }
+                
+                // Optimistic update
+                const rollback = this.updateProgress(currentProblemSlug, {
+                    status: 'partially_complete',
+                    score: null,
+                    attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
+                });
 
-                // Use the new unified endpoint
                 const response = await axios.post('/api/submit-eipl/', {
-                    problem_slug: this.getProblem().slug,
+                    problem_slug: currentProblemSlug,
                     problem_set_slug: this.$route.params.slug,
                     prompt: promptText
                 });
 
                 const data = response.data;
                 
-                // Update component state with response data
-                this.codeResults = data.variations;
-                this.testResults = data.results;
-                this.promptCorrectness = data.passing_variations;
+                // Update feedback data
+                this.codeResults = data.code_variations || data.variations || [];
+                this.testResults = data.test_results || data.results || [];
+                this.promptCorrectness = data.passing_variations || 0;
+                this.userPrompt = promptText;
                 
-                // Update problem status after submission
-                const currentProblemSlug = this.getProblem().slug;
+                // Update progress tracking
                 this.problemStatuses[currentProblemSlug] = {
-                    status: data.progress.is_completed ? 'completed' : 'attempted',
+                    status: data.progress.is_completed ? 'completed' : 'partially_complete',
                     score: data.score,
                     attempts: data.progress.attempts
                 };
+                
+                this.clearOptimistic(currentProblemSlug);
+                
+                // Update cache with new submission data including prompt
+                const cacheKey = `${this.$route.params.slug}_${currentProblemSlug}`;
+                this.submissionCache.set(cacheKey, {
+                    data: {
+                        has_submission: true,
+                        variations: this.codeResults,
+                        results: this.testResults,
+                        passing_variations: this.promptCorrectness,
+                        feedback: this.comprehensionResults,
+                        user_prompt: promptText
+                    },
+                    timestamp: Date.now()
+                });
+                
+                // Clear draft on success
+                this.clearDraft();
+                
+                this.notify.success('Solution submitted successfully!', `Score: ${data.score}%`);
 
             } catch (error) {
                 console.error('Error submitting code:', error);
                 
-                // Show more detailed error message
+                // Clear feedback on error
+                this.clearFeedbackData();
+                
+                // Handle errors
                 if (error.response) {
-                    // Server responded with error
                     if (error.response.status === 500) {
-                        alert('Server error: The AI service might be unavailable or the OpenAI API key might be missing. Please contact the administrator.');
+                        this.notify.error('Server Error', 'The AI service might be unavailable.');
                     } else if (error.response.status === 401) {
-                        alert('Authentication error: Please log in again.');
+                        this.notify.error('Authentication Error', 'Please log in again.');
                     } else if (error.response.status === 400) {
-                        alert('Invalid request: ' + (error.response.data.error || 'Please check your input.'));
+                        this.notify.warning('Invalid Request', error.response.data.error || 'Please check your input.');
                     } else {
-                        alert('Error: ' + (error.response.data.error || 'An unknown error occurred.'));
+                        this.notify.error('Error', error.response.data.error || 'An unknown error occurred.');
                     }
                 } else if (error.request) {
-                    // Request made but no response
-                    alert('Network error: Unable to reach the server. Please check your connection.');
+                    this.notify.error('Network Error', 'Unable to reach the server.');
                 } else {
-                    // Something else happened
-                    alert('Error: ' + error.message);
+                    this.notify.error('Error', error.message);
                 }
             } finally {
                 this.loading = false;
             }
         },
-        loadProblemSet() {
+        
+        async loadProblemSet() {
             const problemSetSlug = this.$route.params.slug;
             this.isLoading = true;
             
-            console.log(`Loading problem set: ${problemSetSlug}`);
-            axios.get(`/api/problem-sets/${problemSetSlug}`)
-                .then(response => {
-                    this.problemSet = response.data;
-                    
-                    // Extract problems from problems_detail array
-                    if (response.data.problems_detail && Array.isArray(response.data.problems_detail)) {
-                        // problems_detail contains objects with { problem: {...}, order: n }
-                        this.problems = response.data.problems_detail.map(pd => pd.problem);
-                    } else if (response.data.problems && Array.isArray(response.data.problems)) {
-                        // Fallback to direct problems array if it exists
-                        this.problems = response.data.problems;
-                    } else {
-                        this.problems = [];
-                    }
-                    
-                    console.log("Problems loaded:", this.problems);
-                    
-                    // Load user's submission history for these problems
-                    this.loadProblemStatuses();
-                    
-                    // If problems exist, update solution code
-                    if (this.problems.length > 0) {
-                        this.updateSolutionCode();
-                        // Load last submission for the first problem
-                        this.loadLastSubmission();
-                        // Set initial font size
-                        this.$nextTick(() => {
-                            if (this.$refs.entry && this.$refs.entry.editor) {
-                                this.$refs.entry.editor.setFontSize(this.editorFontSize);
-                            }
-                        });
-                    }
-                    
-                    this.isLoading = false;
-                })
-                .catch(error => {
-                    console.error('Error fetching problem set:', error);
-                    this.isLoading = false;
-                });
+            try {
+                const response = await axios.get(`/api/problem-sets/${problemSetSlug}`);
+                this.problemSet = response.data;
+                
+                if (response.data.problems_detail && Array.isArray(response.data.problems_detail)) {
+                    this.problems = response.data.problems_detail.map(pd => pd.problem);
+                } else if (response.data.problems && Array.isArray(response.data.problems)) {
+                    this.problems = response.data.problems;
+                } else {
+                    this.problems = [];
+                }
+                
+                await this.loadProblemStatuses();
+                
+            } catch (error) {
+                console.error('Error fetching problem set:', error);
+                this.notify.error('Load Error', 'Failed to load problem set.');
+            } finally {
+                this.isLoading = false;
+            }
         },
         
-        loadProblemStatuses() {
+        async loadProblemStatuses() {
             const problemSetSlug = this.$route.params.slug;
             
-            // Load progress data for this problem set
-            axios.get(`/api/problem-sets/${problemSetSlug}/progress/`)
-                .then(response => {
-                    console.log('Progress data loaded:', response.data);
-                    
-                    // Map progress data to our status format
-                    const progressData = response.data.problems_progress || [];
-                    progressData.forEach(progress => {
-                        this.problemStatuses[progress.problem_slug] = {
-                            status: this.mapStatusFromAPI(progress.status, progress.best_score),
-                            score: progress.best_score,
-                            attempts: progress.attempts
-                        };
-                    });
-                    
-                    // Also update overall progress metrics if needed
-                    if (response.data.problem_set) {
-                        this.problemSetProgress = response.data.problem_set;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading progress data:', error);
+            try {
+                const response = await axios.get(`/api/problem-sets/${problemSetSlug}/progress/`);
+                const progressData = response.data.problems_progress || [];
+                
+                progressData.forEach(progress => {
+                    this.problemStatuses[progress.problem_slug] = {
+                        status: this.mapStatusFromAPI(progress.status, progress.best_score),
+                        score: progress.best_score,
+                        attempts: progress.attempts
+                    };
                 });
+                
+                if (response.data.problem_set) {
+                    this.problemSetProgress = response.data.problem_set;
+                }
+                
+            } catch (error) {
+                console.error('Error loading progress data:', error);
+            }
         },
         
         mapStatusFromAPI(apiStatus, score) {
-            // Map API status to our UI status
             if (apiStatus === 'completed' || apiStatus === 'mastered') {
                 return 'completed';
             } else if (apiStatus === 'not_started') {
                 return 'not-tried';
             } else if (score > 0) {
-                return 'attempted';
+                return 'partially_complete';
             } else {
                 return 'not-tried';
             }
         },
         
         getProblemStatus(problemSlug) {
-            return this.problemStatuses[problemSlug]?.status || 'not-tried';
+            const actualStatus = this.problemStatuses[problemSlug];
+            const optimisticStatus = this.getProgress(problemSlug, actualStatus);
+            return optimisticStatus?.status || 'not-tried';
         },
         
         getProblemTooltip(problem, index) {
@@ -376,97 +560,89 @@ export default {
             
             if (!status || status.status === 'not-tried') {
                 return `${problemName} - Not attempted`;
-            } else if (status.status === 'attempted') {
-                return `${problemName} - Attempted (Score: ${status.score}%)`;
+            } else if (status.status === 'partially_complete') {
+                return `${problemName} - Partially Complete (Score: ${status.score}%)`;
             } else if (status.status === 'completed') {
                 return `${problemName} - Completed (Score: ${status.score}%)`;
             }
             return problemName;
         },
         
-        async loadLastSubmission() {
-            // Get the current problem slug
-            const currentProblemSlug = this.getProblem().slug;
-            if (!currentProblemSlug) return;
+        // Draft Management - Simplified
+        saveDraft() {
+            if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) return;
             
-            try {
-                const response = await axios.get(`/api/user/last-submission/${currentProblemSlug}/`);
-                const data = response.data;
+            const promptText = this.$refs.prompt_entry.editor.getValue();
+            if (promptText && promptText.trim()) {
+                const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
+                localStorage.setItem(draftKey, promptText);
+                localStorage.setItem(`${draftKey}_timestamp`, Date.now().toString());
                 
-                console.log('Last submission response:', data);
+                this.draftSaved = true;
+                setTimeout(() => {
+                    this.draftSaved = false;
+                }, 2000);
+            }
+        },
+        
+        loadDraft() {
+            if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) return;
+            
+            const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
+            const draft = localStorage.getItem(draftKey);
+            const timestamp = localStorage.getItem(`${draftKey}_timestamp`);
+            
+            if (draft && timestamp) {
+                const age = Date.now() - parseInt(timestamp);
+                const maxAge = 24 * 60 * 60 * 1000; // 24 hours
                 
-                if (data.has_submission) {
-                    console.log('Loading previous submission data:', {
-                        variations: data.variations,
-                        results: data.results,
-                        passing_variations: data.passing_variations
-                    });
-                    
-                    // Update the UI with the last submission data
-                    this.codeResults = data.variations || [];
-                    this.testResults = data.results || [];
-                    this.promptCorrectness = data.passing_variations || 0;
-                    
-                    console.log('Updated component state:', {
-                        codeResults: this.codeResults,
-                        testResults: this.testResults,
-                        promptCorrectness: this.promptCorrectness
-                    });
-                    
-                    // Also update the comprehension results if available
-                    if (data.feedback && typeof data.feedback === 'string') {
-                        this.comprehensionResults = data.feedback;
-                    }
+                if (age < maxAge) {
+                    this.$refs.prompt_entry.editor.setValue(draft);
                 } else {
-                    console.log('No previous submission found, clearing results');
-                    // No previous submission - clear the results
-                    this.codeResults = [];
-                    this.testResults = [];
-                    this.promptCorrectness = 0;
-                    this.comprehensionResults = '';
+                    localStorage.removeItem(draftKey);
+                    localStorage.removeItem(`${draftKey}_timestamp`);
                 }
-            } catch (error) {
-                console.error('Error loading last submission:', error);
-                // On error, just clear the results
-                this.codeResults = [];
-                this.testResults = [];
-                this.promptCorrectness = 0;
-                this.comprehensionResults = '';
+            }
+        },
+        
+        clearDraft() {
+            const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
+            localStorage.removeItem(draftKey);
+            localStorage.removeItem(`${draftKey}_timestamp`);
+        },
+        
+        startAutoSave() {
+            this.autoSaveInterval = setInterval(() => {
+                this.saveDraft();
+            }, 30000); // 30 seconds
+        },
+        
+        stopAutoSave() {
+            if (this.autoSaveInterval) {
+                clearInterval(this.autoSaveInterval);
+                this.autoSaveInterval = null;
             }
         }
-
     },
+    
     computed: {
-        numPassed() {
-            // This is now tracked by promptCorrectness from the API response
-            return this.promptCorrectness || 0;
-        },
         solutionCode() {
-            if (!this.problems || this.problems.length === 0) {
-                return '';
-            }
-            return this.problems[this.currentProblem].solution;
-        },
-        currentProblemData() {
-            if (!this.problems || this.problems.length === 0) {
-                return {};
-            }
-            return this.problems[this.currentProblem];
+            return this.getCurrentProblem().solution || '';
         },
         
         completedCount() {
             return Object.values(this.problemStatuses).filter(s => s.status === 'completed').length;
         },
         
-        attemptedCount() {
-            return Object.values(this.problemStatuses).filter(s => s.status === 'attempted').length;
+        partiallyCompleteCount() {
+            return Object.values(this.problemStatuses).filter(s => s.status === 'partially_complete').length;
         },
         
         remainingCount() {
-            return this.problems.length - this.completedCount - this.attemptedCount;
+            return this.problems.length - this.completedCount - this.partiallyCompleteCount;
         },
+        
         currentTheme() {
-            // Map our theme names to ACE editor theme names
             const themeMap = {
                 'dark': 'clouds_midnight',
                 'light': 'chrome',
@@ -480,56 +656,29 @@ export default {
             return themeMap[this.editorTheme] || 'clouds_midnight';
         }
     },
-    data() {
-        return {
-            problemSet: {},
-            problems: [],
-            isLoading: true, // Loading state for the initial data fetch
-
-            /* State Management */
-            currentProblem: 0,
-            loading: false,
-
-            /* Feedback */
-            codeResults: [],
-            testResults: [],
-            promptCorrectness: 0,
-
-            /* Comprehension Results */
-            comprehensionResults: '',
-            
-            /* Problem Status Tracking */
-            problemStatuses: {}, // Will store { problemId: { status: 'completed'|'attempted'|'not-tried', score: number } }
-            problemSetProgress: null, // Overall progress for the problem set
-            
-            /* Editor Settings */
-            editorFontSize: 14,
-            editorKey: 0,
-            codeCopied: false,
-            showLineNumbers: true,
-            editorTheme: 'dark'
-        };
-    },
-    created() {
-        this.loadProblemSet();
-    },
     
-    // When this component is activated (user navigates back to it)
-    activated() {
-        this.loadProblemSet();
-    },
-    
-    // Watch for route changes in case user navigates between different problem sets
     watch: {
         '$route.params.slug': function(newSlug) {
             if (newSlug) {
                 this.loadProblemSet();
             }
         }
-    },
+    }
 };
 </script>
+
 <style scoped>
+/* Smooth transitions for content changes */
+.editor-section,
+.submission-section {
+    transition: opacity 0.2s ease;
+}
+
+/* Optional: Add a subtle loading indicator on buttons during navigation */
+.nav-button:active {
+    transform: scale(0.95);
+}
+
 .loading-container {
     display: flex;
     justify-content: center;
@@ -580,14 +729,14 @@ export default {
     border-radius: var(--radius-circle);
     cursor: pointer;
     font-size: 18px;
-    font-weight: 500;
+    font-weight: 600;
     transition: var(--transition-base);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.nav-button:hover {
+.nav-button:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
     color: var(--color-text-primary);
     border-color: var(--color-primary-gradient-start);
@@ -612,7 +761,7 @@ export default {
 
 .progress-stat {
     font-size: var(--font-size-xs);
-    font-weight: 500;
+    font-weight: 600;
     padding: 2px var(--spacing-sm);
     border-radius: var(--radius-xl);
     background: var(--color-bg-hover);
@@ -620,15 +769,15 @@ export default {
 }
 
 .progress-stat.completed {
-    color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.3);
+    color: var(--color-success);
+    background: var(--color-success-bg);
+    border-color: var(--color-success);
 }
 
-.progress-stat.attempted {
-    color: #ff9f43;
-    background: rgba(255, 159, 67, 0.1);
-    border-color: rgba(255, 159, 67, 0.3);
+.progress-stat.partially-complete {
+    color: var(--color-warning);
+    background: var(--color-warning-bg);
+    border-color: var(--color-warning);
 }
 
 .progress-stat.remaining {
@@ -656,15 +805,15 @@ export default {
     background: var(--color-bg-hover);
 }
 
-.progress-bar.attempted {
-    background: #ff9f43;
+.progress-bar.partially-complete {
+    background: var(--color-warning);
 }
 
 .progress-bar.completed {
-    background: #10b981;
+    background: var(--color-success);
 }
 
-/* Active state - using outline instead of height change */
+/* Active state */
 .progress-bar.active {
     box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-primary-gradient-start);
 }
@@ -673,31 +822,21 @@ export default {
     background: linear-gradient(90deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
 }
 
-.progress-bar.active.attempted {
-    background: linear-gradient(90deg, #ff9f43 0%, #ff7a00 100%);
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px #ff7a00;
+.progress-bar.active.partially-complete {
+    background: var(--color-warning);
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-warning);
 }
 
 .progress-bar.active.completed {
-    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px #059669;
+    background: var(--color-success);
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-success);
 }
 
-/* Hover effects - only change opacity/brightness */
+/* Hover effects */
 .progress-bar:hover {
     opacity: 0.8;
-}
-
-.progress-bar.not-tried:hover {
-    background: var(--color-bg-input);
-}
-
-.progress-bar.attempted:hover {
-    opacity: 0.8;
-}
-
-.progress-bar.completed:hover {
-    opacity: 0.8;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
 }
 
 /* Main Workspace */
@@ -728,6 +867,17 @@ export default {
     box-sizing: border-box;
 }
 
+/* Section Label Styling */
+.section-label {
+    text-align: center;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: var(--color-bg-hover);
+    border-bottom: 1px solid var(--color-bg-input);
+}
+
 /* Editor Section */
 .editor-section {
     background: var(--color-bg-panel);
@@ -744,23 +894,6 @@ export default {
 
 .editor-section:hover {
     border-color: var(--color-bg-input);
-}
-
-.section-header {
-    padding: var(--spacing-lg) var(--spacing-xl);
-    background: var(--color-bg-hover);
-    border-bottom: 2px solid var(--color-bg-input);
-    flex-shrink: 0;
-}
-
-.section-header h4 {
-    margin: 0;
-    color: var(--color-text-primary);
-    font-size: var(--font-size-md);
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
 }
 
 .editor-toolbar {
@@ -817,7 +950,7 @@ export default {
     color: var(--color-text-muted);
     min-width: 45px;
     text-align: center;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .toolbar-btn {
@@ -884,13 +1017,6 @@ export default {
     padding: var(--spacing-xs);
 }
 
-
-.editor-hint {
-    margin: var(--spacing-xs) 0 0 0;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-}
-
 /* Submission Section */
 .submission-section {
     background: var(--color-bg-panel);
@@ -902,33 +1028,32 @@ export default {
     display: flex;
     flex-direction: column;
     min-height: 300px;
+    position: relative;
 }
 
 .submission-section:hover {
     border-color: var(--color-bg-input);
 }
 
-.submission-section .section-header {
-    background: var(--color-bg-hover);
-    padding: var(--spacing-lg) var(--spacing-xl);
-    border-bottom: 2px solid var(--color-bg-input);
-}
-
-.submission-section .section-header h4 {
-    margin: 0 0 var(--spacing-xs) 0;
-    color: var(--color-text-primary);
-    font-size: var(--font-size-md);
+.draft-indicator {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-lg);
+    color: var(--color-success);
+    font-size: var(--font-size-xs);
     font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
+    animation: fadeIn 0.3s ease;
 }
 
-
-.prompt-hint {
-    margin: 0;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .prompt-editor-wrapper {
@@ -970,7 +1095,6 @@ export default {
     justify-content: center;
     gap: var(--spacing-sm);
 }
-
 
 .submit-button:hover:not(:disabled) {
     transform: translateY(-2px);
