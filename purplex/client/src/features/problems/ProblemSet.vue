@@ -20,7 +20,7 @@
                 <div class="problem-info">
                     <div class="progress-summary">
                         <span class="progress-stat completed">{{ completedCount }} completed</span>
-                        <span class="progress-stat attempted">{{ attemptedCount }} attempted</span>
+                        <span class="progress-stat partially-complete">{{ partiallyCompleteCount }} partially complete</span>
                         <span class="progress-stat remaining">{{ remainingCount }} remaining</span>
                     </div>
                     <div class="problem-progress">
@@ -28,7 +28,7 @@
                             :class="['progress-bar', 
                                 { 'active': index === currentProblem },
                                 { 'completed': getProblemStatus(problem.slug) === 'completed' },
-                                { 'attempted': getProblemStatus(problem.slug) === 'attempted' },
+                                { 'partially-complete': getProblemStatus(problem.slug) === 'partially_complete' },
                                 { 'not-tried': getProblemStatus(problem.slug) === 'not-tried' }
                             ]" 
                             @click="setProblem(index)"
@@ -51,10 +51,7 @@
             <div class="left-panel">
                 <!-- Code editor section -->
                 <div class="editor-section">
-                    <div class="section-header">
-                        <h4>Code Editor</h4>
-                        <p class="editor-hint">Analyze the code and understand what it does</p>
-                    </div>
+                    <div class="section-label">Code Editor</div>
                     <Editor 
                         ref="entry" 
                         lang="python" 
@@ -105,11 +102,8 @@
 
                 <!-- Submission section -->
                 <div class="submission-section">
-                    <div class="section-header">
-                        <h4>Describe what this function does</h4>
-                        <p class="prompt-hint">Enter your understanding of the problem in the text area below</p>
-                        <span v-if="draftSaved" class="draft-indicator">✓ Draft saved</span>
-                    </div>
+                    <div class="section-label">Describe the code here</div>
+                    <span v-if="draftSaved" class="draft-indicator">✓ Draft saved</span>
                     <div class="prompt-editor-wrapper">
                         <Editor 
                             ref="prompt_entry" 
@@ -146,7 +140,7 @@
                     :testResults="testResults"
                     :comprehensionResults="comprehensionResults" 
                     :userPrompt="userPrompt"
-                    title="Test Results" 
+                    title="Feedback" 
                 />
             </div>
         </div>
@@ -418,7 +412,7 @@ export default {
                 
                 // Optimistic update
                 const rollback = this.updateProgress(currentProblemSlug, {
-                    status: 'attempted',
+                    status: 'partially_complete',
                     score: null,
                     attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
                 });
@@ -439,7 +433,7 @@ export default {
                 
                 // Update progress tracking
                 this.problemStatuses[currentProblemSlug] = {
-                    status: data.progress.is_completed ? 'completed' : 'attempted',
+                    status: data.progress.is_completed ? 'completed' : 'partially_complete',
                     score: data.score,
                     attempts: data.progress.attempts
                 };
@@ -548,7 +542,7 @@ export default {
             } else if (apiStatus === 'not_started') {
                 return 'not-tried';
             } else if (score > 0) {
-                return 'attempted';
+                return 'partially_complete';
             } else {
                 return 'not-tried';
             }
@@ -566,8 +560,8 @@ export default {
             
             if (!status || status.status === 'not-tried') {
                 return `${problemName} - Not attempted`;
-            } else if (status.status === 'attempted') {
-                return `${problemName} - Attempted (Score: ${status.score}%)`;
+            } else if (status.status === 'partially_complete') {
+                return `${problemName} - Partially Complete (Score: ${status.score}%)`;
             } else if (status.status === 'completed') {
                 return `${problemName} - Completed (Score: ${status.score}%)`;
             }
@@ -640,12 +634,12 @@ export default {
             return Object.values(this.problemStatuses).filter(s => s.status === 'completed').length;
         },
         
-        attemptedCount() {
-            return Object.values(this.problemStatuses).filter(s => s.status === 'attempted').length;
+        partiallyCompleteCount() {
+            return Object.values(this.problemStatuses).filter(s => s.status === 'partially_complete').length;
         },
         
         remainingCount() {
-            return this.problems.length - this.completedCount - this.attemptedCount;
+            return this.problems.length - this.completedCount - this.partiallyCompleteCount;
         },
         
         currentTheme() {
@@ -735,7 +729,7 @@ export default {
     border-radius: var(--radius-circle);
     cursor: pointer;
     font-size: 18px;
-    font-weight: 500;
+    font-weight: 600;
     transition: var(--transition-base);
     display: flex;
     align-items: center;
@@ -767,7 +761,7 @@ export default {
 
 .progress-stat {
     font-size: var(--font-size-xs);
-    font-weight: 500;
+    font-weight: 600;
     padding: 2px var(--spacing-sm);
     border-radius: var(--radius-xl);
     background: var(--color-bg-hover);
@@ -775,15 +769,15 @@ export default {
 }
 
 .progress-stat.completed {
-    color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.3);
+    color: var(--color-success);
+    background: var(--color-success-bg);
+    border-color: var(--color-success);
 }
 
-.progress-stat.attempted {
-    color: #ff9f43;
-    background: rgba(255, 159, 67, 0.1);
-    border-color: rgba(255, 159, 67, 0.3);
+.progress-stat.partially-complete {
+    color: var(--color-warning);
+    background: var(--color-warning-bg);
+    border-color: var(--color-warning);
 }
 
 .progress-stat.remaining {
@@ -811,12 +805,12 @@ export default {
     background: var(--color-bg-hover);
 }
 
-.progress-bar.attempted {
-    background: #ff9f43;
+.progress-bar.partially-complete {
+    background: var(--color-warning);
 }
 
 .progress-bar.completed {
-    background: #10b981;
+    background: var(--color-success);
 }
 
 /* Active state */
@@ -828,14 +822,14 @@ export default {
     background: linear-gradient(90deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
 }
 
-.progress-bar.active.attempted {
-    background: linear-gradient(90deg, #ff9f43 0%, #ff7a00 100%);
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px #ff7a00;
+.progress-bar.active.partially-complete {
+    background: var(--color-warning);
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-warning);
 }
 
 .progress-bar.active.completed {
-    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px #059669;
+    background: var(--color-success);
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-success);
 }
 
 /* Hover effects */
@@ -873,6 +867,17 @@ export default {
     box-sizing: border-box;
 }
 
+/* Section Label Styling */
+.section-label {
+    text-align: center;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: var(--color-bg-hover);
+    border-bottom: 1px solid var(--color-bg-input);
+}
+
 /* Editor Section */
 .editor-section {
     background: var(--color-bg-panel);
@@ -889,23 +894,6 @@ export default {
 
 .editor-section:hover {
     border-color: var(--color-bg-input);
-}
-
-.section-header {
-    padding: var(--spacing-lg) var(--spacing-xl);
-    background: var(--color-bg-hover);
-    border-bottom: 2px solid var(--color-bg-input);
-    flex-shrink: 0;
-}
-
-.section-header h4 {
-    margin: 0;
-    color: var(--color-text-primary);
-    font-size: var(--font-size-md);
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
 }
 
 .editor-toolbar {
@@ -962,7 +950,7 @@ export default {
     color: var(--color-text-muted);
     min-width: 45px;
     text-align: center;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .toolbar-btn {
@@ -1029,12 +1017,6 @@ export default {
     padding: var(--spacing-xs);
 }
 
-.editor-hint {
-    margin: var(--spacing-xs) 0 0 0;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-}
-
 /* Submission Section */
 .submission-section {
     background: var(--color-bg-panel);
@@ -1046,42 +1028,20 @@ export default {
     display: flex;
     flex-direction: column;
     min-height: 300px;
+    position: relative;
 }
 
 .submission-section:hover {
     border-color: var(--color-bg-input);
 }
 
-.submission-section .section-header {
-    background: var(--color-bg-hover);
-    padding: var(--spacing-lg) var(--spacing-xl);
-    border-bottom: 2px solid var(--color-bg-input);
-    position: relative;
-}
-
-.submission-section .section-header h4 {
-    margin: 0 0 var(--spacing-xs) 0;
-    color: var(--color-text-primary);
-    font-size: var(--font-size-md);
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-}
-
-.prompt-hint {
-    margin: 0;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-}
-
 .draft-indicator {
     position: absolute;
-    top: var(--spacing-lg);
-    right: var(--spacing-xl);
+    top: var(--spacing-sm);
+    right: var(--spacing-lg);
     color: var(--color-success);
     font-size: var(--font-size-xs);
-    font-weight: 500;
+    font-weight: 600;
     animation: fadeIn 0.3s ease;
 }
 

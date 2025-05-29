@@ -1,12 +1,9 @@
 <template>
   <div class="feedback-container">
     <!-- Header Section -->
-    <header class="feedback-header" v-if="slides.length > 0">
-      <div class="header-title">
-        <h3>{{ title }}</h3>
-        <span class="overall-progress">Overall: {{ Math.round(overallProgressPercent) }}% ({{ passingTests }}/{{ totalTests }} tests)</span>
-      </div>
-    </header>
+    <div class="feedback-header" v-if="slides.length > 0">
+      <div class="section-label">{{ title }}</div>
+    </div>
 
     <!-- Main Content -->
     <div v-if="slides.length > 0" class="feedback-content">
@@ -62,7 +59,7 @@
         <!-- Failing Tests (Expanded by default) -->
         <details v-if="failingTestsForCurrentSlide.length > 0" open class="test-group">
           <summary class="test-group-header failing">
-            <span class="group-icon">▼</span>
+            <span class="group-icon">▶</span>
             Failing Tests ({{ failingTestsForCurrentSlide.length }})
           </summary>
           <div class="test-list">
@@ -286,9 +283,6 @@ export default {
   transition: border-color var(--transition-fast);
 }
 
-.user-prompt-section:hover {
-  border-left-color: var(--color-primary);
-}
 
 .submission-header {
   display: flex;
@@ -342,29 +336,17 @@ export default {
 
 /* Header */
 .feedback-header {
-  padding: var(--spacing-lg) var(--spacing-xl);
-  background: var(--color-bg-hover);
-  border-bottom: 2px solid var(--color-bg-input);
+  background: var(--color-bg-panel);
 }
 
-.header-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-}
-
-.header-title h3 {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  color: var(--color-text-primary);
-}
-
-.overall-progress {
+.section-label {
+  text-align: center;
+  padding: var(--spacing-sm) var(--spacing-lg);
   font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
   font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg-hover);
+  border-bottom: 1px solid var(--color-bg-input);
 }
 
 /* Content Grid */
@@ -380,7 +362,7 @@ export default {
   justify-content: center;
   align-items: center;
   gap: var(--spacing-lg);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-sm);
   background: var(--color-bg-panel);
   border-bottom: 1px solid var(--color-bg-input);
   overflow-x: auto;
@@ -398,20 +380,6 @@ export default {
   transition: var(--transition-fast);
 }
 
-.timeline-node::after {
-  content: '';
-  position: absolute;
-  right: -50%;
-  top: 50%;
-  width: var(--spacing-lg);
-  height: 2px;
-  background: var(--color-bg-border);
-  transform: translateY(-50%);
-}
-
-.timeline-node:last-child::after {
-  display: none;
-}
 
 .node-number {
   display: flex;
@@ -544,11 +512,11 @@ export default {
 }
 
 details[open] .group-icon {
-  transform: rotate(0);
+  transform: rotate(90deg);
 }
 
 details:not([open]) .group-icon {
-  transform: rotate(-90deg);
+  transform: rotate(0);
 }
 
 .test-list {
@@ -590,7 +558,7 @@ details:not([open]) .group-icon {
   background: var(--color-bg-input);
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-xs);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
 }
 
 .test-diff {

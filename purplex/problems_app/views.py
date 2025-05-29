@@ -1026,7 +1026,7 @@ class ProblemSetProgressView(APIView):
                 'title': problem_set.title,
                 'total_problems': set_progress.total_problems,
                 'completed_problems': set_progress.completed_problems,
-                'attempted_problems': set_progress.attempted_problems,
+                'partially_complete_problems': set_progress.partially_complete_problems,
                 'completion_percentage': set_progress.completion_percentage,
                 'is_completed': set_progress.is_completed,
                 'average_score': set_progress.average_score,
@@ -1069,7 +1069,7 @@ class UserProgressSummaryView(APIView):
                     'problem_set_title': progress.problem_set.title,
                     'total_problems': progress.total_problems,
                     'completed_problems': progress.completed_problems,
-                    'attempted_problems': progress.attempted_problems,
+                    'partially_complete_problems': progress.partially_complete_problems,
                     'completion_percentage': progress.completion_percentage,
                     'is_completed': progress.is_completed,
                     'last_activity': progress.last_activity,
@@ -1087,7 +1087,7 @@ class UserProgressSummaryView(APIView):
                     'problem_set_title': problem_set.title,
                     'total_problems': problem_set.problems_count,
                     'completed_problems': 0,
-                    'attempted_problems': 0,
+                    'partially_complete_problems': 0,
                     'completion_percentage': 0,
                     'is_completed': False,
                     'last_activity': None,
@@ -1096,13 +1096,13 @@ class UserProgressSummaryView(APIView):
             # Calculate overall stats
             total_problems = sum(s['total_problems'] for s in summary_data)
             total_completed = sum(s['completed_problems'] for s in summary_data)
-            total_attempted = sum(s['attempted_problems'] for s in summary_data)
+            total_partially_complete = sum(s['partially_complete_problems'] for s in summary_data)
             
             return Response({
                 'overall': {
                     'total_problems': total_problems,
                     'completed_problems': total_completed,
-                    'attempted_problems': total_attempted,
+                    'partially_complete_problems': total_partially_complete,
                     'completion_percentage': int((total_completed / total_problems * 100) if total_problems > 0 else 0),
                 },
                 'problem_sets': summary_data
@@ -1115,7 +1115,7 @@ class UserProgressSummaryView(APIView):
                 'overall': {
                     'total_problems': 0,
                     'completed_problems': 0,
-                    'attempted_problems': 0,
+                    'partially_complete_problems': 0,
                     'completion_percentage': 0,
                 },
                 'problem_sets': []
