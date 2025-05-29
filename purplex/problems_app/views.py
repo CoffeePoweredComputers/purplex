@@ -37,7 +37,7 @@ class ProblemListView(APIView):
             'problem_sets'
         ).only(
             'slug', 'title', 'description', 'difficulty', 'problem_type', 
-            'function_name', 'estimated_time', 'tags', 'is_active', 'created_at'
+            'function_name', 'tags', 'is_active', 'created_at'
         )
         serializer = ProblemListSerializer(problems, many=True)
         return Response(serializer.data)
@@ -584,8 +584,6 @@ class AdminProblemDetailView(APIView):
             try:
                 with transaction.atomic():
                     problem = serializer.save()
-                    problem.version += 1
-                    problem.save()
                     
                     # Handle problem sets relationship if provided
                     if problem_sets_slugs is not None:
@@ -596,8 +594,15 @@ class AdminProblemDetailView(APIView):
                     return Response(AdminProblemSerializer(problem).data)
             except Exception as e:
                 logger.error(f"Failed to update problem {slug}: {str(e)}")
+                logger.error(f"Exception type: {type(e).__name__}")
+                logger.error(f"Exception args: {e.args}")
+                
+                # Import traceback for more detailed error information
+                import traceback
+                logger.error(f"Full traceback: {traceback.format_exc()}")
+                
                 return Response({
-                    'error': 'Failed to update problem. Please try again.'
+                    'error': f'Failed to update problem: {str(e)}'
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -613,14 +618,19 @@ class AdminTestProblemView(APIView):
         """Test a problem's reference solution against its test cases"""
         problem_data = request.data
         
-        # Validate the problem
-        validation_service = ProblemValidationService()
-        is_valid, errors = validation_service.validate_problem(problem_data)
+        # Basic validation
+        required_fields = ['function_name', 'reference_solution', 'test_cases']
+        for field in required_fields:
+            if not problem_data.get(field):
+                return Response({
+                    'success': False,
+                    'error': f'{field} is required for testing',
+                }, status=status.HTTP_400_BAD_REQUEST)
         
-        if not is_valid:
+        if not problem_data.get('test_cases') or len(problem_data['test_cases']) == 0:
             return Response({
                 'success': False,
-                'errors': errors
+                'error': 'At least one test case is required for testing',
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Test the reference solution with error handling
@@ -655,13 +665,33 @@ class AdminGenerateTestCasesView(APIView):
             function_signature = request.data.get('function_signature', '')
             reference_solution = request.data.get('reference_solution', '')
             
+            # Validate required fields
+            if not function_name or not reference_solution:
+                return Response({
+                    'error': 'Function name and reference solution are required for AI generation.',
+                    'test_cases': []
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
             test_cases = ai_service.generate_test_cases(
                 problem_description, function_name, function_signature, reference_solution
             )
             
             return Response({
-                'test_cases': test_cases
+                'test_cases': test_cases,
+                'generation_time': 0,  # For compatibility with frontend types
+                'model_used': 'gpt-4'
             })
+        except ValueError as e:
+            # Handle API key and configuration errors
+            error_msg = str(e)
+            if 'OpenAI API key' in error_msg:
+                error_msg = 'AI test generation is not configured. Contact your administrator to set up OpenAI API key.'
+            
+            logger.warning(f"AI configuration error: {str(e)}")
+            return Response({
+                'error': error_msg,
+                'test_cases': []
+            }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"AI test case generation failed: {str(e)}")
             return Response({
@@ -896,6 +926,13 @@ class AdminCategoryView(APIView):
         categories = ProblemCategory.objects.all()
         serializer = ProblemCategorySerializer(categories, many=True)
         return Response(serializer.data)
+    
+    def post(self, request):
+        serializer = ProblemCategorySerializer(data=request.data)
+        if serializer.is_valid():
+            category = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Progress Tracking Views

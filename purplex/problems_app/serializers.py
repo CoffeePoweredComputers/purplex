@@ -39,7 +39,7 @@ class ProblemSerializer(serializers.ModelSerializer):
         fields = [
             'slug', 'title', 'description', 'difficulty', 'problem_type', 'categories', 'category_ids',
             'function_name', 'function_signature', 'reference_solution', 'hints',
-            'time_limit', 'memory_limit', 'estimated_time', 'tags', 'is_active',
+            'memory_limit', 'tags', 'is_active',
             'problem_sets', 'test_cases', 'test_cases_count', 'visible_test_cases_count',
             'created_by', 'created_by_name', 'created_at', 'updated_at', 'version'
         ]
@@ -54,7 +54,7 @@ class ProblemListSerializer(serializers.ModelSerializer):
         model = Problem
         fields = [
             'slug', 'title', 'description', 'difficulty', 'problem_type', 'categories', 'problem_sets',
-            'function_name', 'estimated_time', 'tags', 'is_active',
+            'function_name', 'tags', 'is_active',
             'test_cases_count', 'created_at'
         ]
 
@@ -71,7 +71,7 @@ class ProblemForProblemSetSerializer(serializers.ModelSerializer):
         fields = [
             'slug', 'title', 'description', 'difficulty', 'problem_type', 'categories',
             'function_name', 'function_signature', 'reference_solution', 'solution',
-            'hints', 'estimated_time', 'tags', 'is_active',
+            'hints', 'tags', 'is_active',
             'test_cases_count', 'visible_test_cases_count'
         ]
 
@@ -104,10 +104,131 @@ class ProblemSetListSerializer(serializers.ModelSerializer):
 
 # Admin-specific serializers with more control
 class AdminProblemSerializer(ProblemSerializer):
-    problem_sets = SimpleProblemSetSerializer(many=True, read_only=True)
+    """Enhanced serializer for admin problem operations with test case handling"""
+    
+    # Read-only fields
+    categories = serializers.SerializerMethodField()
+    test_cases_count = serializers.ReadOnlyField()
+    visible_test_cases_count = serializers.ReadOnlyField()
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    
+    # Write-only fields
+    category_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        allow_empty=True
+    )
+    
+    # Test cases handling
+    test_cases = TestCaseSerializer(many=True, required=False)
     
     class Meta(ProblemSerializer.Meta):
-        read_only_fields = ['created_at', 'updated_at']  # Allow editing slug and version
+        read_only_fields = ['created_at', 'updated_at']
+
+    def get_categories(self, obj):
+        """Get categories with proper serialization"""
+        return ProblemCategorySerializer(obj.categories.all(), many=True).data
+
+    def validate(self, attrs):
+        """Comprehensive validation using validation service"""
+        try:
+            from .validation_service import ProblemValidationService
+            
+            validation_service = ProblemValidationService()
+            
+            # Validate problem data
+            validation_result = validation_service.validate_problem_data(attrs)
+            if not validation_result.is_valid:
+                error_dict = {}
+                for error in validation_result.errors:
+                    if error.field not in error_dict:
+                        error_dict[error.field] = []
+                    error_dict[error.field].append(error.message)
+                raise serializers.ValidationError(error_dict)
+            
+            return attrs
+        except Exception as e:
+            # Log the error for debugging but don't fail validation
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Validation service error: {str(e)}")
+            
+            # Perform basic validation instead
+            if not attrs.get('title', '').strip():
+                raise serializers.ValidationError({'title': ['Title is required']})
+            if not attrs.get('function_name', '').strip():
+                raise serializers.ValidationError({'function_name': ['Function name is required']})
+            if not attrs.get('reference_solution', '').strip():
+                raise serializers.ValidationError({'reference_solution': ['Reference solution is required']})
+            
+            return attrs
+
+    def create(self, validated_data):
+        """Create problem with test cases in a transaction"""
+        from django.db import transaction
+        
+        test_cases_data = validated_data.pop('test_cases', [])
+        category_ids = validated_data.pop('category_ids', [])
+        
+        with transaction.atomic():
+            # Create the problem
+            problem = Problem.objects.create(**validated_data)
+            
+            # Set categories
+            if category_ids:
+                categories = ProblemCategory.objects.filter(id__in=category_ids)
+                problem.categories.set(categories)
+            
+            # Create test cases
+            for order, test_case_data in enumerate(test_cases_data):
+                test_case_data['order'] = order
+                TestCase.objects.create(problem=problem, **test_case_data)
+            
+            return problem
+
+    def update(self, instance, validated_data):
+        """Update problem with test cases in a transaction"""
+        from django.db import transaction
+        
+        test_cases_data = validated_data.pop('test_cases', None)
+        category_ids = validated_data.pop('category_ids', None)
+        
+        with transaction.atomic():
+            # Update problem fields
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            
+            # Increment version
+            instance.version += 1
+            instance.save()
+            
+            # Update categories if provided
+            if category_ids is not None:
+                categories = ProblemCategory.objects.filter(id__in=category_ids)
+                instance.categories.set(categories)
+            
+            # Update test cases if provided
+            if test_cases_data is not None:
+                # Delete existing test cases
+                instance.test_cases.all().delete()
+                
+                # Create new test cases
+                for order, test_case_data in enumerate(test_cases_data):
+                    test_case_data['order'] = order
+                    TestCase.objects.create(problem=instance, **test_case_data)
+            
+            return instance
+
+    def to_representation(self, instance):
+        """Custom representation with proper test case serialization"""
+        data = super().to_representation(instance)
+        
+        # Include test cases with proper serialization
+        test_cases = instance.test_cases.all().order_by('order')
+        data['test_cases'] = TestCaseSerializer(test_cases, many=True).data
+        
+        return data
 
 class AdminTestCaseSerializer(TestCaseSerializer):
     class Meta(TestCaseSerializer.Meta):

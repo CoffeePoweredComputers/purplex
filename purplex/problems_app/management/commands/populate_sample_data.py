@@ -89,9 +89,7 @@ but possibly in a different order.
                 'hints': '''- Consider converting both strings to the same case
 - Think about sorting the characters
 - You might want to remove spaces first''',
-                'time_limit': 30,
                 'memory_limit': 128,
-                'estimated_time': 15,
                 'tags': ['strings', 'sorting', 'hash-map'],
                 'is_active': True
             }
@@ -157,9 +155,7 @@ the same forward and backward.
                 'hints': '''- Consider removing non-alphabetic characters
 - Think about string reversal
 - Two-pointer approach might be useful''',
-                'time_limit': 30,
                 'memory_limit': 128,
-                'estimated_time': 10,
                 'tags': ['strings', 'two-pointers'],
                 'is_active': True
             }
@@ -234,9 +230,7 @@ An input string is valid if:
                 'hints': '''- Think about using a stack data structure
 - Match opening and closing brackets
 - Consider what happens with nested brackets''',
-                'time_limit': 30,
                 'memory_limit': 128,
-                'estimated_time': 20,
                 'tags': ['strings', 'stack', 'data-structures'],
                 'is_active': True
             }
