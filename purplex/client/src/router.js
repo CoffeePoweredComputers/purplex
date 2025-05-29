@@ -54,6 +54,19 @@ const routes = [
         meta: {requiresAuth: true, requiresAdmin: true}
     },
     {
+        path: "/admin/problems/new",
+        name: "AdminCreateProblem", 
+        component: () => import("./components/AdminProblemEditor.vue"),
+        meta: {requiresAuth: true, requiresAdmin: true}
+    },
+    {
+        path: "/admin/problems/:slug/edit",
+        name: "AdminEditProblem",
+        component: () => import("./components/AdminProblemEditor.vue"),
+        props: route => ({ problemSlug: route.params.slug }),
+        meta: {requiresAuth: true, requiresAdmin: true}
+    },
+    {
         path: "/admin/problem-sets",
         name: "AdminProblemSets",
         component: () => import("./components/AdminProblemSets.vue"),
@@ -90,10 +103,10 @@ router.beforeEach(async (to, from, next) => {
     const isAdmin = store.getters['auth/isAdmin'];
     
     if (requiresAuth && !isAuthenticated && !debugBypassAuth) {
-        next("/");
+        next("/login");
     } else if (requiresAdmin && !isAdmin && !debugBypassAuth) {
         // Redirect non-admin users trying to access admin routes
-        next("/home");
+        next("/");
     } else {
         next();
     }

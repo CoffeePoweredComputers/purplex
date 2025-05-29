@@ -45,8 +45,8 @@ class ProblemAdmin(admin.ModelAdmin):
         ('Function Details', {
             'fields': ('function_name', 'function_signature', 'reference_solution', 'hints')
         }),
-        ('Limits & Settings', {
-            'fields': ('time_limit', 'memory_limit', 'estimated_time', 'is_active'),
+        ('Settings', {
+            'fields': ('memory_limit', 'is_active'),
             'classes': ('collapse',)
         }),
         ('Metadata', {

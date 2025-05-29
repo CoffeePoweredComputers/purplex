@@ -6,6 +6,7 @@ from typing import Dict, List, Any, Tuple
 from django.conf import settings
 import ast
 import traceback
+from .validation_service import ProblemValidationService
 
 class CodeExecutionService:
     """Service for executing and testing code submissions"""
@@ -153,47 +154,63 @@ class AITestGenerationService:
                           function_signature: str, reference_solution: str) -> List[Dict]:
         """Generate additional test cases using AI"""
         if not self.openai_api_key:
-            return []
+            raise ValueError("OpenAI API key not configured. Set OPENAI_API_KEY environment variable.")
+        
+        if not self.client:
+            raise ValueError("OpenAI client failed to initialize. Check OPENAI_API_KEY format.")
         
         try:
-            import openai
-            openai.api_key = self.openai_api_key
-            
             prompt = f"""
-Generate 5-10 diverse test cases for this coding problem:
+Generate ONE test case for this coding problem:
 
 Problem: {problem_description}
 Function: {function_signature}
 Reference Solution:
 {reference_solution}
 
-Return a JSON array of test cases in this format:
-[
-    {{"inputs": [arg1, arg2, ...], "expected_output": result, "description": "Brief description"}},
-    ...
-]
+Return a JSON object of a single test case in this exact format:
+{{"inputs": [arg1, arg2, ...], "expected_output": result, "description": "Brief description"}}
 
-Include edge cases, normal cases, and boundary conditions.
+Choose from: edge cases, normal cases, boundary conditions, or error cases.
+Make sure the JSON is valid and follows the exact format shown.
+Do not include any markdown formatting or extra text - just the JSON object.
 """
             
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-4",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7
             )
             
             content = response.choices[0].message.content
-            # Extract JSON from response
-            start_idx = content.find('[')
-            end_idx = content.rfind(']') + 1
+            print(f"OpenAI response: {content}")
+            
+            # Extract JSON from response - looking for single object now
+            content = content.strip()
+            
+            # Try to find JSON object
+            start_idx = content.find('{')
+            end_idx = content.rfind('}') + 1
             
             if start_idx != -1 and end_idx != 0:
                 json_str = content[start_idx:end_idx]
-                test_cases = json.loads(json_str)
-                return test_cases
+                test_case = json.loads(json_str)
+                print(f"Parsed test case: {test_case}")
+                # Return as array with single item for compatibility
+                return [test_case]
+            else:
+                print(f"Could not find JSON object in response: {content}")
+                # Try parsing the entire response as JSON object
+                try:
+                    test_case = json.loads(content)
+                    return [test_case]
+                except:
+                    print(f"Failed to parse entire response as JSON: {content}")
             
         except Exception as e:
             print(f"Error generating test cases: {e}")
+            import traceback
+            traceback.print_exc()
             
         return []
     

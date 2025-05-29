@@ -15,7 +15,7 @@
       </div>
       
       <div class="controls-container" v-if="!loading && !error">
-        <button class="action-button add-button" @click="showAddEditProblemModal = true">
+        <button class="action-button add-button" @click="createNewProblem">
           Add New Problem
         </button>
       </div>
@@ -59,25 +59,6 @@
       </div>
     </div>
 
-    <!-- Add Problem Modal -->
-    <AddEditProblemModal 
-      v-if="showAddEditProblemModal"
-      :problem-sets="problemSets"
-      @close="showAddEditProblemModal = false"
-      @problem-added="handleProblemAdded"
-      @error="handleError"
-    />
-
-    <!-- Edit Problem Modal -->
-    <AddEditProblemModal 
-      v-if="showEditProblemModal"
-      :problem-sets="problemSets"
-      :edit-mode="true"
-      :problem-data="selectedProblem"
-      @close="showEditProblemModal = false"
-      @problem-updated="handleProblemUpdated"
-      @error="handleError"
-    />
 
   </div>
 </template>
@@ -86,23 +67,18 @@
 import { mapGetters } from 'vuex';
 import axios from 'axios';
 import AdminNavBar from './AdminNavBar.vue';
-import AddEditProblemModal from '../modals/AddEditProblemModal.vue';
 
 export default {
   name: 'AdminProblems',
   components: {
-    AdminNavBar,
-    AddEditProblemModal
+    AdminNavBar
   },
   data() {
     return {
       problems: [],
       problemSets: [], // Add this to store problem sets for the modal
       loading: true,
-      error: null,
-      showAddEditProblemModal: false,
-      showEditProblemModal: false,
-      selectedProblem: null
+      error: null
     };
   },
   computed: {
@@ -222,12 +198,12 @@ export default {
       }
     },
     
+    createNewProblem() {
+      this.$router.push('/admin/problems/new');
+    },
+    
     editProblem(problemSlug) {
-      const problem = this.problems.find(p => p.slug === problemSlug);
-      if (problem) {
-        this.selectedProblem = problem;
-        this.showEditProblemModal = true;
-      }
+      this.$router.push(`/admin/problems/${problemSlug}/edit`);
     },
     
     confirmDelete(problem) {
@@ -247,20 +223,6 @@ export default {
       }
     },
 
-    // Modal event handlers
-    handleProblemAdded(newProblem) {
-      this.problems.push(newProblem);
-      this.showAddEditProblemModal = false;
-    },
-    
-    handleProblemUpdated(updatedProblem) {
-      const index = this.problems.findIndex(p => p.slug === updatedProblem.slug);
-      if (index !== -1) {
-        this.problems[index] = updatedProblem;
-      }
-      this.showEditProblemModal = false;
-      this.selectedProblem = null;
-    },
 
 
     handleError(errorMessage) {
@@ -412,15 +374,16 @@ export default {
 }
 
 .eipl-badge {
-  background: #e0f2fe;
-  color: #0369a1;
-  border: 1px solid #0369a1;
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border: 1px solid var(--color-info);
 }
 
 .function-badge {
-  background: #f3e8ff;
-  color: #6b21a8;
-  border: 1px solid #6b21a8;
+  background: var(--color-admin);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-admin);
+  opacity: 0.9;
 }
 
 .default-type-badge {
