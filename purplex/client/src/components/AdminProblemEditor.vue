@@ -1,16 +1,16 @@
 <template>
   <div class="admin-problem-editor">
     <!-- Breadcrumb navigation -->
-    <nav class="breadcrumb">
-      <router-link to="/admin/problems" class="breadcrumb-link">
+    <nav class="breadcrumb border-default">
+      <router-link to="/admin/problems" class="breadcrumb-link transition-fast">
         ← Back to Problems
       </router-link>
     </nav>
     
-    <div class="header">
+    <div class="header rounded-lg border-default">
       <h2>{{ isEditing ? 'Edit Problem' : 'Create New Problem' }}</h2>
       <div class="actions">
-        <button @click="saveProblem" :disabled="!canSave || ui.loading" class="btn btn-primary">
+        <button @click="saveProblem" :disabled="!canSave || ui.loading" class="btn btn-primary rounded-base">
           {{ ui.loading ? 'Saving...' : 'Save Problem' }}
         </button>
       </div>
@@ -18,7 +18,7 @@
 
     <form @submit.prevent="saveProblem" class="problem-form">
       <!-- Basic Information -->
-      <div class="form-section">
+      <div class="form-section rounded-lg border-default transition-fast">
         <h3>Basic Information</h3>
         <div class="form-group">
           <label for="title">Title *</label>
@@ -47,7 +47,7 @@
             <div
               v-for="category in categories"
               :key="category.id"
-              class="category-option"
+              class="category-option hover-primary hover-lift transition-fast"
               :class="{ active: form.category_ids && form.category_ids.includes(category.id) }"
               @click="toggleCategory(category.id)"
             >
@@ -58,7 +58,7 @@
             <!-- Morphing Category Bean -->
             <div 
               ref="categoryShell"
-              class="category-shell" 
+              class="category-shell hover-primary hover-lift transition-fast" 
               :class="{ 
                 expanded: showAddCategory,
                 transitioning: isTransitioning
@@ -138,7 +138,7 @@
       </div>
 
       <!-- Problem Description -->
-      <div class="form-section">
+      <div class="form-section rounded-lg border-default transition-fast">
         <h3>Problem Description</h3>
         <div class="form-group">
           <label for="description">Description (Markdown supported)</label>
@@ -152,7 +152,7 @@
       </div>
 
       <!-- Function Details -->
-      <div class="form-section">
+      <div class="form-section rounded-lg border-default transition-fast">
         <h3>Function Details</h3>
         <div class="form-row">
           <div class="form-group">
@@ -252,20 +252,20 @@
       </div>
 
       <!-- Test Cases -->
-      <div class="form-section">
+      <div class="form-section rounded-lg border-default transition-fast">
         <h3>Test Cases</h3>
         
         <!-- Simplified Actions Bar -->
         <div class="test-actions">
           <div class="left-actions">
-            <button type="button" @click="addTestCase" class="btn-secondary">
+            <button type="button" @click="addTestCase" class="btn-secondary rounded-base transition-fast">
               + Add Test
             </button>
             <button
               type="button"
               @click="generateTestCases"
               :disabled="ui.loading || !canGenerateTestCases"
-              class="btn-secondary"
+              class="btn-secondary rounded-base transition-fast"
               :title="canGenerateTestCasesReason || 'Generate one test case using AI'"
             >
               {{ ui.loading ? 'Generating...' : '+ AI Generate' }}
@@ -275,7 +275,7 @@
           <button 
             @click="testProblem" 
             :disabled="!canTest || ui.loading" 
-            class="btn-primary"
+            class="btn-primary rounded-base transition-fast"
             :title="canTestReason || 'Test your reference solution against all test cases'"
           >
             {{ ui.loading ? 'Testing...' : 'Test All Cases' }}
@@ -287,7 +287,7 @@
           <div
             v-for="(testCase, index) in form.test_cases"
             :key="index"
-            class="test-case"
+            class="test-case hover-primary transition-fast"
             :class="{ 
               error: testCase.error, 
               passed: isTestPassed(index), 
@@ -328,14 +328,10 @@
                 </div>
               </div>
               
-              <!-- Fallback to single input if no function signature -->
-              <input 
-                v-else
-                :value="getTestCaseInputsDisplay(testCase)"
-                @input="updateTestCaseInputs(testCase, $event.target.value)"
-                placeholder="Inputs: [1, 2]" 
-                class="inputs-field" 
-              />
+              <!-- No parameters message -->
+              <div v-else class="no-params-message">
+                No parameters
+              </div>
               
               <!-- Expected output field -->
               <div class="output-field-container">
@@ -598,9 +594,9 @@ export default {
     
     try {
       await Promise.all([
-        this.loadCategories(),
+        this.loadCategories()
         // Don't call loadProblem here as the watcher will handle it
-        !this.isEditing ? Promise.resolve(this.addTestCase()) : Promise.resolve()
+        // Removed automatic test case creation for new problems
       ]);
       
       // Parse function signature if available
@@ -970,11 +966,17 @@ export default {
     },
     
     getTestCaseInputsDisplay(testCase) {
-      return JSON.stringify(testCase.inputs || []);
+      if (!testCase.inputs || !Array.isArray(testCase.inputs)) {
+        return '[]';
+      }
+      return JSON.stringify(testCase.inputs);
     },
     
     getTestCaseExpectedDisplay(testCase) {
-      return JSON.stringify(testCase.expected_output ?? '');
+      if (testCase.expected_output === null || testCase.expected_output === undefined) {
+        return '';
+      }
+      return formatValueForInput(testCase.expected_output);
     },
     
     updateTestCaseInputs(testCase, value) {
@@ -1007,8 +1009,18 @@ export default {
             return;
           }
           
-          // Parse and set the value
-          testCase.expected_output = this.parseValueForBackend(value);
+          // Convert using the type system instead of generic JSON parsing
+          try {
+            if (pythonTypes[typeInfo.detected]) {
+              testCase.expected_output = pythonTypes[typeInfo.detected].convert(value);
+            } else {
+              testCase.expected_output = this.parseValueForBackend(value);
+            }
+          } catch (convertError) {
+            testCase.expectedOutputError = 'Invalid input format';
+            testCase.error = 'Invalid input for expected output';
+            return;
+          }
           
           // Validate against return type spec
           if (this.returnTypeSpec && this.returnTypeSpec.type !== 'Any') {
@@ -1200,6 +1212,12 @@ export default {
         
         // Update local state with saved data
         this.form = this.normalizeProblemData(savedProblem);
+        
+        // Re-parse function signature to rebuild functionParameters
+        this.parseFunctionSignature();
+        
+        // Convert inputs to smart parameters to repopulate parameter arrays
+        this.convertInputsToSmartParameters();
         
         return this.isEditing ? 'Problem updated successfully' : 'Problem created successfully';
       });
@@ -1558,8 +1576,18 @@ export default {
         return;
       }
       
-      const inputs = testCase.parameterValues.map(value => {
+      const inputs = testCase.parameterValues.map((value, index) => {
         if (!value.trim()) return null;
+        
+        // Use type detection for better parsing
+        const typeInfo = autoDetectTypeFromInput(value);
+        if (typeInfo.detected !== 'invalid' && pythonTypes[typeInfo.detected]) {
+          try {
+            return pythonTypes[typeInfo.detected].convert(value);
+          } catch {
+            return this.parseValueForBackend(value);
+          }
+        }
         return this.parseValueForBackend(value);
       });
       
@@ -1716,6 +1744,32 @@ export default {
 </script>
 
 <style scoped>
+/* Common Utilities */
+.transition-fast {
+  transition: var(--transition-fast);
+}
+
+.rounded-base {
+  border-radius: var(--radius-base);
+}
+
+.rounded-lg {
+  border-radius: var(--radius-lg);
+}
+
+.border-default {
+  border: 2px solid var(--color-bg-border);
+}
+
+.hover-lift:hover {
+  transform: translateY(-1px);
+}
+
+.hover-primary:hover {
+  border-color: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
+}
+
 /* Main Container */
 .admin-problem-editor {
   max-width: var(--max-width-content);
@@ -1738,13 +1792,11 @@ export default {
   color: var(--color-text-muted);
   text-decoration: none;
   font-weight: 500;
-  transition: var(--transition-fast);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-xs);
 }
 
 .breadcrumb-link:hover {
-  color: var(--color-primary-gradient-start);
   background: var(--color-bg-hover);
 }
 
@@ -1756,9 +1808,7 @@ export default {
   margin-bottom: var(--spacing-xxl);
   padding: var(--spacing-xl);
   background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-base);
-  border: 2px solid var(--color-bg-border);
 }
 
 .header h2 {
@@ -1777,7 +1827,6 @@ export default {
 .btn {
   padding: var(--spacing-md) var(--spacing-lg);
   border: 2px solid transparent;
-  border-radius: var(--radius-base);
   font-weight: 600;
   font-size: var(--font-size-base);
   cursor: pointer;
@@ -1833,17 +1882,10 @@ export default {
 
 .form-section {
   background: var(--color-bg-panel);
-  border: 2px solid var(--color-bg-border);
-  border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
   box-shadow: var(--shadow-base);
-  transition: var(--transition-fast);
 }
 
-.form-section:hover {
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: var(--shadow-colored);
-}
 
 .form-section h3 {
   margin: 0 0 var(--spacing-xl) 0;
@@ -1873,11 +1915,8 @@ export default {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
-  border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
-  transition: var(--transition-fast);
 }
 
 .form-group input:focus,
@@ -1929,11 +1968,6 @@ export default {
   flex-shrink: 0;
 }
 
-.category-option:hover {
-  border-color: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
-  transform: translateY(-1px);
-}
 
 .category-option.active {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
@@ -1979,11 +2013,6 @@ export default {
   box-sizing: border-box;
 }
 
-.category-shell:hover:not(.expanded) {
-  border-color: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
-  transform: translateY(-1px);
-}
 
 .category-shell.expanded {
   width: var(--form-width);
@@ -2259,10 +2288,6 @@ export default {
   overflow: hidden;
 }
 
-.test-case:hover {
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: var(--shadow-colored);
-}
 
 .test-case.error {
   border-color: var(--color-error);
@@ -2286,6 +2311,16 @@ export default {
   gap: var(--spacing-md);
   padding: var(--spacing-md);
   align-items: stretch;
+}
+
+/* No parameters message */
+.no-params-message {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-sm);
 }
 
 /* Smart Parameters Layout */
