@@ -209,7 +209,7 @@
 
               <!-- Theme selector -->
               <div class="theme-selector">
-                <select v-model="editorTheme" @change="updateTheme" class="theme-dropdown">
+                <select v-model="editorTheme"  class="theme-dropdown">
                   <option value="monokai">Monokai</option>
                   <option value="github">GitHub</option>
                   <option value="clouds_midnight">Clouds Midnight</option>
@@ -423,6 +423,15 @@
 import NotificationToast from './NotificationToast.vue'
 import Editor from '@/features/editor/Editor.vue'
 import { problemService } from '../services/problemService'
+import { 
+  parseTypeAnnotation,
+  validateValueAgainstType,
+  autoDetectTypeFromInput,
+  formatTypeSpec,
+  pythonTypes,
+  getPlaceholderForType,
+  formatValueForInput
+} from '@/utils/typeSystem'
 
 // Color options as static constant
 const COLOR_OPTIONS = [
@@ -480,6 +489,7 @@ export default {
       // Function signature parsing
       functionParameters: [],
       returnType: 'Any',
+      returnTypeSpec: { type: 'Any' },
       
       // Category creation
       showAddCategory: false,
@@ -516,28 +526,19 @@ export default {
     isEditing() {
       return Boolean(this.currentProblemSlug)
     },
-    validationErrors() {
-      const errors = [];
+    canSave() {
+      if (this.ui.loading) return false;
+      
       const title = (this.form.title || '').toString().trim();
       const functionName = (this.form.function_name || '').toString().trim();
       const referenceSolution = (this.form.reference_solution || '').toString().trim();
       
-      if (!title) errors.push('Title is required');
-      if (!functionName) errors.push('Function name is required');
-      if (!referenceSolution) errors.push('Reference solution is required');
-      if (this.form.test_cases.length === 0) errors.push('At least one test case required');
-      if (this.form.test_cases.some(tc => tc.error)) errors.push('Fix test case errors');
-      return errors;
-    },
-    canSave() {
-      const title = (this.form.title || '').toString().trim();
-      const description = (this.form.description || '').toString().trim();
+      // Check for validation errors
+      if (!title || !functionName || !referenceSolution) return false;
+      if (this.form.test_cases.length === 0) return false;
+      if (this.form.test_cases.some(tc => tc.error)) return false;
       
-      return !this.ui.loading && 
-             this.validationErrors.length === 0 &&
-             (title.length > 0 || 
-              description.length > 0 ||
-              this.form.test_cases.length > 0);
+      return true;
     },
     canTest() {
       const functionName = (this.form.function_name || '').toString().trim();
@@ -588,10 +589,6 @@ export default {
         zIndex: 1001
       };
     },
-    currentTheme() {
-      // Return the theme name directly as the Editor component handles the mapping
-      return this.editorTheme;
-    }
   },
   async mounted() {
     // Configure ACE editor base path
@@ -609,7 +606,7 @@ export default {
       // Parse function signature if available
       this.parseFunctionSignature();
     } catch (error) {
-      this.$toast?.error?.('Failed to load data') || console.error('Failed to load data');
+      this.$toast?.error?.('Failed to load data');
     }
   },
   
@@ -664,11 +661,10 @@ export default {
       try {
         const result = await actionFn();
         if (successMsg) {
-          this.$toast?.success?.(successMsg) || console.log(successMsg);
+          this.$toast?.success?.(successMsg);
         }
         return result;
       } catch (error) {
-        console.error(`Error in ${actionName}:`, error);
         
         // Better error message extraction
         let errorMsg = `Failed to ${actionName}`;
@@ -686,7 +682,7 @@ export default {
         }
         
         this.ui.error = errorMsg;
-        this.$toast?.error?.(errorMsg) || console.error(errorMsg);
+        this.$toast?.error?.(errorMsg);
         throw error;
       } finally {
         this.ui.loading = false;
@@ -714,25 +710,10 @@ export default {
         problemData.problem_type = 'eipl';
       }
       
-      // DEBUG: Log reference solution details
-      console.log('=== DEBUGGING REFERENCE SOLUTION ===');
-      console.log('Original problemData.reference_solution:', problemData.reference_solution);
-      console.log('Type:', typeof problemData.reference_solution);
-      console.log('Is object?', typeof problemData.reference_solution === 'object');
-      console.log('JSON stringify:', JSON.stringify(problemData.reference_solution));
-      
       // Ensure reference_solution is always a string
       if (problemData.reference_solution && typeof problemData.reference_solution !== 'string') {
-        console.log('Converting reference_solution from object to string');
-        console.log('Object value:', problemData.reference_solution);
         problemData.reference_solution = String(problemData.reference_solution);
-        console.log('After conversion:', problemData.reference_solution);
-      } else {
-        console.log('Reference solution is already a string:', problemData.reference_solution);
       }
-      
-      console.log('Final reference_solution:', problemData.reference_solution);
-      console.log('=== END DEBUGGING ===');
       
       // Add error tracking to test cases and convert to smart parameter format
       if (problemData.test_cases) {
@@ -1011,25 +992,35 @@ export default {
     
     updateTestCaseExpected(testCase, value) {
       try {
-        // Parse and set the value
-        testCase.expected_output = this.parseValueForBackend(value);
-        
         // Detect and validate type for expected output
         if (!value.trim()) {
+          testCase.expected_output = null;
           testCase.expectedOutputDetectedType = 'Any';
           testCase.expectedOutputError = null;
         } else {
-          const detectedType = this.autoDetectType(value);
-          testCase.expectedOutputDetectedType = detectedType;
+          const typeInfo = autoDetectTypeFromInput(value);
+          testCase.expectedOutputDetectedType = typeInfo.annotation;
           
-          // Get expected return type
-          const expectedType = this.simplifyType(this.returnType);
-          
-          // Validate type match
-          if (expectedType !== 'Any' && detectedType !== 'invalid' && !this.typesMatch(detectedType, expectedType)) {
-            testCase.expectedOutputError = `Expected ${expectedType}, got ${detectedType}`;
-          } else if (detectedType === 'invalid') {
+          if (typeInfo.detected === 'invalid') {
             testCase.expectedOutputError = 'Invalid input format';
+            testCase.error = 'Invalid input for expected output';
+            return;
+          }
+          
+          // Parse and set the value
+          testCase.expected_output = this.parseValueForBackend(value);
+          
+          // Validate against return type spec
+          if (this.returnTypeSpec && this.returnTypeSpec.type !== 'Any') {
+            const validationResult = validateValueAgainstType(testCase.expected_output, this.returnTypeSpec);
+            if (!validationResult.valid) {
+              const pathStr = validationResult.path.length > 0 
+                ? ` at ${validationResult.path.join('')}` 
+                : '';
+              testCase.expectedOutputError = `${validationResult.error}${pathStr}`;
+            } else {
+              testCase.expectedOutputError = null;
+            }
           } else {
             testCase.expectedOutputError = null;
           }
@@ -1047,14 +1038,14 @@ export default {
       if (!this.canTest) {
         // Show specific reason instead of generic warning
         const reason = this.canTestReason || 'Cannot test problem in current state';
-        this.$toast?.warning?.(reason) || console.warn(reason);
+        this.$toast?.warning?.(reason);
         return;
       }
       
       // Validate test cases for errors
       for (let i = 0; i < this.form.test_cases.length; i++) {
         if (this.form.test_cases[i].error) {
-          this.$toast?.error?.(`Please fix errors in test case ${i + 1}`) || console.error(`Test case ${i + 1} has errors`);
+          this.$toast?.error?.(`Please fix errors in test case ${i + 1}`);
           return;
         }
       }
@@ -1072,8 +1063,7 @@ export default {
           reference_solution: this.getApiSafeString(this.form.reference_solution),
           test_cases: this.form.test_cases.filter(tc => {
             // Debug: Log what we're filtering
-            console.log('Filtering test case:', tc, 'Has error:', tc.error, 'Has inputs:', tc.inputs);
-            return !tc.error;
+              return !tc.error;
           }).map(tc => ({
             inputs: tc.inputs || [],
             expected_output: tc.expected_output,
@@ -1082,24 +1072,12 @@ export default {
           }))
         };
         
-        // Debug: Log the data being sent
-        console.log('Testing with data:', testData);
-        
         // Check if we have any test cases to test
         if (!testData.test_cases || testData.test_cases.length === 0) {
           throw new Error('No valid test cases found. Please add test cases with inputs and expected outputs.');
         }
         
         this.ui.testResults = await problemService.testProblem(testData);
-        
-        // Debug: Log the test results received
-        console.log('Test results received:', this.ui.testResults);
-        console.log('Test results structure:', {
-          success: this.ui.testResults.success,
-          passed: this.ui.testResults.passed,
-          total: this.ui.testResults.total,
-          results: this.ui.testResults.results
-        });
         
         const passed = this.ui.testResults.passed;
         const total = this.ui.testResults.total;
@@ -1115,13 +1093,11 @@ export default {
     async generateTestCases() {
       if (!this.canGenerateTestCases) {
         const reason = this.canGenerateTestCasesReason || 'Cannot generate test cases in current state';
-        this.$toast?.warning?.(reason) || console.warn(reason);
+        this.$toast?.warning?.(reason);
         return;
       }
       
       await this.executeAction('generate test cases', async () => {
-        console.log('Starting AI test case generation...');
-        
         const requestData = {
           description: this.form.description || '',
           function_name: this.form.function_name,
@@ -1129,11 +1105,7 @@ export default {
           reference_solution: this.getApiSafeString(this.form.reference_solution)
         };
         
-        console.log('AI Generation request data:', requestData);
-        
         const response = await problemService.generateTestCases(requestData);
-        
-        console.log('AI Generation response:', response);
         
         if (!response.test_cases || !Array.isArray(response.test_cases)) {
           throw new Error('Invalid response format: expected test_cases array');
@@ -1154,12 +1126,11 @@ export default {
     
     async saveProblem() {
       if (!this.canSave) {
-        this.$toast?.error?.('Please fix validation errors before saving') || console.error('Cannot save - validation errors');
+        this.$toast?.error?.('Please fix validation errors before saving');
         return;
       }
       
       await this.executeAction('save problem', async () => {
-        console.log('Form test cases before filtering:', this.form.test_cases);
         
         const problemData = {
           title: this.getApiSafeString(this.form.title),
@@ -1173,23 +1144,17 @@ export default {
           hints: this.getApiSafeString(this.form.hints),
           tags: Array.isArray(this.form.tags) ? this.form.tags : [],
           test_cases: this.form.test_cases.filter(tc => {
-            // Debug logging
-            console.log('Validating test case:', tc);
             
             // Filter out test cases with errors or missing required fields
             if (tc.error) {
-              console.log('Filtered out due to error:', tc.error);
               return false;
             }
             if (!Array.isArray(tc.inputs)) {
-              console.log('Filtered out due to invalid inputs:', tc.inputs);
               return false;
             }
             if (tc.expected_output === null || tc.expected_output === undefined) {
-              console.log('Filtered out due to missing expected_output:', tc.expected_output);
               return false;
             }
-            console.log('Test case is valid');
             return true;
           }).map(tc => ({
             inputs: tc.inputs,
@@ -1198,8 +1163,6 @@ export default {
             order: Number(tc.order) || 0
           }))
         };
-        
-        console.log('Problem data test cases after filtering:', problemData.test_cases);
         
         // Additional validation
         if (!problemData.title) {
@@ -1224,8 +1187,6 @@ export default {
             throw new Error(`Test case ${index + 1}: expected output is required`);
           }
         });
-        
-        console.log('Sending problem data:', problemData);
         
         let savedProblem;
         
@@ -1283,12 +1244,6 @@ export default {
       }
     },
     
-    /**
-     * Update editor theme
-     */
-    updateTheme() {
-      // Theme updates automatically through the reactive prop binding
-    },
     
     /**
      * Check if test case passed
@@ -1337,6 +1292,7 @@ export default {
       if (!this.form.function_signature) {
         this.functionParameters = [];
         this.returnType = 'Any';
+        this.returnTypeSpec = { type: 'Any' };
         return;
       }
       
@@ -1349,14 +1305,16 @@ export default {
       if (!match) {
         this.functionParameters = [];
         this.returnType = 'Any';
+        this.returnTypeSpec = { type: 'Any' };
         return;
       }
       
       const [_, functionName, paramsStr, returnTypeStr] = match;
       
-      // Parse parameters
+      // Parse parameters with enhanced type specs
       this.functionParameters = this.parseParameters(paramsStr || '');
       this.returnType = returnTypeStr?.trim() || 'Any';
+      this.returnTypeSpec = parseTypeAnnotation(this.returnType);
       
       // Initialize parameter data in existing test cases
       this.initializeParameterData();
@@ -1375,10 +1333,12 @@ export default {
       let match;
       
       while ((match = paramRegex.exec(paramsStr)) !== null) {
+        const typeStr = match[2].trim();
         params.push({
           name: match[1],
-          type: match[2].trim(),
-          simplifiedType: this.simplifyType(match[2].trim())
+          type: typeStr,
+          simplifiedType: typeStr.toLowerCase().split('[')[0],
+          typeSpec: parseTypeAnnotation(typeStr)
         });
       }
       
@@ -1389,7 +1349,8 @@ export default {
           params.push({
             name: param,
             type: 'Any',
-            simplifiedType: 'Any'
+            simplifiedType: 'Any',
+            typeSpec: { type: 'Any' }
           });
         });
       }
@@ -1397,21 +1358,6 @@ export default {
       return params;
     },
     
-    /**
-     * Simplify complex types for placeholder generation
-     */
-    simplifyType(typeStr) {
-      const lower = typeStr.toLowerCase();
-      if (lower.includes('list') || lower.includes('[]')) return 'list';
-      if (lower.includes('dict') || lower.includes('{}')) return 'dict';
-      if (lower.includes('tuple')) return 'tuple';
-      if (lower.includes('set')) return 'set';
-      if (lower.includes('bool')) return 'bool';
-      if (lower.includes('int')) return 'int';
-      if (lower.includes('float')) return 'float';
-      if (lower.includes('str')) return 'str';
-      return 'Any';
-    },
     
     /**
      * Convert existing inputs arrays to smart parameter format
@@ -1432,7 +1378,7 @@ export default {
           testCase.inputs.forEach((value, index) => {
             if (index < this.functionParameters.length) {
               // Convert value to string representation
-              const stringValue = this.formatValueForInput(value);
+              const stringValue = formatValueForInput(value);
               testCase.parameterValues[index] = stringValue;
               
               // Detect and validate the type
@@ -1450,14 +1396,23 @@ export default {
         
         // Convert expected_output for type detection
         if (testCase.expected_output !== null && testCase.expected_output !== undefined) {
-          const outputString = this.formatValueForInput(testCase.expected_output);
-          const detectedType = this.autoDetectType(outputString);
-          testCase.expectedOutputDetectedType = detectedType;
+          const outputString = formatValueForInput(testCase.expected_output);
+          const typeInfo = autoDetectTypeFromInput(outputString);
+          testCase.expectedOutputDetectedType = typeInfo.annotation;
           
-          // Validate against return type
-          const expectedType = this.simplifyType(this.returnType);
-          if (expectedType !== 'Any' && detectedType !== 'invalid' && !this.typesMatch(detectedType, expectedType)) {
-            testCase.expectedOutputError = `Expected ${expectedType}, got ${detectedType}`;
+          // Validate against return type spec
+          if (this.returnTypeSpec && this.returnTypeSpec.type !== 'Any' && typeInfo.detected !== 'invalid') {
+            try {
+              const converted = pythonTypes[typeInfo.detected].convert(outputString);
+              const validationResult = validateValueAgainstType(converted, this.returnTypeSpec);
+              if (!validationResult.valid) {
+                testCase.expectedOutputError = validationResult.error;
+              } else {
+                testCase.expectedOutputError = null;
+              }
+            } catch {
+              testCase.expectedOutputError = 'Invalid value for return type';
+            }
           } else {
             testCase.expectedOutputError = null;
           }
@@ -1465,18 +1420,6 @@ export default {
       });
     },
     
-    /**
-     * Format a JavaScript value for input display (reverse of parseValueForBackend)
-     */
-    formatValueForInput(value) {
-      if (value === null || value === undefined) return 'None';
-      if (typeof value === 'boolean') return value ? 'True' : 'False';
-      if (typeof value === 'string') return value; // Don't add quotes for display
-      if (Array.isArray(value) || typeof value === 'object') {
-        return JSON.stringify(value);
-      }
-      return String(value);
-    },
     
     /**
      * Initialize parameter data for existing test cases
@@ -1571,93 +1514,41 @@ export default {
         return;
       }
       
-      const detectedType = this.autoDetectType(value);
-      testCase.parameterDetectedTypes[paramIndex] = detectedType;
+      // Use enhanced type detection
+      const typeInfo = autoDetectTypeFromInput(value);
+      testCase.parameterDetectedTypes[paramIndex] = typeInfo.annotation;
       
-      // Get expected type
-      const expectedType = this.functionParameters[paramIndex]?.simplifiedType || 'Any';
-      
-      // Validate type match
-      if (expectedType !== 'Any' && detectedType !== 'invalid' && !this.typesMatch(detectedType, expectedType)) {
-        testCase.parameterErrors[paramIndex] = `Expected ${expectedType}, got ${detectedType}`;
-      } else if (detectedType === 'invalid') {
+      // Handle invalid syntax
+      if (typeInfo.detected === 'invalid') {
         testCase.parameterErrors[paramIndex] = 'Invalid input format';
+        return;
+      }
+      
+      // Get expected type spec
+      const expectedTypeSpec = this.functionParameters[paramIndex]?.typeSpec;
+      if (expectedTypeSpec && expectedTypeSpec.type !== 'Any') {
+        try {
+          // Convert value using type handlers
+          const converted = pythonTypes[typeInfo.detected].convert(value);
+          
+          // Validate against expected type spec
+          const validationResult = validateValueAgainstType(converted, expectedTypeSpec);
+          if (!validationResult.valid) {
+            const pathStr = validationResult.path.length > 0 
+              ? ` at ${validationResult.path.join('')}` 
+              : '';
+            testCase.parameterErrors[paramIndex] = `${validationResult.error}${pathStr}`;
+          } else {
+            testCase.parameterErrors[paramIndex] = null;
+          }
+        } catch (error) {
+          testCase.parameterErrors[paramIndex] = 'Invalid input format';
+        }
       } else {
         testCase.parameterErrors[paramIndex] = null;
       }
     },
     
-    /**
-     * Auto-detect type from input string
-     */
-    autoDetectType(value) {
-      const trimmed = value.trim();
-      
-      // None/null
-      if (/^(None|null|none)$/i.test(trimmed)) return 'None';
-      
-      // Boolean
-      if (/^(true|false|True|False)$/i.test(trimmed)) return 'bool';
-      
-      // Integer
-      if (/^-?\d+$/.test(trimmed)) return 'int';
-      
-      // Float
-      if (/^-?\d*\.\d+$/.test(trimmed)) return 'float';
-      
-      // List
-      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        try {
-          JSON.parse(trimmed);
-          return 'list';
-        } catch {
-          return 'invalid';
-        }
-      }
-      
-      // Dict
-      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-        try {
-          JSON.parse(trimmed);
-          return 'dict';
-        } catch {
-          return 'invalid';
-        }
-      }
-      
-      // Tuple (represented as array in JSON)
-      if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
-        try {
-          const arrayStr = trimmed.replace(/^\(/, '[').replace(/\)$/, ']');
-          JSON.parse(arrayStr);
-          return 'tuple';
-        } catch {
-          return 'invalid';
-        }
-      }
-      
-      // String (quoted or unquoted)
-      if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-          (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
-          /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed)) {
-        return 'str';
-      }
-      
-      return 'str'; // Default to string for other inputs
-    },
-    
-    /**
-     * Check if detected type matches expected type
-     */
-    typesMatch(detected, expected) {
-      if (expected === 'Any') return true;
-      if (detected === expected) return true;
-      
-      // Allow int to match float
-      if (expected === 'float' && detected === 'int') return true;
-      
-      return false;
-    },
     
     /**
      * Update the inputs array from parameter values (for backend compatibility)
@@ -1680,41 +1571,14 @@ export default {
      */
     parseValueForBackend(value) {
       const trimmed = value.trim();
-      
       if (!trimmed) return null;
-      if (/^(None|null|none)$/i.test(trimmed)) return null;
-      if (/^(true|True)$/i.test(trimmed)) return true;
-      if (/^(false|False)$/i.test(trimmed)) return false;
-      if (/^-?\d+$/.test(trimmed)) return parseInt(trimmed);
-      if (/^-?\d*\.\d+$/.test(trimmed)) return parseFloat(trimmed);
       
-      // Try to parse JSON for collections
-      if ((trimmed.startsWith('[') && trimmed.endsWith(']')) ||
-          (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
-        try {
-          return JSON.parse(trimmed);
-        } catch {
-          return trimmed;
-        }
+      try {
+        return JSON.parse(trimmed);
+      } catch {
+        // If not valid JSON, return as string
+        return trimmed;
       }
-      
-      // Handle tuple notation
-      if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
-        try {
-          const arrayStr = trimmed.replace(/^\(/, '[').replace(/\)$/, ']');
-          return JSON.parse(arrayStr);
-        } catch {
-          return trimmed;
-        }
-      }
-      
-      // Remove quotes from strings
-      if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-          (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-        return trimmed.slice(1, -1);
-      }
-      
-      return trimmed;
     },
     
     /**
@@ -1738,23 +1602,34 @@ export default {
     },
     
     /**
+     * Get CSS class for type badge
+     */
+    getTypeClass(detectedType, hasError = false) {
+      if (hasError) return 'type-error';
+      
+      // Extract base type from complex annotations like "Dict[int, List[str]]"
+      const baseType = detectedType.toLowerCase().split('[')[0];
+      
+      if (['int', 'float'].includes(baseType)) return 'type-number';
+      if (baseType === 'str') return 'type-string';
+      if (baseType === 'bool') return 'type-boolean';
+      if (['list', 'dict', 'tuple', 'set'].includes(baseType)) return 'type-collection';
+      if (baseType === 'none') return 'type-none';
+      if (baseType === 'invalid') return 'type-invalid';
+      if (baseType === 'optional') return 'type-optional';
+      
+      return 'type-any';
+    },
+    
+    /**
      * Get CSS class for parameter type badge
      */
     getParameterTypeClass(testCase, paramIndex) {
       const detectedType = this.getParameterDetectedType(testCase, paramIndex);
       const hasError = this.getParameterError(testCase, paramIndex);
-      
-      if (hasError) return 'type-error';
-      
-      if (['int', 'float'].includes(detectedType)) return 'type-number';
-      if (detectedType === 'str') return 'type-string';
-      if (detectedType === 'bool') return 'type-boolean';
-      if (['list', 'dict', 'tuple', 'set'].includes(detectedType)) return 'type-collection';
-      if (detectedType === 'None') return 'type-none';
-      if (detectedType === 'invalid') return 'type-invalid';
-      
-      return 'type-any';
+      return this.getTypeClass(detectedType, hasError);
     },
+    
     
     /**
      * Get type info tooltip
@@ -1772,19 +1647,7 @@ export default {
      * Get placeholder for parameter input
      */
     getParameterPlaceholder(type) {
-      const simplified = this.simplifyType(type);
-      const placeholders = {
-        'int': '42',
-        'float': '3.14',
-        'str': '"hello"',
-        'bool': 'true',
-        'list': '[1, 2, 3]',
-        'dict': '{"key": "value"}',
-        'tuple': '(1, 2, 3)',
-        'set': '{1, 2, 3}',
-        'None': 'None'
-      };
-      return placeholders[simplified] || 'value';
+      return getPlaceholderForType(type);
     },
     
     // === Output Field Methods ===
@@ -1816,17 +1679,7 @@ export default {
     getOutputTypeClass(testCase) {
       const detectedType = this.getOutputDetectedType(testCase);
       const hasError = testCase.expectedOutputError;
-      
-      if (hasError) return 'type-error';
-      
-      if (['int', 'float'].includes(detectedType)) return 'type-number';
-      if (detectedType === 'str') return 'type-string';
-      if (detectedType === 'bool') return 'type-boolean';
-      if (['list', 'dict', 'tuple', 'set'].includes(detectedType)) return 'type-collection';
-      if (detectedType === 'None') return 'type-none';
-      if (detectedType === 'invalid') return 'type-invalid';
-      
-      return 'type-any';
+      return this.getTypeClass(detectedType, hasError);
     },
     
     /**
@@ -1853,35 +1706,9 @@ export default {
      * Helper method to safely convert form fields to strings for API calls
      */
     getApiSafeString(value) {
-      if (typeof value === 'string') {
-        return value.trim();
+      if (Array.isArray(value)) {
+        return JSON.stringify(value);
       }
-      
-      // Handle Vue reactivity proxies and objects
-      if (value && typeof value === 'object') {
-        // If it's a proxy or object, try to get the actual string value
-        if (value.toString && typeof value.toString === 'function') {
-          const stringified = value.toString();
-          // Don't return "[object Object]" - that means toString() failed
-          if (stringified !== '[object Object]') {
-            return stringified.trim();
-          }
-        }
-        
-        // Try to access common string properties
-        if (value.value && typeof value.value === 'string') {
-          return value.value.trim();
-        }
-        
-        // If it's an array, JSON stringify it
-        if (Array.isArray(value)) {
-          return JSON.stringify(value);
-        }
-        
-        // Last resort: empty string for objects we can't convert
-        return '';
-      }
-      
       return String(value || '').trim();
     }
   }
@@ -2398,7 +2225,7 @@ export default {
 
 /* Test Cases - Simplified */
 
-/* Actions Bar */
+/* Test Actions Bar */
 .test-actions {
   display: flex;
   justify-content: space-between;
@@ -2598,6 +2425,12 @@ export default {
   background: var(--color-error-bg);
   color: var(--color-error);
   border: 1px solid var(--color-error);
+}
+
+.type-optional {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
 }
 
 /* Output Field Container */
@@ -2898,15 +2731,6 @@ export default {
   
   .input-segment {
     min-width: 150px;
-  }
-  
-  .test-cases-actions {
-    flex-direction: column;
-    gap: var(--spacing-lg);
-  }
-  
-  .action-group {
-    justify-content: center;
   }
   
   .test-actions {
