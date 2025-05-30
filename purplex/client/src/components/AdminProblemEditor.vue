@@ -180,14 +180,63 @@
 
         <div class="form-group">
           <label for="reference_solution">Reference Solution *</label>
+          
+          <!-- Editor toolbar -->
+          <div class="editor-toolbar">
+            <div class="toolbar-left">
+              <!-- Zoom controls -->
+              <div class="zoom-controls">
+                <button
+                  type="button"
+                  @click="decreaseFontSize"
+                  :disabled="editorFontSize <= 12"
+                  class="zoom-btn"
+                  title="Decrease font size"
+                >
+                  <span class="zoom-icon">−</span>
+                </button>
+                <span class="zoom-display">{{ Math.round((editorFontSize / 14) * 100) }}%</span>
+                <button
+                  type="button"
+                  @click="increaseFontSize"
+                  :disabled="editorFontSize >= 24"
+                  class="zoom-btn"
+                  title="Increase font size"
+                >
+                  <span class="zoom-icon">+</span>
+                </button>
+              </div>
+
+              <!-- Theme selector -->
+              <div class="theme-selector">
+                <select v-model="editorTheme" @change="updateTheme" class="theme-dropdown">
+                  <option value="monokai">Monokai</option>
+                  <option value="github">GitHub</option>
+                  <option value="clouds_midnight">Clouds Midnight</option>
+                  <option value="chrome">Chrome</option>
+                  <option value="solarized_dark">Solarized Dark</option>
+                  <option value="solarized_light">Solarized Light</option>
+                  <option value="dracula">Dracula</option>
+                  <option value="tomorrow_night">Tomorrow Night</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Editor component -->
           <div class="code-editor">
-            <textarea
-              id="reference_solution"
-              v-model="form.reference_solution"
-              class="code-textarea"
-              placeholder="def your_function():&#10;    # Your solution here&#10;    pass"
-              rows="8"
-            ></textarea>
+            <Editor
+              ref="editor"
+              :value="(form.reference_solution || '').toString()"
+              @update:value="form.reference_solution = $event"
+              :height="'300px'"
+              :width="'100%'"
+              :theme="editorTheme"
+              :showGutter="true"
+              :mode="'python'"
+              :lang="'python'"
+            />
           </div>
         </div>
 
@@ -274,33 +323,47 @@
             </div>
 
             <div class="test-case-content">
-              <div class="form-group">
-                <label>Inputs (JSON array)</label>
-                <input
-                  :value="getTestCaseInputsDisplay(testCase)"
-                  @input="updateTestCaseInputs(testCase, $event.target.value)"
-                  type="text"
-                  placeholder='["arg1", "arg2"]'
-                />
-              </div>
+              <!-- Smart Test Case Input Component -->
+              <SmartTestCaseInput
+                v-if="form.function_signature"
+                :ref="`smartTestCase_${index}`"
+                :functionSignature="form.function_signature"
+                :initialInputs="testCase.inputs"
+                :initialExpectedOutput="testCase.expected_output"
+                :initialDescription="testCase.description"
+                @change="updateSmartTestCase(index, $event)"
+              />
+              
+              <!-- Fallback to manual inputs if no function signature -->
+              <div v-else>
+                <div class="form-group">
+                  <label>Inputs (JSON array)</label>
+                  <input
+                    :value="getTestCaseInputsDisplay(testCase)"
+                    @input="updateTestCaseInputs(testCase, $event.target.value)"
+                    type="text"
+                    placeholder='["arg1", "arg2"]'
+                  />
+                </div>
 
-              <div class="form-group">
-                <label>Expected Output (JSON)</label>
-                <input
-                  :value="getTestCaseExpectedDisplay(testCase)"
-                  @input="updateTestCaseExpected(testCase, $event.target.value)"
-                  type="text"
-                  placeholder="true"
-                />
-              </div>
+                <div class="form-group">
+                  <label>Expected Output (JSON)</label>
+                  <input
+                    :value="getTestCaseExpectedDisplay(testCase)"
+                    @input="updateTestCaseExpected(testCase, $event.target.value)"
+                    type="text"
+                    placeholder="true"
+                  />
+                </div>
 
-              <div class="form-group">
-                <label>Description (optional)</label>
-                <input
-                  v-model="testCase.description"
-                  type="text"
-                  placeholder="Brief description of this test case"
-                />
+                <div class="form-group">
+                  <label>Description (optional)</label>
+                  <input
+                    v-model="testCase.description"
+                    type="text"
+                    placeholder="Brief description of this test case"
+                  />
+                </div>
               </div>
 
               <div v-if="testCase.error" class="test-case-error-message">
@@ -401,6 +464,8 @@
 
 <script>
 import NotificationToast from './NotificationToast.vue'
+import SmartTestCaseInput from './SmartTestCaseInput.vue'
+import Editor from '@/features/editor/Editor.vue'
 import { problemService } from '../services/problemService'
 
 // Color options as static constant
@@ -418,7 +483,9 @@ const COLOR_OPTIONS = [
 export default {
   name: 'AdminProblemEditor',
   components: {
-    NotificationToast
+    NotificationToast,
+    SmartTestCaseInput,
+    Editor
   },
   // Static options
   colorOptions: COLOR_OPTIONS,
@@ -435,6 +502,7 @@ export default {
         title: '',
         description: '',
         difficulty: 'beginner',
+        problem_type: 'eipl',
         category_ids: [],
         function_name: '',
         function_signature: '',
@@ -476,7 +544,11 @@ export default {
       popupDirection: 'below',
       
       // Click outside handler
-      clickOutsideHandler: null
+      clickOutsideHandler: null,
+      
+      // Editor settings
+      editorFontSize: 14,
+      editorTheme: 'monokai'
     }
   },
   computed: {
@@ -489,44 +561,63 @@ export default {
     },
     validationErrors() {
       const errors = [];
-      if (!this.form.title?.trim()) errors.push('Title is required');
-      if (!this.form.function_name?.trim()) errors.push('Function name is required');
-      if (!this.form.reference_solution?.trim()) errors.push('Reference solution is required');
+      const title = (this.form.title || '').toString().trim();
+      const functionName = (this.form.function_name || '').toString().trim();
+      const referenceSolution = (this.form.reference_solution || '').toString().trim();
+      
+      if (!title) errors.push('Title is required');
+      if (!functionName) errors.push('Function name is required');
+      if (!referenceSolution) errors.push('Reference solution is required');
       if (this.form.test_cases.length === 0) errors.push('At least one test case required');
       if (this.form.test_cases.some(tc => tc.error)) errors.push('Fix test case errors');
       return errors;
     },
     canSave() {
+      const title = (this.form.title || '').toString().trim();
+      const description = (this.form.description || '').toString().trim();
+      
       return !this.ui.loading && 
              this.validationErrors.length === 0 &&
-             (this.form.title.trim().length > 0 || 
-              this.form.description.trim().length > 0 ||
+             (title.length > 0 || 
+              description.length > 0 ||
               this.form.test_cases.length > 0);
     },
     canTest() {
+      const functionName = (this.form.function_name || '').toString().trim();
+      const referenceSolution = (this.form.reference_solution || '').toString().trim();
+      
       return !this.ui.loading &&
-             this.form.function_name.trim().length > 0 &&
-             this.form.reference_solution.trim().length > 0 &&
+             functionName.length > 0 &&
+             referenceSolution.length > 0 &&
              this.form.test_cases.length > 0 &&
              this.form.test_cases.every(tc => !tc.error);
     },
     canTestReason() {
+      const functionName = (this.form.function_name || '').toString().trim();
+      const referenceSolution = (this.form.reference_solution || '').toString().trim();
+      
       if (this.ui.loading) return "Currently loading...";
-      if (!this.form.function_name?.trim()) return "Function name required";
-      if (!this.form.reference_solution?.trim()) return "Reference solution required";
+      if (!functionName) return "Function name required";
+      if (!referenceSolution) return "Reference solution required";
       if (this.form.test_cases.length === 0) return "Add at least one test case";
       if (this.form.test_cases.some(tc => tc.error)) return "Fix test case errors first";
       return null; // Can test
     },
     canGenerateTestCases() {
+      const functionName = (this.form.function_name || '').toString().trim();
+      const referenceSolution = (this.form.reference_solution || '').toString().trim();
+      
       return !this.ui.loading &&
-             this.form.function_name.trim().length > 0 &&
-             this.form.reference_solution.trim().length > 0;
+             functionName.length > 0 &&
+             referenceSolution.length > 0;
     },
     canGenerateTestCasesReason() {
+      const functionName = (this.form.function_name || '').toString().trim();
+      const referenceSolution = (this.form.reference_solution || '').toString().trim();
+      
       if (this.ui.loading) return "Currently loading...";
-      if (!this.form.function_name?.trim()) return "Function name required for AI generation";
-      if (!this.form.reference_solution?.trim()) return "Reference solution required for AI generation";
+      if (!functionName) return "Function name required for AI generation";
+      if (!referenceSolution) return "Reference solution required for AI generation";
       return null; // Can generate
     },
     tagsDisplay() {
@@ -539,9 +630,18 @@ export default {
         left: this.popupPosition.left,
         zIndex: 1001
       };
+    },
+    currentTheme() {
+      // Return the theme name directly as the Editor component handles the mapping
+      return this.editorTheme;
     }
   },
   async mounted() {
+    // Configure ACE editor base path
+    if (window.ace) {
+      window.ace.config.set('basePath', 'https://cdn.jsdelivr.net/npm/ace-builds@1.15.0/src-noconflict/');
+    }
+    
     try {
       await Promise.all([
         this.loadCategories(),
@@ -659,6 +759,11 @@ export default {
           loadedProblem.tags = [];
         }
         
+        // Ensure problem_type has a default value
+        if (!loadedProblem.problem_type) {
+          loadedProblem.problem_type = 'eipl';
+        }
+        
         this.form = loadedProblem;
       });
     },
@@ -705,10 +810,14 @@ export default {
       this.$nextTick(() => {
         this.clickOutsideHandler = (event) => {
           const categoryShell = this.$refs.categoryShell;
+          const colorPicker = document.querySelector('.color-picker-popup');
+          const colorOverlay = document.querySelector('.color-picker-overlay');
           
           if (event.target && 
               categoryShell && 
-              !categoryShell.contains(event.target)) {
+              !categoryShell.contains(event.target) &&
+              (!colorPicker || !colorPicker.contains(event.target)) &&
+              (!colorOverlay || !colorOverlay.contains(event.target))) {
             this.collapseBean();
           }
         };
@@ -891,12 +1000,36 @@ export default {
       }
     },
     
+    updateSmartTestCase(index, data) {
+      // Update test case with data from SmartTestCaseInput
+      if (this.form.test_cases[index]) {
+        this.form.test_cases[index].inputs = data.inputs;
+        this.form.test_cases[index].expected_output = data.expected_output;
+        this.form.test_cases[index].description = data.description;
+        this.form.test_cases[index].error = null; // Clear any previous JSON errors
+      }
+    },
+    
     async testProblem() {
       if (!this.canTest) {
         // Show specific reason instead of generic warning
         const reason = this.canTestReason || 'Cannot test problem in current state';
         this.$toast?.warning?.(reason) || console.warn(reason);
         return;
+      }
+      
+      // Validate all SmartTestCaseInput components if they exist
+      if (this.form.function_signature) {
+        for (let i = 0; i < this.form.test_cases.length; i++) {
+          const smartRef = this.$refs[`smartTestCase_${i}`];
+          if (smartRef && smartRef[0]) {
+            const isValid = smartRef[0].validate();
+            if (!isValid) {
+              this.$toast?.error?.(`Please fix errors in test case ${i + 1}`) || console.error(`Test case ${i + 1} has errors`);
+              return;
+            }
+          }
+        }
       }
       
       await this.executeAction('test problem', async () => {
@@ -979,28 +1112,77 @@ export default {
       }
       
       await this.executeAction('save problem', async () => {
+        console.log('Form test cases before filtering:', this.form.test_cases);
+        
         const problemData = {
-          title: this.form.title,
-          description: this.form.description,
+          title: (this.form.title || '').toString().trim(),
+          description: (this.form.description || '').toString().trim(),
           difficulty: this.form.difficulty,
           problem_type: this.form.problem_type,
-          category_ids: this.form.category_ids,
-          function_name: this.form.function_name,
-          function_signature: this.form.function_signature,
-          reference_solution: this.form.reference_solution,
-          hints: this.form.hints || '',
+          category_ids: Array.isArray(this.form.category_ids) ? this.form.category_ids : [],
+          function_name: (this.form.function_name || '').toString().trim(),
+          function_signature: (this.form.function_signature || '').toString().trim(),
+          reference_solution: (this.form.reference_solution || '').toString().trim(),
+          hints: this.form.hints ? this.form.hints.toString().trim() : '',
           memory_limit: this.form.memory_limit,
-          tags: this.form.tags,
+          tags: Array.isArray(this.form.tags) ? this.form.tags : [],
           is_active: this.form.is_active,
-          test_cases: this.form.test_cases.filter(tc => !tc.error).map(tc => ({
+          test_cases: this.form.test_cases.filter(tc => {
+            // Debug logging
+            console.log('Validating test case:', tc);
+            
+            // Filter out test cases with errors or missing required fields
+            if (tc.error) {
+              console.log('Filtered out due to error:', tc.error);
+              return false;
+            }
+            if (!Array.isArray(tc.inputs)) {
+              console.log('Filtered out due to invalid inputs:', tc.inputs);
+              return false;
+            }
+            if (tc.expected_output === null || tc.expected_output === undefined) {
+              console.log('Filtered out due to missing expected_output:', tc.expected_output);
+              return false;
+            }
+            console.log('Test case is valid');
+            return true;
+          }).map(tc => ({
             inputs: tc.inputs,
             expected_output: tc.expected_output,
             description: tc.description || '',
-            is_hidden: tc.is_hidden,
-            is_sample: tc.is_sample,
-            order: tc.order
+            is_hidden: Boolean(tc.is_hidden),
+            is_sample: Boolean(tc.is_sample),
+            order: Number(tc.order) || 0
           }))
         };
+        
+        console.log('Problem data test cases after filtering:', problemData.test_cases);
+        
+        // Additional validation
+        if (!problemData.title) {
+          throw new Error('Title is required');
+        }
+        if (!problemData.function_name) {
+          throw new Error('Function name is required');
+        }
+        if (!problemData.reference_solution) {
+          throw new Error('Reference solution is required');
+        }
+        if (problemData.test_cases.length === 0) {
+          throw new Error('At least one valid test case is required. Please check that all test cases have inputs and expected output.');
+        }
+        
+        // Validate test cases individually
+        problemData.test_cases.forEach((tc, index) => {
+          if (!Array.isArray(tc.inputs)) {
+            throw new Error(`Test case ${index + 1}: inputs must be an array`);
+          }
+          if (tc.expected_output === null || tc.expected_output === undefined) {
+            throw new Error(`Test case ${index + 1}: expected output is required`);
+          }
+        });
+        
+        console.log('Sending problem data:', problemData);
         
         let savedProblem;
         
@@ -1035,6 +1217,42 @@ export default {
       if (this.form.test_cases[index]) {
         this.form.test_cases[index].showFailureDetails = !this.form.test_cases[index].showFailureDetails;
       }
+    },
+    
+    /**
+     * Increase editor font size
+     */
+    increaseFontSize() {
+      if (this.editorFontSize < 24) {
+        this.editorFontSize += 2;
+        this.updateEditorFontSize();
+      }
+    },
+    
+    /**
+     * Decrease editor font size
+     */
+    decreaseFontSize() {
+      if (this.editorFontSize > 12) {
+        this.editorFontSize -= 2;
+        this.updateEditorFontSize();
+      }
+    },
+    
+    /**
+     * Update editor font size
+     */
+    updateEditorFontSize() {
+      if (this.$refs.editor && this.$refs.editor.editor) {
+        this.$refs.editor.editor.setFontSize(this.editorFontSize);
+      }
+    },
+    
+    /**
+     * Update editor theme
+     */
+    updateTheme() {
+      // Theme updates automatically through the reactive prop binding
     }
   }
 }
@@ -1712,6 +1930,24 @@ export default {
   padding: var(--spacing-lg);
 }
 
+/* Override SmartTestCaseInput component styling when inside test cases */
+.test-case-content :deep(.smart-test-case-input) {
+  gap: var(--spacing-md);
+}
+
+.test-case-content :deep(.parameters-section),
+.test-case-content :deep(.output-section),
+.test-case-content :deep(.description-section) {
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-bg-border);
+  padding: var(--spacing-md);
+}
+
+.test-case-content :deep(.section-label) {
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
 .test-case-error-message {
   color: var(--color-error-text);
   font-size: var(--font-size-sm);
@@ -1788,17 +2024,125 @@ export default {
 }
 
 
+/* Editor Toolbar */
+.editor-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-hover);
+  border: 2px solid var(--color-bg-border);
+  border-radius: var(--radius-base) var(--radius-base) 0 0;
+  border-bottom: none;
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* Zoom Controls */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: var(--color-bg-panel);
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-bg-border);
+}
+
+.zoom-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  padding: 0;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
+  border-color: var(--color-primary-gradient-start);
+  transform: scale(1.05);
+}
+
+.zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.zoom-icon {
+  line-height: 1;
+  font-size: 18px;
+}
+
+.zoom-display {
+  min-width: 50px;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* Theme Selector */
+.theme-selector {
+  position: relative;
+}
+
+.theme-dropdown {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  outline: none;
+  min-width: 120px;
+}
+
+.theme-dropdown:hover {
+  border-color: var(--color-primary-gradient-start);
+}
+
+.theme-dropdown:focus {
+  border-color: var(--color-primary-gradient-start);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+
 /* Code Editor */
 .code-editor {
   border: 2px solid var(--color-bg-border);
-  border-radius: var(--radius-base);
+  border-radius: 0 0 var(--radius-base) var(--radius-base);
   overflow: hidden;
   transition: var(--transition-fast);
+  border-top: none;
 }
 
 .code-editor:focus-within {
   border-color: var(--color-primary-gradient-start);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Override ACE editor default styles */
+.code-editor :deep(.ace_editor) {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace !important;
 }
 
 .code-textarea {
@@ -1885,6 +2229,22 @@ export default {
   .btn {
     width: 100%;
     justify-content: center;
+  }
+  
+  /* Editor toolbar responsive */
+  .editor-toolbar {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+  }
+  
+  .toolbar-left {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .theme-dropdown {
+    width: 100%;
   }
 }
 
