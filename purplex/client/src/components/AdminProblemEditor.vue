@@ -228,8 +228,8 @@
           <div class="code-editor">
             <Editor
               ref="editor"
-              :value="(form.reference_solution || '').toString()"
-              @update:value="form.reference_solution = $event"
+              :value="String(form.reference_solution || '')"
+              @update:value="updateReferenceSolution($event)"
               :height="'300px'"
               :width="'100%'"
               :theme="editorTheme"
@@ -255,176 +255,133 @@
       <div class="form-section">
         <h3>Test Cases</h3>
         
-        <!-- Test Results Summary -->
-        <div v-if="ui.testResults" class="test-results-summary">
-          <div class="results-summary-content">
-            <span class="results-text">
-              {{ ui.testResults.passed }}/{{ ui.testResults.total }} tests passed
-            </span>
-            <span v-if="ui.testResults.passed === ui.testResults.total" class="success-icon">✓</span>
-            <span v-else class="failure-icon">✗</span>
-          </div>
-        </div>
-        
-        <div class="test-cases-actions">
-          <div class="action-group">
-            <button type="button" @click="addTestCase" class="btn btn-secondary">
-              Add Test Case
+        <!-- Simplified Actions Bar -->
+        <div class="test-actions">
+          <div class="left-actions">
+            <button type="button" @click="addTestCase" class="btn-secondary">
+              + Add Test
             </button>
             <button
               type="button"
               @click="generateTestCases"
               :disabled="ui.loading || !canGenerateTestCases"
-              class="btn btn-secondary"
+              class="btn-secondary"
               :title="canGenerateTestCasesReason || 'Generate one test case using AI'"
             >
-              {{ ui.loading ? 'Generating...' : 'Add Test Case with AI' }}
+              {{ ui.loading ? 'Generating...' : '+ AI Generate' }}
             </button>
           </div>
           
           <button 
             @click="testProblem" 
             :disabled="!canTest || ui.loading" 
-            class="btn btn-primary test-solution-btn"
+            class="btn-primary"
             :title="canTestReason || 'Test your reference solution against all test cases'"
           >
-            {{ ui.loading ? 'Testing...' : 'Test Reference Solution' }}
+            {{ ui.loading ? 'Testing...' : 'Test All Cases' }}
           </button>
         </div>
 
+        <!-- Simplified Test Cases List -->
         <div class="test-cases-list">
           <div
             v-for="(testCase, index) in form.test_cases"
             :key="index"
             class="test-case"
-            :class="{ 'test-case-error': testCase.error }"
+            :class="{ 
+              error: testCase.error, 
+              passed: isTestPassed(index), 
+              failed: isTestFailed(index) 
+            }"
           >
-            <div class="test-case-header">
-              <div class="test-case-title">
-                <span class="test-case-number">Test {{ index + 1 }}</span>
-                <div v-if="ui.testResults && ui.testResults.results && ui.testResults.results[index]" class="test-status">
-                  <span v-if="ui.testResults.results[index].passed" class="status-passed">✓ Passed</span>
-                  <span v-else class="status-failed">✗ Failed</span>
-                </div>
-              </div>
-              <div class="test-case-options">
-                <label>
-                  <input type="checkbox" v-model="testCase.is_sample" />
-                  Sample
-                </label>
-                <label>
-                  <input type="checkbox" v-model="testCase.is_hidden" />
-                  Hidden
-                </label>
-                <button type="button" @click="removeTestCase(index)" class="btn-remove">
-                  ×
-                </button>
-              </div>
-            </div>
-
-            <div class="test-case-content">
-              <!-- Smart Test Case Input Component -->
-              <SmartTestCaseInput
-                v-if="form.function_signature"
-                :ref="`smartTestCase_${index}`"
-                :functionSignature="form.function_signature"
-                :initialInputs="testCase.inputs"
-                :initialExpectedOutput="testCase.expected_output"
-                :initialDescription="testCase.description"
-                @change="updateSmartTestCase(index, $event)"
-              />
+            <!-- Single row with everything -->
+            <div class="test-case-row" :style="{ '--param-count': getParameterCount() }">
+              <span class="test-number">{{ index + 1 }}</span>
               
-              <!-- Fallback to manual inputs if no function signature -->
-              <div v-else>
-                <div class="form-group">
-                  <label>Inputs (JSON array)</label>
-                  <input
-                    :value="getTestCaseInputsDisplay(testCase)"
-                    @input="updateTestCaseInputs(testCase, $event.target.value)"
-                    type="text"
-                    placeholder='["arg1", "arg2"]'
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>Expected Output (JSON)</label>
-                  <input
-                    :value="getTestCaseExpectedDisplay(testCase)"
-                    @input="updateTestCaseExpected(testCase, $event.target.value)"
-                    type="text"
-                    placeholder="true"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>Description (optional)</label>
-                  <input
-                    v-model="testCase.description"
-                    type="text"
-                    placeholder="Brief description of this test case"
-                  />
-                </div>
-              </div>
-
-              <div v-if="testCase.error" class="test-case-error-message">
-                {{ testCase.error }}
-              </div>
-              
-              <!-- Test Failure Details -->
-              <div v-if="ui.testResults && ui.testResults.results && ui.testResults.results[index] && !ui.testResults.results[index].passed" 
-                   class="test-failure-details">
-                <div class="failure-content">
-                  <button 
-                    @click="toggleFailureDetails(index)"
-                    class="failure-toggle"
-                    :class="{ expanded: testCase.showFailureDetails }"
-                  >
-                    <span class="toggle-icon">{{ testCase.showFailureDetails ? '▼' : '▶' }}</span>
-                    View Failure Details
-                  </button>
-                  
-                  <div v-if="testCase.showFailureDetails" class="failure-details">
-                    <div class="detail-item">
-                      <strong>Expected:</strong> {{ JSON.stringify(ui.testResults.results[index].expected_output) }}
+              <!-- Dynamic parameter fields based on function signature -->
+              <div v-if="functionParameters.length > 0" class="smart-parameters">
+                <div 
+                  v-for="(param, paramIndex) in functionParameters" 
+                  :key="paramIndex" 
+                  class="smart-param-field"
+                >
+                  <div class="param-input-container">
+                    <input 
+                      :value="getParameterValue(testCase, paramIndex)"
+                      @input="updateParameterValue(testCase, paramIndex, $event.target.value)"
+                      :placeholder="getParameterPlaceholder(param.type)" 
+                      class="param-input" 
+                      :class="{ 'param-error': getParameterError(testCase, paramIndex) }"
+                    />
+                    <div 
+                      class="param-type-badge" 
+                      :class="getParameterTypeClass(testCase, paramIndex)"
+                      :title="getParameterTypeInfo(testCase, paramIndex)"
+                    >
+                      {{ getParameterDetectedType(testCase, paramIndex) }}
                     </div>
-                    <div class="detail-item">
-                      <strong>Got:</strong> {{ JSON.stringify(ui.testResults.results[index].actual_output) }}
-                    </div>
-                    <div v-if="ui.testResults.results[index].error" class="detail-item error-detail">
-                      <strong>Error:</strong> {{ ui.testResults.results[index].error }}
-                    </div>
+                  </div>
+                  <div class="param-label">
+                    <span class="param-name">{{ param.name }}</span>
+                    <span class="param-expected-type">: {{ param.type }}</span>
                   </div>
                 </div>
               </div>
+              
+              <!-- Fallback to single input if no function signature -->
+              <input 
+                v-else
+                :value="getTestCaseInputsDisplay(testCase)"
+                @input="updateTestCaseInputs(testCase, $event.target.value)"
+                placeholder="Inputs: [1, 2]" 
+                class="inputs-field" 
+              />
+              
+              <!-- Expected output field -->
+              <div class="output-field-container">
+                <div class="output-input-container">
+                  <input 
+                    :value="getTestCaseExpectedDisplay(testCase)"
+                    @input="updateTestCaseExpected(testCase, $event.target.value)"
+                    :placeholder="getOutputPlaceholder()" 
+                    class="output-field" 
+                    :class="{ 'param-error': testCase.expectedOutputError }"
+                  />
+                  <div 
+                    class="param-type-badge" 
+                    :class="getOutputTypeClass(testCase)"
+                    :title="getOutputTypeInfo(testCase)"
+                  >
+                    {{ getOutputDetectedType(testCase) }}
+                  </div>
+                </div>
+                <div class="param-label">
+                  <span class="param-name">output</span>
+                  <span class="param-expected-type">: {{ getReturnType() }}</span>
+                </div>
+              </div>
+              
+              <!-- Status and actions -->
+              <span v-if="ui.testResults" class="status-badge" :class="getStatusClass(index)">
+                {{ getStatusText(index) }}
+              </span>
+              <button @click="removeTestCase(index)" class="remove-btn">×</button>
+            </div>
+            
+            <!-- Error message directly below if exists -->
+            <div v-if="testCase.error" class="error-msg">{{ testCase.error }}</div>
+            
+            <!-- Failure details directly below if failed -->
+            <div v-if="isTestFailed(index)" class="failure-msg">
+              Expected: {{ JSON.stringify(ui.testResults.results[index].expected_output) }} | 
+              Got: {{ JSON.stringify(ui.testResults.results[index].actual_output) }}
+              <span v-if="ui.testResults.results[index].error"> | Error: {{ ui.testResults.results[index].error }}</span>
             </div>
           </div>
         </div>
       </div>
 
 
-      <!-- Settings -->
-      <div class="form-section">
-        <h3>Settings</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="memory_limit">Memory Limit (MB)</label>
-            <input
-              id="memory_limit"
-              v-model.number="form.memory_limit"
-              type="number"
-              min="32"
-              max="1024"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>
-              <input type="checkbox" v-model="form.is_active" />
-              Active (visible to students)
-            </label>
-          </div>
-        </div>
-      </div>
     </form>
     
     <!-- Color picker popup (teleported to body) -->
@@ -464,7 +421,6 @@
 
 <script>
 import NotificationToast from './NotificationToast.vue'
-import SmartTestCaseInput from './SmartTestCaseInput.vue'
 import Editor from '@/features/editor/Editor.vue'
 import { problemService } from '../services/problemService'
 
@@ -484,7 +440,6 @@ export default {
   name: 'AdminProblemEditor',
   components: {
     NotificationToast,
-    SmartTestCaseInput,
     Editor
   },
   // Static options
@@ -508,9 +463,7 @@ export default {
         function_signature: '',
         reference_solution: '',
         hints: '',
-        memory_limit: 128,
         tags: [],
-        is_active: true,
         test_cases: []
       },
       
@@ -523,6 +476,10 @@ export default {
       
       // External data
       categories: [],
+      
+      // Function signature parsing
+      functionParameters: [],
+      returnType: 'Any',
       
       // Category creation
       showAddCategory: false,
@@ -648,6 +605,9 @@ export default {
         // Don't call loadProblem here as the watcher will handle it
         !this.isEditing ? Promise.resolve(this.addTestCase()) : Promise.resolve()
       ]);
+      
+      // Parse function signature if available
+      this.parseFunctionSignature();
     } catch (error) {
       this.$toast?.error?.('Failed to load data') || console.error('Failed to load data');
     }
@@ -673,6 +633,15 @@ export default {
           await this.loadProblem();
         }
       }
+    },
+    
+    // Watch function signature changes
+    'form.function_signature'() {
+      this.parseFunctionSignature();
+      // Re-convert existing test case inputs when signature changes
+      this.$nextTick(() => {
+        this.convertInputsToSmartParameters();
+      });
     }
   },
   
@@ -724,6 +693,64 @@ export default {
       }
     },
 
+    /**
+     * Normalize problem data to ensure proper types
+     */
+    normalizeProblemData(problemData) {
+      // Extract category IDs from categories objects
+      if (problemData.categories && Array.isArray(problemData.categories)) {
+        problemData.category_ids = problemData.categories.map(cat => cat.id);
+      } else if (!problemData.category_ids) {
+        problemData.category_ids = [];
+      }
+      
+      // Ensure tags is an array
+      if (!problemData.tags) {
+        problemData.tags = [];
+      }
+      
+      // Ensure problem_type has a default value
+      if (!problemData.problem_type) {
+        problemData.problem_type = 'eipl';
+      }
+      
+      // DEBUG: Log reference solution details
+      console.log('=== DEBUGGING REFERENCE SOLUTION ===');
+      console.log('Original problemData.reference_solution:', problemData.reference_solution);
+      console.log('Type:', typeof problemData.reference_solution);
+      console.log('Is object?', typeof problemData.reference_solution === 'object');
+      console.log('JSON stringify:', JSON.stringify(problemData.reference_solution));
+      
+      // Ensure reference_solution is always a string
+      if (problemData.reference_solution && typeof problemData.reference_solution !== 'string') {
+        console.log('Converting reference_solution from object to string');
+        console.log('Object value:', problemData.reference_solution);
+        problemData.reference_solution = String(problemData.reference_solution);
+        console.log('After conversion:', problemData.reference_solution);
+      } else {
+        console.log('Reference solution is already a string:', problemData.reference_solution);
+      }
+      
+      console.log('Final reference_solution:', problemData.reference_solution);
+      console.log('=== END DEBUGGING ===');
+      
+      // Add error tracking to test cases and convert to smart parameter format
+      if (problemData.test_cases) {
+        problemData.test_cases = problemData.test_cases.map(tc => ({
+          ...tc,
+          error: null,
+          // Initialize smart parameter arrays
+          parameterValues: [],
+          parameterErrors: [],
+          parameterDetectedTypes: [],
+          expectedOutputError: null,
+          expectedOutputDetectedType: 'Any'
+        }));
+      }
+      
+      return problemData;
+    },
+
     async loadCategories() {
       await this.executeAction('load categories', async () => {
         this.categories = await problemService.loadCategories();
@@ -737,34 +764,13 @@ export default {
       
       await this.executeAction('load problem', async () => {
         const loadedProblem = await problemService.loadProblem(this.currentProblemSlug);
+        this.form = this.normalizeProblemData(loadedProblem);
         
-        // Add error tracking and failure details to test cases
-        if (loadedProblem.test_cases) {
-          loadedProblem.test_cases = loadedProblem.test_cases.map(tc => ({
-            ...tc,
-            error: null,
-            showFailureDetails: false
-          }));
-        }
+        // Parse function signature first to get parameter info
+        this.parseFunctionSignature();
         
-        // Extract category IDs from categories objects
-        if (loadedProblem.categories && Array.isArray(loadedProblem.categories)) {
-          loadedProblem.category_ids = loadedProblem.categories.map(cat => cat.id);
-        } else if (!loadedProblem.category_ids) {
-          loadedProblem.category_ids = [];
-        }
-        
-        // Ensure tags is an array
-        if (!loadedProblem.tags) {
-          loadedProblem.tags = [];
-        }
-        
-        // Ensure problem_type has a default value
-        if (!loadedProblem.problem_type) {
-          loadedProblem.problem_type = 'eipl';
-        }
-        
-        this.form = loadedProblem;
+        // Convert existing inputs to smart parameter format
+        this.convertInputsToSmartParameters();
       });
     },
     
@@ -954,16 +960,28 @@ export default {
     },
     
     addTestCase() {
-      this.form.test_cases.push({
+      const newTestCase = {
         inputs: [],
         expected_output: null,
         description: '',
-        is_hidden: false,
-        is_sample: false,
         order: this.form.test_cases.length,
         error: null,
-        showFailureDetails: false
-      })
+        // Smart parameter tracking
+        parameterValues: [],
+        parameterErrors: [],
+        parameterDetectedTypes: [],
+        expectedOutputError: null,
+        expectedOutputDetectedType: 'Any'
+      };
+      
+      // Initialize parameter arrays based on current function signature
+      for (let i = 0; i < this.functionParameters.length; i++) {
+        newTestCase.parameterValues.push('');
+        newTestCase.parameterErrors.push(null);
+        newTestCase.parameterDetectedTypes.push('Any');
+      }
+      
+      this.form.test_cases.push(newTestCase);
     },
     
     removeTestCase(index) {
@@ -993,22 +1011,37 @@ export default {
     
     updateTestCaseExpected(testCase, value) {
       try {
-        testCase.expected_output = JSON.parse(value);
+        // Parse and set the value
+        testCase.expected_output = this.parseValueForBackend(value);
+        
+        // Detect and validate type for expected output
+        if (!value.trim()) {
+          testCase.expectedOutputDetectedType = 'Any';
+          testCase.expectedOutputError = null;
+        } else {
+          const detectedType = this.autoDetectType(value);
+          testCase.expectedOutputDetectedType = detectedType;
+          
+          // Get expected return type
+          const expectedType = this.simplifyType(this.returnType);
+          
+          // Validate type match
+          if (expectedType !== 'Any' && detectedType !== 'invalid' && !this.typesMatch(detectedType, expectedType)) {
+            testCase.expectedOutputError = `Expected ${expectedType}, got ${detectedType}`;
+          } else if (detectedType === 'invalid') {
+            testCase.expectedOutputError = 'Invalid input format';
+          } else {
+            testCase.expectedOutputError = null;
+          }
+        }
+        
         testCase.error = null;
       } catch (e) {
-        testCase.error = 'Invalid JSON for expected output';
+        testCase.error = 'Invalid input for expected output';
+        testCase.expectedOutputError = 'Parse error';
       }
     },
     
-    updateSmartTestCase(index, data) {
-      // Update test case with data from SmartTestCaseInput
-      if (this.form.test_cases[index]) {
-        this.form.test_cases[index].inputs = data.inputs;
-        this.form.test_cases[index].expected_output = data.expected_output;
-        this.form.test_cases[index].description = data.description;
-        this.form.test_cases[index].error = null; // Clear any previous JSON errors
-      }
-    },
     
     async testProblem() {
       if (!this.canTest) {
@@ -1018,32 +1051,33 @@ export default {
         return;
       }
       
-      // Validate all SmartTestCaseInput components if they exist
-      if (this.form.function_signature) {
-        for (let i = 0; i < this.form.test_cases.length; i++) {
-          const smartRef = this.$refs[`smartTestCase_${i}`];
-          if (smartRef && smartRef[0]) {
-            const isValid = smartRef[0].validate();
-            if (!isValid) {
-              this.$toast?.error?.(`Please fix errors in test case ${i + 1}`) || console.error(`Test case ${i + 1} has errors`);
-              return;
-            }
-          }
+      // Validate test cases for errors
+      for (let i = 0; i < this.form.test_cases.length; i++) {
+        if (this.form.test_cases[i].error) {
+          this.$toast?.error?.(`Please fix errors in test case ${i + 1}`) || console.error(`Test case ${i + 1} has errors`);
+          return;
         }
       }
       
       await this.executeAction('test problem', async () => {
+        // Ensure all test cases have updated inputs from smart parameters
+        this.form.test_cases.forEach(testCase => {
+          this.updateInputsFromParameters(testCase);
+        });
+        
         const testData = {
           title: this.form.title,
           description: this.form.description,
           function_name: this.form.function_name,
-          reference_solution: this.form.reference_solution,
-          test_cases: this.form.test_cases.filter(tc => !tc.error).map(tc => ({
-            inputs: tc.inputs,
+          reference_solution: this.getApiSafeString(this.form.reference_solution, 'reference_solution'),
+          test_cases: this.form.test_cases.filter(tc => {
+            // Debug: Log what we're filtering
+            console.log('Filtering test case:', tc, 'Has error:', tc.error, 'Has inputs:', tc.inputs);
+            return !tc.error;
+          }).map(tc => ({
+            inputs: tc.inputs || [],
             expected_output: tc.expected_output,
             description: tc.description || '',
-            is_hidden: tc.is_hidden,
-            is_sample: tc.is_sample,
             order: tc.order
           }))
         };
@@ -1051,7 +1085,21 @@ export default {
         // Debug: Log the data being sent
         console.log('Testing with data:', testData);
         
+        // Check if we have any test cases to test
+        if (!testData.test_cases || testData.test_cases.length === 0) {
+          throw new Error('No valid test cases found. Please add test cases with inputs and expected outputs.');
+        }
+        
         this.ui.testResults = await problemService.testProblem(testData);
+        
+        // Debug: Log the test results received
+        console.log('Test results received:', this.ui.testResults);
+        console.log('Test results structure:', {
+          success: this.ui.testResults.success,
+          passed: this.ui.testResults.passed,
+          total: this.ui.testResults.total,
+          results: this.ui.testResults.results
+        });
         
         const passed = this.ui.testResults.passed;
         const total = this.ui.testResults.total;
@@ -1078,7 +1126,7 @@ export default {
           description: this.form.description || '',
           function_name: this.form.function_name,
           function_signature: this.form.function_signature || '',
-          reference_solution: this.form.reference_solution
+          reference_solution: this.getApiSafeString(this.form.reference_solution, 'reference_solution')
         };
         
         console.log('AI Generation request data:', requestData);
@@ -1095,8 +1143,7 @@ export default {
           this.form.test_cases.push({
             ...tc,
             order: this.form.test_cases.length,
-            error: null,
-            showFailureDetails: false
+            error: null
           });
         });
         
@@ -1115,18 +1162,16 @@ export default {
         console.log('Form test cases before filtering:', this.form.test_cases);
         
         const problemData = {
-          title: (this.form.title || '').toString().trim(),
-          description: (this.form.description || '').toString().trim(),
+          title: this.getApiSafeString(this.form.title),
+          description: this.getApiSafeString(this.form.description),
           difficulty: this.form.difficulty,
           problem_type: this.form.problem_type,
           category_ids: Array.isArray(this.form.category_ids) ? this.form.category_ids : [],
-          function_name: (this.form.function_name || '').toString().trim(),
-          function_signature: (this.form.function_signature || '').toString().trim(),
-          reference_solution: (this.form.reference_solution || '').toString().trim(),
-          hints: this.form.hints ? this.form.hints.toString().trim() : '',
-          memory_limit: this.form.memory_limit,
+          function_name: this.getApiSafeString(this.form.function_name),
+          function_signature: this.getApiSafeString(this.form.function_signature),
+          reference_solution: this.getApiSafeString(this.form.reference_solution, 'reference_solution'),
+          hints: this.getApiSafeString(this.form.hints),
           tags: Array.isArray(this.form.tags) ? this.form.tags : [],
-          is_active: this.form.is_active,
           test_cases: this.form.test_cases.filter(tc => {
             // Debug logging
             console.log('Validating test case:', tc);
@@ -1150,8 +1195,6 @@ export default {
             inputs: tc.inputs,
             expected_output: tc.expected_output,
             description: tc.description || '',
-            is_hidden: Boolean(tc.is_hidden),
-            is_sample: Boolean(tc.is_sample),
             order: Number(tc.order) || 0
           }))
         };
@@ -1195,7 +1238,7 @@ export default {
         }
         
         // Update local state with saved data
-        this.form = savedProblem;
+        this.form = this.normalizeProblemData(savedProblem);
         
         return this.isEditing ? 'Problem updated successfully' : 'Problem created successfully';
       });
@@ -1210,14 +1253,6 @@ export default {
       this.form.tags = value.split(',').map(tag => tag.trim()).filter(tag => tag);
     },
     
-    /**
-     * Toggle failure details for a specific test case
-     */
-    toggleFailureDetails(index) {
-      if (this.form.test_cases[index]) {
-        this.form.test_cases[index].showFailureDetails = !this.form.test_cases[index].showFailureDetails;
-      }
-    },
     
     /**
      * Increase editor font size
@@ -1253,6 +1288,665 @@ export default {
      */
     updateTheme() {
       // Theme updates automatically through the reactive prop binding
+    },
+    
+    /**
+     * Check if test case passed
+     */
+    isTestPassed(index) {
+      return this.ui.testResults && 
+             this.ui.testResults.results && 
+             this.ui.testResults.results[index] && 
+             this.ui.testResults.results[index].passed;
+    },
+    
+    /**
+     * Check if test case failed
+     */
+    isTestFailed(index) {
+      return this.ui.testResults && 
+             this.ui.testResults.results && 
+             this.ui.testResults.results[index] && 
+             !this.ui.testResults.results[index].passed;
+    },
+    
+    /**
+     * Get status class for test case
+     */
+    getStatusClass(index) {
+      if (this.isTestPassed(index)) return 'passed';
+      if (this.isTestFailed(index)) return 'failed';
+      return '';
+    },
+    
+    /**
+     * Get status text for test case
+     */
+    getStatusText(index) {
+      if (this.isTestPassed(index)) return '✓';
+      if (this.isTestFailed(index)) return '✗';
+      return '';
+    },
+    
+    // === Function Signature Parsing ===
+    
+    /**
+     * Parse function signature to extract parameters and return type
+     */
+    parseFunctionSignature() {
+      if (!this.form.function_signature) {
+        this.functionParameters = [];
+        this.returnType = 'Any';
+        return;
+      }
+      
+      const signature = this.form.function_signature.trim();
+      
+      // Parse function signature pattern: def func_name(param1: type1, param2: type2) -> return_type:
+      const regex = /def\s+(\w+)\s*\((.*?)\)\s*(?:->\s*(.+?))?:/;
+      const match = signature.match(regex);
+      
+      if (!match) {
+        this.functionParameters = [];
+        this.returnType = 'Any';
+        return;
+      }
+      
+      const [_, functionName, paramsStr, returnTypeStr] = match;
+      
+      // Parse parameters
+      this.functionParameters = this.parseParameters(paramsStr || '');
+      this.returnType = returnTypeStr?.trim() || 'Any';
+      
+      // Initialize parameter data in existing test cases
+      this.initializeParameterData();
+    },
+    
+    /**
+     * Parse parameter string into parameter objects
+     */
+    parseParameters(paramsStr) {
+      if (!paramsStr.trim()) return [];
+      
+      const params = [];
+      
+      // Handle typed parameters: param: type
+      const paramRegex = /(\w+)\s*:\s*([^,]+)/g;
+      let match;
+      
+      while ((match = paramRegex.exec(paramsStr)) !== null) {
+        params.push({
+          name: match[1],
+          type: match[2].trim(),
+          simplifiedType: this.simplifyType(match[2].trim())
+        });
+      }
+      
+      // Handle untyped parameters if no typed ones found
+      if (params.length === 0) {
+        const simpleParams = paramsStr.split(',').map(p => p.trim()).filter(p => p);
+        simpleParams.forEach(param => {
+          params.push({
+            name: param,
+            type: 'Any',
+            simplifiedType: 'Any'
+          });
+        });
+      }
+      
+      return params;
+    },
+    
+    /**
+     * Simplify complex types for placeholder generation
+     */
+    simplifyType(typeStr) {
+      const lower = typeStr.toLowerCase();
+      if (lower.includes('list') || lower.includes('[]')) return 'list';
+      if (lower.includes('dict') || lower.includes('{}')) return 'dict';
+      if (lower.includes('tuple')) return 'tuple';
+      if (lower.includes('set')) return 'set';
+      if (lower.includes('bool')) return 'bool';
+      if (lower.includes('int')) return 'int';
+      if (lower.includes('float')) return 'float';
+      if (lower.includes('str')) return 'str';
+      return 'Any';
+    },
+    
+    /**
+     * Convert existing inputs arrays to smart parameter format
+     */
+    convertInputsToSmartParameters() {
+      if (!this.form.test_cases || this.functionParameters.length === 0) {
+        return;
+      }
+      
+      this.form.test_cases.forEach(testCase => {
+        // Convert inputs array to parameterValues
+        if (testCase.inputs && Array.isArray(testCase.inputs)) {
+          testCase.parameterValues = [];
+          testCase.parameterErrors = [];
+          testCase.parameterDetectedTypes = [];
+          
+          // Convert each input value to string format for the UI
+          testCase.inputs.forEach((value, index) => {
+            if (index < this.functionParameters.length) {
+              // Convert value to string representation
+              const stringValue = this.formatValueForInput(value);
+              testCase.parameterValues[index] = stringValue;
+              
+              // Detect and validate the type
+              this.detectParameterType(testCase, index, stringValue);
+            }
+          });
+          
+          // Fill remaining parameters with empty values
+          while (testCase.parameterValues.length < this.functionParameters.length) {
+            testCase.parameterValues.push('');
+            testCase.parameterErrors.push(null);
+            testCase.parameterDetectedTypes.push('Any');
+          }
+        }
+        
+        // Convert expected_output for type detection
+        if (testCase.expected_output !== null && testCase.expected_output !== undefined) {
+          const outputString = this.formatValueForInput(testCase.expected_output);
+          const detectedType = this.autoDetectType(outputString);
+          testCase.expectedOutputDetectedType = detectedType;
+          
+          // Validate against return type
+          const expectedType = this.simplifyType(this.returnType);
+          if (expectedType !== 'Any' && detectedType !== 'invalid' && !this.typesMatch(detectedType, expectedType)) {
+            testCase.expectedOutputError = `Expected ${expectedType}, got ${detectedType}`;
+          } else {
+            testCase.expectedOutputError = null;
+          }
+        }
+      });
+    },
+    
+    /**
+     * Format a JavaScript value for input display (reverse of parseValueForBackend)
+     */
+    formatValueForInput(value) {
+      if (value === null || value === undefined) return 'None';
+      if (typeof value === 'boolean') return value ? 'True' : 'False';
+      if (typeof value === 'string') return value; // Don't add quotes for display
+      if (Array.isArray(value) || typeof value === 'object') {
+        return JSON.stringify(value);
+      }
+      return String(value);
+    },
+    
+    /**
+     * Initialize parameter data for existing test cases
+     */
+    initializeParameterData() {
+      this.form.test_cases.forEach(testCase => {
+        // Initialize parameter values array if not exists
+        if (!testCase.parameterValues) {
+          testCase.parameterValues = [];
+        }
+        
+        // Initialize parameter errors array if not exists  
+        if (!testCase.parameterErrors) {
+          testCase.parameterErrors = [];
+        }
+        
+        // Initialize parameter detected types array if not exists
+        if (!testCase.parameterDetectedTypes) {
+          testCase.parameterDetectedTypes = [];
+        }
+        
+        // Ensure arrays have correct length
+        while (testCase.parameterValues.length < this.functionParameters.length) {
+          testCase.parameterValues.push('');
+          testCase.parameterErrors.push(null);
+          testCase.parameterDetectedTypes.push('Any');
+        }
+        
+        // Initialize expected output error tracking
+        if (!testCase.expectedOutputError) {
+          testCase.expectedOutputError = null;
+        }
+        
+        if (!testCase.expectedOutputDetectedType) {
+          testCase.expectedOutputDetectedType = 'Any';
+        }
+      });
+    },
+    
+    // === Parameter Input Methods ===
+    
+    /**
+     * Get parameter count for grid layout
+     */
+    getParameterCount() {
+      return this.functionParameters.length || 1;
+    },
+    
+    /**
+     * Get parameter value for a specific test case and parameter index
+     */
+    getParameterValue(testCase, paramIndex) {
+      if (!testCase.parameterValues || paramIndex >= testCase.parameterValues.length) {
+        return '';
+      }
+      return testCase.parameterValues[paramIndex] || '';
+    },
+    
+    /**
+     * Update parameter value and perform type detection
+     */
+    updateParameterValue(testCase, paramIndex, value) {
+      // Ensure arrays exist
+      if (!testCase.parameterValues) testCase.parameterValues = [];
+      if (!testCase.parameterErrors) testCase.parameterErrors = [];
+      if (!testCase.parameterDetectedTypes) testCase.parameterDetectedTypes = [];
+      
+      // Ensure arrays are long enough
+      while (testCase.parameterValues.length <= paramIndex) {
+        testCase.parameterValues.push('');
+        testCase.parameterErrors.push(null);
+        testCase.parameterDetectedTypes.push('Any');
+      }
+      
+      // Update value
+      testCase.parameterValues[paramIndex] = value;
+      
+      // Detect and validate type
+      this.detectParameterType(testCase, paramIndex, value);
+      
+      // Update the inputs array for backend compatibility
+      this.updateInputsFromParameters(testCase);
+    },
+    
+    /**
+     * Detect parameter type and validate against expected type
+     */
+    detectParameterType(testCase, paramIndex, value) {
+      if (!value.trim()) {
+        testCase.parameterDetectedTypes[paramIndex] = 'Any';
+        testCase.parameterErrors[paramIndex] = null;
+        return;
+      }
+      
+      const detectedType = this.autoDetectType(value);
+      testCase.parameterDetectedTypes[paramIndex] = detectedType;
+      
+      // Get expected type
+      const expectedType = this.functionParameters[paramIndex]?.simplifiedType || 'Any';
+      
+      // Validate type match
+      if (expectedType !== 'Any' && detectedType !== 'invalid' && !this.typesMatch(detectedType, expectedType)) {
+        testCase.parameterErrors[paramIndex] = `Expected ${expectedType}, got ${detectedType}`;
+      } else if (detectedType === 'invalid') {
+        testCase.parameterErrors[paramIndex] = 'Invalid input format';
+      } else {
+        testCase.parameterErrors[paramIndex] = null;
+      }
+    },
+    
+    /**
+     * Auto-detect type from input string
+     */
+    autoDetectType(value) {
+      const trimmed = value.trim();
+      
+      // None/null
+      if (/^(None|null|none)$/i.test(trimmed)) return 'None';
+      
+      // Boolean
+      if (/^(true|false|True|False)$/i.test(trimmed)) return 'bool';
+      
+      // Integer
+      if (/^-?\d+$/.test(trimmed)) return 'int';
+      
+      // Float
+      if (/^-?\d*\.\d+$/.test(trimmed)) return 'float';
+      
+      // List
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          JSON.parse(trimmed);
+          return 'list';
+        } catch {
+          return 'invalid';
+        }
+      }
+      
+      // Dict
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+          JSON.parse(trimmed);
+          return 'dict';
+        } catch {
+          return 'invalid';
+        }
+      }
+      
+      // Tuple (represented as array in JSON)
+      if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
+        try {
+          const arrayStr = trimmed.replace(/^\(/, '[').replace(/\)$/, ']');
+          JSON.parse(arrayStr);
+          return 'tuple';
+        } catch {
+          return 'invalid';
+        }
+      }
+      
+      // String (quoted or unquoted)
+      if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+          (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+          /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed)) {
+        return 'str';
+      }
+      
+      return 'str'; // Default to string for other inputs
+    },
+    
+    /**
+     * Check if detected type matches expected type
+     */
+    typesMatch(detected, expected) {
+      if (expected === 'Any') return true;
+      if (detected === expected) return true;
+      
+      // Allow int to match float
+      if (expected === 'float' && detected === 'int') return true;
+      
+      return false;
+    },
+    
+    /**
+     * Update the inputs array from parameter values (for backend compatibility)
+     */
+    updateInputsFromParameters(testCase) {
+      if (!testCase.parameterValues || this.functionParameters.length === 0) {
+        return;
+      }
+      
+      const inputs = testCase.parameterValues.map(value => {
+        if (!value.trim()) return null;
+        return this.parseValueForBackend(value);
+      });
+      
+      testCase.inputs = inputs;
+    },
+    
+    /**
+     * Parse value string to actual JavaScript value for backend
+     */
+    parseValueForBackend(value) {
+      const trimmed = value.trim();
+      
+      if (!trimmed) return null;
+      if (/^(None|null|none)$/i.test(trimmed)) return null;
+      if (/^(true|True)$/i.test(trimmed)) return true;
+      if (/^(false|False)$/i.test(trimmed)) return false;
+      if (/^-?\d+$/.test(trimmed)) return parseInt(trimmed);
+      if (/^-?\d*\.\d+$/.test(trimmed)) return parseFloat(trimmed);
+      
+      // Try to parse JSON for collections
+      if ((trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+          (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+        try {
+          return JSON.parse(trimmed);
+        } catch {
+          return trimmed;
+        }
+      }
+      
+      // Handle tuple notation
+      if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
+        try {
+          const arrayStr = trimmed.replace(/^\(/, '[').replace(/\)$/, ']');
+          return JSON.parse(arrayStr);
+        } catch {
+          return trimmed;
+        }
+      }
+      
+      // Remove quotes from strings
+      if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+          (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+        return trimmed.slice(1, -1);
+      }
+      
+      return trimmed;
+    },
+    
+    /**
+     * Get parameter error for a specific test case and parameter index
+     */
+    getParameterError(testCase, paramIndex) {
+      if (!testCase.parameterErrors || paramIndex >= testCase.parameterErrors.length) {
+        return null;
+      }
+      return testCase.parameterErrors[paramIndex];
+    },
+    
+    /**
+     * Get detected type for a parameter
+     */
+    getParameterDetectedType(testCase, paramIndex) {
+      if (!testCase.parameterDetectedTypes || paramIndex >= testCase.parameterDetectedTypes.length) {
+        return 'Any';
+      }
+      return testCase.parameterDetectedTypes[paramIndex] || 'Any';
+    },
+    
+    /**
+     * Get CSS class for parameter type badge
+     */
+    getParameterTypeClass(testCase, paramIndex) {
+      const detectedType = this.getParameterDetectedType(testCase, paramIndex);
+      const hasError = this.getParameterError(testCase, paramIndex);
+      
+      if (hasError) return 'type-error';
+      
+      if (['int', 'float'].includes(detectedType)) return 'type-number';
+      if (detectedType === 'str') return 'type-string';
+      if (detectedType === 'bool') return 'type-boolean';
+      if (['list', 'dict', 'tuple', 'set'].includes(detectedType)) return 'type-collection';
+      if (detectedType === 'None') return 'type-none';
+      if (detectedType === 'invalid') return 'type-invalid';
+      
+      return 'type-any';
+    },
+    
+    /**
+     * Get type info tooltip
+     */
+    getParameterTypeInfo(testCase, paramIndex) {
+      const detectedType = this.getParameterDetectedType(testCase, paramIndex);
+      const expectedType = this.functionParameters[paramIndex]?.type || 'Any';
+      const error = this.getParameterError(testCase, paramIndex);
+      
+      if (error) return error;
+      return `Detected: ${detectedType} | Expected: ${expectedType}`;
+    },
+    
+    /**
+     * Get placeholder for parameter input
+     */
+    getParameterPlaceholder(type) {
+      const simplified = this.simplifyType(type);
+      const placeholders = {
+        'int': '42',
+        'float': '3.14',
+        'str': '"hello"',
+        'bool': 'true',
+        'list': '[1, 2, 3]',
+        'dict': '{"key": "value"}',
+        'tuple': '(1, 2, 3)',
+        'set': '{1, 2, 3}',
+        'None': 'None'
+      };
+      return placeholders[simplified] || 'value';
+    },
+    
+    // === Output Field Methods ===
+    
+    /**
+     * Get return type for output field
+     */
+    getReturnType() {
+      return this.returnType;
+    },
+    
+    /**
+     * Get placeholder for output field
+     */
+    getOutputPlaceholder() {
+      return this.getParameterPlaceholder(this.returnType);
+    },
+    
+    /**
+     * Get detected type for output
+     */
+    getOutputDetectedType(testCase) {
+      return testCase.expectedOutputDetectedType || 'Any';
+    },
+    
+    /**
+     * Get CSS class for output type badge
+     */
+    getOutputTypeClass(testCase) {
+      const detectedType = this.getOutputDetectedType(testCase);
+      const hasError = testCase.expectedOutputError;
+      
+      if (hasError) return 'type-error';
+      
+      if (['int', 'float'].includes(detectedType)) return 'type-number';
+      if (detectedType === 'str') return 'type-string';
+      if (detectedType === 'bool') return 'type-boolean';
+      if (['list', 'dict', 'tuple', 'set'].includes(detectedType)) return 'type-collection';
+      if (detectedType === 'None') return 'type-none';
+      if (detectedType === 'invalid') return 'type-invalid';
+      
+      return 'type-any';
+    },
+    
+    /**
+     * Get type info tooltip for output
+     */
+    getOutputTypeInfo(testCase) {
+      const detectedType = this.getOutputDetectedType(testCase);
+      const expectedType = this.getReturnType();
+      const error = testCase.expectedOutputError;
+      
+      if (error) return error;
+      return `Detected: ${detectedType} | Expected: ${expectedType}`;
+    },
+    
+    /**
+     * Update reference solution ensuring it's always a string
+     */
+    updateReferenceSolution(value) {
+      // Debug: Log what the editor is sending
+      console.log('Editor value received:', value, 'Type:', typeof value);
+      
+      // Handle different types of values from the editor
+      let stringValue = '';
+      
+      if (typeof value === 'string') {
+        stringValue = value;
+      } else if (value && typeof value === 'object') {
+        // Check if it's an event object with target.value
+        if (value.target && typeof value.target.value === 'string') {
+          stringValue = value.target.value;
+        }
+        // Check if it has a value property
+        else if (value.value && typeof value.value === 'string') {
+          stringValue = value.value;
+        }
+        // Check if it has a text property
+        else if (value.text && typeof value.text === 'string') {
+          stringValue = value.text;
+        }
+        // If it's an empty object, don't update at all
+        else if (Object.keys(value).length === 0) {
+          console.log('Received empty object, ignoring update');
+          return; // Don't update at all
+        }
+        // Last resort - try JSON stringify for non-empty objects
+        else {
+          try {
+            stringValue = JSON.stringify(value);
+          } catch {
+            stringValue = '';
+          }
+        }
+      } else {
+        stringValue = String(value || '');
+      }
+      
+      this.form.reference_solution = stringValue;
+      console.log('Stored as:', this.form.reference_solution);
+    },
+    
+    /**
+     * Get the actual string value from the ACE editor
+     */
+    getEditorValue() {
+      if (this.$refs.editor && this.$refs.editor.editor) {
+        try {
+          const editorValue = this.$refs.editor.editor.getValue();
+          console.log('Direct editor value:', editorValue);
+          return editorValue || '';
+        } catch (error) {
+          console.warn('Could not get editor value:', error);
+        }
+      }
+      return this.form.reference_solution || '';
+    },
+    
+    /**
+     * Helper method to safely convert form fields to strings for API calls
+     */
+    getApiSafeString(value, fieldName = '') {
+      // Special handling for reference_solution - get directly from editor
+      if (fieldName === 'reference_solution') {
+        const editorValue = this.getEditorValue();
+        const trimmedValue = editorValue.trim();
+        console.log('getApiSafeString for reference_solution:');
+        console.log('Raw editor value:', JSON.stringify(editorValue));
+        console.log('Trimmed value:', JSON.stringify(trimmedValue));
+        return trimmedValue;
+      }
+      
+      if (typeof value === 'string') {
+        return value.trim();
+      }
+      
+      // Handle Vue reactivity proxies and objects
+      if (value && typeof value === 'object') {
+        // If it's a proxy or object, try to get the actual string value
+        if (value.toString && typeof value.toString === 'function') {
+          const stringified = value.toString();
+          // Don't return "[object Object]" - that means toString() failed
+          if (stringified !== '[object Object]') {
+            return stringified.trim();
+          }
+        }
+        
+        // Try to access common string properties
+        if (value.value && typeof value.value === 'string') {
+          return value.value.trim();
+        }
+        
+        // If it's an array, JSON stringify it
+        if (Array.isArray(value)) {
+          return JSON.stringify(value);
+        }
+        
+        // Last resort: empty string for objects we can't convert
+        return '';
+      }
+      
+      return String(value || '').trim();
     }
   }
 }
@@ -1766,67 +2460,38 @@ export default {
   box-shadow: var(--shadow-base);
 }
 
-/* Test Cases - Improved */
+/* Test Cases - Simplified */
 
-.test-results-summary {
-  margin-bottom: var(--spacing-lg);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-panel);
-  border: 2px solid var(--color-success);
-  border-radius: var(--radius-base);
-}
-
-.results-summary-content {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.success-icon {
-  color: var(--color-success);
-  font-size: var(--font-size-lg);
-  font-weight: bold;
-}
-
-.failure-icon {
-  color: var(--color-error);
-  font-size: var(--font-size-lg);
-  font-weight: bold;
-}
-
-.test-cases-actions {
+/* Actions Bar */
+.test-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-xl);
-  flex-wrap: wrap;
+  padding: var(--spacing-md);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-base);
+  border: 2px solid var(--color-bg-border);
 }
 
-.action-group {
+.left-actions {
   display: flex;
   gap: var(--spacing-md);
-  flex-wrap: wrap;
 }
 
-.test-solution-btn {
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
+/* Test Cases List */
 .test-cases-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
+/* Test Case Cards */
 .test-case {
   border: 2px solid var(--color-bg-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-hover);
+  border-radius: var(--radius-base);
+  background: var(--color-bg-panel);
   transition: var(--transition-fast);
   overflow: hidden;
 }
@@ -1836,191 +2501,278 @@ export default {
   box-shadow: var(--shadow-colored);
 }
 
-.test-case-error {
+.test-case.error {
   border-color: var(--color-error);
   background: var(--color-error-bg);
 }
 
-.test-case-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-panel);
-  border-bottom: 2px solid var(--color-bg-border);
+.test-case.passed {
+  border-color: var(--color-success);
+  background: rgba(16, 185, 129, 0.05);
 }
 
-.test-case-title {
-  display: flex;
-  align-items: center;
+.test-case.failed {
+  border-color: var(--color-error);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* Test Case Row */
+.test-case-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 1fr auto auto;
   gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  align-items: stretch;
 }
 
-.test-status {
+/* Smart Parameters Layout */
+.smart-parameters {
+  display: grid;
+  grid-template-columns: repeat(var(--param-count, 1), 1fr);
+  gap: var(--spacing-sm);
+  align-items: start;
+}
+
+.smart-param-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.param-input-container,
+.output-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.param-input,
+.output-field {
+  flex: 1;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
   font-size: var(--font-size-sm);
-  font-weight: 500;
+  transition: var(--transition-fast);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
 }
 
-.status-passed {
-  color: var(--color-success);
-  background: rgba(16, 185, 129, 0.1);
+.param-input:focus,
+.output-field:focus {
+  border-color: var(--color-primary-gradient-start);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.param-input.param-error,
+.output-field.param-error {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.param-input::placeholder,
+.output-field::placeholder {
+  color: var(--color-text-muted);
+  font-family: inherit;
+}
+
+/* Parameter Labels */
+.param-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  min-height: 18px;
+}
+
+.param-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.param-expected-type {
+  color: var(--color-text-muted);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+}
+
+/* Type Badges */
+.param-type-badge {
+  position: absolute;
+  top: -8px;
+  right: 8px;
   padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-base);
-  border: 1px solid var(--color-success);
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  z-index: 10;
+  pointer-events: none;
+  transform: scale(0.9);
+  transform-origin: center;
 }
 
-.status-failed {
+.type-number {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #3b82f6;
+}
+
+.type-string {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #22c55e;
+}
+
+.type-boolean {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.type-collection {
+  background: #ede9fe;
+  color: #6b21a8;
+  border: 1px solid #8b5cf6;
+}
+
+.type-none {
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-bg-border);
+}
+
+.type-any {
+  background: var(--color-bg-hover);
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-bg-border);
+}
+
+.type-invalid {
+  background: var(--color-error-bg);
   color: var(--color-error);
-  background: rgba(239, 68, 68, 0.1);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-base);
   border: 1px solid var(--color-error);
 }
 
-.test-case-number {
+.type-error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+/* Output Field Container */
+.output-field-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.test-number {
   font-weight: 600;
   color: var(--color-text-primary);
-  font-size: var(--font-size-base);
-}
-
-.test-case-options {
+  text-align: center;
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-circle);
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
-}
-
-.test-case-options label {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+  justify-content: center;
   font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: var(--transition-fast);
 }
 
-.test-case-options label:hover {
+/* Legacy Input Field (fallback) */
+.inputs-field {
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-input);
   color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  transition: var(--transition-fast);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
 }
 
-.btn-remove {
-  background: var(--color-error-bg);
-  border: 2px solid var(--color-error);
+.inputs-field:focus {
+  border-color: var(--color-primary-gradient-start);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.inputs-field::placeholder {
+  color: var(--color-text-muted);
+  font-family: inherit;
+}
+
+/* Status Badge */
+.status-badge {
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-xs);
+  text-align: center;
+  min-width: 24px;
+}
+
+.status-badge.passed {
+  color: var(--color-success);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid var(--color-success);
+}
+
+.status-badge.failed {
+  color: var(--color-error);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--color-error);
+}
+
+/* Remove Button */
+.remove-btn {
+  background: transparent;
+  border: 1px solid var(--color-error);
   color: var(--color-error);
   cursor: pointer;
   font-size: 16px;
   font-weight: bold;
-  padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-circle);
   transition: var(--transition-fast);
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.btn-remove:hover {
+.remove-btn:hover {
   background: var(--color-error);
   color: var(--color-text-primary);
   transform: scale(1.1);
 }
 
-.test-case-content {
-  padding: var(--spacing-lg);
-}
-
-/* Override SmartTestCaseInput component styling when inside test cases */
-.test-case-content :deep(.smart-test-case-input) {
-  gap: var(--spacing-md);
-}
-
-.test-case-content :deep(.parameters-section),
-.test-case-content :deep(.output-section),
-.test-case-content :deep(.description-section) {
-  background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
-  padding: var(--spacing-md);
-}
-
-.test-case-content :deep(.section-label) {
-  font-size: var(--font-size-xs);
-  margin-bottom: var(--spacing-sm);
-}
-
-.test-case-error-message {
-  color: var(--color-error-text);
-  font-size: var(--font-size-sm);
-  margin-top: var(--spacing-sm);
+/* Error and Failure Messages */
+.error-msg,
+.failure-msg {
   padding: var(--spacing-sm) var(--spacing-md);
+  margin: 0 var(--spacing-md) var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-sm);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+}
+
+.error-msg {
   background: var(--color-error-bg);
-  border-radius: var(--radius-base);
+  color: var(--color-error-text);
   border-left: 3px solid var(--color-error);
 }
 
-/* Test Failure Details */
-.test-failure-details {
-  margin-top: var(--spacing-md);
-  border-top: 1px solid var(--color-bg-border);
-  padding-top: var(--spacing-md);
-}
-
-.failure-content {
-  background: var(--color-error-bg);
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-base);
-  overflow: hidden;
-}
-
-.failure-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  background: transparent;
-  border: none;
-  color: var(--color-error-text);
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition-fast);
-  text-align: left;
-}
-
-.failure-toggle:hover {
+.failure-msg {
   background: rgba(239, 68, 68, 0.1);
-}
-
-.toggle-icon {
-  font-size: var(--font-size-sm);
-  transition: var(--transition-fast);
-  color: var(--color-error);
-}
-
-.failure-toggle.expanded .toggle-icon {
-  transform: rotate(0deg);
-}
-
-.failure-details {
-  padding: var(--spacing-md);
-  border-top: 1px solid var(--color-error);
-  background: rgba(239, 68, 68, 0.05);
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
-  font-size: var(--font-size-sm);
-}
-
-.detail-item {
-  margin-bottom: var(--spacing-sm);
-  line-height: 1.5;
-}
-
-.detail-item:last-child {
-  margin-bottom: 0;
-}
-
-.error-detail {
   color: var(--color-error-text);
-  font-weight: 500;
+  border-left: 3px solid var(--color-error);
 }
 
 
@@ -2221,9 +2973,36 @@ export default {
     justify-content: center;
   }
   
-  .test-solution-btn {
+  .test-actions {
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+  
+  .left-actions {
     width: 100%;
-    order: -1; /* Put test button first on mobile */
+    justify-content: center;
+  }
+  
+  .test-case-row {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+    text-align: left;
+  }
+  
+  .test-number {
+    justify-self: start;
+  }
+  
+  .smart-parameters {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .param-type-badge {
+    position: static;
+    transform: none;
+    align-self: flex-start;
+    margin-top: var(--spacing-xs);
   }
   
   .btn {
