@@ -707,12 +707,9 @@ export default {
         problemData.reference_solution = String(problemData.reference_solution);
       }
       
-      // Add basic error tracking to test cases
+      // Convert test cases to string format for editing
       if (problemData.test_cases) {
-        problemData.test_cases = problemData.test_cases.map(tc => ({
-          ...tc,
-          error: null
-        }));
+        problemData.test_cases = this.convertTestCasesFromBackend(problemData.test_cases);
       }
       
       return problemData;
@@ -925,8 +922,8 @@ export default {
     
     addTestCase() {
       const newTestCase = {
-        inputs: new Array(this.functionParameters.length).fill(null),
-        expected_output: null,
+        inputs: new Array(this.functionParameters.length).fill(''),
+        expected_output: '',
         description: '',
         order: this.form.test_cases.length,
         error: null
@@ -939,45 +936,13 @@ export default {
       this.form.test_cases.splice(index, 1)
     },
     
-    getTestCaseInputsDisplay(testCase) {
-      if (!testCase.inputs || !Array.isArray(testCase.inputs)) {
-        return '[]';
-      }
-      return JSON.stringify(testCase.inputs);
-    },
-    
     getTestCaseExpectedDisplay(testCase) {
-      if (testCase.expected_output === null || testCase.expected_output === undefined) {
-        return '';
-      }
-      return formatValueForInput(testCase.expected_output);
-    },
-    
-    updateTestCaseInputs(testCase, value) {
-      try {
-        const parsed = JSON.parse(value);
-        if (!Array.isArray(parsed)) {
-          throw new Error('Must be an array');
-        }
-        testCase.inputs = parsed;
-        testCase.error = null;
-      } catch (e) {
-        testCase.error = 'Invalid JSON array for inputs';
-      }
+      return testCase.expected_output || '';
     },
     
     updateTestCaseExpected(testCase, value) {
-      // Simple conversion matching parameter field behavior
-      if (!value.trim()) {
-        testCase.expected_output = null;
-      } else {
-        try {
-          testCase.expected_output = autoDetectAndConvert(value);
-        } catch (error) {
-          // Keep the raw string if conversion fails
-          testCase.expected_output = value;
-        }
-      }
+      // Store exactly what user typed (raw string)
+      testCase.expected_output = value;
     },
     
     
@@ -998,20 +963,16 @@ export default {
       }
       
       await this.executeAction('test problem', async () => {
+        // Convert string test cases to backend format
+        const validTestCases = this.form.test_cases.filter(tc => !tc.error);
+        const convertedTestCases = this.convertTestCasesForBackend(validTestCases);
+        
         const testData = {
           title: this.form.title,
           description: this.form.description,
           function_name: this.form.function_name,
           reference_solution: this.getApiSafeString(this.form.reference_solution),
-          test_cases: this.form.test_cases.filter(tc => {
-            // Debug: Log what we're filtering
-              return !tc.error;
-          }).map(tc => ({
-            inputs: tc.inputs || [],
-            expected_output: tc.expected_output,
-            description: tc.description || '',
-            order: tc.order
-          }))
+          test_cases: convertedTestCases
         };
         
         // Check if we have any test cases to test
@@ -1073,6 +1034,17 @@ export default {
       }
       
       await this.executeAction('save problem', async () => {
+        // Convert string test cases to backend format
+        const validTestCases = this.form.test_cases.filter(tc => {
+          // Filter out test cases with errors or missing required fields
+          if (tc.error) return false;
+          if (!Array.isArray(tc.inputs)) return false;
+          const hasValidInput = tc.inputs.some(input => input && input.trim());
+          const hasValidOutput = tc.expected_output && tc.expected_output.trim();
+          return hasValidInput || hasValidOutput;
+        });
+        
+        const convertedTestCases = this.convertTestCasesForBackend(validTestCases);
         
         const problemData = {
           title: this.getApiSafeString(this.form.title),
@@ -1085,25 +1057,7 @@ export default {
           reference_solution: this.getApiSafeString(this.form.reference_solution),
           hints: this.getApiSafeString(this.form.hints),
           tags: Array.isArray(this.form.tags) ? this.form.tags : [],
-          test_cases: this.form.test_cases.filter(tc => {
-            
-            // Filter out test cases with errors or missing required fields
-            if (tc.error) {
-              return false;
-            }
-            if (!Array.isArray(tc.inputs)) {
-              return false;
-            }
-            if (tc.expected_output === null || tc.expected_output === undefined) {
-              return false;
-            }
-            return true;
-          }).map(tc => ({
-            inputs: tc.inputs,
-            expected_output: tc.expected_output,
-            description: tc.description || '',
-            order: Number(tc.order) || 0
-          }))
+          test_cases: convertedTestCases
         };
         
         // Additional validation
@@ -1311,18 +1265,17 @@ export default {
     },
     
     /**
-     * Get parameter value for display in input field
+     * Get parameter value for display in input field (raw string)
      */
     getParameterDisplayValue(testCase, paramIndex) {
       if (!testCase.inputs || paramIndex >= testCase.inputs.length) {
         return '';
       }
-      const value = testCase.inputs[paramIndex];
-      return formatValueForInput(value);
+      return testCase.inputs[paramIndex] || '';
     },
     
     /**
-     * Update parameter value with type conversion
+     * Update parameter value (store raw string)
      */
     updateParameterValue(testCase, paramIndex, stringValue) {
       // Ensure inputs array exists and is long enough
@@ -1330,20 +1283,11 @@ export default {
         testCase.inputs = [];
       }
       while (testCase.inputs.length <= paramIndex) {
-        testCase.inputs.push(null);
+        testCase.inputs.push('');
       }
       
-      // Convert string input to appropriate type and store directly
-      if (!stringValue.trim()) {
-        testCase.inputs[paramIndex] = null;
-      } else {
-        try {
-          testCase.inputs[paramIndex] = autoDetectAndConvert(stringValue);
-        } catch (error) {
-          // Keep the raw string if conversion fails
-          testCase.inputs[paramIndex] = stringValue;
-        }
-      }
+      // Store exactly what user typed (raw string)
+      testCase.inputs[paramIndex] = stringValue;
     },
     
     
@@ -1355,19 +1299,21 @@ export default {
         return null;
       }
       
-      const value = testCase.inputs[paramIndex];
+      const rawString = testCase.inputs[paramIndex] || '';
       const expectedType = this.functionParameters[paramIndex]?.type;
       
-      if (!expectedType || expectedType === 'Any') {
+      if (!expectedType || expectedType === 'Any' || !rawString.trim()) {
         return null;
       }
       
       try {
+        // Convert raw string to value for validation
+        const convertedValue = autoDetectAndConvert(rawString);
         const typeSpec = parseTypeAnnotation(expectedType);
-        const validationResult = validateValueAgainstType(value, typeSpec);
+        const validationResult = validateValueAgainstType(convertedValue, typeSpec);
         return validationResult.valid ? null : validationResult.error;
-      } catch {
-        return null;
+      } catch (error) {
+        return 'Invalid input format';
       }
     },
     
@@ -1379,14 +1325,13 @@ export default {
         return 'Any';
       }
       
-      const value = testCase.inputs[paramIndex];
-      if (value === null || value === undefined) {
-        return 'None';
+      const rawString = testCase.inputs[paramIndex] || '';
+      if (!rawString.trim()) {
+        return 'Any';
       }
       
-      // Auto-detect type from the stored value
-      const displayValue = formatValueForInput(value);
-      const typeInfo = autoDetectTypeFromInput(displayValue);
+      // Auto-detect type from raw string input
+      const typeInfo = autoDetectTypeFromInput(rawString);
       return typeInfo.annotation;
     },
     
@@ -1459,14 +1404,13 @@ export default {
      * Get detected type for output (computed on-demand)
      */
     getOutputDetectedType(testCase) {
-      const value = testCase.expected_output;
-      if (value === null || value === undefined) {
-        return 'None';
+      const rawString = testCase.expected_output || '';
+      if (!rawString.trim()) {
+        return 'Any';
       }
       
-      // Auto-detect type from the stored value
-      const displayValue = formatValueForInput(value);
-      const typeInfo = autoDetectTypeFromInput(displayValue);
+      // Auto-detect type from raw string input
+      const typeInfo = autoDetectTypeFromInput(rawString);
       return typeInfo.annotation;
     },
     
@@ -1483,19 +1427,21 @@ export default {
      * Get validation error for output (computed on-demand)
      */
     getOutputValidationError(testCase) {
-      const value = testCase.expected_output;
+      const rawString = testCase.expected_output || '';
       const expectedType = this.getReturnType();
       
-      if (!expectedType || expectedType === 'Any') {
+      if (!expectedType || expectedType === 'Any' || !rawString.trim()) {
         return null;
       }
       
       try {
+        // Convert raw string to value for validation
+        const convertedValue = autoDetectAndConvert(rawString);
         const typeSpec = parseTypeAnnotation(expectedType);
-        const validationResult = validateValueAgainstType(value, typeSpec);
+        const validationResult = validateValueAgainstType(convertedValue, typeSpec);
         return validationResult.valid ? null : validationResult.error;
-      } catch {
-        return null;
+      } catch (error) {
+        return 'Invalid input format';
       }
     },
 
@@ -1519,6 +1465,55 @@ export default {
     },
     
     
+    /**
+     * Convert test cases from string format to backend format
+     */
+    convertTestCasesForBackend(testCases) {
+      return testCases.map(tc => {
+        const convertedInputs = tc.inputs.map(rawString => {
+          if (!rawString || !rawString.trim()) {
+            return null;
+          }
+          try {
+            return autoDetectAndConvert(rawString);
+          } catch {
+            return rawString; // Keep as string if conversion fails
+          }
+        });
+
+        let convertedOutput;
+        const rawOutput = tc.expected_output || '';
+        if (!rawOutput.trim()) {
+          convertedOutput = null;
+        } else {
+          try {
+            convertedOutput = autoDetectAndConvert(rawOutput);
+          } catch {
+            convertedOutput = rawOutput; // Keep as string if conversion fails
+          }
+        }
+
+        return {
+          inputs: convertedInputs,
+          expected_output: convertedOutput,
+          description: tc.description || '',
+          order: Number(tc.order) || 0
+        };
+      });
+    },
+
+    /**
+     * Convert backend test cases to string format for editing
+     */
+    convertTestCasesFromBackend(testCases) {
+      return testCases.map(tc => ({
+        ...tc,
+        inputs: (tc.inputs || []).map(value => formatValueForInput(value)),
+        expected_output: formatValueForInput(tc.expected_output),
+        error: null
+      }));
+    },
+
     /**
      * Helper method to safely convert form fields to strings for API calls
      */
