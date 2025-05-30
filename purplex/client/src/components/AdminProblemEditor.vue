@@ -307,11 +307,11 @@
                 >
                   <div class="param-input-container">
                     <input 
-                      :value="getParameterValue(testCase, paramIndex)"
+                      :value="getParameterDisplayValue(testCase, paramIndex)"
                       @input="updateParameterValue(testCase, paramIndex, $event.target.value)"
                       :placeholder="getParameterPlaceholder(param.type)" 
                       class="param-input" 
-                      :class="{ 'param-error': getParameterError(testCase, paramIndex) }"
+                      :class="{ 'param-error': getParameterValidationError(testCase, paramIndex) }"
                     />
                     <div 
                       class="param-type-badge" 
@@ -340,8 +340,8 @@
                     :value="getTestCaseExpectedDisplay(testCase)"
                     @input="updateTestCaseExpected(testCase, $event.target.value)"
                     :placeholder="getOutputPlaceholder()" 
-                    class="output-field" 
-                    :class="{ 'param-error': testCase.expectedOutputError }"
+                    class="param-input" 
+                    :class="{ 'param-error': getOutputValidationError(testCase) }"
                   />
                   <div 
                     class="param-type-badge" 
@@ -424,7 +424,7 @@ import {
   validateValueAgainstType,
   autoDetectTypeFromInput,
   formatTypeSpec,
-  pythonTypes,
+  autoDetectAndConvert,
   getPlaceholderForType,
   formatValueForInput
 } from '@/utils/typeSystem'
@@ -631,10 +631,6 @@ export default {
     // Watch function signature changes
     'form.function_signature'() {
       this.parseFunctionSignature();
-      // Re-convert existing test case inputs when signature changes
-      this.$nextTick(() => {
-        this.convertInputsToSmartParameters();
-      });
     }
   },
   
@@ -711,17 +707,11 @@ export default {
         problemData.reference_solution = String(problemData.reference_solution);
       }
       
-      // Add error tracking to test cases and convert to smart parameter format
+      // Add basic error tracking to test cases
       if (problemData.test_cases) {
         problemData.test_cases = problemData.test_cases.map(tc => ({
           ...tc,
-          error: null,
-          // Initialize smart parameter arrays
-          parameterValues: [],
-          parameterErrors: [],
-          parameterDetectedTypes: [],
-          expectedOutputError: null,
-          expectedOutputDetectedType: 'Any'
+          error: null
         }));
       }
       
@@ -745,9 +735,6 @@ export default {
         
         // Parse function signature first to get parameter info
         this.parseFunctionSignature();
-        
-        // Convert existing inputs to smart parameter format
-        this.convertInputsToSmartParameters();
       });
     },
     
@@ -938,25 +925,12 @@ export default {
     
     addTestCase() {
       const newTestCase = {
-        inputs: [],
+        inputs: new Array(this.functionParameters.length).fill(null),
         expected_output: null,
         description: '',
         order: this.form.test_cases.length,
-        error: null,
-        // Smart parameter tracking
-        parameterValues: [],
-        parameterErrors: [],
-        parameterDetectedTypes: [],
-        expectedOutputError: null,
-        expectedOutputDetectedType: 'Any'
+        error: null
       };
-      
-      // Initialize parameter arrays based on current function signature
-      for (let i = 0; i < this.functionParameters.length; i++) {
-        newTestCase.parameterValues.push('');
-        newTestCase.parameterErrors.push(null);
-        newTestCase.parameterDetectedTypes.push('Any');
-      }
       
       this.form.test_cases.push(newTestCase);
     },
@@ -993,55 +967,16 @@ export default {
     },
     
     updateTestCaseExpected(testCase, value) {
-      try {
-        // Detect and validate type for expected output
-        if (!value.trim()) {
-          testCase.expected_output = null;
-          testCase.expectedOutputDetectedType = 'Any';
-          testCase.expectedOutputError = null;
-        } else {
-          const typeInfo = autoDetectTypeFromInput(value);
-          testCase.expectedOutputDetectedType = typeInfo.annotation;
-          
-          if (typeInfo.detected === 'invalid') {
-            testCase.expectedOutputError = 'Invalid input format';
-            testCase.error = 'Invalid input for expected output';
-            return;
-          }
-          
-          // Convert using the type system instead of generic JSON parsing
-          try {
-            if (pythonTypes[typeInfo.detected]) {
-              testCase.expected_output = pythonTypes[typeInfo.detected].convert(value);
-            } else {
-              testCase.expected_output = this.parseValueForBackend(value);
-            }
-          } catch (convertError) {
-            testCase.expectedOutputError = 'Invalid input format';
-            testCase.error = 'Invalid input for expected output';
-            return;
-          }
-          
-          // Validate against return type spec
-          if (this.returnTypeSpec && this.returnTypeSpec.type !== 'Any') {
-            const validationResult = validateValueAgainstType(testCase.expected_output, this.returnTypeSpec);
-            if (!validationResult.valid) {
-              const pathStr = validationResult.path.length > 0 
-                ? ` at ${validationResult.path.join('')}` 
-                : '';
-              testCase.expectedOutputError = `${validationResult.error}${pathStr}`;
-            } else {
-              testCase.expectedOutputError = null;
-            }
-          } else {
-            testCase.expectedOutputError = null;
-          }
+      // Simple conversion matching parameter field behavior
+      if (!value.trim()) {
+        testCase.expected_output = null;
+      } else {
+        try {
+          testCase.expected_output = autoDetectAndConvert(value);
+        } catch (error) {
+          // Keep the raw string if conversion fails
+          testCase.expected_output = value;
         }
-        
-        testCase.error = null;
-      } catch (e) {
-        testCase.error = 'Invalid input for expected output';
-        testCase.expectedOutputError = 'Parse error';
       }
     },
     
@@ -1063,11 +998,6 @@ export default {
       }
       
       await this.executeAction('test problem', async () => {
-        // Ensure all test cases have updated inputs from smart parameters
-        this.form.test_cases.forEach(testCase => {
-          this.updateInputsFromParameters(testCase);
-        });
-        
         const testData = {
           title: this.form.title,
           description: this.form.description,
@@ -1216,9 +1146,6 @@ export default {
         // Re-parse function signature to rebuild functionParameters
         this.parseFunctionSignature();
         
-        // Convert inputs to smart parameters to repopulate parameter arrays
-        this.convertInputsToSmartParameters();
-        
         return this.isEditing ? 'Problem updated successfully' : 'Problem created successfully';
       });
     },
@@ -1333,9 +1260,6 @@ export default {
       this.functionParameters = this.parseParameters(paramsStr || '');
       this.returnType = returnTypeStr?.trim() || 'Any';
       this.returnTypeSpec = parseTypeAnnotation(this.returnType);
-      
-      // Initialize parameter data in existing test cases
-      this.initializeParameterData();
     },
     
     /**
@@ -1377,106 +1301,6 @@ export default {
     },
     
     
-    /**
-     * Convert existing inputs arrays to smart parameter format
-     */
-    convertInputsToSmartParameters() {
-      if (!this.form.test_cases || this.functionParameters.length === 0) {
-        return;
-      }
-      
-      this.form.test_cases.forEach(testCase => {
-        // Convert inputs array to parameterValues
-        if (testCase.inputs && Array.isArray(testCase.inputs)) {
-          testCase.parameterValues = [];
-          testCase.parameterErrors = [];
-          testCase.parameterDetectedTypes = [];
-          
-          // Convert each input value to string format for the UI
-          testCase.inputs.forEach((value, index) => {
-            if (index < this.functionParameters.length) {
-              // Convert value to string representation
-              const stringValue = formatValueForInput(value);
-              testCase.parameterValues[index] = stringValue;
-              
-              // Detect and validate the type
-              this.detectParameterType(testCase, index, stringValue);
-            }
-          });
-          
-          // Fill remaining parameters with empty values
-          while (testCase.parameterValues.length < this.functionParameters.length) {
-            testCase.parameterValues.push('');
-            testCase.parameterErrors.push(null);
-            testCase.parameterDetectedTypes.push('Any');
-          }
-        }
-        
-        // Convert expected_output for type detection
-        if (testCase.expected_output !== null && testCase.expected_output !== undefined) {
-          const outputString = formatValueForInput(testCase.expected_output);
-          const typeInfo = autoDetectTypeFromInput(outputString);
-          testCase.expectedOutputDetectedType = typeInfo.annotation;
-          
-          // Validate against return type spec
-          if (this.returnTypeSpec && this.returnTypeSpec.type !== 'Any' && typeInfo.detected !== 'invalid') {
-            try {
-              const converted = pythonTypes[typeInfo.detected].convert(outputString);
-              const validationResult = validateValueAgainstType(converted, this.returnTypeSpec);
-              if (!validationResult.valid) {
-                testCase.expectedOutputError = validationResult.error;
-              } else {
-                testCase.expectedOutputError = null;
-              }
-            } catch {
-              testCase.expectedOutputError = 'Invalid value for return type';
-            }
-          } else {
-            testCase.expectedOutputError = null;
-          }
-        }
-      });
-    },
-    
-    
-    /**
-     * Initialize parameter data for existing test cases
-     */
-    initializeParameterData() {
-      this.form.test_cases.forEach(testCase => {
-        // Initialize parameter values array if not exists
-        if (!testCase.parameterValues) {
-          testCase.parameterValues = [];
-        }
-        
-        // Initialize parameter errors array if not exists  
-        if (!testCase.parameterErrors) {
-          testCase.parameterErrors = [];
-        }
-        
-        // Initialize parameter detected types array if not exists
-        if (!testCase.parameterDetectedTypes) {
-          testCase.parameterDetectedTypes = [];
-        }
-        
-        // Ensure arrays have correct length
-        while (testCase.parameterValues.length < this.functionParameters.length) {
-          testCase.parameterValues.push('');
-          testCase.parameterErrors.push(null);
-          testCase.parameterDetectedTypes.push('Any');
-        }
-        
-        // Initialize expected output error tracking
-        if (!testCase.expectedOutputError) {
-          testCase.expectedOutputError = null;
-        }
-        
-        if (!testCase.expectedOutputDetectedType) {
-          testCase.expectedOutputDetectedType = 'Any';
-        }
-      });
-    },
-    
     // === Parameter Input Methods ===
     
     /**
@@ -1487,146 +1311,83 @@ export default {
     },
     
     /**
-     * Get parameter value for a specific test case and parameter index
+     * Get parameter value for display in input field
      */
-    getParameterValue(testCase, paramIndex) {
-      if (!testCase.parameterValues || paramIndex >= testCase.parameterValues.length) {
+    getParameterDisplayValue(testCase, paramIndex) {
+      if (!testCase.inputs || paramIndex >= testCase.inputs.length) {
         return '';
       }
-      return testCase.parameterValues[paramIndex] || '';
+      const value = testCase.inputs[paramIndex];
+      return formatValueForInput(value);
     },
     
     /**
-     * Update parameter value and perform type detection
+     * Update parameter value with type conversion
      */
-    updateParameterValue(testCase, paramIndex, value) {
-      // Ensure arrays exist
-      if (!testCase.parameterValues) testCase.parameterValues = [];
-      if (!testCase.parameterErrors) testCase.parameterErrors = [];
-      if (!testCase.parameterDetectedTypes) testCase.parameterDetectedTypes = [];
-      
-      // Ensure arrays are long enough
-      while (testCase.parameterValues.length <= paramIndex) {
-        testCase.parameterValues.push('');
-        testCase.parameterErrors.push(null);
-        testCase.parameterDetectedTypes.push('Any');
+    updateParameterValue(testCase, paramIndex, stringValue) {
+      // Ensure inputs array exists and is long enough
+      if (!testCase.inputs) {
+        testCase.inputs = [];
+      }
+      while (testCase.inputs.length <= paramIndex) {
+        testCase.inputs.push(null);
       }
       
-      // Update value
-      testCase.parameterValues[paramIndex] = value;
-      
-      // Detect and validate type
-      this.detectParameterType(testCase, paramIndex, value);
-      
-      // Update the inputs array for backend compatibility
-      this.updateInputsFromParameters(testCase);
-    },
-    
-    /**
-     * Detect parameter type and validate against expected type
-     */
-    detectParameterType(testCase, paramIndex, value) {
-      if (!value.trim()) {
-        testCase.parameterDetectedTypes[paramIndex] = 'Any';
-        testCase.parameterErrors[paramIndex] = null;
-        return;
-      }
-      
-      // Use enhanced type detection
-      const typeInfo = autoDetectTypeFromInput(value);
-      testCase.parameterDetectedTypes[paramIndex] = typeInfo.annotation;
-      
-      // Handle invalid syntax
-      if (typeInfo.detected === 'invalid') {
-        testCase.parameterErrors[paramIndex] = 'Invalid input format';
-        return;
-      }
-      
-      // Get expected type spec
-      const expectedTypeSpec = this.functionParameters[paramIndex]?.typeSpec;
-      if (expectedTypeSpec && expectedTypeSpec.type !== 'Any') {
-        try {
-          // Convert value using type handlers
-          const converted = pythonTypes[typeInfo.detected].convert(value);
-          
-          // Validate against expected type spec
-          const validationResult = validateValueAgainstType(converted, expectedTypeSpec);
-          if (!validationResult.valid) {
-            const pathStr = validationResult.path.length > 0 
-              ? ` at ${validationResult.path.join('')}` 
-              : '';
-            testCase.parameterErrors[paramIndex] = `${validationResult.error}${pathStr}`;
-          } else {
-            testCase.parameterErrors[paramIndex] = null;
-          }
-        } catch (error) {
-          testCase.parameterErrors[paramIndex] = 'Invalid input format';
-        }
+      // Convert string input to appropriate type and store directly
+      if (!stringValue.trim()) {
+        testCase.inputs[paramIndex] = null;
       } else {
-        testCase.parameterErrors[paramIndex] = null;
-      }
-    },
-    
-    
-    /**
-     * Update the inputs array from parameter values (for backend compatibility)
-     */
-    updateInputsFromParameters(testCase) {
-      if (!testCase.parameterValues || this.functionParameters.length === 0) {
-        return;
-      }
-      
-      const inputs = testCase.parameterValues.map((value, index) => {
-        if (!value.trim()) return null;
-        
-        // Use type detection for better parsing
-        const typeInfo = autoDetectTypeFromInput(value);
-        if (typeInfo.detected !== 'invalid' && pythonTypes[typeInfo.detected]) {
-          try {
-            return pythonTypes[typeInfo.detected].convert(value);
-          } catch {
-            return this.parseValueForBackend(value);
-          }
+        try {
+          testCase.inputs[paramIndex] = autoDetectAndConvert(stringValue);
+        } catch (error) {
+          // Keep the raw string if conversion fails
+          testCase.inputs[paramIndex] = stringValue;
         }
-        return this.parseValueForBackend(value);
-      });
-      
-      testCase.inputs = inputs;
-    },
-    
-    /**
-     * Parse value string to actual JavaScript value for backend
-     */
-    parseValueForBackend(value) {
-      const trimmed = value.trim();
-      if (!trimmed) return null;
-      
-      try {
-        return JSON.parse(trimmed);
-      } catch {
-        // If not valid JSON, return as string
-        return trimmed;
       }
     },
     
+    
     /**
-     * Get parameter error for a specific test case and parameter index
+     * Get validation error for a parameter (computed on-demand)
      */
-    getParameterError(testCase, paramIndex) {
-      if (!testCase.parameterErrors || paramIndex >= testCase.parameterErrors.length) {
+    getParameterValidationError(testCase, paramIndex) {
+      if (!testCase.inputs || paramIndex >= testCase.inputs.length) {
         return null;
       }
-      return testCase.parameterErrors[paramIndex];
+      
+      const value = testCase.inputs[paramIndex];
+      const expectedType = this.functionParameters[paramIndex]?.type;
+      
+      if (!expectedType || expectedType === 'Any') {
+        return null;
+      }
+      
+      try {
+        const typeSpec = parseTypeAnnotation(expectedType);
+        const validationResult = validateValueAgainstType(value, typeSpec);
+        return validationResult.valid ? null : validationResult.error;
+      } catch {
+        return null;
+      }
     },
     
     /**
-     * Get detected type for a parameter
+     * Get detected type for a parameter (computed on-demand)
      */
     getParameterDetectedType(testCase, paramIndex) {
-      if (!testCase.parameterDetectedTypes || paramIndex >= testCase.parameterDetectedTypes.length) {
+      if (!testCase.inputs || paramIndex >= testCase.inputs.length) {
         return 'Any';
       }
-      return testCase.parameterDetectedTypes[paramIndex] || 'Any';
+      
+      const value = testCase.inputs[paramIndex];
+      if (value === null || value === undefined) {
+        return 'None';
+      }
+      
+      // Auto-detect type from the stored value
+      const displayValue = formatValueForInput(value);
+      const typeInfo = autoDetectTypeFromInput(displayValue);
+      return typeInfo.annotation;
     },
     
     /**
@@ -1654,7 +1415,7 @@ export default {
      */
     getParameterTypeClass(testCase, paramIndex) {
       const detectedType = this.getParameterDetectedType(testCase, paramIndex);
-      const hasError = this.getParameterError(testCase, paramIndex);
+      const hasError = this.getParameterValidationError(testCase, paramIndex);
       return this.getTypeClass(detectedType, hasError);
     },
     
@@ -1665,7 +1426,7 @@ export default {
     getParameterTypeInfo(testCase, paramIndex) {
       const detectedType = this.getParameterDetectedType(testCase, paramIndex);
       const expectedType = this.functionParameters[paramIndex]?.type || 'Any';
-      const error = this.getParameterError(testCase, paramIndex);
+      const error = this.getParameterValidationError(testCase, paramIndex);
       
       if (error) return error;
       return `Detected: ${detectedType} | Expected: ${expectedType}`;
@@ -1695,10 +1456,18 @@ export default {
     },
     
     /**
-     * Get detected type for output
+     * Get detected type for output (computed on-demand)
      */
     getOutputDetectedType(testCase) {
-      return testCase.expectedOutputDetectedType || 'Any';
+      const value = testCase.expected_output;
+      if (value === null || value === undefined) {
+        return 'None';
+      }
+      
+      // Auto-detect type from the stored value
+      const displayValue = formatValueForInput(value);
+      const typeInfo = autoDetectTypeFromInput(displayValue);
+      return typeInfo.annotation;
     },
     
     /**
@@ -1706,17 +1475,37 @@ export default {
      */
     getOutputTypeClass(testCase) {
       const detectedType = this.getOutputDetectedType(testCase);
-      const hasError = testCase.expectedOutputError;
+      const hasError = this.getOutputValidationError(testCase);
       return this.getTypeClass(detectedType, hasError);
     },
     
+    /**
+     * Get validation error for output (computed on-demand)
+     */
+    getOutputValidationError(testCase) {
+      const value = testCase.expected_output;
+      const expectedType = this.getReturnType();
+      
+      if (!expectedType || expectedType === 'Any') {
+        return null;
+      }
+      
+      try {
+        const typeSpec = parseTypeAnnotation(expectedType);
+        const validationResult = validateValueAgainstType(value, typeSpec);
+        return validationResult.valid ? null : validationResult.error;
+      } catch {
+        return null;
+      }
+    },
+
     /**
      * Get type info tooltip for output
      */
     getOutputTypeInfo(testCase) {
       const detectedType = this.getOutputDetectedType(testCase);
       const expectedType = this.getReturnType();
-      const error = testCase.expectedOutputError;
+      const error = this.getOutputValidationError(testCase);
       
       if (error) return error;
       return `Detected: ${detectedType} | Expected: ${expectedType}`;
@@ -2345,8 +2134,7 @@ export default {
   gap: var(--spacing-xs);
 }
 
-.param-input,
-.output-field {
+.param-input {
   flex: 1;
   padding: var(--spacing-sm);
   border: 1px solid var(--color-bg-border);
@@ -2358,21 +2146,18 @@ export default {
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
 }
 
-.param-input:focus,
-.output-field:focus {
+.param-input:focus {
   border-color: var(--color-primary-gradient-start);
   outline: none;
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
 }
 
-.param-input.param-error,
-.output-field.param-error {
+.param-input.param-error {
   border-color: var(--color-error);
   background: var(--color-error-bg);
 }
 
-.param-input::placeholder,
-.output-field::placeholder {
+.param-input::placeholder {
   color: var(--color-text-muted);
   font-family: inherit;
 }
