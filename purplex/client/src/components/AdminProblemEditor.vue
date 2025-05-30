@@ -1069,7 +1069,7 @@ export default {
           title: this.form.title,
           description: this.form.description,
           function_name: this.form.function_name,
-          reference_solution: this.getApiSafeString(this.form.reference_solution, 'reference_solution'),
+          reference_solution: this.getApiSafeString(this.form.reference_solution),
           test_cases: this.form.test_cases.filter(tc => {
             // Debug: Log what we're filtering
             console.log('Filtering test case:', tc, 'Has error:', tc.error, 'Has inputs:', tc.inputs);
@@ -1126,7 +1126,7 @@ export default {
           description: this.form.description || '',
           function_name: this.form.function_name,
           function_signature: this.form.function_signature || '',
-          reference_solution: this.getApiSafeString(this.form.reference_solution, 'reference_solution')
+          reference_solution: this.getApiSafeString(this.form.reference_solution)
         };
         
         console.log('AI Generation request data:', requestData);
@@ -1169,7 +1169,7 @@ export default {
           category_ids: Array.isArray(this.form.category_ids) ? this.form.category_ids : [],
           function_name: this.getApiSafeString(this.form.function_name),
           function_signature: this.getApiSafeString(this.form.function_signature),
-          reference_solution: this.getApiSafeString(this.form.reference_solution, 'reference_solution'),
+          reference_solution: this.getApiSafeString(this.form.reference_solution),
           hints: this.getApiSafeString(this.form.hints),
           tags: Array.isArray(this.form.tags) ? this.form.tags : [],
           test_cases: this.form.test_cases.filter(tc => {
@@ -1845,78 +1845,14 @@ export default {
      * Update reference solution ensuring it's always a string
      */
     updateReferenceSolution(value) {
-      // Debug: Log what the editor is sending
-      console.log('Editor value received:', value, 'Type:', typeof value);
-      
-      // Handle different types of values from the editor
-      let stringValue = '';
-      
-      if (typeof value === 'string') {
-        stringValue = value;
-      } else if (value && typeof value === 'object') {
-        // Check if it's an event object with target.value
-        if (value.target && typeof value.target.value === 'string') {
-          stringValue = value.target.value;
-        }
-        // Check if it has a value property
-        else if (value.value && typeof value.value === 'string') {
-          stringValue = value.value;
-        }
-        // Check if it has a text property
-        else if (value.text && typeof value.text === 'string') {
-          stringValue = value.text;
-        }
-        // If it's an empty object, don't update at all
-        else if (Object.keys(value).length === 0) {
-          console.log('Received empty object, ignoring update');
-          return; // Don't update at all
-        }
-        // Last resort - try JSON stringify for non-empty objects
-        else {
-          try {
-            stringValue = JSON.stringify(value);
-          } catch {
-            stringValue = '';
-          }
-        }
-      } else {
-        stringValue = String(value || '');
-      }
-      
-      this.form.reference_solution = stringValue;
-      console.log('Stored as:', this.form.reference_solution);
+      this.form.reference_solution = value;
     },
     
-    /**
-     * Get the actual string value from the ACE editor
-     */
-    getEditorValue() {
-      if (this.$refs.editor && this.$refs.editor.editor) {
-        try {
-          const editorValue = this.$refs.editor.editor.getValue();
-          console.log('Direct editor value:', editorValue);
-          return editorValue || '';
-        } catch (error) {
-          console.warn('Could not get editor value:', error);
-        }
-      }
-      return this.form.reference_solution || '';
-    },
     
     /**
      * Helper method to safely convert form fields to strings for API calls
      */
-    getApiSafeString(value, fieldName = '') {
-      // Special handling for reference_solution - get directly from editor
-      if (fieldName === 'reference_solution') {
-        const editorValue = this.getEditorValue();
-        const trimmedValue = editorValue.trim();
-        console.log('getApiSafeString for reference_solution:');
-        console.log('Raw editor value:', JSON.stringify(editorValue));
-        console.log('Trimmed value:', JSON.stringify(trimmedValue));
-        return trimmedValue;
-      }
-      
+    getApiSafeString(value) {
       if (typeof value === 'string') {
         return value.trim();
       }

@@ -7,7 +7,7 @@
       :style="{ height: height, width: width }"
       :value="value"
       :options="{ readOnly: readOnly }"
-      @input="handleInput"
+      @update:value="handleInput"
       />
 </template>
 
@@ -97,6 +97,12 @@
       
       /* Handle input changes */
       const handleInput = (value: string) => {
+        // ACE editor should only send strings - if it's not a string, something is wrong
+        if (typeof value !== 'string') {
+          console.error('ACE editor sent non-string value:', value);
+          return;
+        }
+        
         emit('update:value', value);
       };
 
