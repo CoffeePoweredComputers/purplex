@@ -28,7 +28,7 @@ DEBUG = os.environ.setdefault('DJANGO_DEBUG', 'False') == 'True'
 
 print(f"Running in DEBUG mode: {DEBUG}")
 
-# OpenAI API Configuration
+# OpenAI API Configuration (for EiPL problems only)
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 
 ALLOWED_HOSTS = ["*"]

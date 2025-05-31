@@ -9,7 +9,7 @@ from .views import (
     
     # Admin views
     AdminProblemListView, AdminProblemDetailView, AdminTestProblemView,
-    AdminGenerateTestCasesView, AdminTestCaseView, AdminProblemSetListView,
+    AdminTestCaseView, AdminProblemSetListView,
     AdminProblemSetDetailView, AdminCategoryView
 )
 
@@ -34,7 +34,6 @@ urlpatterns = [
     path('admin/problems/', AdminProblemListView.as_view(), name='admin_problem_list'),
     path('admin/problems/<slug:slug>/', AdminProblemDetailView.as_view(), name='admin_problem_detail'),
     path('admin/test-problem/', AdminTestProblemView.as_view(), name='admin_test_problem'),
-    path('admin/generate-test-cases/', AdminGenerateTestCasesView.as_view(), name='admin_generate_test_cases'),
     
     # Admin endpoints - Test Cases
     path('admin/problems/<slug:problem_slug>/test-cases/', AdminTestCaseView.as_view(), name='admin_test_case_create'),

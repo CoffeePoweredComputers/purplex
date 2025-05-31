@@ -4,8 +4,6 @@ import {
   ProblemCreateRequest,
   ProblemUpdateRequest,
   TestExecutionResult,
-  AIGenerationRequest,
-  AIGenerationResponse,
   ProblemCategory,
   APIError,
   TestProblemRequest
@@ -106,23 +104,6 @@ class ProblemServiceImpl {
     }
   }
 
-  /**
-   * Generate test cases using AI
-   * @param data - AI generation request data
-   * @returns Promise resolving to generated test cases
-   * @throws APIError on generation failure
-   */
-  async generateTestCases(data: AIGenerationRequest): Promise<AIGenerationResponse> {
-    try {
-      const response: AxiosResponse<AIGenerationResponse> = await axios.post(
-        '/api/admin/generate-test-cases/',
-        data
-      );
-      return response.data;
-    } catch (error) {
-      throw this._handleError(error, 'Failed to generate test cases');
-    }
-  }
 
   /**
    * Load all problem categories

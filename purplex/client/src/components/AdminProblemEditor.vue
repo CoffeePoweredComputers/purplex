@@ -142,12 +142,45 @@
         <h3>Problem Description</h3>
         <div class="form-group">
           <label for="description">Description (Markdown supported)</label>
-          <textarea
-            id="description"
-            v-model="form.description"
-            placeholder="Write your problem description here..."
-            rows="10"
-          ></textarea>
+          
+          <!-- Tab Navigation -->
+          <div class="markdown-tabs">
+            <button 
+              type="button"
+              class="tab-button"
+              :class="{ active: descriptionTab === 'edit' }"
+              @click="descriptionTab = 'edit'"
+            >
+              Edit
+            </button>
+            <button 
+              type="button"
+              class="tab-button"
+              :class="{ active: descriptionTab === 'preview' }"
+              @click="descriptionTab = 'preview'"
+            >
+              Preview
+            </button>
+          </div>
+          
+          <!-- Edit Tab -->
+          <div v-if="descriptionTab === 'edit'" class="markdown-content">
+            <textarea
+              id="description"
+              v-model="form.description"
+              placeholder="Write your problem description here using Markdown..."
+              rows="10"
+              class="markdown-textarea"
+            ></textarea>
+          </div>
+          
+          <!-- Preview Tab -->
+          <div v-if="descriptionTab === 'preview'" class="markdown-content">
+            <div 
+              class="markdown-preview"
+              v-html="renderedDescription"
+            ></div>
+          </div>
         </div>
       </div>
 
@@ -240,35 +273,25 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="hints">Hints (optional)</label>
-          <textarea
-            id="hints"
-            v-model="form.hints"
-            rows="3"
-            placeholder="Provide helpful hints for students..."
-          ></textarea>
-        </div>
       </div>
 
       <!-- Test Cases -->
-      <div class="form-section rounded-lg border-default transition-fast">
+      <div class="form-section rounded-lg border-default transition-fast" style="position: relative;">
         <h3>Test Cases</h3>
+        
+        <!-- Loading overlay for test section -->
+        <div v-if="ui.loading" class="test-loading-overlay">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+            <div class="loading-text">Running tests...</div>
+          </div>
+        </div>
         
         <!-- Simplified Actions Bar -->
         <div class="test-actions">
           <div class="left-actions">
             <button type="button" @click="addTestCase" class="btn-secondary rounded-base transition-fast">
               + Add Test
-            </button>
-            <button
-              type="button"
-              @click="generateTestCases"
-              :disabled="ui.loading || !canGenerateTestCases"
-              class="btn-secondary rounded-base transition-fast"
-              :title="canGenerateTestCasesReason || 'Generate one test case using AI'"
-            >
-              {{ ui.loading ? 'Generating...' : '+ AI Generate' }}
             </button>
           </div>
           
@@ -361,7 +384,15 @@
               <span v-if="ui.testResults" class="status-badge" :class="getStatusClass(index)">
                 {{ getStatusText(index) }}
               </span>
-              <button @click="removeTestCase(index)" class="remove-btn">×</button>
+              <button 
+                @click="removeTestCase(index)" 
+                class="remove-btn"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16">
+                  <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                  <line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+              </button>
             </div>
             
             <!-- Error message directly below if exists -->
@@ -419,6 +450,7 @@
 import NotificationToast from './NotificationToast.vue'
 import Editor from '@/features/editor/Editor.vue'
 import { problemService } from '../services/problemService'
+import { marked } from 'marked'
 import { 
   parseTypeAnnotation,
   validateValueAgainstType,
@@ -467,7 +499,6 @@ export default {
         function_name: '',
         function_signature: '',
         reference_solution: '',
-        hints: '',
         tags: [],
         test_cases: []
       },
@@ -511,7 +542,10 @@ export default {
       
       // Editor settings
       editorFontSize: 14,
-      editorTheme: 'monokai'
+      editorTheme: 'monokai',
+      
+      // Markdown description tab
+      descriptionTab: 'edit'
     }
   },
   computed: {
@@ -557,23 +591,6 @@ export default {
       if (this.form.test_cases.some(tc => tc.error)) return "Fix test case errors first";
       return null; // Can test
     },
-    canGenerateTestCases() {
-      const functionName = (this.form.function_name || '').toString().trim();
-      const referenceSolution = (this.form.reference_solution || '').toString().trim();
-      
-      return !this.ui.loading &&
-             functionName.length > 0 &&
-             referenceSolution.length > 0;
-    },
-    canGenerateTestCasesReason() {
-      const functionName = (this.form.function_name || '').toString().trim();
-      const referenceSolution = (this.form.reference_solution || '').toString().trim();
-      
-      if (this.ui.loading) return "Currently loading...";
-      if (!functionName) return "Function name required for AI generation";
-      if (!referenceSolution) return "Reference solution required for AI generation";
-      return null; // Can generate
-    },
     tagsDisplay() {
       return this.form.tags.join(', ')
     },
@@ -584,6 +601,17 @@ export default {
         left: this.popupPosition.left,
         zIndex: 1001
       };
+    },
+    renderedDescription() {
+      if (!this.form.description || !this.form.description.trim()) {
+        return '<p class="no-content">No description provided. Switch to the Edit tab to add content.</p>';
+      }
+      try {
+        return marked(this.form.description);
+      } catch (error) {
+        console.error('Error rendering markdown:', error);
+        return '<p class="error">Error rendering markdown. Please check your syntax.</p>';
+      }
     },
   },
   async mounted() {
@@ -631,6 +659,27 @@ export default {
     // Watch function signature changes
     'form.function_signature'() {
       this.parseFunctionSignature();
+    },
+    
+    // Debug: Watch test results changes
+    'ui.testResults': {
+      deep: true,
+      handler(newVal, oldVal) {
+        console.log('📊 Test results changed:', {
+          old: oldVal,
+          new: newVal,
+          hasResults: !!newVal,
+          resultsLength: newVal?.results?.length
+        });
+      }
+    },
+    
+    // Debug: Watch loading state
+    'ui.loading'(newVal, oldVal) {
+      console.log('⏳ Loading state changed:', {
+        old: oldVal,
+        new: newVal
+      });
     }
   },
   
@@ -645,18 +694,32 @@ export default {
   },
   methods: {
     async executeAction(actionName, actionFn, successMsg = null) {
-      if (this.ui.loading) return;
+      console.log(`🎬 executeAction started: ${actionName}`, {
+        currentLoading: this.ui.loading,
+        hasToast: !!this.$toast
+      });
+      
+      if (this.ui.loading) {
+        console.log('⚠️ Already loading, skipping action');
+        return;
+      }
       
       this.ui.loading = true;
       this.ui.error = null;
+      console.log('✅ Set loading to true');
       
       try {
+        console.log(`🏃 Running ${actionName}...`);
         const result = await actionFn();
+        console.log(`✅ ${actionName} completed successfully`, result);
+        
         if (successMsg) {
+          console.log('📢 Showing success toast:', successMsg);
           this.$toast?.success?.(successMsg);
         }
         return result;
       } catch (error) {
+        console.error(`❌ ${actionName} failed:`, error);
         
         // Better error message extraction
         let errorMsg = `Failed to ${actionName}`;
@@ -674,10 +737,17 @@ export default {
         }
         
         this.ui.error = errorMsg;
+        console.log('📢 Showing error toast:', errorMsg);
         this.$toast?.error?.(errorMsg);
         throw error;
       } finally {
         this.ui.loading = false;
+        console.log('✅ Set loading to false');
+        // Force UI update to ensure loading state change is reflected
+        this.$nextTick(() => {
+          console.log('🔄 Force update after loading state change');
+          this.$forceUpdate();
+        });
       }
     },
 
@@ -937,7 +1007,7 @@ export default {
     },
     
     getTestCaseExpectedDisplay(testCase) {
-      return testCase.expected_output || '';
+      return testCase.expected_output ?? '';
     },
     
     updateTestCaseExpected(testCase, value) {
@@ -947,9 +1017,18 @@ export default {
     
     
     async testProblem() {
+      console.log('🔍 testProblem() called', {
+        canTest: this.canTest,
+        canTestReason: this.canTestReason,
+        testCasesCount: this.form.test_cases.length,
+        loading: this.ui.loading,
+        testCases: this.form.test_cases
+      });
+
       if (!this.canTest) {
         // Show specific reason instead of generic warning
         const reason = this.canTestReason || 'Cannot test problem in current state';
+        console.log('❌ Cannot test:', reason);
         this.$toast?.warning?.(reason);
         return;
       }
@@ -957,15 +1036,28 @@ export default {
       // Validate test cases for errors
       for (let i = 0; i < this.form.test_cases.length; i++) {
         if (this.form.test_cases[i].error) {
+          console.log(`❌ Test case ${i + 1} has error:`, this.form.test_cases[i].error);
           this.$toast?.error?.(`Please fix errors in test case ${i + 1}`);
           return;
         }
       }
       
+      // Clear previous results
+      this.ui.testResults = null;
+      console.log('🧹 Cleared previous test results');
+      
+      // Show immediate feedback
+      this.$toast?.info?.('Running tests...');
+      
       await this.executeAction('test problem', async () => {
+        console.log('🚀 Starting test execution');
+        
         // Convert string test cases to backend format
         const validTestCases = this.form.test_cases.filter(tc => !tc.error);
+        console.log('✅ Valid test cases:', validTestCases.length);
+        
         const convertedTestCases = this.convertTestCasesForBackend(validTestCases);
+        console.log('🔄 Converted test cases:', convertedTestCases);
         
         const testData = {
           title: this.form.title,
@@ -975,15 +1067,78 @@ export default {
           test_cases: convertedTestCases
         };
         
+        console.log('📦 Test data being sent:', {
+          ...testData,
+          reference_solution: testData.reference_solution.substring(0, 50) + '...'
+        });
+        
         // Check if we have any test cases to test
         if (!testData.test_cases || testData.test_cases.length === 0) {
+          console.log('❌ No valid test cases found');
           throw new Error('No valid test cases found. Please add test cases with inputs and expected outputs.');
         }
         
-        this.ui.testResults = await problemService.testProblem(testData);
+        console.log('📡 Calling problemService.testProblem()...');
+        const startTime = Date.now();
         
-        const passed = this.ui.testResults.passed;
-        const total = this.ui.testResults.total;
+        try {
+          this.ui.testResults = await problemService.testProblem(testData);
+          const elapsed = Date.now() - startTime;
+          console.log(`✅ Test results received in ${elapsed}ms:`, this.ui.testResults);
+          
+          // Debug: Log the full response structure
+          console.log('📋 Full test results structure:', {
+            success: this.ui.testResults.success,
+            passed: this.ui.testResults.passed,
+            total: this.ui.testResults.total,
+            results: this.ui.testResults.results,
+            resultsType: typeof this.ui.testResults.results,
+            resultsLength: this.ui.testResults.results?.length,
+            firstResult: this.ui.testResults.results?.[0]
+          });
+          
+          // Temporary fix: If results array is empty but we have test counts,
+          // create placeholder results to show visual feedback
+          if ((!this.ui.testResults.results || this.ui.testResults.results.length === 0) && this.ui.testResults.total > 0) {
+            console.warn('⚠️ Backend returned empty results array, creating placeholders');
+            
+            // Check for function name mismatch
+            const functionNameInProblem = this.form.function_name;
+            const functionNameRegex = /def\s+(\w+)\s*\(/;
+            const match = this.form.reference_solution.match(functionNameRegex);
+            const functionNameInSolution = match ? match[1] : null;
+            
+            let errorMessage = 'Test execution failed - no detailed results from backend';
+            
+            if (functionNameInSolution && functionNameInProblem !== functionNameInSolution) {
+              errorMessage = `Function name mismatch: Problem expects '${functionNameInProblem}' but solution defines '${functionNameInSolution}'`;
+              console.error(`❌ ${errorMessage}`);
+            }
+            
+            this.ui.testResults.results = [];
+            for (let i = 0; i < this.ui.testResults.total; i++) {
+              this.ui.testResults.results.push({
+                passed: false,
+                test_number: i + 1,
+                inputs: testData.test_cases[i]?.inputs || [],
+                expected_output: testData.test_cases[i]?.expected_output,
+                actual_output: null,
+                error: errorMessage
+              });
+            }
+          }
+        } catch (error) {
+          console.error('❌ API call failed:', error);
+          throw error;
+        }
+        
+        // Force UI update
+        this.$forceUpdate();
+        
+        const passed = this.ui.testResults.passed || 0;
+        const total = this.ui.testResults.total || 0;
+        
+        console.log(`📊 Test results: ${passed}/${total} passed`);
         
         if (this.ui.testResults.success && passed === total) {
           return 'All tests passed! ✓';
@@ -993,39 +1148,6 @@ export default {
       });
     },
     
-    async generateTestCases() {
-      if (!this.canGenerateTestCases) {
-        const reason = this.canGenerateTestCasesReason || 'Cannot generate test cases in current state';
-        this.$toast?.warning?.(reason);
-        return;
-      }
-      
-      await this.executeAction('generate test cases', async () => {
-        const requestData = {
-          description: this.form.description || '',
-          function_name: this.form.function_name,
-          function_signature: this.form.function_signature || '',
-          reference_solution: this.getApiSafeString(this.form.reference_solution)
-        };
-        
-        const response = await problemService.generateTestCases(requestData);
-        
-        if (!response.test_cases || !Array.isArray(response.test_cases)) {
-          throw new Error('Invalid response format: expected test_cases array');
-        }
-        
-        response.test_cases.forEach(tc => {
-          this.form.test_cases.push({
-            ...tc,
-            order: this.form.test_cases.length,
-            error: null
-          });
-        });
-        
-        const count = response.test_cases.length;
-        return count === 1 ? 'Generated 1 test case' : `Generated ${count} test cases`;
-      });
-    },
     
     async saveProblem() {
       if (!this.canSave) {
@@ -1039,8 +1161,8 @@ export default {
           // Filter out test cases with errors or missing required fields
           if (tc.error) return false;
           if (!Array.isArray(tc.inputs)) return false;
-          const hasValidInput = tc.inputs.some(input => input && input.trim());
-          const hasValidOutput = tc.expected_output && tc.expected_output.trim();
+          const hasValidInput = tc.inputs.some(input => input && String(input).trim());
+          const hasValidOutput = tc.expected_output != null && String(tc.expected_output).trim();
           return hasValidInput || hasValidOutput;
         });
         
@@ -1055,7 +1177,6 @@ export default {
           function_name: this.getApiSafeString(this.form.function_name),
           function_signature: this.getApiSafeString(this.form.function_signature),
           reference_solution: this.getApiSafeString(this.form.reference_solution),
-          hints: this.getApiSafeString(this.form.hints),
           tags: Array.isArray(this.form.tags) ? this.form.tags : [],
           test_cases: convertedTestCases
         };
@@ -1271,7 +1392,7 @@ export default {
       if (!testCase.inputs || paramIndex >= testCase.inputs.length) {
         return '';
       }
-      return testCase.inputs[paramIndex] || '';
+      return testCase.inputs[paramIndex] ?? '';
     },
     
     /**
@@ -1299,7 +1420,7 @@ export default {
         return null;
       }
       
-      const rawString = testCase.inputs[paramIndex] || '';
+      const rawString = String(testCase.inputs[paramIndex] || '');
       const expectedType = this.functionParameters[paramIndex]?.type;
       
       if (!expectedType || expectedType === 'Any' || !rawString.trim()) {
@@ -1325,7 +1446,7 @@ export default {
         return 'Any';
       }
       
-      const rawString = testCase.inputs[paramIndex] || '';
+      const rawString = String(testCase.inputs[paramIndex] || '');
       if (!rawString.trim()) {
         return 'Any';
       }
@@ -1404,7 +1525,7 @@ export default {
      * Get detected type for output (computed on-demand)
      */
     getOutputDetectedType(testCase) {
-      const rawString = testCase.expected_output || '';
+      const rawString = String(testCase.expected_output || '');
       if (!rawString.trim()) {
         return 'Any';
       }
@@ -1427,7 +1548,7 @@ export default {
      * Get validation error for output (computed on-demand)
      */
     getOutputValidationError(testCase) {
-      const rawString = testCase.expected_output || '';
+      const rawString = String(testCase.expected_output || '');
       const expectedType = this.getReturnType();
       
       if (!expectedType || expectedType === 'Any' || !rawString.trim()) {
@@ -1470,26 +1591,38 @@ export default {
      */
     convertTestCasesForBackend(testCases) {
       return testCases.map(tc => {
-        const convertedInputs = tc.inputs.map(rawString => {
-          if (!rawString || !rawString.trim()) {
+        const convertedInputs = tc.inputs.map(rawValue => {
+          if (rawValue == null || !String(rawValue).trim()) {
             return null;
           }
           try {
-            return autoDetectAndConvert(rawString);
+            // If it's already a proper type (from AI), use it directly
+            // If it's a string (from user input), try to convert it
+            if (typeof rawValue === 'string') {
+              return autoDetectAndConvert(rawValue);
+            } else {
+              return rawValue; // Use the typed value directly
+            }
           } catch {
-            return rawString; // Keep as string if conversion fails
+            return rawValue; // Keep original value if conversion fails
           }
         });
 
         let convertedOutput;
-        const rawOutput = tc.expected_output || '';
-        if (!rawOutput.trim()) {
+        const rawOutput = tc.expected_output;
+        if (rawOutput == null || !String(rawOutput).trim()) {
           convertedOutput = null;
         } else {
           try {
-            convertedOutput = autoDetectAndConvert(rawOutput);
+            // If it's already a proper type (from AI), use it directly
+            // If it's a string (from user input), try to convert it
+            if (typeof rawOutput === 'string') {
+              convertedOutput = autoDetectAndConvert(rawOutput);
+            } else {
+              convertedOutput = rawOutput; // Use the typed value directly
+            }
           } catch {
-            convertedOutput = rawOutput; // Keep as string if conversion fails
+            convertedOutput = rawOutput; // Keep original value if conversion fails
           }
         }
 
@@ -1693,8 +1826,192 @@ export default {
   font-size: var(--font-size-sm);
 }
 
+/* Markdown Tabs */
+.markdown-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--color-bg-border);
+  margin-bottom: 0;
+  margin-top: var(--spacing-sm);
+}
+
+.tab-button {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: var(--color-bg-hover);
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: var(--transition-fast);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+}
+
+.tab-button:hover {
+  background: var(--color-bg-panel);
+  color: var(--color-text-primary);
+}
+
+.tab-button.active {
+  background: var(--color-bg-panel);
+  color: var(--color-primary-gradient-start);
+  border-bottom-color: var(--color-primary-gradient-start);
+  font-weight: 600;
+}
+
+.markdown-content {
+  border: 2px solid var(--color-bg-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-base) var(--radius-base);
+  overflow: hidden;
+}
+
+.markdown-textarea {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  border: none;
+  resize: vertical;
+  min-height: 300px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  line-height: 1.5;
+}
+
+.markdown-textarea:focus {
+  outline: none;
+  background: var(--color-bg-panel);
+}
+
+.markdown-textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.markdown-preview {
+  padding: var(--spacing-lg);
+  background: var(--color-bg-panel);
+  color: var(--color-text-primary);
+  min-height: 300px;
+  line-height: 1.6;
+  font-size: var(--font-size-base);
+  overflow-y: auto;
+  max-height: 500px;
+}
+
+/* Markdown content styling */
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  color: var(--color-text-primary);
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  font-weight: 600;
+}
+
+.markdown-preview h1 {
+  font-size: var(--font-size-xl);
+  border-bottom: 2px solid var(--color-bg-border);
+  padding-bottom: var(--spacing-sm);
+}
+
+.markdown-preview h2 {
+  font-size: var(--font-size-lg);
+  border-bottom: 1px solid var(--color-bg-border);
+  padding-bottom: var(--spacing-xs);
+}
+
+.markdown-preview h3 {
+  font-size: var(--font-size-md);
+}
+
+.markdown-preview p {
+  margin-bottom: var(--spacing-md);
+  line-height: 1.7;
+}
+
+.markdown-preview code {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-xs);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.markdown-preview pre {
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-md);
+  overflow-x: auto;
+  margin: var(--spacing-md) 0;
+}
+
+.markdown-preview pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.markdown-preview blockquote {
+  border-left: 4px solid var(--color-primary-gradient-start);
+  padding-left: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  margin: var(--spacing-md) 0;
+  padding-left: var(--spacing-xl);
+}
+
+.markdown-preview li {
+  margin-bottom: var(--spacing-sm);
+}
+
+.markdown-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: var(--spacing-md) 0;
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+}
+
+.markdown-preview th,
+.markdown-preview td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-bg-border);
+}
+
+.markdown-preview th {
+  background: var(--color-bg-hover);
+  font-weight: 600;
+}
+
+.markdown-preview .no-content,
+.markdown-preview .error {
+  color: var(--color-text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.markdown-preview .error {
+  color: var(--color-error-text);
+  background: var(--color-error-bg);
+  border-radius: var(--radius-base);
+}
+
 .form-group input,
-.form-group textarea,
+.form-group textarea:not(.markdown-textarea),
 .form-group select {
   width: 100%;
   padding: var(--spacing-md);
@@ -1704,7 +2021,7 @@ export default {
 }
 
 .form-group input:focus,
-.form-group textarea:focus,
+.form-group textarea:not(.markdown-textarea):focus,
 .form-group select:focus {
   border-color: var(--color-primary-gradient-start);
   outline: none;
@@ -2131,7 +2448,7 @@ export default {
 
 .param-input {
   flex: 1;
-  padding: var(--spacing-sm);
+  padding: var(--spacing-md);
   border: 1px solid var(--color-bg-border);
   border-radius: var(--radius-xs);
   background: var(--color-bg-input);
@@ -2316,26 +2633,34 @@ export default {
 
 /* Remove Button */
 .remove-btn {
-  background: transparent;
-  border: 1px solid var(--color-error);
-  color: var(--color-error);
+  background: var(--color-bg-hover);
+  border: 1.5px solid var(--color-bg-border);
+  color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
   border-radius: var(--radius-circle);
   transition: var(--transition-fast);
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .remove-btn:hover {
-  background: var(--color-error);
-  color: var(--color-text-primary);
-  transform: scale(1.1);
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
+  transform: scale(1.05);
 }
+
+.remove-btn svg {
+  width: 16px;
+  height: 16px;
+  transition: var(--transition-fast);
+}
+
 
 /* Error and Failure Messages */
 .error-msg,
@@ -2357,6 +2682,47 @@ export default {
   background: rgba(239, 68, 68, 0.1);
   color: var(--color-error-text);
   border-left: 3px solid var(--color-error);
+}
+
+/* Loading Overlay */
+.test-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: var(--radius-lg);
+}
+
+.loading-spinner {
+  text-align: center;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--color-primary-gradient-start);
+  border-radius: 50%;
+  animation: spin 1s ease-in-out infinite;
+  margin: 0 auto var(--spacing-md);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: 600;
 }
 
 

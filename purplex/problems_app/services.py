@@ -143,76 +143,12 @@ class CodeExecutionService:
         }
 
 class AITestGenerationService:
-    """Service for generating test cases using AI"""
+    """Service for AI-based code generation (EiPL only - test case generation removed)"""
     
     def __init__(self):
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
         import openai
         self.client = openai.OpenAI(api_key=self.openai_api_key) if self.openai_api_key else None
-    
-    def generate_test_cases(self, problem_description: str, function_name: str, 
-                          function_signature: str, reference_solution: str) -> List[Dict]:
-        """Generate additional test cases using AI"""
-        if not self.openai_api_key:
-            raise ValueError("OpenAI API key not configured. Set OPENAI_API_KEY environment variable.")
-        
-        if not self.client:
-            raise ValueError("OpenAI client failed to initialize. Check OPENAI_API_KEY format.")
-        
-        try:
-            prompt = f"""
-Generate ONE test case for this coding problem:
-
-Problem: {problem_description}
-Function: {function_signature}
-Reference Solution:
-{reference_solution}
-
-Return a JSON object of a single test case in this exact format:
-{{"inputs": [arg1, arg2, ...], "expected_output": result, "description": "Brief description"}}
-
-Choose from: edge cases, normal cases, boundary conditions, or error cases.
-Make sure the JSON is valid and follows the exact format shown.
-Do not include any markdown formatting or extra text - just the JSON object.
-"""
-            
-            response = self.client.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7
-            )
-            
-            content = response.choices[0].message.content
-            print(f"OpenAI response: {content}")
-            
-            # Extract JSON from response - looking for single object now
-            content = content.strip()
-            
-            # Try to find JSON object
-            start_idx = content.find('{')
-            end_idx = content.rfind('}') + 1
-            
-            if start_idx != -1 and end_idx != 0:
-                json_str = content[start_idx:end_idx]
-                test_case = json.loads(json_str)
-                print(f"Parsed test case: {test_case}")
-                # Return as array with single item for compatibility
-                return [test_case]
-            else:
-                print(f"Could not find JSON object in response: {content}")
-                # Try parsing the entire response as JSON object
-                try:
-                    test_case = json.loads(content)
-                    return [test_case]
-                except:
-                    print(f"Failed to parse entire response as JSON: {content}")
-            
-        except Exception as e:
-            print(f"Error generating test cases: {e}")
-            import traceback
-            traceback.print_exc()
-            
-        return []
     
     def generate_eipl_variations(self, problem, user_prompt: str) -> Dict[str, Any]:
         """Generate code variations for EiPL problems based on user's description"""

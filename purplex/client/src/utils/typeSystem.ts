@@ -90,10 +90,10 @@ export const pythonTypes: Record<string, TypeHandler> = {
   },
   
   'bool': { 
-    validate: /^(true|false|True|False|yes|no|1|0)$/i, 
+    validate: /^(true|false|True|False|yes|no)$/i, 
     convert: (v: string): boolean => {
       const lower = v.toLowerCase();
-      return lower === 'true' || lower === 'yes' || lower === '1';
+      return lower === 'true' || lower === 'yes';
     },
     placeholder: 'true',
     examples: ['true', 'false', 'True', 'False'],
@@ -123,17 +123,38 @@ export const pythonTypes: Record<string, TypeHandler> = {
     validate: /^\{.*\}$/, 
     convert: (v: string): Record<string, unknown> => {
       try {
+        // First try JSON.parse for standard JSON format
         const result = JSON.parse(v);
         if (typeof result !== 'object' || result === null || Array.isArray(result)) {
           throw new Error('Not an object');
         }
         return result;
       } catch {
-        throw new Error(`Cannot parse "${v}" as dict`);
+        // If JSON.parse fails, try to handle Python dict format like {1: 2}
+        try {
+          // Convert Python dict syntax to JSON by adding quotes around unquoted keys
+          // This regex captures unquoted keys (including numeric ones)
+          const pythonDictRegex = /([^"',\s{}:]+)(\s*:\s*)/g;
+          let jsonString = v.replace(pythonDictRegex, (match, key, colon) => {
+            // If key is not already quoted, add quotes to make it valid JSON
+            if (!key.startsWith('"') && !key.startsWith("'")) {
+              return `"${key}"${colon}`;
+            }
+            return match;
+          });
+          
+          const result = JSON.parse(jsonString);
+          if (typeof result !== 'object' || result === null || Array.isArray(result)) {
+            throw new Error('Not an object');
+          }
+          return result;
+        } catch {
+          throw new Error(`Cannot parse "${v}" as dict`);
+        }
       }
     },
     placeholder: '{"key": "value"}',
-    examples: ['{}', '{"a": 1}', '{"name": "John", "age": 30}'],
+    examples: ['{}', '{"a": 1}', '{1: 2}', '{"name": "John", "age": 30}'],
     description: 'Dictionary/object with key-value pairs'
   },
   
@@ -777,8 +798,8 @@ export function inferPythonTypeFromValue(value: unknown): TypeSpec {
       return { type: 'dict', keyType: { type: 'Any' }, valueType: { type: 'Any' } };
     }
     
-    // Analyze keys and values
-    const keyTypes = entries.map(([key]) => inferTypeFromString(key));
+    // Use the enhanced key type detection
+    const keyTypes = entries.map(([key]) => inferActualKeyType(key));
     const valueTypes = entries.map(([, val]) => inferPythonTypeFromValue(val));
     
     const commonKeyType = findCommonType(keyTypes);
@@ -891,6 +912,146 @@ export function inferTypeFromString(str: string): TypeSpec {
   return { type: 'str' };
 }
 
+// ===== PYTHON-STYLE DICT PARSING =====
+
+function parsePythonStyleDict(dictStr: string): Record<string, unknown> {
+  // Convert Python dict syntax to JSON by adding quotes around unquoted keys
+  // This regex captures unquoted keys (including numeric ones)
+  const pythonDictRegex = /([^"',\s{}:]+)(\s*:\s*)/g;
+  let jsonString = dictStr.replace(pythonDictRegex, (match, key, colon) => {
+    // If key is not already quoted, add quotes to make it valid JSON
+    if (!key.startsWith('"') && !key.startsWith("'")) {
+      return `"${key}"${colon}`;
+    }
+    return match;
+  });
+  
+  // Also handle single quotes by converting them to double quotes
+  jsonString = jsonString.replace(/'/g, '"');
+  
+  const result = JSON.parse(jsonString);
+  if (typeof result !== 'object' || result === null || Array.isArray(result)) {
+    throw new Error('Not an object');
+  }
+  return result;
+}
+
+function extractNestedObjectString(originalInput: string, key: string): string | null {
+  // Try to find the substring that represents this specific nested object
+  try {
+    // Look for patterns like "key": {...} or key: {...}
+    const quotedKeyPattern = new RegExp(`["']${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']\\s*:\\s*({[^}]*(?:{[^}]*}[^}]*)*})`);
+    const unquotedKeyPattern = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:\\s*({[^}]*(?:{[^}]*}[^}]*)*})`);
+    
+    let match = quotedKeyPattern.exec(originalInput);
+    if (!match) {
+      match = unquotedKeyPattern.exec(originalInput);
+    }
+    
+    if (match && match[1]) {
+      return match[1];
+    }
+  } catch {
+    // Regex failed, fall back to null
+  }
+  
+  return null;
+}
+
+function inferPythonTypeFromValueWithFormat(value: unknown, originalInput?: string, keyContext?: string): TypeSpec {
+  if (value === null || value === undefined) {
+    return { type: 'None' };
+  }
+  
+  if (typeof value === 'boolean') {
+    return { type: 'bool' };
+  }
+  
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? { type: 'int' } : { type: 'float' };
+  }
+  
+  if (typeof value === 'string') {
+    return { type: 'str' };
+  }
+  
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return { type: 'list', elementType: { type: 'Any' } };
+    }
+    
+    // Analyze all elements to determine the most specific common type
+    const elementTypes = value.map(v => inferPythonTypeFromValueWithFormat(v));
+    const commonType = findCommonType(elementTypes);
+    
+    return { type: 'list', elementType: commonType };
+  }
+  
+  if (typeof value === 'object') {
+    const entries = Object.entries(value);
+    if (entries.length === 0) {
+      return { type: 'dict', keyType: { type: 'Any' }, valueType: { type: 'Any' } };
+    }
+    
+    // Enhanced key type detection that considers original format
+    const keyTypes = entries.map(([key]) => {
+      // If we have the original input, check if this key was quoted
+      if (originalInput) {
+        const quotedKeyPattern = new RegExp(`["']${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`);
+        const unquotedKeyPattern = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`);
+        
+        if (quotedKeyPattern.test(originalInput)) {
+          // Key was quoted in original input, so it's a string
+          return { type: 'str' };
+        } else if (unquotedKeyPattern.test(originalInput)) {
+          // Key was unquoted, infer its actual type
+          return inferActualKeyType(key);
+        }
+      }
+      
+      // Fallback to inferring from string representation
+      return inferActualKeyType(key);
+    });
+    
+    // Enhanced value type detection with nested context
+    const valueTypes = entries.map(([key, val]) => {
+      if (typeof val === 'object' && val !== null && !Array.isArray(val) && originalInput) {
+        // For nested objects, try to extract their specific input context
+        const nestedObjectString = extractNestedObjectString(originalInput, key);
+        if (nestedObjectString) {
+          return inferPythonTypeFromValueWithFormat(val, nestedObjectString, key);
+        }
+      }
+      return inferPythonTypeFromValueWithFormat(val, originalInput, key);
+    });
+    
+    const commonKeyType = findCommonType(keyTypes);
+    const commonValueType = findCommonType(valueTypes);
+    
+    return { 
+      type: 'dict', 
+      keyType: commonKeyType, 
+      valueType: commonValueType 
+    };
+  }
+  
+  return { type: 'Any' };
+}
+
+function inferActualKeyType(key: string): TypeSpec {
+  // Try to infer what type this key actually represents
+  if (/^-?\d+$/.test(key)) {
+    return { type: 'int' };
+  }
+  if (/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(key)) {
+    return { type: 'float' };
+  }
+  if (/^(true|false|True|False)$/i.test(key)) {
+    return { type: 'bool' };
+  }
+  return { type: 'str' };
+}
+
 // ===== ENHANCED TYPE DETECTION =====
 
 export function autoDetectTypeFromInput(inputValue: string): TypeDetectionResult {
@@ -909,15 +1070,22 @@ export function autoDetectTypeFromInput(inputValue: string): TypeDetectionResult
     return { detected: 'bool', annotation: 'bool', confidence: 'high' };
   }
   
-  if (/^(yes|no|1|0)$/i.test(trimmed)) {
-    return { detected: 'bool', annotation: 'bool', confidence: 'medium' };
-  }
-  
-  if (/^-?\d+$/.test(trimmed)) {
+  // Enhanced integer detection with positive sign support
+  if (/^[+-]?\d+$/.test(trimmed)) {
     return { detected: 'int', annotation: 'int', confidence: 'high' };
   }
   
-  if (/^-?\d*\.\d+([eE][+-]?\d+)?$/.test(trimmed)) {
+  // Only check for yes/no as boolean patterns (not pure numbers)
+  if (/^(yes|no)$/i.test(trimmed)) {
+    return { detected: 'bool', annotation: 'bool', confidence: 'medium' };
+  }
+  
+  // Enhanced float detection supporting all formats:
+  // - 3.14, -2.5, +1.0 (regular decimals)
+  // - .5, -.5, +.5 (leading decimal point)
+  // - 5., -5., +5. (trailing decimal point) 
+  // - 1e10, 1E-5, 1e+3 (scientific notation)
+  if (/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(trimmed)) {
     return { detected: 'float', annotation: 'float', confidence: 'high' };
   }
   
@@ -941,14 +1109,34 @@ export function autoDetectTypeFromInput(inputValue: string): TypeDetectionResult
         };
       }
       
-      // Handle list/dict notation
-      parsed = JSON.parse(trimmed);
-      const inferredType = inferPythonTypeFromValue(parsed);
-      return { 
-        detected: inferredType.type, 
-        annotation: formatTypeSpec(inferredType),
-        confidence: 'high'
-      };
+      // Handle list/dict notation with enhanced Python-style parsing
+      try {
+        // First try standard JSON parsing
+        parsed = JSON.parse(trimmed);
+        const inferredType = inferPythonTypeFromValueWithFormat(parsed, trimmed);
+        return { 
+          detected: inferredType.type, 
+          annotation: formatTypeSpec(inferredType),
+          confidence: 'high'
+        };
+      } catch {
+        // If JSON parsing fails, try Python-style parsing for dicts
+        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+          try {
+            const parsedDict = parsePythonStyleDict(trimmed);
+            const inferredType = inferPythonTypeFromValueWithFormat(parsedDict, trimmed);
+            return { 
+              detected: inferredType.type, 
+              annotation: formatTypeSpec(inferredType),
+              confidence: 'high'
+            };
+          } catch {
+            return { detected: 'invalid', annotation: 'invalid', confidence: 'high' };
+          }
+        }
+        
+        return { detected: 'invalid', annotation: 'invalid', confidence: 'high' };
+      }
       
     } catch {
       return { detected: 'invalid', annotation: 'invalid', confidence: 'high' };
@@ -961,9 +1149,16 @@ export function autoDetectTypeFromInput(inputValue: string): TypeDetectionResult
     return { detected: 'str', annotation: 'str', confidence: 'high' };
   }
   
-  // Handle unquoted strings (lower confidence)
-  if (/^[a-zA-Z_][a-zA-Z0-9_\s]*$/.test(trimmed)) {
+  // Handle unquoted strings with more comprehensive patterns
+  if (/^[a-zA-Z_][a-zA-Z0-9_\s\-\.]*$/.test(trimmed) ||  // Basic identifiers with hyphens and dots
+      /^[a-zA-Z0-9]+[a-zA-Z][a-zA-Z0-9]*$/.test(trimmed)) {  // Mixed alphanumeric (must contain at least one letter)
     return { detected: 'str', annotation: 'str', confidence: 'medium' };
+  }
+  
+  // Handle special number formats that should be strings
+  if (/^0[xX][0-9a-fA-F]+$/.test(trimmed) ||  // Hexadecimal
+      /^0[bB][01]+$/.test(trimmed)) {           // Binary
+    return { detected: 'str', annotation: 'str', confidence: 'high' };
   }
   
   // Invalid input
@@ -1042,7 +1237,7 @@ export function getPlaceholderForType(typeStr: string): string {
 export function formatValueForInput(value: unknown): string {
   if (value === null || value === undefined) return 'None';
   if (typeof value === 'boolean') return value ? 'True' : 'False';
-  if (typeof value === 'string') return value; // Don't add quotes for display
+  if (typeof value === 'string') return JSON.stringify(value); // Quote strings so type system recognizes them
   if (Array.isArray(value) || typeof value === 'object') {
     return JSON.stringify(value);
   }

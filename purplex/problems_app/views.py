@@ -652,52 +652,6 @@ class AdminTestProblemView(APIView):
                 'results': []
             })
 
-class AdminGenerateTestCasesView(APIView):
-    permission_classes = [IsAdmin]
-    
-    def post(self, request):
-        """Generate test cases using AI"""
-        try:
-            ai_service = AITestGenerationService()
-            
-            problem_description = request.data.get('description', '')
-            function_name = request.data.get('function_name', '')
-            function_signature = request.data.get('function_signature', '')
-            reference_solution = request.data.get('reference_solution', '')
-            
-            # Validate required fields
-            if not function_name or not reference_solution:
-                return Response({
-                    'error': 'Function name and reference solution are required for AI generation.',
-                    'test_cases': []
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            test_cases = ai_service.generate_test_cases(
-                problem_description, function_name, function_signature, reference_solution
-            )
-            
-            return Response({
-                'test_cases': test_cases,
-                'generation_time': 0,  # For compatibility with frontend types
-                'model_used': 'gpt-4'
-            })
-        except ValueError as e:
-            # Handle API key and configuration errors
-            error_msg = str(e)
-            if 'OpenAI API key' in error_msg:
-                error_msg = 'AI test generation is not configured. Contact your administrator to set up OpenAI API key.'
-            
-            logger.warning(f"AI configuration error: {str(e)}")
-            return Response({
-                'error': error_msg,
-                'test_cases': []
-            }, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"AI test case generation failed: {str(e)}")
-            return Response({
-                'error': 'AI service temporarily unavailable. Please create test cases manually.',
-                'test_cases': []
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 class AdminTestCaseView(APIView):
     permission_classes = [IsAdmin]

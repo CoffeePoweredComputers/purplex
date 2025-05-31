@@ -127,19 +127,6 @@ export interface TestExecutionResult {
   memory_used?: number;
 }
 
-// ===== AI GENERATION TYPES =====
-export interface AIGenerationRequest {
-  description: string;
-  function_name: string;
-  function_signature: string;
-  reference_solution: string;
-}
-
-export interface AIGenerationResponse {
-  test_cases: TestCaseInput[];
-  generation_time: number;
-  model_used: string;
-}
 
 // ===== LOADING STATES =====
 export interface LoadingStates {
@@ -147,14 +134,12 @@ export interface LoadingStates {
   categories: boolean;
   testing: boolean;
   saving: boolean;
-  generating: boolean;
 }
 
 export interface ErrorStates {
   load: string | null;
   save: string | null;
   test: string | null;
-  generate: string | null;
   validation: ValidationError[];
 }
 

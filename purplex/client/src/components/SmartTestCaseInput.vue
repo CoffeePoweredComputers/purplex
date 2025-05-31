@@ -914,7 +914,7 @@ export default {
     formatValueForInput(value) {
       // Convert a JavaScript value to string for input display
       if (value === null) return 'None';
-      if (typeof value === 'string') return value;
+      if (typeof value === 'string') return JSON.stringify(value); // Quote strings so type system recognizes them
       if (typeof value === 'boolean') return value.toString();
       if (Array.isArray(value) || typeof value === 'object') {
         return JSON.stringify(value);

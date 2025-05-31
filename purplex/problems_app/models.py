@@ -51,7 +51,6 @@ class Problem(models.Model):
     function_name = models.CharField(max_length=50, help_text='Name of the function students implement')
     function_signature = models.TextField(help_text='Function signature with parameter names and types')
     reference_solution = models.TextField(help_text='Reference implementation')
-    hints = models.TextField(blank=True, help_text='Optional hints for students')
     memory_limit = models.PositiveIntegerField(default=128, help_text='Memory limit in MB')
     tags = models.JSONField(default=list, blank=True, help_text='Array of tag strings')
     is_active = models.BooleanField(default=True)
