@@ -141,8 +141,6 @@
       <div class="form-section rounded-lg border-default transition-fast">
         <h3>Problem Description</h3>
         <div class="form-group">
-          <label for="description">Description (Markdown supported)</label>
-          
           <!-- Tab Navigation -->
           <div class="markdown-tabs">
             <button 
@@ -1889,6 +1887,7 @@ export default {
 }
 
 .markdown-preview {
+  text-align: left !important;
   padding: var(--spacing-lg);
   background: var(--color-bg-panel);
   color: var(--color-text-primary);
