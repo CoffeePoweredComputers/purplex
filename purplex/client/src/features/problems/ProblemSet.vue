@@ -640,7 +640,7 @@ export default {
     
     computed: {
         solutionCode() {
-            return this.getCurrentProblem().solution || '';
+            return this.getCurrentProblem().reference_solution || '';
         },
         
         completedCount() {

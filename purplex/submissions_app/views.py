@@ -23,32 +23,21 @@ class PythonTestView(APIView):
     def post(self, request):
         data = request.data
         generated_code = data.get('generated_code')
-        qid = data.get('qid')
+        problem_slug = data.get('problem_slug')
 
-        problem = Problem.objects.get(qid=qid)
-        test_cases_file = problem.test_case_file.path.split('/')[-1]
-        test_case_file_path = problem.test_case_file.path
+        problem = Problem.objects.get(slug=problem_slug)
+        
+        # Use database-native test cases instead of files
+        from purplex.problems_app.services import CodeExecutionService
+        
+        service = CodeExecutionService()
+        test_results = service.test_solution(
+            user_code=generated_code,
+            function_name=problem.function_name,
+            test_cases=list(problem.test_cases.all())
+        )
 
-        client = docker.from_env()
-        result = client.containers.run(
-                "coffeepwrdcomputers/eiplgrader:latest",
-                environment={
-                    "USER_CODE": generated_code,
-                    "TEST_CASES_FILE": test_cases_file
-                },
-                volumes={
-                    test_case_file_path: {'bind': f"/app/{test_cases_file}", 'mode': 'ro'}
-                },
-                working_dir='/app',
-                remove=True,
-                stdout=True,
-                stderr=True,
-                mem_limit='256m',  
-                network_disabled=True
-            )
-        results = json.loads(result)
-
-        return JsonResponse({"test_results": results})
+        return JsonResponse({"test_results": test_results})
 
 class PromptSubmissionResultView(APIView):
     permission_classes = [IsAuthenticated]
@@ -78,29 +67,15 @@ class SubmitCodeView(APIView):
             prompt=code
         )
 
-        # Test the code using Docker
-        client = docker.from_env()
-        test_cases_file = problem.test_case_file.path.split('/')[-1]
-        test_case_file_path = problem.test_case_file.path
+        # Test the code using database-native test cases
+        from purplex.problems_app.services import CodeExecutionService
         
-        result = client.containers.run(
-            "coffeepwrdcomputers/eiplgrader:latest",
-            environment={
-                "USER_CODE": code,
-                "TEST_CASES_FILE": test_cases_file
-            },
-            volumes={
-                test_case_file_path: {'bind': f"/app/{test_cases_file}", 'mode': 'ro'}
-            },
-            working_dir='/app',
-            remove=True,
-            stdout=True,
-            stderr=True,
-            mem_limit='256m',  
-            network_disabled=True
+        service = CodeExecutionService()
+        results = service.test_solution(
+            user_code=code,
+            function_name=problem.function_name,
+            test_cases=list(problem.test_cases.all())
         )
-        
-        results = json.loads(result)
         
         # Update score based on test results
         passed_tests = sum(1 for test in results if test.get('pass', False))
