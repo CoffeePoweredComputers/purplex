@@ -4,13 +4,24 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   signOut,
-  getIdToken
+  getIdToken,
+  User
 } from 'firebase/auth';
 
 const API_URL = '/api/auth/status/';
 
+interface AuthResponse {
+  authenticated: boolean;
+  error?: string;
+  user?: {
+    username: string;
+    email: string;
+    role: string;
+  };
+}
+
 class AuthService {
-  async validateToken() {
+  async validateToken(): Promise<AuthResponse> {
     try {
       // Get current Firebase user
       const user = firebaseAuth.currentUser;
@@ -22,20 +33,20 @@ class AuthService {
       const token = await getIdToken(user);
       
       // Send the token to our backend for validation
-      const response = await axios.post(API_URL, {}, {
+      const response = await axios.post<AuthResponse>(API_URL, {}, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
       
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Token validation error:', error);
       return { authenticated: false, error: error.message };
     }
   }
 
-  async logout() {
+  async logout(): Promise<boolean> {
     try {
       await signOut(firebaseAuth);
       localStorage.removeItem('user');
@@ -46,10 +57,9 @@ class AuthService {
     }
   }
 
-  getCurrentUser() {
+  getCurrentUser(): User | null {
     return firebaseAuth.currentUser;
   }
 }
 
 export default new AuthService();
-

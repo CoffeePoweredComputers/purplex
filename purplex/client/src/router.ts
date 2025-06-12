@@ -1,4 +1,4 @@
-import { createWebHistory, createRouter } from "vue-router";
+import { createWebHistory, createRouter, RouteRecordRaw } from "vue-router";
 import { firebaseAuth } from "./firebaseConfig";
 import store from "./store"; // Import the Vuex store
 
@@ -10,7 +10,7 @@ import Login from "./features/auth/Login.vue";
 import ProblemSet from "./features/problems/ProblemSet.vue";
 import AdminUsers from "./components/AdminUsers.vue";
 
-const routes = [
+const routes: RouteRecordRaw[] = [
     {
         path: "/",
         name: "Login",
@@ -52,8 +52,8 @@ const routes = [
         name: "CourseProblemSet",
         component: ProblemSet,
         props: route => ({ 
-            slug: route.params.slug,
-            courseId: route.params.courseId 
+            slug: route.params.slug as string,
+            courseId: route.params.courseId as string
         }),
         meta: {requiresAuth: true}
     },
@@ -80,7 +80,7 @@ const routes = [
         path: "/admin/problems/:slug/edit",
         name: "AdminEditProblem",
         component: () => import("./components/AdminProblemEditor.vue"),
-        props: route => ({ problemSlug: route.params.slug }),
+        props: route => ({ problemSlug: route.params.slug as string }),
         meta: {requiresAuth: true, requiresAdmin: true}
     },
     {
@@ -109,8 +109,8 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-    const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-    const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
+    const requiresAuth = to.matched.some(record => record.meta?.requiresAuth);
+    const requiresAdmin = to.matched.some(record => record.meta?.requiresAdmin);
     
     // Use the debug mode from the Vuex store for consistency
     const debugBypassAuth = store.state.auth.debug;

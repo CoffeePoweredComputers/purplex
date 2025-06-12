@@ -172,3 +172,111 @@ export interface TestProblemRequest {
   reference_solution: string;
   test_cases: TestCaseInput[];
 }
+
+// ===== PYTHON TUTOR TYPES =====
+export interface PythonTutorConfig {
+  readonly BASE_URL: string;
+  readonly EMBED_PATH: string;
+  readonly REGULAR_PATH: string;
+  readonly DEFAULT_OPTIONS: PythonTutorOptions;
+}
+
+export interface PythonTutorOptions {
+  cumulative: string;
+  curInstr: string;
+  heapPrimitives: string;
+  mode: string;
+  origin: string;
+  py: string;
+  rawInputLstJSON: string;
+  textReferences: string;
+  code?: string;
+}
+
+export interface TestCaseFormatted {
+  function_call?: string;
+  expected_output?: unknown;
+}
+
+// ===== PROGRESS TRACKING TYPES =====
+export interface ProgressUpdate {
+  status?: string;
+  score?: number;
+  attempts?: number;
+  time_spent?: number;
+  isOptimistic?: boolean;
+  timestamp?: number;
+}
+
+export interface OptimisticProgressUpdate extends ProgressUpdate {
+  isOptimistic: true;
+  timestamp: number;
+}
+
+// ===== GLOBAL NOTIFICATION TYPES =====
+export interface NotificationPayload {
+  type: NotificationType;
+  message: string;
+  details?: string | null;
+  duration: number;
+}
+
+declare global {
+  interface Window {
+    $notify?: (payload: NotificationPayload) => void;
+  }
+}
+
+// ===== AUTH TYPES =====
+export interface User {
+  uid?: string;
+  email: string;
+  displayName?: string;
+  password?: string;
+  role: 'admin' | 'user' | 'instructor';
+  isAdmin: boolean;
+}
+
+export interface AuthStatus {
+  loggedIn: boolean;
+}
+
+export interface AuthState {
+  status: AuthStatus;
+  user: User | null;
+  debug: boolean;
+}
+
+// ===== COURSE TYPES =====
+export interface Course {
+  course_id: string;
+  name: string;
+  description: string;
+  instructor_name?: string;
+  problem_sets?: CourseProblemSet[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CourseEnrollment {
+  course: Course;
+  enrolled_at: string;
+  progress?: CourseProgress;
+}
+
+export interface CourseProgress {
+  completed_sets: number;
+  total_sets: number;
+  percentage: number;
+  last_activity: string | null;
+}
+
+export interface CourseProblemSet {
+  id: number;
+  name: string;
+  description: string;
+  slug: string;
+  problems_count?: number;
+  icon?: string;
+  order?: number;
+}

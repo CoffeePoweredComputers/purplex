@@ -64,13 +64,12 @@ class ProblemForProblemSetSerializer(serializers.ModelSerializer):
     categories = ProblemCategorySerializer(many=True, read_only=True)
     test_cases_count = serializers.ReadOnlyField()
     visible_test_cases_count = serializers.ReadOnlyField()
-    solution = serializers.CharField(source='reference_solution', read_only=True)  # Alias for frontend compatibility
     
     class Meta:
         model = Problem
         fields = [
             'slug', 'title', 'description', 'difficulty', 'problem_type', 'categories',
-            'function_name', 'function_signature', 'reference_solution', 'solution',
+            'function_name', 'function_signature', 'reference_solution',
             'tags', 'is_active',
             'test_cases_count', 'visible_test_cases_count'
         ]
