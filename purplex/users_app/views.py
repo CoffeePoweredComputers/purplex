@@ -200,7 +200,7 @@ class AdminUserManagementView(APIView):
             )
 
         role = request.data.get('role')
-        if role not in [UserRole.ADMIN, UserRole.USER]:
+        if role not in [UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.USER]:
             return Response({'error': 'Invalid role'}, status=400)
 
         profile.role = role

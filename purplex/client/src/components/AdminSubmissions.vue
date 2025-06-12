@@ -19,27 +19,28 @@
           <input 
             type="text" 
             v-model="searchQuery" 
+            @input="debounceSearch"
             placeholder="Search users, problems, or problem sets..."
             class="search-input"
           >
         </div>
-        <select v-model="statusFilter" class="filter-select">
+        <select v-model="statusFilter" @change="onFilterChange" class="filter-select">
           <option value="">All Status</option>
           <option value="passed">Passed</option>
           <option value="partial">Partial</option>
           <option value="failed">Failed</option>
         </select>
-        <select v-model="problemSetFilter" class="filter-select">
+        <select v-model="problemSetFilter" @change="onFilterChange" class="filter-select">
           <option value="">All Problem Sets</option>
           <option v-for="set in uniqueProblemSets" :key="set" :value="set">{{ set }}</option>
         </select>
         <button 
           class="action-button export-button" 
           @click="exportToCSV" 
-          :disabled="filteredSubmissions.length === 0"
+          :disabled="totalCount === 0"
           title="Export filtered submissions to CSV"
         >
-          Export CSV ({{ filteredSubmissions.length }})
+          Export CSV ({{ totalCount }})
         </button>
       </div>
       
@@ -57,7 +58,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="submission in filteredSubmissions" :key="submission.id">
+            <tr v-for="submission in submissions" :key="submission.id">
               <td>
                 <div class="user-info">
                   <div class="user-avatar-small">
@@ -95,10 +96,74 @@
           </tbody>
         </table>
         
-        <div class="empty-state" v-if="filteredSubmissions.length === 0">
+        <div class="empty-state" v-if="submissions.length === 0 && !loading">
           <div class="empty-icon">📝</div>
           <div class="empty-title">No submissions found</div>
           <div class="empty-subtitle">Try adjusting your search or filter criteria</div>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div class="pagination-container" v-if="totalPages > 1 && !loading && !error">
+          <div class="pagination-info">
+            Showing {{ paginationInfo.start }}-{{ paginationInfo.end }} of {{ paginationInfo.total }} results
+          </div>
+          
+          <div class="pagination-controls">
+            <button 
+              class="pagination-btn" 
+              :disabled="!hasPrevious" 
+              @click="goToPage(1)"
+              title="First page"
+            >
+              ⟪
+            </button>
+            
+            <button 
+              class="pagination-btn" 
+              :disabled="!hasPrevious" 
+              @click="goToPage(currentPage - 1)"
+              title="Previous page"
+            >
+              ⟨
+            </button>
+            
+            <button 
+              v-for="page in pageNumbers" 
+              :key="page"
+              class="pagination-btn page-number" 
+              :class="{ active: page === currentPage }"
+              @click="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+            
+            <button 
+              class="pagination-btn" 
+              :disabled="!hasNext" 
+              @click="goToPage(currentPage + 1)"
+              title="Next page"
+            >
+              ⟩
+            </button>
+            
+            <button 
+              class="pagination-btn" 
+              :disabled="!hasNext" 
+              @click="goToPage(totalPages)"
+              title="Last page"
+            >
+              ⟫
+            </button>
+          </div>
+          
+          <div class="page-size-selector">
+            <label for="pageSize">Per page:</label>
+            <select id="pageSize" v-model="pageSize" @change="changePageSize" class="page-size-select">
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
         </div>
       </div>
       
@@ -134,7 +199,15 @@ export default {
       statusFilter: '',
       problemSetFilter: '',
       showViewModal: false,
-      selectedSubmission: null
+      selectedSubmission: null,
+      // Pagination data
+      currentPage: 1,
+      totalCount: 0,
+      totalPages: 0,
+      pageSize: 25,
+      hasNext: false,
+      hasPrevious: false,
+      searchTimeout: null
     };
   },
   computed: {
@@ -150,35 +223,29 @@ export default {
       return Array.from(sets).sort();
     },
     
-    filteredSubmissions() {
-      let filtered = this.submissions;
+    paginationInfo() {
+      const start = (this.currentPage - 1) * this.pageSize + 1;
+      const end = Math.min(this.currentPage * this.pageSize, this.totalCount);
+      return { start, end, total: this.totalCount };
+    },
+    
+    pageNumbers() {
+      const pages = [];
+      const maxVisible = 5;
+      const half = Math.floor(maxVisible / 2);
       
-      // Apply search filter
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase();
-        filtered = filtered.filter(submission => 
-          submission.user.toLowerCase().includes(query) ||
-          submission.problem.toLowerCase().includes(query) ||
-          submission.problem_set.toLowerCase().includes(query)
-        );
+      let start = Math.max(1, this.currentPage - half);
+      let end = Math.min(this.totalPages, start + maxVisible - 1);
+      
+      if (end - start + 1 < maxVisible) {
+        start = Math.max(1, end - maxVisible + 1);
       }
       
-      // Apply status filter
-      if (this.statusFilter) {
-        filtered = filtered.filter(submission => 
-          submission.status === this.statusFilter
-        );
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
       }
       
-      // Apply problem set filter
-      if (this.problemSetFilter) {
-        filtered = filtered.filter(submission => 
-          submission.problem_set === this.problemSetFilter
-        );
-      }
-      
-      // Sort by creation date (newest first) - chronological order
-      return filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      return pages;
     },
     
     // Removed groupedSubmissions - no longer needed for simple table
@@ -196,14 +263,62 @@ export default {
     async fetchSubmissions() {
       try {
         this.loading = true;
-        const response = await axios.get('/api/admin/submissions/');
-        this.submissions = response.data;
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        params.append('page', this.currentPage);
+        params.append('page_size', this.pageSize);
+        
+        if (this.searchQuery.trim()) {
+          params.append('search', this.searchQuery.trim());
+        }
+        if (this.statusFilter) {
+          params.append('status', this.statusFilter);
+        }
+        if (this.problemSetFilter) {
+          params.append('problem_set', this.problemSetFilter);
+        }
+        
+        const response = await axios.get(`/api/admin/submissions/?${params.toString()}`);
+        
+        // Handle paginated response
+        this.submissions = response.data.results;
+        this.totalCount = response.data.count;
+        this.totalPages = Math.ceil(this.totalCount / this.pageSize);
+        this.hasNext = !!response.data.next;
+        this.hasPrevious = !!response.data.previous;
+        
         this.loading = false;
       } catch (error) {
         this.error = 'Failed to load submissions. Please try again.';
         this.loading = false;
         console.error('Error fetching submissions:', error);
       }
+    },
+    
+    goToPage(page) {
+      if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
+        this.currentPage = page;
+        this.fetchSubmissions();
+      }
+    },
+    
+    changePageSize() {
+      this.currentPage = 1; // Reset to first page
+      this.fetchSubmissions();
+    },
+    
+    debounceSearch() {
+      clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(() => {
+        this.currentPage = 1; // Reset to first page
+        this.fetchSubmissions();
+      }, 500);
+    },
+    
+    onFilterChange() {
+      this.currentPage = 1; // Reset to first page
+      this.fetchSubmissions();
     },
     
     // Removed toggleUserGroup and calculateAverageScore - no longer needed
@@ -258,6 +373,18 @@ export default {
     async exportToCSV() {
       try {
         // Fetch detailed submission data for CSV export
+        // Build export URL with current filters
+        const params = new URLSearchParams();
+        if (this.searchQuery.trim()) {
+          params.append('search', this.searchQuery.trim());
+        }
+        if (this.statusFilter) {
+          params.append('status', this.statusFilter);
+        }
+        if (this.problemSetFilter) {
+          params.append('problem_set', this.problemSetFilter);
+        }
+        
         const response = await axios.post('/api/admin/submissions/export/', {
           filters: {
             search: this.searchQuery,
@@ -861,8 +988,112 @@ export default {
   color: var(--color-text-muted);
 }
 
+/* Pagination Controls */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: var(--color-bg-panel);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.pagination-info {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.pagination-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid var(--color-bg-input);
+  border-radius: var(--radius-base);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-base);
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--color-primary-gradient-start);
+  background: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
+  transform: translateY(-1px);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pagination-btn.active {
+  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  border-color: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-colored);
+}
+
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.page-size-select {
+  padding: var(--spacing-sm);
+  border: 2px solid var(--color-bg-input);
+  border-radius: var(--radius-base);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.page-size-select:focus {
+  outline: none;
+  border-color: var(--color-primary-gradient-start);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .pagination-info,
+  .page-size-selector {
+    justify-content: center;
+  }
+  
   .page-header {
     flex-direction: column;
     align-items: stretch;

@@ -22,6 +22,11 @@
                         Submissions
                     </router-link>
                 </li>
+                <li>
+                    <router-link to="/admin/courses" class="admin-link">
+                        Courses
+                    </router-link>
+                </li>
             </ul>
         </div>
     </nav>

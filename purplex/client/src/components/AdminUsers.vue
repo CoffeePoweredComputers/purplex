@@ -29,32 +29,25 @@
             <td>{{ user.username }}</td>
             <td>{{ user.email }}</td>
             <td>
-              <span class="badge" :class="user.role === 'admin' ? 'admin-badge' : 'user-badge'">
+              <span class="badge" :class="getBadgeClass(user.role)">
                 {{ user.role }}
               </span>
             </td>
             <td>
-              <button 
-                v-if="user.role === 'user'" 
-                class="action-button promote-button" 
-                @click="changeRole(user.id, 'admin')"
-                :disabled="updatingUsers[user.id] || user.email === this.$store.state.auth.user.email"
-                :title="user.email === this.$store.state.auth.user.email ? 'You cannot change your own role' : ''"
-              >
-                <span v-if="updatingUsers[user.id]" class="button-spinner"></span>
-                <span v-else>Promote to Admin</span>
-              </button>
-              <button 
-                v-if="user.role === 'admin'" 
-                class="action-button demote-button" 
-                @click="changeRole(user.id, 'user')"
-                :disabled="updatingUsers[user.id] || user.email === this.$store.state.auth.user.email"
-                :title="user.email === this.$store.state.auth.user.email ? 'You cannot change your own role' : ''"
-              >
-
-                <span v-if="updatingUsers[user.id]" class="button-spinner"></span>
-                <span v-else>Set as User</span>
-              </button>
+              <div class="role-dropdown-container">
+                <select 
+                  class="role-dropdown" 
+                  :value="user.role"
+                  @change="changeRole(user.id, $event.target.value)"
+                  :disabled="updatingUsers[user.id] || user.email === this.$store.state.auth.user.email"
+                  :title="user.email === this.$store.state.auth.user.email ? 'You cannot change your own role' : 'Select a role'"
+                >
+                  <option value="user">User</option>
+                  <option value="instructor">Instructor</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <span v-if="updatingUsers[user.id]" class="dropdown-spinner"></span>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -128,6 +121,18 @@ export default {
         this.error = 'Failed to load users. Please try again.';
         this.loading = false;
         console.error('Error fetching users:', error);
+      }
+    },
+    
+    getBadgeClass(role) {
+      switch (role) {
+        case 'admin':
+          return 'admin-badge';
+        case 'instructor':
+          return 'instructor-badge';
+        case 'user':
+        default:
+          return 'user-badge';
       }
     },
     
@@ -293,78 +298,79 @@ export default {
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
+.instructor-badge {
+  background: linear-gradient(135deg, var(--color-info) 0%, #1976d2 100%);
+  color: var(--color-text-primary);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
 .user-badge {
   background: var(--color-bg-hover);
   color: var(--color-text-tertiary);
   border: 1px solid var(--color-bg-border);
 }
 
-.action-button {
-  min-width: 150px;
+.role-dropdown-container {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border: none;
+  min-width: 150px;
+}
+
+.role-dropdown {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-bg-border);
   border-radius: var(--radius-base);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
   cursor: pointer;
   transition: var(--transition-base);
+  outline: none;
 }
 
-.promote-button {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  box-shadow: var(--shadow-colored);
-}
-
-.promote-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.promote-button::before {
-  content: "⬆️";
-}
-
-.demote-button {
-  background: var(--color-bg-hover);
-  color: var(--color-text-tertiary);
-  border: 1px solid var(--color-bg-border);
-}
-
-.demote-button:hover:not(:disabled) {
-  background: var(--color-bg-input);
+.role-dropdown:hover:not(:disabled) {
   border-color: var(--color-primary-gradient-start);
+  background: var(--color-bg-hover);
+}
+
+.role-dropdown:focus {
+  border-color: var(--color-primary-gradient-start);
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.role-dropdown:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-bg-disabled);
+}
+
+.role-dropdown option {
+  background: var(--color-bg-panel);
   color: var(--color-text-primary);
+  padding: var(--spacing-sm);
 }
 
-.demote-button::before {
-  content: "⬇️";
-}
-
-.button-spinner {
+.dropdown-spinner {
+  position: absolute;
+  right: var(--spacing-md);
   display: inline-block;
   width: 14px;
   height: 14px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: var(--color-text-primary);
-  animation: button-spin 1s linear infinite;
+  animation: dropdown-spin 1s linear infinite;
+  pointer-events: none;
 }
 
-@keyframes button-spin {
+@keyframes dropdown-spin {
   to {
     transform: rotate(360deg);
   }
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none !important;
 }
 
 /* Responsive Design */
@@ -378,9 +384,13 @@ button:disabled {
     padding: var(--spacing-md);
   }
   
-  .action-button {
+  .role-dropdown-container {
     min-width: auto;
     width: 100%;
+  }
+  
+  .role-dropdown {
+    font-size: var(--font-size-xs);
   }
 }
 </style>

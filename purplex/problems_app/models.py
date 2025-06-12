@@ -142,6 +142,7 @@ class ProblemSet(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    version = models.PositiveIntegerField(default=1)
 
     class Meta:
         ordering = ['-created_at']
@@ -154,6 +155,11 @@ class ProblemSet(models.Model):
     @property
     def problems_count(self):
         return self.problems.count()
+    
+    def increment_version(self):
+        """Call when problem membership changes"""
+        self.version = models.F('version') + 1
+        self.save(update_fields=['version'])
 
     def __str__(self):
         return self.title
@@ -173,10 +179,11 @@ class ProblemSetMembership(models.Model):
 
 
 class UserProgress(models.Model):
-    """Tracks user progress on individual problems within a specific problem set context"""
+    """Tracks user progress on individual problems within a specific problem set and course context"""
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     problem = models.ForeignKey(Problem, on_delete=models.CASCADE)
     problem_set = models.ForeignKey(ProblemSet, on_delete=models.CASCADE, null=True)
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, null=True, blank=True)
     problem_version = models.PositiveIntegerField(default=1)
     
     # Status with more granular states
@@ -211,12 +218,13 @@ class UserProgress(models.Model):
     completion_percentage = models.IntegerField(default=0, db_index=True)
     
     class Meta:
-        unique_together = ['user', 'problem', 'problem_set']
+        unique_together = ['user', 'problem', 'problem_set', 'course']
         indexes = [
             models.Index(fields=['user', 'problem_set', 'is_completed']),
             models.Index(fields=['user', 'problem_set', 'status']),
             models.Index(fields=['problem', 'problem_set', 'status']),
             models.Index(fields=['user', 'problem_set', '-last_attempt']),  # Recent activity
+            models.Index(fields=['user', 'course', 'problem_set', 'is_completed']),
         ]
     
     def update_from_submission(self, submission, time_spent=None):
@@ -408,3 +416,79 @@ class ProgressSnapshot(models.Model):
     def __str__(self):
         target = self.problem.title if self.problem else self.problem_set.title
         return f"{self.user.username} - {target} - {self.snapshot_date}"
+
+
+class Course(models.Model):
+    """Course model for organizing problem sets into courses"""
+    course_id = models.CharField(max_length=50, unique=True, help_text="User-defined course ID (e.g., CS101-FALL2024)")
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    instructor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='instructed_courses')
+    problem_sets = models.ManyToManyField(ProblemSet, through='CourseProblemSet', related_name='courses')
+    is_active = models.BooleanField(default=True)
+    enrollment_open = models.BooleanField(default=True)
+    is_deleted = models.BooleanField(default=False)  # Soft delete
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['course_id']),
+            models.Index(fields=['instructor', 'is_active']),
+            models.Index(fields=['is_deleted', 'is_active']),
+        ]
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.course_id)
+        super().save(*args, **kwargs)
+    
+    def soft_delete(self):
+        """Soft delete the course"""
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.is_active = False
+        self.enrollment_open = False
+        self.save()
+    
+    def __str__(self):
+        return f"{self.course_id} - {self.name}"
+
+
+class CourseProblemSet(models.Model):
+    """Through model for Course-ProblemSet relationship with ordering"""
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    problem_set = models.ForeignKey(ProblemSet, on_delete=models.CASCADE)
+    order = models.PositiveIntegerField(default=0)
+    added_at = models.DateTimeField(auto_now_add=True)
+    is_required = models.BooleanField(default=True)
+    # Track the version of problem set membership when added
+    problem_set_version = models.IntegerField(default=1)
+    
+    class Meta:
+        ordering = ['order']
+        unique_together = ['course', 'problem_set']
+    
+    def __str__(self):
+        return f"{self.course.course_id} - {self.problem_set.title} (Order: {self.order})"
+
+
+class CourseEnrollment(models.Model):
+    """Track student enrollment in courses"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_enrollments')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ['user', 'course']
+        indexes = [
+            models.Index(fields=['user', 'is_active']),
+            models.Index(fields=['course', 'is_active']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} enrolled in {self.course.course_id}"

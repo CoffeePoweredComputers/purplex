@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Problem, ProblemSet, ProblemCategory, TestCase, ProblemSetMembership
+from .models import Problem, ProblemSet, ProblemCategory, TestCase, ProblemSetMembership, Course, CourseProblemSet, CourseEnrollment
 
 class ProblemCategorySerializer(serializers.ModelSerializer):
     problems_count = serializers.ReadOnlyField()
@@ -233,3 +233,172 @@ class AdminProblemSerializer(ProblemSerializer):
 class AdminTestCaseSerializer(TestCaseSerializer):
     class Meta(TestCaseSerializer.Meta):
         fields = TestCaseSerializer.Meta.fields + ['created_at']
+
+
+# Course-related serializers
+class CourseProblemSetSerializer(serializers.ModelSerializer):
+    """Serializer for problem sets within a course context"""
+    problem_set = ProblemSetSerializer(read_only=True)
+    
+    class Meta:
+        model = CourseProblemSet
+        fields = ['id', 'problem_set', 'order', 'is_required', 'added_at']
+
+
+class CourseListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for listing courses"""
+    instructor_name = serializers.CharField(source='instructor.get_full_name', read_only=True)
+    problem_sets_count = serializers.IntegerField(source='problem_sets.count', read_only=True)
+    enrolled_students_count = serializers.IntegerField(source='enrollments.filter(is_active=True).count', read_only=True)
+    
+    class Meta:
+        model = Course
+        fields = [
+            'id', 'course_id', 'slug', 'name', 'description',
+            'instructor_name', 'problem_sets_count', 'enrolled_students_count',
+            'is_active', 'enrollment_open', 'created_at'
+        ]
+
+
+class CourseDetailSerializer(serializers.ModelSerializer):
+    """Detailed serializer for course with problem sets"""
+    instructor = serializers.SerializerMethodField()
+    problem_sets = serializers.SerializerMethodField()
+    enrolled_students_count = serializers.IntegerField(source='enrollments.filter(is_active=True).count', read_only=True)
+    
+    class Meta:
+        model = Course
+        fields = [
+            'id', 'course_id', 'slug', 'name', 'description',
+            'instructor', 'problem_sets', 'enrolled_students_count',
+            'is_active', 'enrollment_open', 'created_at', 'updated_at'
+        ]
+    
+    def get_instructor(self, obj):
+        return {
+            'id': obj.instructor.id,
+            'username': obj.instructor.username,
+            'full_name': obj.instructor.get_full_name() or obj.instructor.username,
+            'email': obj.instructor.email
+        }
+    
+    def get_problem_sets(self, obj):
+        """Get problem sets ordered by position in course"""
+        course_problem_sets = obj.courseproblemset_set.select_related('problem_set').order_by('order')
+        return [{
+            'id': cps.id,
+            'order': cps.order,
+            'is_required': cps.is_required,
+            'problem_set': ProblemSetListSerializer(cps.problem_set).data
+        } for cps in course_problem_sets]
+
+
+class CourseCreateUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for creating/updating courses"""
+    problem_set_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False
+    )
+    
+    class Meta:
+        model = Course
+        fields = [
+            'course_id', 'name', 'description',
+            'is_active', 'enrollment_open', 'problem_set_ids'
+        ]
+    
+    def validate_course_id(self, value):
+        """Validate course ID format"""
+        if not value:
+            raise serializers.ValidationError("Course ID is required")
+        
+        # Check format (alphanumeric with hyphens/underscores)
+        import re
+        if not re.match(r'^[A-Za-z0-9_-]+$', value):
+            raise serializers.ValidationError(
+                "Course ID can only contain letters, numbers, hyphens, and underscores"
+            )
+        
+        # Check uniqueness (exclude current instance for updates)
+        qs = Course.objects.filter(course_id=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("A course with this ID already exists")
+        
+        return value
+    
+    def create(self, validated_data):
+        problem_set_ids = validated_data.pop('problem_set_ids', [])
+        course = Course.objects.create(**validated_data)
+        
+        # Add problem sets with ordering
+        for order, ps_id in enumerate(problem_set_ids):
+            try:
+                problem_set = ProblemSet.objects.get(id=ps_id)
+                CourseProblemSet.objects.create(
+                    course=course,
+                    problem_set=problem_set,
+                    order=order,
+                    problem_set_version=problem_set.version
+                )
+            except ProblemSet.DoesNotExist:
+                pass
+        
+        return course
+    
+    def update(self, instance, validated_data):
+        problem_set_ids = validated_data.pop('problem_set_ids', None)
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Update problem sets if provided
+        if problem_set_ids is not None:
+            # Clear existing
+            instance.courseproblemset_set.all().delete()
+            
+            # Add new ones
+            for order, ps_id in enumerate(problem_set_ids):
+                try:
+                    problem_set = ProblemSet.objects.get(id=ps_id)
+                    CourseProblemSet.objects.create(
+                        course=instance,
+                        problem_set=problem_set,
+                        order=order,
+                        problem_set_version=problem_set.version
+                    )
+                except ProblemSet.DoesNotExist:
+                    pass
+        
+        return instance
+
+
+class CourseEnrollmentSerializer(serializers.ModelSerializer):
+    """Serializer for course enrollments"""
+    user = serializers.SerializerMethodField()
+    course = CourseListSerializer(read_only=True)
+    
+    class Meta:
+        model = CourseEnrollment
+        fields = ['id', 'user', 'course', 'enrolled_at', 'is_active']
+    
+    def get_user(self, obj):
+        return {
+            'id': obj.user.id,
+            'username': obj.user.username,
+            'full_name': obj.user.get_full_name() or obj.user.username,
+            'email': obj.user.email
+        }
+
+
+class CourseLookupSerializer(serializers.Serializer):
+    """Serializer for course lookup requests"""
+    course_id = serializers.CharField(required=True)
+
+
+class CourseEnrollSerializer(serializers.Serializer):
+    """Serializer for course enrollment requests"""
+    course_id = serializers.CharField(required=True)

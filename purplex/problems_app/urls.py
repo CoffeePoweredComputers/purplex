@@ -12,6 +12,19 @@ from .views import (
     AdminTestCaseView, AdminProblemSetListView,
     AdminProblemSetDetailView, AdminCategoryView
 )
+from .course_views import (
+    # Admin course views
+    AdminCourseListCreateView, AdminCourseDetailView, AdminCourseProblemSetView,
+    AdminCourseProblemSetsView, AdminAvailableProblemSetsView, AdminCourseStudentsView,
+    
+    # Instructor course views
+    InstructorCourseListView, InstructorCourseDetailView, InstructorCourseStudentsView,
+    InstructorCourseProgressView, InstructorCourseProblemSetOrderView,
+    
+    # Student course views
+    StudentEnrolledCoursesView, CourseLookupView, CourseEnrollView,
+    StudentCourseDetailView, StudentCourseProgressView
+)
 
 urlpatterns = [
     # Public/Student endpoints
@@ -46,4 +59,27 @@ urlpatterns = [
     # Admin endpoints - Categories
     path('admin/categories/', AdminCategoryView.as_view(), name='admin_category_list'),
     path('admin/categories/<int:pk>/', AdminCategoryView.as_view(), name='admin_category_detail'),
+    
+    # Admin Course Management
+    path('admin/courses/', AdminCourseListCreateView.as_view(), name='admin_course_list'),
+    path('admin/courses/<str:course_id>/', AdminCourseDetailView.as_view(), name='admin_course_detail'),
+    path('admin/courses/<str:course_id>/problem-sets/', AdminCourseProblemSetsView.as_view(), name='admin_course_problemsets'),
+    path('admin/courses/<str:course_id>/problem-sets/<str:problem_set_slug>/', AdminCourseProblemSetsView.as_view(), name='admin_course_problemset_detail'),
+    path('admin/courses/<str:course_id>/students/', AdminCourseStudentsView.as_view(), name='admin_course_students'),
+    path('admin/courses/<str:course_id>/students/<int:user_id>/', AdminCourseStudentsView.as_view(), name='admin_course_student_remove'),
+    path('admin/problem-sets/available/', AdminAvailableProblemSetsView.as_view(), name='admin_available_problemsets'),
+    
+    # Instructor Course Views
+    path('instructor/courses/', InstructorCourseListView.as_view(), name='instructor_course_list'),
+    path('instructor/courses/<str:course_id>/', InstructorCourseDetailView.as_view(), name='instructor_course_detail'),
+    path('instructor/courses/<str:course_id>/students/', InstructorCourseStudentsView.as_view(), name='instructor_course_students'),
+    path('instructor/courses/<str:course_id>/progress/', InstructorCourseProgressView.as_view(), name='instructor_course_progress'),
+    path('instructor/courses/<str:course_id>/problem-sets/order/', InstructorCourseProblemSetOrderView.as_view(), name='instructor_course_reorder'),
+    
+    # Student Course Views
+    path('courses/enrolled/', StudentEnrolledCoursesView.as_view(), name='student_enrolled_courses'),
+    path('courses/lookup/', CourseLookupView.as_view(), name='course_lookup'),
+    path('courses/enroll/', CourseEnrollView.as_view(), name='course_enroll'),
+    path('courses/<str:course_id>/', StudentCourseDetailView.as_view(), name='student_course_detail'),
+    path('courses/<str:course_id>/progress/', StudentCourseProgressView.as_view(), name='student_course_progress'),
 ]

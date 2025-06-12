@@ -31,10 +31,12 @@ class PromptSubmission(models.Model):
         from purplex.problems_app.models import UserProgress, UserProblemSetProgress
         
         # Update user progress with problem set context
+        # Note: course context needs to be passed from the submission endpoint
         progress, created = UserProgress.objects.get_or_create(
             user=self.user,
             problem=self.problem,
             problem_set=self.problem_set,
+            course=getattr(self, '_course', None),  # Course will be set by view
             defaults={'problem_version': self.problem.version}
         )
         progress.update_from_submission(self, time_spent=self.time_spent)

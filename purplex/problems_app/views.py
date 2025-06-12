@@ -171,6 +171,7 @@ class SubmitSolutionView(APIView):
         user_code = request.data.get('user_code')
         prompt = request.data.get('prompt', '')  # For EiPL problems
         time_spent = request.data.get('time_spent')  # Optional, in seconds
+        course_id = request.data.get('course_id')  # Optional, for course context
         
         if not problem_slug or not user_code or not problem_set_slug:
             return Response({
@@ -194,6 +195,34 @@ class SubmitSolutionView(APIView):
             return Response({
                 'error': 'Problem does not belong to the specified problem set'
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate course context if provided
+        course = None
+        if course_id:
+            try:
+                from .models import Course, CourseEnrollment
+                course = Course.objects.get(course_id=course_id, is_active=True, is_deleted=False)
+                
+                # Verify user is enrolled in the course
+                if not CourseEnrollment.objects.filter(
+                    user=request.user,
+                    course=course,
+                    is_active=True
+                ).exists():
+                    return Response({
+                        'error': 'You are not enrolled in this course'
+                    }, status=status.HTTP_403_FORBIDDEN)
+                
+                # Verify problem set belongs to the course
+                if not course.problem_sets.filter(id=problem_set.id).exists():
+                    return Response({
+                        'error': 'This problem set is not part of the specified course'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                    
+            except Course.DoesNotExist:
+                return Response({
+                    'error': 'Course not found'
+                }, status=status.HTTP_404_NOT_FOUND)
         
         # Get ALL test cases for scoring (including hidden ones)
         all_test_cases = problem.test_cases.all()
@@ -252,13 +281,20 @@ class SubmitSolutionView(APIView):
             time_spent=time_spent_delta
         )
         
+        # Set course context for progress tracking
+        if course:
+            submission._course = course
+        
         # Progress is automatically updated via the model's save method
+        # Force save to trigger progress update with course context
+        submission.save()
         
         # Get updated progress
         progress = UserProgress.objects.get(
             user=request.user, 
             problem=problem,
-            problem_set=problem_set
+            problem_set=problem_set,
+            course=course  # Include course in progress lookup
         )
         
         # Return only visible test results to student
@@ -293,6 +329,7 @@ class EiPLSubmissionView(APIView):
         problem_slug = request.data.get('problem_slug')
         problem_set_slug = request.data.get('problem_set_slug')
         user_prompt = request.data.get('prompt', '')
+        course_id = request.data.get('course_id')  # Optional, for course context
         
         if not problem_slug or not user_prompt or not problem_set_slug:
             return Response({

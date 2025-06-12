@@ -378,19 +378,24 @@
                 </div>
               </div>
               
-              <!-- Status and actions -->
-              <span v-if="ui.testResults" class="status-badge" :class="getStatusClass(index)">
-                {{ getStatusText(index) }}
-              </span>
-              <button 
-                @click="removeTestCase(index)" 
-                class="remove-btn"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16">
-                  <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
-                  <line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.5"/>
-                </svg>
-              </button>
+              <!-- Actions -->
+              <div class="test-case-actions">
+                <button 
+                  @click="removeTestCase(index)" 
+                  class="remove-btn"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16">
+                    <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                    <line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.5"/>
+                  </svg>
+                </button>
+                <!-- Status badge positioned under remove button -->
+                <div v-if="ui.testResults" class="status-badge" :class="getStatusClass(index)">
+                  <div class="status-icon">
+                    {{ getStatusText(index) }}
+                  </div>
+                </div>
+              </div>
             </div>
             
             <!-- Error message directly below if exists -->
@@ -2407,7 +2412,7 @@ export default {
 /* Test Case Row */
 .test-case-row {
   display: grid;
-  grid-template-columns: 40px 1fr 1fr auto auto;
+  grid-template-columns: 40px 1fr 1fr auto;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
   align-items: stretch;
@@ -2608,26 +2613,42 @@ export default {
   font-family: inherit;
 }
 
-/* Status Badge */
+/* Test Case Actions Container */
+.test-case-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* Status Badge - Improved Design */
 .status-badge {
-  font-size: var(--font-size-sm);
-  font-weight: bold;
-  padding: var(--spacing-xs);
-  border-radius: var(--radius-xs);
-  text-align: center;
-  min-width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-circle);
+  transition: var(--transition-fast);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .status-badge.passed {
-  color: var(--color-success);
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid var(--color-success);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .status-badge.failed {
-  color: var(--color-error);
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid var(--color-error);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.status-icon {
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
 }
 
 /* Remove Button */

@@ -3,7 +3,7 @@ import { firebaseAuth } from "./firebaseConfig";
 import store from "./store"; // Import the Vuex store
 
 // Import components from their feature folders
-import Home from "./components/Home.vue";
+import Home from "./components/HomeWithCourses.vue"; // Updated to use course-based home
 import About from "./components/About.vue";
 import Contact from "./components/Contact.vue";
 import Login from "./features/auth/Login.vue";
@@ -38,6 +38,23 @@ const routes = [
         path: "/problem-set/:slug",
         name: "ProblemSet",
         component: ProblemSet,
+        meta: {requiresAuth: true}
+    },
+    // Course routes
+    {
+        path: "/courses/:courseId",
+        name: "CourseDetail",
+        component: () => import("./components/CourseDetail.vue"),
+        meta: {requiresAuth: true}
+    },
+    {
+        path: "/courses/:courseId/problem-set/:slug",
+        name: "CourseProblemSet",
+        component: ProblemSet,
+        props: route => ({ 
+            slug: route.params.slug,
+            courseId: route.params.courseId 
+        }),
         meta: {requiresAuth: true}
     },
     // Admin routes
@@ -76,6 +93,12 @@ const routes = [
         path: "/admin/submissions",
         name: "AdminSubmissions",
         component: () => import("./components/AdminSubmissions.vue"),
+        meta: {requiresAuth: true, requiresAdmin: true}
+    },
+    {
+        path: "/admin/courses",
+        name: "AdminCourses",
+        component: () => import("./components/AdminCourses.vue"),
         meta: {requiresAuth: true, requiresAdmin: true}
     }
 ];

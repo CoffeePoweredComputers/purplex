@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 
 class UserRole(models.TextChoices):
     ADMIN = 'admin', 'Admin'
+    INSTRUCTOR = 'instructor', 'Instructor'
     USER = 'user', 'User'
 
 # Extend the User model if needed
@@ -21,3 +22,11 @@ class UserProfile(models.Model):
     @property
     def is_admin(self):
         return self.role == UserRole.ADMIN
+    
+    @property
+    def is_instructor(self):
+        return self.role == UserRole.INSTRUCTOR
+    
+    @property
+    def is_instructor_or_admin(self):
+        return self.role in [UserRole.INSTRUCTOR, UserRole.ADMIN]

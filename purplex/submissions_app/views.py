@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.db import models
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from purplex.users_app.permissions import IsAdmin, IsAdminOrReadOnly, IsAuthenticated
 
 import json
@@ -10,6 +11,11 @@ import docker
 
 from .models import PromptSubmission
 from purplex.problems_app.models import Problem
+
+class SubmissionsPagination(PageNumberPagination):
+    page_size = 25
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class PythonTestView(APIView):
     permission_classes = [IsAuthenticated]
@@ -110,11 +116,46 @@ class AdminSubmissionsView(APIView):
     permission_classes = [IsAdmin]
     
     def get(self, request):
-        """List all submissions (admin only)"""
+        """List all submissions with pagination and filtering (admin only)"""
+        # Get query parameters
+        search = request.GET.get('search', '').strip()
+        status_filter = request.GET.get('status', '').strip()
+        problem_set_filter = request.GET.get('problem_set', '').strip()
+        
+        # Start with all submissions
         submissions = PromptSubmission.objects.all().select_related('user', 'problem', 'problem_set')
         
+        # Apply search filter
+        if search:
+            submissions = submissions.filter(
+                models.Q(user__username__icontains=search) |
+                models.Q(problem__title__icontains=search) |
+                models.Q(problem_set__title__icontains=search)
+            )
+        
+        # Apply status filter
+        if status_filter:
+            if status_filter == 'passed':
+                submissions = submissions.filter(score__gte=80)
+            elif status_filter == 'partial':
+                submissions = submissions.filter(score__gt=0, score__lt=80)
+            elif status_filter == 'failed':
+                submissions = submissions.filter(score=0)
+        
+        # Apply problem set filter
+        if problem_set_filter:
+            submissions = submissions.filter(problem_set__title=problem_set_filter)
+        
+        # Order by creation time (newest first)
+        submissions = submissions.order_by('-time')
+        
+        # Apply pagination
+        paginator = SubmissionsPagination()
+        paginated_submissions = paginator.paginate_queryset(submissions, request)
+        
+        # Serialize the data
         submissions_data = []
-        for submission in submissions:
+        for submission in paginated_submissions:
             # Calculate status based on score
             if submission.score >= 80:
                 status = 'passed'
@@ -125,15 +166,15 @@ class AdminSubmissionsView(APIView):
                 
             submissions_data.append({
                 'id': submission.id,
-                'user': submission.user.username,  # Changed from 'username'
+                'user': submission.user.username,
                 'problem': submission.problem.title,
                 'problem_set': submission.problem_set.title if submission.problem_set else 'Unknown',
                 'score': submission.score,
-                'status': status,  # Added missing status
-                'created_at': submission.time,  # Changed from 'submitted_at'
+                'status': status,
+                'created_at': submission.time,
             })
-            
-        return Response(submissions_data)
+        
+        return paginator.get_paginated_response(submissions_data)
         
     def delete(self, request, submission_id):
         """Delete a submission (admin only)"""

@@ -160,6 +160,12 @@ export default {
         Editor,
         Feedback
     },
+    props: {
+        courseId: {
+            type: String,
+            default: null
+        }
+    },
     setup() {
         const { notify } = useNotification();
         const { updateProgress, getProgress, clearOptimistic } = useOptimisticProgress();
@@ -417,11 +423,18 @@ export default {
                     attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
                 });
 
-                const response = await axios.post('/api/submit-eipl/', {
+                const submissionData = {
                     problem_slug: currentProblemSlug,
                     problem_set_slug: this.$route.params.slug,
                     prompt: promptText
-                });
+                };
+                
+                // Include course_id if we're in a course context
+                if (this.courseId) {
+                    submissionData.course_id = this.courseId;
+                }
+                
+                const response = await axios.post('/api/submit-eipl/', submissionData);
 
                 const data = response.data;
                 

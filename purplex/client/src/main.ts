@@ -42,12 +42,17 @@ onAuthStateChanged(firebaseAuth, async (user) => {
     // User is signed in - dispatch the checkAuthState action
     // This will get the user's role and update the store
     await store.dispatch('auth/checkAuthState');
+    // Initialize courses after authentication
+    await store.dispatch('courses/initializeCourses');
   } else {
     // User is signed out
     // Only logout if we're not in debug mode
     const debugBypassAuth = store.state.auth.debug || false
     if (!debugBypassAuth) {
       store.commit('auth/logout')
+      // Clear courses data on logout
+      store.commit('courses/SET_ENROLLED_COURSES', [])
+      store.commit('courses/SET_CURRENT_COURSE', null)
     }
   }
 })
