@@ -2,10 +2,10 @@
     <nav>
         <ul class="nav-list">
             <li><router-link to="/home"><button>Home</button></router-link></li>
-            <li><router-link to="/about"><button>About</button></router-link></li>
-            <li><router-link to="/contact"><button>Contact</button></router-link></li>
-            <li v-if="isAdmin"><router-link to="/admin/users"><button class="admin-button">Admin</button></router-link></li>
-            <li class="account-button"><button @click="showAccountModal = true">Account</button></li>
+            <li class="right-buttons">
+                <div v-if="isAdmin"><router-link to="/admin/users"><button class="admin-button">Admin</button></router-link></div>
+                <div><button @click="showAccountModal = true">Account</button></div>
+            </li>
         </ul>
         <AccountModal :isVisible="showAccountModal" @close="showAccountModal = false" />
     </nav>
@@ -49,13 +49,11 @@ nav {
 
 .nav-list {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    gap: var(--spacing-lg);
     list-style: none;
     padding: var(--spacing-sm) var(--spacing-xl);
     margin: 0;
-    position: relative;
     width: 100%;
     max-width: var(--max-width-content);
 }
@@ -64,16 +62,15 @@ nav {
     display: inline-flex;
 }
 
-.account-button {
-    position: absolute;
-    right: var(--spacing-xl);
+.right-buttons {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
 }
 
 /* Logo/Brand area - using first link as brand */
 .nav-list li:first-child {
-    margin-right: auto;
-    position: absolute;
-    left: var(--spacing-xl);
+    /* No special positioning needed with space-between */
 }
 
 .nav-list li:first-child button {
@@ -184,17 +181,10 @@ button:hover::after {
 @media (max-width: 768px) {
     .nav-list {
         padding: var(--spacing-sm) var(--spacing-md);
+    }
+    
+    .right-buttons {
         gap: var(--spacing-sm);
-    }
-    
-    .nav-list li:first-child {
-        position: static;
-        margin-right: auto;
-    }
-    
-    .account-button {
-        position: static;
-        margin-left: auto;
     }
     
     button {

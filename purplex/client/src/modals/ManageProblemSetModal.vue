@@ -51,7 +51,7 @@
               </thead>
               <tbody>
                 <tr v-for="problemSet in problemSets" :key="problemSet.slug || problemSet.id">
-                  <td>{{ problemSet.title || problemSet.name }}</td>
+                  <td>{{ problemSet.title }}</td>
                   <td>{{ problemSet.description || 'No description' }}</td>
                   <td>{{ getProblemSetCount(problemSet) }}</td>
                   <td class="actions-cell">
@@ -183,7 +183,7 @@ export default {
 
     confirmDeleteProblemSet(problemSet) {
       const problemCount = this.getProblemSetCount(problemSet);
-      const name = problemSet.title || problemSet.name;
+      const name = problemSet.title;
       
       let message = `Are you sure you want to delete the problem set "${name}"?`;
       if (problemCount > 0) {

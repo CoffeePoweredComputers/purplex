@@ -124,7 +124,7 @@
 </template>
 
 <script>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, watchEffect } from 'vue'
 import axios from 'axios'
 import { useNotification } from '@/composables/useNotification'
 
@@ -304,9 +304,9 @@ export default {
       }
     }
     
-    // Watch for modal visibility changes
-    watch(() => props.visible, (newVal) => {
-      if (newVal) {
+    // Use watchEffect to reactively fetch data when both visible and course are available
+    watchEffect(() => {
+      if (props.visible && props.course && props.course.course_id) {
         fetchCurrentProblemSets()
         fetchAvailableProblemSets()
       }

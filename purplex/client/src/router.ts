@@ -3,9 +3,7 @@ import { firebaseAuth } from "./firebaseConfig";
 import store from "./store"; // Import the Vuex store
 
 // Import components from their feature folders
-import Home from "./components/HomeWithCourses.vue"; // Updated to use course-based home
-import About from "./components/About.vue";
-import Contact from "./components/Contact.vue";
+import Home from "./components/Home.vue"; // Courses-only home component
 import Login from "./features/auth/Login.vue";
 import ProblemSet from "./features/problems/ProblemSet.vue";
 import AdminUsers from "./components/AdminUsers.vue";
@@ -20,18 +18,6 @@ const routes: RouteRecordRaw[] = [
         path: "/home",
         name: "Home",
         component: Home,
-        meta: {requiresAuth: true},
-    },
-    {
-        path: "/about",
-        name: "About",
-        component: About,
-        meta: {requiresAuth: true},
-    },
-    {
-        path: "/contact",
-        name: "Contact",
-        component: Contact,
         meta: {requiresAuth: true},
     },
     {

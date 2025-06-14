@@ -299,7 +299,7 @@ export default {
         },
         
         async loadSubmissionData(problemSlug) {
-            const cacheKey = `${this.$route.params.slug}_${problemSlug}`;
+            const cacheKey = `${this.$route.params.slug}_${problemSlug}_${this.courseId || 'standalone'}`;
             
             // Check cache (5 minute expiry)
             if (this.submissionCache.has(cacheKey)) {
@@ -310,7 +310,9 @@ export default {
             }
             
             try {
-                const response = await axios.get(`/api/user/last-submission/${problemSlug}/`);
+                // Include course_id in query params if available
+                const params = this.courseId ? { course_id: this.courseId } : {};
+                const response = await axios.get(`/api/user/last-submission/${problemSlug}/`, { params });
                 const data = response.data;
                 
                 // Cache the response
@@ -453,8 +455,8 @@ export default {
                 
                 this.clearOptimistic(currentProblemSlug);
                 
-                // Update cache with new submission data including prompt
-                const cacheKey = `${this.$route.params.slug}_${currentProblemSlug}`;
+                // Update cache with new submission data including prompt and course context
+                const cacheKey = `${this.$route.params.slug}_${currentProblemSlug}_${this.courseId || 'standalone'}`;
                 this.submissionCache.set(cacheKey, {
                     data: {
                         has_submission: true,
@@ -529,23 +531,52 @@ export default {
             const problemSetSlug = this.$route.params.slug;
             
             try {
-                const response = await axios.get(`/api/problem-sets/${problemSetSlug}/progress/`);
+                // Include course_id in query params if available
+                const params = this.courseId ? { course_id: this.courseId } : {};
+                console.log('Loading problem statuses for:', problemSetSlug, 'with params:', params);
+                
+                const response = await axios.get(`/api/problem-sets/${problemSetSlug}/progress/`, { params });
                 const progressData = response.data.problems_progress || [];
                 
+                console.log('Progress data received:', progressData);
+                console.log('Problem set progress:', response.data.problem_set);
+                
+                // Create new object for Vue reactivity
+                const newStatuses = {};
+                
                 progressData.forEach(progress => {
-                    this.problemStatuses[progress.problem_slug] = {
+                    newStatuses[progress.problem_slug] = {
                         status: this.mapStatusFromAPI(progress.status, progress.best_score),
                         score: progress.best_score,
                         attempts: progress.attempts
                     };
                 });
                 
+                // Replace entire object to trigger reactivity
+                this.problemStatuses = newStatuses;
+                
+                console.log('Problem statuses after loading:', this.problemStatuses);
+                console.log('Completed count:', this.completedCount);
+                console.log('Partially complete count:', this.partiallyCompleteCount);
+                console.log('Remaining count:', this.remainingCount);
+                
                 if (response.data.problem_set) {
                     this.problemSetProgress = response.data.problem_set;
                 }
                 
+                // Force Vue to update the computed properties
+                this.$nextTick(() => {
+                    console.log('After nextTick - recomputing counts');
+                    console.log('Final completed count:', this.completedCount);
+                    console.log('Final partially complete count:', this.partiallyCompleteCount);
+                    console.log('Final remaining count:', this.remainingCount);
+                })
+                
             } catch (error) {
                 console.error('Error loading progress data:', error);
+                if (error.response) {
+                    console.error('Error response:', error.response.data);
+                }
             }
         },
         
@@ -569,7 +600,7 @@ export default {
         
         getProblemTooltip(problem, index) {
             const status = this.problemStatuses[problem.slug];
-            const problemName = problem.name || `Problem ${index + 1}`;
+            const problemName = problem.title || `Problem ${index + 1}`;
             
             if (!status || status.status === 'not-tried') {
                 return `${problemName} - Not attempted`;
@@ -675,6 +706,14 @@ export default {
             if (newSlug) {
                 this.loadProblemSet();
             }
+        },
+        problemStatuses: {
+            handler(newVal) {
+                console.log('Problem statuses changed:', newVal);
+                console.log('Keys:', Object.keys(newVal));
+                console.log('Completed problems:', Object.values(newVal).filter(s => s.status === 'completed'));
+            },
+            deep: true
         }
     }
 };

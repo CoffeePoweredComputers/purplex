@@ -13,7 +13,7 @@ from django.db.models import Prefetch
 from django.conf import settings
 from datetime import timedelta
 
-from .models import Problem, ProblemSet, ProblemCategory, TestCase, ProblemSetMembership, UserProgress, UserProblemSetProgress
+from .models import Problem, ProblemSet, ProblemCategory, TestCase, ProblemSetMembership, UserProgress, UserProblemSetProgress, Course, CourseEnrollment
 from .serializers import (
     ProblemSerializer, ProblemSetSerializer, ProblemCategorySerializer,
     TestCaseSerializer, AdminProblemSerializer, ProblemListSerializer,
@@ -276,8 +276,10 @@ class SubmitSolutionView(APIView):
             problem_set=problem_set,
             score=score,
             prompt=prompt or user_code,  # Store code if no prompt provided
-            feedback=json.dumps(result),
-            passed_test_ids=passed_test_ids,
+            test_results=result,
+            code_variations=[user_code],
+            passing_variations=1 if score >= 100 else 0,
+            total_variations=1,
             time_spent=time_spent_delta
         )
         
@@ -347,6 +349,22 @@ class EiPLSubmissionView(APIView):
             return Response({
                 'error': 'Problem set not found'
             }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Validate course context if provided
+        course = None
+        if course_id:
+            try:
+                course = Course.objects.get(course_id=course_id, is_active=True)
+                # Verify user is enrolled
+                from purplex.problems_app.models import CourseEnrollment
+                if not CourseEnrollment.objects.filter(user=request.user, course=course, is_active=True).exists():
+                    return Response({
+                        'error': 'Not enrolled in this course'
+                    }, status=status.HTTP_403_FORBIDDEN)
+            except Course.DoesNotExist:
+                return Response({
+                    'error': 'Course not found'
+                }, status=status.HTTP_404_NOT_FOUND)
         
         # Verify problem belongs to the problem set
         if not problem.problem_sets.filter(id=problem_set.id).exists():
@@ -459,33 +477,28 @@ class EiPLSubmissionView(APIView):
         if failed_variations > len(code_variations) / 2:
             logger.warning(f"High failure rate in problem {problem_slug}: {failed_variations}/{len(code_variations)} variations failed")
         
-        # Create submission record
+        # Create submission record with new field structure
         from purplex.submissions_app.models import PromptSubmission
         submission = PromptSubmission.objects.create(
             user=request.user,
             problem=problem,
             problem_set=problem_set,
+            course=course,  # Include course context
             prompt=user_prompt,
-            user_solution=json.dumps({
-                'prompt': user_prompt,
-                'variations': code_variations,
-                'results': all_results
-            }),
-            score=score,
-            feedback=json.dumps({
-                'total_variations': len(code_variations),
-                'passing_variations': total_passed,
-                'test_results': all_results
-            }),
-            submitted_by=request.user.email,
-            firebase_uid=getattr(request.user, 'firebase_uid', '')
+            score=int(score),
+            code_variations=code_variations,
+            test_results=all_results,
+            passing_variations=total_passed,
+            total_variations=len(code_variations),
+            execution_time=None  # Could calculate total execution time if needed
         )
         
-        # Update user progress - now includes problem_set context
+        # Update user progress with course context
         progress, created = UserProgress.objects.get_or_create(
             user=request.user,
             problem=problem,
-            problem_set=problem_set
+            problem_set=problem_set,
+            course=course  # Include course context
         )
 
         # Update progress with the submission score
@@ -499,9 +512,9 @@ class EiPLSubmissionView(APIView):
         
         return Response({
             'submission_id': submission.id,
-            'score': score,
-            'code_variations': code_variations,
-            'test_results': all_results,
+            'score': int(score),
+            'variations': code_variations,  # Frontend expects 'variations'
+            'results': all_results,  # Frontend expects 'results'
             'passing_variations': total_passed,
             'total_variations': len(code_variations),
             'progress': {
@@ -988,10 +1001,22 @@ class ProblemSetProgressView(APIView):
         user = request.user
         problem_set = get_object_or_404(ProblemSet, slug=slug)
         
-        # Get or create problem set progress
+        # Get course_id from query params if provided
+        # Handle both DRF and Django requests
+        query_params = getattr(request, 'query_params', request.GET)
+        course_id = query_params.get('course_id')
+        course = None
+        if course_id:
+            try:
+                course = Course.objects.get(course_id=course_id)
+            except Course.DoesNotExist:
+                return Response({'error': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get or create problem set progress with course context
         set_progress, created = UserProblemSetProgress.objects.get_or_create(
             user=user,
             problem_set=problem_set,
+            course=course,
             defaults={'total_problems': problem_set.problems.count()}
         )
         
@@ -1000,23 +1025,22 @@ class ProblemSetProgressView(APIView):
             # For new problem set progress, we'll update it based on any existing progress
             first_progress = UserProgress.objects.filter(
                 user=user,
-                problem_set=problem_set
+                problem_set=problem_set,
+                course=course
             ).first()
             if first_progress:
                 UserProblemSetProgress.update_from_progress(first_progress)
                 set_progress.refresh_from_db()
         
-        # Get individual problem progress - Fixed N+1 query
-        # Prefetch progress data to avoid querying UserProgress for each problem
-        memberships = problem_set.problemsetmembership_set.all().select_related('problem').prefetch_related(
-            'problem__userprogress_set'
-        )
+        # Get individual problem progress with course context
+        memberships = problem_set.problemsetmembership_set.all().select_related('problem')
         
-        # Get all progress for this user and problem set in one query
+        # Get all progress for this user, problem set, and course in one query
         user_progress_dict = {}
         user_progresses = UserProgress.objects.filter(
             user=user,
-            problem_set=problem_set
+            problem_set=problem_set,
+            course=course
         ).select_related('problem')
         
         for progress in user_progresses:
@@ -1065,86 +1089,51 @@ class ProblemSetProgressView(APIView):
 
 
 class UserProgressSummaryView(APIView):
-    """Get summary of user's progress across all problem sets"""
+    """Get summary of user's progress across all courses"""
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        try:
-            user = request.user
-            
-            # Get all public problem sets first - this is safer
-            all_problem_sets = ProblemSet.objects.filter(is_public=True)
-            
-            # Try to get existing progress records
-            try:
-                set_progresses = UserProblemSetProgress.objects.filter(
-                    user=user,
-                    problem_set__is_public=True
-                ).select_related('problem_set')
-                tracked_set_ids = [p.problem_set_id for p in set_progresses]
-            except Exception as progress_error:
-                # If there's an error with progress tracking, just return basic data
-                logger.warning(f"Progress tracking error: {str(progress_error)}, falling back to basic data")
-                set_progresses = []
-                tracked_set_ids = []
-            
-            summary_data = []
-            
-            # Add tracked problem sets with progress
-            for progress in set_progresses:
-                summary_data.append({
-                    'problem_set_slug': progress.problem_set.slug,
-                    'problem_set_title': progress.problem_set.title,
-                    'total_problems': progress.total_problems,
-                    'completed_problems': progress.completed_problems,
-                    'partially_complete_problems': progress.partially_complete_problems,
-                    'completion_percentage': progress.completion_percentage,
-                    'is_completed': progress.is_completed,
-                    'last_activity': progress.last_activity,
-                })
-            
-            # Add problem sets with no progress (or if progress tracking failed)
-            # Fixed N+1 query: use annotate to get problem count in a single query
-            untracked_sets = all_problem_sets.exclude(id__in=tracked_set_ids).annotate(
-                problems_count=Count('problems')
-            )
-            
-            for problem_set in untracked_sets:
-                summary_data.append({
-                    'problem_set_slug': problem_set.slug,
-                    'problem_set_title': problem_set.title,
-                    'total_problems': problem_set.problems_count,
-                    'completed_problems': 0,
-                    'partially_complete_problems': 0,
-                    'completion_percentage': 0,
-                    'is_completed': False,
-                    'last_activity': None,
-                })
-            
-            # Calculate overall stats
-            total_problems = sum(s['total_problems'] for s in summary_data)
-            total_completed = sum(s['completed_problems'] for s in summary_data)
-            total_partially_complete = sum(s['partially_complete_problems'] for s in summary_data)
-            
-            return Response({
-                'overall': {
-                    'total_problems': total_problems,
-                    'completed_problems': total_completed,
-                    'partially_complete_problems': total_partially_complete,
-                    'completion_percentage': int((total_completed / total_problems * 100) if total_problems > 0 else 0),
-                },
-                'problem_sets': summary_data
+        user = request.user
+        
+        # Get all course progress for the user
+        course_progresses = UserProblemSetProgress.objects.filter(
+            user=user,
+            course__isnull=False
+        ).select_related('problem_set', 'course').order_by('course__course_id', 'problem_set__title')
+        
+        # Format course-based progress
+        course_data = {}
+        for progress in course_progresses:
+            course_id = progress.course.course_id
+            if course_id not in course_data:
+                course_data[course_id] = {
+                    'course_name': progress.course.name,
+                    'problem_sets': []
+                }
+            course_data[course_id]['problem_sets'].append({
+                'problem_set_slug': progress.problem_set.slug,
+                'problem_set_title': progress.problem_set.title,
+                'completed_problems': progress.completed_problems,
+                'total_problems': progress.total_problems,
+                'completion_percentage': progress.completion_percentage,
+                'is_completed': progress.is_completed,
+                'last_activity': progress.last_activity,
             })
-            
-        except Exception as e:
-            logger.error(f"Error in UserProgressSummaryView: {str(e)}")
-            # Return a minimal response so the frontend doesn't break
-            return Response({
-                'overall': {
-                    'total_problems': 0,
-                    'completed_problems': 0,
-                    'partially_complete_problems': 0,
-                    'completion_percentage': 0,
-                },
-                'problem_sets': []
-            })
+        
+        # Calculate overall stats
+        total_problems = 0
+        total_completed = 0
+        
+        for course_info in course_data.values():
+            for ps in course_info['problem_sets']:
+                total_problems += ps['total_problems']
+                total_completed += ps['completed_problems']
+        
+        return Response({
+            'overall': {
+                'total_problems': total_problems,
+                'completed_problems': total_completed,
+                'completion_percentage': int((total_completed / total_problems * 100) if total_problems > 0 else 0),
+            },
+            'courses': course_data
+        })

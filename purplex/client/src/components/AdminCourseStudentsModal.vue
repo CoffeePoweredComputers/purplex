@@ -156,7 +156,9 @@ export default {
     // Watch for modal visibility changes
     watch(() => props.visible, (newVal) => {
       if (newVal) {
-        fetchStudents()
+        setTimeout(() => {
+          fetchStudents()
+        }, 50) // Small delay to ensure modal is rendered
       }
     })
     

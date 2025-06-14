@@ -27,7 +27,7 @@ export interface CourseProblemSet {
 export interface CourseEnrollment {
   course: Course;
   enrolled_at: string;
-  progress?: CourseProgress;
+  progress: CourseProgress;
 }
 
 export interface CourseProgress {
@@ -47,7 +47,6 @@ export interface EnrollmentModal {
 export interface LoadingStates {
   courses: boolean;
   enrollment: boolean;
-  progress: boolean;
 }
 
 export interface StudentProgress {
@@ -69,7 +68,6 @@ export interface CoursesState {
   enrolledCourses: CourseEnrollment[];
   availableProblemSets: CourseProblemSet[];
   currentCourse: Course | null;
-  courseProgress: Record<string, CourseProgress>;
   
   // UI state
   enrollmentModal: EnrollmentModal;
@@ -98,15 +96,11 @@ export interface CourseLookupResponse {
   already_enrolled: boolean;
 }
 
-export interface ProgressResponse {
-  courses: Record<string, CourseProgress>;
-}
 
 // ===== VUEX MODULE TYPES =====
 
 interface CoursesGetters {
   isEnrolledInCourse: (courseId: string) => boolean;
-  getCourseProgress: (courseId: string) => CourseProgress;
   getCurrentCourseProblemSets: CourseProblemSet[];
   isInstructor: boolean;
   organizedCourses: OrganizedCourses;
@@ -116,8 +110,6 @@ interface CoursesMutations {
   SET_ENROLLED_COURSES: CourseEnrollment[];
   ADD_ENROLLED_COURSE: CourseEnrollment;
   SET_CURRENT_COURSE: Course | null;
-  SET_COURSE_PROGRESS: { courseId: string; progress: CourseProgress };
-  UPDATE_PROBLEM_SET_PROGRESS: { courseId: string; problemSetId: string; completed: boolean };
   SET_ENROLLMENT_MODAL: Partial<EnrollmentModal>;
   RESET_ENROLLMENT_MODAL: void;
   SET_INSTRUCTOR_COURSES: Course[];
@@ -128,7 +120,6 @@ interface CoursesMutations {
 interface CoursesActions {
   initializeCourses: void;
   fetchEnrolledCourses: void;
-  fetchCourseProgress: void;
   lookupCourse: string;
   enrollInCourse: string;
   enterCourseContext: string;
@@ -153,7 +144,6 @@ const initialState: CoursesState = {
   enrolledCourses: [],        // Array of courses user is enrolled in
   availableProblemSets: [],   // Problem sets for browsing when adding to course
   currentCourse: null,        // Active course being viewed
-  courseProgress: {},         // Progress keyed by course_id
   
   // UI state
   enrollmentModal: {
@@ -170,8 +160,7 @@ const initialState: CoursesState = {
   // Loading states
   loading: {
     courses: false,
-    enrollment: false,
-    progress: false
+    enrollment: false
   }
 };
 
@@ -188,16 +177,6 @@ export const courses: Module<CoursesState, RootState> = {
       return state.enrolledCourses.some(c => c.course.course_id === courseId);
     },
     
-    // Get progress for specific course
-    getCourseProgress: (state: CoursesState) => (courseId: string): CourseProgress => {
-      return state.courseProgress[courseId] || { 
-        completed_sets: 0, 
-        total_sets: 0,
-        percentage: 0,
-        last_activity: null
-      };
-    },
-    
     // Get problem sets for current course
     getCurrentCourseProblemSets: (state: CoursesState): CourseProblemSet[] => {
       if (!state.currentCourse) return [];
@@ -211,15 +190,13 @@ export const courses: Module<CoursesState, RootState> = {
     },
     
     // Get organized courses by completion status
-    organizedCourses: (state: CoursesState, getters: any): OrganizedCourses => {
+    organizedCourses: (state: CoursesState): OrganizedCourses => {
       return {
         active: state.enrolledCourses.filter(c => {
-          const progress = c.progress || getters.getCourseProgress(c.course.course_id);
-          return progress.percentage < 100;
+          return c.progress.percentage < 100;
         }),
         completed: state.enrolledCourses.filter(c => {
-          const progress = c.progress || getters.getCourseProgress(c.course.course_id);
-          return progress.percentage === 100;
+          return c.progress.percentage === 100;
         })
       };
     }
@@ -237,26 +214,6 @@ export const courses: Module<CoursesState, RootState> = {
     
     SET_CURRENT_COURSE(state: CoursesState, course: Course | null): void {
       state.currentCourse = course;
-    },
-    
-    // Progress mutations
-    SET_COURSE_PROGRESS(state: CoursesState, { courseId, progress }: { courseId: string; progress: CourseProgress }): void {
-      state.courseProgress = {
-        ...state.courseProgress,
-        [courseId]: progress
-      };
-    },
-    
-    UPDATE_PROBLEM_SET_PROGRESS(state: CoursesState, { courseId, problemSetId, completed }: { courseId: string; problemSetId: string; completed: boolean }): void {
-      if (state.courseProgress[courseId]) {
-        if (completed) {
-          state.courseProgress[courseId].completed_sets += 1;
-        }
-        const total = state.courseProgress[courseId].total_sets;
-        const completed_sets = state.courseProgress[courseId].completed_sets;
-        state.courseProgress[courseId].percentage = 
-          Math.round((completed_sets / total) * 100);
-      }
     },
     
     // Enrollment modal mutations
@@ -295,10 +252,7 @@ export const courses: Module<CoursesState, RootState> = {
     // Initialize course data on app load
     async initializeCourses({ dispatch, rootGetters }: CoursesActionContext): Promise<void> {
       if (rootGetters['auth/isLoggedIn']) {
-        await Promise.all([
-          dispatch('fetchEnrolledCourses'),
-          dispatch('fetchCourseProgress')
-        ]);
+        await dispatch('fetchEnrolledCourses');
         
         if (rootGetters['auth/isInstructor']) {
           await dispatch('fetchInstructorCourses');
@@ -318,33 +272,6 @@ export const courses: Module<CoursesState, RootState> = {
         throw error;
       } finally {
         commit('SET_LOADING', { key: 'courses', value: false });
-      }
-    },
-    
-    // Fetch progress for all courses
-    async fetchCourseProgress({ commit, state }: CoursesActionContext): Promise<void> {
-      commit('SET_LOADING', { key: 'progress', value: true });
-      try {
-        const response = await axios.get<ProgressResponse>('/api/progress/');
-        // Transform progress data into course-keyed object
-        const progressByCourse: Record<string, CourseProgress> = {};
-        if (response.data.courses) {
-          Object.entries(response.data.courses).forEach(([courseId, courseProgress]) => {
-            progressByCourse[courseId] = courseProgress;
-          });
-        }
-        
-        // Set progress for each course
-        Object.keys(progressByCourse).forEach(courseId => {
-          commit('SET_COURSE_PROGRESS', { 
-            courseId, 
-            progress: progressByCourse[courseId] 
-          });
-        });
-      } catch (error) {
-        console.error('Failed to fetch course progress:', error);
-      } finally {
-        commit('SET_LOADING', { key: 'progress', value: false });
       }
     },
     
@@ -380,14 +307,11 @@ export const courses: Module<CoursesState, RootState> = {
           course_id: courseId 
         });
         
-        // Refresh enrolled courses
+        // Refresh enrolled courses (which now includes progress)
         await dispatch('fetchEnrolledCourses');
         
         // Reset modal
         commit('RESET_ENROLLMENT_MODAL');
-        
-        // Refresh progress
-        await dispatch('fetchCourseProgress');
         
         return response.data;
       } catch (error: any) {

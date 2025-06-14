@@ -86,9 +86,6 @@ but possibly in a different order.
     
     # Check if sorted characters are equal
     return sorted(str1) == sorted(str2)''',
-                'hints': '''- Consider converting both strings to the same case
-- Think about sorting the characters
-- You might want to remove spaces first''',
                 'memory_limit': 128,
                 'tags': ['strings', 'sorting', 'hash-map'],
                 'is_active': True

@@ -7,6 +7,9 @@ from django.utils import timezone
 from datetime import timedelta
 import json
 
+# Constants
+DEFAULT_COMPLETION_THRESHOLD = 100
+
 class ProblemCategory(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True, blank=True)
@@ -60,7 +63,7 @@ class Problem(models.Model):
     version = models.PositiveIntegerField(default=1)
     
     # Completion configuration
-    completion_threshold = models.IntegerField(default=80, help_text='Minimum score required for completion')
+    completion_threshold = models.IntegerField(default=100, help_text='Minimum score required for completion')
     completion_criteria = models.JSONField(
         default=dict,
         blank=True,
@@ -230,10 +233,10 @@ class UserProgress(models.Model):
     def update_from_submission(self, submission, time_spent=None):
         """Update progress based on new submission with intelligent status calculation"""
         self.attempts += 1
-        self.last_attempt = submission.time
+        self.last_attempt = submission.submitted_at
         
         if not self.first_attempt:
-            self.first_attempt = submission.time
+            self.first_attempt = submission.submitted_at
         
         # Update scores
         if submission.score > self.best_score:
@@ -254,8 +257,8 @@ class UserProgress(models.Model):
         # Update completion
         if self._check_completion(submission):
             if not self.completed_at:
-                self.completed_at = submission.time
-                self.days_to_complete = (submission.time - self.first_attempt).days
+                self.completed_at = submission.submitted_at
+                self.days_to_complete = (submission.submitted_at - self.first_attempt).days
             self.is_completed = True
             self.consecutive_successes += 1
         else:
@@ -266,11 +269,11 @@ class UserProgress(models.Model):
     
     def _update_status(self, submission):
         """Intelligent status determination based on performance patterns"""
-        completion_threshold = self.problem.completion_threshold or 80
+        completion_threshold = self.problem.completion_threshold or 100
         
         if self.best_score >= 100:
             self.status = 'mastered'
-        elif self.best_score >= completion_threshold:
+        elif self.best_score >= 100:
             self.status = 'completed'
         elif self.best_score >= 50:
             self.status = 'advancing'
@@ -285,15 +288,20 @@ class UserProgress(models.Model):
         
         # Default to threshold-based completion
         if not completion_criteria:
-            return submission.score >= (self.problem.completion_threshold or 80)
+            return submission.score >= (self.problem.completion_threshold or 100)
         
         if 'min_score' in completion_criteria:
             if submission.score < completion_criteria['min_score']:
                 return False
         
         if 'required_test_cases' in completion_criteria:
-            # Check specific test cases passed
-            passed_tests = set(getattr(submission, 'passed_test_ids', []) or [])
+            # Check specific test cases passed by analyzing test_results
+            passed_tests = set()
+            test_results = getattr(submission, 'test_results', [])
+            if isinstance(test_results, list):
+                for i, result in enumerate(test_results):
+                    if isinstance(result, dict) and result.get('pass', False):
+                        passed_tests.add(i)
             required = set(completion_criteria['required_test_cases'])
             if not required.issubset(passed_tests):
                 return False
@@ -310,7 +318,7 @@ class UserProgress(models.Model):
         if self.status == 'mastered':
             return 100
         elif self.status == 'completed':
-            return 90 + (self.best_score - 80) // 2  # 90-100%
+            return 100
         else:
             # Scale 0-89% based on best score and attempts
             base = min(self.best_score, 89)
@@ -323,9 +331,10 @@ class UserProgress(models.Model):
 
 
 class UserProblemSetProgress(models.Model):
-    """Cached aggregate progress for problem sets"""
+    """Cached aggregate progress for problem sets with course context"""
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     problem_set = models.ForeignKey(ProblemSet, on_delete=models.CASCADE)
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, null=True, blank=True)
     
     total_problems = models.IntegerField(default=0)
     completed_problems = models.IntegerField(default=0)
@@ -340,25 +349,27 @@ class UserProblemSetProgress(models.Model):
     is_completed = models.BooleanField(default=False, db_index=True)
     
     class Meta:
-        unique_together = ['user', 'problem_set']
+        unique_together = ['user', 'problem_set', 'course']
         indexes = [
-            models.Index(fields=['user', '-last_activity']),
-            models.Index(fields=['problem_set', '-completion_percentage']),
+            models.Index(fields=['user', 'course', '-last_activity']),
+            models.Index(fields=['problem_set', 'course', '-completion_percentage']),
         ]
     
     @classmethod
     def update_from_progress(cls, user_progress):
         """Update problem set progress when individual problem progress changes"""
-        # Only update the specific problem set that the progress belongs to
+        # Update the specific problem set progress with course context
         set_progress, created = cls.objects.get_or_create(
             user=user_progress.user,
-            problem_set=user_progress.problem_set
+            problem_set=user_progress.problem_set,
+            course=user_progress.course
         )
         
-        # Recalculate aggregates for this specific problem set
+        # Recalculate aggregates for this specific problem set and course
         problem_progresses = UserProgress.objects.filter(
             user=user_progress.user,
-            problem_set=user_progress.problem_set
+            problem_set=user_progress.problem_set,
+            course=user_progress.course
         )
         
         stats = problem_progresses.aggregate(

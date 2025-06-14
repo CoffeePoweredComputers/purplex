@@ -28,15 +28,15 @@
             <input 
                    type="text" 
                    id="problemName" 
-                   :value="problem.name"
-                   @input="onFieldInput('name', $event.target.value)"
-                   @blur="onFieldBlur('name')"
+                   :value="problem.title"
+                   @input="onFieldInput('title', $event.target.value)"
+                   @blur="onFieldBlur('title')"
                    class="form-input"
-                   :class="{ error: errors.name && touched.name }"
+                   :class="{ error: errors.title && touched.title }"
                    placeholder="Enter a descriptive problem title"
                    required
                    >
-            <span v-if="errors.name && touched.name" class="error-message">{{ errors.name }}</span>
+            <span v-if="errors.title && touched.title" class="error-message">{{ errors.title }}</span>
           </div>
 
             <div class="form-group">
@@ -191,7 +191,7 @@
                           :class="{ selected: isProblemSetSelected(problemSet.slug || problemSet.id) }"
                         >
                           <td class="problem-set-title-cell">
-                            <div class="problem-set-title">{{ problemSet.title || problemSet.name }}</div>
+                            <div class="problem-set-title">{{ problemSet.title }}</div>
                             <div class="problem-set-description" v-if="problemSet.description">
                               {{ truncateText(problemSet.description, 60) }}
                             </div>
@@ -228,7 +228,7 @@
                         :key="problemSetId"
                         class="selected-item"
                       >
-                        <span class="selected-title">{{ getProblemSetById(problemSetId)?.title || getProblemSetById(problemSetId)?.name }}</span>
+                        <span class="selected-title">{{ getProblemSetById(problemSetId)?.title }}</span>
                         <button 
                           type="button"
                           @click="removeProblemSet(problemSetId)"
@@ -305,7 +305,7 @@
         if (this.editMode && this.problemData) {
           const problemSets = this.problemData.problem_sets || [];
           return {
-            name: this.problemData.title || '',
+            title: this.problemData.title || '',
             problem_type: this.problemData.problem_type || '',
             difficulty: this.problemData.difficulty || '',
             category: this.problemData.categories && this.problemData.categories.length > 0 
@@ -327,7 +327,7 @@
           };
         }
         return {
-          name: '',
+          title: '',
           problem_type: '',
           difficulty: '',
           category: '',
@@ -421,11 +421,11 @@
         switch (fieldName) {
           case 'name':
             if (!value.trim()) {
-              errors.name = 'Problem title is required';
+              errors.title = 'Problem title is required';
             } else if (value.trim().length < 3) {
-              errors.name = 'Problem title must be at least 3 characters';
+              errors.title = 'Problem title must be at least 3 characters';
             } else {
-              delete errors.name;
+              delete errors.title;
             }
             break;
             
@@ -487,7 +487,7 @@
           
           // Prepare the data based on problem type
           const problemData = {
-            title: this.problem.name,
+            title: this.problem.title,
             problem_type: this.problem.problem_type,
             difficulty: this.problem.difficulty,
             category: this.problem.category,
@@ -553,7 +553,7 @@
         
         const query = this.problemSetSearch.toLowerCase();
         return this.problemSets.filter(problemSet => {
-          const title = (problemSet.title || problemSet.name || '').toLowerCase();
+          const title = (problemSet.title || '').toLowerCase();
           const description = (problemSet.description || '').toLowerCase();
           return title.includes(query) || description.includes(query);
         });
@@ -561,7 +561,7 @@
 
       isFormValid() {
         return Object.keys(this.errors).length === 0 && 
-               this.problem.name.trim() && 
+               this.problem.title.trim() && 
                this.problem.problem_type && 
                this.problem.difficulty && 
                this.problem.description.trim();

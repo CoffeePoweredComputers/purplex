@@ -158,7 +158,7 @@ export default {
       }
       
       // problem_sets is a list of problem set objects with their data
-      return problem.problem_sets.map(ps => ps.title || ps.name || 'Unknown').join(', ');
+      return problem.problem_sets.map(ps => ps.title || 'Unknown').join(', ');
     },
     
     difficultyClass(difficulty) {

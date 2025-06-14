@@ -248,11 +248,12 @@ class InstructorCourseProblemSetOrderView(APIView):
 
 # Student Course Views
 class StudentEnrolledCoursesView(APIView):
-    """List courses a student is enrolled in"""
+    """List courses a student is enrolled in with full progress data"""
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        """Get enrolled courses"""
+        """Get enrolled courses with embedded problem set progress"""
+        # Single optimized query with all needed data
         enrollments = CourseEnrollment.objects.filter(
             user=request.user,
             is_active=True
@@ -263,22 +264,70 @@ class StudentEnrolledCoursesView(APIView):
             )
         )
         
+        # Get all progress data in one query
+        all_problem_set_ids = []
+        for enrollment in enrollments:
+            all_problem_set_ids.extend(enrollment.course.problem_sets.values_list('id', flat=True))
+        
+        progress_data = UserProblemSetProgress.objects.filter(
+            user=request.user,
+            problem_set_id__in=all_problem_set_ids,
+            course__in=[e.course for e in enrollments]
+        ).values('problem_set_id', 'course_id', 'completed_problems', 'total_problems', 'is_completed')
+        
+        # Build progress lookup
+        progress_lookup = {}
+        for p in progress_data:
+            key = (p['course_id'], p['problem_set_id'])
+            progress_lookup[key] = p
+        
         courses_data = []
         for enrollment in enrollments:
             course = enrollment.course
-            # Get progress data for this course
-            problem_set_progress = UserProblemSetProgress.objects.filter(
-                user=request.user,
-                problem_set__in=course.problem_sets.all()
-            ).values('problem_set_id', 'completion_percentage', 'is_completed')
             
-            progress_map = {p['problem_set_id']: p for p in problem_set_progress}
+            # Build problem sets with inline progress
+            problem_sets_data = []
+            completed_sets = 0
             
-            completed_sets = sum(1 for p in progress_map.values() if p['is_completed'])
-            total_sets = course.problem_sets.count()
+            for cps in course.courseproblemset_set.all():
+                ps = cps.problem_set
+                progress_key = (course.id, ps.id)
+                progress = progress_lookup.get(progress_key, {})
+                
+                completed = progress.get('completed_problems', 0)
+                total = progress.get('total_problems', ps.problems.count())
+                is_completed = progress.get('is_completed', False)
+                
+                if is_completed:
+                    completed_sets += 1
+                
+                problem_sets_data.append({
+                    'problem_set': {
+                        'slug': ps.slug,
+                        'title': ps.title,
+                        'description': ps.description,
+                        'icon': ps.icon.url if ps.icon else None,
+                        'problems_count': total
+                    },
+                    'progress': {
+                        'completed_problems': completed,
+                        'total_problems': total,
+                        'percentage': int((completed / total * 100) if total > 0 else 0)
+                    },
+                    'order': cps.order,
+                    'is_required': cps.is_required
+                })
+            
+            total_sets = len(problem_sets_data)
             
             courses_data.append({
-                'course': CourseDetailSerializer(course).data,
+                'course': {
+                    'course_id': course.course_id,
+                    'name': course.name,
+                    'description': course.description,
+                    'instructor_name': course.instructor.get_full_name() or course.instructor.username,
+                    'problem_sets': problem_sets_data
+                },
                 'enrolled_at': enrollment.enrolled_at,
                 'progress': {
                     'completed_sets': completed_sets,
@@ -318,13 +367,15 @@ class CourseLookupView(APIView):
             ).exists()
             
             return Response({
-                'course_id': course.course_id,
-                'name': course.name,
-                'description': course.description,
-                'instructor': course.instructor.get_full_name() or course.instructor.username,
-                'problem_sets_count': course.problem_sets.count(),
-                'enrollment_open': course.enrollment_open,
-                'is_enrolled': is_enrolled
+                'course': {
+                    'course_id': course.course_id,
+                    'name': course.name,
+                    'description': course.description,
+                    'instructor': course.instructor.get_full_name() or course.instructor.username,
+                    'problem_sets_count': course.problem_sets.count(),
+                    'enrollment_open': course.enrollment_open,
+                },
+                'already_enrolled': is_enrolled
             })
         except Course.DoesNotExist:
             return Response(
@@ -614,14 +665,14 @@ class AdminAvailableProblemSetsView(APIView):
             ).values_list('problem_set_id', flat=True)
             available_problem_sets = available_problem_sets.exclude(id__in=assigned_ps_ids)
         
-        # Order by name
-        available_problem_sets = available_problem_sets.order_by('name')
+        # Order by title
+        available_problem_sets = available_problem_sets.order_by('title')
         
         response_data = []
         for ps in available_problem_sets:
             response_data.append({
                 'slug': ps.slug,
-                'title': ps.name,
+                'title': ps.title,
                 'problems_count': ps.problems.count(),
                 'description': ps.description
             })

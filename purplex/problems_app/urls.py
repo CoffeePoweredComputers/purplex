@@ -40,7 +40,6 @@ urlpatterns = [
     # Progress endpoints
     path('progress/', UserProgressView.as_view(), name='user_progress_all'),
     path('progress/<slug:problem_slug>/', UserProgressView.as_view(), name='user_progress_problem'),
-    path('progress-summary/', UserProgressSummaryView.as_view(), name='user_progress_summary'),
     path('problem-sets/<slug:slug>/progress/', ProblemSetProgressView.as_view(), name='problem_set_progress'),
     
     # Admin endpoints - Problems
@@ -54,6 +53,7 @@ urlpatterns = [
     
     # Admin endpoints - Problem Sets
     path('admin/problem-sets/', AdminProblemSetListView.as_view(), name='admin_problem_set_list'),
+    path('admin/problem-sets/available/', AdminAvailableProblemSetsView.as_view(), name='admin_available_problemsets'),
     path('admin/problem-sets/<slug:slug>/', AdminProblemSetDetailView.as_view(), name='admin_problem_set_detail'),
     
     # Admin endpoints - Categories
@@ -67,7 +67,6 @@ urlpatterns = [
     path('admin/courses/<str:course_id>/problem-sets/<str:problem_set_slug>/', AdminCourseProblemSetsView.as_view(), name='admin_course_problemset_detail'),
     path('admin/courses/<str:course_id>/students/', AdminCourseStudentsView.as_view(), name='admin_course_students'),
     path('admin/courses/<str:course_id>/students/<int:user_id>/', AdminCourseStudentsView.as_view(), name='admin_course_student_remove'),
-    path('admin/problem-sets/available/', AdminAvailableProblemSetsView.as_view(), name='admin_available_problemsets'),
     
     # Instructor Course Views
     path('instructor/courses/', InstructorCourseListView.as_view(), name='instructor_course_list'),
