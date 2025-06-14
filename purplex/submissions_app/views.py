@@ -1,5 +1,4 @@
 from django.shortcuts import get_object_or_404, render
-from django.http import JsonResponse
 from django.db import models
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -40,7 +39,7 @@ class PythonTestView(APIView):
             test_cases=list(problem.test_cases.all())
         )
 
-        return JsonResponse({"test_results": test_results})
+        return Response({"test_results": test_results})
 
 class PromptSubmissionResultView(APIView):
     permission_classes = [IsAuthenticated]
@@ -53,7 +52,7 @@ class PromptSubmissionResultView(APIView):
         if request.user == submission.user or hasattr(request.user, 'profile') and request.user.profile.is_admin:
             return render(request, 'submission_result.html', {'submission': submission})
         else:
-            return JsonResponse({'error': 'Permission denied'}, status=403)
+            return Response({'error': 'Permission denied'}, status=403)
 
 class SubmitCodeView(APIView):
     permission_classes = [IsAuthenticated]
@@ -68,7 +67,7 @@ class SubmitCodeView(APIView):
         # For now, get the first problem set containing this problem
         problem_set = problem.problem_sets.first()
         if not problem_set:
-            return JsonResponse({'error': 'Problem must belong to a problem set'}, status=400)
+            return Response({'error': 'Problem must belong to a problem set'}, status=400)
         
         submission = PromptSubmission.objects.create(
             user=request.user,
@@ -101,7 +100,7 @@ class SubmitCodeView(APIView):
         submission.total_variations = 1
         submission.save()
 
-        return JsonResponse({'results': results})
+        return Response({'results': results})
 
 class AdminSubmissionsView(APIView):
     """View for admin users to manage submissions"""

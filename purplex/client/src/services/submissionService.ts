@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { BaseSubmission, SubmissionDetailed, CodeVariation, TestResult } from '../types';
+import type { BaseSubmission, SubmissionDetailed, CodeVariation, SubmissionTestResult } from '../types';
 
 // ===== SUBMISSION TYPES =====
 
@@ -15,7 +15,7 @@ export interface SubmissionSummary {
 }
 
 // Re-export submission types for convenience
-export type { BaseSubmission, SubmissionDetailed, CodeVariation, TestResult };
+export type { BaseSubmission, SubmissionDetailed, CodeVariation, SubmissionTestResult };
 
 export interface ProblemSetProgress {
   slug: string;
