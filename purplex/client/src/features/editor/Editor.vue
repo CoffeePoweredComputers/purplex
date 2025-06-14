@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from 'vue';
+  import { defineComponent, ref, watch } from 'vue';
   import { VAceEditor } from 'vue3-ace-editor';
   import workerJsonUrl from 'ace-builds/src-noconflict/worker-json?url'
   import 'ace-builds/src-noconflict/mode-python';
@@ -25,10 +25,15 @@
   import 'ace-builds/src-noconflict/theme-dracula';
   import 'ace-builds/src-noconflict/theme-tomorrow_night';
 
-  interface Marker {
-    start_line: number;
-    end_line: number;
-    explanation_portion: string;
+  interface HintMarker {
+    startLine: number;
+    endLine: number;
+    startColumn?: number;
+    endColumn?: number;
+    className: string;
+    type: 'fullLine' | 'text';
+    tooltipText?: string;
+    hintType: string;
   }
 
   export default defineComponent({
@@ -36,6 +41,7 @@
     components: {
       VAceEditor,
     },
+    emits: ['update:value'],
     props: {
       lang: {
         type: String,
@@ -65,8 +71,8 @@
         type: Number,
         default: null,
       },
-      highlightMarkers: {
-        type: Array as () => Marker[],
+      hintMarkers: {
+        type: Array as () => HintMarker[],
         default: () => [],
       },
       value: {
@@ -78,8 +84,9 @@
         default: false,
       },
     },
-    setup(props, { emit }) {
+    setup(props, { emit, expose }) {
       const editor = ref(null);
+      const activeMarkerIds = ref(new Set());
       
       /* Initialize the editor */
       const editorInit = (editorInstance: any) => {
@@ -90,8 +97,8 @@
           readOnly: props.readOnly,
         });
         
-        if (props.highlightMarkers.length > 0) {
-          setHighlightMarkers(props.highlightMarkers);
+        if (props.hintMarkers.length > 0) {
+          setHintMarkers(props.hintMarkers);
         }
       };
       
@@ -119,59 +126,138 @@
         return editor.value ? editor.value.getValue() : '';
       };
 
-      /* Setter for highlight markers */
-      const setHighlightMarkers = (markers: Marker[]) => {
-        if (!editor.value) return;
+      /* Setter for hint markers */
+      const setHintMarkers = (markers: HintMarker[]) => {
+        if (!editor.value) {
+          console.log('setHintMarkers: Editor not available');
+          return;
+        }
+        
+        console.log('setHintMarkers called with:', markers);
+        
+        // Clear existing hint markers
+        clearHintMarkers();
         
         markers.forEach((marker, index) => {
+          console.log(`Adding marker ${index}:`, marker);
+          
           const Range = ace.require('ace/range').Range;
-          const color = getVirdisColor(index);
-          const css = `.myMarker${index} { background: ${color}; position: absolute; z-index: 20; }`;
-          const style = document.createElement('style');
-          style.appendChild(document.createTextNode(css));
-          document.head.appendChild(style);
-          editor.value.session.addMarker(
-            new Range(marker.start_line - 1, 0, marker.end_line - 1, 2), 
-            `myMarker${index}`, 
-            'fullLine'
+          
+          // Create range based on marker type
+          let range;
+          if (marker.type === 'fullLine') {
+            range = new Range(
+              marker.startLine, 
+              0, 
+              marker.endLine, 
+              Number.MAX_SAFE_INTEGER
+            );
+          } else {
+            range = new Range(
+              marker.startLine,
+              marker.startColumn || 0,
+              marker.endLine,
+              marker.endColumn || Number.MAX_SAFE_INTEGER
+            );
+          }
+          
+          console.log(`Created range for marker ${index}:`, {
+            startLine: marker.startLine,
+            endLine: marker.endLine,
+            className: marker.className
+          });
+          
+          // Add marker to session
+          const markerId = editor.value.session.addMarker(
+            range,
+            marker.className,
+            marker.type === 'fullLine' ? 'fullLine' : 'text'
           );
+          
+          console.log(`Added marker ${index} with ID:`, markerId);
+          
+          // Track marker ID for cleanup
+          activeMarkerIds.value.add(markerId);
+          
+          // Add tooltip if specified
+          if (marker.tooltipText) {
+            // Add click handler for tooltips
+            editor.value.on('click', (e: any) => {
+              const position = e.getDocumentPosition();
+              if (position.row >= marker.startLine && position.row <= marker.endLine) {
+                // Show tooltip (could be implemented with a tooltip library)
+                console.log('Tooltip:', marker.tooltipText);
+              }
+            });
+          }
         });
-
-        /* add the message to the highlight markers */
-        editor.value.session.setAnnotations(
-          markers.map((marker) => ({
-            row: marker.start_line - 1,
-            column: 0,
-            text: marker.explanation_portion,
-            type: 'info',
-          }))
-        );
+        
+        console.log(`Total active markers: ${activeMarkerIds.value.size}`);
       };
 
-      /* utility function to return virdis color pallete for setting the background for the markers */
-      const getVirdisColor = (index: number) => {
-        const colors = [
-          '#44015482',
-          '#48287882',
-          '#3E498982',
-          '#31688E82',
-          '#26828E82',
-          '#1F9E8982',
-          '#35B77982',
-          '#6DCD5982',
-          '#B4DE2C82',
-          '#FDE72582',
-        ];
-        return colors[index % colors.length];
+      /* Clear all hint markers */
+      const clearHintMarkers = () => {
+        if (!editor.value) return;
+        
+        // Remove all tracked markers
+        activeMarkerIds.value.forEach(markerId => {
+          editor.value.session.removeMarker(markerId);
+        });
+        
+        // Clear the tracking set
+        activeMarkerIds.value.clear();
       };
+
+      /* Set new code content while preserving cursor */
+      const setCode = (newCode: string) => {
+        if (!editor.value) return;
+        
+        const cursorPosition = editor.value.getCursorPosition();
+        editor.value.setValue(newCode);
+        editor.value.moveCursorToPosition(cursorPosition);
+      };
+
+      /* Get current cursor position */
+      const getCursorPosition = () => {
+        if (!editor.value) return { row: 0, column: 0 };
+        return editor.value.getCursorPosition();
+      };
+
+      /* Move cursor to specific position */
+      const moveCursorToPosition = (position: { row: number; column: number }) => {
+        if (!editor.value) return;
+        editor.value.moveCursorToPosition(position);
+      };
+
+      /* Watch for hintMarkers prop changes */
+      watch(() => props.hintMarkers, (newMarkers) => {
+        if (editor.value && newMarkers) {
+          console.log('Editor: hintMarkers prop changed:', newMarkers);
+          setHintMarkers(newMarkers);
+        }
+      }, { deep: true });
       
+      // Expose methods for external access
+      expose({
+        setHintMarkers,
+        clearHintMarkers,
+        setCode,
+        getValue,
+        getCursorPosition,
+        moveCursorToPosition
+      });
+
       return {
         editor,
         editorInit,
         setValue,
         getValue,
-        setHighlightMarkers,
-        handleInput
+        handleInput,
+        setHintMarkers,
+        clearHintMarkers,
+        setCode,
+        getCursorPosition,
+        moveCursorToPosition
       };
     }
   });
@@ -296,5 +382,94 @@
   :deep(.ace_indent-guide) {
     background: none;
     border-right: 1px solid var(--color-bg-border);
+  }
+
+  /* Hint System Styles */
+  :deep(.variable-fade-highlight) {
+    background: rgba(102, 126, 234, 0.2);
+    border-bottom: 2px solid #667eea;
+    transition: all 0.2s ease;
+  }
+
+  :deep(.variable-fade-highlight:hover) {
+    background: rgba(102, 126, 234, 0.3);
+  }
+
+  :deep(.subgoal-highlight) {
+    background: rgba(76, 175, 80, 0.15);
+    border-left: 4px solid #4caf50;
+    transition: all 0.2s ease;
+  }
+
+  :deep(.subgoal-0) {
+    border-left-color: #4caf50;
+  }
+
+  :deep(.subgoal-1) {
+    border-left-color: #2196f3;
+  }
+
+  :deep(.subgoal-2) {
+    border-left-color: #ff9800;
+  }
+
+  :deep(.subgoal-3) {
+    border-left-color: #9c27b0;
+  }
+
+  :deep(.subgoal-current) {
+    background: rgba(255, 193, 7, 0.2);
+    animation: pulse-subgoal 2s infinite;
+  }
+
+  :deep(.subgoal-completed) {
+    background: rgba(76, 175, 80, 0.1);
+    opacity: 0.7;
+  }
+
+  @keyframes pulse-subgoal {
+    0% {
+      background: rgba(255, 193, 7, 0.2);
+    }
+    50% {
+      background: rgba(255, 193, 7, 0.3);
+    }
+    100% {
+      background: rgba(255, 193, 7, 0.2);
+    }
+  }
+
+  :deep(.input-suggestion) {
+    background: rgba(255, 193, 7, 0.1);
+    border-right: 3px solid #ffc107;
+    font-style: italic;
+    position: relative;
+  }
+
+  :deep(.input-suggestion)::after {
+    content: "💡";
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.6;
+  }
+
+  :deep(.suggestion-instructions) {
+    background: rgba(33, 150, 243, 0.1);
+    border-right: 3px solid #2196f3;
+  }
+
+  :deep(.suggestion-test_case) {
+    background: rgba(255, 193, 7, 0.1);
+    border-right: 3px solid #ffc107;
+  }
+
+  /* Annotation styles for hint system */
+  :deep(.ace_gutter .subgoal-annotation) {
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 3px;
+    padding: 2px 4px;
+    margin: 1px 0;
   }
 </style>

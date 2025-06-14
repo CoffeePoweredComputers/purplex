@@ -12,7 +12,9 @@
     </button>
     
     <transition name="slide">
-      <div v-if="showMenu && hasUnlockedHints" class="hint-menu">
+      <div v-if="showMenu && hasUnlockedHints" 
+           class="hint-menu"
+           :style="{ top: menuPosition.top, left: menuPosition.left }">
         <div class="hint-menu-header">
           <h4>Available Hints</h4>
           <button class="close-btn" @click="showMenu = false">×</button>
@@ -26,24 +28,28 @@
             :class="{ 
               'unlocked': hint.unlocked, 
               'used': isHintUsed(hint.type),
+              'active': isHintActive(hint.type),
               'locked': !hint.unlocked 
             }"
           >
-            <div 
-              class="hint-header"
-              @click="hint.unlocked && !isHintUsed(hint.type) ? requestHint(hint.type) : null"
-              :class="{ 'clickable': hint.unlocked && !isHintUsed(hint.type) }"
-            >
+            <div class="hint-header">
               <span class="hint-type-icon">{{ getHintIcon(hint.type) }}</span>
               <div class="hint-info">
                 <h5>{{ hint.title }}</h5>
                 <p class="hint-description">{{ hint.description }}</p>
               </div>
-              <span class="hint-status">
-                <span v-if="isHintUsed(hint.type)" class="status-icon used">✓</span>
-                <span v-else-if="!hint.unlocked" class="status-icon locked">🔒</span>
-                <span v-else class="status-icon available">→</span>
-              </span>
+              <div class="hint-controls">
+                <label v-if="hint.unlocked" class="hint-toggle">
+                  <input 
+                    type="checkbox" 
+                    :checked="isHintActive(hint.type)"
+                    @change="toggleHint(hint.type)"
+                    class="hint-checkbox"
+                  />
+                  <span class="toggle-slider"></span>
+                </label>
+                <span v-else class="status-icon locked">🔒</span>
+              </div>
             </div>
             
             <transition name="expand">
@@ -61,8 +67,26 @@
         </div>
         
         <div class="hint-footer">
-          <p class="hint-attempts">Attempts: {{ currentAttempts }}</p>
-          <p class="hint-note">Hints unlock after {{ getMinAttemptsForNextHint() }} attempts</p>
+          <div class="hint-stats">
+            <p class="hint-attempts">Attempts: {{ currentAttempts }}</p>
+            <p class="hint-note">Next hint unlocks after {{ getMinAttemptsForNextHint() }} attempts</p>
+          </div>
+          <div class="hint-actions" v-if="hasAnyActiveHints">
+            <button 
+              @click="showOriginalCode" 
+              class="action-btn secondary"
+              :disabled="!hasAnyActiveHints"
+            >
+              Show Original
+            </button>
+            <button 
+              @click="removeAllHints" 
+              class="action-btn danger"
+              :disabled="!hasAnyActiveHints"
+            >
+              Clear All Hints
+            </button>
+          </div>
         </div>
       </div>
     </transition>
@@ -106,7 +130,9 @@ export default {
       hintsUsed: [],
       hintContent: {},
       expandedHint: null,
-      lastAttemptCount: 0
+      lastAttemptCount: 0,
+      activeHints: new Set(), // Track which hints are currently applied to editor
+      menuPosition: { top: 0, left: 0 } // Position for fixed positioning
     }
   },
   computed: {
@@ -121,6 +147,9 @@ export default {
     },
     hasNewUnlockedHints() {
       return this.currentAttempts > this.lastAttemptCount && this.availableHintsCount > 0
+    },
+    hasAnyActiveHints() {
+      return this.activeHints.size > 0
     }
   },
   watch: {
@@ -135,7 +164,24 @@ export default {
         this.lastAttemptCount = oldVal
         this.loadHints()
       }
+    },
+    showMenu(isOpen) {
+      if (isOpen) {
+        // Add resize listener when menu opens
+        window.addEventListener('resize', this.handleResize)
+        window.addEventListener('scroll', this.handleScroll)
+      } else {
+        // Remove listeners when menu closes
+        window.removeEventListener('resize', this.handleResize)
+        window.removeEventListener('scroll', this.handleScroll)
+      }
     }
+  },
+  
+  beforeUnmount() {
+    // Clean up event listeners
+    window.removeEventListener('resize', this.handleResize)
+    window.removeEventListener('scroll', this.handleScroll)
   },
   methods: {
     async loadHints() {
@@ -163,21 +209,55 @@ export default {
       }
     },
     
-    async requestHint(hintType) {
-      if (this.loading || this.isHintUsed(hintType)) return
+    async toggleHint(hintType) {
+      if (this.loading) return
+      
+      const isActive = this.isHintActive(hintType)
+      
+      if (isActive) {
+        // Remove hint
+        this.activeHints.delete(hintType)
+        this.$emit('hint-toggled', {
+          hintType,
+          isActive: false,
+          hintData: null
+        })
+      } else {
+        // Apply hint - first get the content if we don't have it
+        if (!this.hintContent[hintType]) {
+          await this.requestHintContent(hintType)
+        }
+        
+        if (this.hintContent[hintType]) {
+          this.activeHints.add(hintType)
+          const transformedData = this.transformHintDataForProcessor(hintType)
+          this.$emit('hint-toggled', {
+            hintType,
+            isActive: true,
+            hintData: transformedData
+          })
+        }
+      }
+    },
+
+    async requestHintContent(hintType) {
+      if (this.loading || this.hintContent[hintType]) return
       
       this.loading = true
       try {
         const response = await problemService.getHintContent(this.problemSlug, hintType)
         
-        // Transform backend response to expected format
+        // Store the original response for processing
         this.hintContent[hintType] = {
           type: response.type,
           title: this.getHintTitle(response.type),
-          content: typeof response.content === 'object' ? JSON.stringify(response.content, null, 2) : response.content
+          content: typeof response.content === 'object' ? JSON.stringify(response.content, null, 2) : response.content,
+          originalData: response // Keep original for hint processors
         }
-        this.hintsUsed.push(hintType)
-        this.expandedHint = hintType
+        
+        if (!this.hintsUsed.includes(hintType)) {
+          this.hintsUsed.push(hintType)
+        }
         
         // Emit event for parent to track hint usage
         this.$emit('hint-used', {
@@ -210,7 +290,49 @@ export default {
     },
     
     toggleHintMenu() {
+      if (!this.showMenu) {
+        // Calculate position before showing menu
+        this.calculateMenuPosition()
+      }
       this.showMenu = !this.showMenu
+    },
+    
+    calculateMenuPosition() {
+      this.$nextTick(() => {
+        const button = this.$el.querySelector('.hint-button')
+        if (button) {
+          const rect = button.getBoundingClientRect()
+          const menuWidth = 400 // Approximate menu width
+          const viewportWidth = window.innerWidth
+          const viewportHeight = window.innerHeight
+          
+          // Calculate initial position below the button
+          let top = rect.bottom + 8
+          let left = rect.left
+          
+          // Adjust if menu would go off the right edge
+          if (left + menuWidth > viewportWidth - 20) {
+            left = viewportWidth - menuWidth - 20
+          }
+          
+          // Adjust if menu would go off the left edge
+          if (left < 20) {
+            left = 20
+          }
+          
+          // If menu would go off bottom, show above button instead
+          if (top + 300 > viewportHeight - 20) { // Approximate menu height
+            top = rect.top - 300 - 8
+          }
+          
+          // Ensure menu doesn't go above viewport
+          if (top < 20) {
+            top = 20
+          }
+          
+          this.menuPosition = { top: `${top}px`, left: `${left}px` }
+        }
+      })
     },
     
     isHintUsed(hintType) {
@@ -249,6 +371,67 @@ export default {
         'edge_case': 'Edge Case'
       }
       return titles[hintType] || 'Hint'
+    },
+
+    isHintActive(hintType) {
+      return this.activeHints.has(hintType)
+    },
+
+    getOriginalHintData(hintType) {
+      const hintContent = this.hintContent[hintType]
+      return hintContent?.originalData || null
+    },
+
+    transformHintDataForProcessor(hintType) {
+      const originalData = this.getOriginalHintData(hintType)
+      
+      if (!originalData) {
+        console.error(`No original data found for hint type: ${hintType}`)
+        return null
+      }
+
+      console.log(`Transforming data for ${hintType}:`, originalData)
+      
+      // Parse content if it's a JSON string
+      let content = originalData.content
+      if (typeof content === 'string') {
+        try {
+          content = JSON.parse(content)
+          console.log(`Parsed content for ${hintType}:`, content)
+        } catch (e) {
+          console.error(`Failed to parse content for ${hintType}:`, e)
+          return null
+        }
+      }
+      
+      // Return in the format expected by processors
+      const result = {
+        content: content
+      }
+      
+      console.log(`Transformed data for ${hintType}:`, result)
+      return result
+    },
+
+    showOriginalCode() {
+      this.$emit('show-original')
+    },
+
+    removeAllHints() {
+      this.activeHints.clear()
+      this.$emit('remove-all-hints')
+    },
+    
+    handleResize() {
+      if (this.showMenu) {
+        this.calculateMenuPosition()
+      }
+    },
+    
+    handleScroll() {
+      if (this.showMenu) {
+        this.calculateMenuPosition()
+      }
     }
   }
 }
@@ -314,9 +497,7 @@ export default {
 }
 
 .hint-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
+  position: fixed;
   background: white;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -384,8 +565,9 @@ export default {
   cursor: pointer;
 }
 
-.hint-header.clickable:hover {
-  background: #f9fafb;
+.hint-item.active .hint-header {
+  background: rgba(102, 126, 234, 0.1);
+  border-left: 3px solid #667eea;
 }
 
 .hint-type-icon {
@@ -474,10 +656,112 @@ export default {
   border-top: 1px solid #e5e7eb;
 }
 
-.hint-footer p {
+.hint-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hint-stats p {
   margin: 0;
   font-size: 12px;
   color: #6b7280;
+}
+
+.hint-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn.secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.action-btn.secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
+
+.action-btn.danger {
+  background: #dc2626;
+  color: white;
+}
+
+.action-btn.danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Toggle Switch Styles */
+.hint-controls {
+  display: flex;
+  align-items: center;
+}
+
+.hint-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.hint-checkbox {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e0;
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.hint-checkbox:checked + .toggle-slider {
+  background-color: #667eea;
+}
+
+.hint-checkbox:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.hint-toggle:hover .toggle-slider {
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
 }
 
 .hint-attempts {

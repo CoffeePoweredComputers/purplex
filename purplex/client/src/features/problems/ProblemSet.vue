@@ -59,6 +59,9 @@
                             :problemSetSlug="$route.params.slug"
                             :currentAttempts="getCurrentProblemAttempts()"
                             @hint-used="onHintUsed"
+                            @hint-toggled="onHintToggled"
+                            @show-original="onShowOriginal"
+                            @remove-all-hints="onRemoveAllHints"
                         />
                     </div>
                     <Editor 
@@ -67,11 +70,12 @@
                         mode="python" 
                         height="450px" 
                         width="100%" 
-                        :value="solutionCode"
+                        :value="displayedCode"
                         @update:value="updateSolutionCode"
                         :readOnly="true"
                         :showGutter="showLineNumbers"
                         :theme="currentTheme"
+                        :hintMarkers="currentHintMarkers"
                         :key="`editor-${currentProblem}`"
                     />
                     <div class="editor-toolbar">
@@ -164,6 +168,8 @@ import axios from 'axios'
 import { useNotification } from '@/composables/useNotification'
 import { useOptimisticProgress } from '@/composables/useOptimisticProgress'
 import { useHintTracking } from '@/composables/useHintTracking'
+import { useEditorHints } from '@/composables/useEditorHints'
+import { ref, computed, watch } from 'vue'
 
 export default {
     name: 'ProblemSet',
@@ -182,7 +188,44 @@ export default {
         const { notify } = useNotification();
         const { updateProgress, getProgress, clearOptimistic } = useOptimisticProgress();
         const { trackHintUsage, getHintsUsed } = useHintTracking();
-        return { notify, updateProgress, getProgress, clearOptimistic, trackHintUsage, getHintsUsed };
+        
+        // Hint system setup
+        const entry = ref(null);
+        const originalSolutionCode = ref('');
+        
+        // Initialize hint system
+        const {
+            modifiedCode,
+            hasActiveHints,
+            editorMarkers,
+            applyHint,
+            removeHint,
+            removeAllHints,
+            restoreOriginal,
+            isHintActive,
+            getStatus
+        } = useEditorHints(entry, originalSolutionCode);
+        
+        return { 
+            notify, 
+            updateProgress, 
+            getProgress, 
+            clearOptimistic, 
+            trackHintUsage, 
+            getHintsUsed,
+            // Hint system
+            entry,
+            originalSolutionCode,
+            modifiedCode,
+            hasActiveHints,
+            editorMarkers,
+            applyHint,
+            removeHint,
+            removeAllHints,
+            restoreOriginal,
+            isHintActive,
+            getHintStatus: getStatus
+        };
     },
     data() {
         return {
@@ -706,12 +749,66 @@ export default {
             
             // Emit event for analytics if needed
             this.$emit('hint-used', hintData);
+        },
+        
+        async onHintToggled(event) {
+            try {
+                const { hintType, isActive, hintData } = event;
+                
+                if (isActive) {
+                    // Apply the hint using the composable
+                    const success = await this.applyHint(hintType, hintData);
+                    if (success) {
+                        console.log(`Applied hint: ${hintType}`);
+                    } else {
+                        console.error(`Failed to apply hint: ${hintType}`);
+                    }
+                } else {
+                    // Remove the hint using the composable
+                    const success = await this.removeHint(hintType);
+                    if (success) {
+                        console.log(`Removed hint: ${hintType}`);
+                    } else {
+                        console.error(`Failed to remove hint: ${hintType}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling hint:', error);
+            }
+        },
+        
+        async onShowOriginal() {
+            try {
+                await this.restoreOriginal();
+                console.log('Restored original code');
+            } catch (error) {
+                console.error('Error restoring original code:', error);
+            }
+        },
+        
+        async onRemoveAllHints() {
+            try {
+                await this.removeAllHints();
+                console.log('Removed all hints');
+            } catch (error) {
+                console.error('Error removing all hints:', error);
+            }
         }
     },
     
     computed: {
         solutionCode() {
             return this.getCurrentProblem().reference_solution || '';
+        },
+        
+        displayedCode() {
+            return this.hasActiveHints ? this.modifiedCode : this.solutionCode;
+        },
+        
+        currentHintMarkers() {
+            const markers = this.editorMarkers || [];
+            console.log('ProblemSet currentHintMarkers computed:', markers);
+            return markers;
         },
         
         completedCount() {
@@ -746,6 +843,13 @@ export default {
             if (newSlug) {
                 this.loadProblemSet();
             }
+        },
+        solutionCode: {
+            handler(newCode) {
+                // Update the originalSolutionCode ref when solution changes
+                this.originalSolutionCode = newCode;
+            },
+            immediate: true
         },
         problemStatuses: {
             handler(newVal) {
