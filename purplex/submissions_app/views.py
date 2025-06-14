@@ -290,7 +290,7 @@ class UserLastSubmissionView(APIView):
             course_id = request.query_params.get('course_id')
             
             # Check if problem exists
-            from purplex.problems_app.models import Problem, Course
+            # Removed redundant import for Problem and Course
             problem = Problem.objects.filter(slug=problem_slug).first()
             if not problem:
                 return Response({'has_submission': False})
