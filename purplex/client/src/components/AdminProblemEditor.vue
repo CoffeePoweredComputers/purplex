@@ -411,6 +411,288 @@
         </div>
       </div>
 
+      <!-- Hints Configuration -->
+      <div class="form-section rounded-lg border-default transition-fast">
+        <h3>Hints Configuration</h3>
+        
+        <!-- Hint Type Tabs -->
+        <div class="hint-tabs">
+          <button 
+            type="button"
+            class="hint-tab-button"
+            :class="{ active: hintsTab === 'variable_fade' }"
+            @click="hintsTab = 'variable_fade'"
+          >
+            Variable Fade
+          </button>
+          <button 
+            type="button"
+            class="hint-tab-button"
+            :class="{ active: hintsTab === 'subgoal_highlight' }"
+            @click="hintsTab = 'subgoal_highlight'"
+          >
+            Subgoal Highlighting
+          </button>
+          <button 
+            type="button"
+            class="hint-tab-button"
+            :class="{ active: hintsTab === 'input_suggestion' }"
+            @click="hintsTab = 'input_suggestion'"
+          >
+            Input Suggestion
+          </button>
+        </div>
+        
+        <!-- Variable Fade Configuration -->
+        <div v-if="hintsTab === 'variable_fade'" class="hint-config-panel">
+          <div class="hint-toggle">
+            <label class="toggle-label">
+              <input 
+                type="checkbox" 
+                v-model="hints.variable_fade.is_enabled"
+                class="toggle-checkbox"
+              />
+              <span class="toggle-text">Enable Variable Fade Hints</span>
+            </label>
+            <div class="attempts-config" v-if="hints.variable_fade.is_enabled">
+              <label>Min Attempts Required:</label>
+              <input 
+                type="number" 
+                v-model.number="hints.variable_fade.min_attempts"
+                min="0"
+                max="10"
+                class="attempts-input"
+              />
+            </div>
+          </div>
+          
+          <div v-if="hints.variable_fade.is_enabled" class="mappings-section">
+            <h4>Variable Mappings</h4>
+            <div class="mappings-list">
+              <div 
+                v-for="(mapping, index) in hints.variable_fade.content.mappings" 
+                :key="index"
+                class="mapping-item"
+              >
+                <input 
+                  v-model="mapping.from"
+                  placeholder="Original variable"
+                  class="mapping-input"
+                  @input="validateVariableName(mapping, 'from')"
+                />
+                <span class="mapping-arrow">→</span>
+                <input 
+                  v-model="mapping.to"
+                  placeholder="Replacement"
+                  class="mapping-input"
+                  @input="validateVariableName(mapping, 'to')"
+                />
+                <button 
+                  type="button"
+                  @click="removeVariableMapping(index)"
+                  class="remove-btn"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div class="add-mapping">
+              <input 
+                v-model="newVariableMapping.from"
+                placeholder="Original variable"
+                class="mapping-input"
+                @keyup.enter="addVariableMapping"
+              />
+              <span class="mapping-arrow">→</span>
+              <input 
+                v-model="newVariableMapping.to"
+                placeholder="Replacement"
+                class="mapping-input"
+                @keyup.enter="addVariableMapping"
+              />
+              <button 
+                type="button"
+                @click="addVariableMapping"
+                class="btn-secondary"
+                :disabled="!newVariableMapping.from || !newVariableMapping.to"
+              >
+                Add Mapping
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Subgoal Highlighting Configuration -->
+        <div v-if="hintsTab === 'subgoal_highlight'" class="hint-config-panel">
+          <div class="hint-toggle">
+            <label class="toggle-label">
+              <input 
+                type="checkbox" 
+                v-model="hints.subgoal_highlight.is_enabled"
+                class="toggle-checkbox"
+              />
+              <span class="toggle-text">Enable Subgoal Highlighting</span>
+            </label>
+            <div class="attempts-config" v-if="hints.subgoal_highlight.is_enabled">
+              <label>Min Attempts Required:</label>
+              <input 
+                type="number" 
+                v-model.number="hints.subgoal_highlight.min_attempts"
+                min="0"
+                max="10"
+                class="attempts-input"
+              />
+            </div>
+          </div>
+          
+          <div v-if="hints.subgoal_highlight.is_enabled" class="subgoals-section">
+            <h4>Subgoals</h4>
+            <div class="subgoals-list">
+              <div 
+                v-for="(subgoal, index) in hints.subgoal_highlight.content.subgoals" 
+                :key="index"
+                class="subgoal-item"
+              >
+                <div class="subgoal-header">
+                  <input 
+                    v-model="subgoal.title"
+                    placeholder="Subgoal title"
+                    class="subgoal-title-input"
+                  />
+                  <button 
+                    type="button"
+                    @click="removeSubgoal(index)"
+                    class="remove-btn"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div class="subgoal-lines">
+                  <label>Lines:</label>
+                  <input 
+                    type="number"
+                    v-model.number="subgoal.line_start"
+                    min="1"
+                    placeholder="Start"
+                    class="line-input"
+                  />
+                  <span>to</span>
+                  <input 
+                    type="number"
+                    v-model.number="subgoal.line_end"
+                    :min="subgoal.line_start"
+                    placeholder="End"
+                    class="line-input"
+                  />
+                </div>
+                <textarea 
+                  v-model="subgoal.explanation"
+                  placeholder="Explanation of this subgoal"
+                  rows="2"
+                  class="subgoal-explanation"
+                ></textarea>
+              </div>
+            </div>
+            <div class="add-subgoal">
+              <h5>Add New Subgoal</h5>
+              <input 
+                v-model="newSubgoal.title"
+                placeholder="Subgoal title"
+                class="subgoal-title-input"
+              />
+              <div class="subgoal-lines">
+                <label>Lines:</label>
+                <input 
+                  type="number"
+                  v-model.number="newSubgoal.line_start"
+                  min="1"
+                  placeholder="Start"
+                  class="line-input"
+                />
+                <span>to</span>
+                <input 
+                  type="number"
+                  v-model.number="newSubgoal.line_end"
+                  :min="newSubgoal.line_start"
+                  placeholder="End"
+                  class="line-input"
+                />
+              </div>
+              <textarea 
+                v-model="newSubgoal.explanation"
+                placeholder="Explanation of this subgoal"
+                rows="2"
+                class="subgoal-explanation"
+              ></textarea>
+              <button 
+                type="button"
+                @click="addSubgoal"
+                class="btn-secondary"
+                :disabled="!newSubgoal.title || !newSubgoal.explanation"
+              >
+                Add Subgoal
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Input Suggestion Configuration -->
+        <div v-if="hintsTab === 'input_suggestion'" class="hint-config-panel">
+          <div class="hint-toggle">
+            <label class="toggle-label">
+              <input 
+                type="checkbox" 
+                v-model="hints.input_suggestion.is_enabled"
+                class="toggle-checkbox"
+              />
+              <span class="toggle-text">Enable Input Suggestion</span>
+            </label>
+            <div class="attempts-config" v-if="hints.input_suggestion.is_enabled">
+              <label>Min Attempts Required:</label>
+              <input 
+                type="number" 
+                v-model.number="hints.input_suggestion.min_attempts"
+                min="0"
+                max="10"
+                class="attempts-input"
+              />
+            </div>
+          </div>
+          
+          <div v-if="hints.input_suggestion.is_enabled" class="input-suggestion-section">
+            <h4>Select Test Cases for Hints</h4>
+            <p class="hint-description">Selected test cases will be shown to students after they make {{ hints.input_suggestion.min_attempts }} failed attempts.</p>
+            <div class="test-case-selector">
+              <div 
+                v-for="(testCase, index) in form.test_cases" 
+                :key="testCase.id || index"
+                class="test-case-option"
+                :class="{ selected: hints.input_suggestion.content.test_cases.includes(testCase.id || index) }"
+              >
+                <label>
+                  <input 
+                    type="checkbox"
+                    :value="testCase.id || index"
+                    v-model="hints.input_suggestion.content.test_cases"
+                  />
+                  <span class="test-case-preview">
+                    Test Case {{ index + 1 }}: {{ getTestCasePreview(testCase) }}
+                  </span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="instructions-section">
+              <label>Additional Instructions (optional):</label>
+              <textarea 
+                v-model="hints.input_suggestion.content.instructions"
+                placeholder="Provide guidance on how to approach these test cases"
+                rows="3"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
 
     </form>
     
@@ -548,7 +830,39 @@ export default {
       editorTheme: 'monokai',
       
       // Markdown description tab
-      descriptionTab: 'edit'
+      descriptionTab: 'edit',
+      
+      // Hints configuration
+      hintsTab: 'variable_fade',
+      hints: {
+        variable_fade: {
+          type: 'variable_fade',
+          is_enabled: false,
+          min_attempts: 0,
+          content: {
+            mappings: []
+          }
+        },
+        subgoal_highlight: {
+          type: 'subgoal_highlight',
+          is_enabled: false,
+          min_attempts: 0,
+          content: {
+            subgoals: []
+          }
+        },
+        input_suggestion: {
+          type: 'input_suggestion',
+          is_enabled: false,
+          min_attempts: 0,
+          content: {
+            test_cases: [],
+            instructions: ''
+          }
+        }
+      },
+      newVariableMapping: { from: '', to: '' },
+      newSubgoal: { line_start: 1, line_end: 1, title: '', explanation: '' }
     }
   },
   computed: {
@@ -805,6 +1119,9 @@ export default {
         
         // Parse function signature first to get parameter info
         this.parseFunctionSignature();
+        
+        // Load hints for the problem
+        await this.loadHints();
       });
     },
     
@@ -1224,10 +1541,167 @@ export default {
         // Re-parse function signature to rebuild functionParameters
         this.parseFunctionSignature();
         
+        // Save hints after problem is saved successfully
+        if (this.isEditing && savedProblem) {
+          await this.saveHints();
+        }
+        
         return this.isEditing ? 'Problem updated successfully' : 'Problem created successfully';
       });
     },
     
+    /**
+     * Save hints configuration
+     */
+    async saveHints() {
+      try {
+        const hintsArray = Object.values(this.hints);
+        await problemService.updateHints(this.currentProblemSlug, hintsArray);
+      } catch (error) {
+        console.error('Failed to save hints:', error);
+        // Don't throw - hints are optional functionality
+      }
+    },
+    
+    /**
+     * Load hints configuration for existing problem
+     */
+    async loadHints() {
+      if (!this.currentProblemSlug) return;
+      
+      try {
+        const hintsData = await problemService.getProblemHints(this.currentProblemSlug);
+        
+        // Update local hints data
+        hintsData.forEach(hint => {
+          if (this.hints[hint.type]) {
+            this.hints[hint.type] = hint;
+          }
+        });
+      } catch (error) {
+        console.error('Failed to load hints:', error);
+        // Don't throw - hints are optional functionality
+      }
+    },
+    
+    /**
+     * Add variable mapping
+     */
+    addVariableMapping() {
+      if (!this.newVariableMapping.from || !this.newVariableMapping.to) return;
+      
+      this.hints.variable_fade.content.mappings.push({
+        from: this.newVariableMapping.from,
+        to: this.newVariableMapping.to
+      });
+      
+      this.newVariableMapping = { from: '', to: '' };
+    },
+    
+    /**
+     * Get test case preview for Input Suggestion
+     */
+    getTestCasePreview(testCase) {
+      if (!testCase) return '';
+      
+      try {
+        // Create a preview showing inputs and expected output
+        const inputs = testCase.inputs?.map((input, idx) => {
+          const param = this.functionParameters[idx];
+          const paramName = param ? param.name : `arg${idx}`;
+          return `${paramName}=${this.formatPreviewValue(input)}`;
+        }).join(', ') || '';
+        
+        const output = this.formatPreviewValue(testCase.expected_output);
+        
+        return `${this.form.function_name}(${inputs}) → ${output}`;
+      } catch (error) {
+        return 'Invalid test case';
+      }
+    },
+    
+    /**
+     * Format value for preview display
+     */
+    formatPreviewValue(value) {
+      if (value === null || value === undefined) return 'None';
+      if (typeof value === 'string') {
+        // Truncate long strings
+        const truncated = value.length > 20 ? value.substring(0, 17) + '...' : value;
+        return `"${truncated}"`;
+      }
+      if (Array.isArray(value)) {
+        if (value.length === 0) return '[]';
+        if (value.length > 3) return `[${value.slice(0, 3).map(v => this.formatPreviewValue(v)).join(', ')}, ...]`;
+        return `[${value.map(v => this.formatPreviewValue(v)).join(', ')}]`;
+      }
+      if (typeof value === 'object') {
+        const keys = Object.keys(value);
+        if (keys.length === 0) return '{}';
+        if (keys.length > 2) return `{${keys.slice(0, 2).join(', ')}, ...}`;
+        return JSON.stringify(value);
+      }
+      return String(value);
+    },
+    
+    /**
+     * Remove variable mapping
+     */
+    removeVariableMapping(index) {
+      this.hints.variable_fade.content.mappings.splice(index, 1);
+    },
+    
+    /**
+     * Validate variable name
+     */
+    validateVariableName(mapping, field) {
+      const value = mapping[field];
+      const isValid = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value);
+      
+      if (!isValid && value) {
+        this.$toast?.warning?.(`Invalid variable name: ${value}. Must start with letter or underscore.`);
+      }
+    },
+    
+    /**
+     * Add subgoal
+     */
+    addSubgoal() {
+      if (!this.newSubgoal.title || !this.newSubgoal.explanation) return;
+      
+      this.hints.subgoal_highlight.content.subgoals.push({
+        line_start: this.newSubgoal.line_start,
+        line_end: this.newSubgoal.line_end,
+        title: this.newSubgoal.title,
+        explanation: this.newSubgoal.explanation
+      });
+      
+      this.newSubgoal = { line_start: 1, line_end: 1, title: '', explanation: '' };
+    },
+    
+    /**
+     * Remove subgoal
+     */
+    removeSubgoal(index) {
+      this.hints.subgoal_highlight.content.subgoals.splice(index, 1);
+    },
+    
+    /**
+     * Get test case preview for hint display
+     */
+    getTestCasePreview(testCase) {
+      if (!testCase.inputs || testCase.inputs.length === 0) return 'Empty';
+      
+      const inputStr = testCase.inputs.map(input => 
+        typeof input === 'string' ? `"${input}"` : JSON.stringify(input)
+      ).join(', ');
+      
+      const outputStr = typeof testCase.expected_output === 'string' 
+        ? `"${testCase.expected_output}"` 
+        : JSON.stringify(testCase.expected_output);
+      
+      return `(${inputStr}) → ${outputStr}`;
+    },
     
     /**
      * Update tags from input
@@ -3001,5 +3475,308 @@ export default {
   .category-option {
     justify-content: center;
   }
+}
+
+/* Hints Configuration Styles */
+.hint-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--color-bg-border);
+}
+
+.hint-tab-button {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: var(--transition-fast);
+  border-bottom: 3px solid transparent;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+}
+
+.hint-tab-button:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.hint-tab-button.active {
+  color: var(--color-primary-gradient-start);
+  border-bottom-color: var(--color-primary-gradient-start);
+  font-weight: 600;
+}
+
+.hint-config-panel {
+  padding: var(--spacing-lg);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-base);
+}
+
+.hint-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-checkbox {
+  width: 20px;
+  height: 20px;
+  margin-right: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.toggle-text {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.attempts-config {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.attempts-config label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.attempts-input {
+  width: 60px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+/* Variable Fade Styles */
+.mappings-section h4,
+.subgoals-section h4,
+.input-suggestion-section h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.mappings-list,
+.subgoals-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.mapping-item,
+.add-mapping {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.mapping-input {
+  flex: 1;
+  padding: var(--spacing-sm);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-primary);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+.mapping-arrow {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.remove-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-error);
+  color: white;
+  border: none;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  transition: var(--transition-fast);
+}
+
+.remove-btn:hover {
+  background: var(--color-error-dark);
+  transform: scale(1.1);
+}
+
+/* Subgoal Styles */
+.subgoal-item {
+  padding: var(--spacing-md);
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+}
+
+.subgoal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.subgoal-title-input {
+  flex: 1;
+  padding: var(--spacing-sm);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.subgoal-lines {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.subgoal-lines label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.line-input {
+  width: 80px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+.subgoal-explanation {
+  width: 100%;
+  padding: var(--spacing-sm);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-primary);
+  resize: vertical;
+  min-height: 60px;
+}
+
+.add-subgoal {
+  padding: var(--spacing-md);
+  background: var(--color-bg-panel);
+  border: 2px dashed var(--color-bg-border);
+  border-radius: var(--radius-base);
+}
+
+.add-subgoal h5 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+/* Input Suggestion Styles */
+.input-suggestion-section h4 {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.hint-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: var(--spacing-sm) 0 var(--spacing-md) 0;
+}
+
+.test-case-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  max-height: 300px;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+}
+
+.test-case-option {
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-xs);
+  transition: var(--transition-fast);
+}
+
+.test-case-option:hover {
+  background: var(--color-bg-hover);
+}
+
+.test-case-option.selected {
+  background: rgba(102, 126, 234, 0.1);
+  border-left: 3px solid var(--color-primary-gradient-start);
+  padding-left: calc(var(--spacing-sm) - 3px);
+}
+
+.test-case-option label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin: 0;
+}
+
+.test-case-option input[type="checkbox"] {
+  margin-right: var(--spacing-sm);
+}
+
+.test-case-preview {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.instructions-section {
+  margin-top: var(--spacing-lg);
+}
+
+.instructions-section label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+}
+
+.instructions-section textarea {
+  width: 100%;
+  padding: var(--spacing-sm);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-primary);
+  resize: vertical;
 }
 </style>

@@ -198,6 +198,56 @@ export interface TestCaseFormatted {
   expected_output?: unknown;
 }
 
+// ===== HINT TYPES =====
+export type HintType = 'variable_fade' | 'subgoal_highlight' | 'input_suggestion';
+
+export interface BaseHintConfig {
+  type: HintType;
+  is_enabled: boolean;
+  min_attempts: number;
+  content: Record<string, unknown>;
+}
+
+export interface VariableFadeMapping {
+  from: string;
+  to: string;
+}
+
+export interface VariableFadeHint extends BaseHintConfig {
+  type: 'variable_fade';
+  content: {
+    mappings: VariableFadeMapping[];
+  };
+}
+
+export interface SubgoalHighlight {
+  line_start: number;
+  line_end: number;
+  title: string;
+  explanation: string;
+}
+
+export interface SubgoalHighlightHint extends BaseHintConfig {
+  type: 'subgoal_highlight';
+  content: {
+    subgoals: SubgoalHighlight[];
+  };
+}
+
+export interface InputSuggestionHint extends BaseHintConfig {
+  type: 'input_suggestion';
+  content: {
+    test_cases: number[];
+    instructions?: string;
+  };
+}
+
+export type HintConfig = VariableFadeHint | SubgoalHighlightHint | InputSuggestionHint;
+
+export interface HintUpdateRequest {
+  hints: HintConfig[];
+}
+
 // ===== PROGRESS TRACKING TYPES =====
 export interface ProgressUpdate {
   status?: string;
@@ -362,4 +412,65 @@ export interface CourseProblemSet {
   problems_count?: number;
   icon?: string;
   order?: number;
+}
+
+// ===== HINT TYPES =====
+export type HintType = 'variable_fade' | 'subgoal_highlight' | 'input_suggestion';
+
+export interface HintConfig {
+  type: HintType;
+  enabled: boolean;
+  unlock_after_attempts: number;
+  data?: Record<string, any>;
+}
+
+export interface VariableMapping {
+  from: string;
+  to: string;
+}
+
+export interface VariableFadeHintData {
+  mappings: VariableMapping[];
+}
+
+export interface SubgoalHighlightData {
+  subgoals: Subgoal[];
+}
+
+export interface Subgoal {
+  id: string;
+  title: string;
+  explanation: string;
+  lineRanges: LineRange[];
+}
+
+export interface LineRange {
+  start: number;
+  end: number;
+}
+
+export interface InputSuggestionData {
+  suggestions: TestSuggestion[];
+}
+
+export interface TestSuggestion {
+  inputs: any[];
+  description: string;
+  pythonTutorUrl?: string;
+  learningGoal: string;
+}
+
+export interface HintRequest {
+  problemSlug: string;
+  problemSetSlug: string;
+  courseId: string;
+  hintType: HintType;
+  attempts: number;
+}
+
+export interface HintResponse {
+  success: boolean;
+  hint?: HintConfig;
+  message?: string;
+  error?: string;
 }

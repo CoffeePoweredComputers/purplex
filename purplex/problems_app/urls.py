@@ -10,7 +10,10 @@ from .views import (
     # Admin views
     AdminProblemListView, AdminProblemDetailView, AdminTestProblemView,
     AdminTestCaseView, AdminProblemSetListView,
-    AdminProblemSetDetailView, AdminCategoryView
+    AdminProblemSetDetailView, AdminCategoryView,
+    
+    # Hint views
+    ProblemHintAvailabilityView, ProblemHintDetailView, AdminProblemHintView
 )
 from .course_views import (
     # Admin course views
@@ -42,9 +45,14 @@ urlpatterns = [
     path('progress/<slug:problem_slug>/', UserProgressView.as_view(), name='user_progress_problem'),
     path('problem-sets/<slug:slug>/progress/', ProblemSetProgressView.as_view(), name='problem_set_progress'),
     
+    # Hint endpoints
+    path('problems/<slug:slug>/hints/', ProblemHintAvailabilityView.as_view(), name='problem_hint_availability'),
+    path('problems/<slug:slug>/hints/<str:hint_type>/', ProblemHintDetailView.as_view(), name='problem_hint_detail'),
+    
     # Admin endpoints - Problems
     path('admin/problems/', AdminProblemListView.as_view(), name='admin_problem_list'),
     path('admin/problems/<slug:slug>/', AdminProblemDetailView.as_view(), name='admin_problem_detail'),
+    path('admin/problems/<slug:slug>/hints/', AdminProblemHintView.as_view(), name='admin_problem_hints'),
     path('admin/test-problem/', AdminTestProblemView.as_view(), name='admin_test_problem'),
     
     # Admin endpoints - Test Cases

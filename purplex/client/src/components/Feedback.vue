@@ -164,7 +164,7 @@ export default {
       pythonTutorUrl: '',
       currentSlide: 0,
       currentSlideContents: "",
-      currentComprehensionResult: 0,
+      currentComprehensionResult: [],
     };
   },
   mounted() {

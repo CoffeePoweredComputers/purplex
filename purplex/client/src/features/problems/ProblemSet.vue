@@ -51,7 +51,16 @@
             <div class="left-panel">
                 <!-- Code editor section -->
                 <div class="editor-section">
-                    <div class="section-label">Code Editor</div>
+                    <div class="section-header">
+                        <div class="section-label">Code Editor</div>
+                        <HintButton 
+                            :problemSlug="getCurrentProblem().slug"
+                            :courseId="courseId"
+                            :problemSetSlug="$route.params.slug"
+                            :currentAttempts="getCurrentProblemAttempts()"
+                            @hint-used="onHintUsed"
+                        />
+                    </div>
                     <Editor 
                         ref="entry" 
                         lang="python" 
@@ -112,7 +121,7 @@
                             height="100px" 
                             width="100%"
                             v-bind:showGutter=false 
-                            wrap="free" 
+                            :wrap="true" 
                         />
                     </div>
                     <button 
@@ -150,15 +159,18 @@
 <script>
 import Editor from '@/features/editor/Editor.vue'
 import Feedback from "@/components/Feedback.vue"
+import HintButton from "@/components/HintButton.vue"
 import axios from 'axios'
 import { useNotification } from '@/composables/useNotification'
 import { useOptimisticProgress } from '@/composables/useOptimisticProgress'
+import { useHintTracking } from '@/composables/useHintTracking'
 
 export default {
     name: 'ProblemSet',
     components: {
         Editor,
-        Feedback
+        Feedback,
+        HintButton
     },
     props: {
         courseId: {
@@ -169,7 +181,8 @@ export default {
     setup() {
         const { notify } = useNotification();
         const { updateProgress, getProgress, clearOptimistic } = useOptimisticProgress();
-        return { notify, updateProgress, getProgress, clearOptimistic };
+        const { trackHintUsage, getHintsUsed } = useHintTracking();
+        return { notify, updateProgress, getProgress, clearOptimistic, trackHintUsage, getHintsUsed };
     },
     data() {
         return {
@@ -666,6 +679,33 @@ export default {
                 clearInterval(this.autoSaveInterval);
                 this.autoSaveInterval = null;
             }
+        },
+        
+        // Hint Management
+        getCurrentProblemAttempts() {
+            const problemSlug = this.getCurrentProblem().slug;
+            const status = this.problemStatuses[problemSlug];
+            return status?.attempts || 0;
+        },
+        
+        onHintUsed(hintData) {
+            // Log hint usage for research data
+            console.log('Hint used:', hintData);
+            
+            // Track hint usage with the composable
+            this.trackHintUsage(
+                hintData.problemSlug, 
+                hintData.hintType,
+                {
+                    courseId: this.courseId,
+                    problemSetSlug: this.$route.params.slug,
+                    attemptNumber: this.getCurrentProblemAttempts(),
+                    timestamp: hintData.timestamp
+                }
+            );
+            
+            // Emit event for analytics if needed
+            this.$emit('hint-used', hintData);
         }
     },
     
@@ -919,15 +959,20 @@ export default {
     box-sizing: border-box;
 }
 
-/* Section Label Styling */
-.section-label {
-    text-align: center;
+/* Section Header and Label Styling */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: var(--spacing-sm) var(--spacing-lg);
+    background: var(--color-bg-hover);
+    border-bottom: 1px solid var(--color-bg-input);
+}
+
+.section-label {
     font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--color-text-muted);
-    background: var(--color-bg-hover);
-    border-bottom: 1px solid var(--color-bg-input);
 }
 
 /* Editor Section */
