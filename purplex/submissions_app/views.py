@@ -163,7 +163,7 @@ class AdminSubmissionsView(APIView):
                 'problem_set': submission.problem_set.title if submission.problem_set else 'Unknown',
                 'score': submission.score,
                 'status': status,
-                'created_at': submission.submitted_at,
+                'submitted_at': submission.submitted_at,
             })
         
         return paginator.get_paginated_response(submissions_data)
@@ -227,7 +227,7 @@ class AdminSubmissionExportView(APIView):
                 'course': submission.course.course_id if submission.course else None,
                 'score': submission.score,
                 'status': status,
-                'created_at': submission.submitted_at.isoformat() if submission.submitted_at else '',
+                'submitted_at': submission.submitted_at.isoformat() if submission.submitted_at else '',
                 'prompt': submission.prompt or '',
                 
                 # Submission field structure
@@ -265,7 +265,7 @@ class AdminSubmissionDetailView(APIView):
             'course': submission.course.course_id if submission.course else None,
             'score': submission.score,
             'status': status,
-            'created_at': submission.submitted_at.isoformat() if submission.submitted_at else '',
+            'submitted_at': submission.submitted_at.isoformat() if submission.submitted_at else '',
             'prompt': submission.prompt or '',
             
             # Submission field structure

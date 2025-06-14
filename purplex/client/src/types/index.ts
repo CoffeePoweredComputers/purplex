@@ -108,7 +108,7 @@ export interface ValidationError {
 
 // ===== TEST EXECUTION TYPES =====
 export interface TestResult {
-  passed: boolean;
+  pass: boolean;
   test_number: number;
   inputs: unknown[];
   expected_output: unknown;

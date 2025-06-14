@@ -214,7 +214,7 @@ class SubmissionService {
       return 'No test results available';
     }
 
-    const passed = submission.test_results.filter(r => r.passed).length;
+    const passed = submission.test_results.filter(r => r.pass).length;
     const total = submission.test_results.length;
     const percentage = total > 0 ? Math.round((passed / total) * 100) : 0;
     

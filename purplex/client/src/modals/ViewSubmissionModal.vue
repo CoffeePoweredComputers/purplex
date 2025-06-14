@@ -109,8 +109,8 @@ export default {
       
       if (variationResults.length === 0) return null;
       
-      const allPassed = variationResults.every(r => r.passed);
-      const somePassed = variationResults.some(r => r.passed);
+      const allPassed = variationResults.every(r => r.pass);
+      const somePassed = variationResults.some(r => r.pass);
       
       if (allPassed) return 'success';
       if (somePassed) return 'partial';
