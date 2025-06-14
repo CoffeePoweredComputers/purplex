@@ -1,5 +1,4 @@
 from django.shortcuts import get_object_or_404, render
-from django.http import JsonResponse
 from django.db import models
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8,9 +7,12 @@ from purplex.users_app.permissions import IsAdmin, IsAdminOrReadOnly, IsAuthenti
 
 import json
 import docker
+import logging
 
 from .models import PromptSubmission
-from purplex.problems_app.models import Problem
+from purplex.problems_app.models import Problem, Course
+
+logger = logging.getLogger(__name__)
 
 class SubmissionsPagination(PageNumberPagination):
     page_size = 25
@@ -37,7 +39,7 @@ class PythonTestView(APIView):
             test_cases=list(problem.test_cases.all())
         )
 
-        return JsonResponse({"test_results": test_results})
+        return Response({"test_results": test_results})
 
 class PromptSubmissionResultView(APIView):
     permission_classes = [IsAuthenticated]
@@ -50,7 +52,7 @@ class PromptSubmissionResultView(APIView):
         if request.user == submission.user or hasattr(request.user, 'profile') and request.user.profile.is_admin:
             return render(request, 'submission_result.html', {'submission': submission})
         else:
-            return JsonResponse({'error': 'Permission denied'}, status=403)
+            return Response({'error': 'Permission denied'}, status=403)
 
 class SubmitCodeView(APIView):
     permission_classes = [IsAuthenticated]
@@ -60,9 +62,17 @@ class SubmitCodeView(APIView):
         code = data.get('code', '')
         
         problem = get_object_or_404(Problem, id=problem_id)
+        
+        # Get the problem set - required field
+        # For now, get the first problem set containing this problem
+        problem_set = problem.problem_sets.first()
+        if not problem_set:
+            return Response({'error': 'Problem must belong to a problem set'}, status=400)
+        
         submission = PromptSubmission.objects.create(
             user=request.user,
             problem=problem,
+            problem_set=problem_set,
             score=0,  # Initial score
             prompt=code
         )
@@ -77,14 +87,20 @@ class SubmitCodeView(APIView):
             test_cases=list(problem.test_cases.all())
         )
         
-        # Update score based on test results
+        # Update submission with test results using new field structure
         passed_tests = sum(1 for test in results if test.get('pass', False))
         total_tests = len(results)
         if total_tests > 0:
             submission.score = int((passed_tests / total_tests) * 100)
-            submission.save()
+        
+        # Update with new field structure
+        submission.test_results = results
+        submission.code_variations = [code]
+        submission.passing_variations = 1 if submission.score >= 100 else 0
+        submission.total_variations = 1
+        submission.save()
 
-        return JsonResponse({'results': results})
+        return Response({'results': results})
 
 class AdminSubmissionsView(APIView):
     """View for admin users to manage submissions"""
@@ -111,9 +127,9 @@ class AdminSubmissionsView(APIView):
         # Apply status filter
         if status_filter:
             if status_filter == 'passed':
-                submissions = submissions.filter(score__gte=80)
+                submissions = submissions.filter(score__gte=100)
             elif status_filter == 'partial':
-                submissions = submissions.filter(score__gt=0, score__lt=80)
+                submissions = submissions.filter(score__gt=0, score__lt=100)
             elif status_filter == 'failed':
                 submissions = submissions.filter(score=0)
         
@@ -122,7 +138,7 @@ class AdminSubmissionsView(APIView):
             submissions = submissions.filter(problem_set__title=problem_set_filter)
         
         # Order by creation time (newest first)
-        submissions = submissions.order_by('-time')
+        submissions = submissions.order_by('-submitted_at')
         
         # Apply pagination
         paginator = SubmissionsPagination()
@@ -132,7 +148,7 @@ class AdminSubmissionsView(APIView):
         submissions_data = []
         for submission in paginated_submissions:
             # Calculate status based on score
-            if submission.score >= 80:
+            if submission.score >= 100:
                 status = 'passed'
             elif submission.score > 0:
                 status = 'partial'
@@ -146,7 +162,7 @@ class AdminSubmissionsView(APIView):
                 'problem_set': submission.problem_set.title if submission.problem_set else 'Unknown',
                 'score': submission.score,
                 'status': status,
-                'created_at': submission.time,
+                'submitted_at': submission.submitted_at,
             })
         
         return paginator.get_paginated_response(submissions_data)
@@ -181,9 +197,9 @@ class AdminSubmissionExportView(APIView):
         if status_filter:
             # Filter by score ranges based on status
             if status_filter == 'passed':
-                submissions = submissions.filter(score__gte=80)
+                submissions = submissions.filter(score__gte=100)
             elif status_filter == 'partial':
-                submissions = submissions.filter(score__gt=0, score__lt=80)
+                submissions = submissions.filter(score__gt=0, score__lt=100)
             elif status_filter == 'failed':
                 submissions = submissions.filter(score=0)
         
@@ -195,7 +211,7 @@ class AdminSubmissionExportView(APIView):
         export_data = []
         for submission in submissions:
             # Calculate status
-            if submission.score >= 80:
+            if submission.score >= 100:
                 status = 'passed'
             elif submission.score > 0:
                 status = 'partial'
@@ -207,12 +223,19 @@ class AdminSubmissionExportView(APIView):
                 'user': submission.user.username,
                 'problem': submission.problem.title,
                 'problem_set': submission.problem_set.title if submission.problem_set else 'Unknown',
+                'course': submission.course.course_id if submission.course else None,
                 'score': submission.score,
                 'status': status,
-                'created_at': submission.time.isoformat() if submission.time else '',
-                'user_solution': submission.user_solution or '',
-                'feedback': submission.feedback or '',
-                'prompt': submission.prompt or ''
+                'submitted_at': submission.submitted_at.isoformat() if submission.submitted_at else '',
+                'prompt': submission.prompt or '',
+                
+                # Submission field structure
+                'code_variations': submission.code_variations or [],
+                'test_results': submission.test_results or [],
+                'passing_variations': submission.passing_variations or 0,
+                'total_variations': submission.total_variations or 0,
+                'execution_time': submission.execution_time,
+                'time_spent': str(submission.time_spent) if submission.time_spent else None
             })
         
         return Response(export_data)
@@ -226,7 +249,7 @@ class AdminSubmissionDetailView(APIView):
         submission = get_object_or_404(PromptSubmission, id=submission_id)
         
         # Calculate status
-        if submission.score >= 80:
+        if submission.score >= 100:
             status = 'passed'
         elif submission.score > 0:
             status = 'partial'
@@ -238,12 +261,19 @@ class AdminSubmissionDetailView(APIView):
             'user': submission.user.username,
             'problem': submission.problem.title,
             'problem_set': submission.problem_set.title if submission.problem_set else 'Unknown',
+            'course': submission.course.course_id if submission.course else None,
             'score': submission.score,
             'status': status,
-            'created_at': submission.time.isoformat() if submission.time else '',
-            'user_solution': submission.user_solution or '',
-            'feedback': submission.feedback or '',
-            'prompt': submission.prompt or ''
+            'submitted_at': submission.submitted_at.isoformat() if submission.submitted_at else '',
+            'prompt': submission.prompt or '',
+            
+            # Submission field structure
+            'code_variations': submission.code_variations or [],
+            'test_results': submission.test_results or [],
+            'passing_variations': submission.passing_variations or 0,
+            'total_variations': submission.total_variations or 0,
+            'execution_time': submission.execution_time,
+            'time_spent': str(submission.time_spent) if submission.time_spent else None
         }
         
         return Response(submission_data)
@@ -255,83 +285,49 @@ class UserLastSubmissionView(APIView):
     def get(self, request, problem_slug):
         """Get the user's most recent submission for this problem"""
         try:
-            # Debug logging
-            print(f"Looking for submissions for user: {request.user.username}, problem_slug: {problem_slug}")
+            # Get course_id from query params if provided
+            course_id = request.query_params.get('course_id')
             
             # Check if problem exists
-            from purplex.problems_app.models import Problem
             problem = Problem.objects.filter(slug=problem_slug).first()
             if not problem:
-                print(f"Problem not found with slug: {problem_slug}")
-                return Response({'has_submission': False, 'error': f'Problem not found: {problem_slug}'})
-            
-            print(f"Problem found: {problem.title}")
-            
-            # Get the user's most recent submission for this problem
-            submission = PromptSubmission.objects.filter(
-                user=request.user,
-                problem=problem
-            ).select_related('problem', 'problem_set').order_by('-time').first()
-            
-            print(f"Submissions found: {PromptSubmission.objects.filter(user=request.user, problem=problem).count()}")
-            
-            if not submission:
-                print("No submission found for this user and problem")
                 return Response({'has_submission': False})
             
-            print(f"Latest submission found: ID {submission.id}, Score: {submission.score}")
-            print(f"Raw user_solution: {submission.user_solution}")
-            print(f"Type of user_solution: {type(submission.user_solution)}")
+            # Build query with optional course filter
+            query = PromptSubmission.objects.filter(
+                user=request.user,
+                problem=problem
+            )
             
-            # Parse the user_solution JSON data
-            user_solution_data = submission.user_solution or {}
-            
-            # Handle case where user_solution might be a string instead of dict
-            if isinstance(user_solution_data, str):
+            # Add course filter if provided
+            if course_id:
                 try:
-                    import json
-                    user_solution_data = json.loads(user_solution_data)
-                except json.JSONDecodeError:
-                    print(f"Failed to parse user_solution as JSON: {user_solution_data}")
-                    user_solution_data = {}
+                    course = Course.objects.get(course_id=course_id)
+                    query = query.filter(course=course)
+                except Course.DoesNotExist:
+                    return Response({'has_submission': False})
+            else:
+                # If no course specified, get non-course submissions
+                query = query.filter(course__isnull=True)
             
-            # Also try to parse feedback field which might contain the actual data
-            feedback_data = {}
-            if submission.feedback:
-                try:
-                    import json
-                    feedback_data = json.loads(submission.feedback)
-                    print(f"Parsed feedback data: {feedback_data}")
-                except json.JSONDecodeError:
-                    print(f"Feedback is not JSON: {submission.feedback}")
+            # Get the most recent submission
+            submission = query.select_related('problem', 'problem_set', 'course').order_by('-submitted_at').first()
             
-            # Use standard field names: variations, results, passing_variations
-            variations = user_solution_data.get('variations', [])
-            results = user_solution_data.get('results', [])
+            if not submission:
+                return Response({'has_submission': False})
             
-            # Calculate passing variations from the test results
-            passing_variations = 0
-            if results:
-                for result_set in results:
-                    if isinstance(result_set, list) and all(test.get('pass', False) for test in result_set):
-                        passing_variations += 1
-            
-            print(f"Final data - Variations: {len(variations)}, Results: {len(results)}, Passing: {passing_variations}")
-            
+            # Direct field access - no JSON parsing needed!
             return Response({
                 'has_submission': True,
                 'submission_id': submission.id,
                 'score': submission.score,
-                'variations': variations,
-                'results': results,
-                'passing_variations': passing_variations,
-                'submitted_at': submission.time.isoformat() if submission.time else None,
-                'feedback': submission.feedback,
-                'user_prompt': submission.prompt or ''
+                'variations': submission.code_variations,
+                'results': submission.test_results,
+                'passing_variations': submission.passing_variations,
+                'submitted_at': submission.submitted_at.isoformat() if submission.submitted_at else None,
+                'user_prompt': submission.prompt
             })
             
         except Exception as e:
-            print(f"Error in UserLastSubmissionView: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error in UserLastSubmissionView: {str(e)}")
             return Response({'error': str(e)}, status=500)

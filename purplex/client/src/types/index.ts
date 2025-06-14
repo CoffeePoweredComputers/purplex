@@ -108,7 +108,7 @@ export interface ValidationError {
 
 // ===== TEST EXECUTION TYPES =====
 export interface TestResult {
-  passed: boolean;
+  pass: boolean;
   test_number: number;
   inputs: unknown[];
   expected_output: unknown;
@@ -245,6 +245,89 @@ export interface AuthState {
   status: AuthStatus;
   user: User | null;
   debug: boolean;
+}
+
+// ===== SUBMISSION TYPES =====
+export interface CodeVariation {
+  code: string;
+  description?: string;
+  is_correct?: boolean;
+}
+
+export interface SubmissionTestResult {
+  variation_index: number;
+  pass: boolean;
+  score: number;
+  test_number: number;
+  inputs: unknown[];
+  expected_output: unknown;
+  actual_output?: unknown;
+  error?: string;
+  execution_time?: number;
+}
+
+export interface BaseSubmission {
+  readonly id: number;
+  user: string;
+  problem: string;
+  problem_set: string;
+  course?: string;
+  score: number;
+  status: 'passed' | 'partial' | 'failed' | 'pending';
+  readonly submitted_at: string;
+  prompt: string;
+  execution_time?: number;
+  time_spent?: string;
+  
+  // New submission fields
+  code_variations: CodeVariation[] | string[];
+  test_results: SubmissionTestResult[];
+  passing_variations: number;
+  total_variations: number;
+  
+}
+
+export interface SubmissionDetailed extends BaseSubmission {
+  problem_details?: {
+    title: string;
+    slug: string;
+    difficulty: DifficultyLevel;
+  };
+  problem_set_details?: {
+    title: string;
+    slug: string;
+  };
+  course_details?: {
+    name: string;
+    course_id: string;
+  };
+  user_details?: {
+    email: string;
+    display_name?: string;
+  };
+}
+
+export interface SubmissionCreateRequest {
+  problem_slug: string;
+  prompt: string;
+  code_variations?: CodeVariation[];
+  time_spent?: number;
+  user_code?: string; // For backward compatibility
+}
+
+export interface SubmissionListResponse {
+  count: number;
+  next?: string;
+  previous?: string;
+  results: BaseSubmission[];
+}
+
+export interface SubmissionStats {
+  total_submissions: number;
+  unique_users: number;
+  average_score: number;
+  problems_attempted: number;
+  completion_rate: number;
 }
 
 // ===== COURSE TYPES =====

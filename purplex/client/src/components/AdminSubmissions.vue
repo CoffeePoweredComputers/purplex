@@ -82,7 +82,7 @@
                 </span>
               </td>
               <td>
-                <span class="time-stamp">{{ formatISODate(submission.created_at) }}</span>
+                <span class="time-stamp">{{ formatISODate(submission.submitted_at) }}</span>
               </td>
               <td class="actions-cell">
                 <button class="action-button view-button" @click="viewSubmission(submission.id)" title="View Details">
@@ -395,16 +395,23 @@ export default {
         
         const submissions = response.data;
         
-        // Create CSV content
+        // Create CSV content with new field structure
         const headers = [
           'User',
           'Problem',
           'Problem Set',
+          'Course',
           'Score (%)',
           'Status',
           'Submitted At',
-          'User Solution',
-          'Feedback'
+          'Total Variations',
+          'Passing Variations',
+          'Success Rate (%)',
+          'Code Variations',
+          'Test Results',
+          'Execution Time (s)',
+          'Time Spent',
+          'Prompt'
         ];
         
         const csvContent = [
@@ -413,11 +420,18 @@ export default {
             `"${submission.user}"`,
             `"${submission.problem}"`,
             `"${submission.problem_set || 'Unknown'}"`,
+            `"${submission.course || 'N/A'}"`,
             submission.score,
             `"${submission.status}"`,
-            `"${new Date(submission.created_at).toLocaleString()}"`,
-            `"${(submission.user_solution || '').replace(/"/g, '""')}"`,
-            `"${(submission.feedback || '').replace(/"/g, '""')}"`
+            `"${new Date(submission.submitted_at).toLocaleString()}"`,
+            submission.total_variations || 0,
+            submission.passing_variations || 0,
+            submission.total_variations ? Math.round((submission.passing_variations || 0) / submission.total_variations * 100) : 0,
+            `"${this.formatCodeVariationsForCSV(submission.code_variations)}"`,
+            `"${this.formatTestResultsForCSV(submission.test_results)}"`,
+            submission.execution_time || 0,
+            `"${submission.time_spent || 'N/A'}"`,
+            `"${(submission.prompt || '').replace(/"/g, '""')}"`
           ].join(','))
         ].join('\n');
         
@@ -452,18 +466,29 @@ export default {
         const response = await axios.get(`/api/admin/submissions/${submission.id}/`);
         const fullSubmission = response.data;
         
-        // Create JSON content with full submission data
+        // Create JSON content with full submission data (new field structure)
         const jsonContent = JSON.stringify({
           id: fullSubmission.id,
           user: fullSubmission.user,
           problem: fullSubmission.problem,
           problem_set: fullSubmission.problem_set,
+          course: fullSubmission.course,
           score: fullSubmission.score,
           status: fullSubmission.status,
-          submitted_at: fullSubmission.created_at,
-          user_solution: fullSubmission.user_solution,
-          feedback: fullSubmission.feedback,
-          prompt: fullSubmission.prompt || null
+          submitted_at: fullSubmission.submitted_at,
+          prompt: fullSubmission.prompt || null,
+          
+          // New submission fields
+          code_variations: fullSubmission.code_variations || [],
+          test_results: fullSubmission.test_results || [],
+          passing_variations: fullSubmission.passing_variations || 0,
+          total_variations: fullSubmission.total_variations || 0,
+          execution_time: fullSubmission.execution_time || null,
+          time_spent: fullSubmission.time_spent || null,
+          
+          // Computed fields for convenience
+          success_rate: fullSubmission.total_variations ? 
+            Math.round((fullSubmission.passing_variations || 0) / fullSubmission.total_variations * 100) : 0
         }, null, 2);
         
         // Create and download file
@@ -480,6 +505,31 @@ export default {
       } catch (error) {
         console.error('Error downloading submission data:', error);
         alert('Failed to download submission data. Please try again.');
+      }
+    },
+    
+    // Helper methods for CSV formatting
+    formatCodeVariationsForCSV(codeVariations) {
+      if (!codeVariations || !Array.isArray(codeVariations)) return '[]';
+      
+      // Return as pretty-printed JSON string for easy analysis
+      try {
+        return JSON.stringify(codeVariations, null, 2).replace(/"/g, '""');
+      } catch (error) {
+        console.error('Error formatting code variations:', error);
+        return '[]';
+      }
+    },
+    
+    formatTestResultsForCSV(testResults) {
+      if (!testResults || !Array.isArray(testResults)) return '[]';
+      
+      // Return as pretty-printed JSON string for easy analysis
+      try {
+        return JSON.stringify(testResults, null, 2).replace(/"/g, '""');
+      } catch (error) {
+        console.error('Error formatting test results:', error);
+        return '[]';
       }
     }
   }

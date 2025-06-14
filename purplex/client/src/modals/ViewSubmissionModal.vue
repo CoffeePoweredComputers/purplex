@@ -35,19 +35,9 @@
             </div>
             <div class="info-item">
               <span class="info-label">Submitted:</span>
-              <span class="info-value">{{ formatDetailedDate(submission.created_at) }}</span>
+              <span class="info-value">{{ formatDetailedDate(submission.submitted_at) }}</span>
             </div>
           </div>
-        </div>
-        
-        <div class="code-section" v-if="submission.user_solution">
-          <h3 class="section-title">User Solution</h3>
-          <pre class="code-block"><code>{{ prettyPrintContent(submission.user_solution) }}</code></pre>
-        </div>
-        
-        <div class="feedback-section" v-if="submission.feedback">
-          <h3 class="section-title">Feedback</h3>
-          <div class="feedback-content">{{ prettyPrintContent(submission.feedback) }}</div>
         </div>
         
         <div class="prompt-section" v-if="submission.prompt">
@@ -82,9 +72,89 @@ export default {
     }
   },
   emits: ['close', 'download'],
+  computed: {
+    hasCodeVariations() {
+      return this.submission && 
+             this.submission.code_variations && 
+             Array.isArray(this.submission.code_variations) && 
+             this.submission.code_variations.length > 0;
+    },
+    
+    hasTestResults() {
+      return this.submission && 
+             this.submission.test_results && 
+             Array.isArray(this.submission.test_results) && 
+             this.submission.test_results.length > 0;
+    }
+  },
   methods: {
+    getCodeVariations() {
+      if (!this.submission?.code_variations) return [];
+      return this.submission.code_variations;
+    },
+    
+    getVariationCode(variation) {
+      if (typeof variation === 'string') {
+        return variation;
+      }
+      if (typeof variation === 'object' && variation.code) {
+        return variation.code;
+      }
+      return JSON.stringify(variation, null, 2);
+    },
+    
+    getVariationStatus(index) {
+      const results = this.submission.test_results || [];
+      const variationResults = results.filter(r => r.variation_index === index);
+      
+      if (variationResults.length === 0) return null;
+      
+      const allPassed = variationResults.every(r => r.pass);
+      const somePassed = variationResults.some(r => r.pass);
+      
+      if (allPassed) return 'success';
+      if (somePassed) return 'partial';
+      return 'error';
+    },
+    
+    getVariationStatusText(index) {
+      const status = this.getVariationStatus(index);
+      switch (status) {
+        case 'success': return 'PASSED';
+        case 'partial': return 'PARTIAL';
+        case 'error': return 'FAILED';
+        default: return 'UNTESTED';
+      }
+    },
+    
+    getVariationClass(index) {
+      const status = this.getVariationStatus(index);
+      return status ? `variation-${status}` : 'variation-untested';
+    },
+    
+    getSuccessRate() {
+      const passing = this.submission.passing_variations || 0;
+      const total = this.submission.total_variations || this.submission.code_variations?.length || 0;
+      
+      if (total === 0) return 0;
+      return Math.round((passing / total) * 100);
+    },
+    
+    getSuccessRateClass(rate) {
+      if (rate >= 80) return 'success';
+      if (rate >= 50) return 'warning';
+      return 'error';
+    },
+    
+    formatTestValue(value) {
+      if (value === null || value === undefined) return 'null';
+      if (typeof value === 'string') return `"${value}"`;
+      if (Array.isArray(value)) return JSON.stringify(value);
+      if (typeof value === 'object') return JSON.stringify(value, null, 2);
+      return String(value);
+    },
     getScoreClass(score) {
-      if (score >= 80) return 'score-excellent';
+      if (score >= 100) return 'score-excellent';
       if (score >= 60) return 'score-good';
       if (score >= 40) return 'score-fair';
       return 'score-poor';
@@ -419,6 +489,251 @@ export default {
   color: var(--color-text-primary);
 }
 
+/* Variations Section Styling */
+.variations-summary {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-bg-input);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.summary-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.summary-value.success {
+  color: var(--color-success);
+}
+
+.summary-value.warning {
+  color: var(--color-warning);
+}
+
+.summary-value.error {
+  color: var(--color-error);
+}
+
+.variations-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.variation-item {
+  border: 1px solid var(--color-bg-input);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+  transition: var(--transition-base);
+}
+
+.variation-item:hover {
+  border-color: var(--color-primary-gradient-start);
+  box-shadow: var(--shadow-sm);
+}
+
+.variation-success {
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.variation-partial {
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
+.variation-error {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.variation-untested {
+  border-color: var(--color-bg-input);
+  background: var(--color-bg-hover);
+}
+
+.variation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-hover);
+  border-bottom: 1px solid var(--color-bg-input);
+}
+
+.variation-number {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.variation-status {
+  padding: 2px var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.variation-status.success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.variation-status.partial {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+}
+
+.variation-status.error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+/* Test Results Section Styling */
+.test-results-section {
+  margin: var(--spacing-lg) 0;
+}
+
+.test-results-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.test-result-item {
+  border: 1px solid var(--color-bg-input);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+  transition: var(--transition-base);
+}
+
+.test-result-item:hover {
+  border-color: var(--color-primary-gradient-start);
+}
+
+.test-passed {
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.test-failed {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.test-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-hover);
+  border-bottom: 1px solid var(--color-bg-input);
+}
+
+.test-number {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.test-status {
+  padding: 2px var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.test-status.success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.test-status.error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.test-score {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.test-details {
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.test-detail {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: flex-start;
+}
+
+.test-detail.error {
+  background: var(--color-error-bg);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-error);
+}
+
+.detail-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: var(--font-size-sm);
+  background: var(--color-bg-hover);
+  padding: 2px var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.detail-value.error-text {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .modal-content {
@@ -446,6 +761,21 @@ export default {
   .modal-footer .action-button {
     width: 100%;
     justify-content: center;
+  }
+  
+  .variations-summary {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .test-detail {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  
+  .detail-label {
+    min-width: auto;
   }
 }
 </style>
