@@ -10,7 +10,7 @@ import docker
 import logging
 
 from .models import PromptSubmission
-from purplex.problems_app.models import Problem
+from purplex.problems_app.models import Problem, Course
 
 logger = logging.getLogger(__name__)
 
@@ -289,7 +289,6 @@ class UserLastSubmissionView(APIView):
             course_id = request.query_params.get('course_id')
             
             # Check if problem exists
-            # Removed redundant import for Problem and Course
             problem = Problem.objects.filter(slug=problem_slug).first()
             if not problem:
                 return Response({'has_submission': False})
