@@ -254,9 +254,9 @@ export interface CodeVariation {
   is_correct?: boolean;
 }
 
-export interface TestResult {
+export interface SubmissionTestResult {
   variation_index: number;
-  passed: boolean;
+  pass: boolean;
   score: number;
   test_number: number;
   inputs: unknown[];
@@ -274,7 +274,6 @@ export interface BaseSubmission {
   course?: string;
   score: number;
   status: 'passed' | 'partial' | 'failed' | 'pending';
-  readonly created_at: string;
   readonly submitted_at: string;
   prompt: string;
   execution_time?: number;
@@ -282,7 +281,7 @@ export interface BaseSubmission {
   
   // New submission fields
   code_variations: CodeVariation[] | string[];
-  test_results: TestResult[];
+  test_results: SubmissionTestResult[];
   passing_variations: number;
   total_variations: number;
   

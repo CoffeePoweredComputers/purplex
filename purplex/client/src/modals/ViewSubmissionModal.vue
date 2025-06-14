@@ -35,7 +35,7 @@
             </div>
             <div class="info-item">
               <span class="info-label">Submitted:</span>
-              <span class="info-value">{{ formatDetailedDate(submission.created_at) }}</span>
+              <span class="info-value">{{ formatDetailedDate(submission.submitted_at) }}</span>
             </div>
           </div>
         </div>

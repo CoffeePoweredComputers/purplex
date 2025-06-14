@@ -82,7 +82,7 @@
                 </span>
               </td>
               <td>
-                <span class="time-stamp">{{ formatISODate(submission.created_at) }}</span>
+                <span class="time-stamp">{{ formatISODate(submission.submitted_at) }}</span>
               </td>
               <td class="actions-cell">
                 <button class="action-button view-button" @click="viewSubmission(submission.id)" title="View Details">
@@ -423,7 +423,7 @@ export default {
             `"${submission.course || 'N/A'}"`,
             submission.score,
             `"${submission.status}"`,
-            `"${new Date(submission.created_at).toLocaleString()}"`,
+            `"${new Date(submission.submitted_at).toLocaleString()}"`,
             submission.total_variations || 0,
             submission.passing_variations || 0,
             submission.total_variations ? Math.round((submission.passing_variations || 0) / submission.total_variations * 100) : 0,
@@ -475,7 +475,7 @@ export default {
           course: fullSubmission.course,
           score: fullSubmission.score,
           status: fullSubmission.status,
-          submitted_at: fullSubmission.created_at,
+          submitted_at: fullSubmission.submitted_at,
           prompt: fullSubmission.prompt || null,
           
           // New submission fields
