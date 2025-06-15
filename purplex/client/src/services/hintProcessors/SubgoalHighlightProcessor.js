@@ -54,10 +54,13 @@ export class SubgoalHighlightProcessor {
 
       console.log(`SubgoalHighlightProcessor: Generated ${markers.length} markers:`, markers)
 
+      // Add inline comments to the code and get updated line mappings
+      const { code: codeWithComments, adjustedMarkers } = this.addInlineCommentsAndAdjustMarkers(code, subgoals)
+
       return {
         success: true,
-        code, // Code unchanged for subgoal highlighting
-        markers,
+        code: codeWithComments, // Code with inline comments added
+        markers: adjustedMarkers, // Use adjusted markers that account for comments
         annotations,
         tooltips,
         metadata: {
@@ -88,17 +91,24 @@ export class SubgoalHighlightProcessor {
    * @returns {Object} Marker object for ACE Editor
    */
   static createSubgoalMarker(subgoal, index) {
+    // Create a safe class name from the title
+    const safeTitle = subgoal.title ? subgoal.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() : 'step'
+    
     return {
       startLine: subgoal.line_start - 1, // ACE uses 0-indexed lines
       endLine: subgoal.line_end - 1,
       startColumn: 0,
       endColumn: Number.MAX_SAFE_INTEGER, // Full line width
-      className: `subgoal-highlight subgoal-${index}`,
+      className: `subgoal-highlight subgoal-${index} subgoal-title-${safeTitle}`,
       type: 'fullLine',
-      tooltipText: `${subgoal.title}: ${subgoal.explanation}`,
+      tooltipText: `Step ${index + 1}: ${subgoal.title}: ${subgoal.explanation}`,
       hintType: 'subgoal_highlight',
       subgoalIndex: index,
-      subgoalData: subgoal
+      subgoalData: subgoal,
+      // Add data for CSS custom properties
+      stepNumber: index + 1,
+      stepTitle: subgoal.title || `Step ${index + 1}`,
+      stepLabel: `Step ${index + 1}: ${subgoal.title || 'Untitled'}`
     }
   }
 
@@ -287,6 +297,105 @@ export class SubgoalHighlightProcessor {
       averageLinesPerSubgoal: Math.round(totalLines / subgoals.length) || 0,
       lineRanges,
       overlaps: this.detectOverlaps(subgoals)
+    }
+  }
+
+  /**
+   * Add inline comments to code and create adjusted markers
+   * @param {string} code - Original code
+   * @param {Array} subgoals - Subgoal configurations
+   * @returns {Object} Code with comments and adjusted markers
+   */
+  static addInlineCommentsAndAdjustMarkers(code, subgoals) {
+    const lines = code.split('\n')
+    const adjustedMarkers = []
+    let lineOffset = 0
+    
+    // Process subgoals in original order to maintain step numbering
+    for (let i = 0; i < subgoals.length; i++) {
+      const subgoal = subgoals[i]
+      const stepNumber = i + 1
+      
+      // Create comment text
+      const commentText = `# Step ${stepNumber}: ${subgoal.title}`
+      
+      // Calculate current insertion position (accounting for previous insertions)
+      const targetLineIndex = subgoal.line_start - 1 + lineOffset // Convert to 0-indexed + offset
+      
+      if (targetLineIndex >= 0 && targetLineIndex < lines.length + lineOffset) {
+        // Get the indentation of the target line
+        const targetLine = lines[targetLineIndex]
+        const indentation = targetLine.match(/^(\s*)/)[1]
+        
+        // Insert comment with same indentation
+        lines.splice(targetLineIndex, 0, `${indentation}${commentText}`)
+        
+        console.log(`Added comment "${commentText}" before line ${subgoal.line_start} (now at index ${targetLineIndex})`)
+        
+        // Create markers for both the comment and the subgoal lines
+        const commentMarker = this.createCommentMarker(stepNumber, targetLineIndex, i)
+        const subgoalMarker = this.createAdjustedSubgoalMarker(subgoal, i, targetLineIndex + 1, lineOffset + 1)
+        
+        adjustedMarkers.push(commentMarker, subgoalMarker)
+        
+        // Increment offset for next insertion
+        lineOffset++
+      }
+    }
+    
+    return {
+      code: lines.join('\n'),
+      adjustedMarkers
+    }
+  }
+
+  /**
+   * Create marker for comment line
+   * @param {number} stepNumber - Step number
+   * @param {number} commentLineIndex - Line index of the comment
+   * @param {number} subgoalIndex - Original subgoal index for styling
+   * @returns {Object} Comment marker
+   */
+  static createCommentMarker(stepNumber, commentLineIndex, subgoalIndex) {
+    return {
+      startLine: commentLineIndex,
+      endLine: commentLineIndex,
+      startColumn: 0,
+      endColumn: Number.MAX_SAFE_INTEGER,
+      className: `subgoal-comment subgoal-comment-${subgoalIndex}`,
+      type: 'fullLine',
+      tooltipText: `Step ${stepNumber} guidance`,
+      hintType: 'subgoal_comment',
+      subgoalIndex,
+      stepNumber
+    }
+  }
+
+  /**
+   * Create adjusted marker for subgoal lines (accounting for inserted comments)
+   * @param {Object} subgoal - Original subgoal
+   * @param {number} index - Subgoal index
+   * @param {number} adjustedStartLine - New start line after comment insertion
+   * @param {number} lineOffset - Total offset from all previous comment insertions
+   * @returns {Object} Adjusted subgoal marker
+   */
+  static createAdjustedSubgoalMarker(subgoal, index, adjustedStartLine, lineOffset) {
+    const adjustedEndLine = adjustedStartLine + (subgoal.line_end - subgoal.line_start)
+    
+    return {
+      startLine: adjustedStartLine,
+      endLine: adjustedEndLine,
+      startColumn: 0,
+      endColumn: Number.MAX_SAFE_INTEGER,
+      className: `subgoal-highlight subgoal-${index}`,
+      type: 'fullLine',
+      tooltipText: `Step ${index + 1}: ${subgoal.title}: ${subgoal.explanation}`,
+      hintType: 'subgoal_highlight',
+      subgoalIndex: index,
+      subgoalData: subgoal,
+      stepNumber: index + 1,
+      stepTitle: subgoal.title || `Step ${index + 1}`,
+      stepLabel: `Step ${index + 1}: ${subgoal.title || 'Untitled'}`
     }
   }
 }

@@ -206,6 +206,8 @@
         
         // Clear the tracking set
         activeMarkerIds.value.clear();
+        
+        console.log('Cleared all hint markers');
       };
 
       /* Set new code content while preserving cursor */
@@ -228,6 +230,7 @@
         if (!editor.value) return;
         editor.value.moveCursorToPosition(position);
       };
+
 
       /* Watch for hintMarkers prop changes */
       watch(() => props.hintMarkers, (newMarkers) => {
@@ -385,22 +388,64 @@
   }
 
   /* Hint System Styles */
-  :deep(.variable-fade-highlight) {
-    background: rgba(102, 126, 234, 0.2);
-    border-bottom: 2px solid #667eea;
-    transition: all 0.2s ease;
-  }
-
-  :deep(.variable-fade-highlight:hover) {
-    background: rgba(102, 126, 234, 0.3);
-  }
+  /* Variable fade has no visual styling - just transforms variable names */
 
   :deep(.subgoal-highlight) {
-    background: rgba(76, 175, 80, 0.15);
-    border-left: 4px solid #4caf50;
+    background: rgba(76, 175, 80, 0.08);
+    border-left: 3px solid #4caf50;
     transition: all 0.2s ease;
   }
 
+  /* Slightly more prominent on hover */
+  :deep(.subgoal-highlight:hover) {
+    background: rgba(76, 175, 80, 0.15);
+  }
+
+  /* Comment line styling */
+  :deep(.subgoal-comment) {
+    background: rgba(46, 125, 50, 0.12);
+    border-left: 3px solid #2e7d32;
+    font-weight: 600;
+    color: #2e7d32;
+    transition: all 0.2s ease;
+  }
+
+  :deep(.subgoal-comment:hover) {
+    background: rgba(46, 125, 50, 0.18);
+  }
+
+  /* Individual step border colors for comments */
+  :deep(.subgoal-comment-0) {
+    border-left-color: #4caf50;
+    background: rgba(76, 175, 80, 0.12);
+  }
+
+  :deep(.subgoal-comment-1) {
+    border-left-color: #2196f3;
+    background: rgba(33, 150, 243, 0.12);
+  }
+
+  :deep(.subgoal-comment-2) {
+    border-left-color: #ff9800;
+    background: rgba(255, 152, 0, 0.12);
+  }
+
+  :deep(.subgoal-comment-3) {
+    border-left-color: #9c27b0;
+    background: rgba(156, 39, 176, 0.12);
+  }
+
+  :deep(.subgoal-comment-4) {
+    border-left-color: #e91e63;
+    background: rgba(233, 30, 99, 0.12);
+  }
+
+  :deep(.subgoal-comment-5) {
+    border-left-color: #607d8b;
+    background: rgba(96, 125, 139, 0.12);
+  }
+
+  /* Individual step border colors for subgoal lines */
   :deep(.subgoal-0) {
     border-left-color: #4caf50;
   }
@@ -415,6 +460,28 @@
 
   :deep(.subgoal-3) {
     border-left-color: #9c27b0;
+  }
+
+  :deep(.subgoal-4) {
+    border-left-color: #e91e63;
+  }
+
+  :deep(.subgoal-5) {
+    border-left-color: #607d8b;
+  }
+
+  /* Style for step comment lines - make them more prominent */
+  :deep(.ace_comment) {
+    font-style: normal !important;
+  }
+  
+  /* Special styling for step comments (will need to be applied via JS) */
+  :deep(.step-comment) {
+    color: #2e7d32 !important;
+    font-weight: 600 !important;
+    background: rgba(76, 175, 80, 0.1);
+    padding: 1px 4px;
+    border-radius: 2px;
   }
 
   :deep(.subgoal-current) {
