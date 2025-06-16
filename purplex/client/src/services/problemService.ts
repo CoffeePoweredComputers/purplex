@@ -210,7 +210,7 @@ class ProblemServiceImpl {
     context?: { courseId?: string; problemSetSlug?: string }
   ): Promise<{
     available_hints: Array<{
-      type: 'structural' | 'implementation' | 'edge_case';
+      type: 'variable_fade' | 'subgoal_highlight' | 'suggested_trace';
       unlocked: boolean;
       title: string;
       description: string;
