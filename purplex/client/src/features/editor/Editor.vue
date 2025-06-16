@@ -164,7 +164,8 @@
           console.log(`Created range for marker ${index}:`, {
             startLine: marker.startLine,
             endLine: marker.endLine,
-            className: marker.className
+            className: marker.className,
+            type: marker.type
           });
           
           // Add marker to session
@@ -174,7 +175,7 @@
             marker.type === 'fullLine' ? 'fullLine' : 'text'
           );
           
-          console.log(`Added marker ${index} with ID:`, markerId);
+          console.log(`Added marker ${index} with ID ${markerId}, className: "${marker.className}"`);
           
           // Track marker ID for cleanup
           activeMarkerIds.value.add(markerId);
@@ -242,6 +243,7 @@
       
       // Expose methods for external access
       expose({
+        editor,
         setHintMarkers,
         clearHintMarkers,
         setCode,
@@ -391,14 +393,9 @@
   /* Variable fade has no visual styling - just transforms variable names */
 
   :deep(.subgoal-highlight) {
-    background: rgba(76, 175, 80, 0.08);
-    border-left: 3px solid #4caf50;
+    border-left-width: 3px;
+    border-left-style: solid;
     transition: all 0.2s ease;
-  }
-
-  /* Slightly more prominent on hover */
-  :deep(.subgoal-highlight:hover) {
-    background: rgba(76, 175, 80, 0.15);
   }
 
   /* Comment line styling */
@@ -415,59 +412,90 @@
   }
 
   /* Individual step border colors for comments */
-  :deep(.subgoal-comment-0) {
-    border-left-color: #4caf50;
-    background: rgba(76, 175, 80, 0.12);
+  :deep(.ace_subgoal-comment-0) {
+    border-left-color: #4caf50 !important;
+    background: rgba(76, 175, 80, 0.12) !important;
   }
 
-  :deep(.subgoal-comment-1) {
-    border-left-color: #2196f3;
-    background: rgba(33, 150, 243, 0.12);
+  :deep(.ace_subgoal-comment-1) {
+    border-left-color: #2196f3 !important;
+    background: rgba(33, 150, 243, 0.12) !important;
   }
 
-  :deep(.subgoal-comment-2) {
-    border-left-color: #ff9800;
-    background: rgba(255, 152, 0, 0.12);
+  :deep(.ace_subgoal-comment-2) {
+    border-left-color: #ff9800 !important;
+    background: rgba(255, 152, 0, 0.12) !important;
   }
 
-  :deep(.subgoal-comment-3) {
-    border-left-color: #9c27b0;
-    background: rgba(156, 39, 176, 0.12);
+  :deep(.ace_subgoal-comment-3) {
+    border-left-color: #9c27b0 !important;
+    background: rgba(156, 39, 176, 0.12) !important;
   }
 
-  :deep(.subgoal-comment-4) {
-    border-left-color: #e91e63;
-    background: rgba(233, 30, 99, 0.12);
+  :deep(.ace_subgoal-comment-4) {
+    border-left-color: #e91e63 !important;
+    background: rgba(233, 30, 99, 0.12) !important;
   }
 
-  :deep(.subgoal-comment-5) {
-    border-left-color: #607d8b;
-    background: rgba(96, 125, 139, 0.12);
+  :deep(.ace_subgoal-comment-5) {
+    border-left-color: #607d8b !important;
+    background: rgba(96, 125, 139, 0.12) !important;
   }
 
   /* Individual step border colors for subgoal lines */
-  :deep(.subgoal-0) {
-    border-left-color: #4caf50;
+  :deep(.ace_subgoal-0) {
+    border-left-color: #4caf50 !important;
+    background: rgba(76, 175, 80, 0.08) !important;
   }
 
-  :deep(.subgoal-1) {
-    border-left-color: #2196f3;
+  :deep(.ace_subgoal-1) {
+    border-left-color: #2196f3 !important;
+    background: rgba(33, 150, 243, 0.08) !important;
   }
 
-  :deep(.subgoal-2) {
-    border-left-color: #ff9800;
+  :deep(.ace_subgoal-2) {
+    border-left-color: #ff9800 !important;
+    background: rgba(255, 152, 0, 0.08) !important;
   }
 
-  :deep(.subgoal-3) {
-    border-left-color: #9c27b0;
+  :deep(.ace_subgoal-3) {
+    border-left-color: #9c27b0 !important;
+    background: rgba(156, 39, 176, 0.08) !important;
   }
 
-  :deep(.subgoal-4) {
-    border-left-color: #e91e63;
+  :deep(.ace_subgoal-4) {
+    border-left-color: #e91e63 !important;
+    background: rgba(233, 30, 99, 0.08) !important;
   }
 
-  :deep(.subgoal-5) {
-    border-left-color: #607d8b;
+  :deep(.ace_subgoal-5) {
+    border-left-color: #607d8b !important;
+    background: rgba(96, 125, 139, 0.08) !important;
+  }
+
+  /* Hover states for individual subgoals */
+  :deep(.ace_subgoal-0:hover) {
+    background: rgba(76, 175, 80, 0.15) !important;
+  }
+
+  :deep(.ace_subgoal-1:hover) {
+    background: rgba(33, 150, 243, 0.15) !important;
+  }
+
+  :deep(.ace_subgoal-2:hover) {
+    background: rgba(255, 152, 0, 0.15) !important;
+  }
+
+  :deep(.ace_subgoal-3:hover) {
+    background: rgba(156, 39, 176, 0.15) !important;
+  }
+
+  :deep(.ace_subgoal-4:hover) {
+    background: rgba(233, 30, 99, 0.15) !important;
+  }
+
+  :deep(.ace_subgoal-5:hover) {
+    background: rgba(96, 125, 139, 0.15) !important;
   }
 
   /* Style for step comment lines - make them more prominent */

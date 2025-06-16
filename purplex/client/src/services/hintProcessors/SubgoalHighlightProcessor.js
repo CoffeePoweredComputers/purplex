@@ -336,6 +336,10 @@ export class SubgoalHighlightProcessor {
         const commentMarker = this.createCommentMarker(stepNumber, targetLineIndex, i)
         const subgoalMarker = this.createAdjustedSubgoalMarker(subgoal, i, targetLineIndex + 1, lineOffset + 1)
         
+        console.log(`Creating markers for subgoal ${i}:`)
+        console.log(`  Comment marker: className="${commentMarker.className}"`)
+        console.log(`  Subgoal marker: className="${subgoalMarker.className}"`)
+        
         adjustedMarkers.push(commentMarker, subgoalMarker)
         
         // Increment offset for next insertion

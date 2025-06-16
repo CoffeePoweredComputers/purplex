@@ -106,7 +106,7 @@
                                 <span class="zoom-icon">−</span>
                             </button>
                             <span class="zoom-level">{{ Math.round((editorFontSize / 14) * 100) }}%</span>
-                            <button class="zoom-btn" @click="increaseFontSize" :disabled="editorFontSize >= 24" title="Zoom in">
+                            <button class="zoom-btn" @click="increaseFontSize" :disabled="editorFontSize >= 35" title="Zoom in">
                                 <span class="zoom-icon">+</span>
                             </button>
                         </div>
@@ -415,7 +415,7 @@ export default {
         },
         
         increaseFontSize() {
-            if (this.editorFontSize < 24) {
+            if (this.editorFontSize < 35) {
                 this.editorFontSize += 2;
                 this.updateEditorFontSize();
             }
