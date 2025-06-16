@@ -113,6 +113,14 @@
                     </div>
                 </div>
 
+                <!-- Suggested Trace Hint -->
+                <SuggestedTrace
+                    :isVisible="isHintActive('suggested_trace')"
+                    :hintData="getHintData('suggested_trace')"
+                    :solutionCode="solutionCode"
+                    @open-pytutor="openPyTutor"
+                />
+
                 <!-- Submission section -->
                 <div class="submission-section">
                     <div class="section-label">Describe the code here</div>
@@ -157,6 +165,13 @@
                 />
             </div>
         </div>
+
+        <!-- PyTutor Modal -->
+        <PyTutorModal 
+            :isVisible="showPyTutorModal" 
+            :pythonTutorUrl="pyTutorUrl" 
+            @close="closePyTutor" 
+        />
     </div>
 </template>
 
@@ -164,6 +179,8 @@
 import Editor from '@/features/editor/Editor.vue'
 import Feedback from "@/components/Feedback.vue"
 import HintButton from "@/components/HintButton.vue"
+import SuggestedTrace from "@/components/hints/SuggestedTrace.vue"
+import PyTutorModal from "@/modals/PyTutorModal.vue"
 import axios from 'axios'
 import { useNotification } from '@/composables/useNotification'
 import { useOptimisticProgress } from '@/composables/useOptimisticProgress'
@@ -176,7 +193,9 @@ export default {
     components: {
         Editor,
         Feedback,
-        HintButton
+        HintButton,
+        SuggestedTrace,
+        PyTutorModal
     },
     props: {
         courseId: {
@@ -203,6 +222,7 @@ export default {
             removeAllHints,
             restoreOriginal,
             isHintActive,
+            getHintData,
             getStatus
         } = useEditorHints(entry, originalSolutionCode);
         
@@ -224,6 +244,7 @@ export default {
             removeAllHints,
             restoreOriginal,
             isHintActive,
+            getHintData,
             getHintStatus: getStatus
         };
     },
@@ -259,7 +280,11 @@ export default {
             draftSaved: false,
             
             /* Submission Data Cache - Simple 5min cache */
-            submissionCache: new Map()
+            submissionCache: new Map(),
+            
+            /* PyTutor Modal */
+            showPyTutorModal: false,
+            pyTutorUrl: ''
         };
     },
     
@@ -793,6 +818,17 @@ export default {
             } catch (error) {
                 console.error('Error removing all hints:', error);
             }
+        },
+        
+        // PyTutor Modal Methods
+        openPyTutor(url) {
+            this.pyTutorUrl = url;
+            this.showPyTutorModal = true;
+        },
+        
+        closePyTutor() {
+            this.showPyTutorModal = false;
+            this.pyTutorUrl = '';
         }
     },
     

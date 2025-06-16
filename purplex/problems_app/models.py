@@ -510,7 +510,7 @@ class ProblemHint(models.Model):
     HINT_TYPE_CHOICES = [
         ('variable_fade', 'Variable Fade'),
         ('subgoal_highlight', 'Subgoal Highlighting'),
-        ('input_suggestion', 'Input Suggestion')
+        ('suggested_trace', 'Suggested Trace')
     ]
     
     problem = models.ForeignKey(Problem, on_delete=models.CASCADE, related_name='hints')
@@ -546,11 +546,11 @@ class ProblemHint(models.Model):
                 if not all(field in subgoal for field in required_fields):
                     raise ValidationError(f'Each subgoal must have: {", ".join(required_fields)}')
         
-        elif self.hint_type == 'input_suggestion':
-            if 'test_cases' not in self.content:
-                raise ValidationError('Input suggestion hint must contain test_cases')
-            if not isinstance(self.content.get('test_cases'), list):
-                raise ValidationError('Test cases must be a list of TestCase IDs')
+        elif self.hint_type == 'suggested_trace':
+            if 'suggested_call' not in self.content:
+                raise ValidationError('Suggested trace hint must contain suggested_call')
+            if not isinstance(self.content.get('suggested_call'), str):
+                raise ValidationError('Suggested call must be a string')
     
     def __str__(self):
         return f"{self.problem.title} - {self.get_hint_type_display()}"

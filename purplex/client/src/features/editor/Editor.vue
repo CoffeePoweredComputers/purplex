@@ -95,7 +95,43 @@
           showGutter: props.showGutter,
           maxLines: props.characterLimit,
           readOnly: props.readOnly,
+          highlightActiveLine: false,
+          highlightGutterLine: false,
+          showPrintMargin: false,
         });
+        
+        // Disable cursor visibility when read-only
+        if (props.readOnly) {
+          editorInstance.renderer.$cursorLayer.element.style.display = 'none';
+          editorInstance.setOption('showCursor', false);
+          // Remove focus outline
+          editorInstance.renderer.container.style.pointerEvents = 'none';
+          editorInstance.renderer.container.style.userSelect = 'text';
+        }
+        
+        // Override ACE's comment token rendering to remove backgrounds
+        const originalTokenizer = editorInstance.session.getMode().getTokenizer();
+        if (originalTokenizer && originalTokenizer.getLineTokens) {
+          const originalGetLineTokens = originalTokenizer.getLineTokens.bind(originalTokenizer);
+          originalTokenizer.getLineTokens = function(line: string, state: any) {
+            const tokens = originalGetLineTokens(line, state);
+            // Remove background from comment tokens
+            if (tokens && tokens.tokens) {
+              tokens.tokens.forEach((token: any) => {
+                if (token.type && token.type.includes('comment')) {
+                  // Force transparent background for comments
+                  token.type = token.type + ' ace-comment-transparent';
+                }
+              });
+            }
+            return tokens;
+          };
+        }
+        
+        // Ensure marker layer has proper z-index
+        if (editorInstance.renderer.$markerBack) {
+          editorInstance.renderer.$markerBack.element.style.zIndex = '3';
+        }
         
         if (props.hintMarkers.length > 0) {
           setHintMarkers(props.hintMarkers);
@@ -179,6 +215,12 @@
           
           // Track marker ID for cleanup
           activeMarkerIds.value.add(markerId);
+          
+          // For comment markers, ensure the line has proper styling
+          if (marker.className.includes('subgoal-comment')) {
+            // Force a re-render of the line to ensure styles are applied
+            editor.value.renderer.updateLines(marker.startLine, marker.endLine);
+          }
           
           // Add tooltip if specified
           if (marker.tooltipText) {
@@ -391,136 +433,37 @@
 
   /* Hint System Styles */
   /* Variable fade has no visual styling - just transforms variable names */
-
-  :deep(.subgoal-highlight) {
-    border-left-width: 3px;
-    border-left-style: solid;
-    transition: all 0.2s ease;
-  }
-
-  /* Comment line styling */
-  :deep(.subgoal-comment) {
-    background: rgba(46, 125, 50, 0.12);
-    border-left: 3px solid #2e7d32;
-    font-weight: 600;
-    color: #2e7d32;
-    transition: all 0.2s ease;
-  }
-
-  :deep(.subgoal-comment:hover) {
-    background: rgba(46, 125, 50, 0.18);
-  }
-
-  /* Individual step border colors for comments */
-  :deep(.ace_subgoal-comment-0) {
-    border-left-color: #4caf50 !important;
-    background: rgba(76, 175, 80, 0.12) !important;
-  }
-
-  :deep(.ace_subgoal-comment-1) {
-    border-left-color: #2196f3 !important;
-    background: rgba(33, 150, 243, 0.12) !important;
-  }
-
-  :deep(.ace_subgoal-comment-2) {
-    border-left-color: #ff9800 !important;
-    background: rgba(255, 152, 0, 0.12) !important;
-  }
-
-  :deep(.ace_subgoal-comment-3) {
-    border-left-color: #9c27b0 !important;
-    background: rgba(156, 39, 176, 0.12) !important;
-  }
-
-  :deep(.ace_subgoal-comment-4) {
-    border-left-color: #e91e63 !important;
-    background: rgba(233, 30, 99, 0.12) !important;
-  }
-
-  :deep(.ace_subgoal-comment-5) {
-    border-left-color: #607d8b !important;
-    background: rgba(96, 125, 139, 0.12) !important;
-  }
-
-  /* Individual step border colors for subgoal lines */
-  :deep(.ace_subgoal-0) {
-    border-left-color: #4caf50 !important;
-    background: rgba(76, 175, 80, 0.08) !important;
-  }
-
-  :deep(.ace_subgoal-1) {
-    border-left-color: #2196f3 !important;
-    background: rgba(33, 150, 243, 0.08) !important;
-  }
-
-  :deep(.ace_subgoal-2) {
-    border-left-color: #ff9800 !important;
-    background: rgba(255, 152, 0, 0.08) !important;
-  }
-
-  :deep(.ace_subgoal-3) {
-    border-left-color: #9c27b0 !important;
-    background: rgba(156, 39, 176, 0.08) !important;
-  }
-
-  :deep(.ace_subgoal-4) {
-    border-left-color: #e91e63 !important;
-    background: rgba(233, 30, 99, 0.08) !important;
-  }
-
-  :deep(.ace_subgoal-5) {
-    border-left-color: #607d8b !important;
-    background: rgba(96, 125, 139, 0.08) !important;
-  }
-
-  /* Hover states for individual subgoals */
-  :deep(.ace_subgoal-0:hover) {
-    background: rgba(76, 175, 80, 0.15) !important;
-  }
-
-  :deep(.ace_subgoal-1:hover) {
-    background: rgba(33, 150, 243, 0.15) !important;
-  }
-
-  :deep(.ace_subgoal-2:hover) {
-    background: rgba(255, 152, 0, 0.15) !important;
-  }
-
-  :deep(.ace_subgoal-3:hover) {
-    background: rgba(156, 39, 176, 0.15) !important;
-  }
-
-  :deep(.ace_subgoal-4:hover) {
-    background: rgba(233, 30, 99, 0.15) !important;
-  }
-
-  :deep(.ace_subgoal-5:hover) {
-    background: rgba(96, 125, 139, 0.15) !important;
-  }
-
-  /* Style for step comment lines - make them more prominent */
-  :deep(.ace_comment) {
-    font-style: normal !important;
+  /* Subgoal highlighting styles moved to global styles block below */
+  
+  /* Hide cursor for read-only editors */
+  :deep(.ace_cursor-layer) {
+    display: none !important;
   }
   
-  /* Special styling for step comments (will need to be applied via JS) */
-  :deep(.step-comment) {
-    color: #2e7d32 !important;
-    font-weight: 600 !important;
-    background: rgba(76, 175, 80, 0.1);
-    padding: 1px 4px;
-    border-radius: 2px;
+  :deep(.ace_cursor) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+  
+  /* Remove active line highlighting */
+  :deep(.ace_active-line) {
+    background: transparent !important;
+  }
+  
+  /* Make editor truly read-only visually */
+  :deep(.ace_editor.ace_read-only) {
+    cursor: default !important;
+  }
+  
+  :deep(.ace_editor.ace_read-only .ace_cursor-layer) {
+    display: none !important;
+  }
+  
+  :deep(.ace_editor.ace_read-only .ace_content) {
+    cursor: text !important;
   }
 
-  :deep(.subgoal-current) {
-    background: rgba(255, 193, 7, 0.2);
-    animation: pulse-subgoal 2s infinite;
-  }
-
-  :deep(.subgoal-completed) {
-    background: rgba(76, 175, 80, 0.1);
-    opacity: 0.7;
-  }
 
   @keyframes pulse-subgoal {
     0% {
@@ -534,15 +477,15 @@
     }
   }
 
-  :deep(.input-suggestion) {
+  :deep(.suggested-trace) {
     background: rgba(255, 193, 7, 0.1);
     border-right: 3px solid #ffc107;
     font-style: italic;
     position: relative;
   }
 
-  :deep(.input-suggestion)::after {
-    content: "💡";
+  :deep(.suggested-trace)::after {
+    content: "🔍";
     position: absolute;
     right: 8px;
     top: 50%;
@@ -567,4 +510,182 @@
     padding: 2px 4px;
     margin: 1px 0;
   }
+</style>
+
+<!-- Global styles for ACE markers (can't be scoped) -->
+<style>
+/* ACE Subgoal Highlighting - Harmonized with clouds_midnight theme */
+
+/* Force comment tokens to have transparent backgrounds when on highlighted lines */
+.ace-clouds-midnight .ace_comment {
+  background: transparent !important;
+}
+
+/* Special class for transparent comments */
+.ace-comment-transparent {
+  background: transparent !important;
+}
+
+/* Ensure marker layer is visible above text layer for highlighted lines */
+.ace_marker-layer {
+  pointer-events: none;
+}
+
+/* Make sure our highlights show through properly */
+.ace_line {
+  position: relative;
+}
+
+/* Alternative approach using attribute selectors if line has markers */
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-0) .ace_comment,
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-1) .ace_comment,
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-2) .ace_comment,
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-3) .ace_comment,
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-4) .ace_comment,
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-5) .ace_comment {
+  background: transparent !important;
+}
+
+/* Additional approach: Use mix-blend-mode to ensure visibility */
+.ace_marker-layer .subgoal-comment-0,
+.ace_marker-layer .subgoal-comment-1,
+.ace_marker-layer .subgoal-comment-2,
+.ace_marker-layer .subgoal-comment-3,
+.ace_marker-layer .subgoal-comment-4,
+.ace_marker-layer .subgoal-comment-5 {
+  mix-blend-mode: multiply;
+}
+
+/* Fallback: Apply highlighting to the entire line container */
+.ace_line_group:has(.ace_line .ace_comment:only-child) {
+  position: relative;
+}
+
+/* Use data attributes on the editor to mark highlighted lines if needed */
+.ace_editor[data-highlighted-lines*="comment"] .ace_text-layer .ace_line_group {
+  position: relative;
+  z-index: 1;
+}
+
+/* Direct line styling approach for better compatibility */
+.ace_gutter-cell.subgoal-line-0 ~ .ace_line,
+.ace_line.subgoal-line-0 {
+  background: rgba(57, 148, 106, 0.15) !important;
+  position: relative;
+}
+
+.ace_gutter-cell.subgoal-line-0 ~ .ace_line::before,
+.ace_line.subgoal-line-0::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: #39946A;
+}
+
+/* Comment Lines - Slightly more prominent backgrounds */
+.ace_marker-layer .subgoal-comment-0 {
+  background: rgba(57, 148, 106, 0.15) !important;  /* Muted Teal */
+  border-left: 5px solid #39946A !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+.ace_marker-layer .subgoal-comment-1 {
+  background: rgba(93, 144, 205, 0.15) !important;  /* Soft Blue */
+  border-left: 5px solid #5D90CD !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+.ace_marker-layer .subgoal-comment-2 {
+  background: rgba(146, 124, 93, 0.15) !important;  /* Warm Brown */
+  border-left: 5px solid #927C5D !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+.ace_marker-layer .subgoal-comment-3 {
+  background: rgba(161, 101, 172, 0.15) !important;  /* Muted Purple */
+  border-left: 5px solid #A165AC !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+.ace_marker-layer .subgoal-comment-4 {
+  background: rgba(231, 124, 124, 0.15) !important;  /* Dark Coral */
+  border-left: 5px solid #E77C7C !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+.ace_marker-layer .subgoal-comment-5 {
+  background: rgba(181, 165, 114, 0.15) !important;  /* Soft Yellow */
+  border-left: 5px solid #B5A572 !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+/* Code Lines - Subtle backgrounds */
+.ace_marker-layer .subgoal-highlight.subgoal-0 {
+  background: rgba(57, 148, 106, 0.08) !important;  /* Muted Teal */
+  border-left: 5px solid #39946A !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
+
+.ace_marker-layer .subgoal-highlight.subgoal-1 {
+  background: rgba(93, 144, 205, 0.08) !important;  /* Soft Blue */
+  border-left: 5px solid #5D90CD !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
+
+.ace_marker-layer .subgoal-highlight.subgoal-2 {
+  background: rgba(146, 124, 93, 0.08) !important;  /* Warm Brown */
+  border-left: 5px solid #927C5D !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
+
+.ace_marker-layer .subgoal-highlight.subgoal-3 {
+  background: rgba(161, 101, 172, 0.08) !important;  /* Muted Purple */
+  border-left: 5px solid #A165AC !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
+
+.ace_marker-layer .subgoal-highlight.subgoal-4 {
+  background: rgba(231, 124, 124, 0.08) !important;  /* Dark Coral */
+  border-left: 5px solid #E77C7C !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
+
+.ace_marker-layer .subgoal-highlight.subgoal-5 {
+  background: rgba(181, 165, 114, 0.08) !important;  /* Soft Yellow */
+  border-left: 5px solid #B5A572 !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
 </style>

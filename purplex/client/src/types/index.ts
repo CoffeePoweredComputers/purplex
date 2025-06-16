@@ -199,7 +199,7 @@ export interface TestCaseFormatted {
 }
 
 // ===== HINT TYPES =====
-export type HintType = 'variable_fade' | 'subgoal_highlight' | 'input_suggestion';
+export type HintType = 'variable_fade' | 'subgoal_highlight' | 'suggested_trace';
 
 export interface BaseHintConfig {
   type: HintType;
@@ -234,15 +234,15 @@ export interface SubgoalHighlightHint extends BaseHintConfig {
   };
 }
 
-export interface InputSuggestionHint extends BaseHintConfig {
-  type: 'input_suggestion';
+export interface SuggestedTraceHint extends BaseHintConfig {
+  type: 'suggested_trace';
   content: {
-    test_cases: number[];
-    instructions?: string;
+    suggested_call: string;
+    explanation?: string;
   };
 }
 
-export type HintConfig = VariableFadeHint | SubgoalHighlightHint | InputSuggestionHint;
+export type HintConfig = VariableFadeHint | SubgoalHighlightHint | SuggestedTraceHint;
 
 export interface HintUpdateRequest {
   hints: HintConfig[];
@@ -415,7 +415,7 @@ export interface CourseProblemSet {
 }
 
 // ===== HINT TYPES =====
-export type HintType = 'variable_fade' | 'subgoal_highlight' | 'input_suggestion';
+export type HintType = 'variable_fade' | 'subgoal_highlight' | 'suggested_trace';
 
 export interface HintConfig {
   type: HintType;
@@ -449,15 +449,9 @@ export interface LineRange {
   end: number;
 }
 
-export interface InputSuggestionData {
-  suggestions: TestSuggestion[];
-}
-
-export interface TestSuggestion {
-  inputs: any[];
-  description: string;
-  pythonTutorUrl?: string;
-  learningGoal: string;
+export interface SuggestedTraceData {
+  suggested_call: string;
+  explanation?: string;
 }
 
 export interface HintRequest {

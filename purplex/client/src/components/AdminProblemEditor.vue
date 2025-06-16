@@ -436,10 +436,10 @@
           <button 
             type="button"
             class="hint-tab-button"
-            :class="{ active: hintsTab === 'input_suggestion' }"
-            @click="hintsTab = 'input_suggestion'"
+            :class="{ active: hintsTab === 'suggested_trace' }"
+            @click="hintsTab = 'suggested_trace'"
           >
-            Input Suggestion
+            Suggested Trace
           </button>
         </div>
         
@@ -636,22 +636,22 @@
           </div>
         </div>
         
-        <!-- Input Suggestion Configuration -->
-        <div v-if="hintsTab === 'input_suggestion'" class="hint-config-panel">
+        <!-- Suggested Trace Configuration -->
+        <div v-if="hintsTab === 'suggested_trace'" class="hint-config-panel">
           <div class="hint-toggle">
             <label class="toggle-label">
               <input 
                 type="checkbox" 
-                v-model="hints.input_suggestion.is_enabled"
+                v-model="hints.suggested_trace.is_enabled"
                 class="toggle-checkbox"
               />
-              <span class="toggle-text">Enable Input Suggestion</span>
+              <span class="toggle-text">Enable Suggested Trace</span>
             </label>
-            <div class="attempts-config" v-if="hints.input_suggestion.is_enabled">
+            <div class="attempts-config" v-if="hints.suggested_trace.is_enabled">
               <label>Min Attempts Required:</label>
               <input 
                 type="number" 
-                v-model.number="hints.input_suggestion.min_attempts"
+                v-model.number="hints.suggested_trace.min_attempts"
                 min="0"
                 max="10"
                 class="attempts-input"
@@ -659,34 +659,25 @@
             </div>
           </div>
           
-          <div v-if="hints.input_suggestion.is_enabled" class="input-suggestion-section">
-            <h4>Select Test Cases for Hints</h4>
-            <p class="hint-description">Selected test cases will be shown to students after they make {{ hints.input_suggestion.min_attempts }} failed attempts.</p>
-            <div class="test-case-selector">
-              <div 
-                v-for="(testCase, index) in form.test_cases" 
-                :key="testCase.id || index"
-                class="test-case-option"
-                :class="{ selected: hints.input_suggestion.content.test_cases.includes(testCase.id || index) }"
-              >
-                <label>
-                  <input 
-                    type="checkbox"
-                    :value="testCase.id || index"
-                    v-model="hints.input_suggestion.content.test_cases"
-                  />
-                  <span class="test-case-preview">
-                    Test Case {{ index + 1 }}: {{ getTestCasePreview(testCase) }}
-                  </span>
-                </label>
-              </div>
+          <div v-if="hints.suggested_trace.is_enabled" class="suggested-trace-section">
+            <h4>Configure Suggested Trace</h4>
+            <p class="hint-description">Provide a suggested function call for students to trace through Python Tutor after {{ hints.suggested_trace.min_attempts }} failed attempts.</p>
+            
+            <div class="suggested-call-section">
+              <label>Suggested Function Call:</label>
+              <input 
+                type="text"
+                v-model="hints.suggested_trace.content.suggested_call"
+                placeholder="e.g., function_name([1, 2, 3], 'example')"
+                class="suggested-call-input"
+              />
             </div>
             
-            <div class="instructions-section">
-              <label>Additional Instructions (optional):</label>
+            <div class="explanation-section">
+              <label>Explanation (optional):</label>
               <textarea 
-                v-model="hints.input_suggestion.content.instructions"
-                placeholder="Provide guidance on how to approach these test cases"
+                v-model="hints.suggested_trace.content.explanation"
+                placeholder="Explain why this trace would be helpful for understanding the problem"
                 rows="3"
               ></textarea>
             </div>
@@ -851,13 +842,13 @@ export default {
             subgoals: []
           }
         },
-        input_suggestion: {
-          type: 'input_suggestion',
+        suggested_trace: {
+          type: 'suggested_trace',
           is_enabled: false,
           min_attempts: 0,
           content: {
-            test_cases: [],
-            instructions: ''
+            suggested_call: '',
+            explanation: ''
           }
         }
       },
@@ -1598,27 +1589,6 @@ export default {
       this.newVariableMapping = { from: '', to: '' };
     },
     
-    /**
-     * Get test case preview for Input Suggestion
-     */
-    getTestCasePreview(testCase) {
-      if (!testCase) return '';
-      
-      try {
-        // Create a preview showing inputs and expected output
-        const inputs = testCase.inputs?.map((input, idx) => {
-          const param = this.functionParameters[idx];
-          const paramName = param ? param.name : `arg${idx}`;
-          return `${paramName}=${this.formatPreviewValue(input)}`;
-        }).join(', ') || '';
-        
-        const output = this.formatPreviewValue(testCase.expected_output);
-        
-        return `${this.form.function_name}(${inputs}) → ${output}`;
-      } catch (error) {
-        return 'Invalid test case';
-      }
-    },
     
     /**
      * Format value for preview display
@@ -1686,22 +1656,6 @@ export default {
       this.hints.subgoal_highlight.content.subgoals.splice(index, 1);
     },
     
-    /**
-     * Get test case preview for hint display
-     */
-    getTestCasePreview(testCase) {
-      if (!testCase.inputs || testCase.inputs.length === 0) return 'Empty';
-      
-      const inputStr = testCase.inputs.map(input => 
-        typeof input === 'string' ? `"${input}"` : JSON.stringify(input)
-      ).join(', ');
-      
-      const outputStr = typeof testCase.expected_output === 'string' 
-        ? `"${testCase.expected_output}"` 
-        : JSON.stringify(testCase.expected_output);
-      
-      return `(${inputStr}) → ${outputStr}`;
-    },
     
     /**
      * Update tags from input
@@ -3566,7 +3520,7 @@ export default {
 /* Variable Fade Styles */
 .mappings-section h4,
 .subgoals-section h4,
-.input-suggestion-section h4 {
+.suggested-trace-section h4 {
   margin: 0 0 var(--spacing-md) 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -3698,8 +3652,8 @@ export default {
   font-weight: 600;
 }
 
-/* Input Suggestion Styles */
-.input-suggestion-section h4 {
+/* Suggested Trace Styles */
+.suggested-trace-section h4 {
   margin: 0 0 var(--spacing-sm) 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-base);

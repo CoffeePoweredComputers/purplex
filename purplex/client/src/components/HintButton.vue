@@ -343,7 +343,7 @@ export default {
       const icons = {
         'variable_fade': '🔤',
         'subgoal_highlight': '🎯',
-        'input_suggestion': '💡',
+        'suggested_trace': '🔍',
         'structural': '🏗️',
         'implementation': '⚙️',
         'edge_case': '⚠️'
@@ -365,7 +365,7 @@ export default {
       const titles = {
         'variable_fade': 'Variable Fade',
         'subgoal_highlight': 'Subgoal Highlighting', 
-        'input_suggestion': 'Input Suggestion',
+        'suggested_trace': 'Suggested Trace',
         'structural': 'Structural',
         'implementation': 'Implementation',
         'edge_case': 'Edge Case'
@@ -390,14 +390,11 @@ export default {
         return null
       }
 
-      console.log(`Transforming data for ${hintType}:`, originalData)
-      
       // Parse content if it's a JSON string
       let content = originalData.content
       if (typeof content === 'string') {
         try {
           content = JSON.parse(content)
-          console.log(`Parsed content for ${hintType}:`, content)
         } catch (e) {
           console.error(`Failed to parse content for ${hintType}:`, e)
           return null
@@ -408,8 +405,6 @@ export default {
       const result = {
         content: content
       }
-      
-      console.log(`Transformed data for ${hintType}:`, result)
       return result
     },
 

@@ -49,7 +49,7 @@ export default defineComponent({
     },
     availableHintTypes: {
       type: Array as PropType<HintType[]>,
-      default: () => ['variable_fade', 'subgoal_highlight', 'input_suggestion']
+      default: () => ['variable_fade', 'subgoal_highlight', 'suggested_trace']
     }
   },
   emits: ['close', 'hint-selected'],
@@ -68,10 +68,10 @@ export default defineComponent({
         icon: '🎯'
       },
       {
-        type: 'input_suggestion',
-        title: 'Test Case Suggestions',
-        description: 'Get suggestions for test cases to help you understand the problem',
-        icon: '🧪'
+        type: 'suggested_trace',
+        title: 'Suggested Trace',
+        description: 'Get a suggested function call to trace through Python Tutor',
+        icon: '🔍'
       }
     ]
 

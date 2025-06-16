@@ -1355,7 +1355,7 @@ class AdminProblemHintView(APIView):
                 default_content = {
                     'variable_fade': {'mappings': []},
                     'subgoal_highlight': {'subgoals': []},
-                    'input_suggestion': {'test_cases': [], 'instructions': ''}
+                    'suggested_trace': {'suggested_call': '', 'explanation': ''}
                 }
                 hint_configs.append({
                     'type': hint_type,

@@ -1,7 +1,6 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { VariableFadeProcessor } from '../services/hintProcessors/VariableFadeProcessor.js'
 import { SubgoalHighlightProcessor } from '../services/hintProcessors/SubgoalHighlightProcessor.js'
-import { InputSuggestionProcessor } from '../services/hintProcessors/InputSuggestionProcessor.js'
 
 /**
  * Composable for managing hint-based editor modifications
@@ -46,8 +45,7 @@ export function useEditorHints(editorRef, originalCode) {
   const getProcessor = (hintType) => {
     const processors = {
       'variable_fade': VariableFadeProcessor,
-      'subgoal_highlight': SubgoalHighlightProcessor,
-      'input_suggestion': InputSuggestionProcessor
+      'subgoal_highlight': SubgoalHighlightProcessor
     }
     
     const processor = processors[hintType]
@@ -81,11 +79,46 @@ export function useEditorHints(editorRef, originalCode) {
         await removeHint(hintType)
       }
 
-      // Get the appropriate processor
-      const processor = getProcessor(hintType)
-      
       // Get current code state (may have other hints applied)
       const currentCode = modifiedCode.value || originalCode.value
+
+      // Handle suggested_trace hint type (no processing needed)
+      if (hintType === 'suggested_trace') {
+        // For suggested_trace, we don't modify the code or create markers
+        // The component handles display directly
+        const result = {
+          success: true,
+          code: currentCode,
+          markers: [],
+          annotations: [],
+          tooltips: []
+        }
+        
+        // Create hint application record
+        const hintApplication = {
+          id: `${hintType}_${Date.now()}`,
+          hintType,
+          hintData,
+          result,
+          appliedAt: new Date(),
+          appliedToCode: currentCode
+        }
+
+        // Update state
+        activeHints.value.push(hintApplication)
+        
+        // Record in history
+        hintHistory.value.push({
+          action: 'apply',
+          hintType,
+          timestamp: new Date()
+        })
+
+        return true
+      }
+      
+      // Get the appropriate processor for other hint types
+      const processor = getProcessor(hintType)
       
       // Process the hint
       const result = processor.process(currentCode, hintData)
@@ -385,7 +418,8 @@ export function useEditorHints(editorRef, originalCode) {
    * @returns {Object|null} Hint data or null if not active
    */
   const getHintData = (hintType) => {
-    return hintsByType.value[hintType] || null
+    const hintApplication = hintsByType.value[hintType]
+    return hintApplication?.hintData || null
   }
 
   // Cleanup function

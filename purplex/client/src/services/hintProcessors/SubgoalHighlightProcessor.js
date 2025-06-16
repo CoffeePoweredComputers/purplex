@@ -366,7 +366,7 @@ export class SubgoalHighlightProcessor {
       endLine: commentLineIndex,
       startColumn: 0,
       endColumn: Number.MAX_SAFE_INTEGER,
-      className: `subgoal-comment subgoal-comment-${subgoalIndex}`,
+      className: `subgoal-comment-${subgoalIndex}`,
       type: 'fullLine',
       tooltipText: `Step ${stepNumber} guidance`,
       hintType: 'subgoal_comment',
