@@ -42,7 +42,7 @@
           :value="currentSlideContents" 
           height="300px" 
           width="100%"
-          :highlightMarkers="currentComprehensionResult" 
+          :highlightMarkers="currentComprehensionResults" 
         />
       </section>
 
@@ -164,7 +164,7 @@ export default {
       pythonTutorUrl: '',
       currentSlide: 0,
       currentSlideContents: "",
-      currentComprehensionResult: [],
+      currentComprehensionResults: [],
     };
   },
   mounted() {

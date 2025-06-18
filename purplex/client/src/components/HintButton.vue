@@ -1,5 +1,5 @@
 <template>
-  <div class="hint-button-container">
+  <div class="hint-button-container" v-if="hasAnyHints">
     <button 
       class="hint-button"
       @click="toggleHintMenu"
@@ -21,7 +21,11 @@
         </div>
         
         <div class="hint-list">
+          <div v-if="availableHints.length === 0" class="no-hints-message">
+            <p>No hints are configured for this problem.</p>
+          </div>
           <div 
+            v-else
             v-for="hint in availableHints" 
             :key="hint.type"
             class="hint-item"
@@ -136,6 +140,9 @@ export default {
     }
   },
   computed: {
+    hasAnyHints() {
+      return this.availableHints && this.availableHints.length > 0
+    },
     hasUnlockedHints() {
       return this.availableHints && this.availableHints.some(hint => hint.unlocked)
     },
@@ -762,6 +769,13 @@ export default {
 .hint-attempts {
   font-weight: 600;
   margin-bottom: 4px !important;
+}
+
+.no-hints-message {
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
 }
 
 /* Transitions */

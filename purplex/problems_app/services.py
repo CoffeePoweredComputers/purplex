@@ -165,18 +165,11 @@ class AITestGenerationService:
 Create five different implementations of a function called {problem.function_name} based on the user's description.
 The function should match this problem:
 
-Problem Title: {problem.title}
-Problem Description: {problem.description}
-
-Reference solution structure:
-{problem.reference_solution}
-
 Guidelines:
-1. Each implementation should be different but correct
+1. Each implementation MUST be different 
 2. Make the code beginner-friendly and avoid unnecessary built-in functions
-3. Each function must be named exactly: {problem.function_name}
-4. Match the function signature from the reference solution
-5. Return only the function implementations, no additional text or comments
+3. Each function MUST be named exactly: {problem.function_name}. If it is not the grading mechanism will fail.
+4. Return only the function implementations, no additional text or comments
 
 Format your response as:
 ```python

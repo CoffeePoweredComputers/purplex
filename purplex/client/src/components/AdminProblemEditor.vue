@@ -661,26 +661,48 @@
           
           <div v-if="hints.suggested_trace.is_enabled" class="suggested-trace-section">
             <h4>Configure Suggested Trace</h4>
-            <p class="hint-description">Provide a suggested function call for students to trace through Python Tutor after {{ hints.suggested_trace.min_attempts }} failed attempts.</p>
+            <p class="hint-description">
+              Provide a function call that students can trace through Python Tutor to better understand the problem. 
+              This hint will be shown after {{ hints.suggested_trace.min_attempts }} failed attempts.
+            </p>
             
-            <div class="suggested-call-section">
-              <label>Suggested Function Call:</label>
-              <input 
-                type="text"
-                v-model="hints.suggested_trace.content.suggested_call"
-                placeholder="e.g., function_name([1, 2, 3], 'example')"
-                class="suggested-call-input"
-              />
+            <div class="form-group">
+              <label class="form-label">
+                <span class="label-text">Suggested Function Call</span>
+                <span class="label-required">*</span>
+              </label>
+              <div class="input-with-preview">
+                <input 
+                  type="text"
+                  v-model="hints.suggested_trace.content.suggested_call"
+                  placeholder="e.g., function_name([1, 2, 3], 'example')"
+                  class="form-input suggested-call-input"
+                  @input="validateFunctionCall"
+                />
+                <div v-if="functionCallError" class="input-error">
+                  {{ functionCallError }}
+                </div>
+              </div>
+              <!-- Trace Preview (matches student view) -->
+              <div v-if="hints.suggested_trace.content.suggested_call && !functionCallError" class="trace-preview-section">
+                <div class="preview-label">Preview (as students will see it):</div>
+                <div class="suggested-trace">
+                  <div class="trace-content">
+                    <span class="trace-label">💡 Try tracing:</span>
+                    <code class="trace-function">{{ hints.suggested_trace.content.suggested_call }}</code>
+                    <button 
+                      v-if="form.reference_solution"
+                      type="button"
+                      @click="previewInPyTutor"
+                      class="trace-btn"
+                    >
+                      <span>🔍</span> Trace
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
             
-            <div class="explanation-section">
-              <label>Explanation (optional):</label>
-              <textarea 
-                v-model="hints.suggested_trace.content.explanation"
-                placeholder="Explain why this trace would be helpful for understanding the problem"
-                rows="3"
-              ></textarea>
-            </div>
           </div>
         </div>
       </div>
@@ -719,14 +741,23 @@
 
     <!-- Notification toast integration -->
     <NotificationToast />
+    
+    <!-- Python Tutor Modal -->
+    <PyTutorModal 
+      :isVisible="showPyTutorModal" 
+      :pythonTutorUrl="pyTutorUrl" 
+      @close="closePyTutor" 
+    />
   </div>
 </template>
 
 <script>
 import NotificationToast from './NotificationToast.vue'
 import Editor from '@/features/editor/Editor.vue'
+import PyTutorModal from '@/modals/PyTutorModal.vue'
 import { problemService } from '../services/problemService'
 import { marked } from 'marked'
+import { PythonTutorService } from '@/services/pythonTutor.service'
 import { 
   parseTypeAnnotation,
   validateValueAgainstType,
@@ -753,7 +784,8 @@ export default {
   name: 'AdminProblemEditor',
   components: {
     NotificationToast,
-    Editor
+    Editor,
+    PyTutorModal
   },
   // Static options
   colorOptions: COLOR_OPTIONS,
@@ -847,13 +879,17 @@ export default {
           is_enabled: false,
           min_attempts: 0,
           content: {
-            suggested_call: '',
-            explanation: ''
+            suggested_call: ''
           }
         }
       },
       newVariableMapping: { from: '', to: '' },
-      newSubgoal: { line_start: 1, line_end: 1, title: '', explanation: '' }
+      newSubgoal: { line_start: 1, line_end: 1, title: '', explanation: '' },
+      functionCallError: null,
+      
+      // Python Tutor Modal
+      showPyTutorModal: false,
+      pyTutorUrl: ''
     }
   },
   computed: {
@@ -1648,6 +1684,102 @@ export default {
       
       this.newSubgoal = { line_start: 1, line_end: 1, title: '', explanation: '' };
     },
+    
+    validateFunctionCall() {
+      const call = this.hints.suggested_trace.content.suggested_call;
+      
+      if (!call) {
+        this.functionCallError = null;
+        return;
+      }
+      
+      // Basic validation: check if it looks like a function call
+      const functionCallPattern = /^[a-zA-Z_][a-zA-Z0-9_]*\s*\(/;
+      if (!functionCallPattern.test(call.trim())) {
+        this.functionCallError = 'Must start with a valid function name followed by parentheses';
+        return;
+      }
+      
+      // Check for balanced parentheses
+      let parenCount = 0;
+      let inString = false;
+      let stringChar = null;
+      let escaped = false;
+      
+      for (let i = 0; i < call.length; i++) {
+        const char = call[i];
+        
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+        
+        if (char === '\\') {
+          escaped = true;
+          continue;
+        }
+        
+        if ((char === '"' || char === "'") && !inString) {
+          inString = true;
+          stringChar = char;
+        } else if (char === stringChar && inString) {
+          inString = false;
+          stringChar = null;
+        }
+        
+        if (!inString) {
+          if (char === '(') parenCount++;
+          if (char === ')') parenCount--;
+          if (parenCount < 0) {
+            this.functionCallError = 'Unmatched closing parenthesis';
+            return;
+          }
+        }
+      }
+      
+      if (parenCount !== 0) {
+        this.functionCallError = 'Unmatched parentheses';
+        return;
+      }
+      
+      if (inString) {
+        this.functionCallError = 'Unterminated string';
+        return;
+      }
+      
+      // Validate it matches the problem's function name if available
+      if (this.form.function_name) {
+        const functionName = call.trim().split('(')[0].trim();
+        if (functionName !== this.form.function_name) {
+          this.functionCallError = `Function name doesn't match problem function: ${this.form.function_name}`;
+          return;
+        }
+      }
+      
+      this.functionCallError = null;
+    },
+    
+    // Python Tutor preview methods
+    previewInPyTutor() {
+      if (!this.form.reference_solution || !this.hints.suggested_trace.content.suggested_call) {
+        this.$toast.warning('Please provide both a reference solution and a suggested call');
+        return;
+      }
+      
+      // Create the test code with the suggested call
+      const testCode = `# Suggested trace\nprint(${this.hints.suggested_trace.content.suggested_call})`;
+      const formattedCode = `${this.form.reference_solution}\n\n${testCode}`;
+      
+      // Generate Python Tutor URL
+      this.pyTutorUrl = PythonTutorService.generateEmbedUrl(formattedCode);
+      this.showPyTutorModal = true;
+    },
+    
+    closePyTutor() {
+      this.showPyTutorModal = false;
+      this.pyTutorUrl = '';
+    },
+    
     
     /**
      * Remove subgoal
@@ -3653,18 +3785,180 @@ export default {
 }
 
 /* Suggested Trace Styles */
+.suggested-trace-section {
+  animation: fadeIn 0.3s ease-out;
+}
+
 .suggested-trace-section h4 {
-  margin: 0 0 var(--spacing-sm) 0;
+  margin: 0 0 var(--spacing-md) 0;
   color: var(--color-text-primary);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-md);
   font-weight: 600;
 }
 
 .hint-description {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  margin: var(--spacing-sm) 0 var(--spacing-md) 0;
+  margin: 0 0 var(--spacing-lg) 0;
+  line-height: 1.6;
+  background: var(--color-bg-panel);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-base);
+  border-left: 3px solid var(--color-primary-gradient-start);
 }
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.label-required {
+  color: var(--color-error);
+  font-size: var(--font-size-base);
+}
+
+.label-optional {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: normal;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: var(--color-bg-input);
+  border: 2px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  transition: var(--transition-fast);
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary-gradient-start);
+  background: var(--color-bg-panel);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.input-error {
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.input-error::before {
+  content: '⚠';
+  font-size: var(--font-size-sm);
+}
+
+.input-hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-xs);
+}
+
+/* Trace Preview Section (matches student view) */
+.trace-preview-section {
+  margin-top: var(--spacing-lg);
+}
+
+.trace-preview-section .preview-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Student view styles */
+.suggested-trace {
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-md) var(--spacing-lg);
+  transition: var(--transition-base);
+}
+
+.suggested-trace:hover {
+  border-color: var(--color-primary-gradient-start);
+  box-shadow: var(--shadow-sm);
+}
+
+.trace-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.trace-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.trace-function {
+  font-family: var(--font-mono, 'SF Mono', 'Monaco', 'Inconsolata', monospace);
+  font-size: var(--font-size-sm);
+  background: var(--color-bg-code, var(--color-bg-hover));
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-sm, 4px);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 200px;
+  overflow-x: auto;
+}
+
+.trace-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--color-primary-gradient-start);
+  color: white;
+  border: none;
+  border-radius: var(--radius-base);
+  cursor: pointer;
+  transition: var(--transition-base);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.trace-btn:hover:not(:disabled) {
+  background: var(--color-primary-gradient-end);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.trace-btn:disabled {
+  background: var(--color-bg-disabled);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 
 .test-case-selector {
   display: flex;

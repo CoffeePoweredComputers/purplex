@@ -1197,33 +1197,20 @@ class ProblemHintAvailabilityView(APIView):
             except UserProgress.DoesNotExist:
                 user_attempts = 0
         
-        # Get all hints for the problem
-        hints = ProblemHint.objects.filter(problem=problem)
+        # Get only enabled hints for the problem
+        hints = ProblemHint.objects.filter(problem=problem, is_enabled=True)
         
-        # Build hint availability response
+        # Build hint availability response - only for enabled hints
         available_hints = []
         for hint in hints:
             available_hints.append({
                 'type': hint.hint_type,
                 'title': hint.get_hint_type_display(),
                 'description': f'Get help with {hint.get_hint_type_display().lower()}',
-                'unlocked': hint.is_enabled and user_attempts >= hint.min_attempts,
-                'available': hint.is_enabled and user_attempts >= hint.min_attempts,
-                'attempts_needed': max(0, hint.min_attempts - user_attempts) if hint.is_enabled else -1
+                'unlocked': user_attempts >= hint.min_attempts,
+                'available': user_attempts >= hint.min_attempts,
+                'attempts_needed': max(0, hint.min_attempts - user_attempts)
             })
-        
-        # Ensure all hint types are represented
-        existing_types = {hint.hint_type for hint in hints}
-        for hint_type, display_name in ProblemHint.HINT_TYPE_CHOICES:
-            if hint_type not in existing_types:
-                available_hints.append({
-                    'type': hint_type,
-                    'title': display_name,
-                    'description': f'Get help with {display_name.lower()}',
-                    'unlocked': False,
-                    'available': False,
-                    'attempts_needed': -1  # -1 indicates hint is not enabled
-                })
         
         # TODO: Track which hints the user has used (for future implementation)
         hints_used = []
