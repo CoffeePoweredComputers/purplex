@@ -246,15 +246,11 @@ class ProblemServiceImpl {
    */
   async getHintContent(
     problemSlug: string, 
-    hintType: 'structural' | 'implementation' | 'edge_case'
+    hintType: 'variable_fade' | 'subgoal_highlight' | 'suggested_trace'
   ): Promise<{
-    hint: {
-      type: string;
-      title: string;
-      content: string;
-      example?: string;
-    };
-    message: string;
+    type: string;
+    content: Record<string, any>;
+    min_attempts: number;
   }> {
     try {
       const response = await axios.get(

@@ -189,14 +189,11 @@ class UserProgress(models.Model):
     course = models.ForeignKey('Course', on_delete=models.CASCADE, null=True, blank=True)
     problem_version = models.PositiveIntegerField(default=1)
     
-    # Status with more granular states
+    # Simplified status: just completed or not completed
     status = models.CharField(max_length=20, choices=[
         ('not_started', 'Not Started'),
-        ('in_progress', 'In Progress'),  # Started but < 50%
-        ('struggling', 'Struggling'),     # Multiple attempts, low scores
-        ('advancing', 'Advancing'),       # 50-79% score
+        ('in_progress', 'In Progress'),
         ('completed', 'Completed'),       # Met completion criteria
-        ('mastered', 'Mastered')         # Perfect score or multiple completions
     ], default='not_started')
     
     # Scoring and attempts
@@ -264,23 +261,19 @@ class UserProgress(models.Model):
         else:
             self.consecutive_successes = 0
         
-        self.completion_percentage = self._calculate_completion_percentage()
+        self.completion_percentage = self.best_score
         self.save()
     
     def _update_status(self, submission):
-        """Intelligent status determination based on performance patterns"""
+        """Simple status determination: completed or in progress"""
         completion_threshold = self.problem.completion_threshold or 100
         
-        if self.best_score >= 100:
-            self.status = 'mastered'
-        elif self.best_score >= 100:
+        if self.best_score >= completion_threshold:
             self.status = 'completed'
-        elif self.best_score >= 50:
-            self.status = 'advancing'
-        elif self.attempts > 5 and self.average_score < 30:
-            self.status = 'struggling'
-        else:
+        elif self.attempts > 0:
             self.status = 'in_progress'
+        else:
+            self.status = 'not_started'
     
     def _check_completion(self, submission):
         """Flexible completion checking supporting multiple criteria"""
@@ -313,18 +306,6 @@ class UserProgress(models.Model):
         
         return True
     
-    def _calculate_completion_percentage(self):
-        """Calculate nuanced completion percentage"""
-        if self.status == 'mastered':
-            return 100
-        elif self.status == 'completed':
-            return 100
-        else:
-            # Scale 0-89% based on best score and attempts
-            base = min(self.best_score, 89)
-            # Penalty for excessive attempts indicating struggle
-            attempt_penalty = max(0, (self.attempts - 10) * 2)
-            return max(0, base - attempt_penalty)
     
     def __str__(self):
         return f"{self.user.username} - {self.problem_set.title} - {self.problem.title} ({self.status})"

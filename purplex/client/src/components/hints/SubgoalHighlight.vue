@@ -77,9 +77,8 @@ export default defineComponent({
       const lines = props.code.split('\n')
       const highlighted = lines.map((line, index) => {
         const lineNumber = index + 1
-        const isHighlighted = currentSubgoal.value.lineRanges.some(range => 
-          lineNumber >= range.start && lineNumber <= range.end
-        )
+        const isHighlighted = lineNumber >= currentSubgoal.value.line_start && 
+                              lineNumber <= currentSubgoal.value.line_end
         
         if (isHighlighted) {
           return `<span class="highlighted-line">${escapeHtml(line)}</span>`
