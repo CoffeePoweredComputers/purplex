@@ -6,7 +6,9 @@ import {
   TestExecutionResult,
   ProblemCategory,
   APIError,
-  TestProblemRequest
+  TestProblemRequest,
+  HintConfig,
+  HintUpdateRequest
 } from '../types';
 
 class ProblemServiceImpl {
@@ -193,6 +195,115 @@ class ProblemServiceImpl {
         error: error.message || defaultMessage,
         status: -1
       };
+    }
+  }
+
+  /**
+   * Get hints for a problem with optional course context
+   * @param problemSlug - Problem slug identifier
+   * @param context - Optional course context
+   * @returns Promise resolving to hints data
+   * @throws APIError on request failure
+   */
+  async getHints(
+    problemSlug: string, 
+    context?: { courseId?: string; problemSetSlug?: string }
+  ): Promise<{
+    available_hints: Array<{
+      type: 'variable_fade' | 'subgoal_highlight' | 'suggested_trace';
+      unlocked: boolean;
+      title: string;
+      description: string;
+    }>;
+    hints_used: string[];
+    current_attempts: number;
+  }> {
+    try {
+      const params: any = {};
+      if (context?.courseId) {
+        params.course_id = context.courseId;
+      }
+      if (context?.problemSetSlug) {
+        params.problem_set_slug = context.problemSetSlug;
+      }
+      
+      const response = await axios.get(
+        `/api/problems/${problemSlug}/hints/`,
+        { params }
+      );
+      return response.data;
+    } catch (error) {
+      throw this._handleError(error, `Failed to get hints for problem: ${problemSlug}`);
+    }
+  }
+
+  /**
+   * Get specific hint content for a problem
+   * @param problemSlug - Problem slug identifier
+   * @param hintType - Type of hint to retrieve
+   * @returns Promise resolving to hint content
+   * @throws APIError on request failure
+   */
+  async getHintContent(
+    problemSlug: string, 
+    hintType: 'variable_fade' | 'subgoal_highlight' | 'suggested_trace'
+  ): Promise<{
+    type: string;
+    content: Record<string, any>;
+    min_attempts: number;
+  }> {
+    try {
+      const response = await axios.get(
+        `/api/problems/${problemSlug}/hints/${hintType}/`
+      );
+      return response.data;
+    } catch (error) {
+      throw this._handleError(error, `Failed to get ${hintType} hint for problem: ${problemSlug}`);
+    }
+  }
+
+  /**
+   * Update hints for a problem
+   * @param slug - Problem slug
+   * @param hints - Array of hint configurations
+   * @returns Promise resolving to updated hints
+   * @throws APIError on update failure
+   */
+  async updateHints(slug: string, hints: HintConfig[]): Promise<{
+    problem_slug: string;
+    hints: Array<HintConfig & { created: boolean }>;
+  }> {
+    try {
+      const response = await axios.put(
+        `${this.baseURL}/${slug}/hints/`,
+        { hints }
+      );
+      return response.data;
+    } catch (error) {
+      throw this._handleError(error, `Failed to update hints for problem: ${slug}`);
+    }
+  }
+
+  /**
+   * Get hints configuration for a problem
+   * @param slug - Problem slug
+   * @returns Promise resolving to hints configuration
+   * @throws APIError on request failure
+   */
+  async getProblemHints(slug: string): Promise<HintConfig[]> {
+    try {
+      // Use the admin endpoint to get full hint configurations
+      const response = await axios.get(
+        `${this.baseURL}/${slug}/hints/`
+      );
+      
+      return response.data.hints || [];
+    } catch (error) {
+      // If hints endpoint doesn't exist yet, return empty array
+      if (error.response?.status === 404) {
+        return [];
+      }
+      throw this._handleError(error, `Failed to get hints for problem: ${slug}`);
     }
   }
 }

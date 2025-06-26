@@ -51,18 +51,31 @@
             <div class="left-panel">
                 <!-- Code editor section -->
                 <div class="editor-section">
-                    <div class="section-label">Code Editor</div>
+                    <div class="section-header">
+                        <div class="section-label">Code Editor</div>
+                        <HintButton 
+                            :problemSlug="getCurrentProblem().slug"
+                            :courseId="courseId"
+                            :problemSetSlug="$route.params.slug"
+                            :currentAttempts="getCurrentProblemAttempts()"
+                            @hint-used="onHintUsed"
+                            @hint-toggled="onHintToggled"
+                            @show-original="onShowOriginal"
+                            @remove-all-hints="onRemoveAllHints"
+                        />
+                    </div>
                     <Editor 
                         ref="entry" 
                         lang="python" 
                         mode="python" 
                         height="450px" 
                         width="100%" 
-                        :value="solutionCode"
+                        :value="displayedCode"
                         @update:value="updateSolutionCode"
                         :readOnly="true"
                         :showGutter="showLineNumbers"
                         :theme="currentTheme"
+                        :hintMarkers="currentHintMarkers"
                         :key="`editor-${currentProblem}`"
                     />
                     <div class="editor-toolbar">
@@ -93,12 +106,20 @@
                                 <span class="zoom-icon">−</span>
                             </button>
                             <span class="zoom-level">{{ Math.round((editorFontSize / 14) * 100) }}%</span>
-                            <button class="zoom-btn" @click="increaseFontSize" :disabled="editorFontSize >= 24" title="Zoom in">
+                            <button class="zoom-btn" @click="increaseFontSize" :disabled="editorFontSize >= 35" title="Zoom in">
                                 <span class="zoom-icon">+</span>
                             </button>
                         </div>
                     </div>
                 </div>
+
+                <!-- Suggested Trace Hint -->
+                <SuggestedTrace
+                    :isVisible="isHintActive('suggested_trace')"
+                    :hintData="getHintData('suggested_trace')"
+                    :solutionCode="solutionCode"
+                    @open-pytutor="openPyTutor"
+                />
 
                 <!-- Submission section -->
                 <div class="submission-section">
@@ -112,7 +133,7 @@
                             height="100px" 
                             width="100%"
                             v-bind:showGutter=false 
-                            wrap="free" 
+                            :wrap="true" 
                         />
                     </div>
                     <button 
@@ -144,21 +165,37 @@
                 />
             </div>
         </div>
+
+        <!-- PyTutor Modal -->
+        <PyTutorModal 
+            :isVisible="showPyTutorModal" 
+            :pythonTutorUrl="pyTutorUrl" 
+            @close="closePyTutor" 
+        />
     </div>
 </template>
 
 <script>
 import Editor from '@/features/editor/Editor.vue'
 import Feedback from "@/components/Feedback.vue"
+import HintButton from "@/components/HintButton.vue"
+import SuggestedTrace from "@/components/hints/SuggestedTrace.vue"
+import PyTutorModal from "@/modals/PyTutorModal.vue"
 import axios from 'axios'
 import { useNotification } from '@/composables/useNotification'
 import { useOptimisticProgress } from '@/composables/useOptimisticProgress'
+import { useHintTracking } from '@/composables/useHintTracking'
+import { useEditorHints } from '@/composables/useEditorHints'
+import { ref, computed, watch } from 'vue'
 
 export default {
     name: 'ProblemSet',
     components: {
         Editor,
-        Feedback
+        Feedback,
+        HintButton,
+        SuggestedTrace,
+        PyTutorModal
     },
     props: {
         courseId: {
@@ -169,7 +206,47 @@ export default {
     setup() {
         const { notify } = useNotification();
         const { updateProgress, getProgress, clearOptimistic } = useOptimisticProgress();
-        return { notify, updateProgress, getProgress, clearOptimistic };
+        const { trackHintUsage, getHintsUsed } = useHintTracking();
+        
+        // Hint system setup
+        const entry = ref(null);
+        const originalSolutionCode = ref('');
+        
+        // Initialize hint system
+        const {
+            modifiedCode,
+            hasActiveHints,
+            editorMarkers,
+            applyHint,
+            removeHint,
+            removeAllHints,
+            restoreOriginal,
+            isHintActive,
+            getHintData,
+            getStatus
+        } = useEditorHints(entry, originalSolutionCode);
+        
+        return { 
+            notify, 
+            updateProgress, 
+            getProgress, 
+            clearOptimistic, 
+            trackHintUsage, 
+            getHintsUsed,
+            // Hint system
+            entry,
+            originalSolutionCode,
+            modifiedCode,
+            hasActiveHints,
+            editorMarkers,
+            applyHint,
+            removeHint,
+            removeAllHints,
+            restoreOriginal,
+            isHintActive,
+            getHintData,
+            getHintStatus: getStatus
+        };
     },
     data() {
         return {
@@ -203,7 +280,11 @@ export default {
             draftSaved: false,
             
             /* Submission Data Cache - Simple 5min cache */
-            submissionCache: new Map()
+            submissionCache: new Map(),
+            
+            /* PyTutor Modal */
+            showPyTutorModal: false,
+            pyTutorUrl: ''
         };
     },
     
@@ -359,7 +440,7 @@ export default {
         },
         
         increaseFontSize() {
-            if (this.editorFontSize < 24) {
+            if (this.editorFontSize < 35) {
                 this.editorFontSize += 2;
                 this.updateEditorFontSize();
             }
@@ -666,12 +747,104 @@ export default {
                 clearInterval(this.autoSaveInterval);
                 this.autoSaveInterval = null;
             }
+        },
+        
+        // Hint Management
+        getCurrentProblemAttempts() {
+            const problemSlug = this.getCurrentProblem().slug;
+            const status = this.problemStatuses[problemSlug];
+            return status?.attempts || 0;
+        },
+        
+        onHintUsed(hintData) {
+            // Log hint usage for research data
+            console.log('Hint used:', hintData);
+            
+            // Track hint usage with the composable
+            this.trackHintUsage(
+                hintData.problemSlug, 
+                hintData.hintType,
+                {
+                    courseId: this.courseId,
+                    problemSetSlug: this.$route.params.slug,
+                    attemptNumber: this.getCurrentProblemAttempts(),
+                    timestamp: hintData.timestamp
+                }
+            );
+            
+            // Emit event for analytics if needed
+            this.$emit('hint-used', hintData);
+        },
+        
+        async onHintToggled(event) {
+            try {
+                const { hintType, isActive, hintData } = event;
+                
+                if (isActive) {
+                    // Apply the hint using the composable
+                    const success = await this.applyHint(hintType, hintData);
+                    if (success) {
+                        console.log(`Applied hint: ${hintType}`);
+                    } else {
+                        console.error(`Failed to apply hint: ${hintType}`);
+                    }
+                } else {
+                    // Remove the hint using the composable
+                    const success = await this.removeHint(hintType);
+                    if (success) {
+                        console.log(`Removed hint: ${hintType}`);
+                    } else {
+                        console.error(`Failed to remove hint: ${hintType}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling hint:', error);
+            }
+        },
+        
+        async onShowOriginal() {
+            try {
+                await this.restoreOriginal();
+                console.log('Restored original code');
+            } catch (error) {
+                console.error('Error restoring original code:', error);
+            }
+        },
+        
+        async onRemoveAllHints() {
+            try {
+                await this.removeAllHints();
+                console.log('Removed all hints');
+            } catch (error) {
+                console.error('Error removing all hints:', error);
+            }
+        },
+        
+        // PyTutor Modal Methods
+        openPyTutor(url) {
+            this.pyTutorUrl = url;
+            this.showPyTutorModal = true;
+        },
+        
+        closePyTutor() {
+            this.showPyTutorModal = false;
+            this.pyTutorUrl = '';
         }
     },
     
     computed: {
         solutionCode() {
             return this.getCurrentProblem().reference_solution || '';
+        },
+        
+        displayedCode() {
+            return this.hasActiveHints ? this.modifiedCode : this.solutionCode;
+        },
+        
+        currentHintMarkers() {
+            const markers = this.editorMarkers || [];
+            console.log('ProblemSet currentHintMarkers computed:', markers);
+            return markers;
         },
         
         completedCount() {
@@ -706,6 +879,13 @@ export default {
             if (newSlug) {
                 this.loadProblemSet();
             }
+        },
+        solutionCode: {
+            handler(newCode) {
+                // Update the originalSolutionCode ref when solution changes
+                this.originalSolutionCode = newCode;
+            },
+            immediate: true
         },
         problemStatuses: {
             handler(newVal) {
@@ -919,15 +1099,20 @@ export default {
     box-sizing: border-box;
 }
 
-/* Section Label Styling */
-.section-label {
-    text-align: center;
+/* Section Header and Label Styling */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: var(--spacing-sm) var(--spacing-lg);
+    background: var(--color-bg-hover);
+    border-bottom: 1px solid var(--color-bg-input);
+}
+
+.section-label {
     font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--color-text-muted);
-    background: var(--color-bg-hover);
-    border-bottom: 1px solid var(--color-bg-input);
 }
 
 /* Editor Section */

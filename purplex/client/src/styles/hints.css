@@ -1,0 +1,292 @@
+/* Hints Component Styles */
+
+/* Base hint component styles */
+.hint-container {
+  --hint-spacing: var(--spacing-lg);
+  --hint-border-radius: var(--radius-base);
+  --hint-transition: var(--transition-base);
+}
+
+/* Hint button states */
+.hint-button-wrapper {
+  display: inline-block;
+  position: relative;
+}
+
+.hint-button-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-code);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  pointer-events: none;
+  box-shadow: var(--shadow-md);
+}
+
+.hint-button-wrapper:hover .hint-button-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Hint modal overlay animation */
+.hint-modal-enter-active,
+.hint-modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.hint-modal-enter-from,
+.hint-modal-leave-to {
+  opacity: 0;
+}
+
+/* Hint content animations */
+.hint-content-enter-active {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.hint-content-leave-active {
+  animation: slideOutDown 0.2s ease-in;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+/* Code highlighting for hints */
+.hint-code-highlight {
+  position: relative;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(59, 130, 246, 0.1) 5%,
+    rgba(59, 130, 246, 0.1) 95%,
+    transparent 100%
+  );
+  border-left: 3px solid var(--color-primary-gradient-start);
+  margin: 0 -var(--spacing-md);
+  padding: 0 var(--spacing-md);
+}
+
+/* Variable fade animation */
+.variable-fade-transition {
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+.variable-original {
+  color: var(--color-text-muted);
+}
+
+.variable-meaningful {
+  color: var(--color-primary-gradient-start);
+  font-weight: 600;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 0 var(--spacing-xs);
+  border-radius: var(--radius-sm);
+}
+
+/* Subgoal navigation dots */
+.subgoal-dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-lg);
+}
+
+.subgoal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-bg-border);
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.subgoal-dot:hover {
+  background: var(--color-bg-hover);
+  transform: scale(1.2);
+}
+
+.subgoal-dot.active {
+  background: var(--color-primary-gradient-start);
+  width: 24px;
+  border-radius: 4px;
+}
+
+/* Test suggestion cards */
+.test-suggestion-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.test-suggestion-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    var(--color-primary-gradient-start),
+    var(--color-primary-gradient-end)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.test-suggestion-card:hover::before {
+  opacity: 1;
+}
+
+/* Python Tutor link styling */
+.python-tutor-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--color-primary-gradient-start);
+  text-decoration: none;
+  font-weight: 500;
+  transition: var(--transition-base);
+}
+
+.python-tutor-link:hover {
+  color: var(--color-primary-gradient-end);
+  text-decoration: underline;
+}
+
+.python-tutor-icon {
+  font-size: var(--font-size-lg);
+}
+
+/* Hint loading states */
+.hint-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl);
+}
+
+.hint-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-bg-border);
+  border-top-color: var(--color-primary-gradient-start);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hint error state */
+.hint-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.hint-error-icon {
+  font-size: 36px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.hint-error-message {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  margin: 0;
+}
+
+/* Responsive hint layouts */
+@media (max-width: 768px) {
+  .hint-container {
+    --hint-spacing: var(--spacing-md);
+  }
+
+  .hint-modal-container {
+    margin: var(--spacing-md);
+    width: calc(100% - var(--spacing-xl));
+  }
+
+  .hint-navigation {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .hint-navigation button {
+    width: 100%;
+  }
+}
+
+/* Print styles for hints */
+@media print {
+  .hint-button,
+  .hint-modal-overlay,
+  .hint-navigation {
+    display: none;
+  }
+
+  .hint-content {
+    border: 1px solid #ccc;
+    page-break-inside: avoid;
+  }
+}
+
+/* Accessibility improvements */
+.hint-button:focus-visible,
+.hint-navigation button:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
+.hint-content:focus {
+  outline: none;
+}
+
+/* Dark mode support (if implemented) */
+@media (prefers-color-scheme: dark) {
+  .hint-code-highlight {
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(96, 165, 250, 0.15) 5%,
+      rgba(96, 165, 250, 0.15) 95%,
+      transparent 100%
+    );
+  }
+
+  .variable-meaningful {
+    background: rgba(96, 165, 250, 0.2);
+  }
+}

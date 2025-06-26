@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from 'vue';
+  import { defineComponent, ref, watch } from 'vue';
   import { VAceEditor } from 'vue3-ace-editor';
   import workerJsonUrl from 'ace-builds/src-noconflict/worker-json?url'
   import 'ace-builds/src-noconflict/mode-python';
@@ -25,10 +25,15 @@
   import 'ace-builds/src-noconflict/theme-dracula';
   import 'ace-builds/src-noconflict/theme-tomorrow_night';
 
-  interface Marker {
-    start_line: number;
-    end_line: number;
-    explanation_portion: string;
+  interface HintMarker {
+    startLine: number;
+    endLine: number;
+    startColumn?: number;
+    endColumn?: number;
+    className: string;
+    type: 'fullLine' | 'text';
+    tooltipText?: string;
+    hintType: string;
   }
 
   export default defineComponent({
@@ -36,6 +41,7 @@
     components: {
       VAceEditor,
     },
+    emits: ['update:value'],
     props: {
       lang: {
         type: String,
@@ -65,8 +71,8 @@
         type: Number,
         default: null,
       },
-      highlightMarkers: {
-        type: Array as () => Marker[],
+      hintMarkers: {
+        type: Array as () => HintMarker[],
         default: () => [],
       },
       value: {
@@ -78,8 +84,9 @@
         default: false,
       },
     },
-    setup(props, { emit }) {
+    setup(props, { emit, expose }) {
       const editor = ref(null);
+      const activeMarkerIds = ref(new Set());
       
       /* Initialize the editor */
       const editorInit = (editorInstance: any) => {
@@ -88,10 +95,46 @@
           showGutter: props.showGutter,
           maxLines: props.characterLimit,
           readOnly: props.readOnly,
+          highlightActiveLine: false,
+          highlightGutterLine: false,
+          showPrintMargin: false,
         });
         
-        if (props.highlightMarkers.length > 0) {
-          setHighlightMarkers(props.highlightMarkers);
+        // Disable cursor visibility when read-only
+        if (props.readOnly) {
+          editorInstance.renderer.$cursorLayer.element.style.display = 'none';
+          editorInstance.setOption('showCursor', false);
+          // Remove focus outline
+          editorInstance.renderer.container.style.pointerEvents = 'none';
+          editorInstance.renderer.container.style.userSelect = 'text';
+        }
+        
+        // Override ACE's comment token rendering to remove backgrounds
+        const originalTokenizer = editorInstance.session.getMode().getTokenizer();
+        if (originalTokenizer && originalTokenizer.getLineTokens) {
+          const originalGetLineTokens = originalTokenizer.getLineTokens.bind(originalTokenizer);
+          originalTokenizer.getLineTokens = function(line: string, state: any) {
+            const tokens = originalGetLineTokens(line, state);
+            // Remove background from comment tokens
+            if (tokens && tokens.tokens) {
+              tokens.tokens.forEach((token: any) => {
+                if (token.type && token.type.includes('comment')) {
+                  // Force transparent background for comments
+                  token.type = token.type + ' ace-comment-transparent';
+                }
+              });
+            }
+            return tokens;
+          };
+        }
+        
+        // Ensure marker layer has proper z-index
+        if (editorInstance.renderer.$markerBack) {
+          editorInstance.renderer.$markerBack.element.style.zIndex = '3';
+        }
+        
+        if (props.hintMarkers.length > 0) {
+          setHintMarkers(props.hintMarkers);
         }
       };
       
@@ -119,59 +162,149 @@
         return editor.value ? editor.value.getValue() : '';
       };
 
-      /* Setter for highlight markers */
-      const setHighlightMarkers = (markers: Marker[]) => {
-        if (!editor.value) return;
+      /* Setter for hint markers */
+      const setHintMarkers = (markers: HintMarker[]) => {
+        if (!editor.value) {
+          console.log('setHintMarkers: Editor not available');
+          return;
+        }
+        
+        console.log('setHintMarkers called with:', markers);
+        
+        // Clear existing hint markers
+        clearHintMarkers();
         
         markers.forEach((marker, index) => {
+          console.log(`Adding marker ${index}:`, marker);
+          
           const Range = ace.require('ace/range').Range;
-          const color = getVirdisColor(index);
-          const css = `.myMarker${index} { background: ${color}; position: absolute; z-index: 20; }`;
-          const style = document.createElement('style');
-          style.appendChild(document.createTextNode(css));
-          document.head.appendChild(style);
-          editor.value.session.addMarker(
-            new Range(marker.start_line - 1, 0, marker.end_line - 1, 2), 
-            `myMarker${index}`, 
-            'fullLine'
+          
+          // Create range based on marker type
+          let range;
+          if (marker.type === 'fullLine') {
+            range = new Range(
+              marker.startLine, 
+              0, 
+              marker.endLine, 
+              Number.MAX_SAFE_INTEGER
+            );
+          } else {
+            range = new Range(
+              marker.startLine,
+              marker.startColumn || 0,
+              marker.endLine,
+              marker.endColumn || Number.MAX_SAFE_INTEGER
+            );
+          }
+          
+          console.log(`Created range for marker ${index}:`, {
+            startLine: marker.startLine,
+            endLine: marker.endLine,
+            className: marker.className,
+            type: marker.type
+          });
+          
+          // Add marker to session
+          const markerId = editor.value.session.addMarker(
+            range,
+            marker.className,
+            marker.type === 'fullLine' ? 'fullLine' : 'text'
           );
+          
+          console.log(`Added marker ${index} with ID ${markerId}, className: "${marker.className}"`);
+          
+          // Track marker ID for cleanup
+          activeMarkerIds.value.add(markerId);
+          
+          // For comment markers, ensure the line has proper styling
+          if (marker.className.includes('subgoal-comment')) {
+            // Force a re-render of the line to ensure styles are applied
+            editor.value.renderer.updateLines(marker.startLine, marker.endLine);
+          }
+          
+          // Add tooltip if specified
+          if (marker.tooltipText) {
+            // Add click handler for tooltips
+            editor.value.on('click', (e: any) => {
+              const position = e.getDocumentPosition();
+              if (position.row >= marker.startLine && position.row <= marker.endLine) {
+                // Show tooltip (could be implemented with a tooltip library)
+                console.log('Tooltip:', marker.tooltipText);
+              }
+            });
+          }
         });
-
-        /* add the message to the highlight markers */
-        editor.value.session.setAnnotations(
-          markers.map((marker) => ({
-            row: marker.start_line - 1,
-            column: 0,
-            text: marker.explanation_portion,
-            type: 'info',
-          }))
-        );
+        
+        console.log(`Total active markers: ${activeMarkerIds.value.size}`);
       };
 
-      /* utility function to return virdis color pallete for setting the background for the markers */
-      const getVirdisColor = (index: number) => {
-        const colors = [
-          '#44015482',
-          '#48287882',
-          '#3E498982',
-          '#31688E82',
-          '#26828E82',
-          '#1F9E8982',
-          '#35B77982',
-          '#6DCD5982',
-          '#B4DE2C82',
-          '#FDE72582',
-        ];
-        return colors[index % colors.length];
+      /* Clear all hint markers */
+      const clearHintMarkers = () => {
+        if (!editor.value) return;
+        
+        // Remove all tracked markers
+        activeMarkerIds.value.forEach(markerId => {
+          editor.value.session.removeMarker(markerId);
+        });
+        
+        // Clear the tracking set
+        activeMarkerIds.value.clear();
+        
+        console.log('Cleared all hint markers');
       };
+
+      /* Set new code content while preserving cursor */
+      const setCode = (newCode: string) => {
+        if (!editor.value) return;
+        
+        const cursorPosition = editor.value.getCursorPosition();
+        editor.value.setValue(newCode);
+        editor.value.moveCursorToPosition(cursorPosition);
+      };
+
+      /* Get current cursor position */
+      const getCursorPosition = () => {
+        if (!editor.value) return { row: 0, column: 0 };
+        return editor.value.getCursorPosition();
+      };
+
+      /* Move cursor to specific position */
+      const moveCursorToPosition = (position: { row: number; column: number }) => {
+        if (!editor.value) return;
+        editor.value.moveCursorToPosition(position);
+      };
+
+
+      /* Watch for hintMarkers prop changes */
+      watch(() => props.hintMarkers, (newMarkers) => {
+        if (editor.value && newMarkers) {
+          console.log('Editor: hintMarkers prop changed:', newMarkers);
+          setHintMarkers(newMarkers);
+        }
+      }, { deep: true });
       
+      // Expose methods for external access
+      expose({
+        editor,
+        setHintMarkers,
+        clearHintMarkers,
+        setCode,
+        getValue,
+        getCursorPosition,
+        moveCursorToPosition
+      });
+
       return {
         editor,
         editorInit,
         setValue,
         getValue,
-        setHighlightMarkers,
-        handleInput
+        handleInput,
+        setHintMarkers,
+        clearHintMarkers,
+        setCode,
+        getCursorPosition,
+        moveCursorToPosition
       };
     }
   });
@@ -297,4 +430,262 @@
     background: none;
     border-right: 1px solid var(--color-bg-border);
   }
+
+  /* Hint System Styles */
+  /* Variable fade has no visual styling - just transforms variable names */
+  /* Subgoal highlighting styles moved to global styles block below */
+  
+  /* Hide cursor for read-only editors */
+  :deep(.ace_cursor-layer) {
+    display: none !important;
+  }
+  
+  :deep(.ace_cursor) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+  
+  /* Remove active line highlighting */
+  :deep(.ace_active-line) {
+    background: transparent !important;
+  }
+  
+  /* Make editor truly read-only visually */
+  :deep(.ace_editor.ace_read-only) {
+    cursor: default !important;
+  }
+  
+  :deep(.ace_editor.ace_read-only .ace_cursor-layer) {
+    display: none !important;
+  }
+  
+  :deep(.ace_editor.ace_read-only .ace_content) {
+    cursor: text !important;
+  }
+
+
+  @keyframes pulse-subgoal {
+    0% {
+      background: rgba(255, 193, 7, 0.2);
+    }
+    50% {
+      background: rgba(255, 193, 7, 0.3);
+    }
+    100% {
+      background: rgba(255, 193, 7, 0.2);
+    }
+  }
+
+  :deep(.suggested-trace) {
+    background: rgba(255, 193, 7, 0.1);
+    border-right: 3px solid #ffc107;
+    font-style: italic;
+    position: relative;
+  }
+
+  :deep(.suggested-trace)::after {
+    content: "🔍";
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.6;
+  }
+
+  :deep(.suggestion-instructions) {
+    background: rgba(33, 150, 243, 0.1);
+    border-right: 3px solid #2196f3;
+  }
+
+  :deep(.suggestion-test_case) {
+    background: rgba(255, 193, 7, 0.1);
+    border-right: 3px solid #ffc107;
+  }
+
+  /* Annotation styles for hint system */
+  :deep(.ace_gutter .subgoal-annotation) {
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 3px;
+    padding: 2px 4px;
+    margin: 1px 0;
+  }
+</style>
+
+<!-- Global styles for ACE markers (can't be scoped) -->
+<style>
+/* ACE Subgoal Highlighting - Harmonized with clouds_midnight theme */
+
+/* Force comment tokens to have transparent backgrounds when on highlighted lines */
+.ace-clouds-midnight .ace_comment {
+  background: transparent !important;
+}
+
+/* Special class for transparent comments */
+.ace-comment-transparent {
+  background: transparent !important;
+}
+
+/* Ensure marker layer is visible above text layer for highlighted lines */
+.ace_marker-layer {
+  pointer-events: none;
+}
+
+/* Make sure our highlights show through properly */
+.ace_line {
+  position: relative;
+}
+
+/* Alternative approach using attribute selectors if line has markers */
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-0) .ace_comment,
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-1) .ace_comment,
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-2) .ace_comment,
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-3) .ace_comment,
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-4) .ace_comment,
+.ace_text-layer .ace_line:has(+ .ace_marker-layer .subgoal-comment-5) .ace_comment {
+  background: transparent !important;
+}
+
+/* Additional approach: Use mix-blend-mode to ensure visibility */
+.ace_marker-layer .subgoal-comment-0,
+.ace_marker-layer .subgoal-comment-1,
+.ace_marker-layer .subgoal-comment-2,
+.ace_marker-layer .subgoal-comment-3,
+.ace_marker-layer .subgoal-comment-4,
+.ace_marker-layer .subgoal-comment-5 {
+  mix-blend-mode: multiply;
+}
+
+/* Fallback: Apply highlighting to the entire line container */
+.ace_line_group:has(.ace_line .ace_comment:only-child) {
+  position: relative;
+}
+
+/* Use data attributes on the editor to mark highlighted lines if needed */
+.ace_editor[data-highlighted-lines*="comment"] .ace_text-layer .ace_line_group {
+  position: relative;
+  z-index: 1;
+}
+
+/* Direct line styling approach for better compatibility */
+.ace_gutter-cell.subgoal-line-0 ~ .ace_line,
+.ace_line.subgoal-line-0 {
+  background: rgba(57, 148, 106, 0.15) !important;
+  position: relative;
+}
+
+.ace_gutter-cell.subgoal-line-0 ~ .ace_line::before,
+.ace_line.subgoal-line-0::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: #39946A;
+}
+
+/* Comment Lines - Slightly more prominent backgrounds */
+.ace_marker-layer .subgoal-comment-0 {
+  background: rgba(57, 148, 106, 0.15) !important;  /* Muted Teal */
+  border-left: 5px solid #39946A !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+.ace_marker-layer .subgoal-comment-1 {
+  background: rgba(93, 144, 205, 0.15) !important;  /* Soft Blue */
+  border-left: 5px solid #5D90CD !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+.ace_marker-layer .subgoal-comment-2 {
+  background: rgba(146, 124, 93, 0.15) !important;  /* Warm Brown */
+  border-left: 5px solid #927C5D !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+.ace_marker-layer .subgoal-comment-3 {
+  background: rgba(161, 101, 172, 0.15) !important;  /* Muted Purple */
+  border-left: 5px solid #A165AC !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+.ace_marker-layer .subgoal-comment-4 {
+  background: rgba(231, 124, 124, 0.15) !important;  /* Dark Coral */
+  border-left: 5px solid #E77C7C !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+.ace_marker-layer .subgoal-comment-5 {
+  background: rgba(181, 165, 114, 0.15) !important;  /* Soft Yellow */
+  border-left: 5px solid #B5A572 !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+  z-index: 4;
+}
+
+/* Code Lines - Subtle backgrounds */
+.ace_marker-layer .subgoal-highlight.subgoal-0 {
+  background: rgba(57, 148, 106, 0.08) !important;  /* Muted Teal */
+  border-left: 5px solid #39946A !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
+
+.ace_marker-layer .subgoal-highlight.subgoal-1 {
+  background: rgba(93, 144, 205, 0.08) !important;  /* Soft Blue */
+  border-left: 5px solid #5D90CD !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
+
+.ace_marker-layer .subgoal-highlight.subgoal-2 {
+  background: rgba(146, 124, 93, 0.08) !important;  /* Warm Brown */
+  border-left: 5px solid #927C5D !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
+
+.ace_marker-layer .subgoal-highlight.subgoal-3 {
+  background: rgba(161, 101, 172, 0.08) !important;  /* Muted Purple */
+  border-left: 5px solid #A165AC !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
+
+.ace_marker-layer .subgoal-highlight.subgoal-4 {
+  background: rgba(231, 124, 124, 0.08) !important;  /* Dark Coral */
+  border-left: 5px solid #E77C7C !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
+
+.ace_marker-layer .subgoal-highlight.subgoal-5 {
+  background: rgba(181, 165, 114, 0.08) !important;  /* Soft Yellow */
+  border-left: 5px solid #B5A572 !important;
+  position: absolute;
+  width: 100% !important;
+  left: 0 !important;
+}
 </style>

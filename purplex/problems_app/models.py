@@ -189,14 +189,11 @@ class UserProgress(models.Model):
     course = models.ForeignKey('Course', on_delete=models.CASCADE, null=True, blank=True)
     problem_version = models.PositiveIntegerField(default=1)
     
-    # Status with more granular states
+    # Simplified status: just completed or not completed
     status = models.CharField(max_length=20, choices=[
         ('not_started', 'Not Started'),
-        ('in_progress', 'In Progress'),  # Started but < 50%
-        ('struggling', 'Struggling'),     # Multiple attempts, low scores
-        ('advancing', 'Advancing'),       # 50-79% score
+        ('in_progress', 'In Progress'),
         ('completed', 'Completed'),       # Met completion criteria
-        ('mastered', 'Mastered')         # Perfect score or multiple completions
     ], default='not_started')
     
     # Scoring and attempts
@@ -264,23 +261,19 @@ class UserProgress(models.Model):
         else:
             self.consecutive_successes = 0
         
-        self.completion_percentage = self._calculate_completion_percentage()
+        self.completion_percentage = self.best_score
         self.save()
     
     def _update_status(self, submission):
-        """Intelligent status determination based on performance patterns"""
+        """Simple status determination: completed or in progress"""
         completion_threshold = self.problem.completion_threshold or 100
         
-        if self.best_score >= 100:
-            self.status = 'mastered'
-        elif self.best_score >= 100:
+        if self.best_score >= completion_threshold:
             self.status = 'completed'
-        elif self.best_score >= 50:
-            self.status = 'advancing'
-        elif self.attempts > 5 and self.average_score < 30:
-            self.status = 'struggling'
-        else:
+        elif self.attempts > 0:
             self.status = 'in_progress'
+        else:
+            self.status = 'not_started'
     
     def _check_completion(self, submission):
         """Flexible completion checking supporting multiple criteria"""
@@ -313,18 +306,6 @@ class UserProgress(models.Model):
         
         return True
     
-    def _calculate_completion_percentage(self):
-        """Calculate nuanced completion percentage"""
-        if self.status == 'mastered':
-            return 100
-        elif self.status == 'completed':
-            return 100
-        else:
-            # Scale 0-89% based on best score and attempts
-            base = min(self.best_score, 89)
-            # Penalty for excessive attempts indicating struggle
-            attempt_penalty = max(0, (self.attempts - 10) * 2)
-            return max(0, base - attempt_penalty)
     
     def __str__(self):
         return f"{self.user.username} - {self.problem_set.title} - {self.problem.title} ({self.status})"
@@ -503,3 +484,54 @@ class CourseEnrollment(models.Model):
     
     def __str__(self):
         return f"{self.user.username} enrolled in {self.course.course_id}"
+
+
+class ProblemHint(models.Model):
+    """Hint configuration for problems to support research on educational interventions"""
+    HINT_TYPE_CHOICES = [
+        ('variable_fade', 'Variable Fade'),
+        ('subgoal_highlight', 'Subgoal Highlighting'),
+        ('suggested_trace', 'Suggested Trace')
+    ]
+    
+    problem = models.ForeignKey(Problem, on_delete=models.CASCADE, related_name='hints')
+    hint_type = models.CharField(max_length=20, choices=HINT_TYPE_CHOICES)
+    is_enabled = models.BooleanField(default=False)
+    min_attempts = models.IntegerField(default=3, help_text="Minimum attempts before hint is available")
+    content = models.JSONField(default=dict, help_text="Hint-specific configuration")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['problem', 'hint_type']
+        ordering = ['hint_type']
+    
+    def clean(self):
+        """Validate content structure based on hint type"""
+        if self.hint_type == 'variable_fade':
+            if 'mappings' not in self.content:
+                raise ValidationError('Variable fade hint must contain mappings')
+            if not isinstance(self.content.get('mappings'), list):
+                raise ValidationError('Mappings must be a list')
+            for mapping in self.content.get('mappings', []):
+                if not isinstance(mapping, dict) or 'from' not in mapping or 'to' not in mapping:
+                    raise ValidationError('Each mapping must have "from" and "to" fields')
+        
+        elif self.hint_type == 'subgoal_highlight':
+            if 'subgoals' not in self.content:
+                raise ValidationError('Subgoal highlight hint must contain subgoals')
+            if not isinstance(self.content.get('subgoals'), list):
+                raise ValidationError('Subgoals must be a list')
+            for subgoal in self.content.get('subgoals', []):
+                required_fields = ['line_start', 'line_end', 'title', 'explanation']
+                if not all(field in subgoal for field in required_fields):
+                    raise ValidationError(f'Each subgoal must have: {", ".join(required_fields)}')
+        
+        elif self.hint_type == 'suggested_trace':
+            if 'suggested_call' not in self.content:
+                raise ValidationError('Suggested trace hint must contain suggested_call')
+            if not isinstance(self.content.get('suggested_call'), str):
+                raise ValidationError('Suggested call must be a string')
+    
+    def __str__(self):
+        return f"{self.problem.title} - {self.get_hint_type_display()}"

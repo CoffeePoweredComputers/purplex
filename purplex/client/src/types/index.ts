@@ -198,6 +198,56 @@ export interface TestCaseFormatted {
   expected_output?: unknown;
 }
 
+// ===== HINT TYPES =====
+export type HintType = 'variable_fade' | 'subgoal_highlight' | 'suggested_trace';
+
+export interface BaseHintConfig {
+  type: HintType;
+  is_enabled: boolean;
+  min_attempts: number;
+  content: Record<string, unknown>;
+}
+
+export interface VariableFadeMapping {
+  from: string;
+  to: string;
+}
+
+export interface VariableFadeHint extends BaseHintConfig {
+  type: 'variable_fade';
+  content: {
+    mappings: VariableFadeMapping[];
+  };
+}
+
+export interface SubgoalHighlight {
+  line_start: number;
+  line_end: number;
+  title: string;
+  explanation: string;
+}
+
+export interface SubgoalHighlightHint extends BaseHintConfig {
+  type: 'subgoal_highlight';
+  content: {
+    subgoals: SubgoalHighlight[];
+  };
+}
+
+export interface SuggestedTraceHint extends BaseHintConfig {
+  type: 'suggested_trace';
+  content: {
+    suggested_call: string;
+    explanation?: string;
+  };
+}
+
+export type HintConfig = VariableFadeHint | SubgoalHighlightHint | SuggestedTraceHint;
+
+export interface HintUpdateRequest {
+  hints: HintConfig[];
+}
+
 // ===== PROGRESS TRACKING TYPES =====
 export interface ProgressUpdate {
   status?: string;
@@ -363,3 +413,4 @@ export interface CourseProblemSet {
   icon?: string;
   order?: number;
 }
+
