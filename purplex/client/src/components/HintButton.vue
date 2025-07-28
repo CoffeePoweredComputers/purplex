@@ -41,6 +41,9 @@
               <div class="hint-info">
                 <h5>{{ hint.title }}</h5>
                 <p class="hint-description">{{ hint.description }}</p>
+                <p v-if="!hint.unlocked" class="hint-requirement">
+                  Requires {{ getMinAttemptsForHint(hint.type) }} attempts ({{ currentAttempts }}/{{ getMinAttemptsForHint(hint.type) }})
+                </p>
               </div>
               <div class="hint-controls">
                 <label v-if="hint.unlocked" class="hint-toggle">
@@ -276,7 +279,13 @@ export default {
         this.notify.info('Hint Unlocked', 'Hint content has been revealed')
       } catch (error) {
         console.error('Error getting hint:', error)
-        this.notify.error('Error', 'Failed to load hint content')
+        
+        // Handle 403 errors specially - these are expected when hints aren't unlocked yet
+        if (error.status === 403 && error.error) {
+          this.notify.info('Hint Locked', error.error)
+        } else {
+          this.notify.error('Error', error.error || 'Failed to load hint content')
+        }
       } finally {
         this.loading = false
       }
@@ -293,6 +302,11 @@ export default {
         }
       } catch (error) {
         console.error('Error loading hint content:', error)
+        
+        // Handle 403 errors silently during initial load - hints may be locked
+        if (error.status !== 403) {
+          this.notify.error('Error', error.error || 'Failed to load hint content')
+        }
       }
     },
     
@@ -360,12 +374,31 @@ export default {
     
     getMinAttemptsForNextHint() {
       if (!this.availableHints || !Array.isArray(this.availableHints)) {
-        return 2
+        return 1
       }
-      const unlockedCount = this.availableHints.filter(h => h && h.unlocked).length
-      if (unlockedCount === 0) return 2
-      if (unlockedCount === 1) return 4
-      return 6
+      
+      // Find the next locked hint with the lowest min_attempts requirement
+      const lockedHints = this.availableHints.filter(h => h && !h.unlocked)
+      if (lockedHints.length === 0) return 0
+      
+      // Get min attempts from hint data or use defaults
+      const nextRequiredAttempts = Math.min(...lockedHints.map(h => this.getMinAttemptsForHint(h.type)))
+      return Math.max(nextRequiredAttempts - this.currentAttempts, 0)
+    },
+
+    getMinAttemptsForHint(hintType) {
+      // Try to get from hint content first if available
+      if (this.hintContent[hintType]?.originalData?.min_attempts !== undefined) {
+        return this.hintContent[hintType].originalData.min_attempts
+      }
+      
+      // Default requirements based on hint type
+      const defaults = {
+        'subgoal_highlight': 0,
+        'variable_fade': 1, 
+        'suggested_trace': 2
+      }
+      return defaults[hintType] || 1
     },
     
     getHintTitle(hintType) {
@@ -592,6 +625,13 @@ export default {
   margin: 0;
   font-size: 12px;
   color: #6b7280;
+}
+
+.hint-requirement {
+  margin: 4px 0 0 0;
+  font-size: 11px;
+  color: #f59e0b;
+  font-weight: 500;
 }
 
 .hint-status {

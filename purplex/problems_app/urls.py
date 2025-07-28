@@ -1,18 +1,30 @@
 from django.urls import path
-from .views import (
-    # Public/Student views
-    ProblemListView, ProblemDetailView, ProblemSetListView, ProblemSetDetailView,
-    CategoryListView, TestSolutionView, SubmitSolutionView, EiPLSubmissionView,
-    
-    # Progress views
-    UserProgressView, ProblemSetProgressView, UserProgressSummaryView,
-    
-    # Admin views
+
+# Student-facing views
+from .views.student_views import (
+    ProblemListView, ProblemDetailView, ProblemSetListView, 
+    ProblemSetDetailView, CategoryListView
+)
+
+# Submission views
+from .views.submission_views import (
+    TestSolutionView, SubmitSolutionView, EiPLSubmissionView
+)
+
+# Progress tracking views
+from .views.progress_views import (
+    UserProgressView, ProblemSetProgressView, UserProgressSummaryView
+)
+
+# Admin views
+from .views.admin_views import (
     AdminProblemListView, AdminProblemDetailView, AdminTestProblemView,
-    AdminTestCaseView, AdminProblemSetListView,
-    AdminProblemSetDetailView, AdminCategoryView,
-    
-    # Hint views
+    AdminTestCaseView, AdminProblemSetListView, AdminProblemSetDetailView, 
+    AdminCategoryView
+)
+
+# Hint system views
+from .views.hint_views import (
     ProblemHintAvailabilityView, ProblemHintDetailView, AdminProblemHintView
 )
 from .course_views import (

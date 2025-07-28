@@ -509,7 +509,7 @@ export default {
                 const submissionData = {
                     problem_slug: currentProblemSlug,
                     problem_set_slug: this.$route.params.slug,
-                    prompt: promptText
+                    user_prompt: promptText
                 };
                 
                 // Include course_id if we're in a course context
