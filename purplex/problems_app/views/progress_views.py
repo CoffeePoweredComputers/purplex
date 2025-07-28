@@ -150,7 +150,7 @@ class ProblemSetProgressView(APIView):
                 'title': problem_set.title,
                 'total_problems': set_progress.total_problems,
                 'completed_problems': set_progress.completed_problems,
-                'partially_complete_problems': set_progress.partially_complete_problems,
+                'in_progress_problems': set_progress.in_progress_problems,
                 'completion_percentage': set_progress.completion_percentage,
                 'is_completed': set_progress.is_completed,
                 'average_score': set_progress.average_score,

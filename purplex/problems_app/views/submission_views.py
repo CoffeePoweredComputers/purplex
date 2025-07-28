@@ -159,7 +159,7 @@ class SubmitSolutionView(APIView):
         passed_test_ids = []
         if 'results' in result:
             for i, test_result in enumerate(result['results']):
-                if test_result.get('passed', False) and i < len(test_data):
+                if test_result.get('pass', False) and i < len(test_data):
                     passed_test_ids.append(test_data[i]['id'])
         
         # Convert time_spent to timedelta if provided
@@ -180,16 +180,13 @@ class SubmitSolutionView(APIView):
             time_spent=time_spent_delta
         )
         
-        # Progress is automatically updated via the model's save method
-        # Force save to trigger progress update with course context
-        submission.save()
-        
-        # Get updated progress
+        # Progress is automatically updated via the PromptSubmission model's save method
+        # Get the updated progress for response
         progress = UserProgress.objects.get(
-            user=request.user, 
+            user=request.user,
             problem=problem,
             problem_set=problem_set,
-            course=course  # Include course in progress lookup
+            course=course
         )
         
         # Return only visible test results to student
@@ -339,7 +336,7 @@ class EiPLSubmissionView(APIView):
         
         for i, code_variation in enumerate(code_variations):
             try:
-                result = code_service.test_solution(code_variation['code'], problem.function_name, test_data)
+                result = code_service.test_solution(code_variation, problem.function_name, test_data)
                 all_results.append(result)
                 
                 # Count passing variations (100% pass rate)
@@ -378,22 +375,14 @@ class EiPLSubmissionView(APIView):
             course=course  # Include course context
         )
         
-        # Update user progress with course context
-        progress, created = UserProgress.objects.get_or_create(
+        # Progress is automatically updated via the PromptSubmission model's save method
+        # Get the updated progress for response
+        progress = UserProgress.objects.get(
             user=request.user,
             problem=problem,
             problem_set=problem_set,
-            course=course  # Include course context
+            course=course
         )
-
-        # Update progress with the submission score
-        try:
-            progress.update_from_submission(submission, time_spent=timedelta(seconds=0))
-            logger.info(f"Updated progress for user {request.user.id}, problem {problem.slug}, score {score}")
-        except Exception as e:
-            logger.error(f"Failed to update progress for user {request.user.id}, problem {problem.slug}: {str(e)}")
-            # Continue execution even if progress update fails
-
         
         return Response({
             'submission_id': submission.id,

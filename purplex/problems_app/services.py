@@ -55,7 +55,7 @@ class CodeExecutionService:
             # Get the function
             if function_name not in namespace:
                 return {
-                    'passed': False,
+                    'pass': False,
                     'error': f"Function '{function_name}' not found",
                     'actual_output': None,
                     'expected_output': expected_output,
@@ -71,7 +71,7 @@ class CodeExecutionService:
             passed = actual_output == expected_output
             
             return {
-                'passed': passed,
+                'pass': passed,
                 'error': None,
                 'actual_output': actual_output,
                 'expected_output': expected_output,
@@ -80,7 +80,7 @@ class CodeExecutionService:
             
         except Exception as e:
             return {
-                'passed': False,
+                'pass': False,
                 'error': str(e),
                 'actual_output': None,
                 'expected_output': expected_output,
@@ -125,7 +125,7 @@ class CodeExecutionService:
             result['test_number'] = i + 1
             result['description'] = test_case.get('description', f'Test {i + 1}')
             
-            if result['passed']:
+            if result['pass']:
                 passed_count += 1
             
             results.append(result)

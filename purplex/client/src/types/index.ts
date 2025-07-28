@@ -249,8 +249,10 @@ export interface HintUpdateRequest {
 }
 
 // ===== PROGRESS TRACKING TYPES =====
+export type ProgressStatus = 'not_started' | 'in_progress' | 'completed';
+
 export interface ProgressUpdate {
-  status?: string;
+  status?: ProgressStatus;
   score?: number;
   attempts?: number;
   time_spent?: number;

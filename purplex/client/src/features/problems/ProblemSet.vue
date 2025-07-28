@@ -20,7 +20,7 @@
                 <div class="problem-info">
                     <div class="progress-summary">
                         <span class="progress-stat completed">{{ completedCount }} completed</span>
-                        <span class="progress-stat partially-complete">{{ partiallyCompleteCount }} partially complete</span>
+                        <span class="progress-stat in_progress">{{ inProgressCount }} in progress</span>
                         <span class="progress-stat remaining">{{ remainingCount }} remaining</span>
                     </div>
                     <div class="problem-progress">
@@ -28,8 +28,8 @@
                             :class="['progress-bar', 
                                 { 'active': index === currentProblem },
                                 { 'completed': getProblemStatus(problem.slug) === 'completed' },
-                                { 'partially-complete': getProblemStatus(problem.slug) === 'partially_complete' },
-                                { 'not-tried': getProblemStatus(problem.slug) === 'not-tried' }
+                                { 'in_progress': getProblemStatus(problem.slug) === 'in_progress' },
+                                { 'not_started': getProblemStatus(problem.slug) === 'not_started' }
                             ]" 
                             @click="setProblem(index)"
                             :title="getProblemTooltip(problem, index)">
@@ -501,7 +501,7 @@ export default {
                 
                 // Optimistic update
                 const rollback = this.updateProgress(currentProblemSlug, {
-                    status: 'partially_complete',
+                    status: 'in_progress',
                     score: null,
                     attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
                 });
@@ -527,9 +527,9 @@ export default {
                 this.promptCorrectness = data.passing_variations || 0;
                 this.userPrompt = promptText;
                 
-                // Update progress tracking
+                // Update progress tracking with backend status
                 this.problemStatuses[currentProblemSlug] = {
-                    status: data.progress.is_completed ? 'completed' : 'partially_complete',
+                    status: data.progress.status,  // Use backend status directly
                     score: data.score,
                     attempts: data.progress.attempts
                 };
@@ -638,7 +638,7 @@ export default {
                 
                 console.log('Problem statuses after loading:', this.problemStatuses);
                 console.log('Completed count:', this.completedCount);
-                console.log('Partially complete count:', this.partiallyCompleteCount);
+                console.log('In progress count:', this.inProgressCount);
                 console.log('Remaining count:', this.remainingCount);
                 
                 if (response.data.problem_set) {
@@ -649,7 +649,7 @@ export default {
                 this.$nextTick(() => {
                     console.log('After nextTick - recomputing counts');
                     console.log('Final completed count:', this.completedCount);
-                    console.log('Final partially complete count:', this.partiallyCompleteCount);
+                    console.log('Final in progress count:', this.inProgressCount);
                     console.log('Final remaining count:', this.remainingCount);
                 })
                 
@@ -662,31 +662,24 @@ export default {
         },
         
         mapStatusFromAPI(apiStatus, score) {
-            if (apiStatus === 'completed' || apiStatus === 'mastered') {
-                return 'completed';
-            } else if (apiStatus === 'not_started') {
-                return 'not-tried';
-            } else if (score > 0) {
-                return 'partially_complete';
-            } else {
-                return 'not-tried';
-            }
+            // Direct pass-through - backend status is source of truth
+            return apiStatus;
         },
         
         getProblemStatus(problemSlug) {
             const actualStatus = this.problemStatuses[problemSlug];
             const optimisticStatus = this.getProgress(problemSlug, actualStatus);
-            return optimisticStatus?.status || 'not-tried';
+            return optimisticStatus?.status || 'not_started';
         },
         
         getProblemTooltip(problem, index) {
             const status = this.problemStatuses[problem.slug];
             const problemName = problem.title || `Problem ${index + 1}`;
             
-            if (!status || status.status === 'not-tried') {
+            if (!status || status.status === 'not_started') {
                 return `${problemName} - Not attempted`;
-            } else if (status.status === 'partially_complete') {
-                return `${problemName} - Partially Complete (Score: ${status.score}%)`;
+            } else if (status.status === 'in_progress') {
+                return `${problemName} - In Progress (Score: ${status.score}%)`;
             } else if (status.status === 'completed') {
                 return `${problemName} - Completed (Score: ${status.score}%)`;
             }
@@ -851,12 +844,12 @@ export default {
             return Object.values(this.problemStatuses).filter(s => s.status === 'completed').length;
         },
         
-        partiallyCompleteCount() {
-            return Object.values(this.problemStatuses).filter(s => s.status === 'partially_complete').length;
+        inProgressCount() {
+            return Object.values(this.problemStatuses).filter(s => s.status === 'in_progress').length;
         },
         
         remainingCount() {
-            return this.problems.length - this.completedCount - this.partiallyCompleteCount;
+            return this.problems.length - this.completedCount - this.inProgressCount;
         },
         
         currentTheme() {
@@ -1006,7 +999,7 @@ export default {
     border-color: var(--color-success);
 }
 
-.progress-stat.partially-complete {
+.progress-stat.in_progress {
     color: var(--color-warning);
     background: var(--color-warning-bg);
     border-color: var(--color-warning);
@@ -1033,11 +1026,11 @@ export default {
 }
 
 /* Status styles */
-.progress-bar.not-tried {
+.progress-bar.not_started {
     background: var(--color-bg-hover);
 }
 
-.progress-bar.partially-complete {
+.progress-bar.in_progress {
     background: var(--color-warning);
 }
 
@@ -1050,11 +1043,11 @@ export default {
     box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-primary-gradient-start);
 }
 
-.progress-bar.active.not-tried {
+.progress-bar.active.not_started {
     background: linear-gradient(90deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
 }
 
-.progress-bar.active.partially-complete {
+.progress-bar.active.in_progress {
     background: var(--color-warning);
     box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-warning);
 }
