@@ -15,6 +15,35 @@ from purplex.users_app.permissions import IsAuthenticated
 logger = logging.getLogger(__name__)
 
 
+def create_error_response(error_message: str, http_status: int, **kwargs):
+    """Create a consistent error response structure for EiPL submissions.
+    
+    Args:
+        error_message: The error message to display
+        http_status: HTTP status code
+        **kwargs: Additional fields to include in the response
+        
+    Returns:
+        Response object with consistent structure
+    """
+    response_data = {
+        'error': error_message,
+        'submission_id': kwargs.get('submission_id', None),
+        'score': kwargs.get('score', 0),
+        'variations': kwargs.get('variations', []),
+        'results': kwargs.get('results', []),
+        'passing_variations': kwargs.get('passing_variations', 0),
+        'total_variations': kwargs.get('total_variations', 0)
+    }
+    
+    # Add any additional fields passed in kwargs
+    for key, value in kwargs.items():
+        if key not in response_data:
+            response_data[key] = value
+            
+    return Response(response_data, status=http_status)
+
+
 class TestSolutionView(APIView):
     """Test a solution without saving submission."""
     permission_classes = [IsAuthenticated]
@@ -294,15 +323,10 @@ class EiPLSubmissionView(APIView):
             
         except Exception as e:
             logger.error(f"AI code generation failed for problem {problem_slug}: {str(e)}")
-            return Response({
-                'error': 'AI code generation failed. Please try again.',
-                'submission_id': None,
-                'score': 0,
-                'variations': [],
-                'results': [],
-                'passing_variations': 0,
-                'total_variations': 0
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return create_error_response(
+                'AI code generation failed. Please try again.',
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         # Get all test cases (including hidden ones for full evaluation)
         all_test_cases = list(problem.test_cases.all())
@@ -321,15 +345,12 @@ class EiPLSubmissionView(APIView):
             code_service = CodeExecutionService()
         except Exception as e:
             logger.error(f"Failed to initialize code service: {str(e)}")
-            return Response({
-                'error': 'Code testing service unavailable',
-                'submission_id': None,
-                'score': 0,
-                'variations': code_variations,
-                'results': [],
-                'passing_variations': 0,
-                'total_variations': len(code_variations)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return create_error_response(
+                'Code testing service unavailable',
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                variations=code_variations,
+                total_variations=len(code_variations)
+            )
         
         all_results = []
         total_passed = 0

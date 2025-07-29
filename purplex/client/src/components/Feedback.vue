@@ -190,13 +190,13 @@ export default {
         if (testResult) {
           // Backend returns { success, passed, total, results: [...] }
           if (testResult.results && Array.isArray(testResult.results)) {
-            tests = testResult.results.map(test => this.formatTestResult(test));
+            tests = testResult.results;
             // Variation is correct if all tests passed
             correct = testResult.passed === testResult.total && testResult.total > 0;
           } 
           // Handle direct array format (legacy or test data)
           else if (Array.isArray(testResult)) {
-            tests = testResult.map(test => this.formatTestResult(test));
+            tests = testResult;
             correct = tests.every(test => test.pass);
           }
         }
@@ -258,32 +258,6 @@ export default {
       if (slide.tests.length === 0) return '⏳';
       if (slide.correct) return '✓';
       return '✗';
-    },
-    
-    // Format test result to include function_call
-    formatTestResult(test) {
-      if (!test) return test;
-      
-      // If function_call already exists, return as-is
-      if (test.function_call) return test;
-      
-      // Create function_call from inputs
-      let functionCall = '';
-      if (test.inputs && Array.isArray(test.inputs)) {
-        // Get function name from the problem (would need to be passed as prop)
-        // For now, use a generic format
-        const args = test.inputs.map(input => {
-          if (typeof input === 'string') return `"${input}"`;
-          if (Array.isArray(input)) return `[${input.join(', ')}]`;
-          return String(input);
-        }).join(', ');
-        functionCall = `f(${args})`;
-      }
-      
-      return {
-        ...test,
-        function_call: functionCall
-      };
     },
     
     // Debug functionality

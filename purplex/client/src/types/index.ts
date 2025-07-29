@@ -115,6 +115,8 @@ export interface TestResult {
   actual_output?: unknown;
   error?: string;
   execution_time?: number;
+  description?: string;
+  function_call: string;  // Always provided by backend
 }
 
 export interface TestExecutionResult {
@@ -125,6 +127,31 @@ export interface TestExecutionResult {
   results: TestResult[];
   execution_time: number;
   memory_used?: number;
+}
+
+// ===== EIPL SUBMISSION TYPES =====
+export interface VariationTestResult {
+  success: boolean;
+  error?: string;
+  results: TestResult[];
+  passed: number;
+  total: number;
+  score: number;
+}
+
+export interface EiPLSubmissionResponse {
+  submission_id: number;
+  score: number;
+  variations: string[];
+  results: VariationTestResult[];
+  passing_variations: number;
+  total_variations: number;
+  progress: {
+    status: ProgressStatus;
+    best_score: number;
+    attempts: number;
+    is_completed: boolean;
+  };
 }
 
 

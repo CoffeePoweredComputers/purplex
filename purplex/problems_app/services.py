@@ -59,7 +59,8 @@ class CodeExecutionService:
                     'error': f"Function '{function_name}' not found",
                     'actual_output': None,
                     'expected_output': expected_output,
-                    'inputs': inputs
+                    'inputs': inputs,
+                    'function_call': self._format_function_call(function_name, inputs)
                 }
             
             user_function = namespace[function_name]
@@ -75,7 +76,8 @@ class CodeExecutionService:
                 'error': None,
                 'actual_output': actual_output,
                 'expected_output': expected_output,
-                'inputs': inputs
+                'inputs': inputs,
+                'function_call': self._format_function_call(function_name, inputs)
             }
             
         except Exception as e:
@@ -85,8 +87,30 @@ class CodeExecutionService:
                 'actual_output': None,
                 'expected_output': expected_output,
                 'inputs': inputs,
-                'traceback': traceback.format_exc()
+                'traceback': traceback.format_exc(),
+                'function_call': self._format_function_call(function_name, inputs)
             }
+    
+    def _format_function_call(self, function_name: str, inputs: List[Any]) -> str:
+        """Format a function call string for display"""
+        args = []
+        for arg in inputs:
+            if isinstance(arg, str):
+                args.append(f'"{arg}"')
+            elif isinstance(arg, list):
+                # Format list with proper string representation
+                formatted_items = []
+                for item in arg:
+                    if isinstance(item, str):
+                        formatted_items.append(f'"{item}"')
+                    else:
+                        formatted_items.append(str(item))
+                args.append(f"[{', '.join(formatted_items)}]")
+            elif isinstance(arg, dict):
+                args.append(str(arg))
+            else:
+                args.append(str(arg))
+        return f"{function_name}({', '.join(args)})"
     
     def test_solution(self, code: str, function_name: str, test_cases: List[Dict]) -> Dict[str, Any]:
         """Test a solution against multiple test cases"""

@@ -187,6 +187,7 @@ import { useOptimisticProgress } from '@/composables/useOptimisticProgress'
 import { useHintTracking } from '@/composables/useHintTracking'
 import { useEditorHints } from '@/composables/useEditorHints'
 import { ref, computed, watch } from 'vue'
+import { TestResultsTransformer } from '@/services/testResultsTransformer'
 
 export default {
     name: 'ProblemSet',
@@ -394,7 +395,7 @@ export default {
                 // Include course_id in query params if available
                 const params = this.courseId ? { course_id: this.courseId } : {};
                 const response = await axios.get(`/api/user/last-submission/${problemSlug}/`, { params });
-                const data = response.data;
+                const data = TestResultsTransformer.normalizeLastSubmission(response.data);
                 
                 // Cache the response
                 this.submissionCache.set(cacheKey, {
@@ -519,12 +520,12 @@ export default {
                 
                 const response = await axios.post('/api/submit-eipl/', submissionData);
 
-                const data = response.data;
+                const data = TestResultsTransformer.normalizeSubmissionResponse(response.data);
                 
                 // Update feedback data
-                this.codeResults = data.code_variations || data.variations || [];
-                this.testResults = data.test_results || data.results || [];
-                this.promptCorrectness = data.passing_variations || 0;
+                this.codeResults = data.variations;
+                this.testResults = data.results;
+                this.promptCorrectness = data.passing_variations;
                 this.userPrompt = promptText;
                 
                 // Update progress tracking with backend status
