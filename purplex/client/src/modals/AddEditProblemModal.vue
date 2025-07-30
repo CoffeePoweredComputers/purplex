@@ -1,9 +1,20 @@
 <template>
-  <div class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
+  <div
+    class="modal-overlay"
+    @click="closeModal"
+  >
+    <div
+      class="modal-content"
+      @click.stop
+    >
       <div class="modal-header">
         <h2>{{ editMode ? 'Edit Problem' : 'Add New Problem' }}</h2>
-        <button class="modal-close" @click="closeModal">&times;</button>
+        <button
+          class="modal-close"
+          @click="closeModal"
+        >
+          &times;
+        </button>
       </div>
       <div class="modal-body">
         <form @submit.prevent="submitProblem">
@@ -11,250 +22,313 @@
           <div class="form-group">
             <label for="problemType">Problem Type</label>
             <select 
-                   id="problemType" 
-                   v-model="problem.problem_type" 
-                   class="form-input"
-                   required
-                   @change="handleProblemTypeChange"
-                   >
-                   <option value="">Select Problem Type</option>
-                   <option value="eipl">Explain in Plain Language (EiPL)</option>
-                   <option value="function_redefinition">Function Redefinition</option>
+              id="problemType" 
+              v-model="problem.problem_type" 
+              class="form-input"
+              required
+              @change="handleProblemTypeChange"
+            >
+              <option value="">
+                Select Problem Type
+              </option>
+              <option value="eipl">
+                Explain in Plain Language (EiPL)
+              </option>
+              <option value="function_redefinition">
+                Function Redefinition
+              </option>
             </select>
           </div>
 
           <div class="form-group">
             <label for="problemName">Problem Title</label>
             <input 
-                   type="text" 
-                   id="problemName" 
-                   :value="problem.title"
-                   @input="onFieldInput('title', $event.target.value)"
-                   @blur="onFieldBlur('title')"
-                   class="form-input"
-                   :class="{ error: errors.title && touched.title }"
-                   placeholder="Enter a descriptive problem title"
-                   required
-                   >
-            <span v-if="errors.title && touched.title" class="error-message">{{ errors.title }}</span>
+              id="problemName" 
+              type="text" 
+              :value="problem.title"
+              class="form-input"
+              :class="{ error: errors.title && touched.title }"
+              placeholder="Enter a descriptive problem title"
+              required
+              @input="onFieldInput('title', $event.target.value)"
+              @blur="onFieldBlur('title')"
+            >
+            <span
+              v-if="errors.title && touched.title"
+              class="error-message"
+            >{{ errors.title }}</span>
           </div>
 
-            <div class="form-group">
-              <label for="problemDifficulty">Difficulty</label>
-              <select 
-                     id="problemDifficulty" 
-                     v-model="problem.difficulty" 
-                     class="form-input"
-                     required
-                     >
-                     <option value="">Select Difficulty</option>
-                     <option value="easy">Easy</option>
-                     <option value="beginner">Beginner</option>
-                     <option value="intermediate">Intermediate</option>
-                     <option value="advanced">Advanced</option>
-              </select>
-            </div>
+          <div class="form-group">
+            <label for="problemDifficulty">Difficulty</label>
+            <select 
+              id="problemDifficulty" 
+              v-model="problem.difficulty" 
+              class="form-input"
+              required
+            >
+              <option value="">
+                Select Difficulty
+              </option>
+              <option value="easy">
+                Easy
+              </option>
+              <option value="beginner">
+                Beginner
+              </option>
+              <option value="intermediate">
+                Intermediate
+              </option>
+              <option value="advanced">
+                Advanced
+              </option>
+            </select>
+          </div>
 
+          <div class="form-group">
+            <label for="problemCategory">Category</label>
+            <input 
+              id="problemCategory" 
+              v-model="problem.category" 
+              type="text" 
+              class="form-input"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="problemDescription">Description</label>
+            <textarea 
+              id="problemDescription" 
+              :value="problem.description"
+              class="form-textarea"
+              :class="{ error: errors.description && touched.description }"
+              rows="4"
+              placeholder="Provide a clear description of what the problem asks students to do"
+              required
+              @input="onFieldInput('description', $event.target.value)"
+              @blur="onFieldBlur('description')"
+            />
+            <span
+              v-if="errors.description && touched.description"
+              class="error-message"
+            >{{ errors.description }}</span>
+          </div>
+
+          <!-- Fields specific to Function Redefinition -->
+          <div v-if="problem.problem_type === 'function_redefinition'">
             <div class="form-group">
-              <label for="problemCategory">Category</label>
+              <label for="functionName">Function Name</label>
               <input 
-                     type="text" 
-                     id="problemCategory" 
-                     v-model="problem.category" 
-                     class="form-input"
-                     required
-                     >
+                id="functionName" 
+                v-model="problem.function_name" 
+                type="text" 
+                class="form-input"
+                placeholder="e.g., calculate_sum"
+                required
+              >
             </div>
 
-              <div class="form-group">
-                <label for="problemDescription">Description</label>
-                <textarea 
-                       id="problemDescription" 
-                       :value="problem.description"
-                       @input="onFieldInput('description', $event.target.value)"
-                       @blur="onFieldBlur('description')"
-                       class="form-textarea"
-                       :class="{ error: errors.description && touched.description }"
-                       rows="4"
-                       placeholder="Provide a clear description of what the problem asks students to do"
-                       required
-                       ></textarea>
-                <span v-if="errors.description && touched.description" class="error-message">{{ errors.description }}</span>
-              </div>
+            <div class="form-group">
+              <label for="functionSignature">Function Signature</label>
+              <input 
+                id="functionSignature" 
+                v-model="problem.function_signature" 
+                type="text" 
+                class="form-input"
+                placeholder="e.g., def calculate_sum(a: int, b: int) -> int:"
+                required
+              >
+            </div>
 
-              <!-- Fields specific to Function Redefinition -->
-              <div v-if="problem.problem_type === 'function_redefinition'">
-                <div class="form-group">
-                  <label for="functionName">Function Name</label>
-                  <input 
-                         type="text" 
-                         id="functionName" 
-                         v-model="problem.function_name" 
-                         class="form-input"
-                         placeholder="e.g., calculate_sum"
-                         required
-                         >
-                </div>
+            <div class="form-group">
+              <label for="referenceSolution">Reference Solution</label>
+              <textarea 
+                id="referenceSolution" 
+                v-model="problem.reference_solution" 
+                class="form-textarea code-font"
+                rows="6"
+                placeholder="def calculate_sum(a, b):&#10;    return a + b"
+                required
+              />
+            </div>
+          </div>
 
-                <div class="form-group">
-                  <label for="functionSignature">Function Signature</label>
-                  <input 
-                         type="text" 
-                         id="functionSignature" 
-                         v-model="problem.function_signature" 
-                         class="form-input"
-                         placeholder="e.g., def calculate_sum(a: int, b: int) -> int:"
-                         required
-                         >
-                </div>
+          <!-- Fields specific to EiPL -->
+          <div v-if="problem.problem_type === 'eipl'">
+            <div class="form-group">
+              <label for="codeSnippet">Code Snippet</label>
+              <textarea 
+                id="codeSnippet" 
+                v-model="problem.code_snippet" 
+                class="form-textarea code-font"
+                rows="8"
+                placeholder="# Enter the code snippet students will explain"
+                required
+              />
+            </div>
 
-                <div class="form-group">
-                  <label for="referenceSolution">Reference Solution</label>
-                  <textarea 
-                         id="referenceSolution" 
-                         v-model="problem.reference_solution" 
-                         class="form-textarea code-font"
-                         rows="6"
-                         placeholder="def calculate_sum(a, b):&#10;    return a + b"
-                         required
-                         ></textarea>
-                </div>
-              </div>
+            <div class="form-group">
+              <label for="expectedExplanation">Expected Explanation (Reference)</label>
+              <textarea 
+                id="expectedExplanation" 
+                v-model="problem.expected_explanation" 
+                class="form-textarea"
+                rows="4"
+                placeholder="What this code should do..."
+              />
+            </div>
+          </div>
 
-              <!-- Fields specific to EiPL -->
-              <div v-if="problem.problem_type === 'eipl'">
-                <div class="form-group">
-                  <label for="codeSnippet">Code Snippet</label>
-                  <textarea 
-                         id="codeSnippet" 
-                         v-model="problem.code_snippet" 
-                         class="form-textarea code-font"
-                         rows="8"
-                         placeholder="# Enter the code snippet students will explain"
-                         required
-                         ></textarea>
-                </div>
-
-                <div class="form-group">
-                  <label for="expectedExplanation">Expected Explanation (Reference)</label>
-                  <textarea 
-                         id="expectedExplanation" 
-                         v-model="problem.expected_explanation" 
-                         class="form-textarea"
-                         rows="4"
-                         placeholder="What this code should do..."
-                         ></textarea>
-                </div>
-              </div>
-
-              <!-- Problem Sets Selection -->
-              <div class="form-group">
-                <div class="section-header" @click="showProblemSetSelection = !showProblemSetSelection">
-                  <label class="section-label">
-                    <span class="toggle-icon">{{ showProblemSetSelection ? '▼' : '▶' }}</span>
-                    Problem Sets
-                  </label>
-                  <span class="selection-count">{{ problem.problemSets.length }} selected</span>
-                </div>
+          <!-- Problem Sets Selection -->
+          <div class="form-group">
+            <div
+              class="section-header"
+              @click="showProblemSetSelection = !showProblemSetSelection"
+            >
+              <label class="section-label">
+                <span class="toggle-icon">{{ showProblemSetSelection ? '▼' : '▶' }}</span>
+                Problem Sets
+              </label>
+              <span class="selection-count">{{ problem.problemSets.length }} selected</span>
+            </div>
                 
-                <div v-if="showProblemSetSelection" class="problem-sets-selection">
-                  <!-- Search and filters -->
-                  <div class="selection-controls">
-                    <input 
-                      type="text" 
-                      v-model="problemSetSearch"
-                      placeholder="Search problem sets..."
-                      class="form-input search-input"
+            <div
+              v-if="showProblemSetSelection"
+              class="problem-sets-selection"
+            >
+              <!-- Search and filters -->
+              <div class="selection-controls">
+                <input 
+                  v-model="problemSetSearch" 
+                  type="text"
+                  placeholder="Search problem sets..."
+                  class="form-input search-input"
+                >
+                <div class="bulk-actions">
+                  <button
+                    type="button"
+                    class="bulk-btn"
+                    @click="selectAllProblemSets"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    class="bulk-btn"
+                    @click="clearAllProblemSets"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              <!-- Problem Sets Table -->
+              <div class="problem-sets-table-container">
+                <table class="problem-sets-table">
+                  <thead>
+                    <tr>
+                      <th class="col-title">
+                        Problem Set
+                      </th>
+                      <th class="col-visibility">
+                        Visibility
+                      </th>
+                      <th class="col-problems">
+                        Problems
+                      </th>
+                      <th class="col-action">
+                        Add/Remove
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr 
+                      v-for="problemSet in filteredProblemSets" 
+                      :key="problemSet.slug || problemSet.id"
+                      class="problem-set-row"
+                      :class="{ selected: isProblemSetSelected(problemSet.slug || problemSet.id) }"
                     >
-                    <div class="bulk-actions">
-                      <button type="button" @click="selectAllProblemSets" class="bulk-btn">Select All</button>
-                      <button type="button" @click="clearAllProblemSets" class="bulk-btn">Clear All</button>
-                    </div>
-                  </div>
-
-                  <!-- Problem Sets Table -->
-                  <div class="problem-sets-table-container">
-                    <table class="problem-sets-table">
-                      <thead>
-                        <tr>
-                          <th class="col-title">Problem Set</th>
-                          <th class="col-visibility">Visibility</th>
-                          <th class="col-problems">Problems</th>
-                          <th class="col-action">Add/Remove</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr 
-                          v-for="problemSet in filteredProblemSets" 
-                          :key="problemSet.slug || problemSet.id"
-                          class="problem-set-row"
-                          :class="{ selected: isProblemSetSelected(problemSet.slug || problemSet.id) }"
+                      <td class="problem-set-title-cell">
+                        <div class="problem-set-title">
+                          {{ problemSet.title }}
+                        </div>
+                        <div
+                          v-if="problemSet.description"
+                          class="problem-set-description"
                         >
-                          <td class="problem-set-title-cell">
-                            <div class="problem-set-title">{{ problemSet.title }}</div>
-                            <div class="problem-set-description" v-if="problemSet.description">
-                              {{ truncateText(problemSet.description, 60) }}
-                            </div>
-                          </td>
-                          <td>
-                            <span class="visibility-badge" :class="{ 'public': problemSet.is_public, 'private': !problemSet.is_public }">
-                              {{ problemSet.is_public ? 'Public' : 'Private' }}
-                            </span>
-                          </td>
-                          <td>
-                            <span class="problems-count">{{ problemSet.problems_count || 0 }}</span>
-                          </td>
-                          <td>
-                            <button 
-                              type="button"
-                              @click="toggleProblemSet(problemSet.slug || problemSet.id)"
-                              class="action-btn"
-                              :class="{ 'remove-btn': isProblemSetSelected(problemSet.slug || problemSet.id), 'add-btn': !isProblemSetSelected(problemSet.slug || problemSet.id) }"
-                            >
-                              {{ isProblemSetSelected(problemSet.slug || problemSet.id) ? '−' : '+' }}
-                            </button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <!-- Selected Problem Sets Summary -->
-                  <div class="selected-summary" v-if="problem.problemSets.length > 0">
-                    <h4>Selected Problem Sets ({{ problem.problemSets.length }})</h4>
-                    <div class="selected-items">
-                      <div 
-                        v-for="problemSetId in problem.problemSets" 
-                        :key="problemSetId"
-                        class="selected-item"
-                      >
-                        <span class="selected-title">{{ getProblemSetById(problemSetId)?.title }}</span>
+                          {{ truncateText(problemSet.description, 60) }}
+                        </div>
+                      </td>
+                      <td>
+                        <span
+                          class="visibility-badge"
+                          :class="{ 'public': problemSet.is_public, 'private': !problemSet.is_public }"
+                        >
+                          {{ problemSet.is_public ? 'Public' : 'Private' }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="problems-count">{{ problemSet.problems_count || 0 }}</span>
+                      </td>
+                      <td>
                         <button 
                           type="button"
-                          @click="removeProblemSet(problemSetId)"
-                          class="remove-selected-btn"
-                          title="Remove from selection"
+                          class="action-btn"
+                          :class="{ 'remove-btn': isProblemSetSelected(problemSet.slug || problemSet.id), 'add-btn': !isProblemSetSelected(problemSet.slug || problemSet.id) }"
+                          @click="toggleProblemSet(problemSet.slug || problemSet.id)"
                         >
-                          ×
+                          {{ isProblemSetSelected(problemSet.slug || problemSet.id) ? '−' : '+' }}
                         </button>
-                      </div>
-                    </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Selected Problem Sets Summary -->
+              <div
+                v-if="problem.problemSets.length > 0"
+                class="selected-summary"
+              >
+                <h4>Selected Problem Sets ({{ problem.problemSets.length }})</h4>
+                <div class="selected-items">
+                  <div 
+                    v-for="problemSetId in problem.problemSets" 
+                    :key="problemSetId"
+                    class="selected-item"
+                  >
+                    <span class="selected-title">{{ getProblemSetById(problemSetId)?.title }}</span>
+                    <button 
+                      type="button"
+                      class="remove-selected-btn"
+                      title="Remove from selection"
+                      @click="removeProblemSet(problemSetId)"
+                    >
+                      ×
+                    </button>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="action-button cancel-button" @click="closeModal">
+        <button
+          type="button"
+          class="action-button cancel-button"
+          @click="closeModal"
+        >
           Cancel
         </button>
         <button 
-                              type="button" 
-                              class="action-button submit-button" 
-                              @click="submitProblem"
-                              :disabled="isSubmitting || !isFormValid"
-                              >
-                              {{ submitButtonText }}
+          type="button" 
+          class="action-button submit-button" 
+          :disabled="isSubmitting || !isFormValid"
+          @click="submitProblem"
+        >
+          {{ submitButtonText }}
         </button>
       </div>
     </div>
@@ -263,6 +337,7 @@
 
 <script>
   import axios from 'axios';
+  import { log } from '@/utils/logger';
 
   export default {
     name: 'AddEditProblemModal',
@@ -290,6 +365,33 @@
         touched: {}
       };
     },
+    computed: {
+      submitButtonText() {
+        if (this.isSubmitting) {
+          return this.editMode ? 'Updating...' : 'Adding...';
+        }
+        return this.editMode ? 'Update Problem' : 'Add Problem';
+      },
+
+      filteredProblemSets() {
+        if (!this.problemSetSearch) {return this.problemSets;}
+        
+        const query = this.problemSetSearch.toLowerCase();
+        return this.problemSets.filter(problemSet => {
+          const title = (problemSet.title || '').toLowerCase();
+          const description = (problemSet.description || '').toLowerCase();
+          return title.includes(query) || description.includes(query);
+        });
+      },
+
+      isFormValid() {
+        return Object.keys(this.errors).length === 0 && 
+               this.problem.title.trim() && 
+               this.problem.problem_type && 
+               this.problem.difficulty && 
+               this.problem.description.trim();
+      }
+    },
     watch: {
       problemData: {
         handler(newVal) {
@@ -299,6 +401,14 @@
         },
         immediate: true
       }
+    },
+    mounted() {
+      // Add ESC key listener
+      document.addEventListener('keydown', this.handleEscape);
+    },
+    beforeUnmount() {
+      // Remove ESC key listener
+      document.removeEventListener('keydown', this.handleEscape);
     },
     methods: {
       initializeProblem() {
@@ -410,7 +520,7 @@
       },
 
       truncateText(text, maxLength) {
-        if (!text) return '';
+        if (!text) {return '';}
         return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
       },
 
@@ -480,7 +590,7 @@
       },
 
       async submitProblem() {
-        if (this.isSubmitting) return;
+        if (this.isSubmitting) {return;}
 
         try {
           this.isSubmitting = true;
@@ -520,7 +630,7 @@
         } catch (error) {
           const action = this.editMode ? 'update' : 'add';
           this.$emit('error', `Failed to ${action} problem. Please try again.`);
-          console.error(`Error ${action}ing problem:`, error);
+          log.error(`Error ${action}ing problem`, { action, error });
         } finally {
           this.isSubmitting = false;
         }
@@ -530,41 +640,6 @@
         if (event.key === 'Escape') {
           this.closeModal();
         }
-      }
-    },
-    mounted() {
-      // Add ESC key listener
-      document.addEventListener('keydown', this.handleEscape);
-    },
-    beforeUnmount() {
-      // Remove ESC key listener
-      document.removeEventListener('keydown', this.handleEscape);
-    },
-    computed: {
-      submitButtonText() {
-        if (this.isSubmitting) {
-          return this.editMode ? 'Updating...' : 'Adding...';
-        }
-        return this.editMode ? 'Update Problem' : 'Add Problem';
-      },
-
-      filteredProblemSets() {
-        if (!this.problemSetSearch) return this.problemSets;
-        
-        const query = this.problemSetSearch.toLowerCase();
-        return this.problemSets.filter(problemSet => {
-          const title = (problemSet.title || '').toLowerCase();
-          const description = (problemSet.description || '').toLowerCase();
-          return title.includes(query) || description.includes(query);
-        });
-      },
-
-      isFormValid() {
-        return Object.keys(this.errors).length === 0 && 
-               this.problem.title.trim() && 
-               this.problem.problem_type && 
-               this.problem.difficulty && 
-               this.problem.description.trim();
       }
     }
   }

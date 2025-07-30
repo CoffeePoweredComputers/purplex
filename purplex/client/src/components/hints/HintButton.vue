@@ -3,8 +3,8 @@
     class="hint-button"
     :class="{ 'disabled': !canRequestHint }"
     :disabled="!canRequestHint"
-    @click="handleHintRequest"
     :title="buttonTooltip"
+    @click="handleHintRequest"
   >
     <span class="hint-icon">💡</span>
     <span class="hint-text">{{ buttonText }}</span>

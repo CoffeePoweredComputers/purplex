@@ -10,4 +10,19 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    // Remove console statements in production builds
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    // Enable minification in production
+    minify: 'terser',
+  },
+  // Environment-based configuration
+  define: {
+    __VUE_PROD_DEVTOOLS__: false,
+  },
 })

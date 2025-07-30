@@ -1,26 +1,33 @@
 <template>
-    <h1 style="display: inline-flex; text-align: center; gap: 10px; margin: 5px; font-size: 80px;">
-        <img src="/vite.png" alt="Purplex Logo" style="width: 100px; height: 100px; margin-right: 10px;" />
-        Purplex
-    </h1>
-    <div v-if="!authInitialized" style="visibility: hidden;">
-        <!-- Keep content hidden but rendered to prevent layout shift -->
-        <Login v-if="!loggedIn" />
-        <div v-else>
-            <NavBar/>
-            <router-view />
-        </div>
-    </div>
-    <Login v-else-if="!loggedIn" />
+  <h1 style="display: inline-flex; text-align: center; gap: 10px; margin: 5px; font-size: 80px;">
+    <img
+      src="/vite.png"
+      alt="Purplex Logo"
+      style="width: 100px; height: 100px; margin-right: 10px;"
+    >
+    Purplex
+  </h1>
+  <div
+    v-if="!authInitialized"
+    style="visibility: hidden;"
+  >
+    <!-- Keep content hidden but rendered to prevent layout shift -->
+    <Login v-if="!loggedIn" />
     <div v-else>
-        <NavBar/>
-        <router-view />
+      <NavBar />
+      <router-view />
     </div>
-    <NotificationToast />
+  </div>
+  <Login v-else-if="!loggedIn" />
+  <div v-else>
+    <NavBar />
+    <router-view />
+  </div>
+  <NotificationToast />
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from 'vue';
+import { computed, defineComponent } from 'vue';
 import { useStore } from 'vuex';
 
 /* Components */
@@ -35,11 +42,6 @@ export default defineComponent({
         NavBar,
         NotificationToast
     },
-    data() {
-        return {
-            authInitialized: false
-        };
-    },
     setup() {
         const store = useStore();
         
@@ -49,6 +51,11 @@ export default defineComponent({
         return {
             loggedIn,
             user
+        };
+    },
+    data() {
+        return {
+            authInitialized: false
         };
     },
     async mounted() {

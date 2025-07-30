@@ -1,14 +1,14 @@
 import axios, { AxiosResponse } from 'axios';
 import {
-  ProblemDetailed,
+  APIError,
+  HintConfig,
+  HintUpdateRequest,
+  ProblemCategory,
   ProblemCreateRequest,
+  ProblemDetailed,
   ProblemUpdateRequest,
   TestExecutionResult,
-  ProblemCategory,
-  APIError,
-  TestProblemRequest,
-  HintConfig,
-  HintUpdateRequest
+  TestProblemRequest
 } from '../types';
 
 class ProblemServiceImpl {

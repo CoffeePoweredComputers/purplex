@@ -1,7 +1,52 @@
-import { ref, computed } from 'vue'
+import { computed, ComputedRef, Ref, ref } from 'vue'
+import { log } from '../utils/logger'
+
+// Types
+interface HintUsage {
+  type: string
+  timestamp: string
+  attemptNumber: number
+}
+
+interface ProblemHintData {
+  problemSlug: string
+  courseId?: string | null
+  problemSetSlug?: string | null
+  hintsUsed: HintUsage[]
+  firstHintTime: string | null
+  lastHintTime: string | null
+}
+
+interface HintStatistics {
+  totalProblemsWithHints: number
+  totalHintsUsed: number
+  hintTypeDistribution: {
+    structural: number
+    implementation: number
+    edge_case: number
+    [key: string]: number
+  }
+  averageHintsPerProblem: number
+  problems: Array<{
+    key: string
+    problemSlug: string
+    courseId?: string | null
+    problemSetSlug?: string | null
+    hintsUsed: number
+    hintTypes: string[]
+    timeToFirstHint: string | null
+    lastHintTime: string | null
+  }>
+}
+
+interface TrackingMetadata {
+  courseId?: string | null
+  problemSetSlug?: string | null
+  attemptNumber?: number
+}
 
 // Store hint usage data per session
-const hintUsageData = ref(new Map())
+const hintUsageData = ref<Map<string, ProblemHintData>>(new Map())
 
 export function useHintTracking() {
   /**
@@ -10,21 +55,21 @@ export function useHintTracking() {
    * @param {string} hintType - The type of hint used
    * @param {Object} metadata - Additional metadata (courseId, problemSetSlug, timestamp)
    */
-  const trackHintUsage = (problemSlug, hintType, metadata = {}) => {
+  const trackHintUsage = (problemSlug: string, hintType: string, metadata: TrackingMetadata = {}): void => {
     const key = `${problemSlug}_${metadata.courseId || 'standalone'}_${metadata.problemSetSlug || 'default'}`
     
     if (!hintUsageData.value.has(key)) {
       hintUsageData.value.set(key, {
         problemSlug,
-        courseId: metadata.courseId,
-        problemSetSlug: metadata.problemSetSlug,
+        courseId: metadata.courseId || null,
+        problemSetSlug: metadata.problemSetSlug || null,
         hintsUsed: [],
         firstHintTime: null,
         lastHintTime: null
       })
     }
     
-    const problemData = hintUsageData.value.get(key)
+    const problemData = hintUsageData.value.get(key)!
     const timestamp = new Date().toISOString()
     
     // Add hint usage if not already tracked
@@ -52,7 +97,7 @@ export function useHintTracking() {
    * @param {string} problemSetSlug - Optional problem set slug
    * @returns {Array} Array of hint types used
    */
-  const getHintsUsed = (problemSlug, courseId = null, problemSetSlug = null) => {
+  const getHintsUsed = (problemSlug: string, courseId: string | null = null, problemSetSlug: string | null = null): string[] => {
     const key = `${problemSlug}_${courseId || 'standalone'}_${problemSetSlug || 'default'}`
     const problemData = hintUsageData.value.get(key)
     return problemData?.hintsUsed.map(h => h.type) || []
@@ -66,7 +111,7 @@ export function useHintTracking() {
    * @param {string} problemSetSlug - Optional problem set slug
    * @returns {boolean} Whether the hint has been used
    */
-  const isHintUsed = (problemSlug, hintType, courseId = null, problemSetSlug = null) => {
+  const isHintUsed = (problemSlug: string, hintType: string, courseId: string | null = null, problemSetSlug: string | null = null): boolean => {
     const hintsUsed = getHintsUsed(problemSlug, courseId, problemSetSlug)
     return hintsUsed.includes(hintType)
   }
@@ -75,8 +120,8 @@ export function useHintTracking() {
    * Get hint usage statistics for research
    * @returns {Object} Aggregated hint usage statistics
    */
-  const getHintStatistics = () => {
-    const stats = {
+  const getHintStatistics = (): HintStatistics => {
+    const stats: HintStatistics = {
       totalProblemsWithHints: hintUsageData.value.size,
       totalHintsUsed: 0,
       hintTypeDistribution: {
@@ -119,7 +164,7 @@ export function useHintTracking() {
   /**
    * Clear hint usage data (for testing or reset)
    */
-  const clearHintData = () => {
+  const clearHintData = (): void => {
     hintUsageData.value.clear()
     localStorage.removeItem('purplex_hint_usage_data')
   }
@@ -127,7 +172,7 @@ export function useHintTracking() {
   /**
    * Persist hint data to localStorage
    */
-  const persistHintData = () => {
+  const persistHintData = (): void => {
     const dataArray = Array.from(hintUsageData.value.entries())
     localStorage.setItem('purplex_hint_usage_data', JSON.stringify(dataArray))
   }
@@ -135,7 +180,7 @@ export function useHintTracking() {
   /**
    * Load hint data from localStorage
    */
-  const loadHintData = () => {
+  const loadHintData = (): void => {
     try {
       const stored = localStorage.getItem('purplex_hint_usage_data')
       if (stored) {
@@ -143,7 +188,7 @@ export function useHintTracking() {
         hintUsageData.value = new Map(dataArray)
       }
     } catch (error) {
-      console.error('Error loading hint data:', error)
+      log.error('Error loading hint data', error)
     }
   }
   
@@ -156,6 +201,6 @@ export function useHintTracking() {
     isHintUsed,
     getHintStatistics,
     clearHintData,
-    hintUsageData: computed(() => hintUsageData.value)
+    hintUsageData: computed(() => hintUsageData.value) as ComputedRef<Map<string, ProblemHintData>>
   }
 }

@@ -1,9 +1,18 @@
 <template>
-  <div v-if="enrollmentModal.visible" class="modal-overlay" @click.self="hideModal">
+  <div
+    v-if="enrollmentModal.visible"
+    class="modal-overlay"
+    @click.self="hideModal"
+  >
     <div class="modal-content">
       <div class="modal-header">
         <h3>Join a Course</h3>
-        <button class="close-btn" @click="hideModal">×</button>
+        <button
+          class="close-btn"
+          @click="hideModal"
+        >
+          ×
+        </button>
       </div>
       
       <div class="enrollment-form">
@@ -13,23 +22,28 @@
             id="course-id"
             v-model="courseId" 
             placeholder="Enter Course ID (e.g., CS101-FALL2024)" 
-            @keyup.enter="lookupCourse"
             :disabled="enrollmentModal.loading"
             class="course-input"
-          />
+            @keyup.enter="lookupCourse"
+          >
           <button 
-            @click="lookupCourse" 
-            :disabled="!courseId || enrollmentModal.loading"
+            :disabled="!courseId || enrollmentModal.loading" 
             class="lookup-btn"
+            @click="lookupCourse"
           >
             {{ enrollmentModal.loading ? 'Looking up...' : 'Lookup Course' }}
           </button>
         </div>
       </div>
       
-      <div v-if="enrollmentModal.coursePreview" class="course-preview">
+      <div
+        v-if="enrollmentModal.coursePreview"
+        class="course-preview"
+      >
         <h4>{{ enrollmentModal.coursePreview.name }}</h4>
-        <p class="description">{{ enrollmentModal.coursePreview.description }}</p>
+        <p class="description">
+          {{ enrollmentModal.coursePreview.description }}
+        </p>
         <div class="course-meta">
           <div class="meta-item">
             <span class="label">Instructor:</span>
@@ -39,27 +53,36 @@
             <span class="label">Problem Sets:</span>
             <span class="value">{{ enrollmentModal.coursePreview.problem_sets_count }}</span>
           </div>
-          <div class="meta-item" v-if="enrollmentModal.coursePreview.enrollment_open">
+          <div
+            v-if="enrollmentModal.coursePreview.enrollment_open"
+            class="meta-item"
+          >
             <span class="label">Status:</span>
             <span class="value status-open">Open for Enrollment</span>
           </div>
         </div>
         
-        <div v-if="enrollmentModal.coursePreview.is_enrolled" class="already-enrolled">
+        <div
+          v-if="enrollmentModal.coursePreview.is_enrolled"
+          class="already-enrolled"
+        >
           <p>✓ You are already enrolled in this course</p>
         </div>
         
         <button 
           v-else
-          @click="enrollInCourse" 
-          class="enroll-btn"
+          class="enroll-btn" 
           :disabled="enrollmentModal.loading || !enrollmentModal.coursePreview.enrollment_open"
+          @click="enrollInCourse"
         >
           {{ enrollmentModal.loading ? 'Enrolling...' : 'Join Course' }}
         </button>
       </div>
       
-      <div v-if="enrollmentModal.error" class="error-message">
+      <div
+        v-if="enrollmentModal.error"
+        class="error-message"
+      >
         <p>{{ enrollmentModal.error }}</p>
       </div>
     </div>
@@ -86,7 +109,7 @@ export default {
     }
     
     const lookupCourse = async () => {
-      if (!courseId.value.trim()) return
+      if (!courseId.value.trim()) {return}
       
       try {
         await store.dispatch('courses/lookupCourse', courseId.value.trim())
@@ -96,7 +119,7 @@ export default {
     }
     
     const enrollInCourse = async () => {
-      if (!enrollmentModal.value.coursePreview) return
+      if (!enrollmentModal.value.coursePreview) {return}
       
       try {
         await store.dispatch('courses/enrollInCourse', enrollmentModal.value.coursePreview.course_id)

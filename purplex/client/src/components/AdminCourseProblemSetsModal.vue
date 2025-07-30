@@ -1,9 +1,18 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
+  <div
+    v-if="visible"
+    class="modal-overlay"
+    @click.self="$emit('close')"
+  >
     <div class="modal-content">
       <div class="modal-header">
         <h2>Manage Problem Sets for {{ course.name }}</h2>
-        <button @click="$emit('close')" class="close-btn">×</button>
+        <button
+          class="close-btn"
+          @click="$emit('close')"
+        >
+          ×
+        </button>
       </div>
       
       <div class="modal-body">
@@ -11,16 +20,25 @@
         <div class="section">
           <h3>Current Problem Sets</h3>
           
-          <div v-if="loading.current" class="loading-container">
-            <div class="loading-spinner"></div>
+          <div
+            v-if="loading.current"
+            class="loading-container"
+          >
+            <div class="loading-spinner" />
             <p>Loading problem sets...</p>
           </div>
           
-          <div v-else-if="currentProblemSets.length === 0" class="empty-state">
+          <div
+            v-else-if="currentProblemSets.length === 0"
+            class="empty-state"
+          >
             <p>No problem sets assigned to this course yet.</p>
           </div>
           
-          <table v-else class="problem-sets-table">
+          <table
+            v-else
+            class="problem-sets-table"
+          >
             <thead>
               <tr>
                 <th>Order</th>
@@ -31,42 +49,47 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in currentProblemSets" :key="item.id">
+              <tr
+                v-for="(item, index) in currentProblemSets"
+                :key="item.id"
+              >
                 <td class="order-cell">
                   <div class="order-controls">
                     <button 
-                      @click="moveUp(index)" 
-                      :disabled="index === 0"
+                      :disabled="index === 0" 
                       class="order-btn"
                       title="Move up"
+                      @click="moveUp(index)"
                     >
                       ↑
                     </button>
                     <span>{{ item.order + 1 }}</span>
                     <button 
-                      @click="moveDown(index)" 
-                      :disabled="index === currentProblemSets.length - 1"
+                      :disabled="index === currentProblemSets.length - 1" 
                       class="order-btn"
                       title="Move down"
+                      @click="moveDown(index)"
                     >
                       ↓
                     </button>
                   </div>
                 </td>
                 <td>{{ item.problem_set.title }}</td>
-                <td class="center">{{ item.problem_set.problems_count }}</td>
+                <td class="center">
+                  {{ item.problem_set.problems_count }}
+                </td>
                 <td class="center">
                   <input 
-                    type="checkbox" 
-                    v-model="item.is_required"
+                    v-model="item.is_required" 
+                    type="checkbox"
                     @change="updateRequired(item)"
-                  />
+                  >
                 </td>
                 <td>
                   <button 
-                    @click="removeProblemSet(item)"
                     class="remove-btn"
                     title="Remove from course"
+                    @click="removeProblemSet(item)"
                   >
                     Remove
                   </button>
@@ -76,22 +99,31 @@
           </table>
         </div>
         
-        <hr class="divider" />
+        <hr class="divider">
         
         <!-- Available Problem Sets Section -->
         <div class="section">
           <h3>Add Problem Sets</h3>
           
-          <div v-if="loading.available" class="loading-container">
-            <div class="loading-spinner"></div>
+          <div
+            v-if="loading.available"
+            class="loading-container"
+          >
+            <div class="loading-spinner" />
             <p>Loading available problem sets...</p>
           </div>
           
-          <div v-else-if="availableProblemSets.length === 0" class="empty-state">
+          <div
+            v-else-if="availableProblemSets.length === 0"
+            class="empty-state"
+          >
             <p>All problem sets have been added to this course.</p>
           </div>
           
-          <div v-else class="available-grid">
+          <div
+            v-else
+            class="available-grid"
+          >
             <div 
               v-for="ps in availableProblemSets" 
               :key="ps.slug"
@@ -99,13 +131,15 @@
             >
               <div class="item-info">
                 <h4>{{ ps.title }}</h4>
-                <p class="description">{{ ps.description || 'No description' }}</p>
+                <p class="description">
+                  {{ ps.description || 'No description' }}
+                </p>
                 <span class="problems-count">{{ ps.problems_count }} problems</span>
               </div>
               <button 
-                @click="addProblemSet(ps)"
                 class="add-btn"
                 :disabled="loading.adding"
+                @click="addProblemSet(ps)"
               >
                 Add
               </button>
@@ -115,7 +149,10 @@
       </div>
       
       <div class="modal-footer">
-        <button @click="$emit('close')" class="close-modal-btn">
+        <button
+          class="close-modal-btn"
+          @click="$emit('close')"
+        >
           Done
         </button>
       </div>
@@ -124,9 +161,10 @@
 </template>
 
 <script>
-import { ref, onMounted, watch, watchEffect } from 'vue'
+import { onMounted, ref, watch, watchEffect } from 'vue'
 import axios from 'axios'
 import { useNotification } from '@/composables/useNotification'
+import { log } from '@/utils/logger'
 
 export default {
   name: 'AdminCourseProblemSetsModal',
@@ -161,7 +199,7 @@ export default {
         currentProblemSets.value = response.data
       } catch (error) {
         notify.error('Error', 'Failed to load current problem sets')
-        console.error('Error fetching current problem sets:', error)
+        log.error('Error fetching current problem sets', { error, courseId: props.course.course_id })
       } finally {
         loading.value.current = false
       }
@@ -176,7 +214,7 @@ export default {
         availableProblemSets.value = response.data
       } catch (error) {
         notify.error('Error', 'Failed to load available problem sets')
-        console.error('Error fetching available problem sets:', error)
+        log.error('Error fetching available problem sets', { error, courseId: props.course.course_id })
       } finally {
         loading.value.available = false
       }
@@ -255,7 +293,7 @@ export default {
     }
     
     const moveUp = async (index) => {
-      if (index === 0) return
+      if (index === 0) {return}
       
       const current = currentProblemSets.value[index]
       const previous = currentProblemSets.value[index - 1]
@@ -274,7 +312,7 @@ export default {
     }
     
     const moveDown = async (index) => {
-      if (index === currentProblemSets.value.length - 1) return
+      if (index === currentProblemSets.value.length - 1) {return}
       
       const current = currentProblemSets.value[index]
       const next = currentProblemSets.value[index + 1]

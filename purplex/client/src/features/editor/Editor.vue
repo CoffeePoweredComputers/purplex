@@ -1,14 +1,14 @@
 <template>
   <VAceEditor
-      @init="editorInit"
-      :lang="lang"
-      :theme="theme"
-      :mode="mode"
-      :style="{ height: height, width: width }"
-      :value="value"
-      :options="{ readOnly: readOnly }"
-      @update:value="handleInput"
-      />
+    :lang="lang"
+    :theme="theme"
+    :mode="mode"
+    :style="{ height: height, width: width }"
+    :value="value"
+    :options="{ readOnly: readOnly }"
+    @init="editorInit"
+    @update:value="handleInput"
+  />
 </template>
 
 <script lang="ts">
@@ -24,6 +24,7 @@
   import 'ace-builds/src-noconflict/theme-solarized_light';
   import 'ace-builds/src-noconflict/theme-dracula';
   import 'ace-builds/src-noconflict/theme-tomorrow_night';
+  import { log } from '@/utils/logger';
 
   interface HintMarker {
     startLine: number;
@@ -41,7 +42,6 @@
     components: {
       VAceEditor,
     },
-    emits: ['update:value'],
     props: {
       lang: {
         type: String,
@@ -84,6 +84,7 @@
         default: false,
       },
     },
+    emits: ['update:value'],
     setup(props, { emit, expose }) {
       const editor = ref(null);
       const activeMarkerIds = ref(new Set());
@@ -142,7 +143,7 @@
       const handleInput = (value: string) => {
         // ACE editor should only send strings - if it's not a string, something is wrong
         if (typeof value !== 'string') {
-          console.error('ACE editor sent non-string value:', value);
+          log.error('ACE editor sent non-string value', { value, type: typeof value });
           return;
         }
         
@@ -165,17 +166,17 @@
       /* Setter for hint markers */
       const setHintMarkers = (markers: HintMarker[]) => {
         if (!editor.value) {
-          console.log('setHintMarkers: Editor not available');
+          log.debug('setHintMarkers: Editor not available');
           return;
         }
         
-        console.log('setHintMarkers called with:', markers);
+        log.debug('setHintMarkers called with', { markers });
         
         // Clear existing hint markers
         clearHintMarkers();
         
         markers.forEach((marker, index) => {
-          console.log(`Adding marker ${index}:`, marker);
+          log.debug(`Adding marker ${index}`, { marker });
           
           const Range = ace.require('ace/range').Range;
           
@@ -197,7 +198,7 @@
             );
           }
           
-          console.log(`Created range for marker ${index}:`, {
+          log.debug(`Created range for marker ${index}`, {
             startLine: marker.startLine,
             endLine: marker.endLine,
             className: marker.className,
@@ -211,7 +212,7 @@
             marker.type === 'fullLine' ? 'fullLine' : 'text'
           );
           
-          console.log(`Added marker ${index} with ID ${markerId}, className: "${marker.className}"`);
+          log.debug(`Added marker ${index} with ID ${markerId}`, { className: marker.className });
           
           // Track marker ID for cleanup
           activeMarkerIds.value.add(markerId);
@@ -229,18 +230,18 @@
               const position = e.getDocumentPosition();
               if (position.row >= marker.startLine && position.row <= marker.endLine) {
                 // Show tooltip (could be implemented with a tooltip library)
-                console.log('Tooltip:', marker.tooltipText);
+                log.debug('Tooltip', { tooltipText: marker.tooltipText });
               }
             });
           }
         });
         
-        console.log(`Total active markers: ${activeMarkerIds.value.size}`);
+        log.debug('Total active markers', { count: activeMarkerIds.value.size });
       };
 
       /* Clear all hint markers */
       const clearHintMarkers = () => {
-        if (!editor.value) return;
+        if (!editor.value) {return;}
         
         // Remove all tracked markers
         activeMarkerIds.value.forEach(markerId => {
@@ -250,12 +251,12 @@
         // Clear the tracking set
         activeMarkerIds.value.clear();
         
-        console.log('Cleared all hint markers');
+        log.debug('Cleared all hint markers');
       };
 
       /* Set new code content while preserving cursor */
       const setCode = (newCode: string) => {
-        if (!editor.value) return;
+        if (!editor.value) {return;}
         
         const cursorPosition = editor.value.getCursorPosition();
         editor.value.setValue(newCode);
@@ -264,13 +265,13 @@
 
       /* Get current cursor position */
       const getCursorPosition = () => {
-        if (!editor.value) return { row: 0, column: 0 };
+        if (!editor.value) {return { row: 0, column: 0 };}
         return editor.value.getCursorPosition();
       };
 
       /* Move cursor to specific position */
       const moveCursorToPosition = (position: { row: number; column: number }) => {
-        if (!editor.value) return;
+        if (!editor.value) {return;}
         editor.value.moveCursorToPosition(position);
       };
 
@@ -278,7 +279,7 @@
       /* Watch for hintMarkers prop changes */
       watch(() => props.hintMarkers, (newMarkers) => {
         if (editor.value && newMarkers) {
-          console.log('Editor: hintMarkers prop changed:', newMarkers);
+          log.debug('Editor: hintMarkers prop changed', { newMarkers });
           setHintMarkers(newMarkers);
         }
       }, { deep: true });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { VariableFadeProcessor } from '../services/hintProcessors/VariableFadeProcessor.js'
 import { SubgoalHighlightProcessor } from '../services/hintProcessors/SubgoalHighlightProcessor.js'
 

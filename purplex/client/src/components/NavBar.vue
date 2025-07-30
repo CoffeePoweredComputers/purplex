@@ -1,14 +1,31 @@
 <template>
-    <nav>
-        <ul class="nav-list">
-            <li><router-link to="/home"><button>Home</button></router-link></li>
-            <li class="right-buttons">
-                <div v-if="isAdmin"><router-link to="/admin/users"><button class="admin-button">Admin</button></router-link></div>
-                <div><button @click="showAccountModal = true">Account</button></div>
-            </li>
-        </ul>
-        <AccountModal :isVisible="showAccountModal" @close="showAccountModal = false" />
-    </nav>
+  <nav>
+    <ul class="nav-list">
+      <li>
+        <router-link to="/home">
+          <button>Home</button>
+        </router-link>
+      </li>
+      <li class="right-buttons">
+        <div v-if="isAdmin">
+          <router-link to="/admin/users">
+            <button class="admin-button">
+              Admin
+            </button>
+          </router-link>
+        </div>
+        <div>
+          <button @click="showAccountModal = true">
+            Account
+          </button>
+        </div>
+      </li>
+    </ul>
+    <AccountModal
+      :is-visible="showAccountModal"
+      @close="showAccountModal = false"
+    />
+  </nav>
 </template>
 
 <script lang="ts">

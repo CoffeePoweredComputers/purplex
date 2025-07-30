@@ -1,5 +1,6 @@
 import axios from 'axios';
-import type { BaseSubmission, SubmissionDetailed, CodeVariation, SubmissionTestResult } from '../types';
+import { log } from '../utils/logger';
+import type { BaseSubmission, CodeVariation, SubmissionDetailed, SubmissionTestResult } from '../types';
 
 // ===== SUBMISSION TYPES =====
 
@@ -57,7 +58,7 @@ class SubmissionService {
       const response = await axios.get(`${this.baseURL}/submissions/summary/`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch submissions summary:', error);
+      log.error('Failed to fetch submissions summary', error);
       throw error;
     }
   }
@@ -70,7 +71,7 @@ class SubmissionService {
       const response = await axios.get(`${this.baseURL}/submissions/problem-sets-progress/`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch problem sets progress:', error);
+      log.error('Failed to fetch problem sets progress', error);
       throw error;
     }
   }
@@ -83,7 +84,7 @@ class SubmissionService {
       const response = await axios.get(`${this.baseURL}/submissions/problem-sets/${problemSetSlug}/progress/`);
       return response.data;
     } catch (error) {
-      console.error(`Failed to fetch progress for problem set ${problemSetSlug}:`, error);
+      log.error('Failed to fetch progress for problem set', { problemSetSlug, error });
       throw error;
     }
   }
@@ -96,7 +97,7 @@ class SubmissionService {
       const response = await axios.post(`${this.baseURL}/submissions/`, request);
       return response.data;
     } catch (error) {
-      console.error('Failed to submit solution:', error);
+      log.error('Failed to submit solution', error);
       throw error;
     }
   }
@@ -112,7 +113,7 @@ class SubmissionService {
       });
       return response.data;
     } catch (error) {
-      console.error('Failed to test solution:', error);
+      log.error('Failed to test solution', error);
       throw error;
     }
   }
@@ -127,7 +128,7 @@ class SubmissionService {
       });
       return response.data;
     } catch (error) {
-      console.error(`Failed to fetch submissions for problem ${problemSlug}:`, error);
+      log.error('Failed to fetch submissions for problem', { problemSlug, error });
       throw error;
     }
   }
@@ -136,7 +137,7 @@ class SubmissionService {
    * Calculate progress percentage for a problem set based on submissions
    */
   calculateProgressPercentage(completedProblems: number, totalProblems: number): number {
-    if (totalProblems === 0) return 0;
+    if (totalProblems === 0) {return 0;}
     return Math.round((completedProblems / totalProblems) * 100);
   }
 
@@ -146,7 +147,7 @@ class SubmissionService {
   async getProblemBestScore(problemSlug: string): Promise<number> {
     try {
       const submissions = await this.getProblemSubmissions(problemSlug);
-      if (submissions.length === 0) return 0;
+      if (submissions.length === 0) {return 0;}
       
       const bestSubmission = submissions.reduce((best, current) => 
         current.best_score > best.best_score ? current : best
@@ -154,7 +155,7 @@ class SubmissionService {
       
       return bestSubmission.best_score;
     } catch (error) {
-      console.error(`Failed to get best score for problem ${problemSlug}:`, error);
+      log.error('Failed to get best score for problem', { problemSlug, error });
       return 0;
     }
   }
@@ -202,7 +203,7 @@ class SubmissionService {
     const passing = submission.passing_variations || 0;
     const total = submission.total_variations || 0;
     
-    if (total === 0) return 0;
+    if (total === 0) {return 0;}
     return Math.round((passing / total) * 100);
   }
 

@@ -1,4 +1,4 @@
-import type { NotificationType, NotificationPayload } from '../types';
+import type { NotificationPayload, NotificationType } from '../types';
 
 export interface NotificationMethods {
   success: (message: string, details?: string | null) => void;

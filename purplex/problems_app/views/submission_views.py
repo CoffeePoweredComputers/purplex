@@ -7,9 +7,12 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django_ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
 
 from ..models import Problem, ProblemSet, Course, CourseEnrollment, UserProgress
 from ..services import CodeExecutionService, AITestGenerationService
+from ..async_tasks import AsyncAIService
 from purplex.users_app.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
@@ -44,6 +47,7 @@ def create_error_response(error_message: str, http_status: int, **kwargs):
     return Response(response_data, status=http_status)
 
 
+@method_decorator(ratelimit(key='user', rate='30/m', method='POST'), name='post')
 class TestSolutionView(APIView):
     """Test a solution without saving submission."""
     permission_classes = [IsAuthenticated]
@@ -55,6 +59,12 @@ class TestSolutionView(APIView):
         if not problem_slug or not user_code:
             return Response({
                 'error': 'problem_slug and user_code are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate user_code length
+        if len(user_code) > 50000:  # 50KB limit for code
+            return Response({
+                'error': 'user_code must not exceed 50000 characters'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
@@ -90,6 +100,7 @@ class TestSolutionView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@method_decorator(ratelimit(key='user', rate='20/m', method='POST'), name='post')
 class SubmitSolutionView(APIView):
     """Submit a solution and track progress."""
     permission_classes = [IsAuthenticated]
@@ -105,6 +116,18 @@ class SubmitSolutionView(APIView):
         if not problem_slug or not user_code or not problem_set_slug:
             return Response({
                 'error': 'problem_slug, problem_set_slug, and user_code are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate user_code length
+        if len(user_code) > 50000:  # 50KB limit for code
+            return Response({
+                'error': 'user_code must not exceed 50000 characters'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate optional prompt for EiPL problems
+        if prompt and len(prompt) > 2000:
+            return Response({
+                'error': 'prompt must not exceed 2000 characters'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
@@ -241,6 +264,7 @@ class SubmitSolutionView(APIView):
         })
 
 
+@method_decorator(ratelimit(key='user', rate='10/m', method='POST'), name='post')
 class EiPLSubmissionView(APIView):
     """Unified endpoint for EiPL (Explain in Plain Language) submissions.
     Generates AI variations, tests them, and saves submission with progress tracking."""
@@ -255,6 +279,24 @@ class EiPLSubmissionView(APIView):
         if not problem_slug or not user_prompt:
             return Response({
                 'error': 'problem_slug and user_prompt are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate user_prompt length and content
+        user_prompt = user_prompt.strip()
+        if len(user_prompt) < 10:
+            return Response({
+                'error': 'user_prompt must be at least 10 characters long'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if len(user_prompt) > 2000:
+            return Response({
+                'error': 'user_prompt must not exceed 2000 characters'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Basic content validation - prevent potential injection attempts
+        if any(char in user_prompt for char in ['<script', '<?php', '<%', '<jsp']):
+            return Response({
+                'error': 'Invalid characters detected in prompt'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
@@ -300,13 +342,24 @@ class EiPLSubmissionView(APIView):
                     'error': 'Course not found'
                 }, status=status.HTTP_404_NOT_FOUND)
         
-        # Generate AI variations using problem-specific prompt with error handling
+        # Generate AI variations using async wrapper
         try:
-            ai_service = AITestGenerationService()
-            generation_result = ai_service.generate_eipl_variations(
+            # Use async AI service for non-blocking operation
+            generation_result = AsyncAIService.generate_eipl_variations(
                 problem=problem,
                 user_prompt=user_prompt
             )
+            
+            # If running async (in production), this will be a Future object
+            if hasattr(generation_result, 'result'):
+                try:
+                    generation_result = generation_result.result(timeout=60)
+                except Exception as e:
+                    logger.error(f"Async AI generation failed: {str(e)}")
+                    return create_error_response(
+                        'AI service timeout. Please try again.',
+                        status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
             
             if not generation_result.get('success', False):
                 return Response({
@@ -340,40 +393,44 @@ class EiPLSubmissionView(APIView):
             for tc in all_test_cases
         ]
         
-        # Test all variations with error handling
+        # Test all variations using async wrapper
         try:
-            code_service = CodeExecutionService()
+            # Use async service for testing variations
+            test_results = AsyncAIService.test_code_variations(
+                code_variations=code_variations,
+                function_name=problem.function_name,
+                test_data=test_data
+            )
+            
+            # If running async, wait for results
+            if hasattr(test_results, 'result'):
+                try:
+                    all_results = test_results.result(timeout=30)
+                except Exception as e:
+                    logger.error(f"Async testing failed: {str(e)}")
+                    return create_error_response(
+                        'Code testing timeout. Please try again.',
+                        status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        variations=code_variations,
+                        total_variations=len(code_variations)
+                    )
+            else:
+                all_results = test_results
+                
+            # Count passing variations
+            total_passed = sum(
+                1 for result in all_results
+                if result.get('passed', 0) == result.get('total', 0) and result.get('total', 0) > 0
+            )
+            
         except Exception as e:
-            logger.error(f"Failed to initialize code service: {str(e)}")
+            logger.error(f"Code testing failed: {str(e)}")
             return create_error_response(
                 'Code testing service unavailable',
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
                 variations=code_variations,
                 total_variations=len(code_variations)
             )
-        
-        all_results = []
-        total_passed = 0
-        
-        for i, code_variation in enumerate(code_variations):
-            try:
-                result = code_service.test_solution(code_variation, problem.function_name, test_data)
-                all_results.append(result)
-                
-                # Count passing variations (100% pass rate)
-                if result.get('passed', 0) == result.get('total', 0) and result.get('total', 0) > 0:
-                    total_passed += 1
-                    
-            except Exception as e:
-                logger.error(f"Testing variation {i} failed: {str(e)}")
-                # Add failed result for this variation
-                all_results.append({
-                    'success': False,
-                    'error': f'Testing failed: {str(e)}',
-                    'passed': 0,
-                    'total': len(test_data),
-                    'results': []
-                })
         
         # Calculate overall score based on percentage of variations that pass all tests
         if len(code_variations) > 0:

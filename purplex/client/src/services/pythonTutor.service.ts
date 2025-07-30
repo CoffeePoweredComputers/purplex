@@ -4,6 +4,7 @@
  */
 
 import type { PythonTutorConfig, PythonTutorOptions, TestCaseFormatted } from '@/types';
+import { log } from '../utils/logger';
 
 export class PythonTutorService {
   // Configuration constants
@@ -94,7 +95,7 @@ ${testCase.function_call}`;
       });
       return true;
     } catch (error) {
-      console.warn('Python Tutor may be unavailable:', error);
+      log.warn('Python Tutor may be unavailable', error);
       return false;
     }
   }

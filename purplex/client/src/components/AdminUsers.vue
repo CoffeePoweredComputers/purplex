@@ -2,57 +2,84 @@
   <div>
     <AdminNavBar />
     <div class="admin-users">
-      <h1 class="page-title">User Management Console</h1>
+      <h1 class="page-title">
+        User Management Console
+      </h1>
       
       <div class="status-container">
-        <div class="loading-indicator" v-if="loading">
+        <div
+          v-if="loading"
+          class="loading-indicator"
+        >
           Loading users...
         </div>
         
-        <div class="error-message" v-if="error">
+        <div
+          v-if="error"
+          class="error-message"
+        >
           {{ error }}
         </div>
       </div>
     
-    <div class="table-responsive" v-if="!loading && !error">
-      <table class="users-table">
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in users" :key="user.id" :class="{ 'admin-row': user.role === 'admin' }">
-            <td>{{ user.username }}</td>
-            <td>{{ user.email }}</td>
-            <td>
-              <span class="badge" :class="getBadgeClass(user.role)">
-                {{ user.role }}
-              </span>
-            </td>
-            <td>
-              <div class="role-dropdown-container">
-                <select 
-                  class="role-dropdown" 
-                  :value="user.role"
-                  @change="changeRole(user.id, $event.target.value)"
-                  :disabled="updatingUsers[user.id] || user.email === this.$store.state.auth.user.email"
-                  :title="user.email === this.$store.state.auth.user.email ? 'You cannot change your own role' : 'Select a role'"
+      <div
+        v-if="!loading && !error"
+        class="table-responsive"
+      >
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="user in users"
+              :key="user.id"
+              :class="{ 'admin-row': user.role === 'admin' }"
+            >
+              <td>{{ user.username }}</td>
+              <td>{{ user.email }}</td>
+              <td>
+                <span
+                  class="badge"
+                  :class="getBadgeClass(user.role)"
                 >
-                  <option value="user">User</option>
-                  <option value="instructor">Instructor</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <span v-if="updatingUsers[user.id]" class="dropdown-spinner"></span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+                  {{ user.role }}
+                </span>
+              </td>
+              <td>
+                <div class="role-dropdown-container">
+                  <select 
+                    class="role-dropdown" 
+                    :value="user.role"
+                    :disabled="updatingUsers[user.id] || user.email === $store.state.auth.user.email"
+                    :title="user.email === $store.state.auth.user.email ? 'You cannot change your own role' : 'Select a role'"
+                    @change="changeRole(user.id, $event.target.value)"
+                  >
+                    <option value="user">
+                      User
+                    </option>
+                    <option value="instructor">
+                      Instructor
+                    </option>
+                    <option value="admin">
+                      Admin
+                    </option>
+                  </select>
+                  <span
+                    v-if="updatingUsers[user.id]"
+                    class="dropdown-spinner"
+                  />
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>
@@ -62,6 +89,7 @@ import { mapGetters } from 'vuex';
 import axios from 'axios';
 import AuthService from '../services/auth.service';
 import AdminNavBar from './AdminNavBar.vue';
+import { log } from '@/utils/logger';
 
 // Setup axios to include credentials and CSRF token
 axios.defaults.withCredentials = true;
@@ -100,7 +128,7 @@ export default {
         function getCookie(name) {
           const value = `; ${document.cookie}`;
           const parts = value.split(`; ${name}=`);
-          if (parts.length === 2) return parts.pop().split(';').shift();
+          if (parts.length === 2) {return parts.pop().split(';').shift();}
         }
         
         // First make a GET request to get the CSRF token
@@ -120,7 +148,7 @@ export default {
       } catch (error) {
         this.error = 'Failed to load users. Please try again.';
         this.loading = false;
-        console.error('Error fetching users:', error);
+        log.error('Error fetching users', { error });
       }
     },
     
@@ -137,7 +165,7 @@ export default {
     },
     
     async changeRole(userId, newRole) {
-      console.log('Changing role for user:', userId, 'to', newRole);
+      log.debug('Changing role for user', { userId, newRole });
       try {
         // Set this user as updating
         this.updatingUsers = {
@@ -149,7 +177,7 @@ export default {
         function getCookie(name) {
           const value = `; ${document.cookie}`;
           const parts = value.split(`; ${name}=`);
-          if (parts.length === 2) return parts.pop().split(';').shift();
+          if (parts.length === 2) {return parts.pop().split(';').shift();}
         }
         
         const csrfToken = getCookie('csrftoken');
@@ -177,7 +205,7 @@ export default {
         }
       } catch (error) {
         this.error = 'Failed to update user role. Please try again.';
-        console.error('Error updating user role:', error);
+        log.error('Error updating user role', { error, userId, newRole });
       } finally {
         // Remove updating status when done
         this.updatingUsers = {

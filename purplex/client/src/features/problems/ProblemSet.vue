@@ -1,192 +1,261 @@
 <template>
-    <div v-if="isLoading" class="loading-container">
-        <div class="loading-message">Loading problem set...</div>
+  <div
+    v-if="isLoading"
+    class="loading-container"
+  >
+    <div class="loading-message">
+      Loading problem set...
     </div>
-    <div v-else-if="!problems || problems.length === 0" class="loading-container">
-        <div class="loading-message">No problems found in this set.</div>
+  </div>
+  <div
+    v-else-if="!problems || problems.length === 0"
+    class="loading-container"
+  >
+    <div class="loading-message">
+      No problems found in this set.
     </div>
-    <div v-else class="problem-set-container">
-        <!-- Navigation Loading Overlay - Removed to prevent flashing -->
-        <!-- Consider using a less intrusive loading indicator instead -->
+  </div>
+  <div
+    v-else
+    class="problem-set-container"
+  >
+    <!-- Navigation Loading Overlay - Removed to prevent flashing -->
+    <!-- Consider using a less intrusive loading indicator instead -->
 
-        <div class="problem-navigation">
-            <div class="problem-selector">
-                <button 
-                    class="nav-button" 
-                    @click="prevProblem"
-                >
-                    <span class="arrow-left">‹</span>
-                </button>
-                <div class="problem-info">
-                    <div class="progress-summary">
-                        <span class="progress-stat completed">{{ completedCount }} completed</span>
-                        <span class="progress-stat in_progress">{{ inProgressCount }} in progress</span>
-                        <span class="progress-stat remaining">{{ remainingCount }} remaining</span>
-                    </div>
-                    <div class="problem-progress">
-                        <div v-for="(problem, index) in problems" :key="problem.slug" 
-                            :class="['progress-bar', 
-                                { 'active': index === currentProblem },
-                                { 'completed': getProblemStatus(problem.slug) === 'completed' },
-                                { 'in_progress': getProblemStatus(problem.slug) === 'in_progress' },
-                                { 'not_started': getProblemStatus(problem.slug) === 'not_started' }
-                            ]" 
-                            @click="setProblem(index)"
-                            :title="getProblemTooltip(problem, index)">
-                        </div>
-                    </div>
-                </div>
-                <button 
-                    class="nav-button" 
-                    @click="nextProblem"
-                >
-                    <span class="arrow-right">›</span>
-                </button>
+    <div class="problem-navigation">
+      <div class="problem-selector">
+        <button 
+          class="nav-button" 
+          @click="prevProblem"
+        >
+          <span class="arrow-left">‹</span>
+        </button>
+        <div class="problem-info">
+          <div class="progress-summary">
+            <span class="progress-stat completed">{{ completedCount }} completed</span>
+            <span class="progress-stat in_progress">{{ inProgressCount }} in progress</span>
+            <span class="progress-stat remaining">{{ remainingCount }} remaining</span>
+          </div>
+          <div class="problem-progress">
+            <div
+              v-for="(problem, index) in problems"
+              :key="problem.slug" 
+              :class="['progress-bar', 
+                       { 'active': index === currentProblem },
+                       { 'completed': getProblemStatus(problem.slug) === 'completed' },
+                       { 'in_progress': getProblemStatus(problem.slug) === 'in_progress' },
+                       { 'not_started': getProblemStatus(problem.slug) === 'not_started' }
+              ]" 
+              :title="getProblemTooltip(problem, index)"
+              @click="setProblem(index)"
+            />
+          </div>
+        </div>
+        <button 
+          class="nav-button" 
+          @click="nextProblem"
+        >
+          <span class="arrow-right">›</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main workspace -->
+    <div class="workspace">
+      <!-- Left panel: Code editor and submission -->
+      <div class="left-panel">
+        <!-- Code editor section -->
+        <div class="editor-section">
+          <div class="section-header">
+            <div class="section-label">
+              Code Editor
             </div>
+            <HintButton 
+              :problem-slug="getCurrentProblem().slug"
+              :course-id="courseId"
+              :problem-set-slug="$route.params.slug"
+              :current-attempts="getCurrentProblemAttempts()"
+              @hint-used="onHintUsed"
+              @hint-toggled="onHintToggled"
+              @show-original="onShowOriginal"
+              @remove-all-hints="onRemoveAllHints"
+            />
+          </div>
+          <Editor 
+            ref="entry" 
+            lang="python" 
+            mode="python" 
+            height="450px" 
+            width="100%" 
+            :value="displayedCode"
+            :key="`editor-${currentProblem}`"
+            :read-only="true"
+            :show-gutter="showLineNumbers"
+            :theme="currentTheme"
+            :hint-markers="currentHintMarkers"
+            @update:value="updateSolutionCode"
+          />
+          <div class="editor-toolbar">
+            <div class="toolbar-options">
+              <button
+                class="toolbar-btn"
+                title="Copy code"
+                @click="copyCode"
+              >
+                <span v-if="!codeCopied">📋</span>
+                <span v-else>✓</span>
+              </button>
+              <button
+                class="toolbar-btn"
+                :title="showLineNumbers ? 'Hide line numbers' : 'Show line numbers'"
+                @click="toggleLineNumbers"
+              >
+                <span v-if="showLineNumbers">🔢</span>
+                <span v-else>➖</span>
+              </button>
+              <div class="theme-selector">
+                <select
+                  v-model="editorTheme"
+                  class="theme-dropdown"
+                  @change="updateTheme"
+                >
+                  <option value="dark">
+                    🌙 Dark
+                  </option>
+                  <option value="light">
+                    ☀️ Light
+                  </option>
+                  <option value="monokai">
+                    🎨 Monokai
+                  </option>
+                  <option value="github">
+                    🐙 GitHub
+                  </option>
+                  <option value="solarized-dark">
+                    🌅 Solarized Dark
+                  </option>
+                  <option value="solarized-light">
+                    🌅 Solarized Light
+                  </option>
+                  <option value="dracula">
+                    🧛 Dracula
+                  </option>
+                  <option value="tomorrow-night">
+                    🌃 Tomorrow Night
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="zoom-controls">
+              <button
+                class="zoom-btn"
+                :disabled="editorFontSize <= 12"
+                title="Zoom out"
+                @click="decreaseFontSize"
+              >
+                <span class="zoom-icon">−</span>
+              </button>
+              <span class="zoom-level">{{ Math.round((editorFontSize / 14) * 100) }}%</span>
+              <button
+                class="zoom-btn"
+                :disabled="editorFontSize >= 35"
+                title="Zoom in"
+                @click="increaseFontSize"
+              >
+                <span class="zoom-icon">+</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- Main workspace -->
-        <div class="workspace">
-            <!-- Left panel: Code editor and submission -->
-            <div class="left-panel">
-                <!-- Code editor section -->
-                <div class="editor-section">
-                    <div class="section-header">
-                        <div class="section-label">Code Editor</div>
-                        <HintButton 
-                            :problemSlug="getCurrentProblem().slug"
-                            :courseId="courseId"
-                            :problemSetSlug="$route.params.slug"
-                            :currentAttempts="getCurrentProblemAttempts()"
-                            @hint-used="onHintUsed"
-                            @hint-toggled="onHintToggled"
-                            @show-original="onShowOriginal"
-                            @remove-all-hints="onRemoveAllHints"
-                        />
-                    </div>
-                    <Editor 
-                        ref="entry" 
-                        lang="python" 
-                        mode="python" 
-                        height="450px" 
-                        width="100%" 
-                        :value="displayedCode"
-                        @update:value="updateSolutionCode"
-                        :readOnly="true"
-                        :showGutter="showLineNumbers"
-                        :theme="currentTheme"
-                        :hintMarkers="currentHintMarkers"
-                        :key="`editor-${currentProblem}`"
-                    />
-                    <div class="editor-toolbar">
-                        <div class="toolbar-options">
-                            <button class="toolbar-btn" @click="copyCode" title="Copy code">
-                                <span v-if="!codeCopied">📋</span>
-                                <span v-else>✓</span>
-                            </button>
-                            <button class="toolbar-btn" @click="toggleLineNumbers" :title="showLineNumbers ? 'Hide line numbers' : 'Show line numbers'">
-                                <span v-if="showLineNumbers">🔢</span>
-                                <span v-else>➖</span>
-                            </button>
-                            <div class="theme-selector">
-                                <select v-model="editorTheme" @change="updateTheme" class="theme-dropdown">
-                                    <option value="dark">🌙 Dark</option>
-                                    <option value="light">☀️ Light</option>
-                                    <option value="monokai">🎨 Monokai</option>
-                                    <option value="github">🐙 GitHub</option>
-                                    <option value="solarized-dark">🌅 Solarized Dark</option>
-                                    <option value="solarized-light">🌅 Solarized Light</option>
-                                    <option value="dracula">🧛 Dracula</option>
-                                    <option value="tomorrow-night">🌃 Tomorrow Night</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="zoom-controls">
-                            <button class="zoom-btn" @click="decreaseFontSize" :disabled="editorFontSize <= 12" title="Zoom out">
-                                <span class="zoom-icon">−</span>
-                            </button>
-                            <span class="zoom-level">{{ Math.round((editorFontSize / 14) * 100) }}%</span>
-                            <button class="zoom-btn" @click="increaseFontSize" :disabled="editorFontSize >= 35" title="Zoom in">
-                                <span class="zoom-icon">+</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Suggested Trace Hint -->
-                <SuggestedTrace
-                    :isVisible="isHintActive('suggested_trace')"
-                    :hintData="getHintData('suggested_trace')"
-                    :solutionCode="solutionCode"
-                    @open-pytutor="openPyTutor"
-                />
-
-                <!-- Submission section -->
-                <div class="submission-section">
-                    <div class="section-label">Describe the code here</div>
-                    <span v-if="draftSaved" class="draft-indicator">✓ Draft saved</span>
-                    <div class="prompt-editor-wrapper">
-                        <Editor 
-                            ref="prompt_entry" 
-                            lang="text" 
-                            mode="text" 
-                            height="100px" 
-                            width="100%"
-                            v-bind:showGutter=false 
-                            :wrap="true" 
-                        />
-                    </div>
-                    <button 
-                        id="submitButton" 
-                        class="submit-button" 
-                        @click="submit"
-                        :disabled="loading"
-                    >
-                        <span class="button-text" v-if="!loading">Submit Solution</span>
-                        <div class="bouncing-dots" v-if="loading">
-                            <span class="dot"></span>
-                            <span class="dot"></span>
-                            <span class="dot"></span>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Right panel: Feedback -->
-            <div class="right-panel">
-                <Feedback 
-                    :progress="promptCorrectness" 
-                    :notches="6" 
-                    :codeResults="codeResults" 
-                    :testResults="testResults"
-                    :comprehensionResults="comprehensionResults" 
-                    :userPrompt="userPrompt"
-                    title="Feedback" 
-                />
-            </div>
-        </div>
-
-        <!-- PyTutor Modal -->
-        <PyTutorModal 
-            :isVisible="showPyTutorModal" 
-            :pythonTutorUrl="pyTutorUrl" 
-            @close="closePyTutor" 
+        <!-- Suggested Trace Hint Overlay -->
+        <SuggestedTraceOverlay
+          v-for="(overlay, index) in suggestedTraceOverlays"
+          :key="`overlay-${index}`"
+          v-bind="overlay.props"
+          :solution-code="solutionCode"
+          @open-pytutor="openPyTutor"
+          @close="removeHint('suggested_trace')"
         />
+
+        <!-- Submission section -->
+        <div class="submission-section">
+          <div class="section-label">
+            Describe the code here
+          </div>
+          <span
+            v-if="draftSaved"
+            class="draft-indicator"
+          >✓ Draft saved</span>
+          <div class="prompt-editor-wrapper">
+            <Editor 
+              ref="prompt_entry" 
+              lang="text" 
+              mode="text" 
+              height="100px" 
+              width="100%"
+              :show-gutter="false" 
+              :wrap="true" 
+            />
+          </div>
+          <button 
+            id="submitButton" 
+            class="submit-button" 
+            :disabled="loading"
+            @click="submit"
+          >
+            <span
+              v-if="!loading"
+              class="button-text"
+            >Submit Solution</span>
+            <div
+              v-if="loading"
+              class="bouncing-dots"
+            >
+              <span class="dot" />
+              <span class="dot" />
+              <span class="dot" />
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right panel: Feedback -->
+      <div class="right-panel">
+        <Feedback 
+          :progress="promptCorrectness" 
+          :notches="6" 
+          :code-results="codeResults" 
+          :test-results="testResults"
+          :comprehension-results="comprehensionResults" 
+          :user-prompt="userPrompt"
+          title="Feedback" 
+        />
+      </div>
     </div>
+
+    <!-- PyTutor Modal -->
+    <PyTutorModal 
+      :is-visible="showPyTutorModal" 
+      :python-tutor-url="pyTutorUrl" 
+      @close="closePyTutor" 
+    />
+  </div>
 </template>
 
 <script>
 import Editor from '@/features/editor/Editor.vue'
 import Feedback from "@/components/Feedback.vue"
 import HintButton from "@/components/HintButton.vue"
-import SuggestedTrace from "@/components/hints/SuggestedTrace.vue"
+import SuggestedTraceOverlay from "@/components/hints/SuggestedTraceOverlay.vue"
 import PyTutorModal from "@/modals/PyTutorModal.vue"
 import axios from 'axios'
 import { useNotification } from '@/composables/useNotification'
+import { useLogger } from '@/composables/useLogger'
 import { useOptimisticProgress } from '@/composables/useOptimisticProgress'
 import { useHintTracking } from '@/composables/useHintTracking'
 import { useEditorHints } from '@/composables/useEditorHints'
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { TestResultsTransformer } from '@/services/testResultsTransformer'
 
 export default {
@@ -195,7 +264,7 @@ export default {
         Editor,
         Feedback,
         HintButton,
-        SuggestedTrace,
+        SuggestedTraceOverlay,
         PyTutorModal
     },
     props: {
@@ -206,6 +275,7 @@ export default {
     },
     setup() {
         const { notify } = useNotification();
+        const logger = useLogger();
         const { updateProgress, getProgress, clearOptimistic } = useOptimisticProgress();
         const { trackHintUsage, getHintsUsed } = useHintTracking();
         
@@ -218,6 +288,7 @@ export default {
             modifiedCode,
             hasActiveHints,
             editorMarkers,
+            activeOverlays,
             applyHint,
             removeHint,
             removeAllHints,
@@ -229,6 +300,7 @@ export default {
         
         return { 
             notify, 
+            logger,
             updateProgress, 
             getProgress, 
             clearOptimistic, 
@@ -240,6 +312,7 @@ export default {
             modifiedCode,
             hasActiveHints,
             editorMarkers,
+            activeOverlays,
             applyHint,
             removeHint,
             removeAllHints,
@@ -289,6 +362,79 @@ export default {
         };
     },
     
+    computed: {
+        solutionCode() {
+            return this.getCurrentProblem().reference_solution || '';
+        },
+        
+        displayedCode() {
+            return this.hasActiveHints ? this.modifiedCode : this.solutionCode;
+        },
+        
+        currentHintMarkers() {
+            const markers = this.editorMarkers || [];
+            this.logger.debug('Current hint markers computed', { markers });
+            return markers;
+        },
+        
+        suggestedTraceOverlays() {
+            return (this.activeOverlays || []).filter(
+                overlay => overlay && overlay.component === 'SuggestedTraceOverlay'
+            );
+        },
+        
+        completedCount() {
+            return Object.values(this.problemStatuses).filter(s => s.status === 'completed').length;
+        },
+        
+        inProgressCount() {
+            return Object.values(this.problemStatuses).filter(s => s.status === 'in_progress').length;
+        },
+        
+        remainingCount() {
+            return this.problems.length - this.completedCount - this.inProgressCount;
+        },
+        
+        currentTheme() {
+            const themeMap = {
+                'dark': 'clouds_midnight',
+                'light': 'chrome',
+                'monokai': 'monokai',
+                'github': 'github',
+                'solarized-dark': 'solarized_dark',
+                'solarized-light': 'solarized_light',
+                'dracula': 'dracula',
+                'tomorrow-night': 'tomorrow_night'
+            };
+            return themeMap[this.editorTheme] || 'clouds_midnight';
+        }
+    },
+    
+    watch: {
+        '$route.params.slug': function(newSlug) {
+            if (newSlug) {
+                this.loadProblemSet();
+            }
+        },
+        solutionCode: {
+            handler(newCode) {
+                // Update the originalSolutionCode ref when solution changes
+                this.originalSolutionCode = newCode;
+            },
+            immediate: true
+        },
+        problemStatuses: {
+            handler(newVal) {
+                this.logger.debug('Problem statuses changed', {
+                    statuses: newVal,
+                    keys: Object.keys(newVal),
+                    completedProblems: Object.values(newVal).filter(s => s.status === 'completed')
+                });
+            },
+            deep: true
+        }
+    },
+    
     async mounted() {
         await this.loadProblemSet();
         if (this.problems.length > 0) {
@@ -321,7 +467,7 @@ export default {
         },
         
         async navigateToProblem(newIndex) {
-            if (newIndex === this.currentProblem) return;
+            if (newIndex === this.currentProblem) {return;}
             
             try {
                 // Save current draft before switching
@@ -349,14 +495,14 @@ export default {
                 this.loadDraft();
                 
             } catch (error) {
-                console.error('Navigation failed:', error);
+                this.logger.error('Navigation failed', error);
                 this.notify.error('Navigation Error', 'Failed to load problem data');
             }
         },
         
         async loadProblemData() {
             const problem = this.getCurrentProblem();
-            if (!problem.slug) return;
+            if (!problem.slug) {return;}
             
             try {
                 // Load submission data with caching
@@ -374,7 +520,7 @@ export default {
                 this.loadDraft();
                 
             } catch (error) {
-                console.error('Error loading problem data:', error);
+                this.logger.error('Error loading problem data', error);
                 // Clear on error
                 this.clearFeedbackData();
             }
@@ -405,7 +551,7 @@ export default {
                 
                 return data;
             } catch (error) {
-                console.error('Error loading submission:', error);
+                this.logger.error('Error loading submission', error);
                 return {
                     has_submission: false,
                     variations: [],
@@ -468,7 +614,7 @@ export default {
                     this.codeCopied = false;
                 }, 2000);
             }).catch(err => {
-                console.error('Failed to copy code:', err);
+                this.logger.error('Failed to copy code', err);
             });
         },
         
@@ -486,7 +632,7 @@ export default {
         },
         
         async submit() {
-            if (this.loading) return;
+            if (this.loading) {return;}
             
             this.loading = true;
             const currentProblemSlug = this.getCurrentProblem().slug;
@@ -557,7 +703,7 @@ export default {
                 this.notify.success('Solution submitted successfully!', `Score: ${data.score}%`);
 
             } catch (error) {
-                console.error('Error submitting code:', error);
+                this.logger.error('Error submitting code', error);
                 
                 // Clear feedback on error
                 this.clearFeedbackData();
@@ -602,7 +748,7 @@ export default {
                 await this.loadProblemStatuses();
                 
             } catch (error) {
-                console.error('Error fetching problem set:', error);
+                this.logger.error('Error fetching problem set', error);
                 this.notify.error('Load Error', 'Failed to load problem set.');
             } finally {
                 this.isLoading = false;
@@ -615,13 +761,12 @@ export default {
             try {
                 // Include course_id in query params if available
                 const params = this.courseId ? { course_id: this.courseId } : {};
-                console.log('Loading problem statuses for:', problemSetSlug, 'with params:', params);
+                this.logger.debug('Loading problem statuses', { problemSetSlug, params });
                 
                 const response = await axios.get(`/api/problem-sets/${problemSetSlug}/progress/`, { params });
                 const progressData = response.data.problems_progress || [];
                 
-                console.log('Progress data received:', progressData);
-                console.log('Problem set progress:', response.data.problem_set);
+                this.logger.debug('Progress data received', { progressData, problemSetProgress: response.data.problem_set });
                 
                 // Create new object for Vue reactivity
                 const newStatuses = {};
@@ -637,10 +782,12 @@ export default {
                 // Replace entire object to trigger reactivity
                 this.problemStatuses = newStatuses;
                 
-                console.log('Problem statuses after loading:', this.problemStatuses);
-                console.log('Completed count:', this.completedCount);
-                console.log('In progress count:', this.inProgressCount);
-                console.log('Remaining count:', this.remainingCount);
+                this.logger.debug('Problem statuses loaded', {
+                    statuses: this.problemStatuses,
+                    completedCount: this.completedCount,
+                    inProgressCount: this.inProgressCount,
+                    remainingCount: this.remainingCount
+                });
                 
                 if (response.data.problem_set) {
                     this.problemSetProgress = response.data.problem_set;
@@ -648,17 +795,18 @@ export default {
                 
                 // Force Vue to update the computed properties
                 this.$nextTick(() => {
-                    console.log('After nextTick - recomputing counts');
-                    console.log('Final completed count:', this.completedCount);
-                    console.log('Final in progress count:', this.inProgressCount);
-                    console.log('Final remaining count:', this.remainingCount);
+                    this.logger.debug('Counts recomputed after nextTick', {
+                        completedCount: this.completedCount,
+                        inProgressCount: this.inProgressCount,
+                        remainingCount: this.remainingCount
+                    });
                 })
                 
             } catch (error) {
-                console.error('Error loading progress data:', error);
-                if (error.response) {
-                    console.error('Error response:', error.response.data);
-                }
+                this.logger.error('Error loading progress data', {
+                    error,
+                    response: error.response?.data
+                });
             }
         },
         
@@ -689,7 +837,7 @@ export default {
         
         // Draft Management - Simplified
         saveDraft() {
-            if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) return;
+            if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {return;}
             
             const promptText = this.$refs.prompt_entry.editor.getValue();
             if (promptText && promptText.trim()) {
@@ -705,7 +853,7 @@ export default {
         },
         
         loadDraft() {
-            if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) return;
+            if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {return;}
             
             const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
             const draft = localStorage.getItem(draftKey);
@@ -752,7 +900,7 @@ export default {
         
         onHintUsed(hintData) {
             // Log hint usage for research data
-            console.log('Hint used:', hintData);
+            this.logger.info('Hint used', hintData);
             
             // Track hint usage with the composable
             this.trackHintUsage(
@@ -778,39 +926,39 @@ export default {
                     // Apply the hint using the composable
                     const success = await this.applyHint(hintType, hintData);
                     if (success) {
-                        console.log(`Applied hint: ${hintType}`);
+                        this.logger.info('Applied hint', { hintType });
                     } else {
-                        console.error(`Failed to apply hint: ${hintType}`);
+                        this.logger.error('Failed to apply hint', { hintType });
                     }
                 } else {
                     // Remove the hint using the composable
                     const success = await this.removeHint(hintType);
                     if (success) {
-                        console.log(`Removed hint: ${hintType}`);
+                        this.logger.info('Removed hint', { hintType });
                     } else {
-                        console.error(`Failed to remove hint: ${hintType}`);
+                        this.logger.error('Failed to remove hint', { hintType });
                     }
                 }
             } catch (error) {
-                console.error('Error toggling hint:', error);
+                this.logger.error('Error toggling hint', error);
             }
         },
         
         async onShowOriginal() {
             try {
                 await this.restoreOriginal();
-                console.log('Restored original code');
+                this.logger.info('Restored original code');
             } catch (error) {
-                console.error('Error restoring original code:', error);
+                this.logger.error('Error restoring original code', error);
             }
         },
         
         async onRemoveAllHints() {
             try {
                 await this.removeAllHints();
-                console.log('Removed all hints');
+                this.logger.info('Removed all hints');
             } catch (error) {
-                console.error('Error removing all hints:', error);
+                this.logger.error('Error removing all hints', error);
             }
         },
         
@@ -823,71 +971,6 @@ export default {
         closePyTutor() {
             this.showPyTutorModal = false;
             this.pyTutorUrl = '';
-        }
-    },
-    
-    computed: {
-        solutionCode() {
-            return this.getCurrentProblem().reference_solution || '';
-        },
-        
-        displayedCode() {
-            return this.hasActiveHints ? this.modifiedCode : this.solutionCode;
-        },
-        
-        currentHintMarkers() {
-            const markers = this.editorMarkers || [];
-            console.log('ProblemSet currentHintMarkers computed:', markers);
-            return markers;
-        },
-        
-        completedCount() {
-            return Object.values(this.problemStatuses).filter(s => s.status === 'completed').length;
-        },
-        
-        inProgressCount() {
-            return Object.values(this.problemStatuses).filter(s => s.status === 'in_progress').length;
-        },
-        
-        remainingCount() {
-            return this.problems.length - this.completedCount - this.inProgressCount;
-        },
-        
-        currentTheme() {
-            const themeMap = {
-                'dark': 'clouds_midnight',
-                'light': 'chrome',
-                'monokai': 'monokai',
-                'github': 'github',
-                'solarized-dark': 'solarized_dark',
-                'solarized-light': 'solarized_light',
-                'dracula': 'dracula',
-                'tomorrow-night': 'tomorrow_night'
-            };
-            return themeMap[this.editorTheme] || 'clouds_midnight';
-        }
-    },
-    
-    watch: {
-        '$route.params.slug': function(newSlug) {
-            if (newSlug) {
-                this.loadProblemSet();
-            }
-        },
-        solutionCode: {
-            handler(newCode) {
-                // Update the originalSolutionCode ref when solution changes
-                this.originalSolutionCode = newCode;
-            },
-            immediate: true
-        },
-        problemStatuses: {
-            handler(newVal) {
-                console.log('Problem statuses changed:', newVal);
-                console.log('Keys:', Object.keys(newVal));
-                console.log('Completed problems:', Object.values(newVal).filter(s => s.status === 'completed'));
-            },
-            deep: true
         }
     }
 };

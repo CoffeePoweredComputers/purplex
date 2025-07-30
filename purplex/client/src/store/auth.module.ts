@@ -1,20 +1,22 @@
-import { Module, ActionContext } from 'vuex';
+import { ActionContext, Module } from 'vuex';
 import AuthService from '../services/auth.service';
 import { firebaseAuth } from '../firebaseConfig';
 import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
+  createUserWithEmailAndPassword, 
   GoogleAuthProvider,
+  signInWithEmailAndPassword,
   signInWithPopup
 } from 'firebase/auth';
 import axios from 'axios';
+import { log } from '../utils/logger';
+
 const provider = new GoogleAuthProvider();
 
 // Get DEBUG mode from environment or default to development mode
 // In production build, this will be replaced with false
 const DEBUG = import.meta.env.MODE === 'development';
 
-console.log('DEBUG:', import.meta.env.MODE);
+log.debug('Auth module initialized', { mode: import.meta.env.MODE });
 
 // ===== TYPE DEFINITIONS =====
 
@@ -88,13 +90,13 @@ type AuthActionContext = ActionContext<AuthState, any>;
 // ===== INITIAL STATE =====
 
 const user = JSON.parse(localStorage.getItem('user') || 'null') as User | null;
-console.log('user:', user);
+log.debug('User from localStorage', user);
 
 const initialState: AuthState = user
   ? { status: { loggedIn: true }, user, debug: DEBUG }
   : { status: { loggedIn: false }, user: null, debug: DEBUG };
 
-console.log('initialState:', initialState);
+log.debug('Auth initial state', initialState);
 
 // ===== MODULE DEFINITION =====
 
@@ -105,13 +107,13 @@ export const auth: Module<AuthState, any> = {
     // Check auth state and get user data on app init
     async checkAuthState({ commit, state }: AuthActionContext): Promise<void> {
       // Skip if we're already authenticated or in debug mode
-      if (state.debug) return;
+      if (state.debug) {return;}
       
       if (firebaseAuth.currentUser) {
         try {
           // Get user role from backend
           const response = await axios.get<UserMeResponse>('/api/user/me/');
-          console.log('Refreshed user data:', response.data);
+          log.info('User data refreshed', response.data);
           
           const userData: User = {
             uid: firebaseAuth.currentUser.uid,
@@ -122,13 +124,13 @@ export const auth: Module<AuthState, any> = {
           };
           commit('loginSuccess', userData);
         } catch (error) {
-          console.error('Error refreshing user data:', error);
+          log.error('Error refreshing user data', error);
         }
       }
     },
 
     async login({ commit }: AuthActionContext, user: LoginCredentials): Promise<void> {
-      console.log('login', user);
+      log.info('Login attempt', { email: user.email });
       if (!user.email || !user.password) {
         throw { code: 'auth/missing-fields', message: 'Email and password are required', num: 400 } as AuthError;
       }
@@ -147,10 +149,10 @@ export const auth: Module<AuthState, any> = {
       try {
         await signInWithEmailAndPassword(firebaseAuth, user.email, user.password);
         // Get user role from backend
-        console.log('login success');
+        log.info('Login successful');
         try {
           const response = await axios.get<UserMeResponse>('/api/user/me/');
-          console.log(response);
+          log.debug('User role response', response.data);
           const userData: User = {
             ...user,
             role: response.data.role as User['role'],
@@ -209,7 +211,7 @@ export const auth: Module<AuthState, any> = {
         // Update store
         commit('logout');
       } catch (error) {
-        console.error('Logout error:', error);
+        log.error('Logout error', error);
       }
     },
 
@@ -247,7 +249,7 @@ export const auth: Module<AuthState, any> = {
     },
 
     async refreshUserRole({ commit, state }: AuthActionContext): Promise<void> {
-      if (!state.status.loggedIn) return;
+      if (!state.status.loggedIn) {return;}
 
       try {
         const response = await axios.get<UserMeResponse>('/api/user/me/');
@@ -258,7 +260,7 @@ export const auth: Module<AuthState, any> = {
         };
         commit('updateUserData', userData);
       } catch (error) {
-        console.error('Error refreshing user role:', error);
+        log.error('Error refreshing user role', error);
       }
     }
   },

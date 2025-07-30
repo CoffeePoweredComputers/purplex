@@ -1,4 +1,4 @@
-import { createWebHistory, createRouter, RouteRecordRaw } from "vue-router";
+import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import { firebaseAuth } from "./firebaseConfig";
 import store from "./store"; // Import the Vuex store
 

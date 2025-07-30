@@ -3,10 +3,16 @@
     <!-- Function Parameters -->
     <div class="parameters-section">
       <label class="section-label">Function Parameters</label>
-      <div v-if="functionParameters.length === 0" class="no-parameters">
+      <div
+        v-if="functionParameters.length === 0"
+        class="no-parameters"
+      >
         <span class="empty-state">No parameters detected. Check function signature.</span>
       </div>
-      <div v-else class="parameters-container">
+      <div
+        v-else
+        class="parameters-container"
+      >
         <!-- Parameter grid header -->
         <div 
           class="parameters-grid-header"
@@ -40,12 +46,12 @@
             <div class="input-with-type">
               <input
                 v-model="paramSet[paramIndex].value"
-                @input="onParameterChange(setIndex, paramIndex)"
                 type="text"
                 :placeholder="getParameterPlaceholder(functionParameters[paramIndex].type)"
                 class="smart-input"
                 :class="{ 'error': paramSet[paramIndex].error }"
-              />
+                @input="onParameterChange(setIndex, paramIndex)"
+              >
               <div 
                 class="type-indicator" 
                 :class="getSimplifiedType(paramSet[paramIndex].detectedType)"
@@ -54,17 +60,24 @@
                 {{ paramSet[paramIndex].detectedType }}
               </div>
             </div>
-            <div v-if="paramSet[paramIndex].error" class="parameter-error">{{ paramSet[paramIndex].error }}</div>
-            <div class="parameter-preview">{{ paramSet[paramIndex].preview }}</div>
+            <div
+              v-if="paramSet[paramIndex].error"
+              class="parameter-error"
+            >
+              {{ paramSet[paramIndex].error }}
+            </div>
+            <div class="parameter-preview">
+              {{ paramSet[paramIndex].preview }}
+            </div>
           </div>
           
           <!-- Actions cell -->
           <div class="actions-cell">
             <button 
               v-if="parameterSets.length > 1"
-              @click="removeParameterSet(setIndex)"
               class="remove-set-btn"
               title="Remove this input set"
+              @click="removeParameterSet(setIndex)"
             >
               ×
             </button>
@@ -74,11 +87,11 @@
         <!-- Add parameter set button -->
         <div class="add-parameter-set">
           <button 
-            @click="addParameterSet" 
-            :disabled="!canAddParameterSet"
+            :disabled="!canAddParameterSet" 
             class="add-set-btn"
             :class="{ 'disabled': !canAddParameterSet }"
             :title="canAddParameterSetReason"
+            @click="addParameterSet"
           >
             <span class="add-icon">+</span>
             <span v-if="canAddParameterSet">Add Input Set</span>
@@ -94,12 +107,12 @@
       <div class="input-with-type">
         <input
           v-model="expectedOutput.value"
-          @input="onExpectedOutputChange"
           type="text"
           :placeholder="getParameterPlaceholder(returnType)"
           class="smart-input"
           :class="{ 'error': expectedOutput.error }"
-        />
+          @input="onExpectedOutputChange"
+        >
         <div 
           class="type-indicator" 
           :class="getSimplifiedType(expectedOutput.detectedType)"
@@ -108,8 +121,15 @@
           {{ expectedOutput.detectedType }}
         </div>
       </div>
-      <div v-if="expectedOutput.error" class="parameter-error">{{ expectedOutput.error }}</div>
-      <div class="parameter-preview">{{ expectedOutput.preview }}</div>
+      <div
+        v-if="expectedOutput.error"
+        class="parameter-error"
+      >
+        {{ expectedOutput.error }}
+      </div>
+      <div class="parameter-preview">
+        {{ expectedOutput.preview }}
+      </div>
     </div>
 
     <!-- Function Call Preview -->
@@ -141,12 +161,14 @@
         type="text"
         placeholder="Brief description of this test case"
         class="description-input"
-      />
+      >
     </div>
   </div>
 </template>
 
 <script>
+import { log } from '@/utils/logger'
+
 // Type detection and conversion utilities
 const pythonTypes = {
   // Basic types
@@ -500,13 +522,13 @@ function inferPythonTypeFromValue(value) {
 
 // Find the most specific common type among a list of types
 function findCommonType(types) {
-  if (types.length === 0) return { type: 'Any' };
-  if (types.length === 1) return types[0];
+  if (types.length === 0) {return { type: 'Any' };}
+  if (types.length === 1) {return types[0];}
   
   // Check if all types are identical
   const firstType = types[0];
   const allSame = types.every(t => deepTypeEquals(t, firstType));
-  if (allSame) return firstType;
+  if (allSame) {return firstType;}
   
   // Check for numeric compatibility (int + float = float)
   const hasInt = types.some(t => t.type === 'int');
@@ -541,7 +563,7 @@ function findCommonType(types) {
 
 // Deep equality check for type specs
 function deepTypeEquals(type1, type2) {
-  if (type1.type !== type2.type) return false;
+  if (type1.type !== type2.type) {return false;}
   
   if (type1.type === 'list') {
     return deepTypeEquals(type1.elementType || { type: 'Any' }, type2.elementType || { type: 'Any' });
@@ -676,7 +698,7 @@ function parseFunctionSignature(signature) {
   const regex = /def\s+(\w+)\s*\((.*?)\)\s*(?:->\s*(.+?))?:/;
   const match = signature.match(regex);
   
-  if (!match) return null;
+  if (!match) {return null;}
   
   const [_, functionName, params, returnType] = match;
   const parameters = parseParameters(params);
@@ -689,7 +711,7 @@ function parseFunctionSignature(signature) {
 }
 
 function parseParameters(paramsStr) {
-  if (!paramsStr.trim()) return [];
+  if (!paramsStr.trim()) {return [];}
   
   const params = [];
   const paramRegex = /(\w+)\s*:\s*([^,]+)/g;
@@ -747,8 +769,8 @@ function parseTypeAnnotation(typeStr) {
     let depth = 0;
     let commaIndex = -1;
     for (let i = 0; i < inner.length; i++) {
-      if (inner[i] === '[') depth++;
-      else if (inner[i] === ']') depth--;
+      if (inner[i] === '[') {depth++;}
+      else if (inner[i] === ']') {depth--;}
       else if (inner[i] === ',' && depth === 0) {
         commaIndex = i;
         break;
@@ -792,7 +814,7 @@ function parseTypeAnnotation(typeStr) {
 
 // Format type spec back to readable string
 function formatTypeSpec(typeSpec) {
-  if (!typeSpec) return 'Any';
+  if (!typeSpec) {return 'Any';}
   
   switch (typeSpec.type) {
     case 'Optional':
@@ -851,21 +873,21 @@ export default {
       parsedSignature: null
     };
   },
-  created() {
-    this.parseSignature();
-    this.initializeValues();
-  },
   watch: {
     functionSignature() {
       this.parseSignature();
       this.initializeValues();
     }
   },
+  created() {
+    this.parseSignature();
+    this.initializeValues();
+  },
   methods: {
     parseSignature() {
       this.parsedSignature = parseFunctionSignature(this.functionSignature);
       if (!this.parsedSignature) {
-        console.error('Failed to parse function signature:', this.functionSignature);
+        log.error('Failed to parse function signature', { functionSignature: this.functionSignature });
         return;
       }
       
@@ -913,9 +935,9 @@ export default {
     
     formatValueForInput(value) {
       // Convert a JavaScript value to string for input display
-      if (value === null) return 'None';
-      if (typeof value === 'string') return JSON.stringify(value); // Quote strings so type system recognizes them
-      if (typeof value === 'boolean') return value.toString();
+      if (value === null) {return 'None';}
+      if (typeof value === 'string') {return JSON.stringify(value);} // Quote strings so type system recognizes them
+      if (typeof value === 'boolean') {return value.toString();}
       if (Array.isArray(value) || typeof value === 'object') {
         return JSON.stringify(value);
       }
@@ -1018,11 +1040,11 @@ export default {
     },
     
     formatPreview(value, type) {
-      if (value === null) return '→ None';
-      if (type === 'str') return `→ "${value}"`;
-      if (type === 'bool') return `→ ${value ? 'True' : 'False'}`;
-      if (Array.isArray(value)) return `→ ${JSON.stringify(value)}`;
-      if (typeof value === 'object') return `→ ${JSON.stringify(value)}`;
+      if (value === null) {return '→ None';}
+      if (type === 'str') {return `→ "${value}"`;}
+      if (type === 'bool') {return `→ ${value ? 'True' : 'False'}`;}
+      if (Array.isArray(value)) {return `→ ${JSON.stringify(value)}`;}
+      if (typeof value === 'object') {return `→ ${JSON.stringify(value)}`;}
       return `→ ${value}`;
     },
     
@@ -1038,13 +1060,13 @@ export default {
         : type;
       
       // Return CSS class based on type category
-      if (['int', 'float'].includes(baseType)) return 'type-number';
-      if (baseType === 'str') return 'type-string';
-      if (baseType === 'bool') return 'type-boolean';
-      if (['list', 'dict', 'tuple', 'set'].includes(baseType)) return 'type-collection';
-      if (baseType === 'none') return 'type-none';
-      if (baseType === 'invalid') return 'type-invalid';
-      if (baseType === 'optional') return 'type-optional';
+      if (['int', 'float'].includes(baseType)) {return 'type-number';}
+      if (baseType === 'str') {return 'type-string';}
+      if (baseType === 'bool') {return 'type-boolean';}
+      if (['list', 'dict', 'tuple', 'set'].includes(baseType)) {return 'type-collection';}
+      if (baseType === 'none') {return 'type-none';}
+      if (baseType === 'invalid') {return 'type-invalid';}
+      if (baseType === 'optional') {return 'type-optional';}
       return 'type-any';
     },
     
@@ -1066,8 +1088,8 @@ export default {
       
       // Convert the smart inputs to the format expected by the backend
       const inputs = firstParameterSet.map(param => {
-        if (!param.value) return null;
-        if (param.detectedType === 'invalid') return null;
+        if (!param.value) {return null;}
+        if (param.detectedType === 'invalid') {return null;}
         
         const typeInfo = autoDetectTypeFromInput(param.value);
         const typeHandler = pythonTypes[typeInfo.detected];
@@ -1126,7 +1148,7 @@ export default {
             isValid = false;
           } else {
             this.detectAndValidateType(param);
-            if (param.error) isValid = false;
+            if (param.error) {isValid = false;}
           }
         });
       });
@@ -1136,7 +1158,7 @@ export default {
         isValid = false;
       } else {
         this.detectAndValidateType(this.expectedOutput);
-        if (this.expectedOutput.error) isValid = false;
+        if (this.expectedOutput.error) {isValid = false;}
       }
       
       return isValid;
@@ -1172,7 +1194,7 @@ export default {
       const paramSet = this.parameterSets[setIndex];
       
       const args = paramSet.map((param, index) => {
-        if (!param.value) return 'None';
+        if (!param.value) {return 'None';}
         
         // Format the value for display in function call
         try {

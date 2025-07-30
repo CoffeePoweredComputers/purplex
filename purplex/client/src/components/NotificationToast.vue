@@ -1,6 +1,10 @@
 <template>
   <Teleport to="body">
-    <TransitionGroup name="notification" tag="div" class="notification-container">
+    <TransitionGroup
+      name="notification"
+      tag="div"
+      class="notification-container"
+    >
       <div
         v-for="notification in notifications"
         :key="notification.id"
@@ -9,10 +13,22 @@
       >
         <span class="notification-icon">{{ getIcon(notification.type) }}</span>
         <div class="notification-content">
-          <p class="notification-message">{{ notification.message }}</p>
-          <p v-if="notification.details" class="notification-details">{{ notification.details }}</p>
+          <p class="notification-message">
+            {{ notification.message }}
+          </p>
+          <p
+            v-if="notification.details"
+            class="notification-details"
+          >
+            {{ notification.details }}
+          </p>
         </div>
-        <button class="notification-close" @click.stop="removeNotification(notification.id)">×</button>
+        <button
+          class="notification-close"
+          @click.stop="removeNotification(notification.id)"
+        >
+          ×
+        </button>
       </div>
     </TransitionGroup>
   </Teleport>
@@ -25,6 +41,13 @@ export default {
     return {
       notifications: []
     };
+  },
+  mounted() {
+    // Make this component globally accessible
+    window.$notify = this.addNotification.bind(this);
+  },
+  beforeUnmount() {
+    delete window.$notify;
   },
   methods: {
     addNotification(notification) {
@@ -54,13 +77,6 @@ export default {
       };
       return icons[type] || 'ℹ️';
     }
-  },
-  mounted() {
-    // Make this component globally accessible
-    window.$notify = this.addNotification.bind(this);
-  },
-  beforeUnmount() {
-    delete window.$notify;
   }
 };
 </script>

@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue';
-import type { ProgressUpdate, OptimisticProgressUpdate } from '../types';
+import type { OptimisticProgressUpdate, ProgressUpdate } from '../types';
 
 export interface ProgressData extends ProgressUpdate {
   // Allow additional properties that might come from the server

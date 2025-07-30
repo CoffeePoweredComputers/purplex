@@ -250,8 +250,10 @@ export interface VariableFadeHint extends BaseHintConfig {
 export interface SubgoalHighlight {
   line_start: number;
   line_end: number;
-  title: string;
-  explanation: string;
+  title?: string;
+  comment?: string;
+  explanation?: string;
+  id?: string;
 }
 
 export interface SubgoalHighlightHint extends BaseHintConfig {

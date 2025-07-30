@@ -1,19 +1,32 @@
 <template>
   <div class="feedback-container">
     <!-- Header Section -->
-    <div class="feedback-header" v-if="slides.length > 0">
-      <div class="section-label">{{ title }}</div>
+    <div
+      v-if="slides.length > 0"
+      class="feedback-header"
+    >
+      <div class="section-label">
+        {{ title }}
+      </div>
     </div>
 
     <!-- Main Content -->
-    <div v-if="slides.length > 0" class="feedback-content">
+    <div
+      v-if="slides.length > 0"
+      class="feedback-content"
+    >
       <!-- User Prompt Section -->
-      <div v-if="userPrompt" class="user-prompt-section">
+      <div
+        v-if="userPrompt"
+        class="user-prompt-section"
+      >
         <div class="submission-header">
           <span class="submission-icon">💭</span>
           <span class="submission-label">Your response</span>
         </div>
-        <div class="prompt-content">{{ userPrompt }}</div>
+        <div class="prompt-content">
+          {{ userPrompt }}
+        </div>
       </div>
 
       <!-- Solution Timeline -->
@@ -24,8 +37,8 @@
           class="timeline-node"
           :data-status="getSlideStatus(slide)"
           :data-current="currentSlide === index"
-          @click="goToSlide(index)"
           :title="`Solution ${index + 1}: ${slide.tests.filter(t => t.pass).length}/${slide.tests.length} tests`"
+          @click="goToSlide(index)"
         >
           <span class="node-number">{{ index + 1 }}</span>
           <span class="node-icon">{{ getSlideIcon(slide) }}</span>
@@ -38,11 +51,11 @@
           <span>Solution {{ currentSlide + 1 }} of {{ slides.length }}</span>
         </div>
         <Editor 
-          @update:value="updateSolutionCode" 
           :value="currentSlideContents" 
           height="300px" 
-          width="100%"
-          :highlightMarkers="currentComprehensionResults" 
+          width="100%" 
+          :highlight-markers="currentComprehensionResults"
+          @update:value="updateSolutionCode" 
         />
       </section>
 
@@ -57,7 +70,11 @@
       <!-- Test Results -->
       <section class="test-results">
         <!-- Failing Tests (Expanded by default) -->
-        <details v-if="failingTestsForCurrentSlide.length > 0" open class="test-group">
+        <details
+          v-if="failingTestsForCurrentSlide.length > 0"
+          open
+          class="test-group"
+        >
           <summary class="test-group-header failing">
             <span class="group-icon">▶</span>
             Failing Tests ({{ failingTestsForCurrentSlide.length }})
@@ -75,13 +92,21 @@
                   <div>Got: <code class="actual">{{ test.actual_output }}</code></div>
                 </div>
               </div>
-              <button class="debug-btn" @click="openPyTutor(test)">🔍</button>
+              <button
+                class="debug-btn"
+                @click="openPyTutor(test)"
+              >
+                🔍
+              </button>
             </article>
           </div>
         </details>
 
         <!-- Passing Tests (Collapsed by default) -->
-        <details v-if="passingTestsForCurrentSlide.length > 0" class="test-group">
+        <details
+          v-if="passingTestsForCurrentSlide.length > 0"
+          class="test-group"
+        >
           <summary class="test-group-header passing">
             <span class="group-icon">▶</span>
             Passing Tests ({{ passingTestsForCurrentSlide.length }})
@@ -100,20 +125,28 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else class="empty-state">
+    <div
+      v-else
+      class="empty-state"
+    >
       <span class="empty-icon">🚀</span>
       <p>Submit a prompt to start getting feedback!</p>
     </div>
 
     <!-- PyTutor Modal -->
-    <PyTutorModal :isVisible="showModal" :pythonTutorUrl="pythonTutorUrl" @close="showModal = false" />
+    <PyTutorModal
+      :is-visible="showModal"
+      :python-tutor-url="pythonTutorUrl"
+      @close="showModal = false"
+    />
   </div>
 </template>
 
 <script>
 import Editor from '@/features/editor/Editor.vue';
 import PyTutorModal from '../modals/PyTutorModal.vue';
-import { PythonTutorService } from '@/services/pythonTutor.service'; 
+import { PythonTutorService } from '@/services/pythonTutor.service';
+import { log } from '@/utils/logger'; 
 
 export default {
   components: { 
@@ -167,20 +200,9 @@ export default {
       currentComprehensionResults: [],
     };
   },
-  mounted() {
-    this.updateSolutionCode();
-  },
-  watch: {
-    slides: {
-      handler() {
-        this.updateSolutionCode();
-      },
-      deep: true,
-    },
-  },
   computed: {
     slides() {
-      var slideResults = this.codeResults.map((code, index) => {
+      const slideResults = this.codeResults.map((code, index) => {
         const testResult = this.testResults[index];
         
         // Handle different data structures from backend
@@ -207,11 +229,11 @@ export default {
           tests: tests
         };
       });
-      console.log("SLIDES", slideResults);
+      log.debug('SLIDES', { slideResults });
       return slideResults;
     },
     overallProgressPercent() {
-      if (this.slides.length === 0) return 0;
+      if (this.slides.length === 0) {return 0;}
       const totalTests = this.slides.reduce((sum, slide) => sum + slide.tests.length, 0);
       const passingTests = this.slides.reduce((sum, slide) => 
         sum + slide.tests.filter(test => test.pass).length, 0);
@@ -225,13 +247,24 @@ export default {
       return this.slides.reduce((sum, slide) => sum + slide.tests.length, 0);
     },
     passingTestsForCurrentSlide() {
-      if (this.slides.length === 0 || !this.slides[this.currentSlide]) return [];
+      if (this.slides.length === 0 || !this.slides[this.currentSlide]) {return [];}
       return this.slides[this.currentSlide].tests.filter(test => test.pass);
     },
     failingTestsForCurrentSlide() {
-      if (this.slides.length === 0 || !this.slides[this.currentSlide]) return [];
+      if (this.slides.length === 0 || !this.slides[this.currentSlide]) {return [];}
       return this.slides[this.currentSlide].tests.filter(test => !test.pass);
     },
+  },
+  watch: {
+    slides: {
+      handler() {
+        this.updateSolutionCode();
+      },
+      deep: true,
+    },
+  },
+  mounted() {
+    this.updateSolutionCode();
   },
   methods: {
     // Core navigation methods
@@ -250,19 +283,19 @@ export default {
     
     // Status helpers
     getSlideStatus(slide) {
-      if (slide.tests.length === 0) return 'pending';
-      if (slide.correct) return 'passing';
+      if (slide.tests.length === 0) {return 'pending';}
+      if (slide.correct) {return 'passing';}
       return 'failing';
     },
     getSlideIcon(slide) {
-      if (slide.tests.length === 0) return '⏳';
-      if (slide.correct) return '✓';
+      if (slide.tests.length === 0) {return '⏳';}
+      if (slide.correct) {return '✓';}
       return '✗';
     },
     
     // Debug functionality
     openPyTutor(testCase) {
-      if (!testCase) return;
+      if (!testCase) {return;}
       
       const solutionCode = this.slides[this.currentSlide].content;
       const formattedCode = PythonTutorService.formatCodeWithTest(solutionCode, testCase);

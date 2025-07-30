@@ -1,18 +1,31 @@
 <template>
   <transition name="modal-fade">
     <div 
-      class="modal-overlay" 
       v-if="isVisible" 
-      @click.self="closeModal"
+      class="modal-overlay" 
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
       aria-describedby="modal-description"
+      @click.self="closeModal"
     >
-      <div class="modal-content" ref="modalContent" @keydown.esc="closeModal" :style="modalStyle">
+      <div
+        ref="modalContent"
+        class="modal-content"
+        :style="modalStyle"
+        @keydown.esc="closeModal"
+      >
         <div class="modal-header">
-          <h3 id="modal-title" class="modal-title">🔍 Step-by-Step Debugger</h3>
-          <span id="modal-description" class="sr-only">Interactive Python code debugger powered by Python Tutor</span>
+          <h3
+            id="modal-title"
+            class="modal-title"
+          >
+            🔍 Step-by-Step Debugger
+          </h3>
+          <span
+            id="modal-description"
+            class="sr-only"
+          >Interactive Python code debugger powered by Python Tutor</span>
           <div class="modal-actions">
             <div class="size-controls-group">
               <span class="size-label">Size</span>
@@ -20,33 +33,52 @@
                 <button 
                   v-for="size in sizePresets" 
                   :key="size.name"
-                  @click="setModalSize(size.name)"
                   :class="['size-btn', { active: currentSize === size.name }]"
                   :title="`${size.label} view`"
                   :aria-label="`Set ${size.label.toLowerCase()} window size`"
+                  @click="setModalSize(size.name)"
                 >
                   {{ size.icon }}
                 </button>
               </div>
             </div>
-            <button class="action-button" @click="openInNewTab" title="Open in new tab" aria-label="Open Python Tutor in new tab">
+            <button
+              class="action-button"
+              title="Open in new tab"
+              aria-label="Open Python Tutor in new tab"
+              @click="openInNewTab"
+            >
               <span class="icon">⬈</span>
             </button>
-            <button class="close-button" @click="closeModal" title="Close (ESC)" aria-label="Close modal">&times;</button>
+            <button
+              class="close-button"
+              title="Close (ESC)"
+              aria-label="Close modal"
+              @click="closeModal"
+            >
+              &times;
+            </button>
           </div>
         </div>
         <div class="modal-body">
-          <div v-if="loading" class="loading-container">
-            <div class="loading-spinner"></div>
+          <div
+            v-if="loading"
+            class="loading-container"
+          >
+            <div class="loading-spinner" />
             <p>Loading debugger...</p>
           </div>
-          <div v-show="!loading && !urlTooLong" v-if="pythonTutorUrl && !urlTooLong" class="iframe-wrapper">
+          <div
+            v-show="!loading && !urlTooLong"
+            v-if="pythonTutorUrl && !urlTooLong"
+            class="iframe-wrapper"
+          >
             <div class="iframe-header">
               <span class="iframe-info">Python Tutor Visualizer</span>
               <button 
-                @click="toggleTheme" 
-                class="theme-toggle"
+                class="theme-toggle" 
                 :title="`Switch to ${isDarkWrapper ? 'light' : 'dark'} background`"
+                @click="toggleTheme"
               >
                 <span v-if="isDarkWrapper">🌞</span>
                 <span v-else>🌙</span>
@@ -59,30 +91,53 @@
               height="100%"
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
               referrerpolicy="no-referrer"
-              @load="onIframeLoad"
-              @error="onIframeError"
               class="debugger-iframe"
               :class="{ 'dark-wrapper': isDarkWrapper }"
-            ></iframe>
+              @load="onIframeLoad"
+              @error="onIframeError"
+            />
           </div>
-          <div v-if="urlTooLong" class="url-warning">
+          <div
+            v-if="urlTooLong"
+            class="url-warning"
+          >
             <p>⚠️ Code is too large for direct debugging</p>
-            <p class="warning-details">The code exceeds the URL length limit ({{ urlLength }} characters)</p>
+            <p class="warning-details">
+              The code exceeds the URL length limit ({{ urlLength }} characters)
+            </p>
             <div class="warning-actions">
-              <button @click="copyAndOpen" class="action-btn primary">
+              <button
+                class="action-btn primary"
+                @click="copyAndOpen"
+              >
                 <span>📋</span> Copy Code & Open Python Tutor
               </button>
-              <button @click="closeModal" class="action-btn secondary">
+              <button
+                class="action-btn secondary"
+                @click="closeModal"
+              >
                 Cancel
               </button>
             </div>
           </div>
-          <div v-if="error" class="error-message">
-            <p class="error-icon">❌</p>
-            <h4 class="error-title">{{ getErrorTitle() }}</h4>
-            <p class="error-description">{{ errorMessage }}</p>
+          <div
+            v-if="error"
+            class="error-message"
+          >
+            <p class="error-icon">
+              ❌
+            </p>
+            <h4 class="error-title">
+              {{ getErrorTitle() }}
+            </h4>
+            <p class="error-description">
+              {{ errorMessage }}
+            </p>
             <div class="error-actions">
-              <button @click="retry" class="retry-button">
+              <button
+                class="retry-button"
+                @click="retry"
+              >
                 <span>🔄</span> Try Again
               </button>
               <a 
@@ -102,6 +157,8 @@
 </template>
 
 <script>
+import { log } from '@/utils/logger';
+
 export default {
   name: 'PyTutorModal',
   props: {
@@ -138,24 +195,10 @@ export default {
       ],
     };
   },
-  created() {
-    // Store the currently focused element before modal opens
-    this.lastFocusedElement = document.activeElement;
-    // Load theme preference
-    const savedTheme = localStorage.getItem('pytutor-dark-wrapper');
-    if (savedTheme !== null) {
-      this.isDarkWrapper = savedTheme === 'true';
-    }
-    // Load size preference
-    const savedSize = localStorage.getItem('pytutor-modal-size');
-    if (savedSize && this.sizePresets.find(s => s.name === savedSize)) {
-      this.currentSize = savedSize;
-    }
-  },
   computed: {
     modalStyle() {
       const preset = this.sizePresets.find(s => s.name === this.currentSize);
-      if (!preset) return {};
+      if (!preset) {return {};}
       
       return {
         '--modal-width': preset.width,
@@ -207,6 +250,33 @@ export default {
         this.checkUrlLength();
       }
     },
+  },
+  created() {
+    // Store the currently focused element before modal opens
+    this.lastFocusedElement = document.activeElement;
+    // Load theme preference
+    const savedTheme = localStorage.getItem('pytutor-dark-wrapper');
+    if (savedTheme !== null) {
+      this.isDarkWrapper = savedTheme === 'true';
+    }
+    // Load size preference
+    const savedSize = localStorage.getItem('pytutor-modal-size');
+    if (savedSize && this.sizePresets.find(s => s.name === savedSize)) {
+      this.currentSize = savedSize;
+    }
+  },
+  beforeUnmount() {
+    // Clean up ESC key listener if it was added
+    if (this.escListenerAdded) {
+      document.removeEventListener('keydown', this.handleEscKey);
+      this.escListenerAdded = false;
+    }
+    // Clean up focus trap
+    if (this._focusTrapHandler && this.$refs.modalContent) {
+      this.$refs.modalContent.removeEventListener('keydown', this._focusTrapHandler);
+    }
+    // Clear any pending timeouts
+    this.clearLoadingTimeout();
   },
   methods: {
     closeModal() {
@@ -269,7 +339,7 @@ export default {
           window.open('https://pythontutor.com/visualize.html#mode=edit', '_blank');
           this.closeModal();
         }).catch(err => {
-          console.error('Failed to copy code:', err);
+          log.error('Failed to copy code', { error: err });
           // Fallback: just open Python Tutor
           window.open('https://pythontutor.com/visualize.html#mode=edit', '_blank');
         });
@@ -277,7 +347,7 @@ export default {
     },
     focusFirstElement() {
       const modalContent = this.$refs.modalContent;
-      if (!modalContent) return;
+      if (!modalContent) {return;}
       
       // Find first focusable element
       const focusableElements = modalContent.querySelectorAll(
@@ -290,7 +360,7 @@ export default {
     },
     trapFocus() {
       const modalContent = this.$refs.modalContent;
-      if (!modalContent) return;
+      if (!modalContent) {return;}
       
       const handleTabKey = (e) => {
         const focusableElements = modalContent.querySelectorAll(
@@ -363,19 +433,6 @@ export default {
         document.querySelector('.modal-overlay')?.classList.remove('fullscreen-overlay');
       }
     },
-  },
-  beforeUnmount() {
-    // Clean up ESC key listener if it was added
-    if (this.escListenerAdded) {
-      document.removeEventListener('keydown', this.handleEscKey);
-      this.escListenerAdded = false;
-    }
-    // Clean up focus trap
-    if (this._focusTrapHandler && this.$refs.modalContent) {
-      this.$refs.modalContent.removeEventListener('keydown', this._focusTrapHandler);
-    }
-    // Clear any pending timeouts
-    this.clearLoadingTimeout();
   },
 };
 </script>

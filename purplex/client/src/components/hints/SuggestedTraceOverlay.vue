@@ -1,47 +1,67 @@
 <template>
-  <div class="suggested-trace" v-if="isVisible">
+  <div class="suggested-trace-overlay">
     <div class="trace-content">
-      <span class="trace-label">💡 Try tracing:</span>
+      <div class="trace-header">
+        <span class="trace-label">💡 Try tracing:</span>
+        <button
+          class="close-btn"
+          aria-label="Close"
+          @click="$emit('close')"
+        >
+          ×
+        </button>
+      </div>
       <code class="trace-function">{{ functionCall }}</code>
-      <button class="trace-btn" @click="openInPyTutor" :disabled="!canTrace">
-        <span>🔍</span> Trace
+      <div v-if="explanation" class="trace-explanation">
+        {{ explanation }}
+      </div>
+      <button
+        class="trace-btn"
+        :disabled="!canTrace"
+        @click="openInPyTutor"
+      >
+        <span>🔍</span> Trace in Python Tutor
       </button>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from 'vue'
+import { computed, defineComponent } from 'vue'
 import { PythonTutorService } from '@/services/pythonTutor.service'
 
 export default defineComponent({
-  name: 'SuggestedTrace',
+  name: 'SuggestedTraceOverlay',
   props: {
-    hintData: {
-      type: Object,
-      default: () => ({})
+    suggestedCall: {
+      type: String,
+      required: true
+    },
+    explanation: {
+      type: String,
+      default: ''
+    },
+    expectedOutput: {
+      type: [String, Number, Boolean, Object, Array],
+      default: undefined
     },
     solutionCode: {
       type: String,
       default: ''
-    },
-    isVisible: {
-      type: Boolean,
-      default: false
     }
   },
-  emits: ['open-pytutor'],
+  emits: ['open-pytutor', 'close'],
   setup(props, { emit }) {
     const functionCall = computed(() => {
-      return props.hintData?.content?.suggested_call || 'No suggestion available'
+      return props.suggestedCall
     })
 
     const canTrace = computed(() => {
-      return props.solutionCode && functionCall.value && functionCall.value !== 'No suggestion available'
+      return props.solutionCode && functionCall.value
     })
 
     const openInPyTutor = () => {
-      if (!canTrace.value) return
+      if (!canTrace.value) {return}
 
       // Generate Python Tutor URL with the solution code and suggested call
       const testCode = `# Suggested trace\nprint(${functionCall.value})`
@@ -133,20 +153,11 @@ export default defineComponent({
 }
 
 @media (max-width: 768px) {
-  .trace-content {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--spacing-sm);
-  }
-
-  .trace-function {
-    min-width: auto;
-    flex: none;
-  }
-
-  .trace-btn {
-    justify-content: center;
-    width: 100%;
+  .suggested-trace-overlay {
+    left: var(--spacing-md);
+    right: var(--spacing-md);
+    bottom: var(--spacing-md);
+    max-width: none;
   }
 }
 </style>

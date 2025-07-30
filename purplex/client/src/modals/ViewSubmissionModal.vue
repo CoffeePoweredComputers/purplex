@@ -1,12 +1,29 @@
 <template>
-  <div v-if="isVisible" class="modal-overlay" @click="$emit('close')">
-    <div class="modal-content" @click.stop>
+  <div
+    v-if="isVisible"
+    class="modal-overlay"
+    @click="$emit('close')"
+  >
+    <div
+      class="modal-content"
+      @click.stop
+    >
       <div class="modal-header">
-        <h2 class="modal-title">Submission Details</h2>
-        <button class="modal-close-btn" @click="$emit('close')">&times;</button>
+        <h2 class="modal-title">
+          Submission Details
+        </h2>
+        <button
+          class="modal-close-btn"
+          @click="$emit('close')"
+        >
+          &times;
+        </button>
       </div>
       
-      <div class="modal-body" v-if="submission">
+      <div
+        v-if="submission"
+        class="modal-body"
+      >
         <div class="submission-info">
           <div class="info-grid">
             <div class="info-item">
@@ -23,13 +40,19 @@
             </div>
             <div class="info-item">
               <span class="info-label">Score:</span>
-              <div class="score-indicator" :class="getScoreClass(submission.score)">
+              <div
+                class="score-indicator"
+                :class="getScoreClass(submission.score)"
+              >
                 {{ submission.score }}%
               </div>
             </div>
             <div class="info-item">
               <span class="info-label">Status:</span>
-              <span class="status-badge" :class="submissionStatusClass(submission.status)">
+              <span
+                class="status-badge"
+                :class="submissionStatusClass(submission.status)"
+              >
                 {{ submission.status }}
               </span>
             </div>
@@ -40,17 +63,30 @@
           </div>
         </div>
         
-        <div class="prompt-section" v-if="submission.prompt">
-          <h3 class="section-title">Prompt</h3>
-          <div class="prompt-content">{{ submission.prompt }}</div>
+        <div
+          v-if="submission.prompt"
+          class="prompt-section"
+        >
+          <h3 class="section-title">
+            Prompt
+          </h3>
+          <div class="prompt-content">
+            {{ submission.prompt }}
+          </div>
         </div>
       </div>
       
       <div class="modal-footer">
-        <button class="action-button download-button" @click="$emit('download', submission)">
+        <button
+          class="action-button download-button"
+          @click="$emit('download', submission)"
+        >
           Download Data
         </button>
-        <button class="action-button cancel-button" @click="$emit('close')">
+        <button
+          class="action-button cancel-button"
+          @click="$emit('close')"
+        >
           Close
         </button>
       </div>
@@ -89,7 +125,7 @@ export default {
   },
   methods: {
     getCodeVariations() {
-      if (!this.submission?.code_variations) return [];
+      if (!this.submission?.code_variations) {return [];}
       return this.submission.code_variations;
     },
     
@@ -107,13 +143,13 @@ export default {
       const results = this.submission.test_results || [];
       const variationResults = results.filter(r => r.variation_index === index);
       
-      if (variationResults.length === 0) return null;
+      if (variationResults.length === 0) {return null;}
       
       const allPassed = variationResults.every(r => r.pass);
       const somePassed = variationResults.some(r => r.pass);
       
-      if (allPassed) return 'success';
-      if (somePassed) return 'partial';
+      if (allPassed) {return 'success';}
+      if (somePassed) {return 'partial';}
       return 'error';
     },
     
@@ -136,27 +172,27 @@ export default {
       const passing = this.submission.passing_variations || 0;
       const total = this.submission.total_variations || this.submission.code_variations?.length || 0;
       
-      if (total === 0) return 0;
+      if (total === 0) {return 0;}
       return Math.round((passing / total) * 100);
     },
     
     getSuccessRateClass(rate) {
-      if (rate >= 80) return 'success';
-      if (rate >= 50) return 'warning';
+      if (rate >= 80) {return 'success';}
+      if (rate >= 50) {return 'warning';}
       return 'error';
     },
     
     formatTestValue(value) {
-      if (value === null || value === undefined) return 'null';
-      if (typeof value === 'string') return `"${value}"`;
-      if (Array.isArray(value)) return JSON.stringify(value);
-      if (typeof value === 'object') return JSON.stringify(value, null, 2);
+      if (value === null || value === undefined) {return 'null';}
+      if (typeof value === 'string') {return `"${value}"`;}
+      if (Array.isArray(value)) {return JSON.stringify(value);}
+      if (typeof value === 'object') {return JSON.stringify(value, null, 2);}
       return String(value);
     },
     getScoreClass(score) {
-      if (score >= 100) return 'score-excellent';
-      if (score >= 60) return 'score-good';
-      if (score >= 40) return 'score-fair';
+      if (score >= 100) {return 'score-excellent';}
+      if (score >= 60) {return 'score-good';}
+      if (score >= 40) {return 'score-fair';}
       return 'score-poor';
     },
     
@@ -176,13 +212,13 @@ export default {
     },
     
     formatDetailedDate(dateString) {
-      if (!dateString) return 'Unknown';
+      if (!dateString) {return 'Unknown';}
       const date = new Date(dateString);
       return date.toLocaleString();
     },
     
     prettyPrintContent(content) {
-      if (!content) return '';
+      if (!content) {return '';}
       
       try {
         // Try to parse as JSON first

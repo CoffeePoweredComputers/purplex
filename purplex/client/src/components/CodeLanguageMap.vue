@@ -1,15 +1,13 @@
 <template>
-
-    <div>
-        <!-- make a template for a code language map -->
-        <Editor 
-        :value="code"
-        height="150px"
-        width="500px"
-        :highlightMarkers="comprehensionResults"
-        />
-    </div>
-
+  <div>
+    <!-- make a template for a code language map -->
+    <Editor 
+      :value="code"
+      height="150px"
+      width="500px"
+      :highlight-markers="comprehensionResults"
+    />
+  </div>
 </template>
 
 <script>
