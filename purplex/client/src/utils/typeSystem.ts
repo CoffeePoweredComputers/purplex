@@ -135,7 +135,7 @@ export const pythonTypes: Record<string, TypeHandler> = {
           // Convert Python dict syntax to JSON by adding quotes around unquoted keys
           // This regex captures unquoted keys (including numeric ones)
           const pythonDictRegex = /([^"',\s{}:]+)(\s*:\s*)/g;
-          let jsonString = v.replace(pythonDictRegex, (match, key, colon) => {
+          const jsonString = v.replace(pythonDictRegex, (match, key, colon) => {
             // If key is not already quoted, add quotes to make it valid JSON
             if (!key.startsWith('"') && !key.startsWith("'")) {
               return `"${key}"${colon}`;
@@ -742,16 +742,16 @@ function generateBoolSuggestion(value: unknown): string {
   }
   if (typeof value === 'string') {
     const lower = value.toLowerCase();
-    if (['true', 'yes', '1'].includes(lower)) return 'True';
-    if (['false', 'no', '0'].includes(lower)) return 'False';
+    if (['true', 'yes', '1'].includes(lower)) {return 'True';}
+    if (['false', 'no', '0'].includes(lower)) {return 'False';}
   }
   return 'True';
 }
 
 function getValueTypeDescription(value: unknown): string {
-  if (value === null || value === undefined) return 'None';
-  if (Array.isArray(value)) return 'list';
-  if (typeof value === 'object') return 'dict';
+  if (value === null || value === undefined) {return 'None';}
+  if (Array.isArray(value)) {return 'list';}
+  if (typeof value === 'object') {return 'dict';}
   if (typeof value === 'number') {
     return Number.isInteger(value) ? 'int' : 'float';
   }
@@ -816,13 +816,13 @@ export function inferPythonTypeFromValue(value: unknown): TypeSpec {
 }
 
 export function findCommonType(types: TypeSpec[]): TypeSpec {
-  if (types.length === 0) return { type: 'Any' };
-  if (types.length === 1) return types[0];
+  if (types.length === 0) {return { type: 'Any' };}
+  if (types.length === 1) {return types[0];}
   
   // Check if all types are identical
   const firstType = types[0];
   const allSame = types.every(t => deepTypeEquals(t, firstType));
-  if (allSame) return firstType;
+  if (allSame) {return firstType;}
   
   // Check for numeric compatibility (int + float = float)
   const hasInt = types.some(t => t.type === 'int');
@@ -864,7 +864,7 @@ export function findCommonType(types: TypeSpec[]): TypeSpec {
 }
 
 export function deepTypeEquals(type1: TypeSpec, type2: TypeSpec): boolean {
-  if (type1.type !== type2.type) return false;
+  if (type1.type !== type2.type) {return false;}
   
   if (type1.type === 'list') {
     return deepTypeEquals(type1.elementType || { type: 'Any' }, type2.elementType || { type: 'Any' });
@@ -879,7 +879,7 @@ export function deepTypeEquals(type1: TypeSpec, type2: TypeSpec): boolean {
     const unions1 = type1.unionTypes || [];
     const unions2 = type2.unionTypes || [];
     
-    if (unions1.length !== unions2.length) return false;
+    if (unions1.length !== unions2.length) {return false;}
     
     return unions1.every(u1 => unions2.some(u2 => deepTypeEquals(u1, u2)));
   }
@@ -1183,7 +1183,7 @@ export function autoDetectAndConvert(value: string): unknown {
 // ===== ENHANCED TYPE FORMATTING =====
 
 export function formatTypeSpec(typeSpec: TypeSpec): string {
-  if (!typeSpec) return 'Any';
+  if (!typeSpec) {return 'Any';}
   
   switch (typeSpec.type) {
     case 'Union':
@@ -1235,9 +1235,9 @@ export function getPlaceholderForType(typeStr: string): string {
 }
 
 export function formatValueForInput(value: unknown): string {
-  if (value === null || value === undefined) return 'None';
-  if (typeof value === 'boolean') return value ? 'True' : 'False';
-  if (typeof value === 'string') return JSON.stringify(value); // Quote strings so type system recognizes them
+  if (value === null || value === undefined) {return 'None';}
+  if (typeof value === 'boolean') {return value ? 'True' : 'False';}
+  if (typeof value === 'string') {return JSON.stringify(value);} // Quote strings so type system recognizes them
   if (Array.isArray(value) || typeof value === 'object') {
     return JSON.stringify(value);
   }

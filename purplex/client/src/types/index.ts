@@ -115,6 +115,8 @@ export interface TestResult {
   actual_output?: unknown;
   error?: string;
   execution_time?: number;
+  description?: string;
+  function_call: string;  // Always provided by backend
 }
 
 export interface TestExecutionResult {
@@ -125,6 +127,31 @@ export interface TestExecutionResult {
   results: TestResult[];
   execution_time: number;
   memory_used?: number;
+}
+
+// ===== EIPL SUBMISSION TYPES =====
+export interface VariationTestResult {
+  success: boolean;
+  error?: string;
+  results: TestResult[];
+  passed: number;
+  total: number;
+  score: number;
+}
+
+export interface EiPLSubmissionResponse {
+  submission_id: number;
+  score: number;
+  variations: string[];
+  results: VariationTestResult[];
+  passing_variations: number;
+  total_variations: number;
+  progress: {
+    status: ProgressStatus;
+    best_score: number;
+    attempts: number;
+    is_completed: boolean;
+  };
 }
 
 
@@ -223,8 +250,10 @@ export interface VariableFadeHint extends BaseHintConfig {
 export interface SubgoalHighlight {
   line_start: number;
   line_end: number;
-  title: string;
-  explanation: string;
+  title?: string;
+  comment?: string;
+  explanation?: string;
+  id?: string;
 }
 
 export interface SubgoalHighlightHint extends BaseHintConfig {
@@ -249,8 +278,10 @@ export interface HintUpdateRequest {
 }
 
 // ===== PROGRESS TRACKING TYPES =====
+export type ProgressStatus = 'not_started' | 'in_progress' | 'completed';
+
 export interface ProgressUpdate {
-  status?: string;
+  status?: ProgressStatus;
   score?: number;
   attempts?: number;
   time_spent?: number;

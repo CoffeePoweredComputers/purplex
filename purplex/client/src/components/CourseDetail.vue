@@ -1,22 +1,38 @@
 <template>
   <div class="course-detail">
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <div class="loading-spinner" />
       <p>Loading course...</p>
     </div>
     
-    <div v-else-if="course" class="course-content">
+    <div
+      v-else-if="course"
+      class="course-content"
+    >
       <!-- Course Header -->
       <div class="course-header">
-        <router-link to="/home" class="back-link">
+        <router-link
+          to="/home"
+          class="back-link"
+        >
           <span class="back-arrow">←</span>
           Back to Courses
         </router-link>
         
         <div class="course-info">
           <h1>{{ course.name }}</h1>
-          <p class="course-id">Course ID: {{ course.course_id }}</p>
-          <p class="course-description" v-if="course.description">{{ course.description }}</p>
+          <p class="course-id">
+            Course ID: {{ course.course_id }}
+          </p>
+          <p
+            v-if="course.description"
+            class="course-description"
+          >
+            {{ course.description }}
+          </p>
           
           <div class="course-meta">
             <div class="meta-item">
@@ -35,17 +51,23 @@
         </div>
       </div>
       
-      <hr class="divider" />
+      <hr class="divider">
       
       <!-- Problem Sets -->
       <div class="problem-sets-section">
         <h2>Problem Sets</h2>
         
-        <div v-if="course.problem_sets.length === 0" class="empty-state">
+        <div
+          v-if="course.problem_sets.length === 0"
+          class="empty-state"
+        >
           <p>No problem sets have been added to this course yet.</p>
         </div>
         
-        <div v-else class="problem-sets-grid">
+        <div
+          v-else
+          class="problem-sets-grid"
+        >
           <div 
             v-for="psData in course.problem_sets" 
             :key="psData.problem_set.slug"
@@ -55,10 +77,16 @@
             <div class="card-content">
               <div class="card-header">
                 <h3>{{ psData.problem_set.title }}</h3>
-                <span v-if="psData.is_required" class="required-badge">Required</span>
+                <span
+                  v-if="psData.is_required"
+                  class="required-badge"
+                >Required</span>
               </div>
               
-              <p class="card-description" v-if="psData.problem_set.description">
+              <p
+                v-if="psData.problem_set.description"
+                class="card-description"
+              >
                 {{ psData.problem_set.description }}
               </p>
               
@@ -76,19 +104,28 @@
       </div>
     </div>
     
-    <div v-else class="error-container">
+    <div
+      v-else
+      class="error-container"
+    >
       <h2>Course Not Found</h2>
       <p>The course you're looking for doesn't exist or you don't have access to it.</p>
-      <router-link to="/home" class="home-link">Go back to courses</router-link>
+      <router-link
+        to="/home"
+        class="home-link"
+      >
+        Go back to courses
+      </router-link>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import axios from 'axios'
+import { log } from '@/utils/logger'
 
 export default {
   name: 'CourseDetail',
@@ -110,7 +147,7 @@ export default {
         // Update current course in store
         store.commit('courses/SET_CURRENT_COURSE', response.data)
       } catch (error) {
-        console.error('Failed to fetch course details:', error)
+        log.error('Failed to fetch course details', { courseId: courseId.value, error })
         course.value = null
       } finally {
         loading.value = false

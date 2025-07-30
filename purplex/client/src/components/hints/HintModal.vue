@@ -1,9 +1,22 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click="handleOverlayClick">
-    <div class="modal-container" @click.stop>
+  <div
+    v-if="visible"
+    class="modal-overlay"
+    @click="handleOverlayClick"
+  >
+    <div
+      class="modal-container"
+      @click.stop
+    >
       <div class="modal-header">
-        <h2 class="modal-title">Select Hint Type</h2>
-        <button class="close-button" @click="closeModal" aria-label="Close">
+        <h2 class="modal-title">
+          Select Hint Type
+        </h2>
+        <button
+          class="close-button"
+          aria-label="Close"
+          @click="closeModal"
+        >
           ×
         </button>
       </div>
@@ -16,12 +29,20 @@
             class="hint-option"
             @click="selectHint(hintType.type)"
           >
-            <div class="hint-option-icon">{{ hintType.icon }}</div>
-            <div class="hint-option-content">
-              <h3 class="hint-option-title">{{ hintType.title }}</h3>
-              <p class="hint-option-description">{{ hintType.description }}</p>
+            <div class="hint-option-icon">
+              {{ hintType.icon }}
             </div>
-            <div class="hint-option-arrow">→</div>
+            <div class="hint-option-content">
+              <h3 class="hint-option-title">
+                {{ hintType.title }}
+              </h3>
+              <p class="hint-option-description">
+                {{ hintType.description }}
+              </p>
+            </div>
+            <div class="hint-option-arrow">
+              →
+            </div>
           </div>
         </div>
       </div>

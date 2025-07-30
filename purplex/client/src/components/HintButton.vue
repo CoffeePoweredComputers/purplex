@@ -1,32 +1,48 @@
 <template>
-  <div class="hint-button-container" v-if="hasAnyHints">
+  <div
+    v-if="hasAnyHints"
+    class="hint-button-container"
+  >
     <button 
       class="hint-button"
-      @click="toggleHintMenu"
       :disabled="loading || !hasUnlockedHints"
       :class="{ 'pulse': hasNewUnlockedHints }"
+      @click="toggleHintMenu"
     >
       <span class="hint-icon">💡</span>
       <span class="hint-text">Hints</span>
-      <span v-if="availableHintsCount > 0" class="hint-badge">{{ availableHintsCount }}</span>
+      <span
+        v-if="availableHintsCount > 0"
+        class="hint-badge"
+      >{{ availableHintsCount }}</span>
     </button>
     
     <transition name="slide">
-      <div v-if="showMenu && hasUnlockedHints" 
-           class="hint-menu"
-           :style="{ top: menuPosition.top, left: menuPosition.left }">
+      <div
+        v-if="showMenu && hasUnlockedHints" 
+        class="hint-menu"
+        :style="{ top: menuPosition.top, left: menuPosition.left }"
+      >
         <div class="hint-menu-header">
           <h4>Available Hints</h4>
-          <button class="close-btn" @click="showMenu = false">×</button>
+          <button
+            class="close-btn"
+            @click="showMenu = false"
+          >
+            ×
+          </button>
         </div>
         
         <div class="hint-list">
-          <div v-if="availableHints.length === 0" class="no-hints-message">
+          <div
+            v-if="availableHints.length === 0"
+            class="no-hints-message"
+          >
             <p>No hints are configured for this problem.</p>
           </div>
           <div 
-            v-else
-            v-for="hint in availableHints" 
+            v-for="hint in availableHints"
+            v-else 
             :key="hint.type"
             class="hint-item"
             :class="{ 
@@ -40,27 +56,47 @@
               <span class="hint-type-icon">{{ getHintIcon(hint.type) }}</span>
               <div class="hint-info">
                 <h5>{{ hint.title }}</h5>
-                <p class="hint-description">{{ hint.description }}</p>
+                <p class="hint-description">
+                  {{ hint.description }}
+                </p>
+                <p
+                  v-if="!hint.unlocked"
+                  class="hint-requirement"
+                >
+                  Requires {{ getMinAttemptsForHint(hint.type) }} attempts ({{ currentAttempts }}/{{ getMinAttemptsForHint(hint.type) }})
+                </p>
               </div>
               <div class="hint-controls">
-                <label v-if="hint.unlocked" class="hint-toggle">
+                <label
+                  v-if="hint.unlocked"
+                  class="hint-toggle"
+                >
                   <input 
                     type="checkbox" 
                     :checked="isHintActive(hint.type)"
-                    @change="toggleHint(hint.type)"
                     class="hint-checkbox"
-                  />
-                  <span class="toggle-slider"></span>
+                    @change="toggleHint(hint.type)"
+                  >
+                  <span class="toggle-slider" />
                 </label>
-                <span v-else class="status-icon locked">🔒</span>
+                <span
+                  v-else
+                  class="status-icon locked"
+                >🔒</span>
               </div>
             </div>
             
             <transition name="expand">
-              <div v-if="expandedHint === hint.type && hintContent[hint.type]" class="hint-content">
+              <div
+                v-if="expandedHint === hint.type && hintContent[hint.type]"
+                class="hint-content"
+              >
                 <div class="hint-content-body">
                   <p>{{ hintContent[hint.type].content }}</p>
-                  <div v-if="hintContent[hint.type].example" class="hint-example">
+                  <div
+                    v-if="hintContent[hint.type].example"
+                    class="hint-example"
+                  >
                     <h6>Example:</h6>
                     <pre><code>{{ hintContent[hint.type].example }}</code></pre>
                   </div>
@@ -72,21 +108,28 @@
         
         <div class="hint-footer">
           <div class="hint-stats">
-            <p class="hint-attempts">Attempts: {{ currentAttempts }}</p>
-            <p class="hint-note">Next hint unlocks after {{ getMinAttemptsForNextHint() }} attempts</p>
+            <p class="hint-attempts">
+              Attempts: {{ currentAttempts }}
+            </p>
+            <p class="hint-note">
+              Next hint unlocks after {{ getMinAttemptsForNextHint() }} attempts
+            </p>
           </div>
-          <div class="hint-actions" v-if="hasAnyActiveHints">
+          <div
+            v-if="hasAnyActiveHints"
+            class="hint-actions"
+          >
             <button 
-              @click="showOriginalCode" 
-              class="action-btn secondary"
+              class="action-btn secondary" 
               :disabled="!hasAnyActiveHints"
+              @click="showOriginalCode"
             >
               Show Original
             </button>
             <button 
-              @click="removeAllHints" 
-              class="action-btn danger"
+              class="action-btn danger" 
               :disabled="!hasAnyActiveHints"
+              @click="removeAllHints"
             >
               Clear All Hints
             </button>
@@ -100,6 +143,7 @@
 <script>
 import { problemService } from '@/services/problemService'
 import { useNotification } from '@/composables/useNotification'
+import { log } from '@/utils/logger'
 
 export default {
   name: 'HintButton',
@@ -209,7 +253,7 @@ export default {
           }
         }
       } catch (error) {
-        console.error('Error loading hints:', error)
+        log.error('Error loading hints', error)
         // Ensure we have safe defaults even on error
         this.availableHints = []
         this.hintsUsed = []
@@ -217,7 +261,7 @@ export default {
     },
     
     async toggleHint(hintType) {
-      if (this.loading) return
+      if (this.loading) {return}
       
       const isActive = this.isHintActive(hintType)
       
@@ -248,7 +292,7 @@ export default {
     },
 
     async requestHintContent(hintType) {
-      if (this.loading || this.hintContent[hintType]) return
+      if (this.loading || this.hintContent[hintType]) {return}
       
       this.loading = true
       try {
@@ -275,8 +319,14 @@ export default {
         
         this.notify.info('Hint Unlocked', 'Hint content has been revealed')
       } catch (error) {
-        console.error('Error getting hint:', error)
-        this.notify.error('Error', 'Failed to load hint content')
+        log.error('Error getting hint', error)
+        
+        // Handle 403 errors specially - these are expected when hints aren't unlocked yet
+        if (error.status === 403 && error.error) {
+          this.notify.info('Hint Locked', error.error)
+        } else {
+          this.notify.error('Error', error.error || 'Failed to load hint content')
+        }
       } finally {
         this.loading = false
       }
@@ -292,7 +342,12 @@ export default {
           content: typeof response.content === 'object' ? JSON.stringify(response.content, null, 2) : response.content
         }
       } catch (error) {
-        console.error('Error loading hint content:', error)
+        log.error('Error loading hint content', error)
+        
+        // Handle 403 errors silently during initial load - hints may be locked
+        if (error.status !== 403) {
+          this.notify.error('Error', error.error || 'Failed to load hint content')
+        }
       }
     },
     
@@ -360,12 +415,31 @@ export default {
     
     getMinAttemptsForNextHint() {
       if (!this.availableHints || !Array.isArray(this.availableHints)) {
-        return 2
+        return 1
       }
-      const unlockedCount = this.availableHints.filter(h => h && h.unlocked).length
-      if (unlockedCount === 0) return 2
-      if (unlockedCount === 1) return 4
-      return 6
+      
+      // Find the next locked hint with the lowest min_attempts requirement
+      const lockedHints = this.availableHints.filter(h => h && !h.unlocked)
+      if (lockedHints.length === 0) {return 0}
+      
+      // Get min attempts from hint data or use defaults
+      const nextRequiredAttempts = Math.min(...lockedHints.map(h => this.getMinAttemptsForHint(h.type)))
+      return Math.max(nextRequiredAttempts - this.currentAttempts, 0)
+    },
+
+    getMinAttemptsForHint(hintType) {
+      // Try to get from hint content first if available
+      if (this.hintContent[hintType]?.originalData?.min_attempts !== undefined) {
+        return this.hintContent[hintType].originalData.min_attempts
+      }
+      
+      // Default requirements based on hint type
+      const defaults = {
+        'subgoal_highlight': 0,
+        'variable_fade': 1, 
+        'suggested_trace': 2
+      }
+      return defaults[hintType] || 1
     },
     
     getHintTitle(hintType) {
@@ -393,7 +467,7 @@ export default {
       const originalData = this.getOriginalHintData(hintType)
       
       if (!originalData) {
-        console.error(`No original data found for hint type: ${hintType}`)
+        log.error(`No original data found for hint type: ${hintType}`)
         return null
       }
 
@@ -403,9 +477,19 @@ export default {
         try {
           content = JSON.parse(content)
         } catch (e) {
-          console.error(`Failed to parse content for ${hintType}:`, e)
+          log.error(`Failed to parse content for ${hintType}`, e)
           return null
         }
+      }
+      
+      // Transform field names based on hint type
+      if (hintType === 'variable_fade' && content.mappings) {
+        // Map backend's 'mappings' to processor's expected 'variable_mappings'
+        content = {
+          ...content,
+          variable_mappings: content.mappings
+        }
+        delete content.mappings
       }
       
       // Return in the format expected by processors
@@ -592,6 +676,13 @@ export default {
   margin: 0;
   font-size: 12px;
   color: #6b7280;
+}
+
+.hint-requirement {
+  margin: 4px 0 0 0;
+  font-size: 11px;
+  color: #f59e0b;
+  font-weight: 500;
 }
 
 .hint-status {

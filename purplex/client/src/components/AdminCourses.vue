@@ -5,20 +5,29 @@
     <div class="content-container">
       <div class="page-header">
         <h1>Course Management</h1>
-        <button @click="showCreateModal = true" class="create-btn">
+        <button
+          class="create-btn"
+          @click="showCreateModal = true"
+        >
           <span class="btn-icon">+</span>
           Create Course
         </button>
       </div>
       
       <!-- Loading State -->
-      <div v-if="loading" class="loading-container">
-        <div class="loading-spinner"></div>
+      <div
+        v-if="loading"
+        class="loading-container"
+      >
+        <div class="loading-spinner" />
         <p>Loading courses...</p>
       </div>
       
       <!-- Courses Table -->
-      <div v-else-if="courses.length > 0" class="courses-table-container">
+      <div
+        v-else-if="courses.length > 0"
+        class="courses-table-container"
+      >
         <table class="courses-table">
           <thead>
             <tr>
@@ -32,28 +41,53 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="course in courses" :key="course.id">
-              <td class="course-id">{{ course.course_id }}</td>
+            <tr
+              v-for="course in courses"
+              :key="course.id"
+            >
+              <td class="course-id">
+                {{ course.course_id }}
+              </td>
               <td>{{ course.name }}</td>
               <td>{{ course.instructor_name }}</td>
-              <td class="center">{{ course.problem_sets_count }}</td>
-              <td class="center">{{ course.enrolled_students_count }}</td>
+              <td class="center">
+                {{ course.problem_sets_count }}
+              </td>
+              <td class="center">
+                {{ course.enrolled_students_count }}
+              </td>
               <td>
                 <span :class="['status-badge', course.is_active ? 'active' : 'inactive']">
                   {{ course.is_active ? 'Active' : 'Inactive' }}
                 </span>
               </td>
               <td class="actions">
-                <button @click="editCourse(course)" class="action-btn edit" title="Edit">
+                <button
+                  class="action-btn edit"
+                  title="Edit"
+                  @click="editCourse(course)"
+                >
                   ✏️
                 </button>
-                <button @click="manageProblemSets(course)" class="action-btn manage" title="Manage Problem Sets">
+                <button
+                  class="action-btn manage"
+                  title="Manage Problem Sets"
+                  @click="manageProblemSets(course)"
+                >
                   📚
                 </button>
-                <button @click="viewStudents(course)" class="action-btn view" title="View Students">
+                <button
+                  class="action-btn view"
+                  title="View Students"
+                  @click="viewStudents(course)"
+                >
                   👥
                 </button>
-                <button @click="deleteCourse(course)" class="action-btn delete" title="Delete">
+                <button
+                  class="action-btn delete"
+                  title="Delete"
+                  @click="deleteCourse(course)"
+                >
                   🗑️
                 </button>
               </td>
@@ -63,25 +97,45 @@
       </div>
       
       <!-- Empty State -->
-      <div v-else class="empty-state">
-        <div class="empty-icon">🎓</div>
+      <div
+        v-else
+        class="empty-state"
+      >
+        <div class="empty-icon">
+          🎓
+        </div>
         <h3>No Courses Yet</h3>
         <p>Create your first course to get started.</p>
-        <button @click="showCreateModal = true" class="create-btn">
+        <button
+          class="create-btn"
+          @click="showCreateModal = true"
+        >
           Create Course
         </button>
       </div>
     </div>
     
     <!-- Create/Edit Course Modal -->
-    <div v-if="showCreateModal || showEditModal" class="modal-overlay" @click.self="closeModals">
+    <div
+      v-if="showCreateModal || showEditModal"
+      class="modal-overlay"
+      @click.self="closeModals"
+    >
       <div class="modal-content">
         <div class="modal-header">
           <h2>{{ showEditModal ? 'Edit Course' : 'Create Course' }}</h2>
-          <button @click="closeModals" class="close-btn">×</button>
+          <button
+            class="close-btn"
+            @click="closeModals"
+          >
+            ×
+          </button>
         </div>
         
-        <form @submit.prevent="saveCourse" class="course-form">
+        <form
+          class="course-form"
+          @submit.prevent="saveCourse"
+        >
           <div class="form-group">
             <label for="course-id">Course ID *</label>
             <input
@@ -91,7 +145,7 @@
               placeholder="e.g., CS101-FALL2024"
               :disabled="showEditModal"
               required
-            />
+            >
             <small>Unique identifier for the course (cannot be changed after creation)</small>
           </div>
           
@@ -103,7 +157,7 @@
               type="text"
               placeholder="e.g., Introduction to Computer Science"
               required
-            />
+            >
           </div>
           
           <div class="form-group">
@@ -113,31 +167,39 @@
               v-model="courseForm.description"
               rows="4"
               placeholder="Course description..."
-            ></textarea>
+            />
           </div>
           
           <div class="form-group checkbox-group">
             <label>
               <input
-                type="checkbox"
                 v-model="courseForm.is_active"
-              />
+                type="checkbox"
+              >
               Course is active
             </label>
             <label>
               <input
-                type="checkbox"
                 v-model="courseForm.enrollment_open"
-              />
+                type="checkbox"
+              >
               Enrollment is open
             </label>
           </div>
           
           <div class="modal-footer">
-            <button type="button" @click="closeModals" class="cancel-btn">
+            <button
+              type="button"
+              class="cancel-btn"
+              @click="closeModals"
+            >
               Cancel
             </button>
-            <button type="submit" class="save-btn" :disabled="saving">
+            <button
+              type="submit"
+              class="save-btn"
+              :disabled="saving"
+            >
               {{ saving ? 'Saving...' : (showEditModal ? 'Update' : 'Create') }}
             </button>
           </div>
@@ -166,12 +228,13 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import axios from 'axios'
 import AdminNavBar from './AdminNavBar.vue'
 import AdminCourseProblemSetsModal from './AdminCourseProblemSetsModal.vue'
 import AdminCourseStudentsModal from './AdminCourseStudentsModal.vue'
 import { useNotification } from '@/composables/useNotification'
+import { log } from '@/utils/logger'
 
 export default {
   name: 'AdminCourses',
@@ -209,7 +272,7 @@ export default {
         courses.value = response.data
       } catch (error) {
         notify.error('Error', 'Failed to load courses')
-        console.error('Error fetching courses:', error)
+        log.error('Error fetching courses', { error })
       } finally {
         loading.value = false
       }

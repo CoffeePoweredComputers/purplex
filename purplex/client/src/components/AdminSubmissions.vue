@@ -2,49 +2,87 @@
   <div>
     <AdminNavBar />
     <div class="admin-submissions container">
-      <h1 class="page-title">Submissions Management</h1>
+      <h1 class="page-title">
+        Submissions Management
+      </h1>
       
       <div class="status-container">
-        <div class="loading-indicator" v-if="loading">
+        <div
+          v-if="loading"
+          class="loading-indicator"
+        >
           Loading submissions...
         </div>
         
-        <div class="error-message" v-if="error">
+        <div
+          v-if="error"
+          class="error-message"
+        >
           {{ error }}
         </div>
       </div>
       
-      <div class="controls-container" v-if="!loading && !error">
+      <div
+        v-if="!loading && !error"
+        class="controls-container"
+      >
         <div class="search-container">
           <input 
-            type="text" 
             v-model="searchQuery" 
-            @input="debounceSearch"
+            type="text" 
             placeholder="Search users, problems, or problem sets..."
             class="search-input"
+            @input="debounceSearch"
           >
         </div>
-        <select v-model="statusFilter" @change="onFilterChange" class="filter-select">
-          <option value="">All Status</option>
-          <option value="passed">Passed</option>
-          <option value="partial">Partial</option>
-          <option value="failed">Failed</option>
+        <select
+          v-model="statusFilter"
+          class="filter-select"
+          @change="onFilterChange"
+        >
+          <option value="">
+            All Status
+          </option>
+          <option value="passed">
+            Passed
+          </option>
+          <option value="partial">
+            Partial
+          </option>
+          <option value="failed">
+            Failed
+          </option>
         </select>
-        <select v-model="problemSetFilter" @change="onFilterChange" class="filter-select">
-          <option value="">All Problem Sets</option>
-          <option v-for="set in uniqueProblemSets" :key="set" :value="set">{{ set }}</option>
+        <select
+          v-model="problemSetFilter"
+          class="filter-select"
+          @change="onFilterChange"
+        >
+          <option value="">
+            All Problem Sets
+          </option>
+          <option
+            v-for="set in uniqueProblemSets"
+            :key="set"
+            :value="set"
+          >
+            {{ set }}
+          </option>
         </select>
         <button 
           class="action-button export-button" 
-          @click="exportToCSV" 
-          :disabled="totalCount === 0"
+          :disabled="totalCount === 0" 
           title="Export filtered submissions to CSV"
+          @click="exportToCSV"
         >
           Export CSV ({{ totalCount }})
         </button>
       </div>
       
-      <div class="table-responsive" v-if="!loading && !error">
+      <div
+        v-if="!loading && !error"
+        class="table-responsive"
+      >
         <table class="submissions-table">
           <thead>
             <tr>
@@ -58,7 +96,10 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="submission in submissions" :key="submission.id">
+            <tr
+              v-for="submission in submissions"
+              :key="submission.id"
+            >
               <td>
                 <div class="user-info">
                   <div class="user-avatar-small">
@@ -72,12 +113,18 @@
                 <span class="problem-set-tag">{{ submission.problem_set }}</span>
               </td>
               <td>
-                <div class="score-indicator" :class="getScoreClass(submission.score)">
+                <div
+                  class="score-indicator"
+                  :class="getScoreClass(submission.score)"
+                >
                   {{ submission.score }}%
                 </div>
               </td>
               <td>
-                <span class="status-badge" :class="submissionStatusClass(submission.status)">
+                <span
+                  class="status-badge"
+                  :class="submissionStatusClass(submission.status)"
+                >
                   {{ submission.status }}
                 </span>
               </td>
@@ -85,10 +132,18 @@
                 <span class="time-stamp">{{ formatISODate(submission.submitted_at) }}</span>
               </td>
               <td class="actions-cell">
-                <button class="action-button view-button" @click="viewSubmission(submission.id)" title="View Details">
+                <button
+                  class="action-button view-button"
+                  title="View Details"
+                  @click="viewSubmission(submission.id)"
+                >
                   View
                 </button>
-                <button class="action-button download-button" @click="downloadSubmissionData(submission)" title="Download Data">
+                <button
+                  class="action-button download-button"
+                  title="Download Data"
+                  @click="downloadSubmissionData(submission)"
+                >
                   Download
                 </button>
               </td>
@@ -96,14 +151,26 @@
           </tbody>
         </table>
         
-        <div class="empty-state" v-if="submissions.length === 0 && !loading">
-          <div class="empty-icon">📝</div>
-          <div class="empty-title">No submissions found</div>
-          <div class="empty-subtitle">Try adjusting your search or filter criteria</div>
+        <div
+          v-if="submissions.length === 0 && !loading"
+          class="empty-state"
+        >
+          <div class="empty-icon">
+            📝
+          </div>
+          <div class="empty-title">
+            No submissions found
+          </div>
+          <div class="empty-subtitle">
+            Try adjusting your search or filter criteria
+          </div>
         </div>
         
         <!-- Pagination Controls -->
-        <div class="pagination-container" v-if="totalPages > 1 && !loading && !error">
+        <div
+          v-if="totalPages > 1 && !loading && !error"
+          class="pagination-container"
+        >
           <div class="pagination-info">
             Showing {{ paginationInfo.start }}-{{ paginationInfo.end }} of {{ paginationInfo.total }} results
           </div>
@@ -112,8 +179,8 @@
             <button 
               class="pagination-btn" 
               :disabled="!hasPrevious" 
-              @click="goToPage(1)"
               title="First page"
+              @click="goToPage(1)"
             >
               ⟪
             </button>
@@ -121,8 +188,8 @@
             <button 
               class="pagination-btn" 
               :disabled="!hasPrevious" 
-              @click="goToPage(currentPage - 1)"
               title="Previous page"
+              @click="goToPage(currentPage - 1)"
             >
               ⟨
             </button>
@@ -140,8 +207,8 @@
             <button 
               class="pagination-btn" 
               :disabled="!hasNext" 
-              @click="goToPage(currentPage + 1)"
               title="Next page"
+              @click="goToPage(currentPage + 1)"
             >
               ⟩
             </button>
@@ -149,8 +216,8 @@
             <button 
               class="pagination-btn" 
               :disabled="!hasNext" 
-              @click="goToPage(totalPages)"
               title="Last page"
+              @click="goToPage(totalPages)"
             >
               ⟫
             </button>
@@ -158,10 +225,21 @@
           
           <div class="page-size-selector">
             <label for="pageSize">Per page:</label>
-            <select id="pageSize" v-model="pageSize" @change="changePageSize" class="page-size-select">
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
+            <select
+              id="pageSize"
+              v-model="pageSize"
+              class="page-size-select"
+              @change="changePageSize"
+            >
+              <option value="25">
+                25
+              </option>
+              <option value="50">
+                50
+              </option>
+              <option value="100">
+                100
+              </option>
             </select>
           </div>
         </div>
@@ -169,7 +247,7 @@
       
       <!-- View Submission Modal -->
       <ViewSubmissionModal 
-        :isVisible="showViewModal" 
+        :is-visible="showViewModal" 
         :submission="selectedSubmission"
         @close="closeViewModal"
         @download="downloadSubmissionData"
@@ -183,6 +261,8 @@ import { mapGetters } from 'vuex';
 import axios from 'axios';
 import AdminNavBar from './AdminNavBar.vue';
 import ViewSubmissionModal from '../modals/ViewSubmissionModal.vue';
+import { log } from '@/utils/logger';
+import { useNotification } from '@/composables/useNotification';
 
 export default {
   name: 'AdminSubmissions',
@@ -235,7 +315,7 @@ export default {
       const half = Math.floor(maxVisible / 2);
       
       let start = Math.max(1, this.currentPage - half);
-      let end = Math.min(this.totalPages, start + maxVisible - 1);
+      const end = Math.min(this.totalPages, start + maxVisible - 1);
       
       if (end - start + 1 < maxVisible) {
         start = Math.max(1, end - maxVisible + 1);
@@ -251,6 +331,10 @@ export default {
     // Removed groupedSubmissions - no longer needed for simple table
   },
   created() {
+    // Set up notification
+    const { notify } = useNotification();
+    this.notify = notify;
+    
     // Redirect non-admin users
     if (!this.isAdmin) {
       this.$router.push('/');
@@ -292,7 +376,7 @@ export default {
       } catch (error) {
         this.error = 'Failed to load submissions. Please try again.';
         this.loading = false;
-        console.error('Error fetching submissions:', error);
+        log.error('Error fetching submissions', { error });
       }
     },
     
@@ -324,9 +408,9 @@ export default {
     // Removed toggleUserGroup and calculateAverageScore - no longer needed
     
     getScoreClass(score) {
-      if (score >= 80) return 'score-excellent';
-      if (score >= 60) return 'score-good';
-      if (score >= 40) return 'score-fair';
+      if (score >= 80) {return 'score-excellent';}
+      if (score >= 60) {return 'score-good';}
+      if (score >= 40) {return 'score-fair';}
       return 'score-poor';
     },
     
@@ -338,8 +422,8 @@ export default {
         this.showViewModal = true;
         this.loading = false;
       } catch (error) {
-        console.error('Error fetching submission details:', error);
-        alert('Failed to load submission details. Please try again.');
+        log.error('Error fetching submission details', { error, submissionId });
+        this.notify.error('Failed to load submission details. Please try again.');
         this.loading = false;
       }
     },
@@ -365,7 +449,7 @@ export default {
     },
     
     formatISODate(dateString) {
-      if (!dateString) return 'Unknown';
+      if (!dateString) {return 'Unknown';}
       const date = new Date(dateString);
       return date.toISOString();
     },
@@ -443,9 +527,9 @@ export default {
         
         // Generate filename with timestamp and filters
         let filename = 'submissions_export';
-        if (this.searchQuery) filename += `_search-${this.searchQuery.replace(/[^a-zA-Z0-9]/g, '_')}`;
-        if (this.statusFilter) filename += `_status-${this.statusFilter}`;
-        if (this.problemSetFilter) filename += `_set-${this.problemSetFilter.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        if (this.searchQuery) {filename += `_search-${this.searchQuery.replace(/[^a-zA-Z0-9]/g, '_')}`;}
+        if (this.statusFilter) {filename += `_status-${this.statusFilter}`;}
+        if (this.problemSetFilter) {filename += `_set-${this.problemSetFilter.replace(/[^a-zA-Z0-9]/g, '_')}`;}
         filename += `_${new Date().toISOString().split('T')[0]}.csv`;
         
         link.setAttribute('download', filename);
@@ -455,8 +539,8 @@ export default {
         URL.revokeObjectURL(url);
         
       } catch (error) {
-        console.error('Error exporting CSV:', error);
-        alert('Failed to export CSV. Please try again.');
+        log.error('Error exporting CSV', { error });
+        this.notify.error('Failed to export CSV. Please try again.');
       }
     },
     
@@ -503,32 +587,32 @@ export default {
         URL.revokeObjectURL(url);
         
       } catch (error) {
-        console.error('Error downloading submission data:', error);
-        alert('Failed to download submission data. Please try again.');
+        log.error('Error downloading submission data', { error, submissionId: submission.id });
+        this.notify.error('Failed to download submission data. Please try again.');
       }
     },
     
     // Helper methods for CSV formatting
     formatCodeVariationsForCSV(codeVariations) {
-      if (!codeVariations || !Array.isArray(codeVariations)) return '[]';
+      if (!codeVariations || !Array.isArray(codeVariations)) {return '[]';}
       
       // Return as pretty-printed JSON string for easy analysis
       try {
         return JSON.stringify(codeVariations, null, 2).replace(/"/g, '""');
       } catch (error) {
-        console.error('Error formatting code variations:', error);
+        log.error('Error formatting code variations', { error });
         return '[]';
       }
     },
     
     formatTestResultsForCSV(testResults) {
-      if (!testResults || !Array.isArray(testResults)) return '[]';
+      if (!testResults || !Array.isArray(testResults)) {return '[]';}
       
       // Return as pretty-printed JSON string for easy analysis
       try {
         return JSON.stringify(testResults, null, 2).replace(/"/g, '""');
       } catch (error) {
-        console.error('Error formatting test results:', error);
+        log.error('Error formatting test results', { error });
         return '[]';
       }
     }

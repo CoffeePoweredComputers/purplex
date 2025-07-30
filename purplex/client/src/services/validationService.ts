@@ -1,15 +1,15 @@
 import {
-  ValidationError,
-  TestCaseValidation,
   ProblemCreateRequest,
-  TestCaseDisplay
+  TestCaseDisplay,
+  TestCaseValidation,
+  ValidationError
 } from '../types';
 import {
-  parseTypeAnnotation,
-  validateValueAgainstType,
-  autoDetectTypeFromInput,
   autoDetectAndConvert,
-  getPlaceholderForType
+  autoDetectTypeFromInput,
+  getPlaceholderForType,
+  parseTypeAnnotation,
+  validateValueAgainstType
 } from '../utils/typeSystem';
 
 export interface ValidationResult {
@@ -401,7 +401,7 @@ class ValidationServiceImpl {
    * @returns True if valid Python identifier
    */
   validateFunctionName(name: string): boolean {
-    if (!name) return false;
+    if (!name) {return false;}
     
     // Python identifier regex: starts with letter or underscore, 
     // followed by letters, digits, or underscores

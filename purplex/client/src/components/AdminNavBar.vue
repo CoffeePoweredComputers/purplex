@@ -1,35 +1,50 @@
 <template>
-    <nav class="admin-nav">
-        <div class="admin-nav-container">
-            <ul class="admin-nav-list">
-                <li>
-                    <router-link to="/admin/users" class="admin-link">
-                        Users
-                    </router-link>
-                </li>
-                <li>
-                    <router-link to="/admin/problems" class="admin-link">
-                        Problems
-                    </router-link>
-                </li>
-                <li>
-                    <router-link to="/admin/problem-sets" class="admin-link">
-                        Problem Sets
-                    </router-link>
-                </li>
-                <li>
-                    <router-link to="/admin/submissions" class="admin-link">
-                        Submissions
-                    </router-link>
-                </li>
-                <li>
-                    <router-link to="/admin/courses" class="admin-link">
-                        Courses
-                    </router-link>
-                </li>
-            </ul>
-        </div>
-    </nav>
+  <nav class="admin-nav">
+    <div class="admin-nav-container">
+      <ul class="admin-nav-list">
+        <li>
+          <router-link
+            to="/admin/users"
+            class="admin-link"
+          >
+            Users
+          </router-link>
+        </li>
+        <li>
+          <router-link
+            to="/admin/problems"
+            class="admin-link"
+          >
+            Problems
+          </router-link>
+        </li>
+        <li>
+          <router-link
+            to="/admin/problem-sets"
+            class="admin-link"
+          >
+            Problem Sets
+          </router-link>
+        </li>
+        <li>
+          <router-link
+            to="/admin/submissions"
+            class="admin-link"
+          >
+            Submissions
+          </router-link>
+        </li>
+        <li>
+          <router-link
+            to="/admin/courses"
+            class="admin-link"
+          >
+            Courses
+          </router-link>
+        </li>
+      </ul>
+    </div>
+  </nav>
 </template>
 
 <script>

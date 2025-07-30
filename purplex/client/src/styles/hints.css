@@ -111,6 +111,65 @@
   border-radius: var(--radius-sm);
 }
 
+/* ACE Editor specific hint styles */
+.ace_variable-meaningful {
+  color: #3b82f6 !important;
+  font-weight: 600;
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+/* Subgoal highlighting in ACE Editor */
+.ace_subgoal-comment {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  border-left: 3px solid #3b82f6 !important;
+  font-weight: 600 !important;
+  font-style: italic !important;
+  color: #3b82f6 !important;
+  display: block;
+  width: 100%;
+  padding-left: 8px !important;
+  margin-left: -8px !important;
+}
+
+.ace_subgoal-highlight {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+  border-left: 3px solid #3b82f6 !important;
+  display: block;
+  width: 100%;
+  padding-left: 8px !important;
+  margin-left: -8px !important;
+  position: relative;
+}
+
+/* Subgoal gutter indicators */
+.ace_gutter-cell.subgoal-indicator {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="%233b82f6" opacity="0.8"/></svg>');
+  background-repeat: no-repeat;
+  background-position: 2px center;
+  cursor: pointer;
+}
+
+.ace_gutter-cell.subgoal-indicator:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Active subgoal highlighting */
+.ace_subgoal-active {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  animation: subtlePulse 1.5s ease-in-out;
+}
+
+@keyframes subtlePulse {
+  0%, 100% {
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    background-color: rgba(59, 130, 246, 0.3);
+  }
+}
+
 /* Subgoal navigation dots */
 .subgoal-dots {
   display: flex;

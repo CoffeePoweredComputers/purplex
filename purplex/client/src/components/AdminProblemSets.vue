@@ -2,25 +2,42 @@
   <div>
     <AdminNavBar />
     <div class="admin-problem-sets container">
-      <h1 class="page-title">Problem Sets Management</h1>
+      <h1 class="page-title">
+        Problem Sets Management
+      </h1>
       
       <div class="status-container">
-        <div class="loading-indicator" v-if="loading">
+        <div
+          v-if="loading"
+          class="loading-indicator"
+        >
           Loading problem sets...
         </div>
         
-        <div class="error-message" v-if="error">
+        <div
+          v-if="error"
+          class="error-message"
+        >
           {{ error }}
         </div>
       </div>
       
-      <div class="controls-container" v-if="!loading && !error">
-        <button class="action-button add-button" @click="showAddModal = true">
+      <div
+        v-if="!loading && !error"
+        class="controls-container"
+      >
+        <button
+          class="action-button add-button"
+          @click="showAddModal = true"
+        >
           Add New Problem Set
         </button>
       </div>
       
-      <div class="table-responsive" v-if="!loading && !error">
+      <div
+        v-if="!loading && !error"
+        class="table-responsive"
+      >
         <table class="problem-sets-table">
           <thead>
             <tr>
@@ -32,7 +49,10 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="set in problemSets" :key="set.slug">
+            <tr
+              v-for="set in problemSets"
+              :key="set.slug"
+            >
               <td>{{ set.title }}</td>
               <td>{{ set.description || 'No description' }}</td>
               <td>{{ set.problems_count || 0 }}</td>
@@ -42,10 +62,16 @@
                 </span>
               </td>
               <td class="actions-cell">
-                <button class="action-button edit-button" @click="editProblemSet(set)">
+                <button
+                  class="action-button edit-button"
+                  @click="editProblemSet(set)"
+                >
                   Edit
                 </button>
-                <button class="action-button delete-button" @click="confirmDelete(set)">
+                <button
+                  class="action-button delete-button"
+                  @click="confirmDelete(set)"
+                >
                   Delete
                 </button>
               </td>
@@ -53,7 +79,10 @@
           </tbody>
         </table>
         
-        <p v-if="problemSets.length === 0" class="no-data">
+        <p
+          v-if="problemSets.length === 0"
+          class="no-data"
+        >
           No problem sets found. Create your first one!
         </p>
       </div>
@@ -86,6 +115,7 @@ import { mapGetters } from 'vuex';
 import axios from 'axios';
 import AdminNavBar from './AdminNavBar.vue';
 import AddEditProblemSetModal from '../modals/AddEditProblemSetModal.vue';
+import { log } from '@/utils/logger';
 
 export default {
   name: 'AdminProblemSets',
@@ -131,7 +161,7 @@ export default {
         this.problems = problemsResponse.data;
       } catch (error) {
         this.error = 'Failed to load data. Please try again.';
-        console.error('Error fetching data:', error);
+        log.error('Error fetching data', error);
       } finally {
         this.loading = false;
       }
@@ -155,7 +185,7 @@ export default {
         this.problemSets = this.problemSets.filter(s => s.slug !== set.slug);
       } catch (error) {
         this.error = 'Failed to delete problem set. Please try again.';
-        console.error('Error deleting problem set:', error);
+        log.error('Error deleting problem set', error);
       }
     },
     

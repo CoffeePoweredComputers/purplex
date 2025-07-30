@@ -1,46 +1,79 @@
 <template>
-    <div class="modal-overlay" v-if="isVisible" @click.self="closeModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Account Settings</h3>
-                <button class="close-button" @click="closeModal">&times;</button>
-            </div>
+  <div
+    v-if="isVisible"
+    class="modal-overlay"
+    @click.self="closeModal"
+  >
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          Account Settings
+        </h3>
+        <button
+          class="close-button"
+          @click="closeModal"
+        >
+          &times;
+        </button>
+      </div>
             
-            <div class="user-profile">
-                <div class="avatar">
-                    {{ getInitials() }}
-                </div>
-                <div class="user-info">
-                    <h4 class="user-name">{{ $store.state.auth.user.name || 'User' }}</h4>
-                    <p class="user-email">{{ $store.state.auth.user.email }}</p>
-                </div>
-            </div>
-            
-            <div class="info-section">
-                <div class="info-item">
-                    <span class="info-label">Account Type</span>
-                    <span class="role-badge" :class="$store.state.auth.user.role">
-                        {{ $store.state.auth.user.role }}
-                    </span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Member Since</span>
-                    <span class="info-value">{{ getMemberSince() }}</span>
-                </div>
-            </div>
-            
-            <div class="modal-footer">
-                <button class="logout-button" @click="logout">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                        <polyline points="16 17 21 12 16 7"></polyline>
-                        <line x1="21" y1="12" x2="9" y2="12"></line>
-                    </svg>
-                    Sign Out
-                </button>
-            </div>
+      <div class="user-profile">
+        <div class="avatar">
+          {{ getInitials() }}
         </div>
+        <div class="user-info">
+          <h4 class="user-name">
+            {{ $store.state.auth.user.name || 'User' }}
+          </h4>
+          <p class="user-email">
+            {{ $store.state.auth.user.email }}
+          </p>
+        </div>
+      </div>
+            
+      <div class="info-section">
+        <div class="info-item">
+          <span class="info-label">Account Type</span>
+          <span
+            class="role-badge"
+            :class="$store.state.auth.user.role"
+          >
+            {{ $store.state.auth.user.role }}
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Member Since</span>
+          <span class="info-value">{{ getMemberSince() }}</span>
+        </div>
+      </div>
+            
+      <div class="modal-footer">
+        <button
+          class="logout-button"
+          @click="logout"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line
+              x1="21"
+              y1="12"
+              x2="9"
+              y2="12"
+            />
+          </svg>
+          Sign Out
+        </button>
+      </div>
     </div>
+  </div>
 </template>
 
 <script lang="ts">

@@ -1,12 +1,13 @@
 import axios from 'axios';
 import { firebaseAuth } from '../firebaseConfig';
 import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  signOut,
+  createUserWithEmailAndPassword, 
   getIdToken,
+  signInWithEmailAndPassword,
+  signOut,
   User
 } from 'firebase/auth';
+import { log } from '../utils/logger';
 
 const API_URL = '/api/auth/status/';
 
@@ -41,7 +42,7 @@ class AuthService {
       
       return response.data;
     } catch (error: any) {
-      console.error('Token validation error:', error);
+      log.error('Token validation error', error);
       return { authenticated: false, error: error.message };
     }
   }
@@ -52,7 +53,7 @@ class AuthService {
       localStorage.removeItem('user');
       return true;
     } catch (error) {
-      console.error('Logout error:', error);
+      log.error('Logout error', error);
       throw error;
     }
   }

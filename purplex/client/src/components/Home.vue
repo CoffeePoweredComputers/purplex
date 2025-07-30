@@ -4,46 +4,63 @@
     <CourseEnrollmentModal />
     
     <!-- Enrolled Courses Section -->
-    <div v-if="enrolledCourses.length > 0" class="courses-section">
+    <div
+      v-if="enrolledCourses.length > 0"
+      class="courses-section"
+    >
       <div 
         v-for="enrollment in enrolledCourses" 
         :key="enrollment.course.course_id"
         class="course-section"
       >
         <div class="course-header">
-          <h2 class="course-title">{{ enrollment.course.name }}</h2>
+          <h2 class="course-title">
+            {{ enrollment.course.name }}
+          </h2>
           <span class="progress-indicator">
             {{ enrollment.progress.completed_sets }} / {{ enrollment.progress.total_sets }} completed
           </span>
         </div>
-        <hr class="course-divider" />
+        <hr class="course-divider">
         
         <!-- Reuse existing gallery grid for problem sets -->
-        <div v-if="loading.courses" class="gallery-grid">
+        <div
+          v-if="loading.courses"
+          class="gallery-grid"
+        >
           <!-- Skeleton cards -->
-          <div v-for="n in 3" :key="`skeleton-${n}`" class="problem-set-card skeleton">
+          <div
+            v-for="n in 3"
+            :key="`skeleton-${n}`"
+            class="problem-set-card skeleton"
+          >
             <div class="card-content">
               <div class="card-header">
-                <div class="skeleton-title"></div>
+                <div class="skeleton-title" />
               </div>
               <div class="progress-section">
-                <div class="skeleton-progress-bar"></div>
-                <div class="skeleton-progress-text"></div>
+                <div class="skeleton-progress-bar" />
+                <div class="skeleton-progress-text" />
               </div>
             </div>
           </div>
         </div>
         
-        <div v-else-if="enrollment.course.problem_sets && enrollment.course.problem_sets.length > 0" class="gallery-grid">
+        <div
+          v-else-if="enrollment.course.problem_sets && enrollment.course.problem_sets.length > 0"
+          class="gallery-grid"
+        >
           <div 
-            class="problem-set-card" 
             v-for="psData in enrollment.course.problem_sets" 
-            :key="psData.problem_set.slug"
+            :key="psData.problem_set.slug" 
+            class="problem-set-card"
             @click="navigateToProblemSet(enrollment.course.course_id, psData.problem_set.slug)"
           >
             <div class="card-content">
               <div class="card-header">
-                <h3 class="card-title">{{ psData.problem_set.title }}</h3>
+                <h3 class="card-title">
+                  {{ psData.problem_set.title }}
+                </h3>
               </div>
 
               <div class="progress-section">
@@ -52,7 +69,7 @@
                     <div 
                       class="progress-bar-fill" 
                       :style="{ width: psData.progress.percentage + '%' }"
-                    ></div>
+                    />
                   </div>
                   <span class="progress-text">
                     <template v-if="psData.progress.total_problems === 0">
@@ -68,12 +85,15 @@
             </div>
             <div class="card-hover-text">
               {{ psData.progress.percentage === 100 ? 'Review →' : 
-                 psData.progress.completed_problems > 0 ? 'Continue →' : 'Start →' }}
+                psData.progress.completed_problems > 0 ? 'Continue →' : 'Start →' }}
             </div>
           </div>
         </div>
         
-        <div v-else class="empty-state">
+        <div
+          v-else
+          class="empty-state"
+        >
           <p>No problem sets available in this course yet.</p>
         </div>
       </div>
@@ -81,12 +101,20 @@
     
     
     <!-- Empty State -->
-    <div v-if="!loading.courses && enrolledCourses.length === 0" class="empty-state-container">
+    <div
+      v-if="!loading.courses && enrolledCourses.length === 0"
+      class="empty-state-container"
+    >
       <div class="empty-state-content">
-        <div class="empty-icon">🎓</div>
+        <div class="empty-icon">
+          🎓
+        </div>
         <h3>Welcome to Purplex!</h3>
         <p>Get started by joining a course to access problem sets.</p>
-        <button class="add-course-btn" @click="showEnrollmentModal">
+        <button
+          class="add-course-btn"
+          @click="showEnrollmentModal"
+        >
           <span class="btn-icon">+</span>
           Join a Course
         </button>
@@ -97,8 +125,8 @@
     <button 
       v-if="enrolledCourses.length > 0"
       class="add-course-btn floating" 
-      @click="showEnrollmentModal"
       title="Join a Course"
+      @click="showEnrollmentModal"
     >
       <span class="btn-icon">+</span>
     </button>

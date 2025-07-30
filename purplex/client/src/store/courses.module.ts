@@ -1,6 +1,7 @@
-import { Module, ActionContext } from 'vuex';
+import { ActionContext, Module } from 'vuex';
 import axios from 'axios';
 import { AuthState } from './auth.module';
+import { log } from '../utils/logger';
 
 // ===== TYPE DEFINITIONS =====
 
@@ -179,7 +180,7 @@ export const courses: Module<CoursesState, RootState> = {
     
     // Get problem sets for current course
     getCurrentCourseProblemSets: (state: CoursesState): CourseProblemSet[] => {
-      if (!state.currentCourse) return [];
+      if (!state.currentCourse) {return [];}
       return state.currentCourse.problem_sets || [];
     },
     
@@ -268,7 +269,7 @@ export const courses: Module<CoursesState, RootState> = {
         commit('SET_ENROLLED_COURSES', response.data);
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch enrolled courses:', error);
+        log.error('Failed to fetch enrolled courses', error);
         throw error;
       } finally {
         commit('SET_LOADING', { key: 'courses', value: false });
@@ -328,7 +329,7 @@ export const courses: Module<CoursesState, RootState> = {
         commit('SET_CURRENT_COURSE', response.data);
         return response.data;
       } catch (error) {
-        console.error('Failed to load course:', error);
+        log.error('Failed to load course', error);
         throw error;
       }
     },
@@ -345,7 +346,7 @@ export const courses: Module<CoursesState, RootState> = {
         commit('SET_INSTRUCTOR_COURSES', response.data);
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch instructor courses:', error);
+        log.error('Failed to fetch instructor courses', error);
         throw error;
       }
     },
@@ -358,7 +359,7 @@ export const courses: Module<CoursesState, RootState> = {
         commit('SET_STUDENT_PROGRESS', { courseId, progress: response.data });
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch student progress:', error);
+        log.error('Failed to fetch student progress', error);
         throw error;
       }
     },

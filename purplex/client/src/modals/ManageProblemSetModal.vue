@@ -1,27 +1,41 @@
 <template>
-  <div class="modal-overlay" @click="closeModal">
-    <div class="modal-content large-modal" @click.stop>
+  <div
+    class="modal-overlay"
+    @click="closeModal"
+  >
+    <div
+      class="modal-content large-modal"
+      @click.stop
+    >
       <div class="modal-header">
         <h2>Manage Problem Sets</h2>
-        <button class="modal-close" @click="closeModal">&times;</button>
+        <button
+          class="modal-close"
+          @click="closeModal"
+        >
+          &times;
+        </button>
       </div>
       <div class="modal-body">
         <div class="problem-sets-section">
           <div class="section-header">
             <h3>Add New Problem Set</h3>
           </div>
-          <form @submit.prevent="submitNewProblemSet" class="add-set-form">
+          <form
+            class="add-set-form"
+            @submit.prevent="submitNewProblemSet"
+          >
             <div class="form-row">
               <input 
-                type="text" 
                 v-model="newProblemSet.title" 
+                type="text" 
                 placeholder="Problem Set Name"
                 class="form-input"
                 required
               >
               <input 
-                type="text" 
                 v-model="newProblemSet.description" 
+                type="text" 
                 placeholder="Description"
                 class="form-input"
               >
@@ -38,7 +52,10 @@
         
         <div class="problem-sets-list">
           <h3>Existing Problem Sets</h3>
-          <div class="sets-table-container" v-if="problemSets.length > 0">
+          <div
+            v-if="problemSets.length > 0"
+            class="sets-table-container"
+          >
             <table class="sets-table">
               <thead>
                 <tr>
@@ -50,7 +67,10 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="problemSet in problemSets" :key="problemSet.slug || problemSet.id">
+                <tr
+                  v-for="problemSet in problemSets"
+                  :key="problemSet.slug || problemSet.id"
+                >
                   <td>{{ problemSet.title }}</td>
                   <td>{{ problemSet.description || 'No description' }}</td>
                   <td>{{ getProblemSetCount(problemSet) }}</td>
@@ -63,8 +83,8 @@
                     </button>
                     <button 
                       class="action-button delete-button" 
-                      @click="confirmDeleteProblemSet(problemSet)"
                       :disabled="isDeleting === (problemSet.slug || problemSet.id)"
+                      @click="confirmDeleteProblemSet(problemSet)"
                     >
                       {{ isDeleting === (problemSet.slug || problemSet.id) ? 'Deleting...' : 'Delete' }}
                     </button>
@@ -76,13 +96,20 @@
               </tbody>
             </table>
           </div>
-          <div v-else class="empty-state">
+          <div
+            v-else
+            class="empty-state"
+          >
             <p>No problem sets found. Create your first problem set above.</p>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="action-button cancel-button" @click="closeModal">
+        <button
+          type="button"
+          class="action-button cancel-button"
+          @click="closeModal"
+        >
           Close
         </button>
       </div>
@@ -92,6 +119,7 @@
 
 <script>
 import axios from 'axios';
+import { log } from '@/utils/logger';
 
 export default {
   name: 'ManageProblemSetModal',
@@ -114,6 +142,14 @@ export default {
       isSubmitting: false,
       isDeleting: null
     };
+  },
+  mounted() {
+    // Add ESC key listener
+    document.addEventListener('keydown', this.handleEscape);
+  },
+  beforeUnmount() {
+    // Remove ESC key listener
+    document.removeEventListener('keydown', this.handleEscape);
   },
   methods: {
     closeModal() {
@@ -145,7 +181,7 @@ export default {
     },
 
     async submitNewProblemSet() {
-      if (this.isSubmitting || !this.newProblemSet.title.trim()) return;
+      if (this.isSubmitting || !this.newProblemSet.title.trim()) {return;}
       
       try {
         this.isSubmitting = true;
@@ -164,13 +200,13 @@ export default {
           }
         });
         
-        console.log('Problem set created:', response.data);
+        log.debug('Problem set created', { problemSet: response.data });
         this.$emit('problem-set-added', response.data);
         this.newProblemSet = { title: '', description: '' };
       } catch (error) {
         const errorMessage = error.response?.data?.detail || error.response?.data?.error || 'Failed to add problem set. Please try again.';
         this.$emit('error', errorMessage);
-        console.error('Error adding problem set:', error);
+        log.error('Error adding problem set', { error });
       } finally {
         this.isSubmitting = false;
       }
@@ -197,7 +233,7 @@ export default {
     },
 
     async deleteProblemSet(problemSet) {
-      if (this.isDeleting) return;
+      if (this.isDeleting) {return;}
       
       const slug = problemSet.slug;
       const id = problemSet.id;
@@ -215,7 +251,7 @@ export default {
         });
       } catch (error) {
         this.$emit('error', `Failed to delete problem set: ${error.response?.data?.detail || error.message || 'Please try again.'}`);
-        console.error('Error deleting problem set:', error);
+        log.error('Error deleting problem set', { slug, error });
       } finally {
         this.isDeleting = null;
       }
@@ -226,14 +262,6 @@ export default {
         this.closeModal();
       }
     }
-  },
-  mounted() {
-    // Add ESC key listener
-    document.addEventListener('keydown', this.handleEscape);
-  },
-  beforeUnmount() {
-    // Remove ESC key listener
-    document.removeEventListener('keydown', this.handleEscape);
   }
 }
 </script>

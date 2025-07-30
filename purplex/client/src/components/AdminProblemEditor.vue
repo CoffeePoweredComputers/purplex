@@ -2,7 +2,10 @@
   <div class="admin-problem-editor">
     <!-- Breadcrumb navigation -->
     <nav class="breadcrumb border-default">
-      <router-link to="/admin/problems" class="breadcrumb-link transition-fast">
+      <router-link
+        to="/admin/problems"
+        class="breadcrumb-link transition-fast"
+      >
         ← Back to Problems
       </router-link>
     </nav>
@@ -10,13 +13,20 @@
     <div class="header rounded-lg border-default">
       <h2>{{ isEditing ? 'Edit Problem' : 'Create New Problem' }}</h2>
       <div class="actions">
-        <button @click="saveProblem" :disabled="!canSave || ui.loading" class="btn btn-primary rounded-base">
+        <button
+          :disabled="!canSave || ui.loading"
+          class="btn btn-primary rounded-base"
+          @click="saveProblem"
+        >
           {{ ui.loading ? 'Saving...' : 'Save Problem' }}
         </button>
       </div>
     </div>
 
-    <form @submit.prevent="saveProblem" class="problem-form">
+    <form
+      class="problem-form"
+      @submit.prevent="saveProblem"
+    >
       <!-- Basic Information -->
       <div class="form-section rounded-lg border-default transition-fast">
         <h3>Basic Information</h3>
@@ -28,16 +38,27 @@
             type="text"
             required
             placeholder="e.g., Anagram Checker"
-          />
+          >
         </div>
 
         <div class="form-group">
           <label for="difficulty">Difficulty</label>
-          <select id="difficulty" v-model="form.difficulty">
-            <option value="easy">Easy</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
+          <select
+            id="difficulty"
+            v-model="form.difficulty"
+          >
+            <option value="easy">
+              Easy
+            </option>
+            <option value="beginner">
+              Beginner
+            </option>
+            <option value="intermediate">
+              Intermediate
+            </option>
+            <option value="advanced">
+              Advanced
+            </option>
           </select>
         </div>
 
@@ -51,7 +72,10 @@
               :class="{ active: form.category_ids && form.category_ids.includes(category.id) }"
               @click="toggleCategory(category.id)"
             >
-              <span class="category-color" :style="{ backgroundColor: category.color }"></span>
+              <span
+                class="category-color"
+                :style="{ backgroundColor: category.color }"
+              />
               {{ category.name }}
             </div>
             
@@ -65,60 +89,63 @@
               }"
               @click.stop="handleShellClick"
             >
-                <!-- Button Content (collapsed state) -->
-                <div 
-                  class="add-category-content"
-                  :class="{ visible: !showAddCategory }"
-                >
-                  <span class="add-icon">+</span>
-                  <span class="add-text">Add Category</span>
-                </div>
+              <!-- Button Content (collapsed state) -->
+              <div 
+                class="add-category-content"
+                :class="{ visible: !showAddCategory }"
+              >
+                <span class="add-icon">+</span>
+                <span class="add-text">Add Category</span>
+              </div>
                 
-                <!-- Form Content (expanded state) -->
-                <div 
-                  class="bean-form-content"
-                  :class="{ visible: showAddCategory }"
-                >
-                  <!-- Input Segment -->
-                  <div class="form-segment input-segment">
-                    <input 
-                      ref="nameInput"
-                      v-model="newCategory.name"
-                      placeholder="Category name"
-                      class="bean-input"
-                      @keyup.enter="createCategory"
-                      @keyup.escape="collapseBean"
-                    />
-                  </div>
+              <!-- Form Content (expanded state) -->
+              <div 
+                class="bean-form-content"
+                :class="{ visible: showAddCategory }"
+              >
+                <!-- Input Segment -->
+                <div class="form-segment input-segment">
+                  <input 
+                    ref="nameInput"
+                    v-model="newCategory.name"
+                    placeholder="Category name"
+                    class="bean-input"
+                    @keyup.enter="createCategory"
+                    @keyup.escape="collapseBean"
+                  >
+                </div>
                   
-                  <!-- Color Segment -->
-                  <div class="form-segment color-segment">
-                    <div 
-                      ref="colorTrigger"
-                      class="color-preview-btn"
-                      @click="toggleColorPicker"
-                      :style="{ backgroundColor: newCategory.color }"
-                    ></div>
-                  </div>
+                <!-- Color Segment -->
+                <div class="form-segment color-segment">
+                  <div 
+                    ref="colorTrigger"
+                    class="color-preview-btn"
+                    :style="{ backgroundColor: newCategory.color }"
+                    @click="toggleColorPicker"
+                  />
+                </div>
                   
-                  <!-- Action Segment -->
-                  <div class="form-segment action-segment">
-                    <button 
-                      @click="createCategory"
-                      :disabled="!newCategory.name.trim() || creatingCategory"
-                      class="bean-submit-btn"
-                      :class="{ loading: creatingCategory, disabled: !newCategory.name.trim() }"
-                      :title="creatingCategory ? 'Creating...' : 'Create Category'"
-                    >
-                      {{ creatingCategory ? '⋯' : '✓' }}
-                    </button>
-                  </div>
+                <!-- Action Segment -->
+                <div class="form-segment action-segment">
+                  <button 
+                    :disabled="!newCategory.name.trim() || creatingCategory"
+                    class="bean-submit-btn"
+                    :class="{ loading: creatingCategory, disabled: !newCategory.name.trim() }"
+                    :title="creatingCategory ? 'Creating...' : 'Create Category'"
+                    @click="createCategory"
+                  >
+                    {{ creatingCategory ? '⋯' : '✓' }}
+                  </button>
                 </div>
               </div>
+            </div>
             
             <!-- Error message -->
             <transition name="error-slide">
-              <div v-if="categoryError" class="bean-error">
+              <div
+                v-if="categoryError"
+                class="bean-error"
+              >
                 {{ categoryError }}
               </div>
             </transition>
@@ -130,10 +157,11 @@
           <label for="tags">Tags (comma-separated)</label>
           <input
             id="tags"
-            :value="tagsDisplay" @input="updateTags"
+            :value="tagsDisplay"
             type="text"
             placeholder="e.g., strings, sorting, hash-map"
-          />
+            @input="updateTags"
+          >
         </div>
       </div>
 
@@ -162,22 +190,28 @@
           </div>
           
           <!-- Edit Tab -->
-          <div v-if="descriptionTab === 'edit'" class="markdown-content">
+          <div
+            v-if="descriptionTab === 'edit'"
+            class="markdown-content"
+          >
             <textarea
               id="description"
               v-model="form.description"
               placeholder="Write your problem description here using Markdown..."
               rows="10"
               class="markdown-textarea"
-            ></textarea>
+            />
           </div>
           
           <!-- Preview Tab -->
-          <div v-if="descriptionTab === 'preview'" class="markdown-content">
+          <div
+            v-if="descriptionTab === 'preview'"
+            class="markdown-content"
+          >
             <div 
               class="markdown-preview"
               v-html="renderedDescription"
-            ></div>
+            />
           </div>
         </div>
       </div>
@@ -195,7 +229,7 @@
               required
               pattern="[a-zA-Z_][a-zA-Z0-9_]*"
               placeholder="e.g., is_anagram"
-            />
+            >
           </div>
         </div>
 
@@ -206,7 +240,7 @@
             v-model="form.function_signature"
             type="text"
             placeholder="e.g., def is_anagram(str1: str, str2: str) -> bool:"
-          />
+          >
         </div>
 
         <div class="form-group">
@@ -219,20 +253,20 @@
               <div class="zoom-controls">
                 <button
                   type="button"
-                  @click="decreaseFontSize"
                   :disabled="editorFontSize <= 12"
                   class="zoom-btn"
                   title="Decrease font size"
+                  @click="decreaseFontSize"
                 >
                   <span class="zoom-icon">−</span>
                 </button>
                 <span class="zoom-display">{{ Math.round((editorFontSize / 14) * 100) }}%</span>
                 <button
                   type="button"
-                  @click="increaseFontSize"
                   :disabled="editorFontSize >= 24"
                   class="zoom-btn"
                   title="Increase font size"
+                  @click="increaseFontSize"
                 >
                   <span class="zoom-icon">+</span>
                 </button>
@@ -240,19 +274,37 @@
 
               <!-- Theme selector -->
               <div class="theme-selector">
-                <select v-model="editorTheme"  class="theme-dropdown">
-                  <option value="monokai">Monokai</option>
-                  <option value="github">GitHub</option>
-                  <option value="clouds_midnight">Clouds Midnight</option>
-                  <option value="chrome">Chrome</option>
-                  <option value="solarized_dark">Solarized Dark</option>
-                  <option value="solarized_light">Solarized Light</option>
-                  <option value="dracula">Dracula</option>
-                  <option value="tomorrow_night">Tomorrow Night</option>
+                <select
+                  v-model="editorTheme"
+                  class="theme-dropdown"
+                >
+                  <option value="monokai">
+                    Monokai
+                  </option>
+                  <option value="github">
+                    GitHub
+                  </option>
+                  <option value="clouds_midnight">
+                    Clouds Midnight
+                  </option>
+                  <option value="chrome">
+                    Chrome
+                  </option>
+                  <option value="solarized_dark">
+                    Solarized Dark
+                  </option>
+                  <option value="solarized_light">
+                    Solarized Light
+                  </option>
+                  <option value="dracula">
+                    Dracula
+                  </option>
+                  <option value="tomorrow_night">
+                    Tomorrow Night
+                  </option>
                 </select>
               </div>
             </div>
-
           </div>
 
           <!-- Editor component -->
@@ -260,44 +312,55 @@
             <Editor
               ref="editor"
               :value="String(form.reference_solution || '')"
-              @update:value="updateReferenceSolution($event)"
               :height="'300px'"
               :width="'100%'"
               :theme="editorTheme"
-              :showGutter="true"
+              :show-gutter="true"
               :mode="'python'"
               :lang="'python'"
+              @update:value="updateReferenceSolution($event)"
             />
           </div>
         </div>
-
       </div>
 
       <!-- Test Cases -->
-      <div class="form-section rounded-lg border-default transition-fast" style="position: relative;">
+      <div
+        class="form-section rounded-lg border-default transition-fast"
+        style="position: relative;"
+      >
         <h3>Test Cases</h3>
         
         <!-- Loading overlay for test section -->
-        <div v-if="ui.loading" class="test-loading-overlay">
+        <div
+          v-if="ui.loading"
+          class="test-loading-overlay"
+        >
           <div class="loading-spinner">
-            <div class="spinner"></div>
-            <div class="loading-text">Running tests...</div>
+            <div class="spinner" />
+            <div class="loading-text">
+              Running tests...
+            </div>
           </div>
         </div>
         
         <!-- Simplified Actions Bar -->
         <div class="test-actions">
           <div class="left-actions">
-            <button type="button" @click="addTestCase" class="btn-secondary rounded-base transition-fast">
+            <button
+              type="button"
+              class="btn-secondary rounded-base transition-fast"
+              @click="addTestCase"
+            >
               + Add Test
             </button>
           </div>
           
           <button 
-            @click="testProblem" 
             :disabled="!canTest || ui.loading" 
-            class="btn-primary rounded-base transition-fast"
+            class="btn-primary rounded-base transition-fast" 
             :title="canTestReason || 'Test your reference solution against all test cases'"
+            @click="testProblem"
           >
             {{ ui.loading ? 'Testing...' : 'Test All Cases' }}
           </button>
@@ -316,11 +379,17 @@
             }"
           >
             <!-- Single row with everything -->
-            <div class="test-case-row" :style="{ '--param-count': getParameterCount() }">
+            <div
+              class="test-case-row"
+              :style="{ '--param-count': getParameterCount() }"
+            >
               <span class="test-number">{{ index + 1 }}</span>
               
               <!-- Dynamic parameter fields based on function signature -->
-              <div v-if="functionParameters.length > 0" class="smart-parameters">
+              <div
+                v-if="functionParameters.length > 0"
+                class="smart-parameters"
+              >
                 <div 
                   v-for="(param, paramIndex) in functionParameters" 
                   :key="paramIndex" 
@@ -329,11 +398,11 @@
                   <div class="param-input-container">
                     <input 
                       :value="getParameterDisplayValue(testCase, paramIndex)"
-                      @input="updateParameterValue(testCase, paramIndex, $event.target.value)"
-                      :placeholder="getParameterPlaceholder(param.type)" 
+                      :placeholder="getParameterPlaceholder(param.type)"
                       class="param-input" 
-                      :class="{ 'param-error': getParameterValidationError(testCase, paramIndex) }"
-                    />
+                      :class="{ 'param-error': getParameterValidationError(testCase, paramIndex) }" 
+                      @input="updateParameterValue(testCase, paramIndex, $event.target.value)"
+                    >
                     <div 
                       class="param-type-badge" 
                       :class="getParameterTypeClass(testCase, paramIndex)"
@@ -350,7 +419,10 @@
               </div>
               
               <!-- No parameters message -->
-              <div v-else class="no-params-message">
+              <div
+                v-else
+                class="no-params-message"
+              >
                 No parameters
               </div>
               
@@ -359,11 +431,11 @@
                 <div class="output-input-container">
                   <input 
                     :value="getTestCaseExpectedDisplay(testCase)"
-                    @input="updateTestCaseExpected(testCase, $event.target.value)"
-                    :placeholder="getOutputPlaceholder()" 
+                    :placeholder="getOutputPlaceholder()"
                     class="param-input" 
-                    :class="{ 'param-error': getOutputValidationError(testCase) }"
-                  />
+                    :class="{ 'param-error': getOutputValidationError(testCase) }" 
+                    @input="updateTestCaseExpected(testCase, $event.target.value)"
+                  >
                   <div 
                     class="param-type-badge" 
                     :class="getOutputTypeClass(testCase)"
@@ -381,16 +453,38 @@
               <!-- Actions -->
               <div class="test-case-actions">
                 <button 
-                  @click="removeTestCase(index)" 
-                  class="remove-btn"
+                  class="remove-btn" 
+                  @click="removeTestCase(index)"
                 >
-                  <svg width="16" height="16" viewBox="0 0 16 16">
-                    <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
-                    <line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.5"/>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                  >
+                    <circle
+                      cx="8"
+                      cy="8"
+                      r="7"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    />
+                    <line
+                      x1="5"
+                      y1="8"
+                      x2="11"
+                      y2="8"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    />
                   </svg>
                 </button>
                 <!-- Status badge positioned under remove button -->
-                <div v-if="ui.testResults" class="status-badge" :class="getStatusClass(index)">
+                <div
+                  v-if="ui.testResults"
+                  class="status-badge"
+                  :class="getStatusClass(index)"
+                >
                   <div class="status-icon">
                     {{ getStatusText(index) }}
                   </div>
@@ -399,10 +493,18 @@
             </div>
             
             <!-- Error message directly below if exists -->
-            <div v-if="testCase.error" class="error-msg">{{ testCase.error }}</div>
+            <div
+              v-if="testCase.error"
+              class="error-msg"
+            >
+              {{ testCase.error }}
+            </div>
             
             <!-- Failure details directly below if failed -->
-            <div v-if="isTestFailed(index)" class="failure-msg">
+            <div
+              v-if="isTestFailed(index)"
+              class="failure-msg"
+            >
               Expected: {{ JSON.stringify(ui.testResults.results[index].expected_output) }} | 
               Got: {{ JSON.stringify(ui.testResults.results[index].actual_output) }}
               <span v-if="ui.testResults.results[index].error"> | Error: {{ ui.testResults.results[index].error }}</span>
@@ -444,29 +546,38 @@
         </div>
         
         <!-- Variable Fade Configuration -->
-        <div v-if="hintsTab === 'variable_fade'" class="hint-config-panel">
+        <div
+          v-if="hintsTab === 'variable_fade'"
+          class="hint-config-panel"
+        >
           <div class="hint-toggle">
             <label class="toggle-label">
               <input 
-                type="checkbox" 
-                v-model="hints.variable_fade.is_enabled"
+                v-model="hints.variable_fade.is_enabled" 
+                type="checkbox"
                 class="toggle-checkbox"
-              />
+              >
               <span class="toggle-text">Enable Variable Fade Hints</span>
             </label>
-            <div class="attempts-config" v-if="hints.variable_fade.is_enabled">
+            <div
+              v-if="hints.variable_fade.is_enabled"
+              class="attempts-config"
+            >
               <label>Min Attempts Required:</label>
               <input 
-                type="number" 
-                v-model.number="hints.variable_fade.min_attempts"
+                v-model.number="hints.variable_fade.min_attempts" 
+                type="number"
                 min="0"
                 max="10"
                 class="attempts-input"
-              />
+              >
             </div>
           </div>
           
-          <div v-if="hints.variable_fade.is_enabled" class="mappings-section">
+          <div
+            v-if="hints.variable_fade.is_enabled"
+            class="mappings-section"
+          >
             <h4>Variable Mappings</h4>
             <div class="mappings-list">
               <div 
@@ -479,18 +590,18 @@
                   placeholder="Original variable"
                   class="mapping-input"
                   @input="validateVariableName(mapping, 'from')"
-                />
+                >
                 <span class="mapping-arrow">→</span>
                 <input 
                   v-model="mapping.to"
                   placeholder="Replacement"
                   class="mapping-input"
                   @input="validateVariableName(mapping, 'to')"
-                />
+                >
                 <button 
                   type="button"
-                  @click="removeVariableMapping(index)"
                   class="remove-btn"
+                  @click="removeVariableMapping(index)"
                 >
                   ×
                 </button>
@@ -502,19 +613,19 @@
                 placeholder="Original variable"
                 class="mapping-input"
                 @keyup.enter="addVariableMapping"
-              />
+              >
               <span class="mapping-arrow">→</span>
               <input 
                 v-model="newVariableMapping.to"
                 placeholder="Replacement"
                 class="mapping-input"
                 @keyup.enter="addVariableMapping"
-              />
+              >
               <button 
                 type="button"
-                @click="addVariableMapping"
                 class="btn-secondary"
                 :disabled="!newVariableMapping.from || !newVariableMapping.to"
+                @click="addVariableMapping"
               >
                 Add Mapping
               </button>
@@ -523,29 +634,38 @@
         </div>
         
         <!-- Subgoal Highlighting Configuration -->
-        <div v-if="hintsTab === 'subgoal_highlight'" class="hint-config-panel">
+        <div
+          v-if="hintsTab === 'subgoal_highlight'"
+          class="hint-config-panel"
+        >
           <div class="hint-toggle">
             <label class="toggle-label">
               <input 
-                type="checkbox" 
-                v-model="hints.subgoal_highlight.is_enabled"
+                v-model="hints.subgoal_highlight.is_enabled" 
+                type="checkbox"
                 class="toggle-checkbox"
-              />
+              >
               <span class="toggle-text">Enable Subgoal Highlighting</span>
             </label>
-            <div class="attempts-config" v-if="hints.subgoal_highlight.is_enabled">
+            <div
+              v-if="hints.subgoal_highlight.is_enabled"
+              class="attempts-config"
+            >
               <label>Min Attempts Required:</label>
               <input 
-                type="number" 
-                v-model.number="hints.subgoal_highlight.min_attempts"
+                v-model.number="hints.subgoal_highlight.min_attempts" 
+                type="number"
                 min="0"
                 max="10"
                 class="attempts-input"
-              />
+              >
             </div>
           </div>
           
-          <div v-if="hints.subgoal_highlight.is_enabled" class="subgoals-section">
+          <div
+            v-if="hints.subgoal_highlight.is_enabled"
+            class="subgoals-section"
+          >
             <h4>Subgoals</h4>
             <div class="subgoals-list">
               <div 
@@ -558,11 +678,11 @@
                     v-model="subgoal.title"
                     placeholder="Subgoal title"
                     class="subgoal-title-input"
-                  />
+                  >
                   <button 
                     type="button"
-                    @click="removeSubgoal(index)"
                     class="remove-btn"
+                    @click="removeSubgoal(index)"
                   >
                     ×
                   </button>
@@ -570,27 +690,27 @@
                 <div class="subgoal-lines">
                   <label>Lines:</label>
                   <input 
-                    type="number"
                     v-model.number="subgoal.line_start"
+                    type="number"
                     min="1"
                     placeholder="Start"
                     class="line-input"
-                  />
+                  >
                   <span>to</span>
                   <input 
-                    type="number"
                     v-model.number="subgoal.line_end"
+                    type="number"
                     :min="subgoal.line_start"
                     placeholder="End"
                     class="line-input"
-                  />
+                  >
                 </div>
                 <textarea 
                   v-model="subgoal.explanation"
                   placeholder="Explanation of this subgoal"
                   rows="2"
                   class="subgoal-explanation"
-                ></textarea>
+                />
               </div>
             </div>
             <div class="add-subgoal">
@@ -599,36 +719,36 @@
                 v-model="newSubgoal.title"
                 placeholder="Subgoal title"
                 class="subgoal-title-input"
-              />
+              >
               <div class="subgoal-lines">
                 <label>Lines:</label>
                 <input 
-                  type="number"
                   v-model.number="newSubgoal.line_start"
+                  type="number"
                   min="1"
                   placeholder="Start"
                   class="line-input"
-                />
+                >
                 <span>to</span>
                 <input 
-                  type="number"
                   v-model.number="newSubgoal.line_end"
+                  type="number"
                   :min="newSubgoal.line_start"
                   placeholder="End"
                   class="line-input"
-                />
+                >
               </div>
               <textarea 
                 v-model="newSubgoal.explanation"
                 placeholder="Explanation of this subgoal"
                 rows="2"
                 class="subgoal-explanation"
-              ></textarea>
+              />
               <button 
                 type="button"
-                @click="addSubgoal"
                 class="btn-secondary"
                 :disabled="!newSubgoal.title || !newSubgoal.explanation"
+                @click="addSubgoal"
               >
                 Add Subgoal
               </button>
@@ -637,29 +757,38 @@
         </div>
         
         <!-- Suggested Trace Configuration -->
-        <div v-if="hintsTab === 'suggested_trace'" class="hint-config-panel">
+        <div
+          v-if="hintsTab === 'suggested_trace'"
+          class="hint-config-panel"
+        >
           <div class="hint-toggle">
             <label class="toggle-label">
               <input 
-                type="checkbox" 
-                v-model="hints.suggested_trace.is_enabled"
+                v-model="hints.suggested_trace.is_enabled" 
+                type="checkbox"
                 class="toggle-checkbox"
-              />
+              >
               <span class="toggle-text">Enable Suggested Trace</span>
             </label>
-            <div class="attempts-config" v-if="hints.suggested_trace.is_enabled">
+            <div
+              v-if="hints.suggested_trace.is_enabled"
+              class="attempts-config"
+            >
               <label>Min Attempts Required:</label>
               <input 
-                type="number" 
-                v-model.number="hints.suggested_trace.min_attempts"
+                v-model.number="hints.suggested_trace.min_attempts" 
+                type="number"
                 min="0"
                 max="10"
                 class="attempts-input"
-              />
+              >
             </div>
           </div>
           
-          <div v-if="hints.suggested_trace.is_enabled" class="suggested-trace-section">
+          <div
+            v-if="hints.suggested_trace.is_enabled"
+            class="suggested-trace-section"
+          >
             <h4>Configure Suggested Trace</h4>
             <p class="hint-description">
               Provide a function call that students can trace through Python Tutor to better understand the problem. 
@@ -673,19 +802,27 @@
               </label>
               <div class="input-with-preview">
                 <input 
-                  type="text"
                   v-model="hints.suggested_trace.content.suggested_call"
+                  type="text"
                   placeholder="e.g., function_name([1, 2, 3], 'example')"
                   class="form-input suggested-call-input"
                   @input="validateFunctionCall"
-                />
-                <div v-if="functionCallError" class="input-error">
+                >
+                <div
+                  v-if="functionCallError"
+                  class="input-error"
+                >
                   {{ functionCallError }}
                 </div>
               </div>
               <!-- Trace Preview (matches student view) -->
-              <div v-if="hints.suggested_trace.content.suggested_call && !functionCallError" class="trace-preview-section">
-                <div class="preview-label">Preview (as students will see it):</div>
+              <div
+                v-if="hints.suggested_trace.content.suggested_call && !functionCallError"
+                class="trace-preview-section"
+              >
+                <div class="preview-label">
+                  Preview (as students will see it):
+                </div>
                 <div class="suggested-trace">
                   <div class="trace-content">
                     <span class="trace-label">💡 Try tracing:</span>
@@ -693,8 +830,8 @@
                     <button 
                       v-if="form.reference_solution"
                       type="button"
-                      @click="previewInPyTutor"
                       class="trace-btn"
+                      @click="previewInPyTutor"
                     >
                       <span>🔍</span> Trace
                     </button>
@@ -702,11 +839,9 @@
                 </div>
               </div>
             </div>
-            
           </div>
         </div>
       </div>
-
     </form>
     
     <!-- Color picker popup (teleported to body) -->
@@ -730,9 +865,9 @@
                 class="color-option"
                 :class="{ active: newCategory.color === color.value }"
                 :style="{ backgroundColor: color.value }"
-                @click="selectColor(color.value)"
                 :title="color.name"
-              ></div>
+                @click="selectColor(color.value)"
+              />
             </div>
           </div>
         </div>
@@ -744,8 +879,8 @@
     
     <!-- Python Tutor Modal -->
     <PyTutorModal 
-      :isVisible="showPyTutorModal" 
-      :pythonTutorUrl="pyTutorUrl" 
+      :is-visible="showPyTutorModal" 
+      :python-tutor-url="pyTutorUrl" 
       @close="closePyTutor" 
     />
   </div>
@@ -758,14 +893,16 @@ import PyTutorModal from '@/modals/PyTutorModal.vue'
 import { problemService } from '../services/problemService'
 import { marked } from 'marked'
 import { PythonTutorService } from '@/services/pythonTutor.service'
+import { log } from '@/utils/logger'
+import { useNotification } from '@/composables/useNotification'
 import { 
-  parseTypeAnnotation,
-  validateValueAgainstType,
+  autoDetectAndConvert,
   autoDetectTypeFromInput,
   formatTypeSpec,
-  autoDetectAndConvert,
+  formatValueForInput,
   getPlaceholderForType,
-  formatValueForInput
+  parseTypeAnnotation,
+  validateValueAgainstType
 } from '@/utils/typeSystem'
 
 // Color options as static constant
@@ -901,16 +1038,16 @@ export default {
       return Boolean(this.currentProblemSlug)
     },
     canSave() {
-      if (this.ui.loading) return false;
+      if (this.ui.loading) {return false;}
       
       const title = (this.form.title || '').toString().trim();
       const functionName = (this.form.function_name || '').toString().trim();
       const referenceSolution = (this.form.reference_solution || '').toString().trim();
       
       // Check for validation errors
-      if (!title || !functionName || !referenceSolution) return false;
-      if (this.form.test_cases.length === 0) return false;
-      if (this.form.test_cases.some(tc => tc.error)) return false;
+      if (!title || !functionName || !referenceSolution) {return false;}
+      if (this.form.test_cases.length === 0) {return false;}
+      if (this.form.test_cases.some(tc => tc.error)) {return false;}
       
       return true;
     },
@@ -928,11 +1065,11 @@ export default {
       const functionName = (this.form.function_name || '').toString().trim();
       const referenceSolution = (this.form.reference_solution || '').toString().trim();
       
-      if (this.ui.loading) return "Currently loading...";
-      if (!functionName) return "Function name required";
-      if (!referenceSolution) return "Reference solution required";
-      if (this.form.test_cases.length === 0) return "Add at least one test case";
-      if (this.form.test_cases.some(tc => tc.error)) return "Fix test case errors first";
+      if (this.ui.loading) {return "Currently loading...";}
+      if (!functionName) {return "Function name required";}
+      if (!referenceSolution) {return "Reference solution required";}
+      if (this.form.test_cases.length === 0) {return "Add at least one test case";}
+      if (this.form.test_cases.some(tc => tc.error)) {return "Fix test case errors first";}
       return null; // Can test
     },
     tagsDisplay() {
@@ -953,29 +1090,10 @@ export default {
       try {
         return marked(this.form.description);
       } catch (error) {
-        console.error('Error rendering markdown:', error);
+        log.error('Error rendering markdown', error);
         return '<p class="error">Error rendering markdown. Please check your syntax.</p>';
       }
     },
-  },
-  async mounted() {
-    // Configure ACE editor base path
-    if (window.ace) {
-      window.ace.config.set('basePath', 'https://cdn.jsdelivr.net/npm/ace-builds@1.15.0/src-noconflict/');
-    }
-    
-    try {
-      await Promise.all([
-        this.loadCategories()
-        // Don't call loadProblem here as the watcher will handle it
-        // Removed automatic test case creation for new problems
-      ]);
-      
-      // Parse function signature if available
-      this.parseFunctionSignature();
-    } catch (error) {
-      this.$toast?.error?.('Failed to load data');
-    }
   },
   
   // Add watcher for route changes
@@ -1009,7 +1127,7 @@ export default {
     'ui.testResults': {
       deep: true,
       handler(newVal, oldVal) {
-        console.log('📊 Test results changed:', {
+        log.debug('Test results changed', {
           old: oldVal,
           new: newVal,
           hasResults: !!newVal,
@@ -1020,10 +1138,34 @@ export default {
     
     // Debug: Watch loading state
     'ui.loading'(newVal, oldVal) {
-      console.log('⏳ Loading state changed:', {
+      log.debug('Loading state changed', {
         old: oldVal,
         new: newVal
       });
+    }
+  },
+  created() {
+    // Set up notification
+    const { notify } = useNotification();
+    this.notify = notify;
+  },
+  async mounted() {
+    // Configure ACE editor base path
+    if (window.ace) {
+      window.ace.config.set('basePath', 'https://cdn.jsdelivr.net/npm/ace-builds@1.15.0/src-noconflict/');
+    }
+    
+    try {
+      await Promise.all([
+        this.loadCategories()
+        // Don't call loadProblem here as the watcher will handle it
+        // Removed automatic test case creation for new problems
+      ]);
+      
+      // Parse function signature if available
+      this.parseFunctionSignature();
+    } catch (error) {
+      this.notify.error('Failed to load data');
     }
   },
   
@@ -1038,32 +1180,33 @@ export default {
   },
   methods: {
     async executeAction(actionName, actionFn, successMsg = null) {
-      console.log(`🎬 executeAction started: ${actionName}`, {
+      log.debug('Execute action started', {
+        actionName,
         currentLoading: this.ui.loading,
-        hasToast: !!this.$toast
+        hasNotify: !!this.notify
       });
       
       if (this.ui.loading) {
-        console.log('⚠️ Already loading, skipping action');
+        log.debug('Already loading, skipping action');
         return;
       }
       
       this.ui.loading = true;
       this.ui.error = null;
-      console.log('✅ Set loading to true');
+      log.debug('Set loading to true');
       
       try {
-        console.log(`🏃 Running ${actionName}...`);
+        log.debug('Running action', { actionName });
         const result = await actionFn();
-        console.log(`✅ ${actionName} completed successfully`, result);
+        log.info('Action completed successfully', { actionName, result });
         
         if (successMsg) {
-          console.log('📢 Showing success toast:', successMsg);
-          this.$toast?.success?.(successMsg);
+          log.debug('Showing success toast', { successMsg });
+          this.notify.success(successMsg);
         }
         return result;
       } catch (error) {
-        console.error(`❌ ${actionName} failed:`, error);
+        log.error('Action failed', { actionName, error });
         
         // Better error message extraction
         let errorMsg = `Failed to ${actionName}`;
@@ -1081,15 +1224,15 @@ export default {
         }
         
         this.ui.error = errorMsg;
-        console.log('📢 Showing error toast:', errorMsg);
-        this.$toast?.error?.(errorMsg);
+        log.info('Showing error toast', { errorMsg });
+        this.notify.error(errorMsg);
         throw error;
       } finally {
         this.ui.loading = false;
-        console.log('✅ Set loading to false');
+        log.debug('Set loading to false');
         // Force UI update to ensure loading state change is reflected
         this.$nextTick(() => {
-          console.log('🔄 Force update after loading state change');
+          log.debug('Force update after loading state change');
           this.$forceUpdate();
         });
       }
@@ -1173,7 +1316,7 @@ export default {
     },
     
     expandBean() {
-      if (this.isTransitioning) return;
+      if (this.isTransitioning) {return;}
       
       this.isTransitioning = true;
       this.categoryError = null;
@@ -1211,7 +1354,7 @@ export default {
     },
     
     collapseBean() {
-      if (this.isTransitioning) return;
+      if (this.isTransitioning) {return;}
       
       this.isTransitioning = true;
       this.showColorPicker = false;
@@ -1364,7 +1507,7 @@ export default {
     
     
     async testProblem() {
-      console.log('🔍 testProblem() called', {
+      log.debug('testProblem() called', {
         canTest: this.canTest,
         canTestReason: this.canTestReason,
         testCasesCount: this.form.test_cases.length,
@@ -1375,36 +1518,36 @@ export default {
       if (!this.canTest) {
         // Show specific reason instead of generic warning
         const reason = this.canTestReason || 'Cannot test problem in current state';
-        console.log('❌ Cannot test:', reason);
-        this.$toast?.warning?.(reason);
+        log.info('Cannot test', { reason });
+        this.notify.warning(reason);
         return;
       }
       
       // Validate test cases for errors
       for (let i = 0; i < this.form.test_cases.length; i++) {
         if (this.form.test_cases[i].error) {
-          console.log(`❌ Test case ${i + 1} has error:`, this.form.test_cases[i].error);
-          this.$toast?.error?.(`Please fix errors in test case ${i + 1}`);
+          log.warn(`Test case ${i + 1} has error`, { error: this.form.test_cases[i].error });
+          this.notify.error(`Please fix errors in test case ${i + 1}`);
           return;
         }
       }
       
       // Clear previous results
       this.ui.testResults = null;
-      console.log('🧹 Cleared previous test results');
+      log.debug('Cleared previous test results');
       
       // Show immediate feedback
-      this.$toast?.info?.('Running tests...');
+      this.notify.info('Running tests...');
       
       await this.executeAction('test problem', async () => {
-        console.log('🚀 Starting test execution');
+        log.info('Starting test execution');
         
         // Convert string test cases to backend format
         const validTestCases = this.form.test_cases.filter(tc => !tc.error);
-        console.log('✅ Valid test cases:', validTestCases.length);
+        log.debug('Valid test cases', { count: validTestCases.length });
         
         const convertedTestCases = this.convertTestCasesForBackend(validTestCases);
-        console.log('🔄 Converted test cases:', convertedTestCases);
+        log.debug('Converted test cases', { testCases: convertedTestCases });
         
         const testData = {
           title: this.form.title,
@@ -1414,27 +1557,27 @@ export default {
           test_cases: convertedTestCases
         };
         
-        console.log('📦 Test data being sent:', {
+        log.debug('Test data being sent', {
           ...testData,
           reference_solution: testData.reference_solution.substring(0, 50) + '...'
         });
         
         // Check if we have any test cases to test
         if (!testData.test_cases || testData.test_cases.length === 0) {
-          console.log('❌ No valid test cases found');
+          log.error('No valid test cases found');
           throw new Error('No valid test cases found. Please add test cases with inputs and expected outputs.');
         }
         
-        console.log('📡 Calling problemService.testProblem()...');
+        log.debug('Calling problemService.testProblem()');
         const startTime = Date.now();
         
         try {
           this.ui.testResults = await problemService.testProblem(testData);
           const elapsed = Date.now() - startTime;
-          console.log(`✅ Test results received in ${elapsed}ms:`, this.ui.testResults);
+          log.info(`Test results received in ${elapsed}ms`, { results: this.ui.testResults });
           
           // Debug: Log the full response structure
-          console.log('📋 Full test results structure:', {
+          log.debug('Full test results structure', {
             success: this.ui.testResults.success,
             passed: this.ui.testResults.passed,
             total: this.ui.testResults.total,
@@ -1447,7 +1590,7 @@ export default {
           // Temporary fix: If results array is empty but we have test counts,
           // create placeholder results to show visual feedback
           if ((!this.ui.testResults.results || this.ui.testResults.results.length === 0) && this.ui.testResults.total > 0) {
-            console.warn('⚠️ Backend returned empty results array, creating placeholders');
+            log.warn('Backend returned empty results array, creating placeholders');
             
             // Check for function name mismatch
             const functionNameInProblem = this.form.function_name;
@@ -1459,7 +1602,7 @@ export default {
             
             if (functionNameInSolution && functionNameInProblem !== functionNameInSolution) {
               errorMessage = `Function name mismatch: Problem expects '${functionNameInProblem}' but solution defines '${functionNameInSolution}'`;
-              console.error(`❌ ${errorMessage}`);
+              log.error(errorMessage);
             }
             
             this.ui.testResults.results = [];
@@ -1475,7 +1618,7 @@ export default {
             }
           }
         } catch (error) {
-          console.error('❌ API call failed:', error);
+          log.error('API call failed', error);
           throw error;
         }
         
@@ -1485,7 +1628,7 @@ export default {
         const passed = this.ui.testResults.passed || 0;
         const total = this.ui.testResults.total || 0;
         
-        console.log(`📊 Test results: ${passed}/${total} passed`);
+        log.info(`Test results: ${passed}/${total} passed`);
         
         if (this.ui.testResults.success && passed === total) {
           return 'All tests passed! ✓';
@@ -1498,7 +1641,7 @@ export default {
     
     async saveProblem() {
       if (!this.canSave) {
-        this.$toast?.error?.('Please fix validation errors before saving');
+        this.notify.error('Please fix validation errors before saving');
         return;
       }
       
@@ -1506,8 +1649,8 @@ export default {
         // Convert string test cases to backend format
         const validTestCases = this.form.test_cases.filter(tc => {
           // Filter out test cases with errors or missing required fields
-          if (tc.error) return false;
-          if (!Array.isArray(tc.inputs)) return false;
+          if (tc.error) {return false;}
+          if (!Array.isArray(tc.inputs)) {return false;}
           const hasValidInput = tc.inputs.some(input => input && String(input).trim());
           const hasValidOutput = tc.expected_output != null && String(tc.expected_output).trim();
           return hasValidInput || hasValidOutput;
@@ -1585,7 +1728,7 @@ export default {
         const hintsArray = Object.values(this.hints);
         await problemService.updateHints(this.currentProblemSlug, hintsArray);
       } catch (error) {
-        console.error('Failed to save hints:', error);
+        log.error('Failed to save hints', error);
         // Don't throw - hints are optional functionality
       }
     },
@@ -1594,7 +1737,7 @@ export default {
      * Load hints configuration for existing problem
      */
     async loadHints() {
-      if (!this.currentProblemSlug) return;
+      if (!this.currentProblemSlug) {return;}
       
       try {
         const hintsData = await problemService.getProblemHints(this.currentProblemSlug);
@@ -1606,7 +1749,7 @@ export default {
           }
         });
       } catch (error) {
-        console.error('Failed to load hints:', error);
+        log.error('Failed to load hints', error);
         // Don't throw - hints are optional functionality
       }
     },
@@ -1615,7 +1758,7 @@ export default {
      * Add variable mapping
      */
     addVariableMapping() {
-      if (!this.newVariableMapping.from || !this.newVariableMapping.to) return;
+      if (!this.newVariableMapping.from || !this.newVariableMapping.to) {return;}
       
       this.hints.variable_fade.content.mappings.push({
         from: this.newVariableMapping.from,
@@ -1630,21 +1773,21 @@ export default {
      * Format value for preview display
      */
     formatPreviewValue(value) {
-      if (value === null || value === undefined) return 'None';
+      if (value === null || value === undefined) {return 'None';}
       if (typeof value === 'string') {
         // Truncate long strings
         const truncated = value.length > 20 ? value.substring(0, 17) + '...' : value;
         return `"${truncated}"`;
       }
       if (Array.isArray(value)) {
-        if (value.length === 0) return '[]';
-        if (value.length > 3) return `[${value.slice(0, 3).map(v => this.formatPreviewValue(v)).join(', ')}, ...]`;
+        if (value.length === 0) {return '[]';}
+        if (value.length > 3) {return `[${value.slice(0, 3).map(v => this.formatPreviewValue(v)).join(', ')}, ...]`;}
         return `[${value.map(v => this.formatPreviewValue(v)).join(', ')}]`;
       }
       if (typeof value === 'object') {
         const keys = Object.keys(value);
-        if (keys.length === 0) return '{}';
-        if (keys.length > 2) return `{${keys.slice(0, 2).join(', ')}, ...}`;
+        if (keys.length === 0) {return '{}';}
+        if (keys.length > 2) {return `{${keys.slice(0, 2).join(', ')}, ...}`;}
         return JSON.stringify(value);
       }
       return String(value);
@@ -1665,7 +1808,7 @@ export default {
       const isValid = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value);
       
       if (!isValid && value) {
-        this.$toast?.warning?.(`Invalid variable name: ${value}. Must start with letter or underscore.`);
+        this.notify.warning(`Invalid variable name: ${value}. Must start with letter or underscore.`);
       }
     },
     
@@ -1673,7 +1816,7 @@ export default {
      * Add subgoal
      */
     addSubgoal() {
-      if (!this.newSubgoal.title || !this.newSubgoal.explanation) return;
+      if (!this.newSubgoal.title || !this.newSubgoal.explanation) {return;}
       
       this.hints.subgoal_highlight.content.subgoals.push({
         line_start: this.newSubgoal.line_start,
@@ -1728,8 +1871,8 @@ export default {
         }
         
         if (!inString) {
-          if (char === '(') parenCount++;
-          if (char === ')') parenCount--;
+          if (char === '(') {parenCount++;}
+          if (char === ')') {parenCount--;}
           if (parenCount < 0) {
             this.functionCallError = 'Unmatched closing parenthesis';
             return;
@@ -1762,7 +1905,7 @@ export default {
     // Python Tutor preview methods
     previewInPyTutor() {
       if (!this.form.reference_solution || !this.hints.suggested_trace.content.suggested_call) {
-        this.$toast.warning('Please provide both a reference solution and a suggested call');
+        this.notify.warning('Please provide both a reference solution and a suggested call');
         return;
       }
       
@@ -1852,8 +1995,8 @@ export default {
      * Get status class for test case
      */
     getStatusClass(index) {
-      if (this.isTestPassed(index)) return 'passed';
-      if (this.isTestFailed(index)) return 'failed';
+      if (this.isTestPassed(index)) {return 'passed';}
+      if (this.isTestFailed(index)) {return 'failed';}
       return '';
     },
     
@@ -1861,8 +2004,8 @@ export default {
      * Get status text for test case
      */
     getStatusText(index) {
-      if (this.isTestPassed(index)) return '✓';
-      if (this.isTestFailed(index)) return '✗';
+      if (this.isTestPassed(index)) {return '✓';}
+      if (this.isTestFailed(index)) {return '✗';}
       return '';
     },
     
@@ -1904,7 +2047,7 @@ export default {
      * Parse parameter string into parameter objects
      */
     parseParameters(paramsStr) {
-      if (!paramsStr.trim()) return [];
+      if (!paramsStr.trim()) {return [];}
       
       const params = [];
       
@@ -2023,18 +2166,18 @@ export default {
      * Get CSS class for type badge
      */
     getTypeClass(detectedType, hasError = false) {
-      if (hasError) return 'type-error';
+      if (hasError) {return 'type-error';}
       
       // Extract base type from complex annotations like "Dict[int, List[str]]"
       const baseType = detectedType.toLowerCase().split('[')[0];
       
-      if (['int', 'float'].includes(baseType)) return 'type-number';
-      if (baseType === 'str') return 'type-string';
-      if (baseType === 'bool') return 'type-boolean';
-      if (['list', 'dict', 'tuple', 'set'].includes(baseType)) return 'type-collection';
-      if (baseType === 'none') return 'type-none';
-      if (baseType === 'invalid') return 'type-invalid';
-      if (baseType === 'optional') return 'type-optional';
+      if (['int', 'float'].includes(baseType)) {return 'type-number';}
+      if (baseType === 'str') {return 'type-string';}
+      if (baseType === 'bool') {return 'type-boolean';}
+      if (['list', 'dict', 'tuple', 'set'].includes(baseType)) {return 'type-collection';}
+      if (baseType === 'none') {return 'type-none';}
+      if (baseType === 'invalid') {return 'type-invalid';}
+      if (baseType === 'optional') {return 'type-optional';}
       
       return 'type-any';
     },
@@ -2057,7 +2200,7 @@ export default {
       const expectedType = this.functionParameters[paramIndex]?.type || 'Any';
       const error = this.getParameterValidationError(testCase, paramIndex);
       
-      if (error) return error;
+      if (error) {return error;}
       return `Detected: ${detectedType} | Expected: ${expectedType}`;
     },
     
@@ -2137,7 +2280,7 @@ export default {
       const expectedType = this.getReturnType();
       const error = this.getOutputValidationError(testCase);
       
-      if (error) return error;
+      if (error) {return error;}
       return `Detected: ${detectedType} | Expected: ${expectedType}`;
     },
     

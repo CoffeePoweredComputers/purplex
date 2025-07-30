@@ -3,10 +3,11 @@ import './style.css'
 import App from './App.vue'
 import axios from "axios";
 import { firebaseAuth } from './firebaseConfig'
-import { onAuthStateChanged, getIdToken } from 'firebase/auth'
+import { getIdToken, onAuthStateChanged } from 'firebase/auth'
 
 import router from "./router";
 import store from "./store";
+import { log } from './utils/logger';
 
 //import { FontAwesomeIcon } from './plugins/font-awesome'
 
@@ -25,7 +26,7 @@ axios.interceptors.request.use(async (config) => {
       const token = await getIdToken(firebaseAuth.currentUser);
       config.headers.Authorization = `Bearer ${token}`;
     } catch (error) {
-      console.error('Error getting Firebase token:', error);
+      log.error('Error getting Firebase token', error);
     }
   }
   return config;

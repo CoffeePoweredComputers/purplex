@@ -2,25 +2,42 @@
   <div>
     <AdminNavBar />
     <div class="admin-problems container">
-      <h1 class="page-title">Problems Management</h1>
+      <h1 class="page-title">
+        Problems Management
+      </h1>
       
       <div class="status-container">
-        <div class="loading-indicator" v-if="loading">
+        <div
+          v-if="loading"
+          class="loading-indicator"
+        >
           Loading problems...
         </div>
         
-        <div class="error-message" v-if="error">
+        <div
+          v-if="error"
+          class="error-message"
+        >
           {{ error }}
         </div>
       </div>
       
-      <div class="controls-container" v-if="!loading && !error">
-        <button class="action-button add-button" @click="createNewProblem">
+      <div
+        v-if="!loading && !error"
+        class="controls-container"
+      >
+        <button
+          class="action-button add-button"
+          @click="createNewProblem"
+        >
           Add New Problem
         </button>
       </div>
       
-      <div class="table-responsive" v-if="!loading && !error">
+      <div
+        v-if="!loading && !error"
+        class="table-responsive"
+      >
         <table class="problems-table">
           <thead>
             <tr>
@@ -32,24 +49,39 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="problem in problems" :key="problem.slug">
+            <tr
+              v-for="problem in problems"
+              :key="problem.slug"
+            >
               <td>
-                <span class="type-badge" :class="problemTypeClass(problem.problem_type)">
+                <span
+                  class="type-badge"
+                  :class="problemTypeClass(problem.problem_type)"
+                >
                   {{ getProblemTypeLabel(problem.problem_type) }}
                 </span>
               </td>
               <td>{{ problem.title }}</td>
               <td>
-                <span class="badge" :class="difficultyClass(problem.difficulty)">
+                <span
+                  class="badge"
+                  :class="difficultyClass(problem.difficulty)"
+                >
                   {{ problem.difficulty }}
                 </span>
               </td>
               <td>{{ getProblemSetNames(problem) }}</td>
               <td class="actions-cell">
-                <button class="action-button edit-button" @click="editProblem(problem.slug)">
+                <button
+                  class="action-button edit-button"
+                  @click="editProblem(problem.slug)"
+                >
                   Edit
                 </button>
-                <button class="action-button delete-button" @click="confirmDelete(problem)">
+                <button
+                  class="action-button delete-button"
+                  @click="confirmDelete(problem)"
+                >
                   Delete
                 </button>
               </td>
@@ -58,8 +90,6 @@
         </table>
       </div>
     </div>
-
-
   </div>
 </template>
 
@@ -67,6 +97,7 @@
 import { mapGetters } from 'vuex';
 import axios from 'axios';
 import AdminNavBar from './AdminNavBar.vue';
+import { log } from '@/utils/logger';
 
 export default {
   name: 'AdminProblems',
@@ -98,16 +129,18 @@ export default {
     async fetchProblems() {
       try {
         this.loading = true;
-        console.log('Fetching problems from /api/admin/problems/...');
+        log.debug('Fetching problems from /api/admin/problems/');
         const response = await axios.get('/api/admin/problems/');
-        console.log('Problems fetched successfully:', response.data);
+        log.debug('Problems fetched successfully', { count: response.data.length });
         this.problems = response.data;
         this.loading = false;
       } catch (error) {
-        console.error('Full error object:', error);
-        console.error('Error response:', error.response);
-        console.error('Error status:', error.response?.status);
-        console.error('Error data:', error.response?.data);
+        log.error('Failed to fetch problems', {
+          error,
+          response: error.response,
+          status: error.response?.status,
+          data: error.response?.data
+        });
         
         let errorMessage = 'Failed to load problems. ';
         if (error.response) {

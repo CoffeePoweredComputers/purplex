@@ -1,9 +1,18 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
+  <div
+    v-if="visible"
+    class="modal-overlay"
+    @click.self="$emit('close')"
+  >
     <div class="modal-content">
       <div class="modal-header">
         <h2>Students in {{ course.name }}</h2>
-        <button @click="$emit('close')" class="close-btn">×</button>
+        <button
+          class="close-btn"
+          @click="$emit('close')"
+        >
+          ×
+        </button>
       </div>
       
       <div class="modal-body">
@@ -13,16 +22,25 @@
           </p>
         </div>
         
-        <div v-if="loading" class="loading-container">
-          <div class="loading-spinner"></div>
+        <div
+          v-if="loading"
+          class="loading-container"
+        >
+          <div class="loading-spinner" />
           <p>Loading students...</p>
         </div>
         
-        <div v-else-if="students.length === 0" class="empty-state">
+        <div
+          v-else-if="students.length === 0"
+          class="empty-state"
+        >
           <p>No students enrolled in this course yet.</p>
         </div>
         
-        <table v-else class="students-table">
+        <table
+          v-else
+          class="students-table"
+        >
           <thead>
             <tr>
               <th>Name</th>
@@ -33,11 +51,16 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="student in students" :key="student.user.id">
+            <tr
+              v-for="student in students"
+              :key="student.user.id"
+            >
               <td>
                 {{ getStudentName(student.user) }}
               </td>
-              <td class="email">{{ student.user.email }}</td>
+              <td class="email">
+                {{ student.user.email }}
+              </td>
               <td>{{ formatDate(student.enrolled_at) }}</td>
               <td class="progress-cell">
                 <div class="progress-info">
@@ -45,7 +68,7 @@
                     <div 
                       class="progress-fill" 
                       :style="{ width: student.progress.completion_percentage + '%' }"
-                    ></div>
+                    />
                   </div>
                   <span class="progress-text">
                     {{ student.progress.completed_problem_sets }} / {{ student.progress.total_problem_sets }}
@@ -54,9 +77,9 @@
               </td>
               <td>
                 <button 
-                  @click="removeStudent(student)"
                   class="remove-btn"
                   title="Remove from course"
+                  @click="removeStudent(student)"
                 >
                   Remove
                 </button>
@@ -67,7 +90,10 @@
       </div>
       
       <div class="modal-footer">
-        <button @click="$emit('close')" class="close-modal-btn">
+        <button
+          class="close-modal-btn"
+          @click="$emit('close')"
+        >
           Done
         </button>
       </div>
@@ -79,6 +105,7 @@
 import { ref, watch } from 'vue'
 import axios from 'axios'
 import { useNotification } from '@/composables/useNotification'
+import { log } from '@/utils/logger'
 
 export default {
   name: 'AdminCourseStudentsModal',
@@ -108,7 +135,7 @@ export default {
         students.value = response.data
       } catch (error) {
         notify.error('Error', 'Failed to load students')
-        console.error('Error fetching students:', error)
+        log.error('Error fetching students', { error, courseId: props.course.course_id })
       } finally {
         loading.value = false
       }

@@ -1,31 +1,69 @@
 <template>
   <div id="login-form">
     <form>
-
       <div class="form-field">
-        <label for="email" class="field-label">
+        <label
+          for="email"
+          class="field-label"
+        >
           <span class="label-text">Email Address</span>
           <span class="label-subtitle">Use your work or personal email</span>
         </label>
-        <input v-model="email" type="email" placeholder="you@example.com" id="email" name="email" required />
+        <input
+          id="email"
+          v-model="email"
+          type="email"
+          placeholder="you@example.com"
+          name="email"
+          required
+        >
       </div>
 
       <div class="form-field">
-        <label for="psw" class="field-label">
+        <label
+          for="psw"
+          class="field-label"
+        >
           <span class="label-text">Password</span>
           <span class="label-subtitle">Must be at least 6 characters</span>
         </label>
-        <input v-model="password" type="password" placeholder="Enter your password" id="psw" name="psw" required />
+        <input
+          id="psw"
+          v-model="password"
+          type="password"
+          placeholder="Enter your password"
+          name="psw"
+          required
+        >
       </div>
 
       <div class="login-btns">
-        <button type="button" @click="login">Login</button>
-        <button type="button" @click="createAccount">New Account</button>
-        <button type="button" @click="loginWithGoogle">Login with Google</button>
+        <button
+          type="button"
+          @click="login"
+        >
+          Login
+        </button>
+        <button
+          type="button"
+          @click="createAccount"
+        >
+          New Account
+        </button>
+        <button
+          type="button"
+          @click="loginWithGoogle"
+        >
+          Login with Google
+        </button>
       </div>
 
-      <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-
+      <div
+        v-if="errorMessage"
+        class="error-message"
+      >
+        {{ errorMessage }}
+      </div>
     </form>
   </div>
 </template>
