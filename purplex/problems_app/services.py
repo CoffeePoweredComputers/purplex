@@ -263,6 +263,313 @@ def {problem.function_name}(...):
                 'variations': []
             }
 
+
+class SegmentationService:
+    """Service for prompt segmentation analysis using GPT-4"""
+    
+    # Few-shot examples for consistent segmentation analysis
+    SEGMENTATION_EXAMPLES = {
+        'relational': {
+            'prompt': 'The function checks if a word is a palindrome by comparing it with its reverse',
+            'segments': [
+                'checks if a word is a palindrome by comparing it with its reverse'
+            ],
+            'code_lines': [[1, 2, 3, 4, 5]],  # Maps to entire function
+            'explanation': 'Single high-level segment describing overall purpose'
+        },
+        'transitional': {
+            'prompt': 'First it converts the string to lowercase, then it reverses the string, finally it compares them to check if equal',
+            'segments': [
+                'converts the string to lowercase',
+                'reverses the string', 
+                'compares them to check if equal'
+            ],
+            'code_lines': [[1, 2], [3, 4], [5]],  # Maps to logical code blocks
+            'explanation': '3 segments showing major logical steps'
+        },
+        'multi_structural': {
+            'prompt': 'It starts by taking the input string. Then it converts each character to lowercase. After that it creates a new empty string. It loops through each character from the end. It adds each character to the new string. Finally it checks if the original and reversed strings are equal.',
+            'segments': [
+                'takes the input string',
+                'converts each character to lowercase', 
+                'creates a new empty string',
+                'loops through each character from the end',
+                'adds each character to the new string',
+                'checks if the original and reversed strings are equal'
+            ],
+            'code_lines': [[1], [2], [3], [4], [4], [5]],  # Line-by-line mapping
+            'explanation': '6+ segments with detailed line-by-line description'
+        }
+    }
+    
+    def __init__(self):
+        self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        if self.openai_api_key:
+            import openai
+            self.client = openai.OpenAI(api_key=self.openai_api_key)
+        else:
+            self.client = None
+    
+    def segment_prompt(self, user_prompt: str, reference_code: str, problem_config: dict = None) -> dict:
+        """
+        Segment user prompt and map to code lines using GPT-4
+        
+        Args:
+            user_prompt: User's explanation of the code
+            reference_code: Reference solution code
+            problem_config: Problem-specific segmentation configuration
+            
+        Returns:
+            {
+                'success': bool,
+                'segments': [{'id': int, 'text': str, 'code_lines': [int]}],
+                'segment_count': int,
+                'comprehension_level': str,
+                'feedback': str,
+                'processing_time': float,
+                'error': str (if failed)
+            }
+        """
+        import time
+        start_time = time.time()
+        
+        if not self.client:
+            return {
+                'success': False,
+                'error': 'OpenAI API key not configured',
+                'segments': [],
+                'segment_count': 0,
+                'comprehension_level': 'unknown',
+                'feedback': '',
+                'processing_time': 0.0
+            }
+        
+        try:
+            # Get configuration values
+            config = problem_config or {}
+            threshold = config.get('threshold', 2)
+            custom_examples = config.get('examples', {})
+            
+            # Create segmentation prompt with few-shot examples
+            system_prompt = self._create_segmentation_prompt(reference_code, custom_examples)
+            
+            # Make API call to GPT-4
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",  # Using same model as AI service for consistency
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Please analyze this prompt: {user_prompt}"}
+                ],
+                temperature=0.3,  # Lower temperature for more consistent analysis
+                max_tokens=1500
+            )
+            
+            content = response.choices[0].message.content
+            
+            # Parse the response into structured segments
+            segments_data = self._parse_segments(content, reference_code)
+            
+            if not segments_data['success']:
+                return {
+                    'success': False,
+                    'error': segments_data['error'],
+                    'segments': [],
+                    'segment_count': 0,
+                    'comprehension_level': 'unknown',
+                    'feedback': '',
+                    'processing_time': time.time() - start_time
+                }
+            
+            segments = segments_data['segments']
+            segment_count = len(segments)
+            
+            # Determine comprehension level and feedback
+            level, feedback = self._determine_comprehension_level(segment_count, threshold, config)
+            
+            return {
+                'success': True,
+                'segments': segments,
+                'segment_count': segment_count,
+                'comprehension_level': level,
+                'feedback': feedback,
+                'processing_time': time.time() - start_time,
+                'error': None
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'segments': [],
+                'segment_count': 0,
+                'comprehension_level': 'unknown',
+                'feedback': '',
+                'processing_time': time.time() - start_time
+            }
+    
+    def _create_segmentation_prompt(self, reference_code: str, custom_examples: dict = None) -> str:
+        """Build few-shot prompt with examples for consistent segmentation"""
+        
+        # Use custom examples if provided, otherwise use defaults
+        examples = custom_examples if custom_examples else self.SEGMENTATION_EXAMPLES
+        
+        prompt = """You are an expert at analyzing student explanations of code. Your task is to:
+
+1. Segment the student's explanation into distinct semantic units
+2. Map each segment to the relevant lines of code
+3. Classify the explanation type
+
+REFERENCE CODE:
+```python
+{}
+```
+
+SEGMENTATION EXAMPLES:
+
+RELATIONAL (High-level, 1-2 segments):
+Student prompt: "{}"
+Segments:
+{}
+
+TRANSITIONAL (Medium-level, 2-3 segments):  
+Student prompt: "{}"
+Segments:
+{}
+
+MULTI-STRUCTURAL (Line-by-line, 4+ segments):
+Student prompt: "{}"
+Segments:
+{}
+
+INSTRUCTIONS:
+- Segment the student explanation into meaningful semantic units
+- Each segment should represent a distinct concept or action
+- Map segments to code lines (1-indexed)
+- Remove any segments that just describe function definition/signature
+- Return your analysis as JSON in this exact format:
+
+{{
+    "segments": [
+        {{"id": 1, "text": "segment text here", "code_lines": [1, 2, 3]}},
+        {{"id": 2, "text": "another segment", "code_lines": [4, 5]}}
+    ]
+}}
+
+Be precise and consistent in your segmentation.""".format(
+            reference_code,
+            examples['relational']['prompt'],
+            self._format_example_segments(examples['relational']['segments'], examples['relational']['code_lines']),
+            examples['transitional']['prompt'], 
+            self._format_example_segments(examples['transitional']['segments'], examples['transitional']['code_lines']),
+            examples['multi_structural']['prompt'],
+            self._format_example_segments(examples['multi_structural']['segments'], examples['multi_structural']['code_lines'])
+        )
+        
+        return prompt
+    
+    def _format_example_segments(self, segments: list, code_lines: list) -> str:
+        """Format example segments for the prompt"""
+        formatted = []
+        for i, (segment, lines) in enumerate(zip(segments, code_lines)):
+            formatted.append(f'  {i+1}. "{segment}" -> lines {lines}')
+        return '\n'.join(formatted)
+    
+    def _parse_segments(self, ai_response: str, reference_code: str) -> dict:
+        """Parse AI response into structured segments"""
+        try:
+            import re
+            import json
+            
+            # Extract JSON from response
+            json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
+            if not json_match:
+                return {'success': False, 'error': 'No JSON found in response', 'segments': []}
+            
+            json_str = json_match.group(0)
+            parsed_data = json.loads(json_str)
+            
+            segments = parsed_data.get('segments', [])
+            if not segments:
+                return {'success': False, 'error': 'No segments found in response', 'segments': []}
+            
+            # Validate and clean segments
+            valid_segments = []
+            code_lines = reference_code.split('\n')
+            max_line = len(code_lines)
+            
+            for segment in segments:
+                if not isinstance(segment, dict):
+                    continue
+                    
+                text = segment.get('text', '').strip()
+                lines = segment.get('code_lines', [])
+                
+                if not text or not lines:
+                    continue
+                
+                # Filter out function definition segments
+                if self._is_function_definition_segment(text):
+                    continue
+                
+                # Validate and clamp code lines
+                valid_lines = [line for line in lines if isinstance(line, int) and 1 <= line <= max_line]
+                if not valid_lines:
+                    valid_lines = [1]  # Default to first line if no valid lines
+                
+                valid_segments.append({
+                    'id': len(valid_segments) + 1,
+                    'text': text,
+                    'code_lines': sorted(valid_lines)
+                })
+            
+            return {'success': True, 'segments': valid_segments, 'error': None}
+            
+        except json.JSONDecodeError as e:
+            return {'success': False, 'error': f'JSON parsing error: {str(e)}', 'segments': []}
+        except Exception as e:
+            return {'success': False, 'error': f'Parsing error: {str(e)}', 'segments': []}
+    
+    def _is_function_definition_segment(self, text: str) -> bool:
+        """Check if segment just describes function definition/signature"""
+        definition_keywords = [
+            'function takes', 'function accepts', 'function has parameters',
+            'takes a parameter', 'takes an argument', 'function definition',
+            'defines a function', 'function signature', 'function called'
+        ]
+        text_lower = text.lower()
+        return any(keyword in text_lower for keyword in definition_keywords)
+    
+    def _determine_comprehension_level(self, segment_count: int, threshold: int = 2, config: dict = None) -> tuple:
+        """
+        Classify comprehension level based on segment count
+        
+        Args:
+            segment_count: Number of segments identified
+            threshold: Threshold for relational vs multi-structural (default: 2)
+            config: Problem configuration with custom feedback messages
+            
+        Returns:
+            (level, feedback_message)
+        """
+        config = config or {}
+        custom_feedback = config.get('feedback_messages', {})
+        
+        if segment_count <= threshold:
+            level = 'relational'
+            feedback = custom_feedback.get('relational', 
+                'Excellent! You described the overall purpose and high-level approach.')
+        elif segment_count == threshold + 1:
+            level = 'transitional' 
+            feedback = custom_feedback.get('transitional',
+                'Good explanation! You identified the main steps. Consider being more concise.')
+        else:
+            level = 'multi_structural'
+            feedback = custom_feedback.get('multi_structural',
+                'You provided detailed line-by-line analysis. Try to focus on the overall goal and key steps instead.')
+        
+        return level, feedback
+
+
 class ProblemValidationService:
     """Service for validating problem definitions"""
     

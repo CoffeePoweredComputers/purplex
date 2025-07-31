@@ -152,6 +152,16 @@ export interface EiPLSubmissionResponse {
     attempts: number;
     is_completed: boolean;
   };
+  segmentation?: {
+    segments: Array<{
+      id: number;
+      text: string;
+      code_lines: number[];
+    }>;
+    segment_count: number;
+    comprehension_level: 'relational' | 'transitional' | 'multi_structural';
+    feedback: string;
+  };
 }
 
 

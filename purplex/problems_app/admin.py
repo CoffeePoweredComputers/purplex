@@ -45,6 +45,11 @@ class ProblemAdmin(admin.ModelAdmin):
         ('Function Details', {
             'fields': ('function_name', 'function_signature', 'reference_solution', 'hints')
         }),
+        ('Segmentation Settings', {
+            'fields': ('segmentation_config',),
+            'classes': ('collapse',),
+            'description': 'Configure prompt segmentation for EiPL problems. JSON format with enabled, threshold, and examples.'
+        }),
         ('Settings', {
             'fields': ('memory_limit', 'is_active'),
             'classes': ('collapse',)

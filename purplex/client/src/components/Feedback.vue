@@ -29,6 +29,14 @@
         </div>
       </div>
 
+      <!-- Segmentation Analysis -->
+      <SegmentationSection 
+        v-if="segmentation"
+        :segmentation="segmentation"
+        :reference-code="referenceCode"
+        :threshold="2"
+      />
+
       <!-- Solution Timeline -->
       <nav class="solution-timeline">
         <div 
@@ -145,13 +153,15 @@
 <script>
 import Editor from '@/features/editor/Editor.vue';
 import PyTutorModal from '../modals/PyTutorModal.vue';
+import SegmentationSection from './segmentation/SegmentationSection.vue';
 import { PythonTutorService } from '@/services/pythonTutor.service';
 import { log } from '@/utils/logger'; 
 
 export default {
   components: { 
     Editor,
-    PyTutorModal
+    PyTutorModal,
+    SegmentationSection
   },
   props: {
     progress: {
@@ -187,6 +197,14 @@ export default {
       default: '',
     },
     userPrompt: {
+      type: String,
+      default: '',
+    },
+    segmentation: {
+      type: Object,
+      default: null,
+    },
+    referenceCode: {
       type: String,
       default: '',
     },

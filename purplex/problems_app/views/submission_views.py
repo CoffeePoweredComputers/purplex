@@ -350,6 +350,11 @@ class EiPLSubmissionView(APIView):
                 user_prompt=user_prompt
             )
             
+            # Start segmentation in parallel if enabled for this problem
+            segmentation_future = None
+            if problem.segmentation_enabled:
+                segmentation_future = AsyncAIService.segment_prompt(problem, user_prompt)
+            
             # If running async (in production), this will be a Future object
             if hasattr(generation_result, 'result'):
                 try:
@@ -438,6 +443,22 @@ class EiPLSubmissionView(APIView):
         else:
             score = 0
         
+        # Collect segmentation results if enabled
+        segmentation_data = None
+        if problem.segmentation_enabled and segmentation_future:
+            try:
+                if hasattr(segmentation_future, 'result'):
+                    segmentation_data = segmentation_future.result(timeout=30)
+                else:
+                    segmentation_data = segmentation_future
+                    
+                if not segmentation_data.get('success', False):
+                    logger.warning(f"Segmentation failed for problem {problem_slug}: {segmentation_data.get('error')}")
+                    segmentation_data = None
+            except Exception as e:
+                logger.error(f"Segmentation timeout/error for problem {problem_slug}: {str(e)}")
+                segmentation_data = None
+        
         # Create submission record with all EiPL-specific data
         from purplex.submissions_app.models import PromptSubmission
         submission = PromptSubmission.objects.create(
@@ -453,6 +474,22 @@ class EiPLSubmissionView(APIView):
             course=course  # Include course context
         )
         
+        # Save segmentation results if available
+        if segmentation_data and segmentation_data.get('success'):
+            from purplex.submissions_app.models import SegmentationResult
+            SegmentationResult.objects.create(
+                submission=submission,
+                analysis={
+                    'segments': segmentation_data['segments'],
+                    'code_mappings': {str(i): seg['code_lines'] 
+                                    for i, seg in enumerate(segmentation_data['segments'])},
+                    'feedback': segmentation_data['feedback'],
+                    'processing_time': segmentation_data.get('processing_time', 0.0)
+                },
+                segment_count=segmentation_data['segment_count'],
+                comprehension_level=segmentation_data['comprehension_level']
+            )
+        
         # Progress is automatically updated via the PromptSubmission model's save method
         # Get the updated progress for response
         progress = UserProgress.objects.get(
@@ -462,7 +499,8 @@ class EiPLSubmissionView(APIView):
             course=course
         )
         
-        return Response({
+        # Build response data
+        response_data = {
             'submission_id': submission.id,
             'score': int(score),
             'variations': code_variations,  # Frontend expects 'variations'
@@ -475,4 +513,15 @@ class EiPLSubmissionView(APIView):
                 'attempts': progress.attempts,
                 'is_completed': progress.is_completed,
             }
-        })
+        }
+        
+        # Add segmentation data if available
+        if hasattr(submission, 'segmentation'):
+            response_data['segmentation'] = {
+                'segments': submission.segmentation.get_segments(),
+                'segment_count': submission.segmentation.segment_count,
+                'comprehension_level': submission.segmentation.comprehension_level,
+                'feedback': submission.segmentation.get_feedback()
+            }
+        
+        return Response(response_data)

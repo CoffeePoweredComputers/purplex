@@ -70,6 +70,13 @@ class Problem(models.Model):
         help_text="JSON object defining completion requirements"
     )
     
+    # Prompt segmentation for EiPL problems
+    segmentation_config = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Complete segmentation configuration including threshold, examples, and settings"
+    )
+    
     # Educational metadata
     max_attempts = models.IntegerField(
         null=True, blank=True,
@@ -104,6 +111,21 @@ class Problem(models.Model):
     @property
     def visible_test_cases_count(self):
         return self.test_cases.filter(is_hidden=False).count()
+
+    # Segmentation helper methods
+    @property
+    def segmentation_enabled(self):
+        """Check if segmentation is enabled for this EiPL problem"""
+        return self.problem_type == 'eipl' and self.segmentation_config.get('enabled', True)
+
+    @property
+    def segmentation_threshold(self):
+        """Get the segmentation threshold for this problem"""
+        return self.segmentation_config.get('threshold', 2)
+
+    def get_segmentation_examples(self):
+        """Get segmentation examples for this problem"""
+        return self.segmentation_config.get('examples', {})
 
     def __str__(self):
         return f"{self.title} ({self.difficulty})"

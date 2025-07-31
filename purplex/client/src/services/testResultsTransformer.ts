@@ -21,7 +21,8 @@ export class TestResultsTransformer {
         best_score: response.progress?.best_score || 0,
         attempts: response.progress?.attempts || 0,
         is_completed: response.progress?.is_completed || false
-      }
+      },
+      segmentation: response.segmentation || null
     };
   }
   

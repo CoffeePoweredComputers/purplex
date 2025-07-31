@@ -54,3 +54,76 @@ class PromptSubmission(models.Model):
         
         # Update problem set progress
         UserProblemSetProgress.update_from_progress(progress)
+
+
+class SegmentationResult(models.Model):
+    """Prompt segmentation analysis for EiPL submissions"""
+    
+    submission = models.OneToOneField(
+        PromptSubmission, 
+        on_delete=models.CASCADE, 
+        related_name='segmentation'
+    )
+    
+    # Core segmentation data as single JSON field
+    analysis = models.JSONField(
+        help_text="Complete segmentation analysis including segments, mappings, and metadata"
+    )
+    
+    # Denormalized fields for efficient queries
+    segment_count = models.IntegerField(
+        db_index=True,
+        help_text="Total number of segments identified"
+    )
+    comprehension_level = models.CharField(
+        max_length=20,
+        choices=[
+            ('relational', 'Relational'),
+            ('transitional', 'Transitional'), 
+            ('multi_structural', 'Multi-structural')
+        ],
+        db_index=True,
+        help_text="Classification based on segment count"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Segmentation Analysis"
+        verbose_name_plural = "Segmentation Analyses"
+        indexes = [
+            models.Index(fields=['comprehension_level', 'segment_count']),
+            models.Index(fields=['submission', 'comprehension_level']),
+        ]
+    
+    def __str__(self):
+        return f"Segmentation for {self.submission} - {self.segment_count} segments ({self.comprehension_level})"
+    
+    # Helper methods for accessing analysis data
+    def get_segments(self):
+        """Get the list of segments from analysis"""
+        return self.analysis.get('segments', [])
+    
+    def get_code_mappings(self):
+        """Get segment to code line mappings"""
+        return self.analysis.get('code_mappings', {})
+    
+    def get_feedback(self):
+        """Get the feedback message for the user"""
+        return self.analysis.get('feedback', '')
+    
+    def get_processing_time(self):
+        """Get the time taken to perform segmentation"""
+        return self.analysis.get('processing_time', 0.0)
+    
+    @property
+    def is_good_comprehension(self):
+        """Check if this represents good (relational) comprehension"""
+        return self.comprehension_level == 'relational'
+    
+    @property
+    def needs_improvement(self):
+        """Check if comprehension level needs improvement"""
+        return self.comprehension_level == 'multi_structural'

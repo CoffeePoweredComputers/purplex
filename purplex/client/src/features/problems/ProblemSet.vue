@@ -229,6 +229,8 @@
           :test-results="testResults"
           :comprehension-results="comprehensionResults" 
           :user-prompt="userPrompt"
+          :segmentation="segmentationData"
+          :reference-code="currentProblemData?.reference_solution || ''"
           title="Feedback" 
         />
       </div>
@@ -338,6 +340,7 @@ export default {
             promptCorrectness: 0,
             comprehensionResults: '',
             userPrompt: '',
+            segmentationData: null,
             
             /* Problem Status Tracking */
             problemStatuses: {},
@@ -489,6 +492,7 @@ export default {
                 this.promptCorrectness = submissionData.passing_variations || 0;
                 this.comprehensionResults = submissionData.feedback || '';
                 this.userPrompt = submissionData.user_prompt || '';
+                this.segmentationData = submissionData.segmentation || null;
                 
                 // Load draft after data is ready
                 await this.$nextTick();
@@ -514,6 +518,7 @@ export default {
                 this.promptCorrectness = submissionData.passing_variations || 0;
                 this.comprehensionResults = submissionData.feedback || '';
                 this.userPrompt = submissionData.user_prompt || '';
+                this.segmentationData = submissionData.segmentation || null;
                 
                 // Load draft for this problem
                 await this.$nextTick();
@@ -558,7 +563,8 @@ export default {
                     results: [],
                     passing_variations: 0,
                     feedback: '',
-                    user_prompt: ''
+                    user_prompt: '',
+                    segmentation: null
                 };
             }
         },
@@ -569,6 +575,7 @@ export default {
             this.promptCorrectness = 0;
             this.comprehensionResults = '';
             this.userPrompt = '';
+            this.segmentationData = null;
         },
         
         getCurrentProblem() {
@@ -674,6 +681,9 @@ export default {
                 this.promptCorrectness = data.passing_variations;
                 this.userPrompt = promptText;
                 
+                // Add segmentation data from API response
+                this.segmentationData = data.segmentation || null;
+                
                 // Update progress tracking with backend status
                 this.problemStatuses[currentProblemSlug] = {
                     status: data.progress.status,  // Use backend status directly
@@ -692,7 +702,8 @@ export default {
                         results: this.testResults,
                         passing_variations: this.promptCorrectness,
                         feedback: this.comprehensionResults,
-                        user_prompt: promptText
+                        user_prompt: promptText,
+                        segmentation: this.segmentationData
                     },
                     timestamp: Date.now()
                 });

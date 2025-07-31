@@ -1,4 +1,6 @@
 /* Import CSS variables from App.vue */
+@import './styles/segmentation.css';
+
 * {
   box-sizing: border-box;
 }
