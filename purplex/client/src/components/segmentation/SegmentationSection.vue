@@ -16,43 +16,37 @@
       :max-segments="8"
     />
     
-    <!-- Feedback Message -->
-    <div class="segmentation-feedback" :class="feedbackClass">
-      <div class="feedback-content">
-        <span class="feedback-icon">{{ getFeedbackIcon() }}</span>
-        <div class="feedback-text">
-          <p class="feedback-message">{{ segmentation.feedback }}</p>
+    <!-- Feedback Card with Integrated Action -->
+    <div class="feedback-card" :class="feedbackCardClass">
+      <div class="feedback-inner">
+        <div class="feedback-main">
+          <div class="feedback-header">
+            <span class="feedback-icon">{{ getFeedbackIcon() }}</span>
+            <span class="feedback-title">
+              {{ formatLevel(segmentation.comprehension_level) }}!
+              <span class="segment-count">({{ segmentation.segment_count }} segment{{ segmentation.segment_count !== 1 ? 's' : '' }})</span>
+            </span>
+          </div>
           <p class="feedback-explanation">{{ getExplanation() }}</p>
         </div>
+        <button 
+          class="analysis-action"
+          @click="showSegmentAnalysisModal"
+          :aria-label="`View detailed analysis of ${segmentation.segment_count} segments`"
+        >
+          <span class="action-text">View Details</span>
+          <span class="action-icon">🔍</span>
+        </button>
       </div>
     </div>
     
-    <!-- Segment Mapping (Collapsible) -->
-    <details 
-      class="segment-details"
-      :open="isExpanded"
-      @toggle="onToggle"
-    >
-      <summary class="segment-summary">
-        <span class="detail-icon" :class="{ expanded: isExpanded }">▶</span>
-        <span class="detail-text">View Segment Analysis</span>
-        <div class="segment-badges">
-          <span class="badge-count">
-            {{ segmentation.segment_count }} segment{{ segmentation.segment_count !== 1 ? 's' : '' }}
-          </span>
-          <span class="badge-level" :class="levelBadgeClass">
-            {{ formatLevel(segmentation.comprehension_level) }}
-          </span>
-        </div>
-      </summary>
-      
-      <div class="segment-detail-content">
-        <SegmentMapping 
-          :segments="segmentation.segments"
-          :reference-code="referenceCode"
-        />
-      </div>
-    </details>
+    <!-- Segment Analysis Modal -->
+    <SegmentAnalysisModal
+      :is-visible="isModalVisible"
+      :segmentation="segmentation"
+      :reference-code="referenceCode"
+      @close="hideSegmentAnalysisModal"
+    />
 
       </div>
     </details>
@@ -61,13 +55,13 @@
 
 <script>
 import SegmentationProgressBar from './SegmentationProgressBar.vue';
-import SegmentMapping from './SegmentMapping.vue';
+import SegmentAnalysisModal from './SegmentAnalysisModal.vue';
 
 export default {
   name: 'SegmentationSection',
   components: {
     SegmentationProgressBar,
-    SegmentMapping
+    SegmentAnalysisModal
   },
   props: {
     segmentation: {
@@ -91,16 +85,12 @@ export default {
   },
   data() {
     return {
-      isExpanded: false
+      isModalVisible: false
     };
   },
   computed: {
-    feedbackClass() {
-      return `feedback-${this.segmentation.comprehension_level.replace('_', '-')}`;
-    },
-    
-    levelBadgeClass() {
-      return `badge-${this.segmentation.comprehension_level.replace('_', '-')}`;
+    feedbackCardClass() {
+      return `card-${this.segmentation.comprehension_level.replace('_', '-')}`;
     }
   },
   methods: {
@@ -114,19 +104,6 @@ export default {
           return '🔍';
         default:
           return '📝';
-      }
-    },
-    
-    formatLevel(level) {
-      switch (level) {
-        case 'relational':
-          return 'Excellent';
-        case 'transitional':
-          return 'Good';
-        case 'multi_structural':
-          return 'Detailed';
-        default:
-          return 'Unknown';
       }
     },
     
@@ -144,9 +121,26 @@ export default {
       }
     },
     
+    formatLevel(level) {
+      switch (level) {
+        case 'relational':
+          return 'Excellent';
+        case 'transitional':
+          return 'Good';
+        case 'multi_structural':
+          return 'Detailed';
+        default:
+          return 'Unknown';
+      }
+    },
     
-    onToggle(event) {
-      this.isExpanded = event.target.open;
+    
+    showSegmentAnalysisModal() {
+      this.isModalVisible = true;
+    },
+    
+    hideSegmentAnalysisModal() {
+      this.isModalVisible = false;
     }
   }
 };
@@ -204,34 +198,51 @@ details[open] .group-icon {
 
 /* Removed section header styles - using test-group-header instead */
 
-/* Feedback - simplified styling */
-.segmentation-feedback {
-  padding: var(--spacing-sm) var(--spacing-md);
-  margin: 0;
-  border-radius: var(--radius-xs);
+/* Feedback Card - Hybrid Design */
+.feedback-card {
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-xs);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.feedback-content {
+.feedback-inner {
   display: flex;
+  align-items: stretch;
+  gap: var(--spacing-xs);
+  background: var(--color-bg-panel);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.feedback-main {
+  flex: 1;
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.feedback-header {
+  display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
-  align-items: flex-start;
+  margin-bottom: var(--spacing-xs);
 }
 
 .feedback-icon {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-lg);
   flex-shrink: 0;
 }
 
-.feedback-text {
-  flex: 1;
+.feedback-title {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
-.feedback-message {
+.segment-count {
+  font-weight: 500;
+  color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-xs) 0;
-  line-height: 1.5;
+  margin-left: var(--spacing-xs);
 }
 
 .feedback-explanation {
@@ -241,138 +252,85 @@ details[open] .group-icon {
   line-height: 1.6;
 }
 
-/* Feedback level colors - simplified */
-.feedback-relational {
-  background: var(--color-success-bg);
+.analysis-action {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: 0 var(--spacing-xl);
+  background: var(--color-bg-hover);
+  border: none;
+  border-left: 1px solid var(--color-bg-border);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  min-width: 120px;
+}
+
+.analysis-action:hover {
+  background: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+.analysis-action:active {
+  transform: scale(0.98);
+}
+
+.action-text {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.action-icon {
+  font-size: var(--font-size-lg);
+}
+
+/* Comprehension level card variants - subtle color accents */
+.feedback-card.card-relational .feedback-inner {
   border-left: 3px solid var(--color-success);
 }
 
-.feedback-transitional {
-  background: var(--color-warning-bg);
+.feedback-card.card-transitional .feedback-inner {
   border-left: 3px solid var(--color-warning);
 }
 
-.feedback-multi-structural {
-  background: var(--color-error-bg);
+.feedback-card.card-multi-structural .feedback-inner {
   border-left: 3px solid var(--color-error);
 }
 
-/* Segment Details - inner collapsible */
-.segment-details {
-  margin: var(--spacing-sm) 0 0 0;
-}
-
-.segment-summary {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  cursor: pointer;
-  list-style: none;
-  font-size: var(--font-size-sm);
-  background: var(--color-bg-hover);
-  border-radius: var(--radius-xs);
-  transition: var(--transition-fast);
-}
-
-.segment-summary:hover {
-  background: var(--color-bg-input);
-}
-
-.detail-icon {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  transition: transform var(--transition-fast);
-}
-
-.detail-icon.expanded {
-  transform: rotate(90deg);
-}
-
-.detail-text {
-  font-weight: 600;
-  color: var(--color-text-primary);
-  flex: 1;
-}
-
-.segment-badges {
-  display: flex;
-  gap: var(--spacing-sm);
-}
-
-.badge-count,
-.badge-level {
-  padding: 2px var(--spacing-sm);
-  border-radius: var(--radius-xs);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-}
-
-.badge-count {
-  background: var(--color-bg-input);
-  color: var(--color-text-muted);
-}
-
-.badge-level.badge-relational {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-}
-
-.badge-level.badge-transitional {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-}
-
-.badge-level.badge-multi-structural {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
-}
-
-.segment-detail-content {
-  padding: var(--spacing-md);
-  background: var(--color-bg-hover);
-  border-radius: var(--radius-xs);
-  margin-top: var(--spacing-sm);
-}
+/* Modal trigger styling handled by SegmentAnalysisButton component */
 
 
 /* Removed animations for consistency */
 
 /* Responsive */
 @media (max-width: 768px) {
-  .section-header {
+  .feedback-card {
+    padding: var(--spacing-xs);
+  }
+  
+  .feedback-inner {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .feedback-main {
     padding: var(--spacing-md);
   }
   
-  .header-content {
-    gap: var(--spacing-sm);
+  .analysis-action {
+    min-width: auto;
+    width: 100%;
+    flex-direction: row;
+    padding: var(--spacing-md);
+    border-left: none;
+    border-top: 1px solid var(--color-bg-border);
   }
   
-  .section-title {
+  .action-icon {
     font-size: var(--font-size-base);
   }
-  
-  .segmentation-feedback {
-    padding: var(--spacing-md);
-  }
-  
-  .feedback-content {
-    gap: var(--spacing-sm);
-  }
-  
-  .mapping-toggle {
-    padding: var(--spacing-md);
-    gap: var(--spacing-sm);
-  }
-  
-  .toggle-badges {
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-  
-  .mapping-content {
-    padding: var(--spacing-md);
-  }
-  
 }
 </style>
