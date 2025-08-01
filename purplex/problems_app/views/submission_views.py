@@ -14,6 +14,7 @@ from ..models import Problem, ProblemSet, Course, CourseEnrollment, UserProgress
 from ..services import CodeExecutionService, AITestGenerationService
 from ..async_tasks import AsyncAIService
 from purplex.users_app.permissions import IsAuthenticated
+from purplex.submissions_app.models import PromptSubmission, SegmentationResult
 
 logger = logging.getLogger(__name__)
 
@@ -220,7 +221,6 @@ class SubmitSolutionView(APIView):
             time_spent_delta = timedelta(seconds=int(time_spent))
         
         # Create submission record
-        from purplex.submissions_app.models import PromptSubmission
         submission = PromptSubmission.objects.create(
             user=request.user,
             problem=problem,
@@ -342,18 +342,23 @@ class EiPLSubmissionView(APIView):
                     'error': 'Course not found'
                 }, status=status.HTTP_404_NOT_FOUND)
         
+        # Log submission attempt
+        logger.info(f"EiPL submission attempt for problem {problem_slug} by user {request.user.username}")
+        
         # Generate AI variations using async wrapper
         try:
+            logger.debug(f"Starting AI generation for problem {problem_slug}")
             # Use async AI service for non-blocking operation
             generation_result = AsyncAIService.generate_eipl_variations(
                 problem=problem,
                 user_prompt=user_prompt
             )
             
+            # TEMPORARILY DISABLED: Segmentation feature
             # Start segmentation in parallel if enabled for this problem
             segmentation_future = None
-            if problem.segmentation_enabled:
-                segmentation_future = AsyncAIService.segment_prompt(problem, user_prompt)
+            # if problem.segmentation_enabled:
+            #     segmentation_future = AsyncAIService.segment_prompt(problem, user_prompt)
             
             # If running async (in production), this will be a Future object
             if hasattr(generation_result, 'result'):
@@ -367,8 +372,23 @@ class EiPLSubmissionView(APIView):
                     )
             
             if not generation_result.get('success', False):
+                error_msg = generation_result.get('error', 'Failed to generate code variations')
+                logger.error(f"AI generation failed: {error_msg}")
+                
+                # Check for specific error cases
+                if 'OpenAI API key not configured' in error_msg:
+                    return Response({
+                        'error': 'AI service is not configured. Please contact administrator.',
+                        'submission_id': None,
+                        'score': 0,
+                        'variations': [],
+                        'results': [],
+                        'passing_variations': 0,
+                        'total_variations': 0
+                    }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                
                 return Response({
-                    'error': generation_result.get('error', 'Failed to generate code variations'),
+                    'error': error_msg,
                     'submission_id': None,
                     'score': 0,
                     'variations': [],
@@ -380,7 +400,7 @@ class EiPLSubmissionView(APIView):
             code_variations = generation_result.get('variations', [])
             
         except Exception as e:
-            logger.error(f"AI code generation failed for problem {problem_slug}: {str(e)}")
+            logger.error(f"AI code generation failed for problem {problem_slug}: {str(e)}", exc_info=True)
             return create_error_response(
                 'AI code generation failed. Please try again.',
                 status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -443,24 +463,23 @@ class EiPLSubmissionView(APIView):
         else:
             score = 0
         
-        # Collect segmentation results if enabled
+        # TEMPORARILY DISABLED: Collect segmentation results if enabled
         segmentation_data = None
-        if problem.segmentation_enabled and segmentation_future:
-            try:
-                if hasattr(segmentation_future, 'result'):
-                    segmentation_data = segmentation_future.result(timeout=30)
-                else:
-                    segmentation_data = segmentation_future
-                    
-                if not segmentation_data.get('success', False):
-                    logger.warning(f"Segmentation failed for problem {problem_slug}: {segmentation_data.get('error')}")
-                    segmentation_data = None
-            except Exception as e:
-                logger.error(f"Segmentation timeout/error for problem {problem_slug}: {str(e)}")
-                segmentation_data = None
+        # if problem.segmentation_enabled and segmentation_future:
+        #     try:
+        #         if hasattr(segmentation_future, 'result'):
+        #             segmentation_data = segmentation_future.result(timeout=30)
+        #         else:
+        #             segmentation_data = segmentation_future
+        #             
+        #         if not segmentation_data.get('success', False):
+        #             logger.warning(f"Segmentation failed for problem {problem_slug}: {segmentation_data.get('error')}")
+        #             segmentation_data = None
+        #     except Exception as e:
+        #         logger.error(f"Segmentation timeout/error for problem {problem_slug}: {str(e)}")
+        #         segmentation_data = None
         
         # Create submission record with all EiPL-specific data
-        from purplex.submissions_app.models import PromptSubmission
         submission = PromptSubmission.objects.create(
             user=request.user,
             problem=problem,
@@ -474,21 +493,20 @@ class EiPLSubmissionView(APIView):
             course=course  # Include course context
         )
         
-        # Save segmentation results if available
-        if segmentation_data and segmentation_data.get('success'):
-            from purplex.submissions_app.models import SegmentationResult
-            SegmentationResult.objects.create(
-                submission=submission,
-                analysis={
-                    'segments': segmentation_data['segments'],
-                    'code_mappings': {str(i): seg['code_lines'] 
-                                    for i, seg in enumerate(segmentation_data['segments'])},
-                    'feedback': segmentation_data['feedback'],
-                    'processing_time': segmentation_data.get('processing_time', 0.0)
-                },
-                segment_count=segmentation_data['segment_count'],
-                comprehension_level=segmentation_data['comprehension_level']
-            )
+        # TEMPORARILY DISABLED: Save segmentation results if available
+        # if segmentation_data and segmentation_data.get('success'):
+        #     SegmentationResult.objects.create(
+        #         submission=submission,
+        #         analysis={
+        #             'segments': segmentation_data['segments'],
+        #             'code_mappings': {str(i): seg['code_lines'] 
+        #                             for i, seg in enumerate(segmentation_data['segments'])},
+        #             'feedback': segmentation_data['feedback'],
+        #             'processing_time': segmentation_data.get('processing_time', 0.0)
+        #         },
+        #         segment_count=segmentation_data['segment_count'],
+        #         comprehension_level=segmentation_data['comprehension_level']
+        #     )
         
         # Progress is automatically updated via the PromptSubmission model's save method
         # Get the updated progress for response
@@ -515,14 +533,14 @@ class EiPLSubmissionView(APIView):
             }
         }
         
-        # Add segmentation data if available
-        if segmentation_data and segmentation_data.get('success'):
-            response_data['segmentation'] = {
-                'segments': segmentation_data['segments'],
-                'segment_count': segmentation_data['segment_count'],
-                'comprehension_level': segmentation_data['comprehension_level'],
-                'feedback': segmentation_data['feedback']
-            }
+        # TEMPORARILY DISABLED: Add segmentation data if available
+        # if segmentation_data and segmentation_data.get('success'):
+        #     response_data['segmentation'] = {
+        #         'segments': segmentation_data['segments'],
+        #         'segment_count': segmentation_data['segment_count'],
+        #         'comprehension_level': segmentation_data['comprehension_level'],
+        #         'feedback': segmentation_data['feedback']
+        #     }
         
         
         return Response(response_data)

@@ -29,6 +29,13 @@
         </div>
       </div>
 
+      <!-- Comprehension Banner -->
+      <ComprehensionBanner
+        v-if="shouldShowSegmentation && segmentation"
+        :segmentation="segmentation"
+        @show-details="showSegmentAnalysisModal = true"
+      />
+
       <!-- Solution Timeline -->
       <nav class="solution-timeline">
         <div 
@@ -69,38 +76,6 @@
 
       <!-- Test Results -->
       <section class="test-results">
-        <!-- Comprehension Analysis Section -->
-        <div 
-          v-if="shouldShowSegmentation"
-          class="comprehension-section"
-        >
-          <!-- Show actual segmentation data if available -->
-          <SegmentationSection 
-            v-if="segmentation"
-            :segmentation="segmentation"
-            :reference-code="referenceCode"
-            :threshold="2"
-          />
-          
-          <!-- Show placeholder when segmentation enabled but no data -->
-          <details
-            v-else
-            class="test-group"
-          >
-            <summary class="test-group-header comprehension">
-              <span class="group-icon">▶</span>
-              Comprehension Analysis
-            </summary>
-            <div class="comprehension-placeholder">
-              <div class="placeholder-content">
-                <span class="placeholder-icon">🧠</span>
-                <p class="placeholder-message">
-                  Submit your explanation to see how you understood the code
-                </p>
-              </div>
-            </div>
-          </details>
-        </div>
         <!-- Failing Tests (Expanded by default) -->
         <details
           v-if="failingTestsForCurrentSlide.length > 0"
@@ -173,6 +148,15 @@
       :python-tutor-url="pythonTutorUrl"
       @close="showModal = false"
     />
+    
+    <!-- Segment Analysis Modal -->
+    <SegmentAnalysisModal
+      v-if="segmentation"
+      :is-visible="showSegmentAnalysisModal"
+      :segmentation="segmentation"
+      :reference-code="referenceCode"
+      @close="showSegmentAnalysisModal = false"
+    />
   </div>
 </template>
 
@@ -180,6 +164,8 @@
 import Editor from '@/features/editor/Editor.vue';
 import PyTutorModal from '../modals/PyTutorModal.vue';
 import SegmentationSection from './segmentation/SegmentationSection.vue';
+import ComprehensionBanner from './segmentation/ComprehensionBanner.vue';
+import SegmentAnalysisModal from './segmentation/SegmentAnalysisModal.vue';
 import { PythonTutorService } from '@/services/pythonTutor.service';
 import { log } from '@/utils/logger'; 
 
@@ -187,7 +173,9 @@ export default {
   components: { 
     Editor,
     PyTutorModal,
-    SegmentationSection
+    SegmentationSection,
+    ComprehensionBanner,
+    SegmentAnalysisModal
   },
   props: {
     progress: {
@@ -250,6 +238,7 @@ export default {
       currentSlide: 0,
       currentSlideContents: "",
       currentComprehensionResults: [],
+      showSegmentAnalysisModal: false,
     };
   },
   computed: {

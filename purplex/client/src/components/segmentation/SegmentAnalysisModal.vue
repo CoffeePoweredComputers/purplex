@@ -21,14 +21,11 @@
               id="modal-title"
               class="modal-title"
             >
-              🔍 Segment Analysis
+              🔍 Understanding Analysis
             </h3>
             <div class="header-badges">
-              <span class="badge-count">
-                {{ segmentation.segment_count }} segment{{ segmentation.segment_count !== 1 ? 's' : '' }}
-              </span>
               <span class="badge-level" :class="levelBadgeClass">
-                {{ formatLevel(segmentation.comprehension_level) }}
+                {{ formatLevel(segmentation.comprehension_level) }} Understanding
               </span>
             </div>
           </div>
@@ -51,7 +48,7 @@
             <button
               class="action-button"
               title="Open in new tab"
-              aria-label="Open segment analysis in new tab"
+              aria-label="Open understanding analysis in new tab"
               @click="openInNewTab"
             >
               <span class="icon">⬈</span>
@@ -218,7 +215,7 @@ export default {
         newWindow.document.write(`
           <html>
             <head>
-              <title>Segment Analysis - ${this.segmentation.segment_count} segments</title>
+              <title>Understanding Analysis - ${this.formatLevel(this.segmentation.comprehension_level)}</title>
               <style>
                 body { font-family: Inter, system-ui, sans-serif; margin: 20px; }
                 .header { margin-bottom: 20px; }
@@ -230,9 +227,8 @@ export default {
             </head>
             <body>
               <div class="header">
-                <h1>🔍 Segment Analysis</h1>
-                <span class="badge">${this.segmentation.segment_count} segments</span>
-                <span class="badge">${this.formatLevel(this.segmentation.comprehension_level)}</span>
+                <h1>🔍 Understanding Analysis</h1>
+                <span class="badge">${this.formatLevel(this.segmentation.comprehension_level)} Understanding</span>
                 <p><strong>Feedback:</strong> ${this.segmentation.feedback}</p>
                 <p><strong>Explanation:</strong> ${this.getExplanation()}</p>
               </div>
@@ -341,14 +337,13 @@ export default {
     },
     
     getExplanation() {
-      const count = this.segmentation.segment_count;
       switch (this.segmentation.comprehension_level) {
         case 'relational':
-          return `You focused on the overall purpose (${count} segment${count !== 1 ? 's' : ''}). This shows strong conceptual understanding.`;
+          return `You focused on the overall purpose. This shows strong conceptual understanding.`;
         case 'transitional':
-          return `You identified key steps (${count} segments). Good balance between detail and big picture.`;
+          return `You identified key steps. Good balance between detail and big picture.`;
         case 'multi_structural':
-          return `You provided line-by-line detail (${count} segments). Try focusing on the main goal instead.`;
+          return `You provided line-by-line detail. Try focusing on the main goal instead.`;
         default:
           return '';
       }

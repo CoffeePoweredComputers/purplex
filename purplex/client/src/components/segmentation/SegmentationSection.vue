@@ -23,8 +23,7 @@
           <div class="feedback-header">
             <span class="feedback-icon">{{ getFeedbackIcon() }}</span>
             <span class="feedback-title">
-              {{ formatLevel(segmentation.comprehension_level) }}!
-              <span class="segment-count">({{ segmentation.segment_count }} segment{{ segmentation.segment_count !== 1 ? 's' : '' }})</span>
+              {{ formatLevel(segmentation.comprehension_level) }} understanding!
             </span>
           </div>
           <p class="feedback-explanation">{{ getExplanation() }}</p>
@@ -32,7 +31,7 @@
         <button 
           class="analysis-action"
           @click="showSegmentAnalysisModal"
-          :aria-label="`View detailed analysis of ${segmentation.segment_count} segments`"
+          :aria-label="`View detailed analysis of your understanding`"
         >
           <span class="action-text">View Details</span>
           <span class="action-icon">🔍</span>
@@ -108,14 +107,13 @@ export default {
     },
     
     getExplanation() {
-      const count = this.segmentation.segment_count;
       switch (this.segmentation.comprehension_level) {
         case 'relational':
-          return `You focused on the overall purpose (${count} segment${count !== 1 ? 's' : ''}). This shows strong conceptual understanding.`;
+          return `You focused on the overall purpose. This shows strong conceptual understanding.`;
         case 'transitional':
-          return `You identified key steps (${count} segments). Good balance between detail and big picture.`;
+          return `You identified key steps. Good balance between detail and big picture.`;
         case 'multi_structural':
-          return `You provided line-by-line detail (${count} segments). Try focusing on the main goal instead.`;
+          return `You provided line-by-line detail. Try focusing on the main goal instead.`;
         default:
           return '';
       }
@@ -238,12 +236,6 @@ details[open] .group-icon {
   color: var(--color-text-primary);
 }
 
-.segment-count {
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  margin-left: var(--spacing-xs);
-}
 
 .feedback-explanation {
   font-size: var(--font-size-sm);
