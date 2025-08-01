@@ -1,15 +1,12 @@
 <template>
-  <div class="segmentation-section" v-if="segmentation && segmentation.segments">
-    <!-- Section Header -->
-    <div class="section-header">
-      <div class="header-content">
-        <span class="section-icon">🧠</span>
-        <div class="header-text">
-          <h3 class="section-title">Comprehension Analysis</h3>
-          <p class="section-subtitle">How you understood the code</p>
-        </div>
-      </div>
-    </div>
+  <div class="segmentation-wrapper" v-if="segmentation && segmentation.segments">
+    <!-- Comprehension Analysis Results -->
+    <details class="test-group" open>
+      <summary class="test-group-header comprehension">
+        <span class="group-icon">▶</span>
+        Comprehension Analysis
+      </summary>
+      <div class="segmentation-content">
 
     <!-- Progress Bar -->
     <SegmentationProgressBar 
@@ -32,24 +29,24 @@
     
     <!-- Segment Mapping (Collapsible) -->
     <details 
-      class="segment-mapping-container"
+      class="segment-details"
       :open="isExpanded"
       @toggle="onToggle"
     >
-      <summary class="mapping-toggle">
-        <span class="toggle-icon" :class="{ expanded: isExpanded }">▶</span>
-        <span class="toggle-text">View Segment Analysis</span>
-        <div class="toggle-badges">
-          <span class="segment-badge">
+      <summary class="segment-summary">
+        <span class="detail-icon" :class="{ expanded: isExpanded }">▶</span>
+        <span class="detail-text">View Segment Analysis</span>
+        <div class="segment-badges">
+          <span class="badge-count">
             {{ segmentation.segment_count }} segment{{ segmentation.segment_count !== 1 ? 's' : '' }}
           </span>
-          <span class="level-badge" :class="levelBadgeClass">
+          <span class="badge-level" :class="levelBadgeClass">
             {{ formatLevel(segmentation.comprehension_level) }}
           </span>
         </div>
       </summary>
       
-      <div class="mapping-content">
+      <div class="segment-detail-content">
         <SegmentMapping 
           :segments="segmentation.segments"
           :reference-code="referenceCode"
@@ -57,20 +54,8 @@
       </div>
     </details>
 
-    <!-- Educational Tips -->
-    <div class="educational-tips" v-if="showTips">
-      <div class="tips-header">
-        <span class="tips-icon">💡</span>
-        <span class="tips-title">Tips for Better Comprehension</span>
       </div>
-      <div class="tips-content">
-        <ul class="tips-list">
-          <li v-for="tip in getTips()" :key="tip" class="tip-item">
-            {{ tip }}
-          </li>
-        </ul>
-      </div>
-    </div>
+    </details>
   </div>
 </template>
 
@@ -103,10 +88,6 @@ export default {
       type: Number,
       default: 2
     },
-    showTips: {
-      type: Boolean,
-      default: true
-    }
   },
   data() {
     return {
@@ -163,31 +144,6 @@ export default {
       }
     },
     
-    getTips() {
-      switch (this.segmentation.comprehension_level) {
-        case 'relational':
-          return [
-            'Great job! You understand the high-level purpose',
-            'This approach shows strong problem-solving skills',
-            'Keep focusing on the "why" rather than the "how"'
-          ];
-        case 'transitional':
-          return [
-            'Good understanding! You identified the main steps',
-            'Try to be even more concise in your explanations',
-            'Focus on the overall goal and 2-3 key operations'
-          ];
-        case 'multi_structural':
-          return [
-            'You have good attention to detail',
-            'Try to step back and see the bigger picture',
-            'Ask yourself: "What is this code trying to accomplish?"',
-            'Aim for 1-2 high-level descriptions instead of line-by-line'
-          ];
-        default:
-          return [];
-      }
-    },
     
     onToggle(event) {
       this.isExpanded = event.target.open;
@@ -197,65 +153,73 @@ export default {
 </script>
 
 <style scoped>
-.segmentation-section {
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
-  margin: var(--spacing-md) 0;
-  overflow: hidden;
-  border: 1px solid var(--color-bg-border);
-  animation: slideInUp 0.4s ease-out;
+/* Wrapper removes extra styling */
+.segmentation-wrapper {
+  /* No extra styling - inherits from parent */
 }
 
-/* Section Header */
-.section-header {
+/* Main collapsible group styling */
+.test-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.test-group:last-child {
+  margin-bottom: 0;
+}
+
+.test-group-header {
+  cursor: pointer;
+  padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-hover);
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--color-bg-input);
-}
-
-.header-content {
+  border-radius: var(--radius-xs);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  list-style: none;
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
+  transition: var(--transition-fast);
 }
 
-.section-icon {
-  font-size: var(--font-size-xl);
+.test-group-header:hover {
+  background: var(--color-bg-input);
 }
 
-.header-text {
-  flex: 1;
+.test-group-header.comprehension {
+  border-left: 4px solid var(--color-primary);
 }
 
-.section-title {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-xs) 0;
+.group-icon {
+  transition: transform 0.2s;
+  font-size: var(--font-size-xs);
 }
 
-.section-subtitle {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  margin: 0;
+details[open] .group-icon {
+  transform: rotate(90deg);
 }
 
-/* Feedback */
+.segmentation-content {
+  padding: var(--spacing-sm) 0 0 0;
+}
+
+/* Removed section header styles - using test-group-header instead */
+
+/* Feedback - simplified styling */
 .segmentation-feedback {
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--color-bg-input);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin: 0;
+  border-radius: var(--radius-xs);
 }
 
 .feedback-content {
   display: flex;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
   align-items: flex-start;
 }
 
 .feedback-icon {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   flex-shrink: 0;
-  margin-top: var(--spacing-xs);
 }
 
 .feedback-text {
@@ -263,10 +227,10 @@ export default {
 }
 
 .feedback-message {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-sm) 0;
+  margin: 0 0 var(--spacing-xs) 0;
   line-height: 1.5;
 }
 
@@ -277,175 +241,102 @@ export default {
   line-height: 1.6;
 }
 
-/* Feedback level colors */
+/* Feedback level colors - simplified */
 .feedback-relational {
-  background: linear-gradient(135deg, 
-    rgba(76, 175, 80, 0.1) 0%, 
-    rgba(76, 175, 80, 0.05) 100%
-  );
-  border-left: 4px solid var(--color-success);
+  background: var(--color-success-bg);
+  border-left: 3px solid var(--color-success);
 }
 
 .feedback-transitional {
-  background: linear-gradient(135deg, 
-    rgba(255, 193, 7, 0.1) 0%, 
-    rgba(255, 193, 7, 0.05) 100%
-  );
-  border-left: 4px solid var(--color-warning);
+  background: var(--color-warning-bg);
+  border-left: 3px solid var(--color-warning);
 }
 
 .feedback-multi-structural {
-  background: linear-gradient(135deg, 
-    rgba(220, 53, 69, 0.1) 0%, 
-    rgba(220, 53, 69, 0.05) 100%
-  );
-  border-left: 4px solid var(--color-error);
+  background: var(--color-error-bg);
+  border-left: 3px solid var(--color-error);
 }
 
-/* Collapsible Mapping */
-.segment-mapping-container {
-  background: var(--color-bg-panel);
+/* Segment Details - inner collapsible */
+.segment-details {
+  margin: var(--spacing-sm) 0 0 0;
 }
 
-.mapping-toggle {
+.segment-summary {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
   cursor: pointer;
   list-style: none;
-  transition: var(--transition-fast);
-  border-bottom: 1px solid var(--color-bg-input);
-  user-select: none;
-}
-
-.mapping-toggle:hover {
-  background: var(--color-bg-hover);
-}
-
-.toggle-icon {
   font-size: var(--font-size-sm);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-xs);
+  transition: var(--transition-fast);
+}
+
+.segment-summary:hover {
+  background: var(--color-bg-input);
+}
+
+.detail-icon {
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   transition: transform var(--transition-fast);
 }
 
-.toggle-icon.expanded {
+.detail-icon.expanded {
   transform: rotate(90deg);
 }
 
-.toggle-text {
-  font-size: var(--font-size-base);
+.detail-text {
   font-weight: 600;
   color: var(--color-text-primary);
   flex: 1;
 }
 
-.toggle-badges {
+.segment-badges {
   display: flex;
   gap: var(--spacing-sm);
 }
 
-.segment-badge,
-.level-badge {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-sm);
+.badge-count,
+.badge-level {
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--radius-xs);
   font-size: var(--font-size-xs);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
-.segment-badge {
+.badge-count {
   background: var(--color-bg-input);
   color: var(--color-text-muted);
 }
 
-.level-badge.badge-relational {
+.badge-level.badge-relational {
   background: var(--color-success-bg);
   color: var(--color-success-text);
 }
 
-.level-badge.badge-transitional {
+.badge-level.badge-transitional {
   background: var(--color-warning-bg);
   color: var(--color-warning-text);
 }
 
-.level-badge.badge-multi-structural {
+.badge-level.badge-multi-structural {
   background: var(--color-error-bg);
   color: var(--color-error-text);
 }
 
-.mapping-content {
-  padding: var(--spacing-lg);
-  background: var(--color-bg-dark);
-}
-
-/* Educational Tips */
-.educational-tips {
+.segment-detail-content {
+  padding: var(--spacing-md);
   background: var(--color-bg-hover);
-  padding: var(--spacing-lg);
-  border-top: 1px solid var(--color-bg-input);
+  border-radius: var(--radius-xs);
+  margin-top: var(--spacing-sm);
 }
 
-.tips-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-}
 
-.tips-icon {
-  font-size: var(--font-size-base);
-}
-
-.tips-title {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.tips-content {
-  margin-left: calc(var(--font-size-base) + var(--spacing-sm));
-}
-
-.tips-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.tip-item {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: var(--spacing-sm);
-  position: relative;
-  padding-left: var(--spacing-lg);
-}
-
-.tip-item::before {
-  content: '•';
-  position: absolute;
-  left: 0;
-  color: var(--color-primary-gradient-start);
-  font-weight: 700;
-}
-
-.tip-item:last-child {
-  margin-bottom: 0;
-}
-
-/* Animations */
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* Removed animations for consistency */
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -483,8 +374,5 @@ export default {
     padding: var(--spacing-md);
   }
   
-  .educational-tips {
-    padding: var(--spacing-md);
-  }
 }
 </style>

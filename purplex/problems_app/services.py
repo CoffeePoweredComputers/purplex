@@ -1,179 +1,236 @@
 import json
-import tempfile
 import subprocess
-import sys
-from typing import Dict, List, Any, Tuple
+import tempfile
+import os
+import logging
 from django.conf import settings
-import ast
-import traceback
-from .validation_service import ProblemValidationService
+from typing import List, Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 class CodeExecutionService:
-    """Service for executing and testing code submissions"""
+    """Service for running and testing Python code securely."""
     
     def __init__(self):
-        self.timeout = 30  # seconds
-        self.memory_limit = 128  # MB
-    
-    def validate_python_code(self, code: str) -> Tuple[bool, str]:
-        """Validate that code is syntactically correct Python"""
-        try:
-            ast.parse(code)
-            return True, ""
-        except SyntaxError as e:
-            return False, f"Syntax Error: {str(e)}"
-        except Exception as e:
-            return False, f"Parse Error: {str(e)}"
-    
-    def extract_function(self, code: str, function_name: str) -> Tuple[bool, str]:
-        """Extract a specific function from code"""
-        try:
-            tree = ast.parse(code)
-            for node in ast.walk(tree):
-                if isinstance(node, ast.FunctionDef) and node.name == function_name:
-                    return True, ""
-            return False, f"Function '{function_name}' not found in code"
-        except Exception as e:
-            return False, f"Error analyzing code: {str(e)}"
-    
-    def run_test_case(self, code: str, function_name: str, inputs: List[Any], expected_output: Any) -> Dict[str, Any]:
-        """Run a single test case"""
-        try:
-            # Create a safe execution environment
-            namespace = {'__builtins__': {
-                'len': len, 'str': str, 'int': int, 'float': float, 'bool': bool,
-                'list': list, 'dict': dict, 'set': set, 'tuple': tuple,
-                'range': range, 'enumerate': enumerate, 'zip': zip,
-                'min': min, 'max': max, 'sum': sum, 'abs': abs,
-                'sorted': sorted, 'reversed': reversed,
-                'print': print  # Allow print for debugging
-            }}
-            
-            # Execute the user's code
-            exec(code, namespace)
-            
-            # Get the function
-            if function_name not in namespace:
+        self.docker_image = getattr(settings, 'DOCKER_IMAGE', 'python:3.9-alpine')
+        self.timeout = getattr(settings, 'CODE_EXECUTION_TIMEOUT', 5)
+        self.memory_limit = getattr(settings, 'CODE_EXECUTION_MEMORY_LIMIT', '128m')
+        
+    def test_solution(self, user_code: str, function_name: str, test_cases: List[Dict]) -> Dict:
+        """Test a solution against provided test cases."""
+        
+        # Create test runner code
+        test_runner = self._create_test_runner(user_code, function_name, test_cases)
+        
+        # Execute the test runner
+        result = self._execute_code(test_runner)
+        
+        if result['success']:
+            try:
+                # Parse JSON output from test runner
+                output_data = json.loads(result['output'])
+                return output_data
+            except json.JSONDecodeError:
                 return {
-                    'pass': False,
-                    'error': f"Function '{function_name}' not found",
-                    'actual_output': None,
-                    'expected_output': expected_output,
-                    'inputs': inputs,
-                    'function_call': self._format_function_call(function_name, inputs)
+                    'error': 'Failed to parse test results',
+                    'passed': 0,
+                    'total': len(test_cases),
+                    'results': []
                 }
-            
-            user_function = namespace[function_name]
-            
-            # Call the function with inputs
-            actual_output = user_function(*inputs)
-            
-            # Compare outputs
-            passed = actual_output == expected_output
-            
+        else:
             return {
-                'pass': passed,
-                'error': None,
-                'actual_output': actual_output,
-                'expected_output': expected_output,
-                'inputs': inputs,
-                'function_call': self._format_function_call(function_name, inputs)
-            }
-            
-        except Exception as e:
-            return {
-                'pass': False,
-                'error': str(e),
-                'actual_output': None,
-                'expected_output': expected_output,
-                'inputs': inputs,
-                'traceback': traceback.format_exc(),
-                'function_call': self._format_function_call(function_name, inputs)
-            }
-    
-    def _format_function_call(self, function_name: str, inputs: List[Any]) -> str:
-        """Format a function call string for display"""
-        args = []
-        for arg in inputs:
-            if isinstance(arg, str):
-                args.append(f'"{arg}"')
-            elif isinstance(arg, list):
-                # Format list with proper string representation
-                formatted_items = []
-                for item in arg:
-                    if isinstance(item, str):
-                        formatted_items.append(f'"{item}"')
-                    else:
-                        formatted_items.append(str(item))
-                args.append(f"[{', '.join(formatted_items)}]")
-            elif isinstance(arg, dict):
-                args.append(str(arg))
-            else:
-                args.append(str(arg))
-        return f"{function_name}({', '.join(args)})"
-    
-    def test_solution(self, code: str, function_name: str, test_cases: List[Dict]) -> Dict[str, Any]:
-        """Test a solution against multiple test cases"""
-        # First validate the code
-        is_valid, error_msg = self.validate_python_code(code)
-        if not is_valid:
-            return {
-                'success': False,
-                'error': error_msg,
-                'results': [],
+                'error': result.get('error', 'Code execution failed'),
                 'passed': 0,
                 'total': len(test_cases),
-                'score': 0.0
+                'results': []
             }
+    
+    def _create_test_runner(self, user_code: str, function_name: str, test_cases: List[Dict]) -> str:
+        """Create a test runner script that executes test cases and returns JSON results."""
         
-        # Check if function exists
-        has_function, error_msg = self.extract_function(code, function_name)
-        if not has_function:
-            return {
-                'success': False,
-                'error': error_msg,
-                'results': [],
-                'passed': 0,
-                'total': len(test_cases),
-                'score': 0.0
-            }
+        test_runner = f'''
+import json
+import sys
+import traceback
+
+# User's code
+{user_code}
+
+# Test execution
+results = []
+passed_count = 0
+
+test_cases = {json.dumps(test_cases)}
+
+for i, test_case in enumerate(test_cases):
+    try:
+        inputs = test_case.get('inputs', [])
+        expected = test_case.get('expected_output')
         
-        results = []
-        passed_count = 0
+        # Call the function with unpacked arguments
+        actual = {function_name}(*inputs)
         
-        for i, test_case in enumerate(test_cases):
-            inputs = test_case['inputs']
-            expected_output = test_case['expected_output']
+        # Compare results
+        test_passed = actual == expected
+        if test_passed:
+            passed_count += 1
             
-            result = self.run_test_case(code, function_name, inputs, expected_output)
-            result['test_number'] = i + 1
-            result['description'] = test_case.get('description', f'Test {i + 1}')
-            
-            if result['pass']:
-                passed_count += 1
-            
-            results.append(result)
+        # Format the function call string
+        args_str = ', '.join(str(arg) for arg in inputs)
+        function_call = f"{function_name}({args_str})"
         
-        total_tests = len(test_cases)
-        score = (passed_count / total_tests * 100) if total_tests > 0 else 0
-        
-        return {
-            'success': True,
+        results.append({{
+            'test_number': i + 1,
+            'inputs': inputs,
+            'expected_output': expected,
+            'actual_output': actual,
+            'pass': test_passed,
             'error': None,
-            'results': results,
-            'passed': passed_count,
-            'total': total_tests,
-            'score': score
-        }
+            'function_call': function_call
+        }})
+    except Exception as e:
+        inputs = test_case.get('inputs', [])
+        args_str = ', '.join(str(arg) for arg in inputs)
+        function_call = f"{function_name}({args_str})"
+        
+        results.append({{
+            'test_number': i + 1,
+            'inputs': inputs,
+            'expected_output': test_case.get('expected_output'),
+            'actual_output': None,
+            'pass': False,
+            'error': str(e),
+            'function_call': function_call
+        }})
+
+# Output results as JSON
+output = {{
+    'passed': passed_count,
+    'total': len(test_cases),
+    'results': results
+}}
+
+print(json.dumps(output))
+'''
+        return test_runner
+    
+    def _execute_code(self, code: str) -> Dict:
+        """Execute Python code in a sandboxed environment."""
+        
+        # Create temporary file for the code
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+            f.write(code)
+            temp_file = f.name
+        
+        try:
+            # Run code with timeout and memory limits
+            cmd = [
+                'python3', temp_file
+            ]
+            
+            # Use subprocess with timeout
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.timeout
+                )
+                
+                if result.returncode == 0:
+                    return {
+                        'success': True,
+                        'output': result.stdout,
+                        'error': None
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'output': result.stdout,
+                        'error': result.stderr or 'Code execution failed'
+                    }
+                    
+            except subprocess.TimeoutExpired:
+                return {
+                    'success': False,
+                    'output': '',
+                    'error': f'Code execution timed out after {self.timeout} seconds'
+                }
+                
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file):
+                os.unlink(temp_file)
+
 
 class AITestGenerationService:
-    """Service for AI-based code generation (EiPL only - test case generation removed)"""
+    """Service for generating test cases using AI."""
     
     def __init__(self):
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
-        import openai
-        self.client = openai.OpenAI(api_key=self.openai_api_key) if self.openai_api_key else None
-    
+        if self.openai_api_key:
+            import openai
+            self.client = openai.OpenAI(api_key=self.openai_api_key)
+        else:
+            self.client = None
+            
+    def generate_test_cases(self, problem_description: str, function_signature: str, num_cases: int = 5) -> List[Dict]:
+        """Generate test cases for a problem using GPT-4."""
+        
+        if not self.client:
+            return []
+            
+        prompt = f"""Generate {num_cases} test cases for the following problem:
+
+Problem Description:
+{problem_description}
+
+Function Signature:
+{function_signature}
+
+Generate diverse test cases that cover:
+- Basic functionality
+- Edge cases
+- Error conditions (if applicable)
+
+Return the test cases as a JSON array where each test case has:
+- "inputs": array of input arguments
+- "expected_output": the expected return value
+- "description": brief description of what this test case tests
+
+Example format:
+[
+    {{"inputs": [5, 3], "expected_output": 8, "description": "Basic addition"}},
+    {{"inputs": [0, 0], "expected_output": 0, "description": "Adding zeros"}}
+]
+"""
+        
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that generates comprehensive test cases for programming problems."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=1000
+            )
+            
+            content = response.choices[0].message.content
+            
+            # Extract JSON from response
+            import re
+            json_match = re.search(r'\[.*\]', content, re.DOTALL)
+            if json_match:
+                test_cases = json.loads(json_match.group())
+                return test_cases
+            else:
+                return []
+                
+        except Exception as e:
+            logger.error(f"Failed to generate test cases: {str(e)}")
+            return []
+            
     def generate_eipl_variations(self, problem, user_prompt: str) -> Dict[str, Any]:
         """Generate code variations for EiPL problems based on user's description"""
         if not self.client:
@@ -230,33 +287,32 @@ def {problem.function_name}(...):
             
             content = response.choices[0].message.content
             
-            # Extract code blocks from the response
+            # Extract code blocks
             import re
             code_blocks = re.findall(r'```python\n(.*?)\n```', content, re.DOTALL)
             
-            # Filter out empty blocks and ensure we have exactly 5
-            code_blocks = [block.strip() for block in code_blocks if block.strip()]
+            # If no code blocks found, try splitting by function definitions
+            if not code_blocks:
+                # Split by 'def' and reconstruct
+                parts = content.split('def ')
+                code_blocks = []
+                for part in parts[1:]:  # Skip first empty part
+                    code_blocks.append('def ' + part.strip())
             
-            if len(code_blocks) < 5:
-                # Try alternative extraction method
-                code_blocks = re.findall(r'def\s+' + re.escape(problem.function_name) + r'.*?(?=def\s+' + re.escape(problem.function_name) + r'|$)', content, re.DOTALL)
-                code_blocks = [block.strip() for block in code_blocks if block.strip()]
-            
-            # Ensure we have exactly 5 variations
-            if len(code_blocks) > 5:
-                code_blocks = code_blocks[:5]
-            elif len(code_blocks) < 5:
-                # Pad with duplicates if necessary (this shouldn't happen with proper prompting)
-                while len(code_blocks) < 5:
-                    code_blocks.append(code_blocks[-1] if code_blocks else f"def {problem.function_name}():\n    pass")
+            # Validate that we have the expected function name
+            valid_variations = []
+            for code in code_blocks:
+                if f"def {problem.function_name}" in code:
+                    valid_variations.append(code.strip())
             
             return {
                 'success': True,
-                'variations': code_blocks,
+                'variations': valid_variations[:5],  # Return up to 5 variations
                 'error': None
             }
             
         except Exception as e:
+            logger.error(f"Failed to generate EIPL variations: {str(e)}")
             return {
                 'success': False,
                 'error': str(e),
@@ -264,43 +320,62 @@ def {problem.function_name}(...):
             }
 
 
+class ProblemValidationService:
+    """Service for validating problem definitions"""
+    
+    @staticmethod
+    def validate_problem_data(data: dict) -> tuple[bool, Optional[str]]:
+        """
+        Validate problem data before saving
+        
+        Returns:
+            (is_valid, error_message)
+        """
+        # Required fields
+        required_fields = ['title', 'description', 'function_name', 'function_signature']
+        for field in required_fields:
+            if not data.get(field):
+                return False, f"{field} is required"
+        
+        # Function name validation
+        function_name = data['function_name']
+        if not function_name.isidentifier():
+            return False, "Function name must be a valid Python identifier"
+        
+        # Function signature validation
+        function_signature = data['function_signature']
+        if not function_signature.strip().startswith('def'):
+            return False, "Function signature must start with 'def'"
+        
+        # Reference solution validation (if provided)
+        if data.get('reference_solution'):
+            ref_solution = data['reference_solution'].strip()
+            if ref_solution and not ref_solution.startswith('def'):
+                return False, "Reference solution must be a valid function definition"
+        
+        return True, None
+    
+    @staticmethod
+    def validate_test_case(test_case: dict, function_signature: str) -> tuple[bool, Optional[str]]:
+        """
+        Validate a test case against the function signature
+        
+        Returns:
+            (is_valid, error_message)
+        """
+        if not isinstance(test_case.get('inputs'), list):
+            return False, "Test case inputs must be a list"
+        
+        if 'expected_output' not in test_case:
+            return False, "Test case must have expected_output"
+        
+        # TODO: Add more sophisticated validation based on function signature
+        
+        return True, None
+
+
 class SegmentationService:
     """Service for prompt segmentation analysis using GPT-4"""
-    
-    # Few-shot examples for consistent segmentation analysis
-    SEGMENTATION_EXAMPLES = {
-        'relational': {
-            'prompt': 'The function checks if a word is a palindrome by comparing it with its reverse',
-            'segments': [
-                'checks if a word is a palindrome by comparing it with its reverse'
-            ],
-            'code_lines': [[1, 2, 3, 4, 5]],  # Maps to entire function
-            'explanation': 'Single high-level segment describing overall purpose'
-        },
-        'transitional': {
-            'prompt': 'First it converts the string to lowercase, then it reverses the string, finally it compares them to check if equal',
-            'segments': [
-                'converts the string to lowercase',
-                'reverses the string', 
-                'compares them to check if equal'
-            ],
-            'code_lines': [[1, 2], [3, 4], [5]],  # Maps to logical code blocks
-            'explanation': '3 segments showing major logical steps'
-        },
-        'multi_structural': {
-            'prompt': 'It starts by taking the input string. Then it converts each character to lowercase. After that it creates a new empty string. It loops through each character from the end. It adds each character to the new string. Finally it checks if the original and reversed strings are equal.',
-            'segments': [
-                'takes the input string',
-                'converts each character to lowercase', 
-                'creates a new empty string',
-                'loops through each character from the end',
-                'adds each character to the new string',
-                'checks if the original and reversed strings are equal'
-            ],
-            'code_lines': [[1], [2], [3], [4], [4], [5]],  # Line-by-line mapping
-            'explanation': '6+ segments with detailed line-by-line description'
-        }
-    }
     
     def __init__(self):
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
@@ -410,37 +485,40 @@ class SegmentationService:
     def _create_segmentation_prompt(self, reference_code: str, custom_examples: dict = None) -> str:
         """Build few-shot prompt with examples for consistent segmentation"""
         
-        # Use custom examples if provided, otherwise use defaults
-        examples = custom_examples if custom_examples else self.SEGMENTATION_EXAMPLES
-        
-        prompt = """You are an expert at analyzing student explanations of code. Your task is to:
+        # Start with base prompt
+        prompt_parts = ["""You are an expert at analyzing student explanations of code. Your task is to:
 
 1. Segment the student's explanation into distinct semantic units
 2. Map each segment to the relevant lines of code
-3. Classify the explanation type
+3. Classify the explanation type based on the number of segments
 
 REFERENCE CODE:
 ```python
 {}
-```
-
-SEGMENTATION EXAMPLES:
-
-RELATIONAL (High-level, 1-2 segments):
-Student prompt: "{}"
-Segments:
-{}
-
-TRANSITIONAL (Medium-level, 2-3 segments):  
-Student prompt: "{}"
-Segments:
-{}
-
-MULTI-STRUCTURAL (Line-by-line, 4+ segments):
-Student prompt: "{}"
-Segments:
-{}
-
+```""".format(reference_code)]
+        
+        # Add examples if provided
+        if custom_examples:
+            prompt_parts.append("\nSEGMENTATION EXAMPLES:")
+            
+            # Add relational example if it exists
+            if 'relational' in custom_examples and self._is_valid_example(custom_examples['relational']):
+                example = custom_examples['relational']
+                prompt_parts.append("\nRELATIONAL (High-level understanding):")
+                prompt_parts.append(f'Student prompt: "{example["prompt"]}"')
+                prompt_parts.append("Segments:")
+                prompt_parts.append(self._format_example_segments(example['segments'], example['code_lines']))
+            
+            # Add multi-structural example if it exists
+            if 'multi_structural' in custom_examples and self._is_valid_example(custom_examples['multi_structural']):
+                example = custom_examples['multi_structural']
+                prompt_parts.append("\nMULTI-STRUCTURAL (Line-by-line description):")
+                prompt_parts.append(f'Student prompt: "{example["prompt"]}"')
+                prompt_parts.append("Segments:")
+                prompt_parts.append(self._format_example_segments(example['segments'], example['code_lines']))
+        
+        # Add instructions
+        prompt_parts.append("""
 INSTRUCTIONS:
 - Segment the student explanation into meaningful semantic units
 - Each segment should represent a distinct concept or action
@@ -448,24 +526,21 @@ INSTRUCTIONS:
 - Remove any segments that just describe function definition/signature
 - Return your analysis as JSON in this exact format:
 
-{{
+{
     "segments": [
-        {{"id": 1, "text": "segment text here", "code_lines": [1, 2, 3]}},
-        {{"id": 2, "text": "another segment", "code_lines": [4, 5]}}
+        {"id": 1, "text": "segment text here", "code_lines": [1, 2, 3]},
+        {"id": 2, "text": "another segment", "code_lines": [4, 5]}
     ]
-}}
+}
 
-Be precise and consistent in your segmentation.""".format(
-            reference_code,
-            examples['relational']['prompt'],
-            self._format_example_segments(examples['relational']['segments'], examples['relational']['code_lines']),
-            examples['transitional']['prompt'], 
-            self._format_example_segments(examples['transitional']['segments'], examples['transitional']['code_lines']),
-            examples['multi_structural']['prompt'],
-            self._format_example_segments(examples['multi_structural']['segments'], examples['multi_structural']['code_lines'])
-        )
+Be precise and consistent in your segmentation.""")
         
-        return prompt
+        return '\n'.join(prompt_parts)
+    
+    def _is_valid_example(self, example: dict) -> bool:
+        """Check if an example has all required fields"""
+        required_fields = ['prompt', 'segments', 'code_lines']
+        return all(field in example and example[field] for field in required_fields)
     
     def _format_example_segments(self, segments: list, code_lines: list) -> str:
         """Format example segments for the prompt"""
@@ -541,7 +616,7 @@ Be precise and consistent in your segmentation.""".format(
     
     def _determine_comprehension_level(self, segment_count: int, threshold: int = 2, config: dict = None) -> tuple:
         """
-        Classify comprehension level based on segment count
+        Binary classification based on segment count threshold
         
         Args:
             segment_count: Number of segments identified
@@ -557,70 +632,10 @@ Be precise and consistent in your segmentation.""".format(
         if segment_count <= threshold:
             level = 'relational'
             feedback = custom_feedback.get('relational', 
-                'Excellent! You described the overall purpose and high-level approach.')
-        elif segment_count == threshold + 1:
-            level = 'transitional' 
-            feedback = custom_feedback.get('transitional',
-                'Good explanation! You identified the main steps. Consider being more concise.')
+                f'Excellent! Your {segment_count} segment{"s" if segment_count > 1 else ""} shows high-level understanding.')
         else:
             level = 'multi_structural'
             feedback = custom_feedback.get('multi_structural',
-                'You provided detailed line-by-line analysis. Try to focus on the overall goal and key steps instead.')
+                f'Your {segment_count} segments are too detailed. Try to describe the overall purpose in {threshold} or fewer segments.')
         
         return level, feedback
-
-
-class ProblemValidationService:
-    """Service for validating problem definitions"""
-    
-    def __init__(self):
-        self.code_service = CodeExecutionService()
-    
-    def validate_problem(self, problem_data: Dict) -> Tuple[bool, List[str]]:
-        """Validate a complete problem definition"""
-        errors = []
-        
-        # Validate required fields
-        required_fields = ['title', 'description', 'function_name', 'reference_solution']
-        for field in required_fields:
-            if not problem_data.get(field):
-                errors.append(f"Missing required field: {field}")
-        
-        # Validate function name
-        function_name = problem_data.get('function_name', '')
-        if function_name and not function_name.isidentifier():
-            errors.append("Function name must be a valid Python identifier")
-        
-        # Validate reference solution
-        reference_solution = problem_data.get('reference_solution', '')
-        if reference_solution:
-            is_valid, error_msg = self.code_service.validate_python_code(reference_solution)
-            if not is_valid:
-                errors.append(f"Reference solution error: {error_msg}")
-            else:
-                has_function, error_msg = self.code_service.extract_function(reference_solution, function_name)
-                if not has_function:
-                    errors.append(f"Reference solution error: {error_msg}")
-        
-        # Validate test cases
-        test_cases = problem_data.get('test_cases', [])
-        if not test_cases:
-            errors.append("At least one test case is required")
-        else:
-            for i, test_case in enumerate(test_cases):
-                if not isinstance(test_case.get('inputs'), list):
-                    errors.append(f"Test case {i+1}: inputs must be a list")
-                if 'expected_output' not in test_case:
-                    errors.append(f"Test case {i+1}: expected_output is required")
-        
-        # Test reference solution against test cases
-        if not errors and reference_solution and test_cases:
-            test_result = self.code_service.test_solution(
-                reference_solution, function_name, test_cases
-            )
-            if not test_result['success']:
-                errors.append(f"Reference solution failed: {test_result['error']}")
-            elif test_result['passed'] != test_result['total']:
-                errors.append(f"Reference solution passed {test_result['passed']}/{test_result['total']} test cases")
-        
-        return len(errors) == 0, errors

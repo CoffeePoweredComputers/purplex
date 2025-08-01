@@ -39,7 +39,7 @@ class ProblemSerializer(serializers.ModelSerializer):
         fields = [
             'slug', 'title', 'description', 'difficulty', 'problem_type', 'categories', 'category_ids',
             'function_name', 'function_signature', 'reference_solution',
-            'memory_limit', 'tags', 'is_active',
+            'memory_limit', 'tags', 'is_active', 'segmentation_config',
             'problem_sets', 'test_cases', 'test_cases_count', 'visible_test_cases_count',
             'created_by', 'created_by_name', 'created_at', 'updated_at', 'version'
         ]
@@ -70,7 +70,7 @@ class ProblemForProblemSetSerializer(serializers.ModelSerializer):
         fields = [
             'slug', 'title', 'description', 'difficulty', 'problem_type', 'categories',
             'function_name', 'function_signature', 'reference_solution',
-            'tags', 'is_active',
+            'tags', 'is_active', 'segmentation_enabled', 'segmentation_config',
             'test_cases_count', 'visible_test_cases_count'
         ]
 

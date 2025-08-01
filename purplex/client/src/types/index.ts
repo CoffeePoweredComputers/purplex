@@ -159,7 +159,7 @@ export interface EiPLSubmissionResponse {
       code_lines: number[];
     }>;
     segment_count: number;
-    comprehension_level: 'relational' | 'transitional' | 'multi_structural';
+    comprehension_level: 'relational' | 'multi_structural';
     feedback: string;
   };
 }

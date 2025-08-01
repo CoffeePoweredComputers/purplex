@@ -516,12 +516,13 @@ class EiPLSubmissionView(APIView):
         }
         
         # Add segmentation data if available
-        if hasattr(submission, 'segmentation'):
+        if segmentation_data and segmentation_data.get('success'):
             response_data['segmentation'] = {
-                'segments': submission.segmentation.get_segments(),
-                'segment_count': submission.segmentation.segment_count,
-                'comprehension_level': submission.segmentation.comprehension_level,
-                'feedback': submission.segmentation.get_feedback()
+                'segments': segmentation_data['segments'],
+                'segment_count': segmentation_data['segment_count'],
+                'comprehension_level': segmentation_data['comprehension_level'],
+                'feedback': segmentation_data['feedback']
             }
+        
         
         return Response(response_data)

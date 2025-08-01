@@ -230,7 +230,9 @@
           :comprehension-results="comprehensionResults" 
           :user-prompt="userPrompt"
           :segmentation="segmentationData"
-          :reference-code="currentProblemData?.reference_solution || ''"
+          :reference-code="getCurrentProblem()?.reference_solution || ''"
+          :problem-type="getCurrentProblem()?.problem_type || ''"
+          :segmentation-enabled="getCurrentProblem()?.segmentation_enabled || false"
           title="Feedback" 
         />
       </div>

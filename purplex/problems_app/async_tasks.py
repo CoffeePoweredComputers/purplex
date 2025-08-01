@@ -102,6 +102,41 @@ class AsyncAIService:
                 'variations': []
             }
     
+    @staticmethod
+    @run_async_with_timeout(timeout_seconds=30)
+    def segment_prompt(problem: 'Problem', user_prompt: str) -> Dict[str, Any]:
+        """
+        Segment user prompt asynchronously.
+        
+        Args:
+            problem: The Problem instance
+            user_prompt: User's explanation prompt
+            
+        Returns:
+            Dict containing segmentation analysis results
+        """
+        from .services import SegmentationService
+        
+        try:
+            segmentation_service = SegmentationService()
+            result = segmentation_service.segment_prompt(
+                user_prompt=user_prompt,
+                reference_code=problem.reference_solution,
+                problem_config=problem.segmentation_config
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Segmentation failed: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e),
+                'segments': [],
+                'segment_count': 0,
+                'comprehension_level': 'unknown',
+                'feedback': '',
+                'processing_time': 0.0
+            }
+    
     @staticmethod  
     @run_async_with_timeout(timeout_seconds=30)
     def test_code_variations(code_variations: list, function_name: str, test_data: list) -> list:
@@ -137,39 +172,6 @@ class AsyncAIService:
         
         return results
     
-    @staticmethod
-    @run_async_with_timeout(timeout_seconds=30)
-    def segment_prompt(problem: 'Problem', user_prompt: str) -> Dict[str, Any]:
-        """
-        Perform prompt segmentation asynchronously.
-        
-        Args:
-            problem: The Problem instance with reference code and configuration
-            user_prompt: User's explanation of the code to segment
-            
-        Returns:
-            Dict containing segmentation analysis results
-        """
-        from .services import SegmentationService
-        
-        try:
-            service = SegmentationService()
-            return service.segment_prompt(
-                user_prompt=user_prompt,
-                reference_code=problem.reference_solution,
-                problem_config=problem.segmentation_config
-            )
-        except Exception as e:
-            logger.error(f"Segmentation failed: {str(e)}")
-            return {
-                'success': False,
-                'error': str(e),
-                'segments': [],
-                'segment_count': 0,
-                'comprehension_level': 'unknown',
-                'feedback': '',
-                'processing_time': 0.0
-            }
 
 
 # Celery implementation notes for future

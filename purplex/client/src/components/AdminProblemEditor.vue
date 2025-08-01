@@ -842,6 +842,178 @@
           </div>
         </div>
       </div>
+
+      <!-- Segmentation Configuration (EiPL only) -->
+      <div 
+        v-if="form.problem_type === 'eipl'"
+        class="form-section rounded-lg border-default transition-fast"
+      >
+        <h3>Prompt Segmentation Configuration</h3>
+        
+        <div class="segmentation-toggle">
+          <label class="toggle-label">
+            <input 
+              v-model="segmentation.enabled" 
+              type="checkbox"
+              class="toggle-checkbox"
+            >
+            <span class="toggle-text">Enable Prompt Segmentation Analysis</span>
+          </label>
+          <p class="hint-description">
+            Analyzes student explanations to classify their code comprehension level based on the number of segments in their response.
+          </p>
+        </div>
+
+        <div
+          v-if="segmentation.enabled"
+          class="segmentation-config-panel"
+        >
+          <!-- Custom Segmentation Examples -->
+          <div class="segmentation-examples-section">
+            <h4>Segmentation Training Examples</h4>
+            <p class="section-description">
+              Provide examples to train the AI how to segment student responses for this specific problem.
+            </p>
+
+            <!-- Binary Threshold Setting -->
+            <div class="threshold-setting">
+              <label class="form-label">Comprehension Threshold</label>
+              <div class="threshold-control">
+                <input 
+                  v-model.number="segmentation.threshold" 
+                  type="number" 
+                  min="1" 
+                  max="5"
+                  class="threshold-input"
+                >
+                <span class="threshold-help">
+                  ≤ {{ segmentation.threshold }} segments = Good (Relational)<br>
+                  > {{ segmentation.threshold }} segments = Needs Work (Multi-structural)
+                </span>
+              </div>
+            </div>
+
+            <!-- Relational Example -->
+            <div class="example-block relational">
+              <h5>
+                <span class="example-icon">✅</span>
+                Good Example (Relational)
+              </h5>
+              <p class="example-help">Show how a high-level description should look</p>
+              
+              <div class="form-group">
+                <label>Student Description</label>
+                <textarea 
+                  v-model="segmentation.examples.relational.prompt"
+                  placeholder="Example: The function checks if a word is a palindrome by comparing it with its reverse"
+                  rows="3"
+                ></textarea>
+              </div>
+              
+              <div class="segments-editor">
+                <label>Expected Segments ({{ relationalSegments.length }})</label>
+                <div 
+                  v-for="(seg, idx) in relationalSegments" 
+                  :key="`rel-${idx}`"
+                  class="segment-item"
+                >
+                  <div class="segment-row">
+                    <input 
+                      v-model="seg.text" 
+                      placeholder="Segment text"
+                      class="segment-input"
+                    >
+                    <button 
+                      type="button"
+                      class="btn-icon"
+                      @click="removeRelationalSegment(idx)"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div class="code-lines-row">
+                    <label class="lines-label">Code lines:</label>
+                    <input 
+                      v-model="seg.lines"
+                      placeholder="e.g., 1-3 or 1,2,3"
+                      class="lines-input"
+                      @input="validateLineRange(seg)"
+                    >
+                    <span class="lines-help">{{ getLineRangeHelp(seg) }}</span>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  class="btn-secondary btn-sm"
+                  @click="addRelationalSegment"
+                >
+                  + Add Segment
+                </button>
+              </div>
+            </div>
+
+            <!-- Multi-structural Example -->
+            <div class="example-block multi-structural">
+              <h5>
+                <span class="example-icon">❌</span>
+                Needs Work Example (Multi-structural)
+              </h5>
+              <p class="example-help">Show how a line-by-line description looks</p>
+              
+              <div class="form-group">
+                <label>Student Description</label>
+                <textarea 
+                  v-model="segmentation.examples.multi_structural.prompt"
+                  placeholder="Example: It takes the input. Converts each character. Creates empty string. Loops through..."
+                  rows="3"
+                ></textarea>
+              </div>
+              
+              <div class="segments-editor">
+                <label>Expected Segments ({{ multiStructuralSegments.length }})</label>
+                <div 
+                  v-for="(seg, idx) in multiStructuralSegments" 
+                  :key="`multi-${idx}`"
+                  class="segment-item"
+                >
+                  <div class="segment-row">
+                    <input 
+                      v-model="seg.text" 
+                      placeholder="Segment text"
+                      class="segment-input"
+                    >
+                    <button 
+                      type="button"
+                      class="btn-icon"
+                      @click="removeMultiSegment(idx)"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div class="code-lines-row">
+                    <label class="lines-label">Code lines:</label>
+                    <input 
+                      v-model="seg.lines"
+                      placeholder="e.g., 1-3 or 1,2,3"
+                      class="lines-input"
+                      @input="validateLineRange(seg)"
+                    >
+                    <span class="lines-help">{{ getLineRangeHelp(seg) }}</span>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  class="btn-secondary btn-sm"
+                  @click="addMultiSegment"
+                >
+                  + Add Segment
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </form>
     
     <!-- Color picker popup (teleported to body) -->
@@ -895,6 +1067,7 @@ import { marked } from 'marked'
 import { PythonTutorService } from '@/services/pythonTutor.service'
 import { log } from '@/utils/logger'
 import { useNotification } from '@/composables/useNotification'
+import axios from 'axios'
 import { 
   autoDetectAndConvert,
   autoDetectTypeFromInput,
@@ -1026,7 +1199,23 @@ export default {
       
       // Python Tutor Modal
       showPyTutorModal: false,
-      pyTutorUrl: ''
+      pyTutorUrl: '',
+      
+      // Segmentation configuration
+      segmentation: {
+        enabled: true,
+        threshold: 2,
+        examples: {
+          relational: {
+            prompt: '',
+            segments: []
+          },
+          multi_structural: {
+            prompt: '',
+            segments: []
+          }
+        }
+      }
     }
   },
   computed: {
@@ -1093,6 +1282,47 @@ export default {
         log.error('Error rendering markdown', error);
         return '<p class="error">Error rendering markdown. Please check your syntax.</p>';
       }
+    },
+    
+    // Computed properties for segmentation segments
+    relationalSegments() {
+      // Ensure segmentation structure exists
+      if (!this.segmentation) {
+        return [];
+      }
+      if (!this.segmentation.examples) {
+        this.$set(this.segmentation, 'examples', {
+          relational: { prompt: '', segments: [] },
+          multi_structural: { prompt: '', segments: [] }
+        });
+      }
+      if (!this.segmentation.examples.relational) {
+        this.$set(this.segmentation.examples, 'relational', { prompt: '', segments: [] });
+      }
+      if (!this.segmentation.examples.relational.segments) {
+        this.$set(this.segmentation.examples.relational, 'segments', []);
+      }
+      return this.segmentation.examples.relational.segments;
+    },
+    
+    multiStructuralSegments() {
+      // Ensure segmentation structure exists
+      if (!this.segmentation) {
+        return [];
+      }
+      if (!this.segmentation.examples) {
+        this.$set(this.segmentation, 'examples', {
+          relational: { prompt: '', segments: [] },
+          multi_structural: { prompt: '', segments: [] }
+        });
+      }
+      if (!this.segmentation.examples.multi_structural) {
+        this.$set(this.segmentation.examples, 'multi_structural', { prompt: '', segments: [] });
+      }
+      if (!this.segmentation.examples.multi_structural.segments) {
+        this.$set(this.segmentation.examples.multi_structural, 'segments', []);
+      }
+      return this.segmentation.examples.multi_structural.segments;
     },
   },
   
@@ -1292,6 +1522,55 @@ export default {
         
         // Load hints for the problem
         await this.loadHints();
+        
+        // Load segmentation config if it exists
+        if (loadedProblem.segmentation_config && Object.keys(loadedProblem.segmentation_config).length > 0) {
+          const config = loadedProblem.segmentation_config;
+          this.segmentation.enabled = config.enabled || true;
+          this.segmentation.threshold = config.threshold || 2;
+          
+          // Load examples with proper format
+          if (config.examples) {
+            if (config.examples.relational) {
+              this.segmentation.examples.relational = {
+                prompt: config.examples.relational.prompt || '',
+                segments: (config.examples.relational.segments || []).map((s, index) => {
+                  // Handle both string segments and object segments
+                  if (typeof s === 'string') {
+                    // Check if we have corresponding code_lines data
+                    const codeLines = config.examples.relational.code_lines && config.examples.relational.code_lines[index];
+                    const linesStr = codeLines && Array.isArray(codeLines) ? this.formatLineRangeFromArray(codeLines) : '';
+                    return { text: s, lines: linesStr };
+                  } else {
+                    return { 
+                      text: s.text || '', 
+                      lines: s.lines || ''
+                    };
+                  }
+                })
+              };
+            }
+            if (config.examples.multi_structural) {
+              this.segmentation.examples.multi_structural = {
+                prompt: config.examples.multi_structural.prompt || '',
+                segments: (config.examples.multi_structural.segments || []).map((s, index) => {
+                  // Handle both string segments and object segments
+                  if (typeof s === 'string') {
+                    // Check if we have corresponding code_lines data
+                    const codeLines = config.examples.multi_structural.code_lines && config.examples.multi_structural.code_lines[index];
+                    const linesStr = codeLines && Array.isArray(codeLines) ? this.formatLineRangeFromArray(codeLines) : '';
+                    return { text: s, lines: linesStr };
+                  } else {
+                    return { 
+                      text: s.text || '', 
+                      lines: s.lines || ''
+                    };
+                  }
+                })
+              };
+            }
+          }
+        }
       });
     },
     
@@ -1668,7 +1947,11 @@ export default {
           function_signature: this.getApiSafeString(this.form.function_signature),
           reference_solution: this.getApiSafeString(this.form.reference_solution),
           tags: Array.isArray(this.form.tags) ? this.form.tags : [],
-          test_cases: convertedTestCases
+          test_cases: convertedTestCases,
+          // Add segmentation config for EiPL problems
+          ...(this.form.problem_type === 'eipl' && {
+            segmentation_config: this.formatSegmentationConfig()
+          })
         };
         
         // Additional validation
@@ -1929,6 +2212,153 @@ export default {
      */
     removeSubgoal(index) {
       this.hints.subgoal_highlight.content.subgoals.splice(index, 1);
+    },
+    
+    // Segmentation management methods
+    addRelationalSegment() {
+      if (!this.segmentation.examples.relational.segments) {
+        this.$set(this.segmentation.examples.relational, 'segments', []);
+      }
+      this.segmentation.examples.relational.segments.push({ text: '', lines: '' });
+    },
+    
+    removeRelationalSegment(index) {
+      this.segmentation.examples.relational.segments.splice(index, 1);
+    },
+    
+    addMultiSegment() {
+      if (!this.segmentation.examples.multi_structural.segments) {
+        this.$set(this.segmentation.examples.multi_structural, 'segments', []);
+      }
+      this.segmentation.examples.multi_structural.segments.push({ text: '', lines: '' });
+    },
+    
+    removeMultiSegment(index) {
+      this.segmentation.examples.multi_structural.segments.splice(index, 1);
+    },
+    
+    validateLineRange(segment) {
+      // Validate the line range input
+      const lines = segment.lines;
+      if (!lines) {
+        segment.parsedLines = [];
+        return;
+      }
+      
+      try {
+        segment.parsedLines = this.parseLineRange(lines);
+      } catch (e) {
+        segment.parsedLines = [];
+      }
+    },
+    
+    parseLineRange(input) {
+      // Parse line ranges like "1-3" or "1,2,3" or "1-3,5,7-9"
+      if (!input || typeof input !== 'string') return [];
+      
+      const lines = [];
+      const parts = input.split(',');
+      
+      for (const part of parts) {
+        const trimmed = part.trim();
+        if (trimmed.includes('-')) {
+          // Range like "1-3"
+          const [start, end] = trimmed.split('-').map(n => parseInt(n.trim()));
+          if (!isNaN(start) && !isNaN(end) && start <= end) {
+            for (let i = start; i <= end; i++) {
+              lines.push(i);
+            }
+          }
+        } else {
+          // Single number
+          const num = parseInt(trimmed);
+          if (!isNaN(num)) {
+            lines.push(num);
+          }
+        }
+      }
+      
+      // Remove duplicates and sort
+      return [...new Set(lines)].sort((a, b) => a - b);
+    },
+    
+    getLineRangeHelp(segment) {
+      if (!segment.lines) return '';
+      const parsed = this.parseLineRange(segment.lines);
+      if (parsed.length === 0) return '';
+      return `Lines: ${parsed.join(', ')}`;
+    },
+
+    formatLineRangeFromArray(lineNumbers) {
+      // Convert array of line numbers back to compact string format
+      if (!Array.isArray(lineNumbers) || lineNumbers.length === 0) return '';
+      
+      // Sort the numbers
+      const sorted = [...lineNumbers].sort((a, b) => a - b);
+      const ranges = [];
+      let start = sorted[0];
+      let end = sorted[0];
+      
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] === end + 1) {
+          // Consecutive number, extend the range
+          end = sorted[i];
+        } else {
+          // Gap found, close current range and start new one
+          if (start === end) {
+            ranges.push(start.toString());
+          } else {
+            ranges.push(`${start}-${end}`);
+          }
+          start = sorted[i];
+          end = sorted[i];
+        }
+      }
+      
+      // Add the final range
+      if (start === end) {
+        ranges.push(start.toString());
+      } else {
+        ranges.push(`${start}-${end}`);
+      }
+      
+      return ranges.join(', ');
+    },
+    
+    formatSegmentationConfig() {
+      // Format segmentation config for the API
+      const config = {
+        enabled: this.segmentation.enabled,
+        threshold: this.segmentation.threshold,
+        examples: {}
+      };
+      
+      // Only include examples if they have both prompt and segments
+      const rel = this.segmentation.examples.relational;
+      if (rel.prompt && rel.segments && rel.segments.length > 0) {
+        const validSegments = rel.segments.filter(s => s.text);
+        if (validSegments.length > 0) {
+          config.examples.relational = {
+            prompt: rel.prompt,
+            segments: validSegments.map(s => s.text),
+            code_lines: validSegments.map(s => this.parseLineRange(s.lines || ''))
+          };
+        }
+      }
+      
+      const multi = this.segmentation.examples.multi_structural;
+      if (multi.prompt && multi.segments && multi.segments.length > 0) {
+        const validSegments = multi.segments.filter(s => s.text);
+        if (validSegments.length > 0) {
+          config.examples.multi_structural = {
+            prompt: multi.prompt,
+            segments: validSegments.map(s => s.text),
+            code_lines: validSegments.map(s => this.parseLineRange(s.lines || ''))
+          };
+        }
+      }
+      
+      return config;
     },
     
     
@@ -4169,5 +4599,320 @@ export default {
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   resize: vertical;
+}
+
+/* Segmentation Configuration Styles */
+.segmentation-toggle {
+  margin-bottom: var(--spacing-lg);
+}
+
+.segmentation-toggle .hint-description {
+  margin-top: var(--spacing-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.segmentation-config-panel {
+  padding: var(--spacing-lg);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-base);
+}
+
+.threshold-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.threshold-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-description {
+  margin: var(--spacing-sm) 0 var(--spacing-lg);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.threshold-control {
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-bg-border);
+}
+
+.threshold-slider-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  margin: var(--spacing-md) 0;
+}
+
+.threshold-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 6px;
+  background: var(--color-bg-border);
+  border-radius: 3px;
+  outline: none;
+}
+
+.threshold-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--color-primary-gradient-start);
+  cursor: pointer;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+
+.threshold-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.threshold-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--color-primary-gradient-start);
+  cursor: pointer;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: none;
+}
+
+.threshold-value {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-primary-gradient-start);
+  min-width: 30px;
+  text-align: center;
+}
+
+.threshold-labels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+.threshold-label {
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  text-align: center;
+  transition: all 0.3s ease;
+  opacity: 0.6;
+}
+
+.threshold-label.active {
+  opacity: 1;
+  border-color: var(--color-primary-gradient-start);
+  background: var(--color-bg-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.threshold-label .label-icon {
+  font-size: var(--font-size-xl);
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.threshold-label .label-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.threshold-label .label-range {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* Segmentation Configuration Styles */
+
+.segment-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+  font-size: var(--font-size-sm);
+}
+
+.segment-number {
+  font-weight: 600;
+  color: var(--color-primary-gradient-start);
+  min-width: 20px;
+}
+
+.segment-text {
+  flex: 1;
+  color: var(--color-text-primary);
+}
+
+.segment-lines {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+
+/* New Segmentation Examples Styles */
+.segmentation-examples-section {
+  background: var(--color-bg-hover);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-base);
+}
+
+.threshold-setting {
+  margin-bottom: var(--spacing-xl);
+}
+
+.threshold-control {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.threshold-input {
+  width: 80px;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  font-size: var(--font-size-base);
+  text-align: center;
+}
+
+.threshold-help {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin-left: var(--spacing-md);
+}
+
+.example-block {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background: var(--color-bg-secondary);
+}
+
+.example-block.relational {
+  border-color: var(--color-success);
+}
+
+.example-block.multi-structural {
+  border-color: var(--color-error);
+}
+
+.example-block h5 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.example-icon {
+  font-size: 1.2em;
+}
+
+.example-help {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.segments-editor {
+  margin-top: var(--spacing-md);
+}
+
+.segments-editor label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+.segment-item {
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+  border: 1px solid var(--color-bg-border);
+}
+
+.segment-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.segment-input {
+  flex: 1;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-primary);
+  font-size: var(--font-size-sm);
+}
+
+.code-lines-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.code-lines-row .lines-label {
+  font-weight: 600;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  min-width: 80px;
+  margin-bottom: 0;
+}
+
+.code-lines-row input {
+  flex: 1;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-primary);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-family-mono);
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 1.2em;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.btn-icon:hover {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.btn-sm {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-sm);
 }
 </style>

@@ -79,11 +79,10 @@ class SegmentationResult(models.Model):
         max_length=20,
         choices=[
             ('relational', 'Relational'),
-            ('transitional', 'Transitional'), 
             ('multi_structural', 'Multi-structural')
         ],
         db_index=True,
-        help_text="Classification based on segment count"
+        help_text="Binary classification based on segment count"
     )
     
     # Metadata
@@ -127,3 +126,5 @@ class SegmentationResult(models.Model):
     def needs_improvement(self):
         """Check if comprehension level needs improvement"""
         return self.comprehension_level == 'multi_structural'
+
+

@@ -29,14 +29,6 @@
         </div>
       </div>
 
-      <!-- Segmentation Analysis -->
-      <SegmentationSection 
-        v-if="segmentation"
-        :segmentation="segmentation"
-        :reference-code="referenceCode"
-        :threshold="2"
-      />
-
       <!-- Solution Timeline -->
       <nav class="solution-timeline">
         <div 
@@ -77,6 +69,38 @@
 
       <!-- Test Results -->
       <section class="test-results">
+        <!-- Comprehension Analysis Section -->
+        <div 
+          v-if="shouldShowSegmentation"
+          class="comprehension-section"
+        >
+          <!-- Show actual segmentation data if available -->
+          <SegmentationSection 
+            v-if="segmentation"
+            :segmentation="segmentation"
+            :reference-code="referenceCode"
+            :threshold="2"
+          />
+          
+          <!-- Show placeholder when segmentation enabled but no data -->
+          <details
+            v-else
+            class="test-group"
+          >
+            <summary class="test-group-header comprehension">
+              <span class="group-icon">▶</span>
+              Comprehension Analysis
+            </summary>
+            <div class="comprehension-placeholder">
+              <div class="placeholder-content">
+                <span class="placeholder-icon">🧠</span>
+                <p class="placeholder-message">
+                  Submit your explanation to see how you understood the code
+                </p>
+              </div>
+            </div>
+          </details>
+        </div>
         <!-- Failing Tests (Expanded by default) -->
         <details
           v-if="failingTestsForCurrentSlide.length > 0"
@@ -125,7 +149,9 @@
               :key="`pass-${i}`" 
               class="test-item passing"
             >
-              <code class="test-call">{{ test.function_call }} → {{ test.expected_output }}</code>
+              <div class="test-content">
+                <code class="test-call">{{ test.function_call }} → {{ test.expected_output }}</code>
+              </div>
             </article>
           </div>
         </details>
@@ -208,6 +234,14 @@ export default {
       type: String,
       default: '',
     },
+    problemType: {
+      type: String,
+      default: '',
+    },
+    segmentationEnabled: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -219,6 +253,13 @@ export default {
     };
   },
   computed: {
+    isEiPLProblem() {
+      return this.problemType === 'eipl';
+    },
+    shouldShowSegmentation() {
+      // Show segmentation section if it's an EiPL problem and segmentation is enabled
+      return this.isEiPLProblem && this.segmentationEnabled;
+    },
     slides() {
       const slideResults = this.codeResults.map((code, index) => {
         const testResult = this.testResults[index];
@@ -529,7 +570,7 @@ export default {
 
 /* Test Results - Native Collapsible */
 .test-results {
-  padding: var(--spacing-lg);
+  padding: 0;
   background: var(--color-bg-panel);
 }
 
@@ -728,5 +769,35 @@ details:not([open]) .group-icon {
   .debug-btn {
     width: 100%;
   }
+}
+
+/* Comprehension Section - inherits all styling from parent test-results */
+
+.test-group-header.comprehension {
+  border-left: 4px solid var(--color-primary);
+}
+
+.comprehension-placeholder {
+  padding: var(--spacing-sm) 0 0 0;
+  text-align: center;
+}
+
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+}
+
+.placeholder-icon {
+  font-size: var(--font-size-xl);
+  opacity: 0.6;
+}
+
+.placeholder-message {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin: 0;
 }
 </style>

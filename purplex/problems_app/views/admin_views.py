@@ -446,3 +446,5 @@ class AdminCategoryView(APIView):
             category = serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
