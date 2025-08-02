@@ -161,6 +161,7 @@ export interface EiPLSubmissionResponse {
     segment_count: number;
     comprehension_level: 'relational' | 'multi_structural';
     feedback: string;
+    passed?: boolean;  // Whether segmentation passed the threshold
   };
 }
 

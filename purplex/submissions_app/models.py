@@ -21,6 +21,13 @@ class PromptSubmission(models.Model):
     passing_variations = models.IntegerField(default=0, help_text="Number of variations that passed all tests")
     total_variations = models.IntegerField(default=0, help_text="Total number of variations generated")
     
+    # Segmentation analysis result
+    segmentation_passed = models.BooleanField(
+        null=True, 
+        blank=True, 
+        help_text="Whether the segmentation analysis passed the threshold (null if not applicable)"
+    )
+    
     # Performance tracking
     execution_time = models.FloatField(null=True, blank=True, help_text="Total execution time in seconds")
     time_spent = models.DurationField(null=True, blank=True, help_text="Time user spent on this attempt")

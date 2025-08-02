@@ -79,6 +79,7 @@
             <SegmentMapping 
               :segments="segmentation.segments"
               :reference-code="referenceCode"
+              :user-prompt="segmentation.user_prompt || userPrompt || ''"
               class="segment-mapping-modal"
             />
           </div>
@@ -114,6 +115,10 @@ export default {
     referenceCode: {
       type: String,
       required: true
+    },
+    userPrompt: {
+      type: String,
+      default: ''
     }
   },
   data() {
@@ -122,9 +127,9 @@ export default {
       escListenerAdded: false,
       currentSize: 'medium',
       sizePresets: [
-        { name: 'small', label: 'Small', icon: '◻', width: '900px', height: '700px' },
-        { name: 'medium', label: 'Medium', icon: '◼', width: '1400px', height: '900px' },
-        { name: 'large', label: 'Large', icon: '⬛', width: '95%', height: '90vh' },
+        { name: 'small', label: 'Small', icon: '◻', width: '800px', height: 'auto' },
+        { name: 'medium', label: 'Medium', icon: '◼', width: '1000px', height: 'auto' },
+        { name: 'large', label: 'Large', icon: '⬛', width: '1200px', height: 'auto' },
         { name: 'fullscreen', label: 'Fullscreen', icon: '⛶', width: '100%', height: '100vh' }
       ]
     };
@@ -395,10 +400,11 @@ export default {
   background-color: var(--color-bg-panel);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  width: var(--modal-width, 95%);
-  height: var(--modal-height, 800px);
-  max-width: var(--modal-max-width, 1400px);
-  max-height: var(--modal-max-height, 90vh);
+  width: var(--modal-width, 1000px);
+  height: var(--modal-height, auto);
+  max-width: var(--modal-max-width, 90vw);
+  max-height: var(--modal-max-height, 85vh);
+  min-height: 400px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -668,9 +674,6 @@ export default {
     flex-wrap: wrap;
   }
   
-  .modal-title {
-    font-size: var(--font-size-base);
-  }
   
   .modal-actions {
     gap: var(--spacing-sm);

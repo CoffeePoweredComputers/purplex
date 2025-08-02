@@ -71,7 +71,9 @@ export class TestResultsTransformer {
       results: (data.results || data.test_results || []).map(this.normalizeVariationResult),
       passing_variations: data.passing_variations || 0,
       submitted_at: data.submitted_at,
-      user_prompt: data.user_prompt || data.prompt || ''
+      user_prompt: data.user_prompt || data.prompt || '',
+      segmentation: data.segmentation || null,
+      segmentation_passed: data.segmentation_passed ?? null
     };
   }
   

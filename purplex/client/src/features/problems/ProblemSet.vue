@@ -299,7 +299,9 @@ export default {
             restoreOriginal,
             isHintActive,
             getHintData,
-            getStatus
+            getStatus,
+            saveState,
+            restoreState
         } = useEditorHints(entry, originalSolutionCode);
         
         return { 
@@ -323,7 +325,9 @@ export default {
             restoreOriginal,
             isHintActive,
             getHintData,
-            getHintStatus: getStatus
+            getHintStatus: getStatus,
+            saveHintState: saveState,
+            restoreHintState: restoreState
         };
     },
     data() {
@@ -363,7 +367,10 @@ export default {
             
             /* PyTutor Modal */
             showPyTutorModal: false,
-            pyTutorUrl: ''
+            pyTutorUrl: '',
+            
+            /* Hint State Storage per Problem */
+            problemHintStates: {}
         };
     },
     
@@ -475,8 +482,12 @@ export default {
             if (newIndex === this.currentProblem) {return;}
             
             try {
-                // Save current draft before switching
+                // Save current draft and hint state before switching
                 this.saveDraft();
+                const currentProblemSlug = this.getCurrentProblem().slug;
+                if (currentProblemSlug) {
+                    this.problemHintStates[currentProblemSlug] = this.saveHintState();
+                }
                 
                 // Pre-fetch data to reduce loading time
                 const problem = this.problems[newIndex];
@@ -499,6 +510,11 @@ export default {
                 // Load draft after data is ready
                 await this.$nextTick();
                 this.loadDraft();
+                
+                // Restore hint state for the new problem (this will clear if no state exists)
+                const newProblemSlug = this.getCurrentProblem().slug;
+                const savedState = newProblemSlug ? this.problemHintStates[newProblemSlug] : null;
+                await this.restoreHintState(savedState);
                 
             } catch (error) {
                 this.logger.error('Navigation failed', error);

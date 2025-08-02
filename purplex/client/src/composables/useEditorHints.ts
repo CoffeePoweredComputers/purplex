@@ -211,8 +211,19 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
         return false
       }
 
+      // Get the hint data before removing
+      const hintData = activeHints.value[hintIndex]
+      
       // Remove hint from active list
       activeHints.value.splice(hintIndex, 1)
+
+      // Remove associated overlays if hint used OVERLAY_UI strategy
+      if (hintData.result?.metadata?.strategy === HintRenderStrategy.OVERLAY_UI) {
+        // Remove all overlays associated with this hint's component
+        activeOverlays.value = activeOverlays.value.filter(
+          overlay => overlay.component !== hintData.result?.overlayComponent
+        )
+      }
 
       // Record in history
       hintHistory.value.push({
@@ -416,6 +427,38 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
 
     return stats
   }
+  
+  /**
+   * Save current hint state
+   * @returns {Object} Serializable hint state
+   */
+  const saveState = () => {
+    return {
+      activeHints: activeHints.value.map(hint => ({
+        hintType: hint.hintType,
+        content: hint.content,
+        timestamp: hint.timestamp
+      })),
+      hasHints: hasActiveHints.value
+    }
+  }
+  
+  /**
+   * Restore hint state
+   * @param {Object} state - Previously saved state
+   */
+  const restoreState = async (state: any) => {
+    // Always clear current state first
+    await removeAllHints()
+    
+    // If no state to restore, we're done (hints are cleared)
+    if (!state || !state.activeHints || state.activeHints.length === 0) return
+    
+    // Reapply each saved hint
+    for (const savedHint of state.activeHints) {
+      await applyHint(savedHint.hintType, { content: savedHint.content })
+    }
+  }
 
   return {
     // State
@@ -438,6 +481,10 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
     isHintActive,
     getHintData,
     getHintStats,
+    
+    // State management
+    saveState,
+    restoreState,
     
     // Utility
     reapplyAllHints

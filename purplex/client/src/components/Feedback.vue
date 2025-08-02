@@ -155,6 +155,7 @@
       :is-visible="showSegmentAnalysisModal"
       :segmentation="segmentation"
       :reference-code="referenceCode"
+      :user-prompt="userPrompt"
       @close="showSegmentAnalysisModal = false"
     />
   </div>

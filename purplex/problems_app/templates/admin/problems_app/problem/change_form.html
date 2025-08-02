@@ -1,0 +1,15 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+<div style="background-color: #f0f8ff; border: 1px solid #4682b4; border-radius: 4px; padding: 15px; margin-bottom: 20px;">
+    <h3 style="margin-top: 0; color: #2c5aa0;">📝 Read-Only View</h3>
+    <p style="margin: 10px 0;">This is a read-only view. To edit this problem, please use the Vue admin interface:</p>
+    <a href="/admin/problems/{{ original.slug }}/edit" target="_blank" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+        ✏️ Edit in Vue Admin
+    </a>
+    <p style="margin: 10px 0 0 0; color: #666; font-size: 0.9em;">
+        The Vue admin provides a better interface for managing problems, including segmentation configuration for EiPL problems.
+    </p>
+</div>
+{{ block.super }}
+{% endblock %}

@@ -5,6 +5,9 @@
       <summary class="test-group-header comprehension">
         <span class="group-icon">▶</span>
         Comprehension Analysis
+        <span v-if="segmentation.passed !== undefined" class="status-indicator" :class="segmentation.passed ? 'passed' : 'failed'">
+          {{ segmentation.passed ? '✓ Passed' : '✗ Failed' }}
+        </span>
       </summary>
       <div class="segmentation-content">
 
@@ -44,6 +47,7 @@
       :is-visible="isModalVisible"
       :segmentation="segmentation"
       :reference-code="referenceCode"
+      :user-prompt="userPrompt"
       @close="hideSegmentAnalysisModal"
     />
 
@@ -81,6 +85,10 @@ export default {
       type: Number,
       default: 2
     },
+    userPrompt: {
+      type: String,
+      default: ''
+    }
   },
   data() {
     return {
@@ -107,13 +115,16 @@ export default {
     },
     
     getExplanation() {
+      const passedText = this.segmentation.passed !== undefined ? 
+        (this.segmentation.passed ? '' : ' To pass, describe the overall purpose in fewer segments.') : '';
+      
       switch (this.segmentation.comprehension_level) {
         case 'relational':
-          return `You focused on the overall purpose. This shows strong conceptual understanding.`;
+          return `You focused on the overall purpose with ${this.segmentation.segment_count} segment${this.segmentation.segment_count > 1 ? 's' : ''}. This shows strong conceptual understanding.${passedText}`;
         case 'transitional':
-          return `You identified key steps. Good balance between detail and big picture.`;
+          return `You identified key steps. Good balance between detail and big picture.${passedText}`;
         case 'multi_structural':
-          return `You provided line-by-line detail. Try focusing on the main goal instead.`;
+          return `You provided ${this.segmentation.segment_count} detailed segments. Try focusing on the main goal instead.${passedText}`;
         default:
           return '';
       }
@@ -179,6 +190,24 @@ export default {
 
 .test-group-header.comprehension {
   border-left: 4px solid var(--color-primary);
+}
+
+.status-indicator {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.status-indicator.passed {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-indicator.failed {
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .group-icon {

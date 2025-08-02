@@ -354,11 +354,10 @@ class EiPLSubmissionView(APIView):
                 user_prompt=user_prompt
             )
             
-            # TEMPORARILY DISABLED: Segmentation feature
             # Start segmentation in parallel if enabled for this problem
             segmentation_future = None
-            # if problem.segmentation_enabled:
-            #     segmentation_future = AsyncAIService.segment_prompt(problem, user_prompt)
+            if problem.segmentation_enabled:
+                segmentation_future = AsyncAIService.segment_prompt(problem, user_prompt)
             
             # If running async (in production), this will be a Future object
             if hasattr(generation_result, 'result'):
@@ -463,21 +462,27 @@ class EiPLSubmissionView(APIView):
         else:
             score = 0
         
-        # TEMPORARILY DISABLED: Collect segmentation results if enabled
+        # Collect segmentation results if enabled
         segmentation_data = None
-        # if problem.segmentation_enabled and segmentation_future:
-        #     try:
-        #         if hasattr(segmentation_future, 'result'):
-        #             segmentation_data = segmentation_future.result(timeout=30)
-        #         else:
-        #             segmentation_data = segmentation_future
-        #             
-        #         if not segmentation_data.get('success', False):
-        #             logger.warning(f"Segmentation failed for problem {problem_slug}: {segmentation_data.get('error')}")
-        #             segmentation_data = None
-        #     except Exception as e:
-        #         logger.error(f"Segmentation timeout/error for problem {problem_slug}: {str(e)}")
-        #         segmentation_data = None
+        segmentation_passed = None  # Track if segmentation passed the threshold
+        
+        if problem.segmentation_enabled and segmentation_future:
+            try:
+                if hasattr(segmentation_future, 'result'):
+                    segmentation_data = segmentation_future.result(timeout=30)
+                else:
+                    segmentation_data = segmentation_future
+                    
+                if not segmentation_data.get('success', False):
+                    logger.warning(f"Segmentation failed for problem {problem_slug}: {segmentation_data.get('error')}")
+                    segmentation_data = None
+                else:
+                    # Check if segmentation passed the threshold
+                    # 'relational' = good comprehension (passed), 'multi_structural' = too detailed (failed)
+                    segmentation_passed = segmentation_data.get('comprehension_level') == 'relational'
+            except Exception as e:
+                logger.error(f"Segmentation timeout/error for problem {problem_slug}: {str(e)}")
+                segmentation_data = None
         
         # Create submission record with all EiPL-specific data
         submission = PromptSubmission.objects.create(
@@ -490,23 +495,18 @@ class EiPLSubmissionView(APIView):
             test_results=all_results,
             passing_variations=total_passed,
             total_variations=len(code_variations),
+            segmentation_passed=segmentation_passed,  # Store whether segmentation passed
             course=course  # Include course context
         )
         
-        # TEMPORARILY DISABLED: Save segmentation results if available
-        # if segmentation_data and segmentation_data.get('success'):
-        #     SegmentationResult.objects.create(
-        #         submission=submission,
-        #         analysis={
-        #             'segments': segmentation_data['segments'],
-        #             'code_mappings': {str(i): seg['code_lines'] 
-        #                             for i, seg in enumerate(segmentation_data['segments'])},
-        #             'feedback': segmentation_data['feedback'],
-        #             'processing_time': segmentation_data.get('processing_time', 0.0)
-        #         },
-        #         segment_count=segmentation_data['segment_count'],
-        #         comprehension_level=segmentation_data['comprehension_level']
-        #     )
+        # Save segmentation results if available
+        if segmentation_data and segmentation_data.get('success'):
+            SegmentationResult.objects.create(
+                submission=submission,
+                analysis=segmentation_data,  # Store complete result as JSON
+                segment_count=segmentation_data['segment_count'],
+                comprehension_level=segmentation_data['comprehension_level']
+            )
         
         # Progress is automatically updated via the PromptSubmission model's save method
         # Get the updated progress for response
@@ -533,14 +533,17 @@ class EiPLSubmissionView(APIView):
             }
         }
         
-        # TEMPORARILY DISABLED: Add segmentation data if available
-        # if segmentation_data and segmentation_data.get('success'):
-        #     response_data['segmentation'] = {
-        #         'segments': segmentation_data['segments'],
-        #         'segment_count': segmentation_data['segment_count'],
-        #         'comprehension_level': segmentation_data['comprehension_level'],
-        #         'feedback': segmentation_data['feedback']
-        #     }
+        # Add segmentation data if available - exact TypeScript interface match
+        if segmentation_data and segmentation_data.get('success'):
+            response_data['segmentation'] = {
+                'segments': segmentation_data['segments'],          # Array<{id, text, code_lines}>
+                'segment_count': segmentation_data['segment_count'], # number
+                'comprehension_level': segmentation_data['comprehension_level'], # 'relational'|'multi_structural'
+                'feedback': segmentation_data['feedback'],           # string
+                'user_prompt': user_prompt,                         # Original user prompt for display
+                'passed': segmentation_passed                       # Whether segmentation passed the threshold
+            }
+            # Note: Intentionally exclude 'success', 'processing_time', 'error' - frontend doesn't expect these
         
         
         return Response(response_data)

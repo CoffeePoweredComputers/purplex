@@ -24,31 +24,48 @@ class ProblemCategoryAdmin(admin.ModelAdmin):
 
 class TestCaseInline(admin.TabularInline):
     model = TestCase
-    extra = 1
+    extra = 0  # No extra empty forms since it's read-only
     fields = ['inputs', 'expected_output', 'description', 'is_hidden', 'is_sample', 'order']
     ordering = ['order']
+    can_delete = False  # Disable deletion
+    
+    def has_add_permission(self, request, obj=None):
+        return False  # Disable adding new test cases
+    
+    def has_change_permission(self, request, obj=None):
+        return False  # Make inline read-only
 
 @admin.register(Problem)
 class ProblemAdmin(admin.ModelAdmin):
-    list_display = ['title', 'slug', 'difficulty', 'function_name', 'is_active', 'test_cases_count', 'created_at']
-    list_filter = ['difficulty', 'is_active', 'categories', 'created_at']
+    list_display = ['title', 'slug', 'problem_type', 'difficulty', 'function_name', 'is_active', 'test_cases_count', 'created_at', 'edit_link']
+    list_filter = ['problem_type', 'difficulty', 'is_active', 'categories', 'created_at']
     search_fields = ['title', 'slug', 'description', 'function_name']
-    prepopulated_fields = {'slug': ('title',)}
     filter_horizontal = ['categories']
-    readonly_fields = ['created_at', 'updated_at', 'test_cases_count', 'visible_test_cases_count']
-    inlines = [TestCaseInline]
+    
+    # Make all fields read-only
+    def get_readonly_fields(self, request, obj=None):
+        # Return all fields as read-only
+        return [f.name for f in self.model._meta.fields] + ['categories', 'test_cases_count', 'visible_test_cases_count']
+    
+    # Disable add permission
+    def has_add_permission(self, request):
+        return False
+    
+    # Disable delete permission (optional - uncomment if you want to prevent deletion from Django admin)
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('title', 'slug', 'description', 'difficulty', 'categories', 'tags')
+            'fields': ('title', 'slug', 'problem_type', 'description', 'difficulty', 'categories', 'tags')
         }),
         ('Function Details', {
-            'fields': ('function_name', 'function_signature', 'reference_solution', 'hints')
+            'fields': ('function_name', 'function_signature', 'reference_solution')
         }),
         ('Segmentation Settings', {
             'fields': ('segmentation_config',),
             'classes': ('collapse',),
-            'description': 'Configure prompt segmentation for EiPL problems. JSON format with enabled, threshold, and examples.'
+            'description': 'Prompt segmentation for EiPL problems. Edit in Vue admin interface.'
         }),
         ('Settings', {
             'fields': ('memory_limit', 'is_active'),
@@ -64,10 +81,15 @@ class ProblemAdmin(admin.ModelAdmin):
         return obj.test_cases.count()
     test_cases_count.short_description = 'Test Cases'
     
-    def save_model(self, request, obj, form, change):
-        if not change:  # Creating new object
-            obj.created_by = request.user
-        super().save_model(request, obj, form, change)
+    def edit_link(self, obj):
+        if obj.slug:
+            url = f'/admin/problems/{obj.slug}/edit'
+            return format_html('<a href="{}" target="_blank">Edit in Vue Admin →</a>', url)
+        return '-'
+    edit_link.short_description = 'Edit'
+    
+    # Override change form template to show a notice
+    change_form_template = 'admin/problems_app/problem/change_form.html'
 
 @admin.register(TestCase)
 class TestCaseAdmin(admin.ModelAdmin):
