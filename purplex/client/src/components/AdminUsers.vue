@@ -84,22 +84,31 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from 'vue'
 import { mapGetters } from 'vuex';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import AuthService from '../services/auth.service';
 import AdminNavBar from './AdminNavBar.vue';
 import { log } from '@/utils/logger';
+import type { User } from '@/types';
 
 // Setup axios to include credentials and CSRF token
 axios.defaults.withCredentials = true;
 
-export default {
+interface ComponentData {
+  users: User[];
+  loading: boolean;
+  error: string | null;
+  updatingUsers: Record<number, boolean>;
+}
+
+export default defineComponent({
   name: 'AdminUsers',
   components: {
     AdminNavBar
   },
-  data() {
+  data(): ComponentData {
     return {
       users: [],
       loading: true,
@@ -120,15 +129,15 @@ export default {
     this.fetchUsers();
   },
   methods: {
-    async fetchUsers() {
+    async fetchUsers(): Promise<void> {
       try {
         this.loading = true;
         
         // Get CSRF token from cookie if present
-        function getCookie(name) {
+        function getCookie(name: string): string | undefined {
           const value = `; ${document.cookie}`;
           const parts = value.split(`; ${name}=`);
-          if (parts.length === 2) {return parts.pop().split(';').shift();}
+          if (parts.length === 2) {return parts.pop()?.split(';').shift();}
         }
         
         // First make a GET request to get the CSRF token
@@ -146,13 +155,14 @@ export default {
         this.users = response.data;
         this.loading = false;
       } catch (error) {
+        const axiosError = error as AxiosError;
         this.error = 'Failed to load users. Please try again.';
         this.loading = false;
-        log.error('Error fetching users', { error });
+        log.error('Error fetching users', { error: axiosError });
       }
     },
     
-    getBadgeClass(role) {
+    getBadgeClass(role: string): string {
       switch (role) {
         case 'admin':
           return 'admin-badge';
@@ -164,7 +174,7 @@ export default {
       }
     },
     
-    async changeRole(userId, newRole) {
+    async changeRole(userId: number, newRole: string): Promise<void> {
       log.debug('Changing role for user', { userId, newRole });
       try {
         // Set this user as updating
@@ -174,10 +184,10 @@ export default {
         };
         
         // Get CSRF token from cookie if present
-        function getCookie(name) {
+        function getCookie(name: string): string | undefined {
           const value = `; ${document.cookie}`;
           const parts = value.split(`; ${name}=`);
-          if (parts.length === 2) {return parts.pop().split(';').shift();}
+          if (parts.length === 2) {return parts.pop()?.split(';').shift();}
         }
         
         const csrfToken = getCookie('csrftoken');
@@ -204,8 +214,9 @@ export default {
           this.users = updatedUsers;
         }
       } catch (error) {
+        const axiosError = error as AxiosError;
         this.error = 'Failed to update user role. Please try again.';
-        log.error('Error updating user role', { error, userId, newRole });
+        log.error('Error updating user role', { error: axiosError, userId, newRole });
       } finally {
         // Remove updating status when done
         this.updatingUsers = {
@@ -215,7 +226,7 @@ export default {
       }
     }
   }
-}
+})
 </script>
 
 <style scoped>

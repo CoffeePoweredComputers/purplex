@@ -284,8 +284,29 @@ export interface SuggestedTraceHint extends BaseHintConfig {
 
 export type HintConfig = VariableFadeHint | SubgoalHighlightHint | SuggestedTraceHint;
 
+// Type aliases for compatibility
+export type VariableMapping = VariableFadeMapping;
+export type VariableFadeHintData = VariableFadeHint;
+export type SubgoalHighlightData = SubgoalHighlightHint;
+export type Subgoal = SubgoalHighlight;
+export type LineRange = { start: number; end: number };
+export type SuggestedTraceData = SuggestedTraceHint;
+
 export interface HintUpdateRequest {
   hints: HintConfig[];
+}
+
+export interface HintRequest {
+  problemSlug: string;
+  hintType: HintType;
+  courseId?: string;
+  problemSetSlug?: string;
+}
+
+export interface HintResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
 }
 
 // ===== PROGRESS TRACKING TYPES =====

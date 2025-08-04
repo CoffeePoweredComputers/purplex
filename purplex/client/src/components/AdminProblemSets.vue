@@ -110,20 +110,32 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from 'vue'
 import { mapGetters } from 'vuex';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import AdminNavBar from './AdminNavBar.vue';
 import AddEditProblemSetModal from '../modals/AddEditProblemSetModal.vue';
 import { log } from '@/utils/logger';
+import type { ProblemSet, ProblemDetailed } from '@/types';
 
-export default {
+interface ComponentData {
+  problemSets: ProblemSet[];
+  problems: ProblemDetailed[];
+  loading: boolean;
+  error: string | null;
+  showAddModal: boolean;
+  showEditModal: boolean;
+  selectedProblemSet: ProblemSet | null;
+}
+
+export default defineComponent({
   name: 'AdminProblemSets',
   components: {
     AdminNavBar,
     AddEditProblemSetModal
   },
-  data() {
+  data(): ComponentData {
     return {
       problemSets: [],
       problems: [],
@@ -147,7 +159,7 @@ export default {
     this.fetchData();
   },
   methods: {
-    async fetchData() {
+    async fetchData(): Promise<void> {
       try {
         this.loading = true;
         this.error = null;
@@ -160,42 +172,44 @@ export default {
         this.problemSets = setsResponse.data;
         this.problems = problemsResponse.data;
       } catch (error) {
+        const axiosError = error as AxiosError;
         this.error = 'Failed to load data. Please try again.';
-        log.error('Error fetching data', error);
+        log.error('Error fetching data', axiosError);
       } finally {
         this.loading = false;
       }
     },
     
-    editProblemSet(set) {
+    editProblemSet(set: ProblemSet): void {
       this.selectedProblemSet = set;
       this.showEditModal = true;
     },
     
-    confirmDelete(set) {
+    confirmDelete(set: ProblemSet): void {
       if (confirm(`Are you sure you want to delete the problem set "${set.title}"? This action cannot be undone.`)) {
         this.deleteProblemSet(set);
       }
     },
     
-    async deleteProblemSet(set) {
+    async deleteProblemSet(set: ProblemSet): Promise<void> {
       try {
         await axios.delete(`/api/admin/problem-sets/${set.slug}/`);
         // Remove the problem set from the array
         this.problemSets = this.problemSets.filter(s => s.slug !== set.slug);
       } catch (error) {
+        const axiosError = error as AxiosError;
         this.error = 'Failed to delete problem set. Please try again.';
-        log.error('Error deleting problem set', error);
+        log.error('Error deleting problem set', axiosError);
       }
     },
     
     // Modal event handlers
-    handleProblemSetAdded(newProblemSet) {
+    handleProblemSetAdded(newProblemSet: ProblemSet): void {
       this.problemSets.push(newProblemSet);
       this.showAddModal = false;
     },
     
-    handleProblemSetUpdated(updatedProblemSet) {
+    handleProblemSetUpdated(updatedProblemSet: ProblemSet): void {
       const index = this.problemSets.findIndex(s => s.slug === updatedProblemSet.slug);
       if (index !== -1) {
         this.problemSets[index] = updatedProblemSet;
@@ -204,7 +218,7 @@ export default {
       this.selectedProblemSet = null;
     },
     
-    handleError(errorMessage) {
+    handleError(errorMessage: string): void {
       this.error = errorMessage;
       // Clear error after 5 seconds
       setTimeout(() => {
@@ -212,7 +226,7 @@ export default {
       }, 5000);
     }
   }
-};
+});
 </script>
 
 <style scoped>

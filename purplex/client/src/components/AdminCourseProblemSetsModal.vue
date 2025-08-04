@@ -160,13 +160,48 @@
   </div>
 </template>
 
-<script>
-import { onMounted, ref, watch, watchEffect } from 'vue'
-import axios from 'axios'
+<script lang="ts">
+import { defineComponent, ref, watchEffect, type PropType } from 'vue'
+import axios, { type AxiosError } from 'axios'
 import { useNotification } from '@/composables/useNotification'
 import { log } from '@/utils/logger'
+import type { Course } from '@/types'
 
-export default {
+interface ProblemSet {
+  slug: string
+  title: string
+  description?: string
+  problems_count: number
+}
+
+interface CourseProblemSetItem {
+  id: number
+  order: number
+  is_required: boolean
+  problem_set: ProblemSet
+}
+
+interface LoadingStates {
+  current: boolean
+  available: boolean
+  adding: boolean
+}
+
+interface APIErrorResponse {
+  error?: string
+}
+
+interface AddProblemSetRequest {
+  problem_set_slug: string
+  is_required: boolean
+}
+
+interface UpdateProblemSetRequest {
+  is_required?: boolean
+  order?: number
+}
+
+export default defineComponent({
   name: 'AdminCourseProblemSetsModal',
   props: {
     visible: {
@@ -174,11 +209,11 @@ export default {
       required: true
     },
     course: {
-      type: Object,
+      type: Object as PropType<Course>,
       required: true
     }
   },
-  emits: ['close', 'updated'],
+  emits: ['close', 'updated'] as const,
   setup(props, { emit }) {
     const { notify } = useNotification()
     
@@ -363,7 +398,7 @@ export default {
       moveDown
     }
   }
-}
+})
 </script>
 
 <style scoped>

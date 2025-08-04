@@ -46,14 +46,29 @@
   </div>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { defineComponent, type PropType } from 'vue';
+
+// Define types for the component
+interface Segment {
+  id: number;
+  text: string;
+  code_lines: number[];
+}
+
+interface ParsedResponsePart {
+  text: string;
+  isSegment: boolean;
+  segmentId?: number;
+}
+
+export default defineComponent({
   name: 'SegmentMapping',
   props: {
     segments: {
-      type: Array,
+      type: Array as PropType<Segment[]>,
       required: true,
-      default: () => []
+      default: (): Segment[] => []
     },
     referenceCode: {
       type: String,
@@ -68,20 +83,20 @@ export default {
   },
   data() {
     return {
-      activeSegment: null,
-      selectedSegment: null,
-      canvasWidth: 200,
-      canvasHeight: 400,
-      connectionColor: '#667eea'
+      activeSegment: null as number | null,
+      selectedSegment: null as number | null,
+      canvasWidth: 200 as number,
+      canvasHeight: 400 as number,
+      connectionColor: '#667eea' as string
     };
   },
   computed: {
-    codeLines() {
+    codeLines(): string[] {
       // Don't filter out empty lines to maintain line numbering
       return this.referenceCode.split('\n');
     },
     
-    parsedResponse() {
+    parsedResponse(): ParsedResponsePart[] {
       
       if (!this.userPrompt) {
         return [{ text: '', isSegment: false }];
@@ -98,7 +113,7 @@ export default {
       console.log('User prompt:', this.userPrompt);
       
       // Try to reconstruct the prompt with segments inline
-      const result = [];
+      const result: ParsedResponsePart[] = [];
       let workingPrompt = this.userPrompt;
       let currentPosition = 0;
       
@@ -172,13 +187,13 @@ export default {
     // Clean unmount
   },
   methods: {
-    findSegmentId(text) {
+    findSegmentId(text: string): number | null {
       // Find the segment ID that matches this text
       const segment = this.segments.find(s => s.text === text);
       return segment ? segment.id : null;
     },
     
-    setActiveSegment(segmentId) {
+    setActiveSegment(segmentId: number): void {
       this.activeSegment = segmentId;
       // Debug the segment data
       const segment = this.segments.find(s => s.id === segmentId);
@@ -195,12 +210,12 @@ export default {
       }
     },
     
-    clearActiveSegment() {
+    clearActiveSegment(): void {
       this.activeSegment = null;
     },
     
-    getLineClass(lineNumber) {
-      const classes = ['code-line'];
+    getLineClass(lineNumber: number): string[] {
+      const classes: string[] = ['code-line'];
       
       if (this.activeSegment) {
         const activeSegmentData = this.segments.find(s => s.id === this.activeSegment);
@@ -212,10 +227,10 @@ export default {
       }
       
       return classes;
-    },
+    }
     
   }
-};
+});
 </script>
 
 <style scoped>

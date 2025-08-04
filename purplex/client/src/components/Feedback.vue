@@ -161,16 +161,46 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent, PropType } from 'vue'
 import Editor from '@/features/editor/Editor.vue';
 import PyTutorModal from '../modals/PyTutorModal.vue';
 import SegmentationSection from './segmentation/SegmentationSection.vue';
 import ComprehensionBanner from './segmentation/ComprehensionBanner.vue';
 import SegmentAnalysisModal from './segmentation/SegmentAnalysisModal.vue';
 import { PythonTutorService } from '@/services/pythonTutor.service';
-import { log } from '@/utils/logger'; 
+import { log } from '@/utils/logger';
 
-export default {
+interface TestCase {
+  function_call: string;
+  expected_output: string;
+  actual_output?: string;
+  pass: boolean;
+}
+
+interface TestResult {
+  success?: boolean;
+  passed?: number;
+  total?: number;
+  results?: TestCase[];
+}
+
+interface Slide {
+  content: string;
+  correct: boolean;
+  tests: TestCase[];
+}
+
+interface ComponentData {
+  showModal: boolean;
+  pythonTutorUrl: string;
+  currentSlide: number;
+  currentSlideContents: string;
+  currentComprehensionResults: any[];
+  showSegmentAnalysisModal: boolean;
+}
+
+export default defineComponent({
   components: { 
     Editor,
     PyTutorModal,
@@ -180,59 +210,59 @@ export default {
   },
   props: {
     progress: {
-      type: Number,
+      type: Number as PropType<number>,
       default: 0,
     },
     notches: {
-      type: Number,
+      type: Number as PropType<number>,
       default: 10,
     },
     title: {
-      type: String,
+      type: String as PropType<string>,
       default: '',
     },
     feedback: {
-      type: String,
+      type: String as PropType<string>,
       default: '',
     },
     codeResults: {
-      type: Array,
+      type: Array as PropType<string[]>,
       default: () => [],
     },
     testResults: {
-      type: Array,
+      type: Array as PropType<TestResult[]>,
       default: () => [],
     },
     solutionCode: {
-      type: String,
+      type: String as PropType<string>,
       default: '',
     },
     comprehensionResults: {
-      type: String,
+      type: String as PropType<string>,
       default: '',
     },
     userPrompt: {
-      type: String,
+      type: String as PropType<string>,
       default: '',
     },
     segmentation: {
-      type: Object,
+      type: Object as PropType<any>,
       default: null,
     },
     referenceCode: {
-      type: String,
+      type: String as PropType<string>,
       default: '',
     },
     problemType: {
-      type: String,
+      type: String as PropType<string>,
       default: '',
     },
     segmentationEnabled: {
-      type: Boolean,
+      type: Boolean as PropType<boolean>,
       default: false,
     },
   },
-  data() {
+  data(): ComponentData {
     return {
       showModal: false,
       pythonTutorUrl: '',
@@ -243,14 +273,14 @@ export default {
     };
   },
   computed: {
-    isEiPLProblem() {
+    isEiPLProblem(): boolean {
       return this.problemType === 'eipl';
     },
-    shouldShowSegmentation() {
+    shouldShowSegmentation(): boolean {
       // Show segmentation section if it's an EiPL problem and segmentation is enabled
       return this.isEiPLProblem && this.segmentationEnabled;
     },
-    slides() {
+    slides(): Slide[] {
       const slideResults = this.codeResults.map((code, index) => {
         const testResult = this.testResults[index];
         
@@ -281,25 +311,25 @@ export default {
       log.debug('SLIDES', { slideResults });
       return slideResults;
     },
-    overallProgressPercent() {
+    overallProgressPercent(): number {
       if (this.slides.length === 0) {return 0;}
       const totalTests = this.slides.reduce((sum, slide) => sum + slide.tests.length, 0);
       const passingTests = this.slides.reduce((sum, slide) => 
         sum + slide.tests.filter(test => test.pass).length, 0);
       return totalTests > 0 ? (passingTests / totalTests) * 100 : 0;
     },
-    passingTests() {
+    passingTests(): number {
       return this.slides.reduce((sum, slide) => 
         sum + slide.tests.filter(test => test.pass).length, 0);
     },
-    totalTests() {
+    totalTests(): number {
       return this.slides.reduce((sum, slide) => sum + slide.tests.length, 0);
     },
-    passingTestsForCurrentSlide() {
+    passingTestsForCurrentSlide(): TestCase[] {
       if (this.slides.length === 0 || !this.slides[this.currentSlide]) {return [];}
       return this.slides[this.currentSlide].tests.filter(test => test.pass);
     },
-    failingTestsForCurrentSlide() {
+    failingTestsForCurrentSlide(): TestCase[] {
       if (this.slides.length === 0 || !this.slides[this.currentSlide]) {return [];}
       return this.slides[this.currentSlide].tests.filter(test => !test.pass);
     },
@@ -317,33 +347,33 @@ export default {
   },
   methods: {
     // Core navigation methods
-    updateSolutionCode() {
+    updateSolutionCode(): void {
       if (this.slides.length === 0) {
         this.currentSlideContents = "";
       } else {
         this.currentSlideContents = this.slides[this.currentSlide].content;
       }
     },
-    goToSlide(index) {
+    goToSlide(index: number): void {
       this.currentSlide = index;
       this.updateSolutionCode();
       this.$emit('solution-changed', index);
     },
     
     // Status helpers
-    getSlideStatus(slide) {
+    getSlideStatus(slide: Slide): string {
       if (slide.tests.length === 0) {return 'pending';}
       if (slide.correct) {return 'passing';}
       return 'failing';
     },
-    getSlideIcon(slide) {
+    getSlideIcon(slide: Slide): string {
       if (slide.tests.length === 0) {return '⏳';}
       if (slide.correct) {return '✓';}
       return '✗';
     },
     
     // Debug functionality
-    openPyTutor(testCase) {
+    openPyTutor(testCase: TestCase): void {
       if (!testCase) {return;}
       
       const solutionCode = this.slides[this.currentSlide].content;
@@ -354,7 +384,7 @@ export default {
       this.showModal = true;
     },
   },
-};
+});
 </script>
 
 <style scoped>

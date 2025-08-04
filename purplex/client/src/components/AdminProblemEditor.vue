@@ -1058,7 +1058,8 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent, PropType } from 'vue'
 import NotificationToast from './NotificationToast.vue'
 import Editor from '@/features/editor/Editor.vue'
 import PyTutorModal from '@/modals/PyTutorModal.vue'
@@ -1077,6 +1078,79 @@ import {
   parseTypeAnnotation,
   validateValueAgainstType
 } from '@/utils/typeSystem'
+import type { 
+  ProblemDetailed, 
+  TestCaseInput, 
+  ProblemCategory,
+  DifficultyLevel,
+  ProblemType,
+  TestResult,
+  TestExecutionResult,
+  HintConfig,
+  VariableFadeHint,
+  SubgoalHighlightHint,
+  SuggestedTraceHint
+} from '@/types'
+
+// Type definitions
+interface FunctionParameter {
+  name: string
+  type: string
+  typeSpec: any // TODO: Define proper type spec interface
+}
+
+interface CategoryForm {
+  name: string
+  color: string
+  description: string
+}
+
+interface PopupPosition {
+  top: string
+  left: string
+}
+
+interface SegmentationExample {
+  prompt: string
+  segments: Array<{
+    text: string
+    code_lines: number[]
+  }>
+}
+
+interface SegmentationConfig {
+  enabled: boolean
+  threshold: number
+  examples: {
+    relational: SegmentationExample
+    multi_structural: SegmentationExample
+  }
+}
+
+interface FormState {
+  title: string
+  description: string
+  difficulty: DifficultyLevel
+  problem_type: ProblemType
+  category_ids: number[]
+  function_name: string
+  function_signature: string
+  reference_solution: string
+  tags: string[]
+  test_cases: TestCaseInput[]
+}
+
+interface UIState {
+  loading: boolean
+  error: string | null
+  testResults: TestExecutionResult | null
+}
+
+interface HintsState {
+  variable_fade: VariableFadeHint
+  subgoal_highlight: SubgoalHighlightHint
+  suggested_trace: SuggestedTraceHint
+}
 
 // Color options as static constant
 const COLOR_OPTIONS = [
@@ -1090,7 +1164,7 @@ const COLOR_OPTIONS = [
   { value: '#f97316', name: 'Orange Red' }
 ];
 
-export default {
+export default defineComponent({
   name: 'AdminProblemEditor',
   components: {
     NotificationToast,
@@ -1105,7 +1179,34 @@ export default {
       default: null
     }
   },
-  data() {
+  data(): {
+    form: FormState
+    ui: UIState
+    categories: ProblemCategory[]
+    functionParameters: FunctionParameter[]
+    returnType: string
+    returnTypeSpec: any
+    showAddCategory: boolean
+    isTransitioning: boolean
+    creatingCategory: boolean
+    categoryError: string | null
+    newCategory: CategoryForm
+    showColorPicker: boolean
+    popupPosition: PopupPosition
+    popupDirection: string
+    clickOutsideHandler: ((event: MouseEvent) => void) | null
+    editorFontSize: number
+    editorTheme: string
+    descriptionTab: string
+    hintsTab: string
+    hints: HintsState
+    newVariableMapping: { from: string; to: string }
+    newSubgoal: { line_start: number; line_end: number; title: string; explanation: string }
+    functionCallError: string | null
+    showPyTutorModal: boolean
+    pyTutorUrl: string
+    segmentation: SegmentationConfig
+  } {
     return {
       // Single form state
       form: {
@@ -1337,7 +1438,7 @@ export default {
     
     currentProblemSlug: {
       immediate: true,
-      async handler(newSlug, oldSlug) {
+      async handler(newSlug: string | null, oldSlug: string | null): Promise<void> {
         if (newSlug && newSlug !== oldSlug) {
           // Ensure categories are loaded before loading the problem
           if (this.categories.length === 0) {
@@ -1379,7 +1480,7 @@ export default {
     const { notify } = useNotification();
     this.notify = notify;
   },
-  async mounted() {
+  async mounted(): Promise<void> {
     // Configure ACE editor base path
     if (window.ace) {
       window.ace.config.set('basePath', 'https://cdn.jsdelivr.net/npm/ace-builds@1.15.0/src-noconflict/');
@@ -1409,7 +1510,7 @@ export default {
     }
   },
   methods: {
-    async executeAction(actionName, actionFn, successMsg = null) {
+    async executeAction(actionName: string, actionFn: () => Promise<any>, successMsg: string | null = null): Promise<void> {
       log.debug('Execute action started', {
         actionName,
         currentLoading: this.ui.loading,
@@ -1471,7 +1572,7 @@ export default {
     /**
      * Normalize problem data to ensure proper types
      */
-    normalizeProblemData(problemData) {
+    normalizeProblemData(problemData: ProblemDetailed): void {
       // Extract category IDs from categories objects
       if (problemData.categories && Array.isArray(problemData.categories)) {
         problemData.category_ids = problemData.categories.map(cat => cat.id);
@@ -1502,13 +1603,13 @@ export default {
       return problemData;
     },
 
-    async loadCategories() {
+    async loadCategories(): Promise<void> {
       await this.executeAction('load categories', async () => {
         this.categories = await problemService.loadCategories();
       });
     },
     
-    async loadProblem() {
+    async loadProblem(): Promise<void> {
       if (!this.currentProblemSlug) {
         return;
       }
@@ -1574,7 +1675,7 @@ export default {
       });
     },
     
-    toggleCategory(categoryId) {
+    toggleCategory(categoryId: number): void {
       // Ensure category_ids is always an array
       if (!this.form.category_ids) {
         this.form.category_ids = [];
@@ -1717,12 +1818,12 @@ export default {
       this.showColorPicker = false;
     },
     
-    selectColor(colorValue) {
+    selectColor(colorValue: string): void {
       this.newCategory.color = colorValue;
       this.showColorPicker = false; // Auto-close after selection
     },
     
-    async createCategory() {
+    async createCategory(): Promise<void> {
       if (!this.newCategory.name.trim()) {
         this.categoryError = 'Category name is required';
         return;
@@ -1759,7 +1860,7 @@ export default {
       }
     },
     
-    addTestCase() {
+    addTestCase(): void {
       const newTestCase = {
         inputs: new Array(this.functionParameters.length).fill(''),
         expected_output: '',
@@ -1771,7 +1872,7 @@ export default {
       this.form.test_cases.push(newTestCase);
     },
     
-    removeTestCase(index) {
+    removeTestCase(index: number): void {
       this.form.test_cases.splice(index, 1)
     },
     
@@ -1785,7 +1886,7 @@ export default {
     },
     
     
-    async testProblem() {
+    async testProblem(): Promise<void> {
       log.debug('testProblem() called', {
         canTest: this.canTest,
         canTestReason: this.canTestReason,
@@ -1918,7 +2019,7 @@ export default {
     },
     
     
-    async saveProblem() {
+    async saveProblem(): Promise<void> {
       if (!this.canSave) {
         this.notify.error('Please fix validation errors before saving');
         return;
@@ -2006,7 +2107,7 @@ export default {
     /**
      * Save hints configuration
      */
-    async saveHints() {
+    async saveHints(): Promise<void> {
       try {
         const hintsArray = Object.values(this.hints);
         await problemService.updateHints(this.currentProblemSlug, hintsArray);
@@ -2019,7 +2120,7 @@ export default {
     /**
      * Load hints configuration for existing problem
      */
-    async loadHints() {
+    async loadHints(): Promise<void> {
       if (!this.currentProblemSlug) {return;}
       
       try {
@@ -2079,7 +2180,7 @@ export default {
     /**
      * Remove variable mapping
      */
-    removeVariableMapping(index) {
+    removeVariableMapping(index: number): void {
       this.hints.variable_fade.content.mappings.splice(index, 1);
     },
     
@@ -2210,7 +2311,7 @@ export default {
     /**
      * Remove subgoal
      */
-    removeSubgoal(index) {
+    removeSubgoal(index: number): void {
       this.hints.subgoal_highlight.content.subgoals.splice(index, 1);
     },
     
@@ -2793,7 +2894,7 @@ export default {
       return String(value || '').trim();
     }
   }
-}
+})
 </script>
 
 <style scoped>

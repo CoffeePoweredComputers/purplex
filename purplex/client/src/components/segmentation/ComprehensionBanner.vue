@@ -39,26 +39,41 @@
   </div>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { defineComponent, type PropType } from 'vue';
+
+// Define the segmentation type based on existing types
+interface Segmentation {
+  segment_count: number;
+  comprehension_level: 'relational' | 'transitional' | 'multi_structural';
+  segments?: Array<{
+    id: number;
+    text: string;
+    code_lines: number[];
+  }>;
+  passed?: boolean;
+}
+
+export default defineComponent({
   name: 'ComprehensionBanner',
   props: {
     segmentation: {
-      type: Object,
+      type: Object as PropType<Segmentation>,
       required: true,
-      validator: (value) => {
+      validator: (value: Segmentation): boolean => {
         return value && 
                typeof value.segment_count === 'number' &&
                typeof value.comprehension_level === 'string';
       }
     }
   },
+  emits: ['show-details'],
   computed: {
-    bannerClass() {
+    bannerClass(): string {
       return `banner-${this.segmentation.comprehension_level.replace('_', '-')}`;
     },
     
-    filledSegments() {
+    filledSegments(): number {
       // Map comprehension levels to number of filled segments
       const segmentCount = this.segmentation.segment_count || 0;
       
@@ -76,8 +91,7 @@ export default {
     }
   },
   methods: {
-    
-    getLevelText() {
+    getLevelText(): string {
       switch (this.segmentation.comprehension_level) {
         case 'relational':
           return 'Excellent';
@@ -90,7 +104,7 @@ export default {
       }
     },
     
-    getShortDescription() {
+    getShortDescription(): string {
       switch (this.segmentation.comprehension_level) {
         case 'relational':
           return 'High-level focus';
@@ -103,7 +117,7 @@ export default {
       }
     }
   }
-};
+});
 </script>
 
 <style scoped>

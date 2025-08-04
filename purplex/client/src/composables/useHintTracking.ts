@@ -1,4 +1,4 @@
-import { computed, ComputedRef, Ref, ref } from 'vue'
+import { computed, ComputedRef, ref } from 'vue'
 import { log } from '../utils/logger'
 
 // Types

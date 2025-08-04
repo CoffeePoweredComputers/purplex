@@ -1,9 +1,7 @@
 import axios from 'axios';
 import { firebaseAuth } from '../firebaseConfig';
 import { 
-  createUserWithEmailAndPassword, 
   getIdToken,
-  signInWithEmailAndPassword,
   signOut,
   User
 } from 'firebase/auth';

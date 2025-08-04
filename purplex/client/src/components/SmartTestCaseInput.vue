@@ -87,15 +87,15 @@
         <!-- Add parameter set button -->
         <div class="add-parameter-set">
           <button 
-            :disabled="!canAddParameterSet" 
+            :disabled="!canAddParameterSet()" 
             class="add-set-btn"
-            :class="{ 'disabled': !canAddParameterSet }"
-            :title="canAddParameterSetReason"
+            :class="{ 'disabled': !canAddParameterSet() }"
+            :title="canAddParameterSetReason()"
             @click="addParameterSet"
           >
             <span class="add-icon">+</span>
-            <span v-if="canAddParameterSet">Add Input Set</span>
-            <span v-else>{{ canAddParameterSetReason }}</span>
+            <span v-if="canAddParameterSet()">Add Input Set</span>
+            <span v-else>{{ canAddParameterSetReason() }}</span>
           </button>
         </div>
       </div>
@@ -166,25 +166,89 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent, type PropType } from 'vue'
 import { log } from '@/utils/logger'
 
+// TypeScript interfaces
+interface PythonTypeHandler {
+  validate: RegExp
+  convert: (value: string) => any
+  placeholder: string
+}
+
+interface TypeSpec {
+  type: string
+  elementType?: TypeSpec
+  keyType?: TypeSpec
+  valueType?: TypeSpec
+  innerType?: TypeSpec
+}
+
+interface ValidationResult {
+  valid: boolean
+  error?: string
+  path?: string[]
+}
+
+interface TypeDetectionResult {
+  detected: string
+  annotation: string
+}
+
+interface FunctionParameter {
+  name: string
+  type: string
+  pythonType: string
+  typeSpec?: TypeSpec
+}
+
+interface ParsedSignature {
+  functionName: string
+  parameters: FunctionParameter[]
+  returnType: string
+}
+
+interface ParameterField {
+  value: string
+  detectedType: string
+  preview: string
+  error: string | null
+  typeSpec?: TypeSpec
+}
+
+interface ExpectedOutputField {
+  value: string
+  detectedType: string
+  preview: string
+  error: string | null
+}
+
+interface TestCaseData {
+  inputs: any[]
+  expected_output: any
+  description: string
+  hasErrors: boolean
+}
+
+type ParameterSet = ParameterField[]
+
 // Type detection and conversion utilities
-const pythonTypes = {
+const pythonTypes: Record<string, PythonTypeHandler> = {
   // Basic types
   'int': { 
     validate: /^-?\d+$/, 
-    convert: (v) => parseInt(v),
+    convert: (v: string) => parseInt(v),
     placeholder: '42'
   },
   'float': { 
     validate: /^-?\d*\.?\d+$/, 
-    convert: (v) => parseFloat(v),
+    convert: (v: string) => parseFloat(v),
     placeholder: '3.14'
   },
   'str': { 
     validate: /.*/, 
-    convert: (v) => {
+    convert: (v: string) => {
       // Remove quotes if present
       if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
         return v.slice(1, -1);
@@ -195,7 +259,7 @@ const pythonTypes = {
   },
   'bool': { 
     validate: /^(true|false|True|False|yes|no|1|0)$/i, 
-    convert: (v) => {
+    convert: (v: string) => {
       const lower = v.toLowerCase();
       return lower === 'true' || lower === 'yes' || lower === '1';
     },
@@ -205,17 +269,17 @@ const pythonTypes = {
   // Collections
   'list': { 
     validate: /^\[.*\]$/, 
-    convert: (v) => JSON.parse(v),
+    convert: (v: string) => JSON.parse(v),
     placeholder: '[1, 2, 3]'
   },
   'dict': { 
     validate: /^\{.*\}$/, 
-    convert: (v) => JSON.parse(v),
+    convert: (v: string) => JSON.parse(v),
     placeholder: '{"key": "value"}'
   },
   'tuple': { 
     validate: /^\(.*\)$/, 
-    convert: (v) => {
+    convert: (v: string) => {
       // Convert tuple notation to array
       const arrayStr = v.replace(/^\(/, '[').replace(/\)$/, ']');
       return JSON.parse(arrayStr);
@@ -224,7 +288,7 @@ const pythonTypes = {
   },
   'set': { 
     validate: /^\{.*\}$/, 
-    convert: (v) => {
+    convert: (v: string) => {
       // Sets in JSON are just arrays
       const parsed = JSON.parse(v);
       return Array.isArray(parsed) ? parsed : Array.from(new Set(Object.values(parsed)));
@@ -235,18 +299,18 @@ const pythonTypes = {
   // Special
   'None': { 
     validate: /^(None|null|none)$/i, 
-    convert: () => null,
+    convert: (): null => null,
     placeholder: 'None'
   },
   'Any': { 
     validate: /.*/, 
-    convert: (v) => autoDetectAndConvert(v),
+    convert: (v: string) => autoDetectAndConvert(v),
     placeholder: 'any value'
   }
 };
 
 // Recursively validate a value against a type specification
-function validateValueAgainstType(value, typeSpec, path = []) {
+function validateValueAgainstType(value: any, typeSpec: TypeSpec, path: string[] = []): ValidationResult {
   // Handle Any type - always valid
   if (typeSpec.type === 'Any') {
     return { valid: true };
@@ -465,7 +529,7 @@ function validateValueAgainstType(value, typeSpec, path = []) {
 }
 
 // Advanced Python type inference from actual values
-function inferPythonTypeFromValue(value) {
+function inferPythonTypeFromValue(value: any): TypeSpec {
   if (value === null || value === undefined) {
     return { type: 'None' };
   }
@@ -521,14 +585,20 @@ function inferPythonTypeFromValue(value) {
 }
 
 // Find the most specific common type among a list of types
-function findCommonType(types) {
-  if (types.length === 0) {return { type: 'Any' };}
-  if (types.length === 1) {return types[0];}
+function findCommonType(types: TypeSpec[]): TypeSpec {
+  if (types.length === 0) {
+    return { type: 'Any' };
+  }
+  if (types.length === 1) {
+    return types[0];
+  }
   
   // Check if all types are identical
   const firstType = types[0];
   const allSame = types.every(t => deepTypeEquals(t, firstType));
-  if (allSame) {return firstType;}
+  if (allSame) {
+    return firstType;
+  }
   
   // Check for numeric compatibility (int + float = float)
   const hasInt = types.some(t => t.type === 'int');
@@ -562,8 +632,10 @@ function findCommonType(types) {
 }
 
 // Deep equality check for type specs
-function deepTypeEquals(type1, type2) {
-  if (type1.type !== type2.type) {return false;}
+function deepTypeEquals(type1: TypeSpec, type2: TypeSpec): boolean {
+  if (type1.type !== type2.type) {
+    return false;
+  }
   
   if (type1.type === 'list') {
     return deepTypeEquals(type1.elementType || { type: 'Any' }, type2.elementType || { type: 'Any' });
@@ -578,7 +650,7 @@ function deepTypeEquals(type1, type2) {
 }
 
 // Infer type from string value (for dict keys or string literals)
-function inferTypeFromString(str) {
+function inferTypeFromString(str: string): TypeSpec {
   // Check for None
   if (/^(None|null|none)$/i.test(str)) {
     return { type: 'None' };
@@ -604,7 +676,7 @@ function inferTypeFromString(str) {
 }
 
 // Auto-detect type from input string and infer full type annotation
-function autoDetectTypeFromInput(inputValue) {
+function autoDetectTypeFromInput(inputValue: string): TypeDetectionResult {
   if (!inputValue || inputValue.trim() === '') {
     return { detected: 'None', annotation: 'None' };
   }
@@ -675,7 +747,7 @@ function autoDetectTypeFromInput(inputValue) {
   return { detected: 'invalid', annotation: 'invalid' };
 }
 
-function autoDetectAndConvert(value) {
+function autoDetectAndConvert(value: string): any {
   const typeInfo = autoDetectTypeFromInput(value);
   const typeHandler = pythonTypes[typeInfo.detected];
   if (typeHandler && typeHandler.convert) {
@@ -689,7 +761,7 @@ function autoDetectAndConvert(value) {
 }
 
 // Parse function signature
-function parseFunctionSignature(signature) {
+function parseFunctionSignature(signature: string): ParsedSignature | null {
   // Examples:
   // "def is_anagram(str1: str, str2: str) -> bool:"
   // "def two_sum(nums: List[int], target: int) -> List[int]:"
@@ -710,7 +782,7 @@ function parseFunctionSignature(signature) {
   };
 }
 
-function parseParameters(paramsStr) {
+function parseParameters(paramsStr: string): FunctionParameter[] {
   if (!paramsStr.trim()) {return [];}
   
   const params = [];
@@ -744,7 +816,7 @@ function parseParameters(paramsStr) {
 }
 
 // Parse Python type annotation into structured format
-function parseTypeAnnotation(typeStr) {
+function parseTypeAnnotation(typeStr: string): TypeSpec {
   typeStr = typeStr.trim();
   
   // Handle Optional[T] by converting to T or None
@@ -813,7 +885,7 @@ function parseTypeAnnotation(typeStr) {
 }
 
 // Format type spec back to readable string
-function formatTypeSpec(typeSpec) {
+function formatTypeSpec(typeSpec?: TypeSpec): string {
   if (!typeSpec) {return 'Any';}
   
   switch (typeSpec.type) {
@@ -833,12 +905,12 @@ function formatTypeSpec(typeSpec) {
 }
 
 // Simplify type spec for basic validation (backward compatibility)
-function simplifyPythonType(typeStr) {
+function simplifyPythonType(typeStr: string): string {
   const typeSpec = parseTypeAnnotation(typeStr);
   return typeSpec.type;
 }
 
-export default {
+export default defineComponent({
   name: 'SmartTestCaseInput',
   props: {
     functionSignature: {
@@ -846,10 +918,11 @@ export default {
       required: true
     },
     initialInputs: {
-      type: Array,
+      type: Array as PropType<any[]>,
       default: () => []
     },
     initialExpectedOutput: {
+      type: null as any,
       default: null
     },
     initialDescription: {
@@ -857,20 +930,23 @@ export default {
       default: ''
     }
   },
+  emits: {
+    change: (data: TestCaseData) => true
+  },
   data() {
     return {
-      functionParameters: [],
-      parameterSets: [], // Array of parameter sets, each containing parameter values
+      functionParameters: [] as FunctionParameter[],
+      parameterSets: [] as ParameterSet[], // Array of parameter sets, each containing parameter values
       expectedOutput: {
         value: '',
         detectedType: 'Any',
         preview: '',
         error: null
-      },
-      returnType: 'Any',
-      returnTypeSpec: { type: 'Any' },
-      description: '',
-      parsedSignature: null
+      } as ExpectedOutputField,
+      returnType: 'Any' as string,
+      returnTypeSpec: { type: 'Any' } as TypeSpec,
+      description: '' as string,
+      parsedSignature: null as ParsedSignature | null
     };
   },
   watch: {
@@ -884,7 +960,7 @@ export default {
     this.initializeValues();
   },
   methods: {
-    parseSignature() {
+    parseSignature(): void {
       this.parsedSignature = parseFunctionSignature(this.functionSignature);
       if (!this.parsedSignature) {
         log.error('Failed to parse function signature', { functionSignature: this.functionSignature });
@@ -908,7 +984,7 @@ export default {
       this.returnTypeSpec = parseTypeAnnotation(this.parsedSignature.returnType);
     },
     
-    initializeValues() {
+    initializeValues(): void {
       // Initialize with any provided values
       if (this.initialInputs && this.initialInputs.length > 0) {
         // Ensure we have at least one parameter set
@@ -933,29 +1009,35 @@ export default {
       this.description = this.initialDescription;
     },
     
-    formatValueForInput(value) {
+    formatValueForInput(value: any): string {
       // Convert a JavaScript value to string for input display
-      if (value === null) {return 'None';}
-      if (typeof value === 'string') {return JSON.stringify(value);} // Quote strings so type system recognizes them
-      if (typeof value === 'boolean') {return value.toString();}
+      if (value === null) {
+        return 'None';
+      }
+      if (typeof value === 'string') {
+        return JSON.stringify(value);
+      } // Quote strings so type system recognizes them
+      if (typeof value === 'boolean') {
+        return value.toString();
+      }
       if (Array.isArray(value) || typeof value === 'object') {
         return JSON.stringify(value);
       }
       return String(value);
     },
     
-    onParameterChange(setIndex, paramIndex) {
+    onParameterChange(setIndex: number, paramIndex: number): void {
       const param = this.parameterSets[setIndex][paramIndex];
       this.detectAndValidateType(param);
       this.emitChange();
     },
     
-    onExpectedOutputChange() {
+    onExpectedOutputChange(): void {
       this.detectAndValidateType(this.expectedOutput);
       this.emitChange();
     },
     
-    detectAndValidateType(field) {
+    detectAndValidateType(field: ParameterField | ExpectedOutputField): void {
       if (!field.value) {
         field.detectedType = field.pythonType || 'Any';
         field.preview = '';
@@ -1003,7 +1085,7 @@ export default {
       }
     },
     
-    parseAndConvertValue(value, detectedType) {
+    parseAndConvertValue(value: string, detectedType: string | TypeSpec): any {
       // Handle type spec objects
       if (typeof detectedType === 'object' && detectedType.type) {
         const simpleType = detectedType.type;
@@ -1022,7 +1104,7 @@ export default {
       throw new Error(`Unknown type: ${detectedType}`);
     },
     
-    getInvalidTypeError(value) {
+    getInvalidTypeError(value: string): string {
       // Provide helpful error messages based on the input pattern
       if (value.startsWith('[') || value.endsWith(']')) {
         return 'Invalid list syntax. Example: [1, 2, 3]';
@@ -1039,7 +1121,7 @@ export default {
       return 'Invalid input format. Please enter a valid Python value.';
     },
     
-    formatPreview(value, type) {
+    formatPreview(value: any, type: string): string {
       if (value === null) {return '→ None';}
       if (type === 'str') {return `→ "${value}"`;}
       if (type === 'bool') {return `→ ${value ? 'True' : 'False'}`;}
@@ -1048,12 +1130,12 @@ export default {
       return `→ ${value}`;
     },
     
-    getParameterPlaceholder(type) {
+    getParameterPlaceholder(type: string): string {
       const pythonType = simplifyPythonType(type);
       return pythonTypes[pythonType]?.placeholder || 'Enter value';
     },
     
-    getSimplifiedType(type) {
+    getSimplifiedType(type: string): string {
       // Handle complex type strings like "Dict[int, List[str]]"
       const baseType = typeof type === 'string' && type.includes('[') 
         ? type.split('[')[0].toLowerCase() 
@@ -1071,7 +1153,7 @@ export default {
     },
     
     
-    getTestCaseData() {
+    getTestCaseData(): TestCaseData {
       // Don't return data if there are validation errors
       if (this.hasErrors()) {
         return {
@@ -1124,12 +1206,12 @@ export default {
       };
     },
     
-    emitChange() {
+    emitChange(): void {
       // Emit the test case data whenever something changes
       this.$emit('change', this.getTestCaseData());
     },
     
-    hasErrors() {
+    hasErrors(): boolean {
       // Check if any parameters in any set or expected output have errors
       const hasParameterErrors = this.parameterSets.some(paramSet => 
         paramSet.some(p => p.error)
@@ -1137,7 +1219,7 @@ export default {
       return hasParameterErrors || !!this.expectedOutput.error;
     },
     
-    validate() {
+    validate(): boolean {
       // Validate all inputs
       let isValid = true;
       
@@ -1148,7 +1230,9 @@ export default {
             isValid = false;
           } else {
             this.detectAndValidateType(param);
-            if (param.error) {isValid = false;}
+            if (param.error) {
+              isValid = false;
+            }
           }
         });
       });
@@ -1158,13 +1242,15 @@ export default {
         isValid = false;
       } else {
         this.detectAndValidateType(this.expectedOutput);
-        if (this.expectedOutput.error) {isValid = false;}
+        if (this.expectedOutput.error) {
+          isValid = false;
+        }
       }
       
       return isValid;
     },
     
-    addParameterSet() {
+    addParameterSet(): void {
       // Create a new parameter set with empty values for each parameter
       const newParameterSet = this.functionParameters.map((param, index) => ({
         value: '',
@@ -1178,14 +1264,14 @@ export default {
       this.emitChange();
     },
     
-    removeParameterSet(setIndex) {
+    removeParameterSet(setIndex: number): void {
       if (this.parameterSets.length > 1) {
         this.parameterSets.splice(setIndex, 1);
         this.emitChange();
       }
     },
     
-    generateFunctionCall(setIndex) {
+    generateFunctionCall(setIndex: number): string {
       if (!this.parsedSignature || !this.parameterSets[setIndex]) {
         return '';
       }
@@ -1214,7 +1300,7 @@ export default {
       return `${functionName}(${args})`;
     },
     
-    formatExpectedOutput() {
+    formatExpectedOutput(): string {
       if (!this.expectedOutput.value) {
         return 'None';
       }
@@ -1232,20 +1318,20 @@ export default {
       }
     },
     
-    canAddParameterSet() {
+    canAddParameterSet(): boolean {
       // Allow unlimited parameter sets for now
       // Could add limits based on performance or UI considerations
       return true;
     },
     
-    canAddParameterSetReason() {
-      if (!this.canAddParameterSet) {
+    canAddParameterSetReason(): string {
+      if (!this.canAddParameterSet()) {
         return 'Maximum number of input sets reached';
       }
       return 'Add another set of input parameters';
     }
   }
-};
+});
 </script>
 
 <style scoped>

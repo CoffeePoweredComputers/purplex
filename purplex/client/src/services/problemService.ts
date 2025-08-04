@@ -2,7 +2,6 @@ import axios, { AxiosResponse } from 'axios';
 import {
   APIError,
   HintConfig,
-  HintUpdateRequest,
   ProblemCategory,
   ProblemCreateRequest,
   ProblemDetailed,
@@ -300,7 +299,9 @@ class ProblemServiceImpl {
       return response.data.hints || [];
     } catch (error) {
       // If hints endpoint doesn't exist yet, return empty array
-      if (error.response?.status === 404) {
+      if (error && typeof error === 'object' && 'response' in error && 
+          error.response && typeof error.response === 'object' && 'status' in error.response &&
+          error.response.status === 404) {
         return [];
       }
       throw this._handleError(error, `Failed to get hints for problem: ${slug}`);

@@ -98,7 +98,7 @@ class Logger {
     }
   }
 
-  private sendToLoggingService(entry: LogEntry): void {
+  private sendToLoggingService(_entry: LogEntry): void {
     // Placeholder for production logging service integration
     // Could send to Sentry, LogRocket, or custom endpoint
     try {

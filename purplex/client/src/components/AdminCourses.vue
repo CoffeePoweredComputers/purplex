@@ -227,16 +227,25 @@
   </div>
 </template>
 
-<script>
-import { onMounted, ref } from 'vue'
-import axios from 'axios'
+<script lang="ts">
+import { defineComponent, onMounted, ref, Ref } from 'vue'
+import axios, { AxiosError } from 'axios'
 import AdminNavBar from './AdminNavBar.vue'
 import AdminCourseProblemSetsModal from './AdminCourseProblemSetsModal.vue'
 import AdminCourseStudentsModal from './AdminCourseStudentsModal.vue'
 import { useNotification } from '@/composables/useNotification'
 import { log } from '@/utils/logger'
+import type { Course } from '@/types'
 
-export default {
+interface CourseForm {
+  course_id: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  enrollment_open: boolean;
+}
+
+export default defineComponent({
   name: 'AdminCourses',
   components: {
     AdminNavBar,
@@ -247,16 +256,16 @@ export default {
     const { notify } = useNotification()
     
     // Data
-    const courses = ref([])
+    const courses: Ref<Course[]> = ref([])
     const loading = ref(true)
     const saving = ref(false)
     const showCreateModal = ref(false)
     const showEditModal = ref(false)
     const showProblemSetsModal = ref(false)
     const showStudentsModal = ref(false)
-    const selectedCourse = ref(null)
+    const selectedCourse: Ref<Course | null> = ref(null)
     
-    const courseForm = ref({
+    const courseForm: Ref<CourseForm> = ref({
       course_id: '',
       name: '',
       description: '',
@@ -265,20 +274,21 @@ export default {
     })
     
     // Methods
-    const fetchCourses = async () => {
+    const fetchCourses = async (): Promise<void> => {
       loading.value = true
       try {
         const response = await axios.get('/api/admin/courses/')
         courses.value = response.data
       } catch (error) {
+        const axiosError = error as AxiosError
         notify.error('Error', 'Failed to load courses')
-        log.error('Error fetching courses', { error })
+        log.error('Error fetching courses', { error: axiosError })
       } finally {
         loading.value = false
       }
     }
     
-    const saveCourse = async () => {
+    const saveCourse = async (): Promise<void> => {
       saving.value = true
       try {
         if (showEditModal.value) {
@@ -293,7 +303,7 @@ export default {
         
         closeModals()
         await fetchCourses()
-      } catch (error) {
+      } catch (error: any) {
         const errorMsg = error.response?.data?.error || 'Failed to save course'
         notify.error('Error', errorMsg)
       } finally {
@@ -301,7 +311,7 @@ export default {
       }
     }
     
-    const editCourse = (course) => {
+    const editCourse = (course: Course): void => {
       selectedCourse.value = course
       courseForm.value = {
         course_id: course.course_id,
@@ -313,7 +323,7 @@ export default {
       showEditModal.value = true
     }
     
-    const deleteCourse = async (course) => {
+    const deleteCourse = async (course: Course): Promise<void> => {
       if (!confirm(`Are you sure you want to delete "${course.name}"? This action cannot be undone.`)) {
         return
       }
@@ -323,21 +333,23 @@ export default {
         notify.success('Success', 'Course deleted successfully')
         await fetchCourses()
       } catch (error) {
+        const axiosError = error as AxiosError
         notify.error('Error', 'Failed to delete course')
+        log.error('Error deleting course', { error: axiosError })
       }
     }
     
-    const manageProblemSets = (course) => {
+    const manageProblemSets = (course: Course): void => {
       selectedCourse.value = course
       showProblemSetsModal.value = true
     }
     
-    const viewStudents = (course) => {
+    const viewStudents = (course: Course): void => {
       selectedCourse.value = course
       showStudentsModal.value = true
     }
     
-    const closeModals = () => {
+    const closeModals = (): void => {
       showCreateModal.value = false
       showEditModal.value = false
       showProblemSetsModal.value = false
@@ -376,7 +388,7 @@ export default {
       closeModals
     }
   }
-}
+})
 </script>
 
 <style scoped>

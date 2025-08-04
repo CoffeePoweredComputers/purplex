@@ -15,8 +15,9 @@ import {
 const logger = log.createComponentLogger('SubgoalHighlightProcessor');
 
 class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
-  static strategy = HintRenderStrategy.ANNOTATE_CODE;
-  static processHint(hintData: SubgoalData): HintResult {
+  strategy = HintRenderStrategy.ANNOTATE_CODE;
+  
+  processHint(hintData: SubgoalData): HintResult {
     logger.debug('Processing Subgoal Highlight hint', hintData);
 
     try {
@@ -24,31 +25,32 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
       
       if (!code || !subgoals || !Array.isArray(subgoals)) {
         logger.warn('Invalid hint data: missing code or subgoals array');
-        return { success: false, code: '', markers: [] };
+        return { success: false, code: '', markers: [], error: 'Missing code or subgoals array' };
       }
 
       // Use the addSubgoalComments method to insert comments and get markers
-      const result = this.addSubgoalComments(code, subgoals);
+      const result = SubgoalHighlightProcessor.addSubgoalComments(code, subgoals);
       
       if (!result.success) {
         return result;
       }
 
-      logger.debug(`Processed ${subgoals.length} subgoals with ${result.markers.length} markers`);
+      logger.debug(`Processed ${subgoals.length} subgoals with ${result.markers?.length || 0} markers`);
 
       // Add metadata to the result
       return {
         ...result,
         metadata: {
-          strategy: this.strategy,
+          strategy: HintRenderStrategy.ANNOTATE_CODE,
           canStack: false,  // Cannot stack with other code modifications
           affectsLineNumbers: true  // Comments change line numbers
         }
       };
 
     } catch (error) {
-      logger.error('Subgoal highlight processing error', error);
-      return { success: false, code: '', markers: [] };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      logger.error('Subgoal highlight processing error', errorMessage);
+      return { success: false, code: '', markers: [], error: errorMessage };
     }
   }
 
@@ -85,7 +87,8 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
         const targetLine = modifiedLines[subgoal.line_start - 1] || '';
         const indentationMatch = targetLine.match(/^\s*/);
         const indentation = indentationMatch ? indentationMatch[0] : '';
-        const commentText = indentation + `# ${subgoal.comment || subgoal.title || 'Subgoal'}`;
+        const stepNumber = originalIndex + 1;
+        const commentText = indentation + `# STEP ${stepNumber}: ${subgoal.title || subgoal.comment || 'Subgoal'}`;
         const insertPosition = subgoal.line_start - 1; // Convert to 0-based
         
         // Insert comment before the target line
@@ -106,7 +109,8 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
 
         // compute horizontal space for the comment line based on foward whitespace of last line
         const lastLine = modifiedLines[commentRow + 1] || '';
-        const forwardWhitespace = lastLine.match(/^\s*/)[0].length || 0;
+        const whitespaceMatch = lastLine.match(/^\s*/);
+        const forwardWhitespace = whitespaceMatch ? whitespaceMatch[0].length : 0;
         
         // Marker for the comment line
         markers.push({

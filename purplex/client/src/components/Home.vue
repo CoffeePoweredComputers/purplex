@@ -133,13 +133,13 @@
   </div>
 </template>
 
-<script>
-import { computed, onMounted } from 'vue'
+<script lang="ts">
+import { defineComponent, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import CourseEnrollmentModal from '../modals/CourseEnrollmentModal.vue'
 
-export default {
+export default defineComponent({
   name: 'Home',
   components: {
     CourseEnrollmentModal
@@ -154,11 +154,11 @@ export default {
     const progressData = computed(() => store.state.courses.courseProgress)
     
     // Methods
-    const showEnrollmentModal = () => {
+    const showEnrollmentModal = (): void => {
       store.dispatch('courses/showEnrollmentModal')
     }
     
-    const navigateToProblemSet = (courseId, problemSetSlug) => {
+    const navigateToProblemSet = (courseId: string, problemSetSlug: string): void => {
       router.push(`/courses/${courseId}/problem-set/${problemSetSlug}`)
     }
     
@@ -176,7 +176,7 @@ export default {
       navigateToProblemSet
     }
   }
-}
+})
 </script>
 
 <style scoped>

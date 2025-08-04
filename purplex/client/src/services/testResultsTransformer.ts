@@ -1,4 +1,4 @@
-import type { EiPLSubmissionResponse, TestResult, VariationTestResult } from '@/types';
+import type { EiPLSubmissionResponse, TestResult, VariationTestResult } from '../types';
 
 /**
  * Service to transform and normalize test result data structures

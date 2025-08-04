@@ -49,8 +49,19 @@
   </button>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { defineComponent, type PropType } from 'vue'
+
+type ComprehensionLevel = 'relational' | 'transitional' | 'multi_structural'
+type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
+
+interface Segment {
+  id: number
+  text: string
+  code_lines: number[]
+}
+
+export default defineComponent({
   name: 'SegmentAnalysisButton',
   props: {
     segmentCount: {
@@ -58,7 +69,7 @@ export default {
       required: true
     },
     comprehensionLevel: {
-      type: String,
+      type: String as PropType<ComprehensionLevel>,
       required: true
     },
     feedback: {
@@ -66,7 +77,7 @@ export default {
       default: ''
     },
     segments: {
-      type: Array,
+      type: Array as PropType<Segment[]>,
       default: () => []
     },
     showPreview: {
@@ -74,78 +85,80 @@ export default {
       default: true
     },
     tooltipPosition: {
-      type: String,
+      type: String as PropType<TooltipPosition>,
       default: 'top',
-      validator: (value) => ['top', 'bottom', 'left', 'right'].includes(value)
+      validator: (value: string): value is TooltipPosition => 
+        ['top', 'bottom', 'left', 'right'].includes(value)
     }
   },
+  emits: ['click'] as const,
   data() {
     return {
       isHovered: false,
-      hoverTimeout: null
-    };
+      hoverTimeout: null as number | null
+    }
   },
   computed: {
-    levelBadgeClass() {
-      return `badge-${this.comprehensionLevel.replace('_', '-')}`;
+    levelBadgeClass(): string {
+      return `badge-${this.comprehensionLevel.replace('_', '-')}`
     },
     
-    formattedLevel() {
+    formattedLevel(): string {
       switch (this.comprehensionLevel) {
         case 'relational':
-          return 'Excellent';
+          return 'Excellent'
         case 'transitional':
-          return 'Good';
+          return 'Good'
         case 'multi_structural':
-          return 'Detailed';
+          return 'Detailed'
         default:
-          return 'Unknown';
+          return 'Unknown'
       }
     },
     
-    previewSegments() {
+    previewSegments(): Segment[] {
       // Show first 3 segments for preview
-      return this.segments.slice(0, 3);
+      return this.segments.slice(0, 3)
     }
   },
   methods: {
-    handleMouseEnter() {
+    handleMouseEnter(): void {
       if (this.showPreview) {
         // Delay showing preview to avoid accidental triggers
-        this.hoverTimeout = setTimeout(() => {
-          this.isHovered = true;
-        }, 300);
+        this.hoverTimeout = window.setTimeout(() => {
+          this.isHovered = true
+        }, 300)
       }
     },
     
-    handleMouseLeave() {
+    handleMouseLeave(): void {
       if (this.hoverTimeout) {
-        clearTimeout(this.hoverTimeout);
-        this.hoverTimeout = null;
+        clearTimeout(this.hoverTimeout)
+        this.hoverTimeout = null
       }
-      this.isHovered = false;
+      this.isHovered = false
     },
     
-    getFeedbackIcon() {
+    getFeedbackIcon(): string {
       switch (this.comprehensionLevel) {
         case 'relational':
-          return '🎯';
+          return '🎯'
         case 'transitional':
-          return '👍';
+          return '👍'
         case 'multi_structural':
-          return '🔍';
+          return '🔍'
         default:
-          return '📝';
+          return '📝'
       }
     }
   },
   
   beforeUnmount() {
     if (this.hoverTimeout) {
-      clearTimeout(this.hoverTimeout);
+      clearTimeout(this.hoverTimeout)
     }
   }
-};
+})
 </script>
 
 <style scoped>

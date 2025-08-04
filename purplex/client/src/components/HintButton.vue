@@ -140,7 +140,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { problemService } from '@/services/problemService'
 import { useNotification } from '@/composables/useNotification'
 import { log } from '@/utils/logger'
@@ -252,7 +252,7 @@ export default {
             await this.loadHintContent(hintType)
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         log.error('Error loading hints', error)
         // Ensure we have safe defaults even on error
         this.availableHints = []
@@ -318,7 +318,7 @@ export default {
         })
         
         this.notify.info('Hint Unlocked', 'Hint content has been revealed')
-      } catch (error) {
+      } catch (error: any) {
         log.error('Error getting hint', error)
         
         // Handle 403 errors specially - these are expected when hints aren't unlocked yet
@@ -341,7 +341,7 @@ export default {
           title: this.getHintTitle(response.type),
           content: typeof response.content === 'object' ? JSON.stringify(response.content, null, 2) : response.content
         }
-      } catch (error) {
+      } catch (error: any) {
         log.error('Error loading hint content', error)
         
         // Handle 403 errors silently during initial load - hints may be locked
