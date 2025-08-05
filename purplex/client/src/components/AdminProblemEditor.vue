@@ -1206,6 +1206,7 @@ export default defineComponent({
     showPyTutorModal: boolean
     pyTutorUrl: string
     segmentation: SegmentationConfig
+    notify: any
   } {
     return {
       // Single form state
@@ -1304,8 +1305,7 @@ export default defineComponent({
       
       // Segmentation configuration
       segmentation: {
-        enabled: true,
-        threshold: 2,
+        enabled: false,
         examples: {
           relational: {
             prompt: '',
@@ -1316,7 +1316,10 @@ export default defineComponent({
             segments: []
           }
         }
-      }
+      },
+      
+      // Notification handler (set in created hook)
+      notify: null
     }
   },
   computed: {
@@ -2126,12 +2129,14 @@ export default defineComponent({
       try {
         const hintsData = await problemService.getProblemHints(this.currentProblemSlug);
         
-        // Update local hints data
-        hintsData.forEach(hint => {
-          if (this.hints[hint.type]) {
-            this.hints[hint.type] = hint;
-          }
-        });
+        // Update local hints data - add defensive check
+        if (hintsData && Array.isArray(hintsData)) {
+          hintsData.forEach(hint => {
+            if (this.hints[hint.type]) {
+              this.hints[hint.type] = hint;
+            }
+          });
+        }
       } catch (error) {
         log.error('Failed to load hints', error);
         // Don't throw - hints are optional functionality
@@ -2954,7 +2959,7 @@ export default defineComponent({
   background: var(--color-bg-hover);
 }
 
-/* Header Section */
+/*/* Header Section */
 .header {
   display: flex;
   justify-content: space-between;
@@ -3107,13 +3112,16 @@ export default defineComponent({
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
+  border: 2px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
   color: var(--color-text-primary);
-  font-size: var(--font-size-base);
-  border: none;
-  resize: vertical;
-  min-height: 300px;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  font-size: var(--font-size-sm);
+  resize: vertical;
+  min-height: 200px;
+  transition: var(--transition-base);
   line-height: 1.5;
+  caret-color: var(--color-text-primary);
 }
 
 .markdown-textarea:focus {

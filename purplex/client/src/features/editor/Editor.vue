@@ -368,7 +368,8 @@
 
   /* Selection styling */
   :deep(.ace_selection) {
-    background: rgba(102, 126, 234, 0.3);
+    background: rgba(128, 0, 128, 0.3) !important;
+    color: var(--color-text-primary) !important;
   }
 
   /* Active line highlighting */
@@ -436,19 +437,19 @@
   /* Variable fade has no visual styling - just transforms variable names */
   /* Subgoal highlighting styles moved to global styles block below */
   
-  /* Hide cursor for read-only editors */
-  :deep(.ace_cursor-layer) {
+  /* Hide cursor only for read-only editors */
+  :deep(.ace_editor.ace_read-only .ace_cursor-layer) {
     display: none !important;
   }
   
-  :deep(.ace_cursor) {
+  :deep(.ace_editor.ace_read-only .ace_cursor) {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
   }
   
-  /* Remove active line highlighting */
-  :deep(.ace_active-line) {
+  /* Remove active line highlighting only for read-only editors */
+  :deep(.ace_editor.ace_read-only .ace_active-line) {
     background: transparent !important;
   }
   

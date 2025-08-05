@@ -180,8 +180,10 @@
 
         <!-- Submission section -->
         <div class="submission-section">
-          <div class="section-label">
-            Describe the code here
+          <div class="section-header">
+            <div class="section-label">
+              Describe the code here
+            </div>
           </div>
           <span
             v-if="draftSaved"
@@ -195,7 +197,8 @@
               height="100px" 
               width="100%"
               :show-gutter="false" 
-              :wrap="true" 
+              :wrap="true"
+              :theme="currentTheme"
             />
           </div>
           <button 
@@ -444,6 +447,13 @@ export default {
                 });
             },
             deep: true
+        },
+        editorTheme: {
+            handler() {
+                this.$nextTick(() => {
+                    this.updateTheme();
+                });
+            }
         }
     },
     
@@ -455,6 +465,10 @@ export default {
             this.$nextTick(() => {
                 if (this.$refs.entry && this.$refs.entry.editor) {
                     this.$refs.entry.editor.setFontSize(this.editorFontSize);
+                }
+                // Set theme for prompt editor
+                if (this.$refs.prompt_entry && this.$refs.prompt_entry.editor) {
+                    this.$refs.prompt_entry.editor.setTheme(`ace/theme/${this.currentTheme}`);
                 }
             });
         }
@@ -654,6 +668,10 @@ export default {
             if (this.$refs.entry && this.$refs.entry.editor) {
                 this.$refs.entry.editor.setTheme(`ace/theme/${this.currentTheme}`);
             }
+            // Also update theme for prompt editor
+            if (this.$refs.prompt_entry && this.$refs.prompt_entry.editor) {
+                this.$refs.prompt_entry.editor.setTheme(`ace/theme/${this.currentTheme}`);
+            }
         },
         
         async submit() {
@@ -829,7 +847,7 @@ export default {
                         inProgressCount: this.inProgressCount,
                         remainingCount: this.remainingCount
                     });
-                })
+                });
                 
             } catch (error) {
                 this.logger.error('Error loading progress data', {
@@ -1213,6 +1231,7 @@ export default {
     padding: var(--spacing-sm) var(--spacing-lg);
     background: var(--color-bg-hover);
     border-bottom: 1px solid var(--color-bg-input);
+    margin-bottom: var(--spacing-sm);
 }
 
 .section-label {
@@ -1370,7 +1389,7 @@ export default {
     transition: var(--transition-base);
     display: flex;
     flex-direction: column;
-    min-height: 300px;
+    min-height: 250px;
     position: relative;
 }
 
@@ -1403,7 +1422,7 @@ export default {
     padding: 0;
     background: var(--color-bg-input);
     border: 2px solid var(--color-bg-border);
-    margin: var(--spacing-xl);
+    margin: var(--spacing-md) var(--spacing-xl);
     margin-bottom: 0;
     border-radius: var(--radius-base);
     overflow: hidden;
@@ -1415,8 +1434,7 @@ export default {
 }
 
 .submission-section .submit-button {
-    margin: var(--spacing-xl);
-    margin-top: var(--spacing-lg);
+    margin: var(--spacing-md) var(--spacing-xl) var(--spacing-sm);
     width: calc(100% - calc(var(--spacing-xl) * 2));
     flex-shrink: 0;
 }

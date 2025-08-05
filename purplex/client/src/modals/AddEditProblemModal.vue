@@ -762,17 +762,8 @@
   display: block;
 }
 
-.form-textarea {
-  width: 100%;
-  padding: var(--spacing-md);
-  border: 2px solid var(--color-bg-input);
-  border-radius: var(--radius-base);
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-base);
-  resize: vertical;
-  min-height: 100px;
-  transition: var(--transition-base);
+.form-textarea {$1transition: var(--transition-base);
+  caret-color: var(--color-text-primary);
 }
 
 .form-textarea:focus {
