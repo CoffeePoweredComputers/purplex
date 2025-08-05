@@ -44,7 +44,8 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
           DJANGO_SETTINGS_MODULE: purplex.settings
           DJANGO_SECRET_KEY: test-secret-key-for-ci
-          DJANGO_DEBUG: True
+          DJANGO_DEBUG: true
+          DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,testserver
           # Mock Firebase credentials for testing
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/mock-firebase.json
         run: |
