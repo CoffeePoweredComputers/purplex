@@ -44,7 +44,7 @@
           class="timeline-node"
           :data-status="getSlideStatus(slide)"
           :data-current="currentSlide === index"
-          :title="`Solution ${index + 1}: ${slide.tests.filter(t => t.pass).length}/${slide.tests.length} tests`"
+          :title="`Solution ${index + 1}: ${slide.tests.filter(t => t.isSuccessful).length}/${slide.tests.length} tests`"
           @click="goToSlide(index)"
         >
           <span class="node-number">{{ index + 1 }}</span>
@@ -293,12 +293,12 @@ export default defineComponent({
           if (testResult.results && Array.isArray(testResult.results)) {
             tests = testResult.results;
             // Variation is correct if all tests passed
-            correct = testResult.passed === testResult.total && testResult.total > 0;
+            correct = testResult.testsPassed === testResult.totalTests && testResult.totalTests > 0;
           } 
           // Handle direct array format (legacy or test data)
           else if (Array.isArray(testResult)) {
             tests = testResult;
-            correct = tests.every(test => test.pass);
+            correct = tests.every(test => test.isSuccessful);
           }
         }
         
@@ -315,23 +315,23 @@ export default defineComponent({
       if (this.slides.length === 0) {return 0;}
       const totalTests = this.slides.reduce((sum, slide) => sum + slide.tests.length, 0);
       const passingTests = this.slides.reduce((sum, slide) => 
-        sum + slide.tests.filter(test => test.pass).length, 0);
+        sum + slide.tests.filter(test => test.isSuccessful).length, 0);
       return totalTests > 0 ? (passingTests / totalTests) * 100 : 0;
     },
     passingTests(): number {
       return this.slides.reduce((sum, slide) => 
-        sum + slide.tests.filter(test => test.pass).length, 0);
+        sum + slide.tests.filter(test => test.isSuccessful).length, 0);
     },
     totalTests(): number {
       return this.slides.reduce((sum, slide) => sum + slide.tests.length, 0);
     },
     passingTestsForCurrentSlide(): TestCase[] {
       if (this.slides.length === 0 || !this.slides[this.currentSlide]) {return [];}
-      return this.slides[this.currentSlide].tests.filter(test => test.pass);
+      return this.slides[this.currentSlide].tests.filter(test => test.isSuccessful);
     },
     failingTestsForCurrentSlide(): TestCase[] {
       if (this.slides.length === 0 || !this.slides[this.currentSlide]) {return [];}
-      return this.slides[this.currentSlide].tests.filter(test => !test.pass);
+      return this.slides[this.currentSlide].tests.filter(test => !test.isSuccessful);
     },
   },
   watch: {

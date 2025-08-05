@@ -1962,8 +1962,8 @@ export default defineComponent({
           // Debug: Log the full response structure
           log.debug('Full test results structure', {
             success: this.ui.testResults.success,
-            passed: this.ui.testResults.passed,
-            total: this.ui.testResults.total,
+            testsPassed: this.ui.testResults.testsPassed,
+            totalTests: this.ui.testResults.totalTests,
             results: this.ui.testResults.results,
             resultsType: typeof this.ui.testResults.results,
             resultsLength: this.ui.testResults.results?.length,
@@ -2008,8 +2008,8 @@ export default defineComponent({
         // Force UI update
         this.$forceUpdate();
         
-        const passed = this.ui.testResults.passed || 0;
-        const total = this.ui.testResults.total || 0;
+        const passed = this.ui.testResults.testsPassed || 0;
+        const total = this.ui.testResults.totalTests || 0;
         
         log.info(`Test results: ${passed}/${total} passed`);
         
@@ -2514,7 +2514,7 @@ export default defineComponent({
       return this.ui.testResults && 
              this.ui.testResults.results && 
              this.ui.testResults.results[index] && 
-             this.ui.testResults.results[index].passed;
+             this.ui.testResults.results[index].isSuccessful;
     },
     
     /**
@@ -2524,7 +2524,7 @@ export default defineComponent({
       return this.ui.testResults && 
              this.ui.testResults.results && 
              this.ui.testResults.results[index] && 
-             !this.ui.testResults.results[index].passed;
+             !this.ui.testResults.results[index].isSuccessful;
     },
     
     /**

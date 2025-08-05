@@ -108,7 +108,7 @@ export interface ValidationError {
 
 // ===== TEST EXECUTION TYPES =====
 export interface TestResult {
-  pass: boolean;
+  isSuccessful: boolean;  // Clear boolean property name - was "pass"
   test_number: number;
   inputs: unknown[];
   expected_output: unknown;
@@ -121,8 +121,8 @@ export interface TestResult {
 
 export interface TestExecutionResult {
   success: boolean;
-  passed: number;
-  total: number;
+  testsPassed: number;  // Clear count property name - was "passed"
+  totalTests: number;   // Clear count property name - was "total"
   score: number;
   results: TestResult[];
   execution_time: number;
@@ -134,8 +134,8 @@ export interface VariationTestResult {
   success: boolean;
   error?: string;
   results: TestResult[];
-  passed: number;
-  total: number;
+  testsPassed: number;  // Clear count property name - was "passed"
+  totalTests: number;   // Clear count property name - was "total"
   score: number;
 }
 
@@ -369,7 +369,7 @@ export interface CodeVariation {
 
 export interface SubmissionTestResult {
   variation_index: number;
-  pass: boolean;
+  isSuccessful: boolean;  // Clear boolean property name - was "pass"
   score: number;
   test_number: number;
   inputs: unknown[];

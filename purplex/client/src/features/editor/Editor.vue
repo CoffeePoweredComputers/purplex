@@ -99,6 +99,8 @@
           highlightActiveLine: false,
           highlightGutterLine: false,
           showPrintMargin: false,
+          wrap: true,
+          indentedSoftWrap: false, // This should fix the wrapping indentation issue
         });
         
         // Disable cursor visibility when read-only
@@ -320,6 +322,28 @@
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     font-size: var(--font-size-sm);
     transition: var(--transition-base);
+  }
+
+  /* Fix text wrapping - ensure wrapped lines maintain proper indentation */
+  :deep(.ace_text-layer .ace_line) {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    text-indent: 0;
+    /* Use hanging indent to align wrapped text properly */
+    padding-left: 0;
+    text-indent: 0;
+  }
+
+  /* Ensure proper hanging indent for wrapped text */
+  :deep(.ace_content) {
+    overflow-wrap: break-word;
+  }
+
+  /* Alternative approach: use CSS hanging-punctuation if needed */
+  :deep(.ace_line_group) {
+    text-indent: 0;
+    /* Maintain consistent spacing for wrapped content */
+    line-height: 1.2;
   }
 
   :deep(.ace_editor:hover) {

@@ -33,8 +33,8 @@ export class TestResultsTransformer {
     return {
       success: result.success ?? false,
       error: result.error,
-      passed: result.passed ?? 0,
-      total: result.total ?? 0,
+      testsPassed: result.passed ?? 0,  // Clear count property name
+      totalTests: result.total ?? 0,    // Clear count property name
       score: result.score ?? 0,
       results: Array.isArray(result.results) 
         ? result.results.map(TestResultsTransformer.normalizeTestResult)
@@ -47,7 +47,7 @@ export class TestResultsTransformer {
    */
   static normalizeTestResult(test: any): TestResult {
     return {
-      pass: test.pass ?? false,
+      isSuccessful: test.pass ?? test.passed ?? false,  // Handle both "pass" and "passed" from backend
       test_number: test.test_number ?? 0,
       inputs: test.inputs || [],
       expected_output: test.expected_output,
