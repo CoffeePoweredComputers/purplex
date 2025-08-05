@@ -64,18 +64,20 @@ const mockHintConfig: HintConfig = {
 
 const mockTestResult: TestExecutionResult = {
   success: true,
-  passed_tests: 5,
-  total_tests: 5,
-  test_results: [
+  testsPassed: 5,
+  totalTests: 5,
+  score: 100,
+  results: [
     {
-      test_case_id: 1,
-      passed: true,
-      actual_output: '[0, 1]',
-      expected_output: '[0, 1]',
-      execution_time: 0.01
+      test_number: 1,
+      isSuccessful: true,
+      inputs: [[2, 7, 11, 15], 9],
+      expected_output: [0, 1],
+      actual_output: [0, 1],
+      execution_time: 0.01,
+      function_call: 'two_sum([2, 7, 11, 15], 9)'
     }
   ],
-  error_message: null,
   execution_time: 0.05
 }
 

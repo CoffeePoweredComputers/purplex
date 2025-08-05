@@ -1,5 +1,4 @@
 import axios, { AxiosResponse } from 'axios';
-import { TestResultsTransformer } from './testResultsTransformer';
 import {
   APIError,
   HintConfig,
@@ -96,25 +95,11 @@ class ProblemServiceImpl {
    */
   async testProblem(data: TestProblemRequest): Promise<TestExecutionResult> {
     try {
-      const response: AxiosResponse<any> = await axios.post(
+      const response: AxiosResponse<TestExecutionResult> = await axios.post(
         '/api/admin/test-problem/',
         data
       );
-      
-      // Transform the backend response to use consistent property names
-      const transformedResults = (response.data.results || []).map((result: any) => 
-        TestResultsTransformer.normalizeTestResult(result)
-      );
-      
-      return {
-        success: response.data.success ?? true,
-        testsPassed: response.data.passed ?? 0,
-        totalTests: response.data.total ?? 0,
-        score: response.data.score ?? 0,
-        results: transformedResults,
-        execution_time: response.data.execution_time ?? 0,
-        memory_used: response.data.memory_used
-      };
+      return response.data;
     } catch (error) {
       throw this._handleError(error, 'Failed to test problem solution');
     }

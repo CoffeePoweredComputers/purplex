@@ -199,8 +199,8 @@ class AdminTestProblemView(APIView):
             return Response({
                 'success': False,
                 'error': 'Failed to test reference solution. Please check the code and try again.',
-                'passed': 0,
-                'total': len(problem_data.get('test_cases', [])),
+                'testsPassed': 0,
+                'totalTests': len(problem_data.get('test_cases', [])),
                 'results': []
             })
 

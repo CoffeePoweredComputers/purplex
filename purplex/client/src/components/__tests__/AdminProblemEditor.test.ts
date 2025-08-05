@@ -424,10 +424,18 @@ describe('AdminProblemEditor', () => {
     it('should handle test problem execution', async () => {
       const testResults = {
         success: true,
-        all_passed: true,
-        passed: 1,
-        total: 1,
-        results: [{ passed: true, output: 42 }]
+        testsPassed: 1,
+        totalTests: 1,
+        score: 100,
+        results: [{ 
+          test_number: 1,
+          isSuccessful: true, 
+          inputs: [],
+          expected_output: 42,
+          actual_output: 42,
+          function_call: 'test_func()'
+        }],
+        execution_time: 0.05
       }
       
       vi.mocked(problemService.testProblem).mockResolvedValue(testResults)

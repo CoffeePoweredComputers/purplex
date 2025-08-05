@@ -33,16 +33,18 @@ class CodeExecutionService:
             except json.JSONDecodeError:
                 return {
                     'error': 'Failed to parse test results',
-                    'passed': 0,
-                    'total': len(test_cases),
-                    'results': []
+                    'testsPassed': 0,
+                    'totalTests': len(test_cases),
+                    'results': [],
+                    'success': False
                 }
         else:
             return {
                 'error': result.get('error', 'Code execution failed'),
-                'passed': 0,
-                'total': len(test_cases),
-                'results': []
+                'testsPassed': 0,
+                'totalTests': len(test_cases),
+                'results': [],
+                'success': False
             }
     
     def _create_test_runner(self, user_code: str, function_name: str, test_cases: List[Dict]) -> str:
@@ -122,7 +124,7 @@ for i, test_case in enumerate(test_cases):
             'inputs': inputs,
             'expected_output': expected,
             'actual_output': actual,
-            'pass': test_passed,
+            'isSuccessful': test_passed,
             'error': None,
             'function_call': function_call
         }})
@@ -136,16 +138,17 @@ for i, test_case in enumerate(test_cases):
             'inputs': inputs,
             'expected_output': test_case.get('expected_output'),
             'actual_output': None,
-            'pass': False,
+            'isSuccessful': False,
             'error': str(e),
             'function_call': function_call
         }})
 
 # Output results as JSON
 output = {{
-    'passed': passed_count,
-    'total': len(test_cases),
-    'results': results
+    'testsPassed': passed_count,
+    'totalTests': len(test_cases),
+    'results': results,
+    'success': passed_count == len(test_cases)
 }}
 
 print(json.dumps(output))
