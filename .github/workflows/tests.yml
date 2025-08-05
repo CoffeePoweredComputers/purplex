@@ -42,6 +42,7 @@ jobs:
       - name: Run tests with coverage
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+          DJANGO_SETTINGS_MODULE: purplex.settings
           DJANGO_SECRET_KEY: test-secret-key-for-ci
           DJANGO_DEBUG: True
           # Mock Firebase credentials for testing
@@ -49,6 +50,13 @@ jobs:
         run: |
           # Create mock Firebase credentials file
           echo '{"type": "service_account", "project_id": "test"}' > /tmp/mock-firebase.json
+          
+          # Verify environment
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          echo "Tests directory exists:"
+          ls -la tests/ || echo "tests/ directory not found"
           
           # Run tests
           pytest tests/ -v --cov=purplex --cov-report=xml --cov-report=term
@@ -70,18 +78,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: purplex/client/package-lock.json
+          cache: 'yarn'
+          cache-dependency-path: purplex/client/yarn.lock
       
       - name: Install frontend dependencies
         working-directory: purplex/client
-        run: npm ci
+        run: yarn install --frozen-lockfile
       
       - name: Check if tests exist
         id: check_tests
         working-directory: purplex/client
         run: |
-          if [ -f "vitest.config.ts" ] && npm list vitest &>/dev/null; then
+          if [ -f "vitest.config.ts" ] && yarn list vitest &>/dev/null; then
             echo "tests_exist=true" >> $GITHUB_OUTPUT
           else
             echo "tests_exist=false" >> $GITHUB_OUTPUT
@@ -92,7 +100,7 @@ jobs:
         if: steps.check_tests.outputs.tests_exist == 'true'
         working-directory: purplex/client
         run: |
-          npm run test:unit -- --coverage
+          yarn test:unit --coverage
       
       - name: Upload frontend coverage
         if: steps.check_tests.outputs.tests_exist == 'true'
