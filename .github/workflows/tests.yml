@@ -47,13 +47,13 @@ jobs:
           DJANGO_DEBUG: true
           DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,testserver
           # Mock Firebase credentials for testing
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/mock-firebase.json
+          GOOGLE_APPLICATION_CREDENTIALS: firebase-credentials.json
         run: |
           # Create logs directory for Django logging
           mkdir -p logs
           
-          # Create mock Firebase credentials file
-          echo '{"type": "service_account", "project_id": "test"}' > /tmp/mock-firebase.json
+          # Create mock Firebase credentials file in the expected location
+          echo '{"type": "service_account", "project_id": "test"}' > firebase-credentials.json
           
           # Verify environment
           echo "Current directory: $(pwd)"
