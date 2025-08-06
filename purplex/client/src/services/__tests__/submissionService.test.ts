@@ -67,8 +67,8 @@ const mockBaseSubmission: BaseSubmission = {
   total_variations: 2,
   passing_variations: 1,
   test_results: [
-    { pass: true, expected: '[0, 1]', actual: '[0, 1]' } as SubmissionTestResult,
-    { pass: false, expected: '[1, 2]', actual: '[0, 1]' } as SubmissionTestResult
+    { isSuccessful: true, expected: '[0, 1]', actual: '[0, 1]' } as SubmissionTestResult,
+    { isSuccessful: false, expected: '[1, 2]', actual: '[0, 1]' } as SubmissionTestResult
   ],
   created_at: '2025-08-05T10:00:00Z',
   score: 50
@@ -340,8 +340,8 @@ describe('SubmissionService', () => {
         const submission = {
           ...mockBaseSubmission,
           test_results: [
-            { pass: true } as SubmissionTestResult,
-            { pass: true } as SubmissionTestResult
+            { isSuccessful: true } as SubmissionTestResult,
+            { isSuccessful: true } as SubmissionTestResult
           ]
         } as BaseSubmission
         const summary = submissionService.getTestResultsSummary(submission)

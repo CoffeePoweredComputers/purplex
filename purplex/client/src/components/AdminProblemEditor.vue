@@ -2881,6 +2881,9 @@ export default defineComponent({
      * Convert backend test cases to string format for editing
      */
     convertTestCasesFromBackend(testCases) {
+      if (!Array.isArray(testCases)) {
+        return [];
+      }
       return testCases.map(tc => ({
         ...tc,
         inputs: (tc.inputs || []).map(value => formatValueForInput(value)),

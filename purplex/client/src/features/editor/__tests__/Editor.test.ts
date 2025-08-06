@@ -191,7 +191,9 @@ describe('Editor Component', () => {
         readOnly: false,
         highlightActiveLine: false,
         highlightGutterLine: false,
-        showPrintMargin: false
+        showPrintMargin: false,
+        wrap: true,
+        indentedSoftWrap: false
       })
     })
 

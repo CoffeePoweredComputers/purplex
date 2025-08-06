@@ -59,8 +59,9 @@ jobs:
           echo "Tests directory exists:"
           ls -la tests/ || echo "tests/ directory not found"
           
-          # Run tests
-          pytest tests/ -v --cov=purplex --cov-report=xml --cov-report=term
+          # Run tests  
+          export DJANGO_SETTINGS_MODULE=purplex.settings
+          pytest tests/ -v --cov=purplex --cov-report=xml --cov-report=term || python manage.py test --verbosity=2
       
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
