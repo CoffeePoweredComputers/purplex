@@ -256,21 +256,42 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from 'vue'
 import { mapGetters } from 'vuex';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import AdminNavBar from './AdminNavBar.vue';
 import ViewSubmissionModal from '../modals/ViewSubmissionModal.vue';
 import { log } from '@/utils/logger';
 import { useNotification } from '@/composables/useNotification';
+import type { SubmissionDetailed } from '@/types';
 
-export default {
+interface ComponentData {
+  submissions: SubmissionDetailed[];
+  loading: boolean;
+  error: string | null;
+  searchQuery: string;
+  statusFilter: string;
+  problemSetFilter: string;
+  showViewModal: boolean;
+  selectedSubmission: SubmissionDetailed | null;
+  currentPage: number;
+  totalCount: number;
+  totalPages: number;
+  pageSize: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  searchTimeout: NodeJS.Timeout | null;
+  notify: ReturnType<typeof useNotification>['notify'];
+}
+
+export default defineComponent({
   name: 'AdminSubmissions',
   components: {
     AdminNavBar,
     ViewSubmissionModal
   },
-  data() {
+  data(): ComponentData {
     return {
       submissions: [],
       loading: true,
@@ -287,14 +308,15 @@ export default {
       pageSize: 25,
       hasNext: false,
       hasPrevious: false,
-      searchTimeout: null
+      searchTimeout: null,
+      notify: null as any // Will be set in created()
     };
   },
   computed: {
     ...mapGetters('auth', ['isAdmin']),
     
-    uniqueProblemSets() {
-      const sets = new Set();
+    uniqueProblemSets(): string[] {
+      const sets = new Set<string>();
       this.submissions.forEach(submission => {
         if (submission.problem_set && submission.problem_set !== 'Unknown') {
           sets.add(submission.problem_set);
@@ -303,14 +325,14 @@ export default {
       return Array.from(sets).sort();
     },
     
-    paginationInfo() {
+    paginationInfo(): { start: number; end: number; total: number } {
       const start = (this.currentPage - 1) * this.pageSize + 1;
       const end = Math.min(this.currentPage * this.pageSize, this.totalCount);
       return { start, end, total: this.totalCount };
     },
     
-    pageNumbers() {
-      const pages = [];
+    pageNumbers(): number[] {
+      const pages: number[] = [];
       const maxVisible = 5;
       const half = Math.floor(maxVisible / 2);
       
@@ -344,7 +366,7 @@ export default {
     this.fetchSubmissions();
   },
   methods: {
-    async fetchSubmissions() {
+    async fetchSubmissions(): Promise<void> {
       try {
         this.loading = true;
         
@@ -380,19 +402,19 @@ export default {
       }
     },
     
-    goToPage(page) {
+    goToPage(page: number): void {
       if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
         this.currentPage = page;
         this.fetchSubmissions();
       }
     },
     
-    changePageSize() {
+    changePageSize(): void {
       this.currentPage = 1; // Reset to first page
       this.fetchSubmissions();
     },
     
-    debounceSearch() {
+    debounceSearch(): void {
       clearTimeout(this.searchTimeout);
       this.searchTimeout = setTimeout(() => {
         this.currentPage = 1; // Reset to first page
@@ -400,21 +422,21 @@ export default {
       }, 500);
     },
     
-    onFilterChange() {
+    onFilterChange(): void {
       this.currentPage = 1; // Reset to first page
       this.fetchSubmissions();
     },
     
     // Removed toggleUserGroup and calculateAverageScore - no longer needed
     
-    getScoreClass(score) {
+    getScoreClass(score: number): string {
       if (score >= 80) {return 'score-excellent';}
       if (score >= 60) {return 'score-good';}
       if (score >= 40) {return 'score-fair';}
       return 'score-poor';
     },
     
-    async viewSubmission(submissionId) {
+    async viewSubmission(submissionId: number): Promise<void> {
       try {
         this.loading = true;
         const response = await axios.get(`/api/admin/submissions/${submissionId}/`);
@@ -428,12 +450,12 @@ export default {
       }
     },
     
-    closeViewModal() {
+    closeViewModal(): void {
       this.showViewModal = false;
       this.selectedSubmission = null;
     },
     
-    submissionStatusClass(status) {
+    submissionStatusClass(status: string): string {
       switch(status.toLowerCase()) {
         case 'passed':
           return 'success-badge';
@@ -448,13 +470,13 @@ export default {
       }
     },
     
-    formatISODate(dateString) {
+    formatISODate(dateString: string | null): string {
       if (!dateString) {return 'Unknown';}
       const date = new Date(dateString);
       return date.toISOString();
     },
     
-    async exportToCSV() {
+    async exportToCSV(): Promise<void> {
       try {
         // Fetch detailed submission data for CSV export
         // Build export URL with current filters
@@ -544,7 +566,7 @@ export default {
       }
     },
     
-    async downloadSubmissionData(submission) {
+    async downloadSubmissionData(submission: SubmissionDetailed): Promise<void> {
       try {
         // Fetch full submission details
         const response = await axios.get(`/api/admin/submissions/${submission.id}/`);
@@ -593,7 +615,7 @@ export default {
     },
     
     // Helper methods for CSV formatting
-    formatCodeVariationsForCSV(codeVariations) {
+    formatCodeVariationsForCSV(codeVariations: any): string {
       if (!codeVariations || !Array.isArray(codeVariations)) {return '[]';}
       
       // Return as pretty-printed JSON string for easy analysis
@@ -605,7 +627,7 @@ export default {
       }
     },
     
-    formatTestResultsForCSV(testResults) {
+    formatTestResultsForCSV(testResults: any): string {
       if (!testResults || !Array.isArray(testResults)) {return '[]';}
       
       // Return as pretty-printed JSON string for easy analysis
@@ -617,7 +639,7 @@ export default {
       }
     }
   }
-}
+})
 </script>
 
 <style scoped>

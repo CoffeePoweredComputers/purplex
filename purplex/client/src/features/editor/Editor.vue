@@ -99,6 +99,8 @@
           highlightActiveLine: false,
           highlightGutterLine: false,
           showPrintMargin: false,
+          wrap: true,
+          indentedSoftWrap: false, // This should fix the wrapping indentation issue
         });
         
         // Disable cursor visibility when read-only
@@ -322,6 +324,28 @@
     transition: var(--transition-base);
   }
 
+  /* Fix text wrapping - ensure wrapped lines maintain proper indentation */
+  :deep(.ace_text-layer .ace_line) {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    text-indent: 0;
+    /* Use hanging indent to align wrapped text properly */
+    padding-left: 0;
+    text-indent: 0;
+  }
+
+  /* Ensure proper hanging indent for wrapped text */
+  :deep(.ace_content) {
+    overflow-wrap: break-word;
+  }
+
+  /* Alternative approach: use CSS hanging-punctuation if needed */
+  :deep(.ace_line_group) {
+    text-indent: 0;
+    /* Maintain consistent spacing for wrapped content */
+    line-height: 1.2;
+  }
+
   :deep(.ace_editor:hover) {
     border-color: var(--color-primary-gradient-start);
     box-shadow: var(--shadow-lg);
@@ -368,7 +392,8 @@
 
   /* Selection styling */
   :deep(.ace_selection) {
-    background: rgba(102, 126, 234, 0.3);
+    background: rgba(128, 0, 128, 0.3) !important;
+    color: var(--color-text-primary) !important;
   }
 
   /* Active line highlighting */
@@ -436,19 +461,19 @@
   /* Variable fade has no visual styling - just transforms variable names */
   /* Subgoal highlighting styles moved to global styles block below */
   
-  /* Hide cursor for read-only editors */
-  :deep(.ace_cursor-layer) {
+  /* Hide cursor only for read-only editors */
+  :deep(.ace_editor.ace_read-only .ace_cursor-layer) {
     display: none !important;
   }
   
-  :deep(.ace_cursor) {
+  :deep(.ace_editor.ace_read-only .ace_cursor) {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
   }
   
-  /* Remove active line highlighting */
-  :deep(.ace_active-line) {
+  /* Remove active line highlighting only for read-only editors */
+  :deep(.ace_editor.ace_read-only .ace_active-line) {
     background: transparent !important;
   }
   

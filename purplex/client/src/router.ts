@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
-import { firebaseAuth } from "./firebaseConfig";
 import store from "./store"; // Import the Vuex store
 
 // Import components from their feature folders
@@ -94,7 +93,7 @@ const router = createRouter({
     routes,
 });
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
     const requiresAuth = to.matched.some(record => record.meta?.requiresAuth);
     const requiresAdmin = to.matched.some(record => record.meta?.requiresAdmin);
     

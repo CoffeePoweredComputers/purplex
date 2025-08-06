@@ -15,8 +15,8 @@ import {
 const logger = log.createComponentLogger('VariableFadeProcessor');
 
 class VariableFadeProcessor implements HintProcessor<VariableFadeData> {
-  static strategy = HintRenderStrategy.MODIFY_CODE;
-  static processHint(hintData: VariableFadeData): HintResult {
+  strategy = HintRenderStrategy.MODIFY_CODE;
+  processHint(hintData: VariableFadeData): HintResult {
     logger.debug('Processing Variable Fade hint', hintData);
 
     try {
@@ -83,11 +83,16 @@ class VariableFadeProcessor implements HintProcessor<VariableFadeData> {
 
     } catch (error) {
       logger.error('Variable fade processing error', error);
-      return { success: false, code: '', markers: [], error: error.message };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return { success: false, code: '', markers: [], error: errorMessage };
     }
   }
 
-  static isValidVariableName(name: string): boolean {
+  isValidVariableName(name: string): boolean {
+    // Check for null/undefined
+    if (!name || typeof name !== 'string') {
+      return false;
+    }
     // Python variable name validation
     return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name);
   }

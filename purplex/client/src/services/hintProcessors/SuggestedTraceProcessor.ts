@@ -14,9 +14,9 @@ import {
 const logger = log.createComponentLogger('SuggestedTraceProcessor');
 
 class SuggestedTraceProcessor implements HintProcessor<SuggestedTraceData> {
-  static strategy = HintRenderStrategy.OVERLAY_UI;
+  strategy = HintRenderStrategy.OVERLAY_UI;
 
-  static processHint(hintData: SuggestedTraceData): HintResult {
+  processHint(hintData: SuggestedTraceData): HintResult {
     logger.debug('Processing Suggested Trace hint', hintData);
 
     try {
@@ -52,9 +52,10 @@ class SuggestedTraceProcessor implements HintProcessor<SuggestedTraceData> {
 
     } catch (error) {
       logger.error('Suggested trace processing error', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       return { 
         success: false, 
-        error: error.message 
+        error: errorMessage 
       };
     }
   }

@@ -3,7 +3,7 @@
  * Centralized service for generating Python Tutor URLs and managing debugger configuration
  */
 
-import type { PythonTutorConfig, PythonTutorOptions, TestCaseFormatted } from '@/types';
+import type { PythonTutorConfig, PythonTutorOptions, TestCaseFormatted } from '../types';
 import { log } from '../utils/logger';
 
 export class PythonTutorService {
@@ -89,7 +89,7 @@ ${testCase.function_call}`;
    */
   static async isAvailable(): Promise<boolean> {
     try {
-      const response = await fetch(this.CONFIG.BASE_URL, {
+      await fetch(this.CONFIG.BASE_URL, {
         method: 'HEAD',
         mode: 'no-cors'
       });

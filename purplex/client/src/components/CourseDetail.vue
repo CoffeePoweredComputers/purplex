@@ -120,25 +120,26 @@
   </div>
 </template>
 
-<script>
-import { computed, onMounted, ref } from 'vue'
+<script lang="ts">
+import { defineComponent, computed, onMounted, ref, Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import { log } from '@/utils/logger'
+import type { Course } from '@/types'
 
-export default {
+export default defineComponent({
   name: 'CourseDetail',
   setup() {
     const route = useRoute()
     const router = useRouter()
     const store = useStore()
     
-    const course = ref(null)
+    const course: Ref<Course | null> = ref(null)
     const loading = ref(true)
-    const courseId = computed(() => route.params.courseId)
+    const courseId = computed(() => route.params.courseId as string)
     
-    const fetchCourseDetails = async () => {
+    const fetchCourseDetails = async (): Promise<void> => {
       loading.value = true
       try {
         const response = await axios.get(`/api/courses/${courseId.value}/`)
@@ -147,14 +148,15 @@ export default {
         // Update current course in store
         store.commit('courses/SET_CURRENT_COURSE', response.data)
       } catch (error) {
-        log.error('Failed to fetch course details', { courseId: courseId.value, error })
+        const axiosError = error as AxiosError
+        log.error('Failed to fetch course details', { courseId: courseId.value, error: axiosError })
         course.value = null
       } finally {
         loading.value = false
       }
     }
     
-    const navigateToProblemSet = (problemSetSlug) => {
+    const navigateToProblemSet = (problemSetSlug: string): void => {
       router.push({
         name: 'CourseProblemSet',
         params: {
@@ -174,7 +176,7 @@ export default {
       navigateToProblemSet
     }
   }
-}
+})
 </script>
 
 <style scoped>

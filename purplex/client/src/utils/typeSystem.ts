@@ -958,7 +958,7 @@ function extractNestedObjectString(originalInput: string, key: string): string |
   return null;
 }
 
-function inferPythonTypeFromValueWithFormat(value: unknown, originalInput?: string, keyContext?: string): TypeSpec {
+function inferPythonTypeFromValueWithFormat(value: unknown, originalInput?: string, _keyContext?: string): TypeSpec {
   if (value === null || value === undefined) {
     return { type: 'None' };
   }

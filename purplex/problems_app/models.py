@@ -301,6 +301,16 @@ class UserProgress(models.Model):
         """Flexible completion checking supporting multiple criteria"""
         completion_criteria = self.problem.completion_criteria or {}
         
+        # For EiPL problems with segmentation enabled, require both test passing AND segmentation passing
+        if self.problem.problem_type == 'eipl' and self.problem.segmentation_enabled:
+            # First check if all variations passed tests
+            if submission.score < 100:  # Less than 100% means not all variations passed
+                return False
+            
+            # Then check if segmentation passed (if segmentation was performed)
+            if submission.segmentation_passed is not None and not submission.segmentation_passed:
+                return False
+        
         # Default to threshold-based completion
         if not completion_criteria:
             return submission.score >= (self.problem.completion_threshold or 100)

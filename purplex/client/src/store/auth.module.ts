@@ -62,29 +62,6 @@ export interface UserMeResponse {
 
 // ===== VUEX MODULE TYPES =====
 
-interface AuthGetters {
-  isLoggedIn: boolean;
-  isAdmin: boolean;
-  getUser: User | null;
-  getUserRole: string | null;
-}
-
-interface AuthMutations {
-  loginSuccess: User;
-  logout: void;
-  registerSuccess: void;
-  updateUserData: User;
-}
-
-interface AuthActions {
-  checkAuthState: void;
-  login: LoginCredentials;
-  loginWithGoogle: void;
-  logout: void;
-  createAccount: CreateAccountCredentials;
-  refreshUserRole: void;
-}
-
 type AuthActionContext = ActionContext<AuthState, any>;
 
 // ===== INITIAL STATE =====

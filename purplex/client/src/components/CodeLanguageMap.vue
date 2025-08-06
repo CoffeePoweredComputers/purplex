@@ -10,29 +10,23 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 
+    import { defineComponent, PropType } from 'vue'
     import Editor from './Editor.vue'
 
-    export default {
+    export default defineComponent({
         components: {Editor},
         props: {
             code: {
-                type: String,
-                default: 0,
+                type: String as PropType<string>,
+                default: ''
             },
             comprehensionResults: {
-                type: Array,
-                default: () => [],
-            },
-        },
-        data() {
-        },
-        onMounted() {
-        },
-        methods: {
-
+                type: Array as PropType<any[]>,
+                default: () => []
+            }
         }
-    };
+    });
 
 </script>

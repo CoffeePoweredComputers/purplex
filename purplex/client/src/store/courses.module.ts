@@ -100,37 +100,6 @@ export interface CourseLookupResponse {
 
 // ===== VUEX MODULE TYPES =====
 
-interface CoursesGetters {
-  isEnrolledInCourse: (courseId: string) => boolean;
-  getCurrentCourseProblemSets: CourseProblemSet[];
-  isInstructor: boolean;
-  organizedCourses: OrganizedCourses;
-}
-
-interface CoursesMutations {
-  SET_ENROLLED_COURSES: CourseEnrollment[];
-  ADD_ENROLLED_COURSE: CourseEnrollment;
-  SET_CURRENT_COURSE: Course | null;
-  SET_ENROLLMENT_MODAL: Partial<EnrollmentModal>;
-  RESET_ENROLLMENT_MODAL: void;
-  SET_INSTRUCTOR_COURSES: Course[];
-  SET_STUDENT_PROGRESS: { courseId: string; progress: StudentProgress };
-  SET_LOADING: { key: keyof LoadingStates; value: boolean };
-}
-
-interface CoursesActions {
-  initializeCourses: void;
-  fetchEnrolledCourses: void;
-  lookupCourse: string;
-  enrollInCourse: string;
-  enterCourseContext: string;
-  leaveCourseContext: void;
-  fetchInstructorCourses: void;
-  fetchStudentProgress: string;
-  showEnrollmentModal: void;
-  hideEnrollmentModal: void;
-}
-
 interface RootState {
   auth: AuthState;
   courses: CoursesState;
@@ -185,7 +154,7 @@ export const courses: Module<CoursesState, RootState> = {
     },
     
     // Check if user is instructor of any course
-    isInstructor: (state: CoursesState, getters: any, rootState: RootState): boolean => {
+    isInstructor: (_state: CoursesState, _getters: any, rootState: RootState): boolean => {
       return rootState.auth.user?.role === 'instructor' || 
              rootState.auth.user?.role === 'admin';
     },

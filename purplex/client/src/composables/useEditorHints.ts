@@ -1,4 +1,4 @@
-import { computed, ComputedRef, nextTick, Ref, ref, toRaw, watch } from 'vue'
+import { computed, nextTick, Ref, ref, toRaw, watch } from 'vue'
 import { 
   HintProcessors,
   HintRenderStrategy,
@@ -16,11 +16,6 @@ interface HintData {
   [key: string]: any
 }
 
-interface ActiveHint extends HintData {
-  hintType: string
-  timestamp: number
-  result?: HintResult
-}
 
 interface EditorAnnotation {
   row: number
@@ -34,13 +29,6 @@ interface EditorTooltip {
   text: string
 }
 
-interface Processor {
-  transform: (code: string, config: any) => {
-    modifiedCode: string
-    markers: EditorMarker[]
-    annotations: EditorAnnotation[]
-  }
-}
 
 /**
  * Composable for managing hint-based editor modifications
@@ -55,7 +43,7 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
   const errorState = ref<string | null>(null)
 
   // Track editor modifications
-  const editorMarkers = ref<EditorMarker[]>([])
+  const editorMarkers = ref<HintMarker[]>([])
   const editorAnnotations = ref<EditorAnnotation[]>([])
   const editorTooltips = ref<EditorTooltip[]>([])
 
@@ -65,7 +53,9 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
   const hintsByType = computed(() => {
     const byType: Record<string, HintData> = {}
     activeHints.value.forEach(hint => {
-      byType[hint.hintType] = hint
+      if (hint.hintType) {
+        byType[hint.hintType] = hint
+      }
     })
     return byType
   })
@@ -129,8 +119,9 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
         ...rawContent
       }
       
-      // Call static processHint method
-      const result: HintResult = processor.processHint(processorInput)
+      // Create processor instance and call processHint method
+      const processorInstance = new processor()
+      const result: HintResult = processorInstance.processHint(processorInput)
       
       // Check if processing was successful
       if (!result || !result.success) {
@@ -211,8 +202,19 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
         return false
       }
 
+      // Get the hint data before removing
+      const hintData = activeHints.value[hintIndex]
+      
       // Remove hint from active list
       activeHints.value.splice(hintIndex, 1)
+
+      // Remove associated overlays if hint used OVERLAY_UI strategy
+      if (hintData.result?.metadata?.strategy === HintRenderStrategy.OVERLAY_UI) {
+        // Remove all overlays associated with this hint's component
+        activeOverlays.value = activeOverlays.value.filter(
+          overlay => overlay.component !== hintData.result?.overlayComponent
+        )
+      }
 
       // Record in history
       hintHistory.value.push({
@@ -240,12 +242,17 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
    * @returns {boolean} Success status
    */
   const toggleHint = async (hintData: HintData): Promise<boolean> => {
+    if (!hintData.hintType) {
+      errorState.value = 'Hint type is required'
+      return false
+    }
+    
     const isActive = activeHints.value.some(h => h.hintType === hintData.hintType)
     
     if (isActive) {
       return await removeHint(hintData.hintType)
     } else {
-      return await applyHint(hintData)
+      return await applyHint(hintData.hintType, hintData)
     }
   }
 
@@ -333,8 +340,9 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
           ...rawContent
         }
         
-        // Call static processHint method
-        const result: HintResult = processor.processHint(processorInput)
+        // Create processor instance and call processHint method
+        const processorInstance = new processor()
+        const result: HintResult = processorInstance.processHint(processorInput)
         
         // Only apply if successful
         if (result && result.success) {
@@ -345,9 +353,10 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
           if (result.markers) {
             editorMarkers.value = [...editorMarkers.value, ...result.markers]
           }
-          if (result.annotations) {
-            editorAnnotations.value = [...editorAnnotations.value, ...result.annotations]
-          }
+          // Annotations are not part of HintResult interface
+          // if (result.annotations) {
+          //   editorAnnotations.value = [...editorAnnotations.value, ...result.annotations]
+          // }
         }
       }
     }
@@ -411,10 +420,44 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
 
     // Count by type
     activeHints.value.forEach(hint => {
-      stats.byType[hint.hintType] = (stats.byType[hint.hintType] || 0) + 1
+      if (hint.hintType) {
+        stats.byType[hint.hintType] = (stats.byType[hint.hintType] || 0) + 1
+      }
     })
 
     return stats
+  }
+  
+  /**
+   * Save current hint state
+   * @returns {Object} Serializable hint state
+   */
+  const saveState = () => {
+    return {
+      activeHints: activeHints.value.map(hint => ({
+        hintType: hint.hintType,
+        content: hint.content,
+        timestamp: hint.timestamp
+      })),
+      hasHints: hasActiveHints.value
+    }
+  }
+  
+  /**
+   * Restore hint state
+   * @param {Object} state - Previously saved state
+   */
+  const restoreState = async (state: any) => {
+    // Always clear current state first
+    await removeAllHints()
+    
+    // If no state to restore, we're done (hints are cleared)
+    if (!state || !state.activeHints || state.activeHints.length === 0) return
+    
+    // Reapply each saved hint
+    for (const savedHint of state.activeHints) {
+      await applyHint(savedHint.hintType, { content: savedHint.content })
+    }
   }
 
   return {
@@ -438,6 +481,10 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
     isHintActive,
     getHintData,
     getHintStats,
+    
+    // State management
+    saveState,
+    restoreState,
     
     // Utility
     reapplyAllHints

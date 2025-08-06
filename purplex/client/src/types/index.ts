@@ -108,7 +108,7 @@ export interface ValidationError {
 
 // ===== TEST EXECUTION TYPES =====
 export interface TestResult {
-  pass: boolean;
+  isSuccessful: boolean;  // Clear boolean property name - was "pass"
   test_number: number;
   inputs: unknown[];
   expected_output: unknown;
@@ -121,8 +121,8 @@ export interface TestResult {
 
 export interface TestExecutionResult {
   success: boolean;
-  passed: number;
-  total: number;
+  testsPassed: number;  // Clear count property name - was "passed"
+  totalTests: number;   // Clear count property name - was "total"
   score: number;
   results: TestResult[];
   execution_time: number;
@@ -134,8 +134,8 @@ export interface VariationTestResult {
   success: boolean;
   error?: string;
   results: TestResult[];
-  passed: number;
-  total: number;
+  testsPassed: number;  // Clear count property name - was "passed"
+  totalTests: number;   // Clear count property name - was "total"
   score: number;
 }
 
@@ -161,6 +161,7 @@ export interface EiPLSubmissionResponse {
     segment_count: number;
     comprehension_level: 'relational' | 'multi_structural';
     feedback: string;
+    passed?: boolean;  // Whether segmentation passed the threshold
   };
 }
 
@@ -283,8 +284,29 @@ export interface SuggestedTraceHint extends BaseHintConfig {
 
 export type HintConfig = VariableFadeHint | SubgoalHighlightHint | SuggestedTraceHint;
 
+// Type aliases for compatibility
+export type VariableMapping = VariableFadeMapping;
+export type VariableFadeHintData = VariableFadeHint;
+export type SubgoalHighlightData = SubgoalHighlightHint;
+export type Subgoal = SubgoalHighlight;
+export type LineRange = { start: number; end: number };
+export type SuggestedTraceData = SuggestedTraceHint;
+
 export interface HintUpdateRequest {
   hints: HintConfig[];
+}
+
+export interface HintRequest {
+  problemSlug: string;
+  hintType: HintType;
+  courseId?: string;
+  problemSetSlug?: string;
+}
+
+export interface HintResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
 }
 
 // ===== PROGRESS TRACKING TYPES =====
@@ -347,7 +369,7 @@ export interface CodeVariation {
 
 export interface SubmissionTestResult {
   variation_index: number;
-  pass: boolean;
+  isSuccessful: boolean;  // Clear boolean property name - was "pass"
   score: number;
   test_number: number;
   inputs: unknown[];

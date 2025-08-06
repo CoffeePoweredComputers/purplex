@@ -37,8 +37,12 @@
   </div>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { defineComponent, type PropType, type CSSProperties } from 'vue';
+
+type ComprehensionLevel = 'relational' | 'transitional' | 'multi_structural';
+
+export default defineComponent({
   name: 'SegmentationProgressBar',
   props: {
     segmentCount: {
@@ -46,9 +50,9 @@ export default {
       required: true
     },
     comprehensionLevel: {
-      type: String,
+      type: String as PropType<ComprehensionLevel>,
       required: true,
-      validator: (value) => ['relational', 'transitional', 'multi_structural'].includes(value)
+      validator: (value: string): boolean => ['relational', 'transitional', 'multi_structural'].includes(value)
     },
     threshold: {
       type: Number,
@@ -60,15 +64,15 @@ export default {
     }
   },
   computed: {
-    levelClass() {
+    levelClass(): string {
       return `level-${this.comprehensionLevel.replace('_', '-')}`;
     },
-    thresholdPosition() {
+    thresholdPosition(): string {
       return `${(this.threshold / this.maxSegments) * 100}%`;
     }
   },
   methods: {
-    formatLevel(level) {
+    formatLevel(level: ComprehensionLevel): string {
       switch (level) {
         case 'relational':
           return 'Excellent';
@@ -80,8 +84,8 @@ export default {
           return 'Unknown';
       }
     },
-    getBlockClass(index) {
-      const classes = ['segment-block'];
+    getBlockClass(index: number): string[] {
+      const classes: string[] = ['segment-block'];
       
       if (index <= this.segmentCount) {
         classes.push('filled');
@@ -90,23 +94,23 @@ export default {
       
       return classes;
     },
-    getBlockStyle(index) {
+    getBlockStyle(index: number): CSSProperties {
       if (index <= this.segmentCount) {
         // Add staggered animation delay
         return {
-          'animation-delay': `${(index - 1) * 0.1}s`
+          'animationDelay': `${(index - 1) * 0.1}s`
         };
       }
       return {};
     },
-    getBlockTooltip(index) {
+    getBlockTooltip(index: number): string {
       if (index <= this.segmentCount) {
         return `Segment ${index}: ${this.segmentCount <= this.threshold ? 'Good' : 'Too detailed'}`;
       }
       return `Segment ${index}: Not used`;
     }
   }
-};
+});
 </script>
 
 <style scoped>

@@ -93,18 +93,31 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent } from 'vue'
 import { mapGetters } from 'vuex';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import AdminNavBar from './AdminNavBar.vue';
 import { log } from '@/utils/logger';
+import type { ProblemDetailed } from '@/types';
 
-export default {
+interface ProblemSet {
+  id: number;
+  title: string;
+  slug: string;
+}
+
+export default defineComponent({
   name: 'AdminProblems',
   components: {
     AdminNavBar
   },
-  data() {
+  data(): {
+    problems: ProblemDetailed[];
+    problemSets: ProblemSet[];
+    loading: boolean;
+    error: string | null;
+  } {
     return {
       problems: [],
       problemSets: [], // Add this to store problem sets for the modal
@@ -126,7 +139,7 @@ export default {
     this.fetchProblemSets();
   },
   methods: {
-    async fetchProblems() {
+    async fetchProblems(): Promise<void> {
       try {
         this.loading = true;
         log.debug('Fetching problems from /api/admin/problems/');
@@ -135,30 +148,31 @@ export default {
         this.problems = response.data;
         this.loading = false;
       } catch (error) {
+        const axiosError = error as AxiosError<any>;
         log.error('Failed to fetch problems', {
           error,
-          response: error.response,
-          status: error.response?.status,
-          data: error.response?.data
+          response: axiosError.response,
+          status: axiosError.response?.status,
+          data: axiosError.response?.data
         });
         
         let errorMessage = 'Failed to load problems. ';
-        if (error.response) {
-          if (error.response.status === 401) {
+        if (axiosError.response) {
+          if (axiosError.response.status === 401) {
             errorMessage += 'Authentication required. Please log in again.';
-          } else if (error.response.status === 403) {
+          } else if (axiosError.response.status === 403) {
             errorMessage += 'Access denied. Admin privileges required.';
-          } else if (error.response.status === 404) {
+          } else if (axiosError.response.status === 404) {
             errorMessage += 'API endpoint not found.';
-          } else if (error.response.status === 500) {
+          } else if (axiosError.response.status === 500) {
             errorMessage += 'Server error. Please try again later.';
           } else {
-            errorMessage += `Error: ${error.response.data?.detail || error.message}`;
+            errorMessage += `Error: ${axiosError.response.data?.detail || axiosError.message}`;
           }
-        } else if (error.request) {
+        } else if (axiosError.request) {
           errorMessage += 'No response from server. Check if backend is running.';
         } else {
-          errorMessage += error.message;
+          errorMessage += axiosError.message;
         }
         
         this.error = errorMessage;
@@ -166,7 +180,7 @@ export default {
       }
     },
     
-    async fetchProblemSets() {
+    async fetchProblemSets(): Promise<void> {
       try {
         const response = await axios.get('/api/admin/problem-sets/');
         this.problemSets = response.data;
@@ -177,14 +191,14 @@ export default {
     },
     
     
-    getCategoryNames(problem) {
+    getCategoryNames(problem: ProblemDetailed): string {
       if (!problem.categories || problem.categories.length === 0) {
         return 'None';
       }
       return problem.categories.map(cat => cat.name).join(', ');
     },
     
-    getProblemSetNames(problem) {
+    getProblemSetNames(problem: ProblemDetailed): string {
       // The problem_sets field contains the actual problem sets this problem belongs to
       if (!problem.problem_sets || problem.problem_sets.length === 0) {
         return 'None';
@@ -194,7 +208,7 @@ export default {
       return problem.problem_sets.map(ps => ps.title || 'Unknown').join(', ');
     },
     
-    difficultyClass(difficulty) {
+    difficultyClass(difficulty: string): string {
       switch(difficulty.toLowerCase()) {
         case 'easy':
           return 'easy-badge';
@@ -209,7 +223,7 @@ export default {
       }
     },
     
-    problemTypeClass(type) {
+    problemTypeClass(type: string): string {
       switch(type) {
         case 'eipl':
           return 'eipl-badge';
@@ -220,7 +234,7 @@ export default {
       }
     },
     
-    getProblemTypeLabel(type) {
+    getProblemTypeLabel(type: string): string {
       switch(type) {
         case 'eipl':
           return 'EiPL';
@@ -231,21 +245,21 @@ export default {
       }
     },
     
-    createNewProblem() {
+    createNewProblem(): void {
       this.$router.push('/admin/problems/new');
     },
     
-    editProblem(problemSlug) {
+    editProblem(problemSlug: string): void {
       this.$router.push(`/admin/problems/${problemSlug}/edit`);
     },
     
-    confirmDelete(problem) {
+    confirmDelete(problem: ProblemDetailed): void {
       if (confirm(`Are you sure you want to delete the problem "${problem.title}"? This action cannot be undone.`)) {
         this.deleteProblem(problem);
       }
     },
     
-    async deleteProblem(problem) {
+    async deleteProblem(problem: ProblemDetailed): Promise<void> {
       try {
         await axios.delete(`/api/admin/problems/${problem.slug}/`);
         // Remove the problem from the array
@@ -258,7 +272,7 @@ export default {
 
 
 
-    handleError(errorMessage) {
+    handleError(errorMessage: string): void {
       this.error = errorMessage;
       // Clear error after 5 seconds
       setTimeout(() => {
@@ -266,7 +280,7 @@ export default {
       }, 5000);
     }
   }
-}
+})
 </script>
 
 <style scoped>

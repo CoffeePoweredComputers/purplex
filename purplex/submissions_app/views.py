@@ -317,7 +317,7 @@ class UserLastSubmissionView(APIView):
                 return Response({'has_submission': False})
             
             # Direct field access - no JSON parsing needed!
-            return Response({
+            response_data = {
                 'has_submission': True,
                 'submission_id': submission.id,
                 'score': submission.score,
@@ -325,8 +325,27 @@ class UserLastSubmissionView(APIView):
                 'results': submission.test_results,
                 'passing_variations': submission.passing_variations,
                 'submitted_at': submission.submitted_at.isoformat() if submission.submitted_at else None,
-                'user_prompt': submission.prompt
-            })
+                'user_prompt': submission.prompt,
+                'segmentation_passed': submission.segmentation_passed  # Include segmentation pass/fail status
+            }
+            
+            # Include detailed segmentation data if available
+            try:
+                if hasattr(submission, 'segmentation') and submission.segmentation:
+                    segmentation_analysis = submission.segmentation.analysis
+                    if segmentation_analysis and segmentation_analysis.get('success'):
+                        response_data['segmentation'] = {
+                            'segments': segmentation_analysis['segments'],
+                            'segment_count': segmentation_analysis['segment_count'],
+                            'comprehension_level': segmentation_analysis['comprehension_level'],
+                            'feedback': segmentation_analysis['feedback'],
+                            'user_prompt': submission.prompt,
+                            'passed': submission.segmentation_passed
+                        }
+            except Exception as e:
+                logger.warning(f"Failed to retrieve segmentation data: {str(e)}")
+            
+            return Response(response_data)
             
         except Exception as e:
             logger.error(f"Error in UserLastSubmissionView: {str(e)}")

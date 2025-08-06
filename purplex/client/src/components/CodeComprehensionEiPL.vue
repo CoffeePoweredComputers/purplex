@@ -80,52 +80,83 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 
+import { defineComponent, PropType } from 'vue'
 import Editor from './components/Editor.vue'
 import Feedback from "./components/Feedback.vue"
 import HintButton from "./HintButton.vue"
 
-export default {
+export default defineComponent({
     components: {
         Editor,
         Feedback,
         HintButton
     },
     props: {
-        solutionCode: String,
-        codeResults: Array,
-        testResults: Array,
-        promptCorrectness: Number,
-        comprehensionResults: Array,
-        loading: Boolean,
-        problemIndex: Number,
-        problemSlug: String,
-        courseId: String,
-        problemSetSlug: String,
+        solutionCode: {
+            type: String as PropType<string>,
+            default: ''
+        },
+        codeResults: {
+            type: Array as PropType<any[]>,
+            default: () => []
+        },
+        testResults: {
+            type: Array as PropType<any[]>,
+            default: () => []
+        },
+        promptCorrectness: {
+            type: Number as PropType<number>,
+            default: 0
+        },
+        comprehensionResults: {
+            type: Array as PropType<any[]>,
+            default: () => []
+        },
+        loading: {
+            type: Boolean as PropType<boolean>,
+            default: false
+        },
+        problemIndex: {
+            type: Number as PropType<number>,
+            default: 0
+        },
+        problemSlug: {
+            type: String as PropType<string>,
+            default: ''
+        },
+        courseId: {
+            type: String as PropType<string>,
+            default: ''
+        },
+        problemSetSlug: {
+            type: String as PropType<string>,
+            default: ''
+        },
         currentAttempts: {
-            type: Number,
+            type: Number as PropType<number>,
             default: 0
         }
     },
     methods: {
-        updateSolutionCode: function () {
+        updateSolutionCode(): void {
             this.$emit('update-solution-code');
         },
-        incrementProblem: function () {
+        incrementProblem(): void {
             this.$emit('increment-problem');
         },
-        decrementProblem: function () {
+        decrementProblem(): void {
             this.$emit('decrement-problem');
         },
-        getResults: async function () {
+        async getResults(): Promise<void> {
             this.$emit('get-results');
         },
-        onHintUsed: function (hintData) {
+        onHintUsed(hintData: any): void {
             this.$emit('hint-used', hintData);
         }
     }
-}
+})
 </script>
 
 <style scoped>

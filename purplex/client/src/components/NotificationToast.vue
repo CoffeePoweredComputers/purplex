@@ -34,10 +34,19 @@
   </Teleport>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { defineComponent } from 'vue'
+import type { NotificationPayload, NotificationType } from '@/types'
+
+interface Notification extends NotificationPayload {
+  id: number
+}
+
+export default defineComponent({
   name: 'NotificationToast',
-  data() {
+  data(): {
+    notifications: Notification[]
+  } {
     return {
       notifications: []
     };
@@ -50,7 +59,7 @@ export default {
     delete window.$notify;
   },
   methods: {
-    addNotification(notification) {
+    addNotification(notification: NotificationPayload): void {
       const id = Date.now();
       this.notifications.push({
         id,
@@ -62,13 +71,13 @@ export default {
         this.removeNotification(id);
       }, notification.duration || 5000);
     },
-    removeNotification(id) {
+    removeNotification(id: number): void {
       const index = this.notifications.findIndex(n => n.id === id);
       if (index > -1) {
         this.notifications.splice(index, 1);
       }
     },
-    getIcon(type) {
+    getIcon(type: NotificationType): string {
       const icons = {
         success: '✓',
         error: '⚠️',
@@ -78,7 +87,7 @@ export default {
       return icons[type] || 'ℹ️';
     }
   }
-};
+});
 </script>
 
 <style scoped>

@@ -79,6 +79,7 @@
             <SegmentMapping 
               :segments="segmentation.segments"
               :reference-code="referenceCode"
+              :user-prompt="segmentation.user_prompt || userPrompt || ''"
               class="segment-mapping-modal"
             />
           </div>
@@ -88,10 +89,36 @@
   </transition>
 </template>
 
-<script>
-import SegmentMapping from './SegmentMapping.vue';
+<script lang="ts">
+import { defineComponent, type PropType } from 'vue'
+import SegmentMapping from './SegmentMapping.vue'
 
-export default {
+type ComprehensionLevel = 'relational' | 'transitional' | 'multi_structural'
+type SizePreset = 'small' | 'medium' | 'large' | 'fullscreen'
+
+interface Segment {
+  id: number
+  text: string
+  code_lines: number[]
+}
+
+interface Segmentation {
+  segments: Segment[]
+  segment_count: number
+  comprehension_level: ComprehensionLevel
+  feedback: string
+  user_prompt?: string
+}
+
+interface SizePresetConfig {
+  name: SizePreset
+  label: string
+  icon: string
+  width: string
+  height: string
+}
+
+export default defineComponent({
   name: 'SegmentAnalysisModal',
   components: {
     SegmentMapping
@@ -102,74 +129,80 @@ export default {
       required: true
     },
     segmentation: {
-      type: Object,
+      type: Object as PropType<Segmentation>,
       required: true,
-      validator: (value) => {
+      validator: (value: Segmentation): boolean => {
         return value && 
                typeof value.segment_count === 'number' &&
                typeof value.comprehension_level === 'string' &&
-               Array.isArray(value.segments);
+               Array.isArray(value.segments)
       }
     },
     referenceCode: {
       type: String,
       required: true
+    },
+    userPrompt: {
+      type: String,
+      default: ''
     }
   },
+  emits: ['close'] as const,
   data() {
     return {
-      lastFocusedElement: null,
+      lastFocusedElement: null as Element | null,
       escListenerAdded: false,
-      currentSize: 'medium',
+      currentSize: 'medium' as SizePreset,
       sizePresets: [
-        { name: 'small', label: 'Small', icon: '◻', width: '900px', height: '700px' },
-        { name: 'medium', label: 'Medium', icon: '◼', width: '1400px', height: '900px' },
-        { name: 'large', label: 'Large', icon: '⬛', width: '95%', height: '90vh' },
+        { name: 'small', label: 'Small', icon: '◻', width: '800px', height: 'auto' },
+        { name: 'medium', label: 'Medium', icon: '◼', width: '1000px', height: 'auto' },
+        { name: 'large', label: 'Large', icon: '⬛', width: '1200px', height: 'auto' },
         { name: 'fullscreen', label: 'Fullscreen', icon: '⛶', width: '100%', height: '100vh' }
-      ]
-    };
+      ] as SizePresetConfig[],
+      _focusTrapHandler: null as ((e: KeyboardEvent) => void) | null
+    }
   },
 
   computed: {
-    modalStyle() {
-      const preset = this.sizePresets.find(s => s.name === this.currentSize);
-      if (!preset) return {};
+    modalStyle(): Record<string, string> {
+      const preset = this.sizePresets.find(s => s.name === this.currentSize)
+      if (!preset) return {}
       
       return {
         '--modal-width': preset.width,
         '--modal-height': preset.height,
         '--modal-max-width': preset.name === 'fullscreen' ? '100%' : preset.width,
         '--modal-max-height': preset.name === 'fullscreen' ? '100%' : preset.height,
-      };
+      }
     },
 
-    levelBadgeClass() {
-      return `badge-${this.segmentation.comprehension_level.replace('_', '-')}`;
+    levelBadgeClass(): string {
+      return `badge-${this.segmentation.comprehension_level.replace('_', '-')}`
     }
   },
 
   watch: {
-    isVisible(newVal) {
+    isVisible(newVal: boolean) {
       if (newVal) {
         // Add ESC key listener only if not already added
         if (!this.escListenerAdded) {
-          document.addEventListener('keydown', this.handleEscKey);
-          this.escListenerAdded = true;
+          document.addEventListener('keydown', this.handleEscKey)
+          this.escListenerAdded = true
         }
         // Focus management
         this.$nextTick(() => {
-          this.trapFocus();
-          this.focusFirstElement();
-        });
+          this.trapFocus()
+          this.focusFirstElement()
+        })
       } else {
         // Remove ESC key listener if it was added
         if (this.escListenerAdded) {
-          document.removeEventListener('keydown', this.handleEscKey);
-          this.escListenerAdded = false;
+          document.removeEventListener('keydown', this.handleEscKey)
+          this.escListenerAdded = false
         }
         // Restore focus to trigger element
-        if (this.lastFocusedElement) {
-          this.lastFocusedElement.focus();
+        if (this.lastFocusedElement && 'focus' in this.lastFocusedElement) {
+          (this.lastFocusedElement as HTMLElement).focus()
         }
       }
     }
@@ -177,40 +210,41 @@ export default {
 
   created() {
     // Store the currently focused element before modal opens
-    this.lastFocusedElement = document.activeElement;
+    this.lastFocusedElement = document.activeElement
     // Load size preference
-    const savedSize = localStorage.getItem('segment-analysis-modal-size');
+    const savedSize = localStorage.getItem('segment-analysis-modal-size') as SizePreset | null
     if (savedSize && this.sizePresets.find(s => s.name === savedSize)) {
-      this.currentSize = savedSize;
+      this.currentSize = savedSize
     }
   },
 
   beforeUnmount() {
     // Clean up ESC key listener if it was added
     if (this.escListenerAdded) {
-      document.removeEventListener('keydown', this.handleEscKey);
-      this.escListenerAdded = false;
+      document.removeEventListener('keydown', this.handleEscKey)
+      this.escListenerAdded = false
     }
     // Clean up focus trap
     if (this._focusTrapHandler && this.$refs.modalContent) {
-      this.$refs.modalContent.removeEventListener('keydown', this._focusTrapHandler);
+      const modalContent = this.$refs.modalContent as HTMLElement
+      modalContent.removeEventListener('keydown', this._focusTrapHandler)
     }
   },
 
   methods: {
-    closeModal() {
-      this.$emit('close');
+    closeModal(): void {
+      this.$emit('close')
     },
 
-    handleEscKey(e) {
+    handleEscKey(e: KeyboardEvent): void {
       if (e.key === 'Escape') {
-        this.closeModal();
+        this.closeModal()
       }
     },
 
-    openInNewTab() {
+    openInNewTab(): void {
       // Create a new window with the segment analysis
-      const newWindow = window.open('', '_blank', 'width=1200,height=800');
+      const newWindow = window.open('', '_blank', 'width=1200,height=800')
       if (newWindow) {
         newWindow.document.write(`
           <html>
@@ -247,109 +281,112 @@ export default {
               </div>
             </body>
           </html>
-        `);
+        `)
       }
-      this.closeModal();
+      this.closeModal()
     },
 
-    focusFirstElement() {
-      const modalContent = this.$refs.modalContent;
-      if (!modalContent) return;
+    focusFirstElement(): void {
+      const modalContent = this.$refs.modalContent as HTMLElement
+      if (!modalContent) return
       
       // Find first focusable element
       const focusableElements = modalContent.querySelectorAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
+      )
       
       if (focusableElements.length > 0) {
-        focusableElements[0].focus();
+        (focusableElements[0] as HTMLElement).focus()
       }
     },
 
-    trapFocus() {
-      const modalContent = this.$refs.modalContent;
-      if (!modalContent) return;
+    trapFocus(): void {
+      const modalContent = this.$refs.modalContent as HTMLElement
+      if (!modalContent) return
       
-      const handleTabKey = (e) => {
+      const handleTabKey = (e: KeyboardEvent): void => {
         const focusableElements = modalContent.querySelectorAll(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
+        )
         
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
+        const firstElement = focusableElements[0] as HTMLElement
+        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
         
         if (e.key === 'Tab') {
           if (e.shiftKey && document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement.focus();
+            e.preventDefault()
+            lastElement.focus()
           } else if (!e.shiftKey && document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
+            e.preventDefault()
+            firstElement.focus()
           }
         }
-      };
+      }
       
-      modalContent.addEventListener('keydown', handleTabKey);
+      modalContent.addEventListener('keydown', handleTabKey)
       
       // Store the handler for cleanup
-      this._focusTrapHandler = handleTabKey;
+      this._focusTrapHandler = handleTabKey
     },
 
-    setModalSize(sizeName) {
-      this.currentSize = sizeName;
+    setModalSize(sizeName: SizePreset): void {
+      this.currentSize = sizeName
       // Save preference
-      localStorage.setItem('segment-analysis-modal-size', sizeName);
+      localStorage.setItem('segment-analysis-modal-size', sizeName)
       
       // Handle fullscreen mode
+      const modalContent = this.$refs.modalContent as HTMLElement
+      const modalOverlay = document.querySelector('.modal-overlay') as HTMLElement
+      
       if (sizeName === 'fullscreen') {
-        this.$refs.modalContent?.classList.add('fullscreen-mode');
-        document.querySelector('.modal-overlay')?.classList.add('fullscreen-overlay');
+        modalContent?.classList.add('fullscreen-mode')
+        modalOverlay?.classList.add('fullscreen-overlay')
       } else {
-        this.$refs.modalContent?.classList.remove('fullscreen-mode');
-        document.querySelector('.modal-overlay')?.classList.remove('fullscreen-overlay');
+        modalContent?.classList.remove('fullscreen-mode')
+        modalOverlay?.classList.remove('fullscreen-overlay')
       }
     },
 
-    getFeedbackIcon() {
+    getFeedbackIcon(): string {
       switch (this.segmentation.comprehension_level) {
         case 'relational':
-          return '🎯';
+          return '🎯'
         case 'transitional':
-          return '👍';
+          return '👍'
         case 'multi_structural':
-          return '🔍';
+          return '🔍'
         default:
-          return '📝';
+          return '📝'
       }
     },
     
-    formatLevel(level) {
+    formatLevel(level: ComprehensionLevel): string {
       switch (level) {
         case 'relational':
-          return 'Excellent';
+          return 'Excellent'
         case 'transitional':
-          return 'Good';
+          return 'Good'
         case 'multi_structural':
-          return 'Detailed';
+          return 'Detailed'
         default:
-          return 'Unknown';
+          return 'Unknown'
       }
     },
     
-    getExplanation() {
+    getExplanation(): string {
       switch (this.segmentation.comprehension_level) {
         case 'relational':
-          return `You focused on the overall purpose. This shows strong conceptual understanding.`;
+          return `You focused on the overall purpose. This shows strong conceptual understanding.`
         case 'transitional':
-          return `You identified key steps. Good balance between detail and big picture.`;
+          return `You identified key steps. Good balance between detail and big picture.`
         case 'multi_structural':
-          return `You provided line-by-line detail. Try focusing on the main goal instead.`;
+          return `You provided line-by-line detail. Try focusing on the main goal instead.`
         default:
-          return '';
+          return ''
       }
     }
   }
-};
+})
 </script>
 
 <style scoped>
@@ -395,10 +432,11 @@ export default {
   background-color: var(--color-bg-panel);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  width: var(--modal-width, 95%);
-  height: var(--modal-height, 800px);
-  max-width: var(--modal-max-width, 1400px);
-  max-height: var(--modal-max-height, 90vh);
+  width: var(--modal-width, 1000px);
+  height: var(--modal-height, auto);
+  max-width: var(--modal-max-width, 90vw);
+  max-height: var(--modal-max-height, 85vh);
+  min-height: 400px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -668,9 +706,6 @@ export default {
     flex-wrap: wrap;
   }
   
-  .modal-title {
-    font-size: var(--font-size-base);
-  }
   
   .modal-actions {
     gap: var(--spacing-sm);
