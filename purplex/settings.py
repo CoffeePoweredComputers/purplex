@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,6 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+
+# Detect if we're running tests
+TESTING = 'test' in sys.argv or os.environ.get('TESTING', 'False') == 'True'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # In production, DJANGO_SECRET_KEY must be set as an environment variable
@@ -192,8 +196,8 @@ REST_FRAMEWORK = {
 FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, 'firebase-credentials.json')
 
 # Additional Security Settings
-if not DEBUG:
-    # HTTPS settings
+if not DEBUG and not TESTING:
+    # HTTPS settings - only enable in production, not during tests
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True

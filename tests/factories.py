@@ -116,10 +116,14 @@ class CourseFactory:
 
 class UserFactory:
     """Factory for creating test users."""
+    _counter = 0
     
     @staticmethod
-    def create(username="testuser", email=None, is_admin=False):
+    def create(username=None, email=None, is_admin=False):
         """Create a test user."""
+        if not username:
+            UserFactory._counter += 1
+            username = f"testuser{UserFactory._counter}"
         if not email:
             email = f"{username}@example.com"
             
@@ -177,7 +181,8 @@ class SubmissionFactory:
         course=None,
         score=100,
         prompt="Test submission",
-        test_results=None
+        test_results=None,
+        time_spent=None
     ):
         """Create a test submission."""
         if not test_results:
@@ -191,6 +196,9 @@ class SubmissionFactory:
                 ]
             }
             
+        if time_spent is None:
+            time_spent = timedelta(minutes=5)
+            
         submission = PromptSubmission.objects.create(
             user=user,
             problem=problem,
@@ -199,7 +207,7 @@ class SubmissionFactory:
             score=score,
             prompt=prompt,
             test_results=test_results,
-            time_spent=timedelta(minutes=5)
+            time_spent=time_spent
         )
         
         return submission
@@ -282,12 +290,11 @@ class CourseEnrollmentFactory:
     """Factory for enrolling users in courses."""
     
     @staticmethod
-    def create(user, course, role='student'):
+    def create(user, course):
         """Enroll a user in a course."""
         enrollment = CourseEnrollment.objects.create(
             user=user,
             course=course,
-            role=role,
             is_active=True
         )
         return enrollment

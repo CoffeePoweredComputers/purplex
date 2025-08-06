@@ -119,7 +119,7 @@ class TestUserProgressCreation(TestCase):
         })
         
         # Verify completion time was set
-        self.assertIsNotNone(progress.last_submission_at)
+        self.assertIsNotNone(progress.last_attempt)
         
     def test_time_tracking(self):
         """Test that time spent is tracked correctly."""
@@ -128,10 +128,9 @@ class TestUserProgressCreation(TestCase):
             user=self.user,
             problem=self.problem,
             problem_set=self.problem_set,
-            score=75
+            score=75,
+            time_spent=timedelta(minutes=10)
         )
-        submission.time_spent = timedelta(minutes=10)
-        submission.save()
         
         progress = UserProgress.objects.get(
             user=self.user,
@@ -147,10 +146,9 @@ class TestUserProgressCreation(TestCase):
             user=self.user,
             problem=self.problem,
             problem_set=self.problem_set,
-            score=85
+            score=85,
+            time_spent=timedelta(minutes=5)
         )
-        submission2.time_spent = timedelta(minutes=5)
-        submission2.save()
         
         progress.refresh_from_db()
         self.assertEqual(progress.total_time_spent, timedelta(minutes=15))
@@ -233,7 +231,7 @@ class TestBestScoreTracking(TestCase):
         
         self.assertEqual(progress.best_score, 0)
         self.assertEqual(progress.attempts, 1)
-        self.assertEqual(progress.status, 'attempted')
+        self.assertEqual(progress.status, 'in_progress')
 
 
 @pytest.mark.django_db
