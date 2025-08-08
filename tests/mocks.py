@@ -147,15 +147,30 @@ class MockAsyncAIService:
     
     @staticmethod
     def segment_prompt(problem, user_prompt):
-        """Mock prompt segmentation."""
+        """Mock prompt segmentation with updated format."""
+        # Mock segments that would be verbatim from a typical user prompt
+        mock_segments = [
+            {'id': 1, 'text': 'iterate through the array', 'code_lines': [1, 2]},
+            {'id': 2, 'text': 'find two numbers', 'code_lines': [3]},
+            {'id': 3, 'text': 'sum to target', 'code_lines': [4]}
+        ]
+        
+        # Mock groups in EiPL Grader format
+        mock_groups = [
+            {'explanation_portion': 'iterate through the array', 'code': 'for i in range(len(arr)):'},
+            {'explanation_portion': 'find two numbers', 'code': '    for j in range(i+1, len(arr)):'},
+            {'explanation_portion': 'sum to target', 'code': '        if arr[i] + arr[j] == target:'}
+        ]
+        
         return {
             'success': True,
-            'segments': [
-                {'text': 'iterate through the array', 'type': 'approach'},
-                {'text': 'find two numbers', 'type': 'goal'},
-                {'text': 'sum to target', 'type': 'constraint'}
-            ],
-            'segment_count': 3
+            'segments': mock_segments,
+            'groups': mock_groups,  # EiPL Grader format
+            'segment_count': 3,
+            'comprehension_level': 'multi_structural',
+            'feedback': 'Good line-by-line explanation',
+            'processing_time': 0.5,
+            'error': None
         }
     
     @staticmethod
