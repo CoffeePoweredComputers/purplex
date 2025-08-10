@@ -12,9 +12,18 @@ from django.utils.decorators import method_decorator
 
 from ..models import Problem, ProblemSet, Course, CourseEnrollment, UserProgress
 from ..services import CodeExecutionService, AITestGenerationService
-from ..async_tasks import AsyncAIService
 from purplex.users_app.permissions import IsAuthenticated
 from purplex.submissions_app.models import PromptSubmission, SegmentationResult
+from celery.result import AsyncResult
+from celery import group, chain, chord
+from ..tasks import (
+    generate_eipl_variations,
+    segment_prompt,
+    execute_code,
+    test_single_variation,
+    update_progress
+)
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -345,67 +354,236 @@ class EiPLSubmissionView(APIView):
         # Log submission attempt
         logger.info(f"EiPL submission attempt for problem {problem_slug} by user {request.user.username}")
         
-        # Generate AI variations using async wrapper
+        # Generate request ID for tracking
+        request_id = str(uuid.uuid4())
+        
+        # Start AI generation task
         try:
-            logger.debug(f"Starting AI generation for problem {problem_slug}")
-            # Use async AI service for non-blocking operation
-            generation_result = AsyncAIService.generate_eipl_variations(
-                problem=problem,
-                user_prompt=user_prompt
+            logger.debug(f"Starting AI generation for problem {problem_slug} with request ID {request_id}")
+            
+            # Launch the AI generation task
+            generation_task = generate_eipl_variations.apply_async(
+                args=[problem.id, user_prompt],
+                task_id=f"{request_id}-generation"
             )
             
-            # Start segmentation in parallel if enabled for this problem
-            segmentation_future = None
+            # Start segmentation in parallel if enabled
+            segmentation_task = None
             if problem.segmentation_enabled:
-                segmentation_future = AsyncAIService.segment_prompt(problem, user_prompt)
+                segmentation_task = segment_prompt.apply_async(
+                    args=[problem.id, user_prompt],
+                    task_id=f"{request_id}-segmentation"
+                )
             
-            # If running async (in production), this will be a Future object
-            if hasattr(generation_result, 'result'):
-                try:
-                    generation_result = generation_result.result(timeout=60)
-                except Exception as e:
-                    logger.error(f"Async AI generation failed: {str(e)}")
-                    return create_error_response(
-                        'AI service timeout. Please try again.',
-                        status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
-            
-            if not generation_result.get('success', False):
-                error_msg = generation_result.get('error', 'Failed to generate code variations')
-                logger.error(f"AI generation failed: {error_msg}")
-                
-                # Check for specific error cases
-                if 'OpenAI API key not configured' in error_msg:
-                    return Response({
-                        'error': 'AI service is not configured. Please contact administrator.',
-                        'submission_id': None,
-                        'score': 0,
-                        'variations': [],
-                        'results': [],
-                        'passing_variations': 0,
-                        'total_variations': 0
-                    }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-                
-                return Response({
-                    'error': error_msg,
-                    'submission_id': None,
-                    'score': 0,
-                    'variations': [],
-                    'results': [],
-                    'passing_variations': 0,
-                    'total_variations': 0
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
-            code_variations = generation_result.get('variations', [])
+            # Always return immediately with task IDs for async polling
+            # This prevents blocking and deadlocks
+            return Response({
+                'request_id': request_id,
+                'generation_task_id': generation_task.id,
+                'segmentation_task_id': segmentation_task.id if segmentation_task else None,
+                'status': 'processing',
+                'status_url': f'/api/tasks/{request_id}/status/',
+                'message': 'Your submission is being processed. Please poll the status URL for results.'
+            }, status=status.HTTP_202_ACCEPTED)
             
         except Exception as e:
-            logger.error(f"AI code generation failed for problem {problem_slug}: {str(e)}", exc_info=True)
-            return create_error_response(
-                'AI code generation failed. Please try again.',
-                status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            logger.error(f"Failed to start AI generation task for problem {problem_slug}: {str(e)}", exc_info=True)
+            return Response({
+                'error': 'Failed to start AI task. Please try again.',
+                'request_id': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class TaskStatusView(APIView):
+    """Check Celery task status and retrieve results."""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, task_id):
+        """Get the status and result of a Celery task.
         
-        # Get all test cases (including hidden ones for full evaluation)
+        Args:
+            request: HTTP request
+            task_id: The Celery task ID
+            
+        Returns:
+            JSON response with task status and result
+        """
+        from django.core.cache import cache
+        
+        # Check cache first for completed results
+        cached_result = cache.get(f"task:result:{task_id}")
+        if cached_result:
+            return Response(cached_result)
+        
+        # Get task result from Celery
+        result = AsyncResult(task_id)
+        
+        if result.ready():
+            # Task completed
+            if result.successful():
+                data = {
+                    'status': 'completed',
+                    'result': result.result
+                }
+                # Cache successful results for 1 hour
+                cache.set(f"task:result:{task_id}", data, timeout=3600)
+                return Response(data)
+            else:
+                # Task failed
+                return Response({
+                    'status': 'failed',
+                    'error': str(result.info) if result.info else 'Unknown error'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        elif result.state == 'PENDING':
+            # Task hasn't started yet
+            return Response({
+                'status': 'pending',
+                'message': 'Task is queued and waiting to start'
+            })
+        
+        elif result.state == 'RETRY':
+            # Task is being retried
+            return Response({
+                'status': 'retrying',
+                'message': 'Task failed and is being retried',
+                'retry_count': result.info.get('retries', 0) if isinstance(result.info, dict) else 0
+            })
+        
+        else:
+            # Task is running or in other state
+            progress_info = {}
+            if result.info and isinstance(result.info, dict):
+                progress_info = {
+                    'current': result.info.get('current', 0),
+                    'total': result.info.get('total', 100),
+                    'description': result.info.get('description', '')
+                }
+            
+            return Response({
+                'status': result.state.lower(),
+                'progress': progress_info
+            })
+
+
+class EiPLSubmissionStatusView(APIView):
+    """Check EiPL submission status and retrieve results from Redis."""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, request_id):
+        """Get the status and results of an EiPL submission.
+        
+        Args:
+            request_id: The unique request ID returned from submission
+            
+        Returns:
+            Current status and results if available
+        """
+        import redis
+        import json
+        
+        # Get Redis client
+        redis_client = redis.Redis(host='localhost', port=6379, db=7, decode_responses=True)
+        
+        # Check for completed results first
+        result_key = f"eipl:result:{request_id}"
+        result_data = redis_client.get(result_key)
+        
+        if result_data:
+            # Results are ready
+            result = json.loads(result_data)
+            
+            # If completed successfully, create submission record
+            if result.get('status') == 'completed' and result.get('success'):
+                # TODO: Create submission record with results
+                pass
+            
+            return Response({
+                'status': result.get('status', 'completed'),
+                'success': result.get('success', False),
+                'variations': result.get('variations', []),
+                'test_results': result.get('test_results', []),
+                'problem_id': result.get('problem_id'),
+                'total_variations': result.get('total_variations', 0),
+                'error': result.get('error')
+            })
+        
+        # Check generation task status
+        generation_task_id = f"{request_id}-generation"
+        result = AsyncResult(generation_task_id)
+        
+        if result.state == 'PENDING':
+            return Response({
+                'status': 'pending',
+                'message': 'Task is queued and waiting to start'
+            })
+        elif result.state == 'STARTED':
+            return Response({
+                'status': 'processing',
+                'message': 'Generating code variations...'
+            })
+        elif result.state == 'SUCCESS':
+            # Generation completed but tests not yet done
+            return Response({
+                'status': 'testing',
+                'message': 'Testing code variations...'
+            })
+        elif result.state == 'FAILURE':
+            return Response({
+                'status': 'failed',
+                'error': str(result.info) if result.info else 'Task failed'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            return Response({
+                'status': result.state.lower(),
+                'message': 'Processing...'
+            })
+
+
+class AsyncEiPLSubmissionView(APIView):
+    """Async version of EiPL submission that returns task IDs immediately."""
+    permission_classes = [IsAuthenticated]
+    
+    @method_decorator(ratelimit(key='user', rate='10/m', method='POST'))
+    def post(self, request):
+        """Submit EiPL problem solution asynchronously.
+        
+        Returns task IDs immediately for the client to poll status.
+        """
+        problem_slug = request.data.get('problem_slug')
+        user_prompt = request.data.get('user_prompt', '')
+        course_id = request.data.get('course_id')
+        
+        # Validation
+        if not problem_slug:
+            return Response({
+                'error': 'problem_slug is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get problem
+        problem = get_object_or_404(Problem, slug=problem_slug)
+        
+        # Check course enrollment if course_id provided
+        if course_id:
+            try:
+                course = Course.objects.get(id=course_id)
+                if not CourseEnrollment.objects.filter(
+                    user=request.user,
+                    course=course,
+                    is_active=True
+                ).exists():
+                    return Response({
+                        'error': 'You are not enrolled in this course'
+                    }, status=status.HTTP_403_FORBIDDEN)
+            except Course.DoesNotExist:
+                return Response({
+                    'error': 'Course not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Generate request ID for tracking
+        request_id = str(uuid.uuid4())
+        
+        # Get test data
         all_test_cases = list(problem.test_cases.all())
         test_data = [
             {
@@ -417,133 +595,49 @@ class EiPLSubmissionView(APIView):
             for tc in all_test_cases
         ]
         
-        # Test all variations using async wrapper
-        try:
-            # Use async service for testing variations
-            test_results = AsyncAIService.test_code_variations(
-                code_variations=code_variations,
-                function_name=problem.function_name,
-                test_data=test_data
-            )
+        # Create task chain:
+        # 1. Generate variations
+        # 2. Test all variations in parallel
+        # 3. Update user progress
+        from celery import chain, group
+        
+        # Build the workflow
+        workflow = chain(
+            # Generate AI variations
+            generate_eipl_variations.si(problem.id, user_prompt),
             
-            # If running async, wait for results
-            if hasattr(test_results, 'result'):
-                try:
-                    all_results = test_results.result(timeout=30)
-                except Exception as e:
-                    logger.error(f"Async testing failed: {str(e)}")
-                    return create_error_response(
-                        'Code testing timeout. Please try again.',
-                        status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        variations=code_variations,
-                        total_variations=len(code_variations)
-                    )
-            else:
-                all_results = test_results
-                
-            # Count passing variations
-            total_passed = sum(
-                1 for result in all_results
-                if result.get('passed', 0) == result.get('total', 0) and result.get('total', 0) > 0
-            )
+            # Test variations (this task will create a group internally)
+            # We pass the test data so it doesn't need to query again
+            group(
+                test_single_variation.s(var, problem.function_name, problem.id)
+                for var in []  # This will be replaced with actual variations
+            ),
             
-        except Exception as e:
-            logger.error(f"Code testing failed: {str(e)}")
-            return create_error_response(
-                'Code testing service unavailable',
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                variations=code_variations,
-                total_variations=len(code_variations)
-            )
-        
-        # Calculate overall score based on percentage of variations that pass all tests
-        if len(code_variations) > 0:
-            score = int((total_passed / len(code_variations)) * 100)
-        else:
-            score = 0
-        
-        # Collect segmentation results if enabled
-        segmentation_data = None
-        segmentation_passed = None  # Track if segmentation passed the threshold
-        
-        if problem.segmentation_enabled and segmentation_future:
-            try:
-                if hasattr(segmentation_future, 'result'):
-                    segmentation_data = segmentation_future.result(timeout=30)
-                else:
-                    segmentation_data = segmentation_future
-                    
-                if not segmentation_data.get('success', False):
-                    logger.warning(f"Segmentation failed for problem {problem_slug}: {segmentation_data.get('error')}")
-                    segmentation_data = None
-                else:
-                    # Check if segmentation passed the threshold
-                    # 'relational' = good comprehension (passed), 'multi_structural' = too detailed (failed)
-                    segmentation_passed = segmentation_data.get('comprehension_level') == 'relational'
-            except Exception as e:
-                logger.error(f"Segmentation timeout/error for problem {problem_slug}: {str(e)}")
-                segmentation_data = None
-        
-        # Create submission record with all EiPL-specific data
-        submission = PromptSubmission.objects.create(
-            user=request.user,
-            problem=problem,
-            problem_set=problem_set,
-            score=score,
-            prompt=user_prompt,
-            code_variations=code_variations,
-            test_results=all_results,
-            passing_variations=total_passed,
-            total_variations=len(code_variations),
-            segmentation_passed=segmentation_passed,  # Store whether segmentation passed
-            course=course  # Include course context
+            # Update progress with results
+            update_progress.s(request.user.id, problem.id, {
+                'course_id': course_id,
+                'user_prompt': user_prompt
+            })
         )
         
-        # Save segmentation results if available
-        if segmentation_data and segmentation_data.get('success'):
-            SegmentationResult.objects.create(
-                submission=submission,
-                analysis=segmentation_data,  # Store complete result as JSON
-                segment_count=segmentation_data['segment_count'],
-                comprehension_level=segmentation_data['comprehension_level']
+        # Execute workflow
+        result = workflow.apply_async(task_id=request_id)
+        
+        # Start segmentation if enabled
+        segmentation_task_id = None
+        if problem.segmentation_enabled:
+            seg_task = segment_prompt.apply_async(
+                args=[problem.id, user_prompt],
+                task_id=f"{request_id}-segmentation"
             )
+            segmentation_task_id = seg_task.id
         
-        # Progress is automatically updated via the PromptSubmission model's save method
-        # Get the updated progress for response
-        progress = UserProgress.objects.get(
-            user=request.user,
-            problem=problem,
-            problem_set=problem_set,
-            course=course
-        )
-        
-        # Build response data
-        response_data = {
-            'submission_id': submission.id,
-            'score': int(score),
-            'variations': code_variations,  # Frontend expects 'variations'
-            'results': all_results,  # Frontend expects 'results'
-            'passing_variations': total_passed,
-            'total_variations': len(code_variations),
-            'progress': {
-                'status': progress.status,
-                'best_score': progress.best_score,
-                'attempts': progress.attempts,
-                'is_completed': progress.is_completed,
-            }
-        }
-        
-        # Add segmentation data if available - exact TypeScript interface match
-        if segmentation_data and segmentation_data.get('success'):
-            response_data['segmentation'] = {
-                'segments': segmentation_data['segments'],          # Array<{id, text, code_lines}>
-                'segment_count': segmentation_data['segment_count'], # number
-                'comprehension_level': segmentation_data['comprehension_level'], # 'relational'|'multi_structural'
-                'feedback': segmentation_data['feedback'],           # string
-                'user_prompt': user_prompt,                         # Original user prompt for display
-                'passed': segmentation_passed                       # Whether segmentation passed the threshold
-            }
-            # Note: Intentionally exclude 'success', 'processing_time', 'error' - frontend doesn't expect these
-        
-        
-        return Response(response_data)
+        # Return task IDs for polling
+        return Response({
+            'request_id': request_id,
+            'workflow_task_id': result.id,
+            'segmentation_task_id': segmentation_task_id,
+            'status': 'processing',
+            'status_url': f'/api/tasks/{request_id}/status/',
+            'message': 'Your submission is being processed. You can check the status using the provided URL.'
+        }, status=status.HTTP_202_ACCEPTED)

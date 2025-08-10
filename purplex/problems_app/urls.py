@@ -8,7 +8,8 @@ from .views.student_views import (
 
 # Submission views
 from .views.submission_views import (
-    TestSolutionView, SubmitSolutionView, EiPLSubmissionView
+    TestSolutionView, SubmitSolutionView, EiPLSubmissionView,
+    TaskStatusView, AsyncEiPLSubmissionView, EiPLSubmissionStatusView
 )
 
 # Progress tracking views
@@ -51,6 +52,9 @@ urlpatterns = [
     path('test-solution/', TestSolutionView.as_view(), name='test_solution'),
     path('submit-solution/', SubmitSolutionView.as_view(), name='submit_solution'),
     path('submit-eipl/', EiPLSubmissionView.as_view(), name='submit_eipl'),
+    path('submit-eipl-async/', AsyncEiPLSubmissionView.as_view(), name='submit_eipl_async'),
+    path('tasks/<str:task_id>/status/', TaskStatusView.as_view(), name='task_status'),
+    path('tasks/<str:request_id>/status/', EiPLSubmissionStatusView.as_view(), name='eipl_submission_status'),
     
     # Progress endpoints
     path('progress/', UserProgressView.as_view(), name='user_progress_all'),

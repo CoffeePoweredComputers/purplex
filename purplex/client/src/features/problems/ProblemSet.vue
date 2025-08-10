@@ -721,9 +721,9 @@ export default {
                 
                 // Update progress tracking with backend status
                 this.problemStatuses[currentProblemSlug] = {
-                    status: data.progress.status,  // Use backend status directly
+                    status: data.progress?.status || 'in_progress',  // Use backend status with fallback
                     score: data.score,
-                    attempts: data.progress.attempts
+                    attempts: data.progress?.attempts || 1
                 };
                 
                 this.clearOptimistic(currentProblemSlug);

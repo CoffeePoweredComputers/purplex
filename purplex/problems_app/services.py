@@ -5,6 +5,8 @@ import os
 import logging
 from django.conf import settings
 from typing import List, Dict, Any, Optional
+from celery import current_app
+from celery.result import AsyncResult
 
 logger = logging.getLogger(__name__)
 
@@ -239,6 +241,42 @@ print(json.dumps(output))
             # Clean up temporary file
             if os.path.exists(temp_file):
                 os.unlink(temp_file)
+    
+    def test_solution_async(self, code: str, function_name: str, test_data: List[Dict]) -> str:
+        """
+        Test solution asynchronously using Celery.
+        
+        Returns task ID for tracking.
+        """
+        from .tasks import execute_code
+        task = execute_code.apply_async(
+            args=[code, function_name, test_data],
+            queue='high_priority',
+            priority=9
+        )
+        return task.id
+    
+    def test_solution_with_timeout(self, code: str, function_name: str, test_data: List[Dict], timeout: int = 30) -> Dict:
+        """
+        Test solution with a timeout using Celery.
+        
+        Waits for result up to timeout seconds.
+        """
+        from .tasks import execute_code
+        task = execute_code.apply_async(
+            args=[code, function_name, test_data],
+            queue='high_priority',
+            priority=9
+        )
+        
+        try:
+            return task.get(timeout=timeout)
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Execution timeout or error: {str(e)}',
+                'task_id': task.id
+            }
 
 
 class AITestGenerationService:
@@ -396,6 +434,26 @@ def {problem.function_name}(...):
                 'error': str(e),
                 'variations': []
             }
+    
+    def generate_eipl_variations_async(self, problem_id: int, user_prompt: str) -> str:
+        """
+        Delegate EIPL generation to Celery task.
+        
+        Returns task ID for async processing.
+        """
+        from .tasks import generate_eipl_variations
+        task = generate_eipl_variations.apply_async(
+            args=[problem_id, user_prompt],
+            queue='ai_operations',
+            priority=5
+        )
+        return task.id
+    
+    def get_cached_result(self, problem_id: int, user_prompt: str) -> Optional[Dict]:
+        """Check if result is cached in Redis."""
+        from django.core.cache import cache
+        cache_key = f"cache:eipl:{problem_id}:{hash(user_prompt)}"
+        return cache.get(cache_key)
 
 
 class ProblemValidationService:

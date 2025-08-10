@@ -14,6 +14,18 @@ from pathlib import Path
 import os
 import sys
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    # Load .env file from project root
+    env_path = Path(__file__).resolve().parent.parent / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+        print(f"Loaded environment from {env_path}")
+except ImportError:
+    # python-dotenv not installed, use system environment variables
+    pass
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -67,7 +79,10 @@ INSTALLED_APPS = [
     'purplex',
     'purplex.problems_app',
     'purplex.submissions_app',
-    'purplex.users_app'
+    'purplex.users_app',
+    # Celery apps
+    'django_celery_beat',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -245,3 +260,93 @@ LOGGING = {
         },
     },
 }
+
+# ============================================================================
+# CELERY AND REDIS CONFIGURATION
+# ============================================================================
+
+# Redis Configuration
+REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
+
+# Celery Configuration
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', f'redis://{REDIS_HOST}:{REDIS_PORT}/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', f'redis://{REDIS_HOST}:{REDIS_PORT}/1')
+
+# Celery settings
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = True
+
+# Task execution settings
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 300  # 5 minutes
+CELERY_TASK_SOFT_TIME_LIMIT = 240  # 4 minutes
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
+# Result backend settings  
+CELERY_RESULT_EXPIRES = 3600  # 1 hour
+CELERY_RESULT_COMPRESSION = 'gzip'
+CELERY_RESULT_EXTENDED = True
+
+# Beat scheduler
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Celery Beat Schedule for periodic tasks
+from celery.schedules import crontab
+from datetime import timedelta
+
+CELERY_BEAT_SCHEDULE = {
+    'cleanup-old-submissions': {
+        'task': 'problems_app.tasks.maintenance.cleanup_old_submissions',
+        'schedule': crontab(hour=2, minute=0),  # Daily at 2 AM
+    },
+    'calculate-leaderboard': {
+        'task': 'problems_app.tasks.analytics.calculate_leaderboard',
+        'schedule': timedelta(minutes=5),  # Every 5 minutes
+    },
+    'expire-stale-cache': {
+        'task': 'problems_app.tasks.maintenance.expire_stale_cache',
+        'schedule': timedelta(minutes=15),  # Every 15 minutes
+    },
+}
+
+# Django Cache Configuration with Redis
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/2',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 100,
+                'retry_on_timeout': True
+            },
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+        }
+    },
+    'sessions': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/3',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+# Use Redis for session storage
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'sessions'
+SESSION_COOKIE_AGE = 86400 * 14  # 2 weeks
+
+# Rate limiting configuration
+RATELIMIT_USE_CACHE = 'default'
+RATELIMIT_ENABLE = True
+
+# ============================================================================
+# END CELERY AND REDIS CONFIGURATION
+# ============================================================================
