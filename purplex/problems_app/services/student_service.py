@@ -75,8 +75,6 @@ class StudentService:
         return ProblemSet.objects.filter(is_public=True).prefetch_related(
             'problems',
             'problems__categories'
-        ).annotate(
-            problems_count=Count('problems')
         ).order_by('-created_at')
     
     @staticmethod
@@ -98,8 +96,6 @@ class StudentService:
                 'problems',
                 'problems__categories',
                 'problems__test_cases'
-            ).annotate(
-                problems_count=Count('problems')
             ),
             slug=slug,
             is_public=True
@@ -118,7 +114,7 @@ class StudentService:
             List of problem data with ordering
         """
         # Get problems through the membership table to preserve order
-        memberships = problem_set.membership_set.select_related(
+        memberships = problem_set.problemsetmembership_set.select_related(
             'problem'
         ).prefetch_related(
             'problem__categories',
@@ -136,7 +132,6 @@ class StudentService:
                     'difficulty': problem.difficulty,
                     'problem_type': problem.problem_type,
                     'order': membership.order,
-                    'weight': membership.weight,
                     'categories': [cat.name for cat in problem.categories.all()],
                     'test_case_count': problem.test_cases.count(),
                     'visible_test_case_count': problem.test_cases.filter(is_hidden=False).count()

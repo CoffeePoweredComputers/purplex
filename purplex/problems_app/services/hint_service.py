@@ -68,9 +68,12 @@ class HintService:
         except UserProgress.DoesNotExist:
             attempts = 0
         
-        # Get all hints for the problem
-        hints = ProblemHint.objects.filter(problem=problem).values(
-            'id', 'hint_type', 'min_attempts', 'order'
+        # Get only enabled hints for the problem
+        hints = ProblemHint.objects.filter(
+            problem=problem,
+            is_enabled=True
+        ).values(
+            'id', 'hint_type', 'min_attempts'
         )
         
         # Build availability response
@@ -84,15 +87,14 @@ class HintService:
             hint_info = {
                 'id': hint['id'],
                 'type': hint['hint_type'],
-                'order': hint['order'],
                 'min_attempts': hint['min_attempts'],
                 'available': attempts >= hint['min_attempts'],
                 'attempts_needed': max(0, hint['min_attempts'] - attempts)
             }
             availability['hints'].append(hint_info)
         
-        # Sort by order
-        availability['hints'].sort(key=lambda x: x['order'])
+        # Sort by hint type
+        availability['hints'].sort(key=lambda x: x['type'])
         
         return availability
     

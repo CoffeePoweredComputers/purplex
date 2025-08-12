@@ -149,9 +149,6 @@ the same forward and backward.
     
     # Check if it reads the same forwards and backwards
     return cleaned == cleaned[::-1]''',
-                'hints': '''- Consider removing non-alphabetic characters
-- Think about string reversal
-- Two-pointer approach might be useful''',
                 'memory_limit': 128,
                 'tags': ['strings', 'two-pointers'],
                 'is_active': True
@@ -224,9 +221,6 @@ An input string is valid if:
             stack.append(char)
     
     return len(stack) == 0''',
-                'hints': '''- Think about using a stack data structure
-- Match opening and closing brackets
-- Consider what happens with nested brackets''',
                 'memory_limit': 128,
                 'tags': ['strings', 'stack', 'data-structures'],
                 'is_active': True

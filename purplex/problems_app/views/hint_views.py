@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from ..services.hint_service import HintService, AdminHintService
+from ..models import Course, CourseEnrollment
 from purplex.users_app.permissions import IsAuthenticated, IsAdmin
 
 logger = logging.getLogger(__name__)

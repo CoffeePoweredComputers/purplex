@@ -1,20 +1,8 @@
 <template>
-  <div class="suggested-trace-overlay">
+  <div class="suggested-trace">
     <div class="trace-content">
-      <div class="trace-header">
-        <span class="trace-label">💡 Try tracing:</span>
-        <button
-          class="close-btn"
-          aria-label="Close"
-          @click="$emit('close')"
-        >
-          ×
-        </button>
-      </div>
+      <span class="trace-label">💡 Try tracing:</span>
       <code class="trace-function">{{ functionCall }}</code>
-      <div v-if="explanation" class="trace-explanation">
-        {{ explanation }}
-      </div>
       <button
         class="trace-btn"
         :disabled="!canTrace"
@@ -110,7 +98,7 @@ export default defineComponent({
 }
 
 .trace-function {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono, 'SF Mono', 'Monaco', 'Inconsolata', monospace);
   font-size: var(--font-size-sm);
   background: var(--color-bg-code);
   border: 1px solid var(--color-bg-border);
@@ -153,11 +141,18 @@ export default defineComponent({
 }
 
 @media (max-width: 768px) {
-  .suggested-trace-overlay {
-    left: var(--spacing-md);
-    right: var(--spacing-md);
-    bottom: var(--spacing-md);
-    max-width: none;
+  .suggested-trace {
+    margin: var(--spacing-md);
+  }
+  
+  .trace-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+  
+  .trace-function {
+    min-width: auto;
   }
 }
 </style>

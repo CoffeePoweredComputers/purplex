@@ -295,7 +295,8 @@ class StudentEnrolledCoursesView(APIView):
                 progress = progress_lookup.get(progress_key, {})
                 
                 completed = progress.get('completed_problems', 0)
-                total = progress.get('total_problems', ps.problems.count())
+                # Always use actual count from problem set, not cached progress value
+                total = ps.problems.count()
                 is_completed = progress.get('is_completed', False)
                 
                 if is_completed:
@@ -502,7 +503,8 @@ class StudentCourseProgressView(APIView):
                 'is_required': cps.is_required,
                 'progress': {
                     'completed_problems': progress.completed_problems if progress else 0,
-                    'total_problems': progress.total_problems if progress else ps.problems.count(),
+                    # Always use actual count from problem set, not cached value
+                    'total_problems': ps.problems.count(),
                     'percentage': progress.completion_percentage if progress else 0,
                     'is_completed': progress.is_completed if progress else False,
                     'last_activity': progress.last_activity if progress else None

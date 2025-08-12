@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from ..models import ProblemSet, Course, UserProblemSetProgress
+from ..models import ProblemSet, Course, UserProblemSetProgress, UserProgress
 from ..services.progress_service import ProgressService
 from purplex.users_app.permissions import IsAuthenticated
 

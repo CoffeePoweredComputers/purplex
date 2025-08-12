@@ -84,7 +84,8 @@ class AdminProblemDetailView(APIView):
                     problem = serializer.save()
                     
                     # Use service layer to handle problem sets relationship
-                    if problem_sets_slugs is not None:
+                    # Only update problem sets if explicitly provided in the request
+                    if 'problem_sets' in request.data:
                         problem_sets = ProblemSet.objects.filter(slug__in=problem_sets_slugs)
                         problem.problem_sets.set(problem_sets)
                     
