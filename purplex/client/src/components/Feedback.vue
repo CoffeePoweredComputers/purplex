@@ -457,8 +457,8 @@ export default defineComponent({
 }
 
 .generating-icon {
-  font-size: 48px;
-  animation: pulse 2s infinite;
+  font-size: 3rem; /* Large size for emphasis, similar to other empty states */
+  animation: robotPulse 2s infinite;
 }
 
 .generating-message {
@@ -467,14 +467,14 @@ export default defineComponent({
   font-weight: 500;
 }
 
-@keyframes pulse {
+@keyframes robotPulse {
   0%, 100% {
     opacity: 1;
     transform: scale(1);
   }
   50% {
-    opacity: 0.7;
-    transform: scale(1.1);
+    opacity: 0.8;
+    transform: scale(1.05);
   }
 }
 

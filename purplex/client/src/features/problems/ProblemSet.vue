@@ -587,9 +587,14 @@ export default {
             }
             
             try {
-                // Include course_id in query params if available
-                const params = this.courseId ? { course_id: this.courseId } : {};
-                const response = await axios.get(`/api/user/last-submission/${problemSlug}/`, { params });
+                // Include problem_set_slug and course_id in query params for proper context
+                const params = {
+                    problem_set_slug: this.$route.params.slug
+                };
+                if (this.courseId) {
+                    params.course_id = this.courseId;
+                }
+                const response = await axios.get(`/api/last-submission/${problemSlug}/`, { params });
                 const data = response.data;
                 
                 // Cache the response
