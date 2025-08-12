@@ -59,22 +59,30 @@ export default defineComponent({
         };
     },
     async mounted() {
-        // Wait for Firebase auth to initialize
-        const { firebaseAuth } = await import('./firebaseConfig');
-        const { onAuthStateChanged } = await import('firebase/auth');
-        
-        // Create a promise that resolves when auth state is determined
-        await new Promise((resolve) => {
-            const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-                // Auth state has been determined (user is either signed in or null)
-                unsubscribe(); // Stop listening after first update
-                resolve();
-            });
-        });
-        
-        // Now check authentication state
-        await this.$store.dispatch('auth/checkAuthState');
-        this.authInitialized = true;
+        try {
+            // Wait for Firebase to be initialized
+            const { ensureFirebaseInitialized, firebaseAuth } = await import('./firebaseConfig');
+            await ensureFirebaseInitialized();
+            
+            // Only set up auth listener if firebaseAuth is available
+            if (firebaseAuth && firebaseAuth.onAuthStateChanged) {
+                // Create a promise that resolves when auth state is determined
+                await new Promise<void>((resolve) => {
+                    const unsubscribe = firebaseAuth.onAuthStateChanged((user: any) => {
+                        // Auth state has been determined (user is either signed in or null)
+                        unsubscribe(); // Stop listening after first update
+                        resolve();
+                    });
+                });
+            }
+            
+            // Now check authentication state
+            await this.$store.dispatch('auth/checkAuthState');
+        } catch (error) {
+            console.error('Error initializing auth:', error);
+        } finally {
+            this.authInitialized = true;
+        }
     }
 });
 </script>

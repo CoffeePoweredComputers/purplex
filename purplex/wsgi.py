@@ -11,6 +11,8 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
+# Set environment to production by default for WSGI
+os.environ.setdefault('PURPLEX_ENV', 'production')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'purplex.settings')
 
 application = get_wsgi_application()

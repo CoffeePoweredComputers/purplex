@@ -4,12 +4,10 @@ Test suite for all service layer components including segmentation.
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 from django.test import TestCase
-from purplex.problems_app.services import (
-    SegmentationService, 
-    AITestGenerationService,
-    CodeExecutionService,
-    ProblemValidationService
-)
+from purplex.problems_app.services.code_execution_service import CodeExecutionService
+from purplex.problems_app.services.segmentation_service import SegmentationService
+from purplex.problems_app.services.ai_generation_service import AITestGenerationService
+from purplex.problems_app.services.validation_service import ProblemValidationService
 
 
 class TestServiceIntegration(TestCase):

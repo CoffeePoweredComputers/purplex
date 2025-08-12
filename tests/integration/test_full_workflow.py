@@ -4,7 +4,7 @@ execution, scoring, progress tracking, and hint availability.
 """
 import pytest
 from unittest.mock import patch, MagicMock
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 from django.urls import reverse
 from rest_framework import status
 

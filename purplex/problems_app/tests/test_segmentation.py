@@ -3,7 +3,7 @@ Test suite for the segmentation service with verbatim validation.
 """
 import unittest
 from unittest.mock import Mock, patch
-from purplex.problems_app.services import SegmentationService
+from purplex.problems_app.services.segmentation_service import SegmentationService
 
 
 class TestSegmentationService(unittest.TestCase):

@@ -6,7 +6,8 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from ..models import Problem, ProblemSet, Course, UserProgress, UserProblemSetProgress
+from ..models import ProblemSet, Course, UserProblemSetProgress
+from ..services.progress_service import ProgressService
 from purplex.users_app.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
@@ -20,48 +21,21 @@ class UserProgressView(APIView):
         user = request.user
         
         if problem_slug:
-            # Get progress for specific problem
-            problem = get_object_or_404(Problem, slug=problem_slug)
+            # Use service layer for specific problem progress
             try:
-                progress = UserProgress.objects.get(user=user, problem=problem)
-                return Response({
-                    'problem_slug': problem.slug,
-                    'status': progress.status,
-                    'best_score': progress.best_score,
-                    'attempts': progress.attempts,
-                    'is_completed': progress.is_completed,
-                    'completion_percentage': progress.completion_percentage,
-                    'last_attempt': progress.last_attempt,
-                    'completed_at': progress.completed_at,
-                })
-            except UserProgress.DoesNotExist:
-                return Response({
-                    'problem_slug': problem.slug,
-                    'status': 'not_started',
-                    'best_score': 0,
-                    'attempts': 0,
-                    'is_completed': False,
-                    'completion_percentage': 0,
-                    'last_attempt': None,
-                    'completed_at': None,
-                })
+                progress_data = ProgressService.get_problem_progress(
+                    user_id=user.id,
+                    problem_slug=problem_slug
+                )
+                return Response(progress_data)
+            except ValueError as e:
+                return Response(
+                    {'error': str(e)},
+                    status=status.HTTP_404_NOT_FOUND
+                )
         else:
-            # Get all progress for user
-            progress_list = UserProgress.objects.filter(user=user).select_related('problem')
-            progress_data = []
-            
-            for progress in progress_list:
-                progress_data.append({
-                    'problem_slug': progress.problem.slug,
-                    'problem_title': progress.problem.title,
-                    'status': progress.status,
-                    'best_score': progress.best_score,
-                    'attempts': progress.attempts,
-                    'is_completed': progress.is_completed,
-                    'completion_percentage': progress.completion_percentage,
-                    'last_attempt': progress.last_attempt,
-                })
-            
+            # Use service layer for all progress
+            progress_data = ProgressService.get_all_user_progress(user.id)
             return Response(progress_data)
 
 
@@ -99,7 +73,7 @@ class ProblemSetProgressView(APIView):
                 user=user,
                 problem_set=problem_set,
                 course=course
-            ).first()
+            ).select_related('problem', 'user').first()
             if first_progress:
                 UserProblemSetProgress.update_from_progress(first_progress)
                 set_progress.refresh_from_db()

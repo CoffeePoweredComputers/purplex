@@ -9,6 +9,9 @@ import os
 from celery import Celery
 
 # Set default Django settings module for Celery
+# This will use the environment variable if it's already set (e.g., from start.sh)
+# Otherwise falls back to the default settings
+os.environ.setdefault('PURPLEX_ENV', 'development')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'purplex.settings')
 
 # Create Celery app instance

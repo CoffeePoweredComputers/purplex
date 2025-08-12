@@ -12,7 +12,8 @@ from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 
 from ..models import Problem, ProblemSet, Course, CourseEnrollment, UserProgress
-from ..services import CodeExecutionService, AITestGenerationService
+from ..services.code_execution_service import CodeExecutionService
+from ..services.ai_generation_service import AITestGenerationService
 from purplex.users_app.permissions import IsAuthenticated
 from purplex.submissions_app.models import PromptSubmission, SegmentationResult
 from celery.result import AsyncResult
