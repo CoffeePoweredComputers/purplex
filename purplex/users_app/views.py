@@ -14,10 +14,11 @@ from django.contrib.auth.models import User
 from .models import UserProfile, UserRole
 from .authentication import FirebaseAuthentication
 
-# Get API key from environment variable
+# Get API key and model from settings
 client = openai.OpenAI(
     api_key=os.environ.get('OPENAI_API_KEY', '')
 )
+GPT_MODEL = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
 
 class AIGenerateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -71,7 +72,7 @@ class AIGenerateView(APIView):
         ]
 
         response = client.chat.completions.create(
-                model='gpt-4o-mini',
+                model=GPT_MODEL,
                 messages=prompt
         )
 

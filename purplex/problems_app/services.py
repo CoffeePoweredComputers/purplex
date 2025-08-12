@@ -246,6 +246,7 @@ class AITestGenerationService:
     
     def __init__(self):
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        self.model_name = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
         if self.openai_api_key:
             import openai
             self.client = openai.OpenAI(api_key=self.openai_api_key)
@@ -297,7 +298,7 @@ def {problem.function_name}(...):
 """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=self.model_name,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -401,6 +402,7 @@ class SegmentationService:
     
     def __init__(self):
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        self.model_name = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
         if self.openai_api_key:
             import openai
             self.client = openai.OpenAI(api_key=self.openai_api_key)
@@ -453,7 +455,7 @@ class SegmentationService:
             
             # Make API call to GPT-4
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",  # Using same model as AI service for consistency
+                model=self.model_name,  # Using configured model
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Please analyze this prompt: {user_prompt}"}
