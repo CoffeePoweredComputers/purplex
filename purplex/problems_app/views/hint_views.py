@@ -54,6 +54,7 @@ class ProblemHintAvailabilityView(APIView):
                 'variable_fade': 'Variable Fade',
                 'subgoal_hints': 'Subgoal Highlighting',
                 'subgoal_highlight': 'Subgoal Highlighting',
+                'suggested_trace': 'Suggested Trace',
                 'trace': 'Suggested Trace'
             }
             title = display_titles.get(hint['type'], hint['type'])

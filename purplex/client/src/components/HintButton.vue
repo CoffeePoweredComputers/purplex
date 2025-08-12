@@ -206,7 +206,11 @@ export default {
   watch: {
     problemSlug: {
       immediate: true,
-      handler() {
+      handler(newSlug, oldSlug) {
+        // Clear hint state when navigating to a new problem
+        if (oldSlug && newSlug !== oldSlug) {
+          this.clearHintState()
+        }
         this.loadHints()
       }
     },
@@ -237,12 +241,22 @@ export default {
   methods: {
     async loadHints() {
       try {
+        // Store the current problem slug to validate against
+        const loadingProblemSlug = this.problemSlug
+        
         const context = {
           courseId: this.courseId,
           problemSetSlug: this.problemSetSlug
         }
         
         const response = await problemService.getHints(this.problemSlug, context)
+        
+        // Validate that we're still on the same problem after async operation
+        if (this.problemSlug !== loadingProblemSlug) {
+          log.debug('Problem changed during hint loading, discarding stale data')
+          return
+        }
+        
         this.availableHints = response.available_hints || []
         this.hintsUsed = response.hints_used || []
         
@@ -294,16 +308,26 @@ export default {
     async requestHintContent(hintType) {
       if (this.loading || this.hintContent[hintType]) {return}
       
+      // Store the current problem slug to validate against
+      const requestProblemSlug = this.problemSlug
+      
       this.loading = true
       try {
         const response = await problemService.getHintContent(this.problemSlug, hintType)
+        
+        // Validate that we're still on the same problem after async operation
+        if (this.problemSlug !== requestProblemSlug) {
+          log.debug('Problem changed during hint content loading, discarding stale data')
+          return
+        }
         
         // Store the original response for processing
         this.hintContent[hintType] = {
           type: response.type,
           title: this.getHintTitle(response.type),
           content: typeof response.content === 'object' ? JSON.stringify(response.content, null, 2) : response.content,
-          originalData: response // Keep original for hint processors
+          originalData: response, // Keep original for hint processors
+          problemSlug: requestProblemSlug // Track which problem this hint belongs to
         }
         
         if (!this.hintsUsed.includes(hintType)) {
@@ -334,12 +358,24 @@ export default {
     
     async loadHintContent(hintType) {
       try {
+        // Store the current problem slug to validate against
+        const loadProblemSlug = this.problemSlug
+        
         const response = await problemService.getHintContent(this.problemSlug, hintType)
+        
+        // Validate that we're still on the same problem after async operation
+        if (this.problemSlug !== loadProblemSlug) {
+          log.debug('Problem changed during hint content preload, discarding stale data')
+          return
+        }
+        
         // Transform backend response to expected format
         this.hintContent[hintType] = {
           type: response.type,
           title: this.getHintTitle(response.type),
-          content: typeof response.content === 'object' ? JSON.stringify(response.content, null, 2) : response.content
+          content: typeof response.content === 'object' ? JSON.stringify(response.content, null, 2) : response.content,
+          originalData: response,
+          problemSlug: loadProblemSlug
         }
       } catch (error: any) {
         log.error('Error loading hint content', error)
@@ -464,10 +500,24 @@ export default {
     },
 
     transformHintDataForProcessor(hintType) {
-      const originalData = this.getOriginalHintData(hintType)
+      const hintData = this.hintContent[hintType]
+      const originalData = hintData?.originalData
       
       if (!originalData) {
         log.error(`No original data found for hint type: ${hintType}`)
+        return null
+      }
+      
+      // Validate hint belongs to current problem
+      const currentSlug = this.problemSlug
+      if (!currentSlug) {
+        log.error('No current problem slug for hint validation')
+        return null
+      }
+      
+      // Check if the hint data is for the current problem
+      if (hintData.problemSlug && hintData.problemSlug !== currentSlug) {
+        log.warn(`Hint data is for problem ${hintData.problemSlug} but current problem is ${currentSlug}`)
         return null
       }
 
@@ -518,6 +568,21 @@ export default {
       if (this.showMenu) {
         this.calculateMenuPosition()
       }
+    },
+    
+    clearHintState() {
+      // Clear all hint-related state when switching problems
+      this.hintContent = {}
+      this.activeHints.clear()
+      this.hintsUsed = []
+      this.expandedHint = null
+      this.showMenu = false
+      
+      // Emit event to clear any applied hints in the editor
+      this.$emit('clear-all-hints')
+      
+      // Log for debugging
+      log.debug('Cleared hint state for problem navigation')
     }
   }
 }

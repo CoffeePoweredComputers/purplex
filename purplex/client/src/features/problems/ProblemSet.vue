@@ -79,6 +79,7 @@
               @hint-toggled="onHintToggled"
               @show-original="onShowOriginal"
               @remove-all-hints="onRemoveAllHints"
+              @clear-all-hints="onClearAllHints"
             />
           </div>
           <Editor 
@@ -88,7 +89,6 @@
             height="450px" 
             width="100%" 
             :value="displayedCode"
-            :key="`editor-${currentProblem}`"
             :read-only="true"
             :show-gutter="showLineNumbers"
             :theme="currentTheme"
@@ -220,18 +220,6 @@
                 <span class="dot" />
                 <span class="dot" />
               </div>
-              <div
-                v-if="submissionStatus"
-                class="status-message"
-              >
-                {{ submissionStatus }}
-                <span
-                  v-if="submissionProgress && submissionProgress.percentage"
-                  class="progress-percentage"
-                >
-                  ({{ submissionProgress.percentage }}%)
-                </span>
-              </div>
             </div>
           </button>
         </div>
@@ -250,6 +238,7 @@
           :reference-code="getCurrentProblem()?.reference_solution || ''"
           :problem-type="getCurrentProblem()?.problem_type || ''"
           :segmentation-enabled="getCurrentProblem()?.segmentation_enabled || false"
+          :is-loading="loading"
           title="Feedback" 
         />
       </div>
@@ -364,8 +353,6 @@ export default {
             
             /* Submission State */
             loading: false,
-            submissionStatus: '',
-            submissionProgress: null,
             codeResults: [],
             testResults: [],
             promptCorrectness: 0,
@@ -524,6 +511,9 @@ export default {
                 if (currentProblemSlug) {
                     this.problemHintStates[currentProblemSlug] = this.saveHintState();
                 }
+                
+                // Clear all hints and overlays before switching
+                await this.removeAllHints();
                 
                 // Pre-fetch data to reduce loading time
                 const problem = this.problems[newIndex];
@@ -703,6 +693,13 @@ export default {
             const currentProblemSlug = this.getCurrentProblem().slug;
             
             try {
+                // Add defensive checks for editor availability
+                if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {
+                    this.notify.error('Editor not available. Please refresh the page.');
+                    this.loading = false;
+                    return;
+                }
+                
                 const promptText = this.$refs.prompt_entry.editor.getValue();
                 
                 if (!promptText || promptText.trim() === '') {
@@ -711,10 +708,8 @@ export default {
                     return;
                 }
                 
-                // Clear previous feedback and status
+                // Clear previous feedback
                 this.clearFeedbackData();
-                this.submissionStatus = '';
-                this.submissionProgress = null;
                 
                 // Optimistic update
                 let rollback = null;
@@ -827,41 +822,20 @@ export default {
                         }
                         this.notify.success(message);
                         this.loading = false;
-                        this.submissionStatus = '';
-                        this.submissionProgress = null;
                     },
                     {
                         // SSE options
-                        onProgress: (progress) => {
-                            this.logger.debug('Task progress update', progress);
-                            // Update status message
-                            if (progress.description) {
-                                this.submissionStatus = progress.description;
-                            }
-                            // Update progress percentage if available
-                            if (progress.current !== undefined && progress.total !== undefined) {
-                                this.submissionProgress = {
-                                    current: progress.current,
-                                    total: progress.total,
-                                    percentage: Math.round((progress.current / progress.total) * 100)
-                                };
-                            }
-                        },
                         onError: (error) => {
                             this.logger.error('SSE connection error', error);
                             this.notify.error(error.error || 'Failed to get results');
                             this.loading = false;
-                            this.submissionStatus = '';
-                            this.submissionProgress = null;
-                            rollback(); // Rollback optimistic update on error
+                            if (rollback) rollback(); // Rollback optimistic update on error
                         },
                         onTimeout: () => {
                             this.logger.warn('SSE connection timeout');
                             this.notify.warning('Connection timeout. Please try again.');
                             this.loading = false;
-                            this.submissionStatus = '';
-                            this.submissionProgress = null;
-                            rollback();
+                            if (rollback) rollback();
                         },
                         reconnectAttempts: 3,
                         reconnectDelay: 2000
@@ -892,8 +866,6 @@ export default {
                 }
                 // Reset loading state on error during initial submission
                 this.loading = false;
-                this.submissionStatus = '';
-                this.submissionProgress = null;
                 // Rollback optimistic update on error
                 if (rollback) rollback();
             } finally {
@@ -1010,38 +982,62 @@ export default {
         
         // Draft Management - Simplified
         saveDraft() {
-            if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {return;}
-            
-            const promptText = this.$refs.prompt_entry.editor.getValue();
-            if (promptText && promptText.trim()) {
-                const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
-                localStorage.setItem(draftKey, promptText);
-                localStorage.setItem(`${draftKey}_timestamp`, Date.now().toString());
+            // Add defensive checks to prevent accessing destroyed editor
+            try {
+                if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {
+                    return;
+                }
                 
-                this.draftSaved = true;
-                setTimeout(() => {
-                    this.draftSaved = false;
-                }, 2000);
+                // Additional safety check for editor availability
+                if (typeof this.$refs.prompt_entry.editor.getValue !== 'function') {
+                    return;
+                }
+                
+                const promptText = this.$refs.prompt_entry.editor.getValue();
+                if (promptText && promptText.trim()) {
+                    const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
+                    localStorage.setItem(draftKey, promptText);
+                    localStorage.setItem(`${draftKey}_timestamp`, Date.now().toString());
+                    
+                    this.draftSaved = true;
+                    setTimeout(() => {
+                        this.draftSaved = false;
+                    }, 2000);
+                }
+            } catch (error) {
+                // Silently fail if editor is not available during navigation
+                this.logger.debug('Draft save skipped during navigation', error);
             }
         },
         
         loadDraft() {
-            if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {return;}
-            
-            const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
-            const draft = localStorage.getItem(draftKey);
-            const timestamp = localStorage.getItem(`${draftKey}_timestamp`);
-            
-            if (draft && timestamp) {
-                const age = Date.now() - parseInt(timestamp);
-                const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-                
-                if (age < maxAge) {
-                    this.$refs.prompt_entry.editor.setValue(draft);
-                } else {
-                    localStorage.removeItem(draftKey);
-                    localStorage.removeItem(`${draftKey}_timestamp`);
+            try {
+                if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {
+                    return;
                 }
+                
+                // Additional safety check for editor availability
+                if (typeof this.$refs.prompt_entry.editor.setValue !== 'function') {
+                    return;
+                }
+                
+                const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
+                const draft = localStorage.getItem(draftKey);
+                const timestamp = localStorage.getItem(`${draftKey}_timestamp`);
+                
+                if (draft && timestamp) {
+                    const age = Date.now() - parseInt(timestamp);
+                    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+                    
+                    if (age < maxAge) {
+                        this.$refs.prompt_entry.editor.setValue(draft);
+                    } else {
+                        localStorage.removeItem(draftKey);
+                        localStorage.removeItem(`${draftKey}_timestamp`);
+                    }
+                }
+            } catch (error) {
+                this.logger.debug('Draft load skipped during navigation', error);
             }
         },
         
@@ -1132,6 +1128,17 @@ export default {
                 this.logger.info('Removed all hints');
             } catch (error) {
                 this.logger.error('Error removing all hints', error);
+            }
+        },
+        
+        async onClearAllHints() {
+            // Called when HintButton clears state during navigation
+            try {
+                await this.removeAllHints();
+                // Note: removeAllHints already clears overlays internally
+                this.logger.info('Cleared all hints for navigation');
+            } catch (error) {
+                this.logger.error('Error clearing hints on navigation', error);
             }
         },
         

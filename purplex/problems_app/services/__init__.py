@@ -4,6 +4,7 @@ from .code_execution_service import CodeExecutionService
 from .ai_generation_service import AITestGenerationService
 from .segmentation_service import SegmentationService
 from .validation_service import ProblemValidationService
+from .submission_validation_service import SubmissionValidationService
 from .progress_service import ProgressService
 from .student_service import StudentService
 from .hint_service import HintService, AdminHintService
@@ -14,6 +15,7 @@ __all__ = [
     'AITestGenerationService', 
     'SegmentationService',
     'ProblemValidationService',
+    'SubmissionValidationService',
     'ProgressService',
     'StudentService',
     'HintService',
