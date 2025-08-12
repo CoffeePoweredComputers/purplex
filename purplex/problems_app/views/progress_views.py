@@ -6,7 +6,8 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from ..models import Problem, ProblemSet, Course, UserProgress, UserProblemSetProgress
+from ..models import ProblemSet, Course, UserProblemSetProgress, UserProgress
+from ..services.progress_service import ProgressService
 from purplex.users_app.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
@@ -20,48 +21,74 @@ class UserProgressView(APIView):
         user = request.user
         
         if problem_slug:
-            # Get progress for specific problem
-            problem = get_object_or_404(Problem, slug=problem_slug)
+            # Get optional context parameters from query params
+            query_params = getattr(request, 'query_params', request.GET)
+            problem_set_slug = query_params.get('problem_set_slug')
+            course_id = query_params.get('course_id')
+            
+            # Use service layer for specific problem progress
             try:
-                progress = UserProgress.objects.get(user=user, problem=problem)
-                return Response({
-                    'problem_slug': problem.slug,
-                    'status': progress.status,
-                    'best_score': progress.best_score,
-                    'attempts': progress.attempts,
-                    'is_completed': progress.is_completed,
-                    'completion_percentage': progress.completion_percentage,
-                    'last_attempt': progress.last_attempt,
-                    'completed_at': progress.completed_at,
-                })
-            except UserProgress.DoesNotExist:
-                return Response({
-                    'problem_slug': problem.slug,
-                    'status': 'not_started',
-                    'best_score': 0,
-                    'attempts': 0,
-                    'is_completed': False,
-                    'completion_percentage': 0,
-                    'last_attempt': None,
-                    'completed_at': None,
-                })
+                # If problem_set_slug is provided, get progress for that specific context
+                if problem_set_slug:
+                    from ..models import Problem, ProblemSet
+                    problem = Problem.objects.get(slug=problem_slug)
+                    problem_set = ProblemSet.objects.get(slug=problem_set_slug) if problem_set_slug else None
+                    course = None
+                    
+                    if course_id:
+                        from ..models import Course
+                        try:
+                            course = Course.objects.get(course_id=course_id)
+                        except Course.DoesNotExist:
+                            pass
+                    
+                    # Get progress for specific problem set context
+                    from ..models import UserProgress
+                    try:
+                        progress = UserProgress.objects.get(
+                            user=user,
+                            problem=problem,
+                            problem_set=problem_set,
+                            course=course
+                        )
+                        progress_data = {
+                            'problem_slug': problem.slug,
+                            'status': progress.status,
+                            'best_score': progress.best_score,
+                            'attempts': progress.attempts,
+                            'is_completed': progress.is_completed,
+                            'completion_percentage': progress.completion_percentage,
+                            'last_attempt': progress.last_attempt,
+                            'completed_at': progress.completed_at,
+                        }
+                    except UserProgress.DoesNotExist:
+                        # Return default values for this context
+                        progress_data = {
+                            'problem_slug': problem.slug,
+                            'status': 'not_started',
+                            'best_score': 0,
+                            'attempts': 0,
+                            'is_completed': False,
+                            'completion_percentage': 0,
+                            'last_attempt': None,
+                            'completed_at': None,
+                        }
+                    return Response(progress_data)
+                else:
+                    # No context provided, return overall progress for the problem
+                    progress_data = ProgressService.get_problem_progress(
+                        user_id=user.id,
+                        problem_slug=problem_slug
+                    )
+                    return Response(progress_data)
+            except ValueError as e:
+                return Response(
+                    {'error': str(e)},
+                    status=status.HTTP_404_NOT_FOUND
+                )
         else:
-            # Get all progress for user
-            progress_list = UserProgress.objects.filter(user=user).select_related('problem')
-            progress_data = []
-            
-            for progress in progress_list:
-                progress_data.append({
-                    'problem_slug': progress.problem.slug,
-                    'problem_title': progress.problem.title,
-                    'status': progress.status,
-                    'best_score': progress.best_score,
-                    'attempts': progress.attempts,
-                    'is_completed': progress.is_completed,
-                    'completion_percentage': progress.completion_percentage,
-                    'last_attempt': progress.last_attempt,
-                })
-            
+            # Use service layer for all progress
+            progress_data = ProgressService.get_all_user_progress(user.id)
             return Response(progress_data)
 
 
@@ -99,7 +126,7 @@ class ProblemSetProgressView(APIView):
                 user=user,
                 problem_set=problem_set,
                 course=course
-            ).first()
+            ).select_related('problem', 'user').first()
             if first_progress:
                 UserProblemSetProgress.update_from_progress(first_progress)
                 set_progress.refresh_from_db()
@@ -209,3 +236,99 @@ class UserProgressSummaryView(APIView):
             },
             'courses': course_data
         })
+
+
+class LastSubmissionView(APIView):
+    """Get user's last submission for a specific problem with problem set context."""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, problem_slug):
+        user = request.user
+        
+        # Get context parameters from query params
+        query_params = getattr(request, 'query_params', request.GET)
+        problem_set_slug = query_params.get('problem_set_slug')
+        course_id = query_params.get('course_id')
+        
+        try:
+            from ..models import Problem, ProblemSet
+            from purplex.submissions_app.models import PromptSubmission, SegmentationResult
+            
+            # Get the problem
+            problem = Problem.objects.get(slug=problem_slug)
+            
+            # Build query filters
+            filters = {
+                'user': user,
+                'problem': problem
+            }
+            
+            # Add problem set context if provided
+            if problem_set_slug:
+                problem_set = ProblemSet.objects.get(slug=problem_set_slug)
+                filters['problem_set'] = problem_set
+            
+            # Add course context if provided
+            if course_id:
+                from ..models import Course
+                try:
+                    course = Course.objects.get(course_id=course_id)
+                    filters['course'] = course
+                except Course.DoesNotExist:
+                    pass
+            
+            # Get the most recent submission with this context
+            submission = PromptSubmission.objects.filter(**filters).first()
+            
+            if submission:
+                # Get segmentation data if exists
+                segmentation_data = None
+                try:
+                    if hasattr(submission, 'segmentation'):
+                        segmentation = submission.segmentation
+                        segmentation_data = {
+                            'segments': segmentation.analysis.get('segments', []),
+                            'segment_count': segmentation.segment_count,
+                            'comprehension_level': segmentation.comprehension_level,
+                            'feedback': segmentation.analysis.get('feedback', ''),
+                            'passed': submission.segmentation_passed
+                        }
+                except SegmentationResult.DoesNotExist:
+                    pass
+                
+                return Response({
+                    'has_submission': True,
+                    'submission_id': submission.id,
+                    'variations': submission.code_variations or [],
+                    'results': submission.test_results or [],
+                    'passing_variations': submission.passing_variations,
+                    'total_variations': submission.total_variations,
+                    'user_prompt': submission.prompt,
+                    'feedback': '',  # Legacy field
+                    'segmentation': segmentation_data,
+                    'score': submission.score,
+                    'submitted_at': submission.submitted_at
+                })
+            else:
+                # No submission found for this context
+                return Response({
+                    'has_submission': False,
+                    'variations': [],
+                    'results': [],
+                    'passing_variations': 0,
+                    'total_variations': 0,
+                    'user_prompt': '',
+                    'feedback': '',
+                    'segmentation': None
+                })
+                
+        except Problem.DoesNotExist:
+            return Response(
+                {'error': f'Problem {problem_slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except ProblemSet.DoesNotExist:
+            return Response(
+                {'error': f'Problem set {problem_set_slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )

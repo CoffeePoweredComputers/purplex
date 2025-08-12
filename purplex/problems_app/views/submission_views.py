@@ -12,7 +12,9 @@ from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 
 from ..models import Problem, ProblemSet, Course, CourseEnrollment, UserProgress
-from ..services import CodeExecutionService, AITestGenerationService
+from ..services.code_execution_service import CodeExecutionService
+from ..services.ai_generation_service import AITestGenerationService
+from ..services.submission_validation_service import SubmissionValidationService
 from purplex.users_app.permissions import IsAuthenticated
 from purplex.submissions_app.models import PromptSubmission, SegmentationResult
 from celery.result import AsyncResult
@@ -63,26 +65,16 @@ class TestSolutionView(APIView):
             return Response({
                 'error': 'Rate limit exceeded. Please wait a moment before testing again.'
             }, status=status.HTTP_429_TOO_MANY_REQUESTS)
-        problem_slug = request.data.get('problem_slug')
-        user_code = request.data.get('user_code')
-        
-        if not problem_slug or not user_code:
+        # Use validation service to validate request data
+        is_valid, error_message, validated_data = SubmissionValidationService.validate_code_submission(request.data)
+        if not is_valid:
             return Response({
-                'error': 'problem_slug and user_code are required'
+                'error': error_message
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Validate user_code length
-        if len(user_code) > 50000:  # 50KB limit for code
-            return Response({
-                'error': 'user_code must not exceed 50000 characters'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            problem = Problem.objects.get(slug=problem_slug, is_active=True)
-        except Problem.DoesNotExist:
-            return Response({
-                'error': 'Problem not found'
-            }, status=status.HTTP_404_NOT_FOUND)
+        # Extract validated data
+        problem = validated_data['problem']
+        user_code = validated_data['user_code']
         
         # Get test cases (only visible ones for students)
         test_cases = problem.test_cases.filter(is_hidden=False)
@@ -101,7 +93,7 @@ class TestSolutionView(APIView):
             result = code_service.test_solution(user_code, problem.function_name, test_data)
             return Response(result)
         except Exception as e:
-            logger.error(f"Code execution failed for problem {problem_slug}: {str(e)}")
+            logger.error(f"Code execution failed for problem {problem.slug}: {str(e)}")
             return Response({
                 'error': 'Code execution failed. Please check your solution and try again.',
                 'testsPassed': 0,
@@ -121,41 +113,44 @@ class SubmitSolutionView(APIView):
             return Response({
                 'error': 'Rate limit exceeded. Please wait a moment before submitting again.'
             }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        # Validate required fields manually for SubmitSolutionView
         problem_slug = request.data.get('problem_slug')
         problem_set_slug = request.data.get('problem_set_slug')
-        user_code = request.data.get('user_code')
+        
+        if not problem_slug or not problem_set_slug:
+            return Response({
+                'error': 'problem_slug and problem_set_slug are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Use validation service to validate code submission data
+        is_valid, error_message, validated_data = SubmissionValidationService.validate_code_submission(request.data)
+        if not is_valid:
+            return Response({
+                'error': error_message
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Extract validated data
+        problem = validated_data['problem']
+        user_code = validated_data['user_code']
+        course = validated_data.get('course')
+        
+        # Get problem set separately since it's required for this view
+        try:
+            problem_set = ProblemSet.objects.get(slug=problem_set_slug)
+        except ProblemSet.DoesNotExist:
+            return Response({
+                'error': 'Problem set not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Extract additional optional fields
         prompt = request.data.get('prompt', '')  # For EiPL problems
         time_spent = request.data.get('time_spent')  # Optional, in seconds
-        course_id = request.data.get('course_id')  # Optional, for course context
-        
-        if not problem_slug or not user_code or not problem_set_slug:
-            return Response({
-                'error': 'problem_slug, problem_set_slug, and user_code are required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Validate user_code length
-        if len(user_code) > 50000:  # 50KB limit for code
-            return Response({
-                'error': 'user_code must not exceed 50000 characters'
-            }, status=status.HTTP_400_BAD_REQUEST)
         
         # Validate optional prompt for EiPL problems
         if prompt and len(prompt) > 2000:
             return Response({
                 'error': 'prompt must not exceed 2000 characters'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            problem = Problem.objects.get(slug=problem_slug, is_active=True)
-            problem_set = ProblemSet.objects.get(slug=problem_set_slug)
-        except Problem.DoesNotExist:
-            return Response({
-                'error': 'Problem not found'
-            }, status=status.HTTP_404_NOT_FOUND)
-        except ProblemSet.DoesNotExist:
-            return Response({
-                'error': 'Problem set not found'
-            }, status=status.HTTP_404_NOT_FOUND)
         
         # Verify problem belongs to the problem set
         if not problem.problem_sets.filter(id=problem_set.id).exists():
@@ -212,7 +207,7 @@ class SubmitSolutionView(APIView):
             total_tests = result.get('total', 0)
             score = int((passed_tests / total_tests * 100) if total_tests > 0 else 0)
         except Exception as e:
-            logger.error(f"Code execution failed for problem {problem_slug}: {str(e)}")
+            logger.error(f"Code execution failed for problem {problem.slug}: {str(e)}")
             return Response({
                 'error': 'Code execution failed. Please check your solution and try again.',
                 'submission_id': None,
@@ -292,99 +287,37 @@ class EiPLSubmissionView(APIView):
                 'error': 'Rate limit exceeded. Please wait a moment before submitting again.'
             }, status=status.HTTP_429_TOO_MANY_REQUESTS)
         
-        problem_slug = request.data.get('problem_slug')
-        problem_set_slug = request.data.get('problem_set_slug')
-        user_prompt = request.data.get('user_prompt', '')
-        course_id = request.data.get('course_id')
-        
-        # Input validation
-        if not problem_slug:
+        # Use validation service to validate request data
+        is_valid, error_message, validated_data = SubmissionValidationService.validate_eipl_submission(request.data)
+        if not is_valid:
             return Response({
-                'error': 'problem_slug is required'
+                'error': error_message
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        if not user_prompt or not user_prompt.strip():
+        # Extract validated data
+        problem = validated_data['problem']
+        problem_set = validated_data.get('problem_set')
+        course = validated_data.get('course')
+        user_prompt = validated_data['user_prompt']
+        
+        # Additional validation for problem set membership
+        if problem_set and not problem.problem_sets.filter(id=problem_set.id).exists():
             return Response({
-                'error': 'user_prompt is required and cannot be empty'
+                'error': 'Problem does not belong to the specified problem set'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Validate prompt length (max 5000 characters)
-        if len(user_prompt) > 5000:
+        # Additional validation for course enrollment  
+        if course and not CourseEnrollment.objects.filter(
+            user=request.user,
+            course=course,
+            is_active=True
+        ).exists():
             return Response({
-                'error': 'user_prompt exceeds maximum length of 5000 characters'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Sanitize user prompt
-        user_prompt = user_prompt.strip()  # Optional, for course context
-        
-        if not problem_slug or not user_prompt:
-            return Response({
-                'error': 'problem_slug and user_prompt are required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Validate user_prompt length and content
-        user_prompt = user_prompt.strip()
-        if len(user_prompt) < 10:
-            return Response({
-                'error': 'user_prompt must be at least 10 characters long'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        if len(user_prompt) > 2000:
-            return Response({
-                'error': 'user_prompt must not exceed 2000 characters'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Basic content validation - prevent potential injection attempts
-        if any(char in user_prompt for char in ['<script', '<?php', '<%', '<jsp']):
-            return Response({
-                'error': 'Invalid characters detected in prompt'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            problem = Problem.objects.get(slug=problem_slug, is_active=True)
-        except Problem.DoesNotExist:
-            return Response({
-                'error': 'Problem not found'
-            }, status=status.HTTP_404_NOT_FOUND)
-            
-        # Handle optional problem set
-        problem_set = None
-        if problem_set_slug:
-            try:
-                problem_set = ProblemSet.objects.get(slug=problem_set_slug)
-                # Verify problem belongs to the problem set
-                if not problem.problem_sets.filter(id=problem_set.id).exists():
-                    return Response({
-                        'error': 'Problem does not belong to the specified problem set'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-            except ProblemSet.DoesNotExist:
-                return Response({
-                    'error': 'Problem set not found'
-                }, status=status.HTTP_404_NOT_FOUND)
-        
-        # Validate course context if provided
-        course = None
-        if course_id:
-            try:
-                course = Course.objects.get(course_id=course_id, is_active=True, is_deleted=False)
-                
-                # Verify user is enrolled in the course
-                if not CourseEnrollment.objects.filter(
-                    user=request.user,
-                    course=course,
-                    is_active=True
-                ).exists():
-                    return Response({
-                        'error': 'You are not enrolled in this course'
-                    }, status=status.HTTP_403_FORBIDDEN)
-                    
-            except Course.DoesNotExist:
-                return Response({
-                    'error': 'Course not found'
-                }, status=status.HTTP_404_NOT_FOUND)
+                'error': 'You are not enrolled in this course'
+            }, status=status.HTTP_403_FORBIDDEN)
         
         # Log submission attempt
-        logger.info(f"EiPL submission attempt for problem {problem_slug} by user {request.user.username}")
+        logger.info(f"EiPL submission attempt for problem {problem.slug} by user {request.user.username}")
         
         # Generate request ID for tracking
         request_id = str(uuid.uuid4())
@@ -418,7 +351,7 @@ class EiPLSubmissionView(APIView):
         
         # Start the clean EiPL pipeline task
         try:
-            logger.debug(f"Starting EiPL pipeline for problem {problem_slug} with request ID {request_id}")
+            logger.debug(f"Starting EiPL pipeline for problem {problem.slug} with request ID {request_id}")
             # Launch the single orchestrator task
             # Use request_id as the task_id so SSE can track it
             pipeline_task = execute_eipl_pipeline.apply_async(
@@ -445,7 +378,7 @@ class EiPLSubmissionView(APIView):
                 'message': 'Your submission is being processed. Connect to the stream URL for real-time updates.'
             }, status=status.HTTP_202_ACCEPTED)
         except Exception as e:
-            logger.error(f"Failed to start AI generation task for problem {problem_slug}: {str(e)}", exc_info=True)
+            logger.error(f"Failed to start AI generation task for problem {problem.slug}: {str(e)}", exc_info=True)
             return Response({
                 'error': 'Failed to start AI task. Please try again.',
                 'request_id': None

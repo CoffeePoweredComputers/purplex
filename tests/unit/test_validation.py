@@ -4,7 +4,7 @@ Test input validation for security-critical endpoints.
 import pytest
 from django.urls import reverse
 from django.core.exceptions import ValidationError
-from purplex.problems_app.validation_service import ProblemValidationService
+from purplex.problems_app.services.validation_service import ProblemValidationService
 
 
 @pytest.mark.django_db

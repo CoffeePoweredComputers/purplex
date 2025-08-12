@@ -49,7 +49,7 @@
       },
       theme: {
         type: String,
-        default: 'clouds_midnight',
+        default: 'tomorrow_night',
       },
       mode: {
         type: String,

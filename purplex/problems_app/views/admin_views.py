@@ -17,7 +17,8 @@ from ..serializers import (
     AdminProblemSerializer, ProblemSetSerializer, ProblemCategorySerializer,
     TestCaseSerializer
 )
-from ..services import CodeExecutionService
+from ..services.code_execution_service import CodeExecutionService
+from ..services.admin_service import AdminProblemService
 from purplex.users_app.permissions import IsAdmin
 
 logger = logging.getLogger(__name__)
@@ -35,34 +36,8 @@ class AdminProblemListView(APIView):
         return Response(serializer.data)
     
     def post(self, request):
-        data = request.data.copy()
-        
-        # Handle category transformation (string to category_ids array) with transaction safety
-        if 'category' in data and data['category']:
-            # Try to find or create the category
-            category_name = data.pop('category')
-            try:
-                category = ProblemCategory.objects.get(name__iexact=category_name)
-                data['category_ids'] = [category.id]
-            except ProblemCategory.DoesNotExist:
-                # Create a new category if it doesn't exist
-                with transaction.atomic():
-                    category = ProblemCategory.objects.create(
-                        name=category_name,
-                        description=f"Category for {category_name} problems"
-                    )
-                    data['category_ids'] = [category.id]
-        
-        # Handle problem_sets transformation
-        problem_set_slugs = data.pop('problem_sets', [])
-        
-        # Set default values for EiPL problems
-        if data.get('problem_type') == 'eipl':
-            # For EiPL, we need to provide default values for required function fields
-            if not data.get('function_name'):
-                data['function_name'] = 'explain_code'
-            if not data.get('function_signature'):
-                data['function_signature'] = 'def explain_code():'
+        # Use service layer to prepare data
+        data, problem_set_slugs = AdminProblemService.prepare_problem_data(request.data)
         
         serializer = AdminProblemSerializer(data=data)
         if serializer.is_valid():
@@ -70,18 +45,11 @@ class AdminProblemListView(APIView):
                 with transaction.atomic():
                     problem = serializer.save(created_by=request.user)
                     
-                    # Handle problem set assignments after problem is created
+                    # Use service layer to handle problem set assignments
                     if problem_set_slugs:
-                        for slug in problem_set_slugs:
-                            try:
-                                problem_set = ProblemSet.objects.get(slug=slug)
-                                ProblemSetMembership.objects.create(
-                                    problem_set=problem_set,
-                                    problem=problem,
-                                    order=problem_set.problems.count()
-                                )
-                            except ProblemSet.DoesNotExist:
-                                logger.warning(f"Problem set with slug '{slug}' not found during problem creation")
+                        AdminProblemService.create_problem_with_relations(
+                            problem, problem_set_slugs
+                        )
                     
                     # Return the serialized problem with all relations
                     serializer = AdminProblemSerializer(problem)
@@ -106,28 +74,8 @@ class AdminProblemDetailView(APIView):
     def put(self, request, slug):
         problem = get_object_or_404(Problem, slug=slug)
         
-        # Create a mutable copy of request data
-        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
-        
-        # Handle category transformation
-        if 'category' in data and data['category']:
-            category_name = data['category']
-            category, created = ProblemCategory.objects.get_or_create(
-                name=category_name,
-                defaults={'description': f'{category_name} category'}
-            )
-            data['category_ids'] = [category.id]
-            del data['category']
-        
-        # Extract problem_sets for later processing
-        problem_sets_slugs = data.pop('problem_sets', None)
-        
-        # Handle EiPL problems - provide defaults for required fields
-        if data.get('problem_type') == 'eipl':
-            if not data.get('function_name'):
-                data['function_name'] = 'explain_code'
-            if not data.get('function_signature'):
-                data['function_signature'] = 'def explain_code():'
+        # Use service layer to prepare data
+        data, problem_sets_slugs = AdminProblemService.prepare_problem_data(request.data)
         
         serializer = AdminProblemSerializer(problem, data=data, partial=True)
         if serializer.is_valid():
@@ -135,8 +83,9 @@ class AdminProblemDetailView(APIView):
                 with transaction.atomic():
                     problem = serializer.save()
                     
-                    # Handle problem sets relationship if provided
-                    if problem_sets_slugs is not None:
+                    # Use service layer to handle problem sets relationship
+                    # Only update problem sets if explicitly provided in the request
+                    if 'problem_sets' in request.data:
                         problem_sets = ProblemSet.objects.filter(slug__in=problem_sets_slugs)
                         problem.problem_sets.set(problem_sets)
                     
@@ -242,7 +191,7 @@ class AdminProblemSetListView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get(self, request):
-        problem_sets = ProblemSet.objects.all().prefetch_related('problems')
+        problem_sets = ProblemSet.objects.all().select_related('created_by').prefetch_related('problems')
         serializer = ProblemSetSerializer(problem_sets, many=True)
         
         # Add full URLs for icons
@@ -258,13 +207,11 @@ class AdminProblemSetListView(APIView):
         if not request.data.get('title'):
             return Response({'title': ['This field is required.']}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Check for duplicate title/slug
+        # Use service to check for duplicate title/slug
         title = request.data.get('title', '')
-        potential_slug = slugify(title)
-        if ProblemSet.objects.filter(slug=potential_slug).exists():
-            return Response({
-                'title': [f'A problem set with similar title already exists (slug: {potential_slug})']
-            }, status=status.HTTP_400_BAD_REQUEST)
+        error_msg = AdminProblemService.validate_problem_set_title(title)
+        if error_msg:
+            return Response({'title': [error_msg]}, status=status.HTTP_400_BAD_REQUEST)
         
         serializer = ProblemSetSerializer(data=request.data)
         if serializer.is_valid():
@@ -272,40 +219,14 @@ class AdminProblemSetListView(APIView):
                 with transaction.atomic():
                     problem_set = serializer.save(created_by=request.user)
                     
-                    # Handle problems assignment
+                    # Use service to handle problems assignment
                     problem_slugs = request.data.get('problem_slugs', [])
                     if problem_slugs:
-                        # Parse JSON string if needed
-                        if isinstance(problem_slugs, str):
-                            try:
-                                problem_slugs = json.loads(problem_slugs)
-                            except json.JSONDecodeError:
-                                raise ValidationError('Invalid problem_slugs format - must be a JSON array')
-                        
-                        # Validate that problem_slugs is a list
-                        if not isinstance(problem_slugs, list):
-                            raise ValidationError('problem_slugs must be an array')
-                        
-                        # Collect missing problems for better error reporting
-                        missing_problems = []
-                        added_problems = []
-                        
-                        for order, slug in enumerate(problem_slugs):
-                            try:
-                                problem = Problem.objects.get(slug=slug)
-                                ProblemSetMembership.objects.create(
-                                    problem_set=problem_set,
-                                    problem=problem,
-                                    order=order
-                                )
-                                added_problems.append(slug)
-                            except Problem.DoesNotExist:
-                                missing_problems.append(slug)
-                        
-                        # Report if some problems were not found
-                        if missing_problems:
-                            # Still return success but with a warning
-                            logger.warning(f"Problem set created but some problems not found: {missing_problems}")
+                        result = AdminProblemService.create_problem_set_with_problems(
+                            problem_set, problem_slugs
+                        )
+                        added_problems = result['problems_added']
+                        missing_problems = result['missing_problems']
                     
                     response_data = serializer.data
                     if problem_set.icon:
@@ -313,7 +234,7 @@ class AdminProblemSetListView(APIView):
                     
                     # Add info about problems added
                     if problem_slugs:
-                        response_data['problems_added'] = len(added_problems)
+                        response_data['problems_added'] = added_problems
                         if missing_problems:
                             response_data['warnings'] = [f"Problems not found: {', '.join(missing_problems)}"]
                     
@@ -348,15 +269,13 @@ class AdminProblemSetDetailView(APIView):
     def put(self, request, slug):
         problem_set = get_object_or_404(ProblemSet, slug=slug)
         
-        # Check if title is being changed and would create a duplicate
+        # Use service to check if title change would create a duplicate
         if 'title' in request.data:
-            new_title = request.data['title']
-            potential_slug = slugify(new_title)
-            # Check if another problem set already has this slug
-            if potential_slug != slug and ProblemSet.objects.filter(slug=potential_slug).exists():
-                return Response({
-                    'title': [f'A problem set with similar title already exists (slug: {potential_slug})']
-                }, status=status.HTTP_400_BAD_REQUEST)
+            error_msg = AdminProblemService.validate_problem_set_title(
+                request.data['title'], current_slug=slug
+            )
+            if error_msg:
+                return Response({'title': [error_msg]}, status=status.HTTP_400_BAD_REQUEST)
         
         serializer = ProblemSetSerializer(problem_set, data=request.data, partial=True)
         
@@ -365,43 +284,14 @@ class AdminProblemSetDetailView(APIView):
                 with transaction.atomic():
                     problem_set = serializer.save()
                     
-                    # Handle problems update
+                    # Use service to handle problems update
                     problem_slugs = request.data.get('problem_slugs')
                     if problem_slugs is not None:
-                        # Parse JSON string if needed
-                        if isinstance(problem_slugs, str):
-                            try:
-                                problem_slugs = json.loads(problem_slugs)
-                            except json.JSONDecodeError:
-                                raise ValidationError('Invalid problem_slugs format - must be a JSON array')
-                        
-                        # Validate that problem_slugs is a list
-                        if not isinstance(problem_slugs, list):
-                            raise ValidationError('problem_slugs must be an array')
-                        
-                        # Clear existing memberships
-                        ProblemSetMembership.objects.filter(problem_set=problem_set).delete()
-                        
-                        # Collect missing problems for better error reporting
-                        missing_problems = []
-                        added_problems = []
-                        
-                        # Add new memberships
-                        for order, slug in enumerate(problem_slugs):
-                            try:
-                                problem = Problem.objects.get(slug=slug)
-                                ProblemSetMembership.objects.create(
-                                    problem_set=problem_set,
-                                    problem=problem,
-                                    order=order
-                                )
-                                added_problems.append(slug)
-                            except Problem.DoesNotExist:
-                                missing_problems.append(slug)
-                        
-                        # Report if some problems were not found
-                        if missing_problems:
-                            logger.warning(f"Problem set updated but some problems not found: {missing_problems}")
+                        result = AdminProblemService.update_problem_set_with_problems(
+                            problem_set, problem_slugs
+                        )
+                        added_problems = result.get('problems_updated', 0)
+                        missing_problems = result.get('missing_problems', [])
                     
                     response_data = serializer.data
                     if problem_set.icon:
@@ -409,7 +299,7 @@ class AdminProblemSetDetailView(APIView):
                     
                     # Add info about problems update
                     if problem_slugs is not None:
-                        response_data['problems_updated'] = len(added_problems)
+                        response_data['problems_updated'] = added_problems
                         if missing_problems:
                             response_data['warnings'] = [f"Problems not found: {', '.join(missing_problems)}"]
                     

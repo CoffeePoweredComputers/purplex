@@ -12,7 +12,7 @@ import openai
 
 from django.contrib.auth.models import User
 from .models import UserProfile, UserRole
-from .authentication import FirebaseAuthentication
+from .unified_authentication import UnifiedAuthentication
 
 # Get API key and model from settings
 client = openai.OpenAI(
@@ -100,7 +100,7 @@ class AuthStatusView(APIView):
     """View for validating a Firebase token and returning user information"""
     
     def post(self, request):
-        auth = FirebaseAuthentication()
+        auth = UnifiedAuthentication()
         
         # Try to authenticate with the provided token
         try:

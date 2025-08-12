@@ -8,6 +8,7 @@ that manages the entire pipeline and publishes consistent progress events.
 from celery import shared_task
 import json
 import logging
+import os
 import time
 import redis
 from typing import Dict, List, Any, Optional
@@ -84,7 +85,7 @@ def publish_error(task_id: str, error_message: str):
 def generate_variations_helper(problem_id: int, user_prompt: str) -> List[str]:
     """Helper function to generate code variations."""
     from purplex.problems_app.models import Problem
-    from purplex.problems_app.services import AITestGenerationService
+    from purplex.problems_app.services.ai_generation_service import AITestGenerationService
     
     problem = Problem.objects.get(id=problem_id, is_active=True)
     ai_service = AITestGenerationService()
@@ -99,7 +100,7 @@ def generate_variations_helper(problem_id: int, user_prompt: str) -> List[str]:
 def test_variation_helper(code: str, problem_id: int, variation_index: int) -> Dict[str, Any]:
     """Helper function to test a single variation."""
     from purplex.problems_app.models import Problem
-    from purplex.problems_app.services import CodeExecutionService
+    from purplex.problems_app.services.code_execution_service import CodeExecutionService
     
     problem = Problem.objects.get(id=problem_id)
     test_cases = list(problem.test_cases.all().values('inputs', 'expected_output'))
@@ -144,7 +145,7 @@ def test_variation_helper(code: str, problem_id: int, variation_index: int) -> D
 def segment_prompt_helper(user_prompt: str, problem_id: int) -> Optional[Dict[str, Any]]:
     """Helper function for prompt segmentation."""
     from purplex.problems_app.models import Problem
-    from purplex.problems_app.services import SegmentationService
+    from purplex.problems_app.services.segmentation_service import SegmentationService
     
     problem = Problem.objects.get(id=problem_id)
     
@@ -257,7 +258,19 @@ def execute_eipl_pipeline(
     task_id = self.request.id
     logger.info(f"Starting EiPL pipeline {task_id} for problem {problem_id}")
     
+    # Log current settings module for debugging
+    import django
+    from django.conf import settings
+    logger.info(f"Task using Django settings: {os.environ.get('DJANGO_SETTINGS_MODULE', 'NOT SET')}")
+    logger.info(f"Database engine: {settings.DATABASES['default']['ENGINE']}")
+    
     try:
+        # Verify database connection
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            logger.info("Database connection verified successfully")
+        
         # Initialize
         publish_progress(task_id, 0, "Starting pipeline...")
         
@@ -341,6 +354,20 @@ def execute_eipl_pipeline(
         
     except Exception as e:
         error_msg = str(e)
-        logger.error(f"Pipeline failed: {error_msg}")
+        logger.error(f"Pipeline failed: {error_msg}", exc_info=True)
+        
+        # Include more details in the error message
+        detailed_error = {
+            'error': error_msg,
+            'task_id': task_id,
+            'problem_id': problem_id,
+            'user_id': user_id,
+            'settings_module': os.environ.get('DJANGO_SETTINGS_MODULE', 'NOT SET'),
+            'database_engine': settings.DATABASES['default'].get('ENGINE', 'UNKNOWN')
+        }
+        
+        logger.error(f"Pipeline failure details: {json.dumps(detailed_error)}")
         publish_error(task_id, error_msg)
+        
+        # Re-raise to mark task as failed in Celery
         raise

@@ -1,17 +1,14 @@
 """Student-facing views for problems and problem sets."""
 
 import logging
-from django.shortcuts import get_object_or_404
-from django.db.models import Count
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
-from ..models import Problem, ProblemSet, ProblemCategory
 from ..serializers import (
     ProblemSerializer, ProblemSetSerializer, ProblemCategorySerializer,
     TestCaseSerializer, ProblemListSerializer, ProblemSetListSerializer
 )
+from ..services.student_service import StudentService
 from purplex.users_app.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
@@ -22,15 +19,8 @@ class ProblemListView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        # Optimized query - include all fields needed by ProblemListSerializer
-        problems = Problem.objects.filter(is_active=True).prefetch_related(
-            'categories',
-            'test_cases',
-            'problem_sets'
-        ).only(
-            'slug', 'title', 'description', 'difficulty', 'problem_type', 
-            'function_name', 'tags', 'is_active', 'created_at'
-        )
+        # Use service layer for business logic
+        problems = StudentService.get_active_problems(user=request.user)
         serializer = ProblemListSerializer(problems, many=True)
         return Response(serializer.data)
 
@@ -40,12 +30,13 @@ class ProblemDetailView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request, slug):
-        problem = get_object_or_404(Problem, slug=slug, is_active=True)
+        # Use service layer
+        problem = StudentService.get_problem_detail(slug)
         serializer = ProblemSerializer(problem)
         data = serializer.data
         
-        # Only include non-hidden test cases for students
-        visible_test_cases = problem.test_cases.filter(is_hidden=False)
+        # Get visible test cases through service
+        visible_test_cases = StudentService.get_visible_test_cases(problem)
         data['test_cases'] = TestCaseSerializer(visible_test_cases, many=True).data
         
         return Response(data)
@@ -56,14 +47,8 @@ class ProblemSetListView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        # Enhanced query with performance optimizations
-        problem_sets = ProblemSet.objects.filter(is_public=True).prefetch_related(
-            'problems',
-            'problems__categories'
-        ).annotate(
-            problems_count=Count('problems')
-        ).order_by('-created_at')
-        
+        # Use service layer
+        problem_sets = StudentService.get_public_problem_sets()
         serializer = ProblemSetListSerializer(problem_sets, many=True)
         return Response(serializer.data)
 
@@ -73,33 +58,25 @@ class ProblemSetDetailView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request, slug):
-        # Enhanced query - get problem set with all related data
-        problem_set = get_object_or_404(
-            ProblemSet.objects.prefetch_related(
-                'problems__categories',
-                'problems__test_cases'
-            ).select_related(),
-            slug=slug,
-            is_public=True
-        )
+        # Use service layer
+        problem_set = StudentService.get_problem_set_detail(slug)
         
         serializer = ProblemSetSerializer(problem_set)
         data = serializer.data
         
-        # Get problems with ordering and include only visible test cases
-        ordered_problems = []
-        memberships = problem_set.problemsetmembership_set.select_related('problem').order_by('order')
+        # Get ordered problems through service
+        problems_data = StudentService.get_problem_set_problems(problem_set, user=request.user)
         
-        for membership in memberships:
-            problem = membership.problem
-            if problem.is_active:  # Only include active problems
-                problem_data = ProblemSerializer(problem).data
-                # Only include non-hidden test cases
-                visible_test_cases = problem.test_cases.filter(is_hidden=False)
-                problem_data['test_cases'] = TestCaseSerializer(visible_test_cases, many=True).data
-                ordered_problems.append(problem_data)
+        # Enhance with serialized test cases
+        for problem_dict in problems_data:
+            # Get the actual problem object for test cases
+            for problem in problem_set.problems.all():
+                if problem.slug == problem_dict['slug']:
+                    visible_test_cases = StudentService.get_visible_test_cases(problem)
+                    problem_dict['test_cases'] = TestCaseSerializer(visible_test_cases, many=True).data
+                    break
         
-        data['problems'] = ordered_problems
+        data['problems'] = problems_data
         return Response(data)
 
 
@@ -108,6 +85,7 @@ class CategoryListView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        categories = ProblemCategory.objects.all().order_by('name')
+        # Use service layer
+        categories = StudentService.get_all_categories()
         serializer = ProblemCategorySerializer(categories, many=True)
         return Response(serializer.data)

@@ -1,5 +1,16 @@
 <template>
   <div class="feedback-container">
+    <!-- Static Loading Message -->
+    <div
+      v-if="isLoading && slides.length === 0"
+      class="generating-feedback-panel"
+    >
+      <div class="generating-content">
+        <div class="generating-icon">🤖</div>
+        <div class="generating-message">Generating feedback...</div>
+      </div>
+    </div>
+
     <!-- Header Section -->
     <div
       v-if="slides.length > 0"
@@ -134,9 +145,9 @@
       </section>
     </div>
 
-    <!-- Empty State -->
+    <!-- Empty State - Only show when no data and not loading -->
     <div
-      v-else
+      v-else-if="!isLoading"
       class="empty-state"
     >
       <span class="empty-icon">🚀</span>
@@ -259,6 +270,10 @@ export default defineComponent({
       default: '',
     },
     segmentationEnabled: {
+      type: Boolean as PropType<boolean>,
+      default: false,
+    },
+    isLoading: {
       type: Boolean as PropType<boolean>,
       default: false,
     },
@@ -421,6 +436,46 @@ export default defineComponent({
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   overflow: hidden;
+}
+
+/* Generating Feedback Panel */
+.generating-feedback-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: var(--spacing-xxl);
+  background: var(--color-bg-panel);
+}
+
+.generating-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  text-align: center;
+}
+
+.generating-icon {
+  font-size: 3rem; /* Large size for emphasis, similar to other empty states */
+  animation: robotPulse 2s infinite;
+}
+
+.generating-message {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+@keyframes robotPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
 }
 
 /* User Prompt Section */
@@ -782,6 +837,7 @@ details:not([open]) .group-icon {
   font-size: var(--font-size-base);
   margin: 0;
 }
+
 
 /* Responsive Design */
 @media (max-width: 768px) {

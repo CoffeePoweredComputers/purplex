@@ -6,6 +6,9 @@ import sys
 
 def main():
     """Run administrative tasks."""
+    # Set default environment to development if not specified
+    os.environ.setdefault('PURPLEX_ENV', 'development')
+    # Use new settings module that auto-selects based on environment
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'purplex.settings')
     try:
         from django.core.management import execute_from_command_line

@@ -1,16 +1,47 @@
 import { ActionContext, Module } from 'vuex';
 import AuthService from '../services/auth.service';
-import { firebaseAuth } from '../firebaseConfig';
-import { 
-  createUserWithEmailAndPassword, 
-  GoogleAuthProvider,
-  signInWithEmailAndPassword,
-  signInWithPopup
-} from 'firebase/auth';
 import axios from 'axios';
 import { log } from '../utils/logger';
+import { ensureFirebaseInitialized } from '../firebaseConfig';
+import { environment } from '../services/environment';
 
-const provider = new GoogleAuthProvider();
+// Firebase will be initialized asynchronously
+let firebaseAuth: any = null;
+let provider: any = null;
+let signInWithEmailAndPassword: any = null;
+let signInWithPopup: any = null;
+let createUserWithEmailAndPassword: any = null;
+
+// Initialize Firebase auth functions
+async function initializeAuthFunctions() {
+  const firebase = await ensureFirebaseInitialized();
+  firebaseAuth = firebase.firebaseAuth;
+  provider = firebase.provider;
+  
+  // For mock Firebase, functions are on the auth object
+  if (environment.useMockFirebase && firebaseAuth) {
+    signInWithEmailAndPassword = (auth: any, email: string, password: string) => 
+      firebaseAuth.signInWithEmailAndPassword(email, password);
+    signInWithPopup = (auth: any, prov: any) => 
+      firebaseAuth.signInWithPopup(prov);
+    createUserWithEmailAndPassword = (auth: any, email: string, password: string) => 
+      firebaseAuth.createUserWithEmailAndPassword(email, password);
+  } else {
+    // For real Firebase, import the functions
+    const authModule = await import('firebase/auth');
+    signInWithEmailAndPassword = authModule.signInWithEmailAndPassword;
+    signInWithPopup = authModule.signInWithPopup;
+    createUserWithEmailAndPassword = authModule.createUserWithEmailAndPassword;
+    if (!provider) {
+      provider = new authModule.GoogleAuthProvider();
+    }
+  }
+}
+
+// Initialize on module load
+initializeAuthFunctions().catch(err => {
+  log.error('Failed to initialize Firebase auth', err);
+});
 
 // Get DEBUG mode from environment or default to development mode
 // In production build, this will be replaced with false
@@ -86,7 +117,10 @@ export const auth: Module<AuthState, any> = {
       // Skip if we're already authenticated or in debug mode
       if (state.debug) {return;}
       
-      if (firebaseAuth.currentUser) {
+      // Ensure Firebase is initialized
+      await initializeAuthFunctions();
+      
+      if (firebaseAuth && firebaseAuth.currentUser) {
         try {
           // Get user role from backend
           const response = await axios.get<UserMeResponse>('/api/user/me/');
@@ -112,15 +146,50 @@ export const auth: Module<AuthState, any> = {
         throw { code: 'auth/missing-fields', message: 'Email and password are required', num: 400 } as AuthError;
       }
 
-      // In debug mode, only allow specific login credentials
-      if (DEBUG && user.email === 'admin@example.com' && user.password === 'password') {
-        const userData: User = {
-          ...user,
-          role: 'admin',
-          isAdmin: true
-        };
-        commit('loginSuccess', userData);
-        return;
+      // Ensure Firebase is initialized
+      await initializeAuthFunctions();
+
+      // In debug mode with mock Firebase, accept test credentials
+      if (DEBUG && environment.useMockFirebase) {
+        // Mock Firebase handles test users
+        try {
+          const result = await signInWithEmailAndPassword(firebaseAuth, user.email, user.password);
+          if (result && result.user) {
+            // Try to get user role from backend
+            try {
+              const response = await axios.get<UserMeResponse>('/api/user/me/');
+              log.debug('User role response', response.data);
+              const userData: User = {
+                email: result.user.email || user.email,
+                role: response.data.role as User['role'],
+                isAdmin: response.data.is_admin
+              };
+              commit('loginSuccess', userData);
+            } catch (error) {
+              // If role fetch fails, use default values
+              const userData: User = {
+                email: result.user.email || user.email,
+                role: 'user',
+                isAdmin: false
+              };
+              
+              // Check if it's a known test admin
+              if (user.email === 'admin@test.local' || user.email === 'dhsmith2@illinois.edu') {
+                userData.role = 'admin';
+                userData.isAdmin = true;
+              } else if (user.email === 'instructor@test.local') {
+                userData.role = 'instructor';
+                userData.isAdmin = false;
+              }
+              
+              commit('loginSuccess', userData);
+            }
+            return;
+          }
+        } catch (error) {
+          log.error('Mock login failed', error);
+          throw { code: 'auth/invalid-credentials', message: 'Invalid email or password', num: 401 } as AuthError;
+        }
       }
 
       try {
@@ -151,9 +220,26 @@ export const auth: Module<AuthState, any> = {
     },
 
     async loginWithGoogle({ commit }: AuthActionContext): Promise<void> {
-      // In debug mode, require a manual login instead of Google
-      if (DEBUG) {
-        throw { code: 'auth/no-google-auth-in-debug', message: 'No Google login in debug mode', num: 400 } as AuthError;
+      // Ensure Firebase is initialized
+      await initializeAuthFunctions();
+      
+      // In debug mode with mock Firebase, use mock Google login
+      if (DEBUG && environment.useMockFirebase) {
+        try {
+          const result = await signInWithPopup(firebaseAuth, provider);
+          if (result && result.user) {
+            const userData: User = {
+              email: result.user.email!,
+              role: 'user',
+              isAdmin: false
+            };
+            commit('loginSuccess', userData);
+            return;
+          }
+        } catch (error) {
+          log.error('Mock Google login failed', error);
+          throw { code: 'auth/google-login-failed', message: 'Unable to login with Google', num: 401 } as AuthError;
+        }
       }
 
       try {
@@ -198,17 +284,20 @@ export const auth: Module<AuthState, any> = {
         throw { code: 'auth/missing-fields', message: 'Email and password are required', num: 400 } as AuthError;
       }
 
-      // In debug mode, simulate account creation with specific credentials
-      if (DEBUG) {
-        if (user.email === 'new@example.com' && user.password.length >= 6) {
-          commit('registerSuccess');
-          return true;
-        } else {
-          throw { 
-            code: 'auth/debug-credentials', 
-            message: 'In debug mode, use email "new@example.com" with a password of at least 6 characters', 
-            num: 401 
-          } as AuthError;
+      // Ensure Firebase is initialized
+      await initializeAuthFunctions();
+
+      // In debug mode with mock Firebase, allow any account creation
+      if (DEBUG && environment.useMockFirebase) {
+        try {
+          const response = await createUserWithEmailAndPassword(firebaseAuth, user.email, user.password);
+          if (response) {
+            commit('registerSuccess');
+            return true;
+          }
+        } catch (error) {
+          log.error('Mock account creation failed', error);
+          throw { code: 'auth/registration-failed', message: 'Unable to register user', num: 500 } as AuthError;
         }
       }
 

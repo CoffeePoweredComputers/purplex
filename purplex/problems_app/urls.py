@@ -11,14 +11,12 @@ from .views.submission_views import (
     TestSolutionView, SubmitSolutionView, EiPLSubmissionView
 )
 
-# SSE views for real-time updates
-from .views.sse_views import TaskBatchStatusSSEView
-# Use clean SSE implementation
-from .views.sse_clean import CleanTaskSSEView
+# SSE views for real-time updates - using clean implementation only
+from .views.sse_clean import CleanTaskSSEView, CleanBatchSSEView
 
 # Progress tracking views
 from .views.progress_views import (
-    UserProgressView, ProblemSetProgressView, UserProgressSummaryView
+    UserProgressView, ProblemSetProgressView, UserProgressSummaryView, LastSubmissionView
 )
 
 # Admin views
@@ -59,12 +57,13 @@ urlpatterns = [
     
     # SSE endpoints for real-time updates
     path('tasks/<str:task_id>/stream/', CleanTaskSSEView.as_view(), name='task_stream'),
-    path('tasks/batch/stream/', TaskBatchStatusSSEView.as_view(), name='task_batch_stream'),
+    path('tasks/batch/stream/', CleanBatchSSEView.as_view(), name='task_batch_stream'),
     
     # Progress endpoints
     path('progress/', UserProgressView.as_view(), name='user_progress_all'),
     path('progress/<slug:problem_slug>/', UserProgressView.as_view(), name='user_progress_problem'),
     path('problem-sets/<slug:slug>/progress/', ProblemSetProgressView.as_view(), name='problem_set_progress'),
+    path('last-submission/<slug:problem_slug>/', LastSubmissionView.as_view(), name='last_submission'),
     
     # Hint endpoints
     path('problems/<slug:slug>/hints/', ProblemHintAvailabilityView.as_view(), name='problem_hint_availability'),

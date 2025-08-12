@@ -132,7 +132,7 @@ class AdminProblemSerializer(ProblemSerializer):
     def validate(self, attrs):
         """Comprehensive validation using validation service"""
         try:
-            from .validation_service import ProblemValidationService
+            from .services.validation_service import ProblemValidationService
             
             validation_service = ProblemValidationService()
             

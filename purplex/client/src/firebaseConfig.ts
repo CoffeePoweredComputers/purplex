@@ -1,7 +1,14 @@
-import { FirebaseApp, initializeApp } from "firebase/app";
-import { Auth, getAuth } from "firebase/auth";
+/**
+ * Firebase configuration that automatically uses mock or real Firebase
+ * based on the environment configuration.
+ */
+import { environment } from './services/environment';
 
-// Firebase configuration object
+// Import types
+import type { FirebaseApp } from 'firebase/app';
+import type { Auth } from 'firebase/auth';
+
+// Firebase configuration interface
 interface FirebaseConfig {
   apiKey: string;
   authDomain: string;
@@ -9,18 +16,96 @@ interface FirebaseConfig {
   storageBucket: string;
   messagingSenderId: string;
   appId: string;
+  measurementId?: string;
 }
 
-const firebaseConfig: FirebaseConfig = {
-  apiKey: "AIzaSyCsyYati6ns2CCWgxIuHlHly_VOhXD2sS4",
-  authDomain: "purplex-97ff2.firebaseapp.com",
-  projectId: "purplex-97ff2",
-  storageBucket: "purplex-97ff2.appspot.com",
-  messagingSenderId: "863513714403",
-  appId: "1:863513714403:web:7207f4a20890ca236d2fd6"
-};
+// Variables that will be exported
+let firebaseApp: FirebaseApp | null = null;
+let firebaseAuth: Auth | any = null;
+let provider: any = null;
 
-const firebaseApp: FirebaseApp = initializeApp(firebaseConfig);
-const firebaseAuth: Auth = getAuth();
+// Initialize based on environment
+async function initializeFirebase() {
+  console.log('🔥 Initializing Firebase...', {
+    environment: environment.current,
+    useMockFirebase: environment.useMockFirebase
+  });
+  
+  if (environment.useMockFirebase) {
+    // Use mock Firebase in development
+    console.log('🔥 Using Mock Firebase for development');
+    
+    // Import mock Firebase
+    const mockModule = await import('./services/mockFirebase');
+    firebaseAuth = mockModule.mockFirebaseAuth;
+    provider = mockModule.mockGoogleProvider;
+    
+    // Mock doesn't need an app instance
+    firebaseApp = null;
+    
+  } else {
+    // Use real Firebase in staging/production
+    console.log('🔥 Using Real Firebase');
+    
+    try {
+      // Import real Firebase dynamically
+      const { initializeApp } = await import('firebase/app');
+      const { getAuth, GoogleAuthProvider } = await import('firebase/auth');
+      
+      // Get config from environment or use fallback
+      const envConfig = environment.getFirebaseConfig();
+      
+      const firebaseConfig: FirebaseConfig = envConfig || {
+        // Fallback config - should be replaced with environment variables
+        apiKey: "AIzaSyCsyYati6ns2CCWgxIuHlHly_VOhXD2sS4",
+        authDomain: "purplex-97ff2.firebaseapp.com",
+        projectId: "purplex-97ff2",
+        storageBucket: "purplex-97ff2.appspot.com",
+        messagingSenderId: "863513714403",
+        appId: "1:863513714403:web:7207f4a20890ca236d2fd6"
+      };
+      
+      // Initialize real Firebase
+      firebaseApp = initializeApp(firebaseConfig);
+      firebaseAuth = getAuth(firebaseApp);
+      provider = new GoogleAuthProvider();
+    } catch (error) {
+      console.error('Failed to initialize Firebase:', error);
+      // Fall back to mock in case of error during development
+      if (environment.isDevelopment) {
+        console.log('Falling back to mock Firebase due to initialization error');
+        const mockModule = await import('./services/mockFirebase');
+        firebaseAuth = mockModule.mockFirebaseAuth;
+        provider = mockModule.mockGoogleProvider;
+        firebaseApp = null;
+      } else {
+        throw error;
+      }
+    }
+  }
+}
 
-export { firebaseApp, firebaseAuth };
+// Initialize but don't block module loading
+let initPromise: Promise<void> | null = null;
+
+function startInitialization() {
+  if (!initPromise) {
+    initPromise = initializeFirebase();
+  }
+  return initPromise;
+}
+
+// Start initialization
+startInitialization();
+
+// Export a function to ensure initialization is complete
+export async function ensureFirebaseInitialized() {
+  await startInitialization();
+  return { firebaseApp, firebaseAuth, provider };
+}
+
+// Export the instances (may be null until initialization completes)
+export { firebaseApp, firebaseAuth, provider };
+
+// For backward compatibility, also export under old names
+export { firebaseAuth as auth };
