@@ -4,6 +4,7 @@ import json
 import logging
 from datetime import timedelta
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,14 +16,7 @@ from ..services import CodeExecutionService, AITestGenerationService
 from purplex.users_app.permissions import IsAuthenticated
 from purplex.submissions_app.models import PromptSubmission, SegmentationResult
 from celery.result import AsyncResult
-from celery import group, chain, chord
-from ..tasks import (
-    generate_eipl_variations,
-    segment_prompt,
-    execute_code,
-    test_single_variation,
-    update_progress
-)
+from ..tasks.pipeline import execute_eipl_pipeline
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -62,7 +56,13 @@ class TestSolutionView(APIView):
     """Test a solution without saving submission."""
     permission_classes = [IsAuthenticated]
     
+    @method_decorator(ratelimit(key='user', rate='20/m', method='POST'))  # Higher limit for testing
     def post(self, request):
+        # Check if rate limited
+        if getattr(request, 'limited', False):
+            return Response({
+                'error': 'Rate limit exceeded. Please wait a moment before testing again.'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
         problem_slug = request.data.get('problem_slug')
         user_code = request.data.get('user_code')
         
@@ -104,18 +104,23 @@ class TestSolutionView(APIView):
             logger.error(f"Code execution failed for problem {problem_slug}: {str(e)}")
             return Response({
                 'error': 'Code execution failed. Please check your solution and try again.',
-                'passed': 0,
-                'total': len(test_data),
+                'testsPassed': 0,
+                'totalTests': len(test_data),
                 'results': []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@method_decorator(ratelimit(key='user', rate='20/m', method='POST'), name='post')
 class SubmitSolutionView(APIView):
     """Submit a solution and track progress."""
     permission_classes = [IsAuthenticated]
     
+    @method_decorator(ratelimit(key='user', rate='10/m', method='POST'))
     def post(self, request):
+        # Check if rate limited
+        if getattr(request, 'limited', False):
+            return Response({
+                'error': 'Rate limit exceeded. Please wait a moment before submitting again.'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
         problem_slug = request.data.get('problem_slug')
         problem_set_slug = request.data.get('problem_set_slug')
         user_code = request.data.get('user_code')
@@ -212,8 +217,8 @@ class SubmitSolutionView(APIView):
                 'error': 'Code execution failed. Please check your solution and try again.',
                 'submission_id': None,
                 'score': 0,
-                'passed': 0,
-                'total': len(test_data),
+                'testsPassed': 0,
+                'totalTests': len(test_data),
                 'results': []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
@@ -261,8 +266,8 @@ class SubmitSolutionView(APIView):
         return Response({
             'submission_id': submission.id,
             'score': score,
-            'passed': passed_tests,
-            'total': total_tests,
+            'testsPassed': passed_tests,
+            'totalTests': total_tests,
             'results': visible_results,  # Only visible test results
             'progress': {
                 'status': progress.status,
@@ -279,11 +284,38 @@ class EiPLSubmissionView(APIView):
     Generates AI variations, tests them, and saves submission with progress tracking."""
     permission_classes = [IsAuthenticated]
     
+    @method_decorator(ratelimit(key='user', rate='5/m', method='POST'))
     def post(self, request):
+        # Check if rate limited
+        if getattr(request, 'limited', False):
+            return Response({
+                'error': 'Rate limit exceeded. Please wait a moment before submitting again.'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        
         problem_slug = request.data.get('problem_slug')
         problem_set_slug = request.data.get('problem_set_slug')
         user_prompt = request.data.get('user_prompt', '')
-        course_id = request.data.get('course_id')  # Optional, for course context
+        course_id = request.data.get('course_id')
+        
+        # Input validation
+        if not problem_slug:
+            return Response({
+                'error': 'problem_slug is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not user_prompt or not user_prompt.strip():
+            return Response({
+                'error': 'user_prompt is required and cannot be empty'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate prompt length (max 5000 characters)
+        if len(user_prompt) > 5000:
+            return Response({
+                'error': 'user_prompt exceeds maximum length of 5000 characters'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Sanitize user prompt
+        user_prompt = user_prompt.strip()  # Optional, for course context
         
         if not problem_slug or not user_prompt:
             return Response({
@@ -357,287 +389,64 @@ class EiPLSubmissionView(APIView):
         # Generate request ID for tracking
         request_id = str(uuid.uuid4())
         
-        # Start AI generation task
+        # Store submission context in Redis for later retrieval
+        import redis
+        redis_client = redis.Redis(host='localhost', port=6379, db=7, decode_responses=True)
+        
+        submission_context = {
+            'user_id': request.user.id,
+            'username': request.user.username,
+            'problem_id': problem.id,
+            'problem_slug': problem.slug,
+            'problem_set_id': problem_set.id if problem_set else None,
+            'problem_set_slug': problem_set.slug if problem_set else None,
+            'course_id': course.id if course else None,
+            'course_name': course.name if course else None,
+            'user_prompt': user_prompt,
+            'request_id': request_id,
+            'submitted_at': timezone.now().isoformat()
+        }
+        
+        # Store context with 2 hour TTL
+        redis_client.setex(
+            f"eipl:context:{request_id}",
+            7200,
+            json.dumps(submission_context)
+        )
+        
+        logger.debug(f"Stored submission context for request {request_id}")
+        
+        # Start the clean EiPL pipeline task
         try:
-            logger.debug(f"Starting AI generation for problem {problem_slug} with request ID {request_id}")
-            
-            # Launch the AI generation task
-            generation_task = generate_eipl_variations.apply_async(
-                args=[problem.id, user_prompt],
-                task_id=f"{request_id}-generation"
+            logger.debug(f"Starting EiPL pipeline for problem {problem_slug} with request ID {request_id}")
+            # Launch the single orchestrator task
+            # Use request_id as the task_id so SSE can track it
+            pipeline_task = execute_eipl_pipeline.apply_async(
+                args=[
+                    problem.id,
+                    user_prompt,
+                    request.user.id,
+                    problem_set.id if problem_set else None,
+                    course.id if course else None
+                ],
+                task_id=request_id  # Use request_id as the Celery task ID
             )
-            
-            # Start segmentation in parallel if enabled
-            segmentation_task = None
-            if problem.segmentation_enabled:
-                segmentation_task = segment_prompt.apply_async(
-                    args=[problem.id, user_prompt],
-                    task_id=f"{request_id}-segmentation"
-                )
-            
-            # Always return immediately with task IDs for async polling
-            # This prevents blocking and deadlocks
+            # Store request_id in session for SSE authentication
+            if not request.session.get('user_tasks'):
+                request.session['user_tasks'] = []
+            request.session['user_tasks'].append(request_id)
+            request.session.save()
+            # Return SSE streaming URL for real-time updates
             return Response({
                 'request_id': request_id,
-                'generation_task_id': generation_task.id,
-                'segmentation_task_id': segmentation_task.id if segmentation_task else None,
+                'task_id': pipeline_task.id,  # This should be same as request_id
                 'status': 'processing',
-                'status_url': f'/api/tasks/{request_id}/status/',
-                'message': 'Your submission is being processed. Please poll the status URL for results.'
+                'stream_url': f'/api/tasks/{request_id}/stream/',
+                'message': 'Your submission is being processed. Connect to the stream URL for real-time updates.'
             }, status=status.HTTP_202_ACCEPTED)
-            
         except Exception as e:
             logger.error(f"Failed to start AI generation task for problem {problem_slug}: {str(e)}", exc_info=True)
             return Response({
                 'error': 'Failed to start AI task. Please try again.',
                 'request_id': None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class TaskStatusView(APIView):
-    """Check Celery task status and retrieve results."""
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request, task_id):
-        """Get the status and result of a Celery task.
-        
-        Args:
-            request: HTTP request
-            task_id: The Celery task ID
-            
-        Returns:
-            JSON response with task status and result
-        """
-        from django.core.cache import cache
-        
-        # Check cache first for completed results
-        cached_result = cache.get(f"task:result:{task_id}")
-        if cached_result:
-            return Response(cached_result)
-        
-        # Get task result from Celery
-        result = AsyncResult(task_id)
-        
-        if result.ready():
-            # Task completed
-            if result.successful():
-                data = {
-                    'status': 'completed',
-                    'result': result.result
-                }
-                # Cache successful results for 1 hour
-                cache.set(f"task:result:{task_id}", data, timeout=3600)
-                return Response(data)
-            else:
-                # Task failed
-                return Response({
-                    'status': 'failed',
-                    'error': str(result.info) if result.info else 'Unknown error'
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        elif result.state == 'PENDING':
-            # Task hasn't started yet
-            return Response({
-                'status': 'pending',
-                'message': 'Task is queued and waiting to start'
-            })
-        
-        elif result.state == 'RETRY':
-            # Task is being retried
-            return Response({
-                'status': 'retrying',
-                'message': 'Task failed and is being retried',
-                'retry_count': result.info.get('retries', 0) if isinstance(result.info, dict) else 0
-            })
-        
-        else:
-            # Task is running or in other state
-            progress_info = {}
-            if result.info and isinstance(result.info, dict):
-                progress_info = {
-                    'current': result.info.get('current', 0),
-                    'total': result.info.get('total', 100),
-                    'description': result.info.get('description', '')
-                }
-            
-            return Response({
-                'status': result.state.lower(),
-                'progress': progress_info
-            })
-
-
-class EiPLSubmissionStatusView(APIView):
-    """Check EiPL submission status and retrieve results from Redis."""
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request, request_id):
-        """Get the status and results of an EiPL submission.
-        
-        Args:
-            request_id: The unique request ID returned from submission
-            
-        Returns:
-            Current status and results if available
-        """
-        import redis
-        import json
-        
-        # Get Redis client
-        redis_client = redis.Redis(host='localhost', port=6379, db=7, decode_responses=True)
-        
-        # Check for completed results first
-        result_key = f"eipl:result:{request_id}"
-        result_data = redis_client.get(result_key)
-        
-        if result_data:
-            # Results are ready
-            result = json.loads(result_data)
-            
-            # If completed successfully, create submission record
-            if result.get('status') == 'completed' and result.get('success'):
-                # TODO: Create submission record with results
-                pass
-            
-            return Response({
-                'status': result.get('status', 'completed'),
-                'success': result.get('success', False),
-                'variations': result.get('variations', []),
-                'test_results': result.get('test_results', []),
-                'problem_id': result.get('problem_id'),
-                'total_variations': result.get('total_variations', 0),
-                'error': result.get('error')
-            })
-        
-        # Check generation task status
-        generation_task_id = f"{request_id}-generation"
-        result = AsyncResult(generation_task_id)
-        
-        if result.state == 'PENDING':
-            return Response({
-                'status': 'pending',
-                'message': 'Task is queued and waiting to start'
-            })
-        elif result.state == 'STARTED':
-            return Response({
-                'status': 'processing',
-                'message': 'Generating code variations...'
-            })
-        elif result.state == 'SUCCESS':
-            # Generation completed but tests not yet done
-            return Response({
-                'status': 'testing',
-                'message': 'Testing code variations...'
-            })
-        elif result.state == 'FAILURE':
-            return Response({
-                'status': 'failed',
-                'error': str(result.info) if result.info else 'Task failed'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        else:
-            return Response({
-                'status': result.state.lower(),
-                'message': 'Processing...'
-            })
-
-
-class AsyncEiPLSubmissionView(APIView):
-    """Async version of EiPL submission that returns task IDs immediately."""
-    permission_classes = [IsAuthenticated]
-    
-    @method_decorator(ratelimit(key='user', rate='10/m', method='POST'))
-    def post(self, request):
-        """Submit EiPL problem solution asynchronously.
-        
-        Returns task IDs immediately for the client to poll status.
-        """
-        problem_slug = request.data.get('problem_slug')
-        user_prompt = request.data.get('user_prompt', '')
-        course_id = request.data.get('course_id')
-        
-        # Validation
-        if not problem_slug:
-            return Response({
-                'error': 'problem_slug is required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Get problem
-        problem = get_object_or_404(Problem, slug=problem_slug)
-        
-        # Check course enrollment if course_id provided
-        if course_id:
-            try:
-                course = Course.objects.get(id=course_id)
-                if not CourseEnrollment.objects.filter(
-                    user=request.user,
-                    course=course,
-                    is_active=True
-                ).exists():
-                    return Response({
-                        'error': 'You are not enrolled in this course'
-                    }, status=status.HTTP_403_FORBIDDEN)
-            except Course.DoesNotExist:
-                return Response({
-                    'error': 'Course not found'
-                }, status=status.HTTP_404_NOT_FOUND)
-        
-        # Generate request ID for tracking
-        request_id = str(uuid.uuid4())
-        
-        # Get test data
-        all_test_cases = list(problem.test_cases.all())
-        test_data = [
-            {
-                'id': tc.id,
-                'inputs': tc.inputs,
-                'expected_output': tc.expected_output,
-                'description': tc.description
-            }
-            for tc in all_test_cases
-        ]
-        
-        # Create task chain:
-        # 1. Generate variations
-        # 2. Test all variations in parallel
-        # 3. Update user progress
-        from celery import chain, group
-        
-        # Build the workflow
-        workflow = chain(
-            # Generate AI variations
-            generate_eipl_variations.si(problem.id, user_prompt),
-            
-            # Test variations (this task will create a group internally)
-            # We pass the test data so it doesn't need to query again
-            group(
-                test_single_variation.s(var, problem.function_name, problem.id)
-                for var in []  # This will be replaced with actual variations
-            ),
-            
-            # Update progress with results
-            update_progress.s(request.user.id, problem.id, {
-                'course_id': course_id,
-                'user_prompt': user_prompt
-            })
-        )
-        
-        # Execute workflow
-        result = workflow.apply_async(task_id=request_id)
-        
-        # Start segmentation if enabled
-        segmentation_task_id = None
-        if problem.segmentation_enabled:
-            seg_task = segment_prompt.apply_async(
-                args=[problem.id, user_prompt],
-                task_id=f"{request_id}-segmentation"
-            )
-            segmentation_task_id = seg_task.id
-        
-        # Return task IDs for polling
-        return Response({
-            'request_id': request_id,
-            'workflow_task_id': result.id,
-            'segmentation_task_id': segmentation_task_id,
-            'status': 'processing',
-            'status_url': f'/api/tasks/{request_id}/status/',
-            'message': 'Your submission is being processed. You can check the status using the provided URL.'
-        }, status=status.HTTP_202_ACCEPTED)

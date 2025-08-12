@@ -1,12 +1,10 @@
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404
 from django.db import models
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from purplex.users_app.permissions import IsAdmin, IsAdminOrReadOnly, IsAuthenticated
+from purplex.users_app.permissions import IsAdmin, IsAuthenticated
 
-import json
-import docker
 import logging
 
 from .models import PromptSubmission
@@ -19,88 +17,11 @@ class SubmissionsPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
-class PythonTestView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
-        data = request.data
-        generated_code = data.get('generated_code')
-        problem_slug = data.get('problem_slug')
+# PythonTestView removed - use problems_app.views.submission_views.TestSolutionView instead
 
-        problem = Problem.objects.get(slug=problem_slug)
-        
-        # Use database-native test cases instead of files
-        from purplex.problems_app.services import CodeExecutionService
-        
-        service = CodeExecutionService()
-        test_results = service.test_solution(
-            user_code=generated_code,
-            function_name=problem.function_name,
-            test_cases=list(problem.test_cases.all())
-        )
+# PromptSubmissionResultView removed - deprecated view
 
-        return Response({"test_results": test_results})
-
-class PromptSubmissionResultView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request, submission_id):
-        # Get the submission
-        submission = get_object_or_404(PromptSubmission, id=submission_id)
-        
-        # Check if user is admin or the owner of this submission
-        if request.user == submission.user or hasattr(request.user, 'profile') and request.user.profile.is_admin:
-            return render(request, 'submission_result.html', {'submission': submission})
-        else:
-            return Response({'error': 'Permission denied'}, status=403)
-
-class SubmitCodeView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request, problem_id):
-        data = json.loads(request.body)
-        code = data.get('code', '')
-        
-        problem = get_object_or_404(Problem, id=problem_id)
-        
-        # Get the problem set - required field
-        # For now, get the first problem set containing this problem
-        problem_set = problem.problem_sets.first()
-        if not problem_set:
-            return Response({'error': 'Problem must belong to a problem set'}, status=400)
-        
-        submission = PromptSubmission.objects.create(
-            user=request.user,
-            problem=problem,
-            problem_set=problem_set,
-            score=0,  # Initial score
-            prompt=code
-        )
-
-        # Test the code using database-native test cases
-        from purplex.problems_app.services import CodeExecutionService
-        
-        service = CodeExecutionService()
-        results = service.test_solution(
-            user_code=code,
-            function_name=problem.function_name,
-            test_cases=list(problem.test_cases.all())
-        )
-        
-        # Update submission with test results using new field structure
-        passed_tests = sum(1 for test in results if test.get('pass', False))
-        total_tests = len(results)
-        if total_tests > 0:
-            submission.score = int((passed_tests / total_tests) * 100)
-        
-        # Update with new field structure
-        submission.test_results = results
-        submission.code_variations = [code]
-        submission.passing_variations = 1 if submission.score >= 100 else 0
-        submission.total_variations = 1
-        submission.save()
-
-        return Response({'results': results})
+# SubmitCodeView removed - use problems_app.views.submission_views.SubmitSolutionView instead
 
 class AdminSubmissionsView(APIView):
     """View for admin users to manage submissions"""

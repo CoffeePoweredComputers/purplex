@@ -25,4 +25,12 @@ export default defineConfig({
   define: {
     __VUE_PROD_DEVTOOLS__: false,
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
 })

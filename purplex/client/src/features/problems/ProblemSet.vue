@@ -213,11 +213,25 @@
             >Submit Solution</span>
             <div
               v-if="loading"
-              class="bouncing-dots"
+              class="loading-content"
             >
-              <span class="dot" />
-              <span class="dot" />
-              <span class="dot" />
+              <div class="bouncing-dots">
+                <span class="dot" />
+                <span class="dot" />
+                <span class="dot" />
+              </div>
+              <div
+                v-if="submissionStatus"
+                class="status-message"
+              >
+                {{ submissionStatus }}
+                <span
+                  v-if="submissionProgress && submissionProgress.percentage"
+                  class="progress-percentage"
+                >
+                  ({{ submissionProgress.percentage }}%)
+                </span>
+              </div>
             </div>
           </button>
         </div>
@@ -262,6 +276,8 @@ import { useLogger } from '@/composables/useLogger'
 import { useOptimisticProgress } from '@/composables/useOptimisticProgress'
 import { useHintTracking } from '@/composables/useHintTracking'
 import { useEditorHints } from '@/composables/useEditorHints'
+import { useSSE } from '@/composables/useSSE'
+import submissionService from '@/services/submissionService'
 import { computed, ref, watch } from 'vue'
 
 export default {
@@ -284,6 +300,7 @@ export default {
         const logger = useLogger();
         const { updateProgress, getProgress, clearOptimistic } = useOptimisticProgress();
         const { trackHintUsage, getHintsUsed } = useHintTracking();
+        const { connectToEiPLSubmission, isConnected, error: sseError } = useSSE();
         
         // Hint system setup
         const entry = ref(null);
@@ -314,6 +331,10 @@ export default {
             clearOptimistic, 
             trackHintUsage, 
             getHintsUsed,
+            // SSE connection
+            connectToEiPLSubmission,
+            isConnected,
+            sseError,
             // Hint system
             entry,
             originalSolutionCode,
@@ -343,6 +364,8 @@ export default {
             
             /* Submission State */
             loading: false,
+            submissionStatus: '',
+            submissionProgress: null,
             codeResults: [],
             testResults: [],
             promptCorrectness: 0,
@@ -674,7 +697,7 @@ export default {
         },
         
         async submit() {
-            if (this.loading) {return;}
+            if (this.loading) return;
             
             this.loading = true;
             const currentProblemSlug = this.getCurrentProblem().slug;
@@ -688,8 +711,14 @@ export default {
                     return;
                 }
                 
+                // Clear previous feedback and status
+                this.clearFeedbackData();
+                this.submissionStatus = '';
+                this.submissionProgress = null;
+                
                 // Optimistic update
-                const rollback = this.updateProgress(currentProblemSlug, {
+                let rollback = null;
+                rollback = this.updateProgress(currentProblemSlug, {
                     status: 'in_progress',
                     score: null,
                     attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
@@ -706,47 +735,138 @@ export default {
                     submissionData.course_id = this.courseId;
                 }
                 
-                const response = await axios.post('/api/submit-eipl/', submissionData);
-
-                const data = response.data;
+                this.logger.info('Submitting EiPL solution', { problemSlug: currentProblemSlug });
                 
-                // Update feedback data
-                this.codeResults = data.variations;
-                this.testResults = data.results;
-                this.promptCorrectness = data.passing_variations;
-                this.userPrompt = promptText;
+                // Submit to async endpoint
+                const submissionResponse = await submissionService.submitEiPL(submissionData);
                 
-                // Add segmentation data from API response
-                this.segmentationData = data.segmentation || null;
+                if (!submissionResponse.request_id) {
+                    throw new Error('No request ID received from server');
+                }
                 
-                // Update progress tracking with backend status
-                this.problemStatuses[currentProblemSlug] = {
-                    status: data.progress?.status || 'in_progress',  // Use backend status with fallback
-                    score: data.score,
-                    attempts: data.progress?.attempts || 1
-                };
-                
-                this.clearOptimistic(currentProblemSlug);
-                
-                // Update cache with new submission data including prompt and course context
-                const cacheKey = `${this.$route.params.slug}_${currentProblemSlug}_${this.courseId || 'standalone'}`;
-                this.submissionCache.set(cacheKey, {
-                    data: {
-                        has_submission: true,
-                        variations: this.codeResults,
-                        results: this.testResults,
-                        passing_variations: this.promptCorrectness,
-                        feedback: this.comprehensionResults,
-                        user_prompt: promptText,
-                        segmentation: this.segmentationData
-                    },
-                    timestamp: Date.now()
+                this.logger.info('EiPL submission accepted, connecting to SSE stream', { 
+                    requestId: submissionResponse.request_id 
                 });
                 
-                // Clear draft on success
-                this.clearDraft();
-                
-                this.notify.success('Solution submitted successfully!', `Score: ${data.score}%`);
+                // Connect to SSE stream for real-time updates
+                await this.connectToEiPLSubmission(
+                    submissionResponse.request_id,
+                    (variations, testResults) => {
+                        // Success callback - results are ready
+                        this.logger.info('EiPL results received', { 
+                            variations: variations.length,
+                            testResults: testResults.length 
+                        });
+
+                        console.log('Test Results:', testResults);
+                        console.log('Sample test result structure:', testResults[0]);
+                        
+                        // Update feedback data
+                        this.codeResults = variations;
+                        this.testResults = testResults;
+                        
+                        // Calculate test results across all variations
+                        let totalTestsPassed = 0;
+                        let totalTestsRun = 0;
+                        let perfectVariations = 0;
+                        
+                        testResults.forEach(r => {
+                            const passed = r.testsPassed || 0;
+                            const total = r.totalTests || 0;
+                            totalTestsPassed += passed;
+                            totalTestsRun += total;
+                            if (r.success) {
+                                perfectVariations++;
+                            }
+                        });
+                        
+                        // Store perfect variations count for compatibility
+                        this.promptCorrectness = perfectVariations;
+                        this.userPrompt = promptText;
+                        
+                        // TODO: Handle segmentation data when available
+                        this.segmentationData = null;
+                        
+                        // Calculate score based on total tests passed across all variations
+                        const score = totalTestsRun > 0 
+                            ? Math.round((totalTestsPassed / totalTestsRun) * 100)
+                            : 0;
+                        
+                        // Update progress tracking with final status
+                        this.problemStatuses[currentProblemSlug] = {
+                            status: score >= 100 ? 'completed' : 'in_progress',
+                            score: score,
+                            attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
+                        };
+                        
+                        this.clearOptimistic(currentProblemSlug);
+                        
+                        // Update cache with new submission data
+                        const cacheKey = `${this.$route.params.slug}_${currentProblemSlug}_${this.courseId || 'standalone'}`;
+                        this.submissionCache.set(cacheKey, {
+                            data: {
+                                has_submission: true,
+                                variations: this.codeResults,
+                                results: this.testResults,
+                                passing_variations: this.promptCorrectness,
+                                user_prompt: this.userPrompt,
+                                segmentation: this.segmentationData
+                            },
+                            timestamp: Date.now()
+                        });
+                        
+                        // Store successful submission
+                        if (this.userSubmissions) {
+                            this.userSubmissions[currentProblemSlug] = promptText;
+                        }
+                        
+                        // Create detailed success message
+                        let message = `Solution submitted successfully! Score: ${score}%`;
+                        if (totalTestsRun > 0) {
+                            message += ` (${totalTestsPassed}/${totalTestsRun} tests passed across ${variations.length} variations)`;
+                        }
+                        this.notify.success(message);
+                        this.loading = false;
+                        this.submissionStatus = '';
+                        this.submissionProgress = null;
+                    },
+                    {
+                        // SSE options
+                        onProgress: (progress) => {
+                            this.logger.debug('Task progress update', progress);
+                            // Update status message
+                            if (progress.description) {
+                                this.submissionStatus = progress.description;
+                            }
+                            // Update progress percentage if available
+                            if (progress.current !== undefined && progress.total !== undefined) {
+                                this.submissionProgress = {
+                                    current: progress.current,
+                                    total: progress.total,
+                                    percentage: Math.round((progress.current / progress.total) * 100)
+                                };
+                            }
+                        },
+                        onError: (error) => {
+                            this.logger.error('SSE connection error', error);
+                            this.notify.error(error.error || 'Failed to get results');
+                            this.loading = false;
+                            this.submissionStatus = '';
+                            this.submissionProgress = null;
+                            rollback(); // Rollback optimistic update on error
+                        },
+                        onTimeout: () => {
+                            this.logger.warn('SSE connection timeout');
+                            this.notify.warning('Connection timeout. Please try again.');
+                            this.loading = false;
+                            this.submissionStatus = '';
+                            this.submissionProgress = null;
+                            rollback();
+                        },
+                        reconnectAttempts: 3,
+                        reconnectDelay: 2000
+                    }
+                );
 
             } catch (error) {
                 this.logger.error('Error submitting code', error);
@@ -770,8 +890,15 @@ export default {
                 } else {
                     this.notify.error('Error', error.message);
                 }
-            } finally {
+                // Reset loading state on error during initial submission
                 this.loading = false;
+                this.submissionStatus = '';
+                this.submissionProgress = null;
+                // Rollback optimistic update on error
+                if (rollback) rollback();
+            } finally {
+                // Loading state is managed in SSE callbacks
+                // Don't reset it here as SSE is still processing
             }
         },
         
@@ -1468,11 +1595,33 @@ export default {
 }
 
 /* Loading Animation */
+.loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
 .bouncing-dots {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: var(--spacing-sm);
+}
+
+.status-message {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    opacity: 0.9;
+    margin-top: var(--spacing-xs);
+    text-align: center;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.progress-percentage {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-left: var(--spacing-xs);
 }
 
 .dot {

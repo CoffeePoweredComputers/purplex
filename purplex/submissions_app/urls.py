@@ -1,8 +1,5 @@
 from django.urls import path
 from .views import (
-    PythonTestView, 
-    PromptSubmissionResultView, 
-    SubmitCodeView,
     AdminSubmissionsView,
     AdminSubmissionExportView,
     AdminSubmissionDetailView,
@@ -11,9 +8,7 @@ from .views import (
 
 urlpatterns = [
     # Regular user endpoints
-    path('test/', PythonTestView.as_view(), name='test_code'),
-    path('submit_code/<int:problem_id>/', SubmitCodeView.as_view(), name='submit_code'),
-    path('result/<int:submission_id>/', PromptSubmissionResultView.as_view(), name='submission_result'),
+    # Note: test/, submit_code/, and result/ endpoints have been moved to problems_app
     path('user/last-submission/<str:problem_slug>/', UserLastSubmissionView.as_view(), name='user_last_submission'),
     
     # Admin endpoints

@@ -119,7 +119,7 @@ for i, test_case in enumerate(test_cases):
             
         # Format the function call string
         args_str = ', '.join(repr(arg) for arg in inputs)
-        function_call = f"{function_name}({{args_str}})"
+        function_call = "{function_name}(" + args_str + ")"
         
         results.append({{
             'test_number': i + 1,
@@ -133,7 +133,7 @@ for i, test_case in enumerate(test_cases):
     except Exception as e:
         inputs = test_case.get('inputs', [])
         args_str = ', '.join(repr(arg) for arg in inputs)
-        function_call = f"{function_name}({{args_str}})"
+        function_call = "{function_name}(" + args_str + ")"
         
         results.append({{
             'test_number': i + 1,

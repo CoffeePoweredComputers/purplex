@@ -45,30 +45,49 @@ export interface SubmissionResponse {
   message: string;
 }
 
+export interface EiPLSubmissionRequest {
+  problem_slug: string;
+  problem_set_slug?: string;
+  user_prompt: string;
+  course_id?: string;
+}
+
+export interface EiPLSubmissionResponse {
+  request_id: string;
+  generation_task_id?: string;
+  segmentation_task_id?: string;
+  status: string;
+  stream_url: string;
+  message?: string;
+}
+
+
 // ===== SUBMISSION SERVICE =====
 
 class SubmissionService {
   private baseURL = '/api';
 
   /**
-   * Get all user submissions summary
+   * Get all user progress summary
    */
   async getSubmissionsSummary(): Promise<SubmissionSummary[]> {
     try {
-      const response = await axios.get(`${this.baseURL}/submissions/summary/`);
+      const response = await axios.get(`${this.baseURL}/progress/`);
       return response.data;
     } catch (error) {
-      log.error('Failed to fetch submissions summary', error);
+      log.error('Failed to fetch progress summary', error);
       throw error;
     }
   }
 
   /**
    * Get progress for all problem sets
+   * Note: This endpoint might not exist in backend - consider removing
    */
   async getProblemSetsProgress(): Promise<ProblemSetProgress[]> {
     try {
-      const response = await axios.get(`${this.baseURL}/submissions/problem-sets-progress/`);
+      // TODO: Verify if this endpoint exists or if we should use /api/progress/ instead
+      const response = await axios.get(`${this.baseURL}/progress/`);
       return response.data;
     } catch (error) {
       log.error('Failed to fetch problem sets progress', error);
@@ -81,7 +100,7 @@ class SubmissionService {
    */
   async getProblemSetProgress(problemSetSlug: string): Promise<ProblemSetProgress> {
     try {
-      const response = await axios.get(`${this.baseURL}/submissions/problem-sets/${problemSetSlug}/progress/`);
+      const response = await axios.get(`${this.baseURL}/problem-sets/${problemSetSlug}/progress/`);
       return response.data;
     } catch (error) {
       log.error('Failed to fetch progress for problem set', { problemSetSlug, error });
@@ -94,7 +113,7 @@ class SubmissionService {
    */
   async submitSolution(request: SubmissionRequest): Promise<SubmissionResponse> {
     try {
-      const response = await axios.post(`${this.baseURL}/submissions/`, request);
+      const response = await axios.post(`${this.baseURL}/submit-solution/`, request);
       return response.data;
     } catch (error) {
       log.error('Failed to submit solution', error);
@@ -119,13 +138,31 @@ class SubmissionService {
   }
 
   /**
-   * Get submissions for a specific problem
+   * Submit an EiPL (Explain in Plain Language) problem solution
+   * This triggers async processing with Celery
+   */
+  async submitEiPL(data: EiPLSubmissionRequest): Promise<EiPLSubmissionResponse> {
+    try {
+      log.info('Submitting EiPL solution', { problemSlug: data.problem_slug });
+      const response = await axios.post(`${this.baseURL}/submit-eipl/`, data);
+      log.info('EiPL submission successful', { requestId: response.data.request_id });
+      return response.data;
+    } catch (error: any) {
+      log.error('Failed to submit EiPL solution', error);
+      throw {
+        error: error.response?.data?.error || 'Failed to submit EiPL solution',
+        status: error.response?.status || 500
+      };
+    }
+  }
+
+
+  /**
+   * Get submissions/progress for a specific problem
    */
   async getProblemSubmissions(problemSlug: string): Promise<SubmissionSummary[]> {
     try {
-      const response = await axios.get(`${this.baseURL}/submissions/`, {
-        params: { problem_slug: problemSlug }
-      });
+      const response = await axios.get(`${this.baseURL}/progress/${problemSlug}/`);
       return response.data;
     } catch (error) {
       log.error('Failed to fetch submissions for problem', { problemSlug, error });

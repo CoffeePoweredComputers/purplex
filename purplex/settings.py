@@ -80,9 +80,6 @@ INSTALLED_APPS = [
     'purplex.problems_app',
     'purplex.submissions_app',
     'purplex.users_app',
-    # Celery apps
-    'django_celery_beat',
-    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -292,27 +289,7 @@ CELERY_RESULT_EXPIRES = 3600  # 1 hour
 CELERY_RESULT_COMPRESSION = 'gzip'
 CELERY_RESULT_EXTENDED = True
 
-# Beat scheduler
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-
-# Celery Beat Schedule for periodic tasks
-from celery.schedules import crontab
-from datetime import timedelta
-
-CELERY_BEAT_SCHEDULE = {
-    'cleanup-old-submissions': {
-        'task': 'problems_app.tasks.maintenance.cleanup_old_submissions',
-        'schedule': crontab(hour=2, minute=0),  # Daily at 2 AM
-    },
-    'calculate-leaderboard': {
-        'task': 'problems_app.tasks.analytics.calculate_leaderboard',
-        'schedule': timedelta(minutes=5),  # Every 5 minutes
-    },
-    'expire-stale-cache': {
-        'task': 'problems_app.tasks.maintenance.expire_stale_cache',
-        'schedule': timedelta(minutes=15),  # Every 15 minutes
-    },
-}
+# Beat scheduler removed - no periodic tasks configured
 
 # Django Cache Configuration with Redis
 CACHES = {

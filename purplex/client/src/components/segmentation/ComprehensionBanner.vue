@@ -8,17 +8,41 @@
       <div class="banner-main">
         <div class="progress-section">
           <div class="segments-container">
-            <span 
-              v-for="(segment, index) in 8" 
-              :key="index"
-              class="segment"
-              :class="{
-                'filled': index < filledSegments,
-                'threshold': index === 1
-              }"
-            >
-              {{ index < filledSegments ? '■' : '□' }}
-            </span>
+            <!-- Goal label positioned above -->
+            <span class="goal-label">goal</span>
+            
+            <!-- All segments and brackets on same level -->
+            <div class="segments-row">
+              <!-- Opening bracket -->
+              <span class="threshold-bracket opening-bracket">[</span>
+              
+              <!-- Segments within threshold (goal zone) -->
+              <span 
+                v-for="(segment, index) in threshold" 
+                :key="`goal-${index}`"
+                class="segment goal-segment"
+                :class="{
+                  'filled': index < filledSegments
+                }"
+              >
+                {{ index < filledSegments ? '■' : '□' }}
+              </span>
+              
+              <!-- Closing bracket -->
+              <span class="threshold-bracket closing-bracket">]</span>
+              
+              <!-- Segments beyond threshold -->
+              <span 
+                v-for="(segment, index) in (8 - threshold)" 
+                :key="`extra-${index}`"
+                class="segment extra-segment"
+                :class="{
+                  'filled': (threshold + index) < filledSegments
+                }"
+              >
+                {{ (threshold + index) < filledSegments ? '■' : '□' }}
+              </span>
+            </div>
           </div>
         </div>
         <div class="banner-message">
@@ -65,6 +89,10 @@ export default defineComponent({
                typeof value.segment_count === 'number' &&
                typeof value.comprehension_level === 'string';
       }
+    },
+    threshold: {
+      type: Number,
+      default: 2
     }
   },
   emits: ['show-details'],
@@ -140,34 +168,39 @@ export default defineComponent({
   justify-content: space-between;
   padding: var(--spacing-sm) var(--spacing-md);
   gap: var(--spacing-md);
+  min-height: 36px; /* Ensure consistent height */
 }
 
 .banner-main {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md); /* Increased from sm to md */
 }
 
 
 .progress-section {
   flex-shrink: 0;
+  display: flex;
+  align-items: center; /* Center the progress section */
 }
 
 .segments-container {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 3px;
+  position: relative;
 }
 
 .segment {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1;
   color: var(--color-text-muted);
   transition: color 0.3s ease;
   position: relative;
   animation: fadeInSegment 0.3s ease-out;
   animation-fill-mode: both;
+  vertical-align: middle;
 }
 
 .segment:nth-child(1) { animation-delay: 0.05s; }
@@ -194,17 +227,68 @@ export default defineComponent({
   color: var(--color-primary);
 }
 
-/* Threshold marker */
-.segment.threshold::after {
-  content: '';
+/* Segments row - all on same baseline */
+.segments-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.goal-label {
+  font-size: 7px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-primary-gradient-start, #4f46e5);
+  opacity: 0.6;
+  margin-bottom: 2px;
+  line-height: 1;
+  white-space: nowrap;
   position: absolute;
-  right: -5px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1px;
-  height: 12px;
-  background: var(--color-text-muted);
-  opacity: 0.5;
+  top: -10px;
+  left: 12px; /* Position above the bracketed area */
+}
+
+/* Threshold bracket indicators */
+.threshold-bracket {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-primary-gradient-start, #4f46e5);
+  animation: bracketPulse 3s ease-in-out infinite;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.opening-bracket {
+  margin-right: 1px;
+}
+
+.closing-bracket {
+  margin-left: 1px;
+}
+
+/* Segment styling within and beyond threshold */
+.segment.goal-segment {
+  /* Segments within the goal zone */
+}
+
+.segment.extra-segment {
+  /* Segments beyond the threshold */
+  opacity: 0.7;
+}
+
+.segment.extra-segment.filled {
+  /* Filled segments beyond threshold - more muted */
+  opacity: 0.8;
+}
+
+@keyframes bracketPulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* Level-specific segment colors */
@@ -226,6 +310,8 @@ export default defineComponent({
   align-items: center;
   gap: var(--spacing-xs);
   font-size: var(--font-size-sm);
+  line-height: 1.2;
+  padding: 0 var(--spacing-xs); /* Add horizontal padding for breathing room */
 }
 
 .level-text {
@@ -247,26 +333,34 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   background: transparent;
   border: 1px solid var(--color-bg-border);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   cursor: pointer;
   transition: var(--transition-fast);
+  margin-left: var(--spacing-xs); /* Add some breathing room */
 }
 
 .analyze-button:hover {
   background: var(--color-bg-input);
   border-color: var(--color-primary);
   color: var(--color-primary);
+  transform: translateX(2px); /* Subtle movement on hover */
 }
 
 .button-icon {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-md);
   line-height: 1;
-  font-weight: 300;
+  font-weight: 400;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+
+.analyze-button:hover .button-icon {
+  transform: rotate(90deg); /* Rotate arrow on hover */
 }
 
 /* Subtle level indicators */

@@ -96,7 +96,7 @@
                 <code class="test-call">{{ test.function_call }}</code>
                 <div class="test-diff">
                   <div>Expected: <code class="expected">{{ test.expected_output }}</code></div>
-                  <div>Got: <code class="actual">{{ test.actual_output }}</code></div>
+                  <div>Got: <code class="actual">{{ test.actual_output !== null && test.actual_output !== undefined ? test.actual_output : (test.error || 'No output') }}</code></div>
                 </div>
               </div>
               <button
@@ -165,7 +165,6 @@
 import { defineComponent, PropType } from 'vue'
 import Editor from '@/features/editor/Editor.vue';
 import PyTutorModal from '../modals/PyTutorModal.vue';
-import SegmentationSection from './segmentation/SegmentationSection.vue';
 import ComprehensionBanner from './segmentation/ComprehensionBanner.vue';
 import SegmentAnalysisModal from './segmentation/SegmentAnalysisModal.vue';
 import { PythonTutorService } from '@/services/pythonTutor.service';
@@ -176,6 +175,8 @@ interface TestCase {
   expected_output: string;
   actual_output?: string;
   pass: boolean;
+  isSuccessful?: boolean;
+  error?: string;
 }
 
 interface TestResult {
@@ -204,7 +205,6 @@ export default defineComponent({
   components: { 
     Editor,
     PyTutorModal,
-    SegmentationSection,
     ComprehensionBanner,
     SegmentAnalysisModal
   },
@@ -289,15 +289,33 @@ export default defineComponent({
         let correct = false;
         
         if (testResult) {
-          // Backend returns { success, passed, total, results: [...] }
-          if (testResult.results && Array.isArray(testResult.results)) {
-            tests = testResult.results;
-            // Variation is correct if all tests passed
+          // Backend returns either { success, passed, total, test_results: [...] }
+          // or { success, passed, total, results: [...] }
+          let testArray = testResult.test_results || testResult.results || [];
+          
+          if (Array.isArray(testArray) && testArray.length > 0) {
+            // Map backend test format to component format
+            // Backend test has 'isSuccessful' field already from CodeExecutionService
+            tests = testArray.map(test => ({
+              ...test,
+              isSuccessful: test.isSuccessful !== undefined ? test.isSuccessful : (test.pass || false),
+              function_call: test.function_call || '',
+              expected_output: test.expected_output || '',
+              actual_output: test.actual_output !== undefined && test.actual_output !== null 
+                ? test.actual_output 
+                : (test.error ? `Error: ${test.error}` : 'No output'),
+              error: test.error || null
+            }));
+            // Variation is correct if all tests passed (using backend field names)
             correct = testResult.testsPassed === testResult.totalTests && testResult.totalTests > 0;
           } 
           // Handle direct array format (legacy or test data)
           else if (Array.isArray(testResult)) {
-            tests = testResult;
+            // Legacy format - direct array of tests
+            tests = testResult.map(test => ({
+              ...test,
+              isSuccessful: test.isSuccessful || test.pass || false
+            }));
             correct = tests.every(test => test.isSuccessful);
           }
         }
@@ -309,6 +327,14 @@ export default defineComponent({
         };
       });
       log.debug('SLIDES', { slideResults });
+      log.debug('Test Results Raw', { testResults: this.testResults });
+      if (this.testResults.length > 0) {
+        log.debug('First Test Result Structure', { 
+          firstResult: this.testResults[0],
+          hasResults: !!this.testResults[0].results,
+          hasTestResults: !!this.testResults[0].test_results
+        });
+      }
       return slideResults;
     },
     overallProgressPercent(): number {

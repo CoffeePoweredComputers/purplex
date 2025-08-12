@@ -106,8 +106,6 @@ source env/bin/activate
 
 # Run migrations
 python manage.py migrate --noinput > /dev/null 2>&1
-python manage.py migrate django_celery_beat --noinput > /dev/null 2>&1
-python manage.py migrate django_celery_results --noinput > /dev/null 2>&1
 echo -e "${GREEN}✓ Database migrations complete${NC}"
 
 # Create logs directory if it doesn't exist
@@ -121,11 +119,10 @@ sleep 1
 echo -e "${YELLOW}Starting Celery Worker...${NC}"
 # Ensure environment variables are passed to Celery
 export OPENAI_API_KEY="${OPENAI_API_KEY}"
-# Increase concurrency to prevent deadlock (was 4, now 10)
-nohup env OPENAI_API_KEY="${OPENAI_API_KEY}" celery -A purplex worker \
+# Using new clean Celery configuration
+nohup env OPENAI_API_KEY="${OPENAI_API_KEY}" celery -A purplex.celery_simple worker \
     -l info \
-    -Q high_priority,ai_operations,analytics,maintenance \
-    --concurrency=10 \
+    --concurrency=4 \
     --pool=prefork \
     > logs/celery_worker.log 2>&1 &
 WORKER_PID=$!
@@ -137,24 +134,9 @@ else
     exit 1
 fi
 
-# 6. Start Celery Beat
-echo -e "${YELLOW}Starting Celery Beat...${NC}"
-nohup celery -A purplex beat \
-    -l info \
-    --scheduler django_celery_beat.schedulers:DatabaseScheduler \
-    > logs/celery_beat.log 2>&1 &
-BEAT_PID=$!
-sleep 2
-if ps -p $BEAT_PID > /dev/null; then
-    echo -e "${GREEN}✓ Celery Beat started (PID: $BEAT_PID)${NC}"
-else
-    echo -e "${RED}✗ Celery Beat failed to start${NC}"
-    exit 1
-fi
-
-# 7. Start Flower (optional monitoring)
+# 6. Start Flower (optional monitoring)
 echo -e "${YELLOW}Starting Flower (monitoring)...${NC}"
-nohup celery -A purplex flower \
+nohup celery -A purplex.celery_simple flower \
     --port=5555 \
     --broker=redis://localhost:6379/0 \
     > logs/flower.log 2>&1 &
@@ -192,8 +174,8 @@ if [ ! -d "node_modules" ]; then
     npm install > /dev/null 2>&1
 fi
 
-# Start Vue dev server
-nohup npm run dev > ../../logs/vue.log 2>&1 &
+# Start Vue dev server (using vite directly to avoid duplicate Django)
+nohup yarn vite --mode development > ../../logs/vue.log 2>&1 &
 VUE_PID=$!
 cd ../..
 sleep 5
@@ -221,7 +203,6 @@ echo -e "  • Flower Monitor:  ${GREEN}http://localhost:5555${NC}"
 echo ""
 echo -e "${GREEN}Service PIDs:${NC}"
 echo -e "  • Celery Worker:   $WORKER_PID"
-echo -e "  • Celery Beat:     $BEAT_PID"
 echo -e "  • Flower:          $FLOWER_PID"
 echo -e "  • Django:          $DJANGO_PID"
 echo -e "  • Vue:             $VUE_PID"
@@ -240,10 +221,19 @@ echo -e "${GREEN}═════════════════════
 
 # Function to display logs with prefixes
 show_logs() {
+    # Kill any existing tail processes first
+    pkill -f "tail -f logs/" 2>/dev/null || true
+    
+    # Start fresh tail processes
     tail -f logs/django.log 2>/dev/null | sed 's/^/[Django] /' &
+    TAIL_DJANGO=$!
     tail -f logs/celery_worker.log 2>/dev/null | sed 's/^/[Celery] /' &
+    TAIL_CELERY=$!
     tail -f logs/vue.log 2>/dev/null | sed 's/^/[Vue] /' &
-    wait
+    TAIL_VUE=$!
+    
+    # Wait for any of them to exit (which happens on Ctrl+C)
+    wait $TAIL_DJANGO $TAIL_CELERY $TAIL_VUE
 }
 
 # Show logs until interrupted

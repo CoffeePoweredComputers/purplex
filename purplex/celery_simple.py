@@ -1,0 +1,47 @@
+"""
+Simplified Celery configuration for Purplex.
+
+This is a clean, minimal configuration that removes all the unnecessary
+complexity from the original implementation.
+"""
+
+import os
+from celery import Celery
+
+# Set default Django settings module for Celery
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'purplex.settings')
+
+# Create Celery app instance
+app = Celery('purplex')
+
+# Configure Celery using Django settings
+# All CELERY_* settings in settings.py will be read
+app.config_from_object('django.conf:settings', namespace='CELERY')
+
+# Auto-discover tasks from all registered Django apps
+app.autodiscover_tasks()
+
+# Minimal configuration - everything else goes in settings.py
+app.conf.update(
+    # Core settings
+    broker_url=os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
+    result_backend=os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0'),
+    
+    # Serialization
+    task_serializer='json',
+    accept_content=['json'],
+    result_serializer='json',
+    timezone='UTC',
+    enable_utc=True,
+    
+    # Task execution
+    task_track_started=True,
+    task_time_limit=300,  # 5 minutes hard limit
+    task_soft_time_limit=240,  # 4 minutes soft limit
+    task_acks_late=True,
+    worker_prefetch_multiplier=4,
+    
+    # Simple retry policy
+    task_default_retry_delay=30,
+    task_max_retries=3,
+)
