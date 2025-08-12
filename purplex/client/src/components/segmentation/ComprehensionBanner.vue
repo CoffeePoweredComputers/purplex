@@ -9,7 +9,7 @@
         <div class="progress-section">
           <div class="segments-container">
             <!-- Goal label positioned above -->
-            <span class="goal-label">goal</span>
+            <span class="goal-label" :style="{ left: goalLabelPosition }">goal</span>
             
             <!-- All segments and brackets on same level -->
             <div class="segments-row">
@@ -18,7 +18,7 @@
               
               <!-- Segments within threshold (goal zone) -->
               <span 
-                v-for="(segment, index) in threshold" 
+                v-for="index in segmentsInGoal" 
                 :key="`goal-${index}`"
                 class="segment goal-segment"
                 :class="{
@@ -33,14 +33,14 @@
               
               <!-- Segments beyond threshold -->
               <span 
-                v-for="(segment, index) in (8 - threshold)" 
+                v-for="index in segmentsBeyondGoal" 
                 :key="`extra-${index}`"
                 class="segment extra-segment"
                 :class="{
-                  'filled': (threshold + index) < filledSegments
+                  'filled': index < filledSegments
                 }"
               >
-                {{ (threshold + index) < filledSegments ? '■' : '□' }}
+                {{ index < filledSegments ? '■' : '□' }}
               </span>
             </div>
           </div>
@@ -90,9 +90,9 @@ export default defineComponent({
                typeof value.comprehension_level === 'string';
       }
     },
-    threshold: {
-      type: Number,
-      default: 2
+    referenceCode: {
+      type: String,
+      default: ''
     }
   },
   emits: ['show-details'],
@@ -101,21 +101,61 @@ export default defineComponent({
       return `banner-${this.segmentation.comprehension_level.replace('_', '-')}`;
     },
     
-    filledSegments(): number {
-      // Map comprehension levels to number of filled segments
-      const segmentCount = this.segmentation.segment_count || 0;
+    // Calculate line count from the actual code
+    codeLineCount(): number {
+      if (!this.referenceCode) return 10;
+      return this.referenceCode.split('\n').filter(line => line.trim()).length;
+    },
+    
+    // Intelligently scale max segments based on code size
+    maxSegments(): number {
+      const lines = this.codeLineCount;
       
-      // Use actual segment count, but also consider comprehension level
-      switch (this.segmentation.comprehension_level) {
-        case 'relational':
-          return Math.min(segmentCount, 8); // Usually 1-2 segments
-        case 'transitional':
-          return Math.min(segmentCount, 8); // Usually 3-5 segments
-        case 'multi_structural':
-          return Math.min(segmentCount, 8); // Usually 6-8 segments
-        default:
-          return Math.min(segmentCount, 8);
-      }
+      // For small code, each line could be a segment
+      if (lines <= 8) return lines;
+      
+      // For medium code, slight compression
+      if (lines <= 15) return Math.min(10, lines);
+      
+      // For larger code, compress more but cap at 12 for visual clarity
+      return Math.min(12, Math.ceil(lines / 2));
+    },
+    
+    // Dynamic threshold based on code complexity
+    dynamicThreshold(): number {
+      const max = this.maxSegments;
+      
+      // Good comprehension is roughly 20-30% of possible segments
+      if (max <= 5) return 2;
+      if (max <= 8) return Math.ceil(max * 0.3);
+      return Math.ceil(max * 0.25);
+    },
+    
+    // Actual filled segments, capped by max
+    filledSegments(): number {
+      const actual = this.segmentation.segment_count || 0;
+      return Math.min(actual, this.maxSegments);
+    },
+    
+    // Segments array for v-for rendering
+    segmentsInGoal(): number[] {
+      return Array.from({ length: this.dynamicThreshold }, (_, i) => i);
+    },
+    
+    segmentsBeyondGoal(): number[] {
+      const start = this.dynamicThreshold;
+      const count = this.maxSegments - this.dynamicThreshold;
+      return Array.from({ length: count }, (_, i) => start + i);
+    },
+    
+    // Position goal label centered over the bracketed area
+    goalLabelPosition(): string {
+      // Estimate: bracket(15px) + segments(13px each + 3px gap) + bracket(15px)
+      const segmentWidth = 13;
+      const gap = 3;
+      const bracketWidth = 15;
+      const totalWidth = (bracketWidth * 2) + (this.dynamicThreshold * segmentWidth) + ((this.dynamicThreshold - 1) * gap);
+      return `${totalWidth / 2}px`;
     }
   },
   methods: {
@@ -241,12 +281,12 @@ export default defineComponent({
   letter-spacing: 0.5px;
   color: var(--color-primary-gradient-start, #4f46e5);
   opacity: 0.6;
-  margin-bottom: 2px;
   line-height: 1;
   white-space: nowrap;
   position: absolute;
   top: -10px;
-  left: 12px; /* Position above the bracketed area */
+  transform: translateX(-50%); /* Center on calculated position */
+  transition: left 0.3s ease; /* Smooth transition when threshold changes */
 }
 
 /* Threshold bracket indicators */

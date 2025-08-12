@@ -33,6 +33,7 @@
       <ComprehensionBanner
         v-if="shouldShowSegmentation && segmentation"
         :segmentation="segmentation"
+        :reference-code="referenceCode"
         @show-details="showSegmentAnalysisModal = true"
       />
 
