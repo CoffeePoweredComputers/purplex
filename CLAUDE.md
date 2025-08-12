@@ -221,16 +221,14 @@ purplex/
 │   │   │   ├── admin_views.py      # Admin management views
 │   │   │   ├── student_views.py    # Student-facing views
 │   │   │   ├── submission_views.py # Code submission handling
-│   │   │   ├── eipl_clean.py      # Clean EiPL implementation
-│   │   │   ├── sse_views.py       # Server-sent events
+│   │   │   ├── sse_views.py       # Server-sent events (legacy)
 │   │   │   ├── sse_clean.py       # Clean SSE implementation
 │   │   │   ├── progress_views.py  # Progress tracking
 │   │   │   └── hint_views.py      # Hint system endpoints
 │   │   ├── course_views.py  # Course management views
 │   │   ├── services.py      # Business logic layer
 │   │   ├── tasks/           # Celery async tasks
-│   │   │   ├── pipeline.py         # Legacy task pipeline
-│   │   │   └── pipeline_clean.py   # Clean task implementation
+│   │   │   └── pipeline.py         # Main task pipeline (execute_eipl_pipeline)
 │   │   └── tests/           # App-specific tests
 │   ├── submissions_app/     # Code submission handling
 │   ├── users_app/           # User management and auth
@@ -239,7 +237,7 @@ purplex/
 │       ├── src/
 │       │   ├── components/  # Vue components
 │       │   ├── features/    # Feature-specific components
-│       │   ├── composables/ # Vue 3 composables (useSSE, useCleanSubmission)
+│       │   ├── composables/ # Vue 3 composables (useSSE, useNotification, etc.)
 │       │   ├── services/    # API services
 │       │   ├── store/       # Vuex store
 │       │   └── types/       # TypeScript definitions
@@ -299,7 +297,17 @@ purplex/
 - **CourseEnrollment**: Student enrollments in courses
 - **CourseProblemSet**: Links problem sets to courses with ordering
 
-## Recent System Changes (Hint System Implementation)
+## Recent System Changes
+
+### Vestigial Code Cleanup (Latest - Completed)
+- **Removed duplicate files**: `pipeline_clean.py`, `eipl_clean.py`, `urls_clean.py`
+- **Removed unused frontend**: `hints/HintButton.vue`, `cleanSubmissionService.ts`, `useCleanSubmission.ts`
+- **Fixed dead code**: Corrected logic error in `AdminUserManagementView`
+- **Removed broken references**: Eliminated methods calling non-existent Celery tasks
+- **Cleaned dependencies**: Removed unused Python (django-celery-beat, django-celery-results, django-storages, boto3) and JavaScript (bootstrap-vue, vue-cli-service, punycode) packages
+- **Configuration improvements**: Made GPT model configurable via `GPT_MODEL` setting
+
+### Hint System Implementation (Previous)
 
 ### Architecture Overview
 - **Full-stack hint system**: Complete implementation across Django backend, Vue.js frontend, and database schema
@@ -322,7 +330,8 @@ purplex/
 
 ### Technical Debt and Improvements
 - ✅ **RESOLVED**: Views refactored from monolithic `views.py` into modular structure
-- **Clean implementations**: New clean versions alongside legacy code (`eipl_clean.py`, `sse_clean.py`, `pipeline_clean.py`)
+- ✅ **RESOLVED**: Vestigial code cleanup completed (removed duplicate files, unused methods, broken imports)
+- **Clean implementations**: SSE has both clean and legacy versions (`sse_clean.py`, `sse_views.py`)
 - **Mixed state management**: Inconsistent patterns between Vuex and composables
 - **Testing coverage**: Both Django tests and pytest infrastructure available
 - **Performance optimizations**: Consider prefetch_related for N+1 query issues
@@ -357,6 +366,7 @@ purplex/
 DJANGO_DEBUG=True                    # Set to False in production
 DJANGO_SECRET_KEY=your-secret-key    # Required for production
 OPENAI_API_KEY=your-openai-key       # For AI-powered features
+GPT_MODEL=gpt-4o-mini                # OpenAI model to use (optional, defaults to gpt-4o-mini)
 
 # Firebase (backend)
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/firebase-credentials.json
@@ -395,7 +405,7 @@ docker-compose -f docker-compose.production.yml up
 ### Key Python Modules
 - `purplex/celery_simple.py` - Simplified Celery configuration
 - `purplex/users_app/authentication.py` - Firebase authentication integration
-- `purplex/problems_app/tasks/pipeline_clean.py` - Clean EiPL task implementation
+- `purplex/problems_app/tasks/pipeline.py` - Main EiPL task implementation (execute_eipl_pipeline)
 
 ## High-Level Architecture Patterns
 
@@ -403,14 +413,14 @@ docker-compose -f docker-compose.production.yml up
 The application uses Celery for asynchronous processing of long-running tasks:
 - **EiPL Processing**: AI-powered natural language code generation via `pipeline.execute_eipl` task
 - **Code Execution**: Secure Docker-based code execution happens in Celery workers
-- **Task Pipeline**: Main tasks include:
-  - `pipeline.generate_variations` - Generate code variations from EiPL
-  - `pipeline.segment_prompt` - Parse and segment user prompts
-  - `pipeline.save_submission` - Save and process submissions
-  - `pipeline.execute_eipl` - Complete EiPL pipeline execution
+- **Task Pipeline**: Main task is `pipeline.execute_eipl` which orchestrates:
+  - Generating code variations from EiPL prompts
+  - Testing variations against test cases
+  - Segmenting user prompts for analysis
+  - Saving submissions and results
 - **Task Tracking**: Tasks are tracked with unique IDs, status polling available via API
 - **Queue Configuration**: Multiple queues in production (high_priority, ai_operations, analytics, maintenance)
-- **Clean vs Legacy**: Both `pipeline.py` (legacy) and `pipeline_clean.py` (refactored) implementations exist
+- **Single Task**: `pipeline.execute_eipl` is the main orchestrator task for the entire EiPL pipeline
 
 ### Authentication Flow
 - Frontend uses Firebase Authentication for user login (Google sign-in)

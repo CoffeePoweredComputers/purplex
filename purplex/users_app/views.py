@@ -14,10 +14,11 @@ from django.contrib.auth.models import User
 from .models import UserProfile, UserRole
 from .authentication import FirebaseAuthentication
 
-# Get API key from environment variable
+# Get API key and model from settings
 client = openai.OpenAI(
     api_key=os.environ.get('OPENAI_API_KEY', '')
 )
+GPT_MODEL = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
 
 class AIGenerateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -71,7 +72,7 @@ class AIGenerateView(APIView):
         ]
 
         response = client.chat.completions.create(
-                model='gpt-4o-mini',
+                model=GPT_MODEL,
                 messages=prompt
         )
 
@@ -150,9 +151,9 @@ class AdminUserManagementView(APIView):
 
         user_profiles = UserProfile.objects.all().select_related('user')
 
-        if not user_profiles.exists():
+        if user_profiles.exists():
+            # Users with profiles exist, return them
             users_data = []
-            # First add users with profiles
             for profile in user_profiles:
                 users_data.append({
                     'id': profile.user.id,
@@ -161,28 +162,18 @@ class AdminUserManagementView(APIView):
                     'role': profile.role,
                     'is_active': profile.user.is_active
                 })
-
-            for user in users:
-                if not hasattr(user, 'profile'):
-                    users_data.append({
-                        'id': user.id,
-                        'username': user.username,
-                        'email': user.email,
-                        'role': 'user',  # Default role
-                        'is_active': user.is_active
-                    })
             return Response(users_data)
-
+        
+        # No profiles exist, return users with default roles
         users_data = []
-        for profile in user_profiles:
+        for user in users:
             users_data.append({
-                'id': profile.user.id,
-                'username': profile.user.username,
-                'email': profile.user.email,
-                'role': profile.role,
-                'is_active': profile.user.is_active
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'role': 'user',  # Default role
+                'is_active': user.is_active
             })
-
         return Response(users_data)
 
     def post(self, request, user_id):

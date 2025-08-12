@@ -4,7 +4,6 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "serve": "vue-cli-service serve",
     "django": "python ../../manage.py runserver",
     "dev": "concurrently \"yarn vite --mode development\" \"yarn django\"",
     "prod": "concurrently \"yarn vite --mode production\" \"yarn django\"",
@@ -21,13 +20,10 @@
   "dependencies": {
     "ace-builds": "^1.32.5",
     "axios": "^1.7.3",
-    "bootstrap-vue": "^2.23.1",
     "concurrently": "^8.2.2",
     "firebase": "^10.12.5",
     "marked": "^15.0.12",
-    "punycode": "^2.3.1",
     "vue": "^3.3.11",
-    "vue-cli-service": "^5.0.10",
     "vue-router": "^4.4.2",
     "vue3-ace-editor": "^2.2.4",
     "vuex": "^4.1.0"

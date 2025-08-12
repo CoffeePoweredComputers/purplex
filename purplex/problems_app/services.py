@@ -6,7 +6,6 @@ import logging
 from django.conf import settings
 from typing import List, Dict, Any, Optional
 from celery import current_app
-from celery.result import AsyncResult
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +13,7 @@ class CodeExecutionService:
     """Service for running and testing Python code securely."""
     
     def __init__(self):
-        self.docker_image = getattr(settings, 'DOCKER_IMAGE', 'python:3.9-alpine')
         self.timeout = getattr(settings, 'CODE_EXECUTION_TIMEOUT', 5)
-        self.memory_limit = getattr(settings, 'CODE_EXECUTION_MEMORY_LIMIT', '128m')
         
     def test_solution(self, user_code: str, function_name: str, test_cases: List[Dict]) -> Dict:
         """Test a solution against provided test cases."""
@@ -242,41 +239,6 @@ print(json.dumps(output))
             if os.path.exists(temp_file):
                 os.unlink(temp_file)
     
-    def test_solution_async(self, code: str, function_name: str, test_data: List[Dict]) -> str:
-        """
-        Test solution asynchronously using Celery.
-        
-        Returns task ID for tracking.
-        """
-        from .tasks import execute_code
-        task = execute_code.apply_async(
-            args=[code, function_name, test_data],
-            queue='high_priority',
-            priority=9
-        )
-        return task.id
-    
-    def test_solution_with_timeout(self, code: str, function_name: str, test_data: List[Dict], timeout: int = 30) -> Dict:
-        """
-        Test solution with a timeout using Celery.
-        
-        Waits for result up to timeout seconds.
-        """
-        from .tasks import execute_code
-        task = execute_code.apply_async(
-            args=[code, function_name, test_data],
-            queue='high_priority',
-            priority=9
-        )
-        
-        try:
-            return task.get(timeout=timeout)
-        except Exception as e:
-            return {
-                'success': False,
-                'error': f'Execution timeout or error: {str(e)}',
-                'task_id': task.id
-            }
 
 
 class AITestGenerationService:
@@ -284,68 +246,12 @@ class AITestGenerationService:
     
     def __init__(self):
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        self.model_name = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
         if self.openai_api_key:
             import openai
             self.client = openai.OpenAI(api_key=self.openai_api_key)
         else:
             self.client = None
-            
-    def generate_test_cases(self, problem_description: str, function_signature: str, num_cases: int = 5) -> List[Dict]:
-        """Generate test cases for a problem using GPT-4."""
-        
-        if not self.client:
-            return []
-            
-        prompt = f"""Generate {num_cases} test cases for the following problem:
-
-Problem Description:
-{problem_description}
-
-Function Signature:
-{function_signature}
-
-Generate diverse test cases that cover:
-- Basic functionality
-- Edge cases
-- Error conditions (if applicable)
-
-Return the test cases as a JSON array where each test case has:
-- "inputs": array of input arguments
-- "expected_output": the expected return value
-- "description": brief description of what this test case tests
-
-Example format:
-[
-    {{"inputs": [5, 3], "expected_output": 8, "description": "Basic addition"}},
-    {{"inputs": [0, 0], "expected_output": 0, "description": "Adding zeros"}}
-]
-"""
-        
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant that generates comprehensive test cases for programming problems."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=1000
-            )
-            
-            content = response.choices[0].message.content
-            
-            # Extract JSON from response
-            import re
-            json_match = re.search(r'\[.*\]', content, re.DOTALL)
-            if json_match:
-                test_cases = json.loads(json_match.group())
-                return test_cases
-            else:
-                return []
-                
-        except Exception as e:
-            logger.error(f"Failed to generate test cases: {str(e)}")
-            return []
             
     def generate_eipl_variations(self, problem, user_prompt: str) -> Dict[str, Any]:
         """Generate code variations for EiPL problems based on user's description"""
@@ -392,7 +298,7 @@ def {problem.function_name}(...):
 """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=self.model_name,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -435,25 +341,6 @@ def {problem.function_name}(...):
                 'variations': []
             }
     
-    def generate_eipl_variations_async(self, problem_id: int, user_prompt: str) -> str:
-        """
-        Delegate EIPL generation to Celery task.
-        
-        Returns task ID for async processing.
-        """
-        from .tasks import generate_eipl_variations
-        task = generate_eipl_variations.apply_async(
-            args=[problem_id, user_prompt],
-            queue='ai_operations',
-            priority=5
-        )
-        return task.id
-    
-    def get_cached_result(self, problem_id: int, user_prompt: str) -> Optional[Dict]:
-        """Check if result is cached in Redis."""
-        from django.core.cache import cache
-        cache_key = f"cache:eipl:{problem_id}:{hash(user_prompt)}"
-        return cache.get(cache_key)
 
 
 class ProblemValidationService:
@@ -515,6 +402,7 @@ class SegmentationService:
     
     def __init__(self):
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        self.model_name = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
         if self.openai_api_key:
             import openai
             self.client = openai.OpenAI(api_key=self.openai_api_key)
@@ -567,7 +455,7 @@ class SegmentationService:
             
             # Make API call to GPT-4
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",  # Using same model as AI service for consistency
+                model=self.model_name,  # Using configured model
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Please analyze this prompt: {user_prompt}"}
@@ -805,21 +693,6 @@ REMEMBER: Copy-paste precision required - every character in "text" must be foun
             return {'success': False, 'error': f'JSON parsing error: {str(e)}', 'segments': [], 'groups': []}
         except Exception as e:
             return {'success': False, 'error': f'Parsing error: {str(e)}', 'segments': [], 'groups': []}
-    
-    def _is_function_definition_segment(self, text: str) -> bool:
-        """
-        DEPRECATED: No longer used for filtering segments.
-        Keeping for reference only - pure segmentation returns all segments.
-        
-        Previously checked if segment just describes function definition/signature.
-        """
-        definition_keywords = [
-            'function takes', 'function accepts', 'function has parameters',
-            'takes a parameter', 'takes an argument', 'function definition',
-            'defines a function', 'function signature', 'function called'
-        ]
-        text_lower = text.lower()
-        return any(keyword in text_lower for keyword in definition_keywords)
     
     def _determine_comprehension_level(self, segment_count: int, threshold: int = 2, config: dict = None) -> tuple:
         """
