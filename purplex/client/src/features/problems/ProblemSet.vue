@@ -381,7 +381,7 @@ export default {
             editorFontSize: 14,
             codeCopied: false,
             showLineNumbers: true,
-            editorTheme: 'dark',
+            editorTheme: 'tomorrow-night',
             
             /* Draft Management */
             autoSaveInterval: null,
