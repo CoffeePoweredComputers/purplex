@@ -2,14 +2,9 @@ name: PostgreSQL Tests
 
 on:
   push:
-    branches: [main, develop]
+    branches: ['**']
   pull_request:
-    branches: [main]
-    paths:
-      - '**.py'
-      - 'requirements.txt'
-      - '.github/workflows/postgres-tests.yml'
-      - 'docker-compose*.yml'
+    branches: ['**']
 
 jobs:
   test-postgres:
@@ -182,31 +177,32 @@ jobs:
           DJANGO_SECRET_KEY: test-key
           DJANGO_ALLOWED_HOSTS: localhost
         run: |
-          python -c "
-import os
-os.environ['DJANGO_SETTINGS_MODULE'] = 'purplex.settings'
-import django
-django.setup()
-
-from concurrent.futures import ThreadPoolExecutor
-from django.db import connection
-import time
-
-def test_connection(i):
-    with connection.cursor() as cursor:
-        cursor.execute('SELECT COUNT(*) FROM problems_app_problem')
-        result = cursor.fetchone()
-    return i
-
-# Test 100 concurrent database connections
-start = time.time()
-with ThreadPoolExecutor(max_workers=100) as executor:
-    results = list(executor.map(test_connection, range(100)))
-duration = time.time() - start
-
-print(f'✓ Handled {len(results)} concurrent connections in {duration:.2f}s')
-print(f'✓ Average time per connection: {duration/100*1000:.2f}ms')
-"
+          cat > test_concurrent.py << 'EOF'
+          import os
+          os.environ['DJANGO_SETTINGS_MODULE'] = 'purplex.settings'
+          import django
+          django.setup()
+          
+          from concurrent.futures import ThreadPoolExecutor
+          from django.db import connection
+          import time
+          
+          def test_connection(i):
+              with connection.cursor() as cursor:
+                  cursor.execute('SELECT COUNT(*) FROM problems_app_problem')
+                  result = cursor.fetchone()
+              return i
+          
+          # Test 100 concurrent database connections
+          start = time.time()
+          with ThreadPoolExecutor(max_workers=100) as executor:
+              results = list(executor.map(test_connection, range(100)))
+          duration = time.time() - start
+          
+          print(f'✓ Handled {len(results)} concurrent connections in {duration:.2f}s')
+          print(f'✓ Average time per connection: {duration/100*1000:.2f}ms')
+          EOF
+          python test_concurrent.py
       
       - name: Run scalability tests
         env:

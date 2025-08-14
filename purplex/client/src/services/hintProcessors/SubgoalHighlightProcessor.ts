@@ -1,6 +1,6 @@
 /**
  * Subgoal Highlight Processor
- * Converts Subgoal Highlighting hints to code markers with proper logging
+ * Inserts STEP comments into code for subgoal highlighting
  */
 
 import { log } from '../../utils/logger';
@@ -8,8 +8,7 @@ import {
   HintProcessor, 
   HintRenderStrategy, 
   HintResult, 
-  SubgoalData,
-  EditorMarker 
+  SubgoalData
 } from './types';
 
 const logger = log.createComponentLogger('SubgoalHighlightProcessor');
@@ -25,17 +24,17 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
       
       if (!code || !subgoals || !Array.isArray(subgoals)) {
         logger.warn('Invalid hint data: missing code or subgoals array');
-        return { success: false, code: '', markers: [], error: 'Missing code or subgoals array' };
+        return { success: false, code: '', error: 'Missing code or subgoals array' };
       }
 
-      // Use the addSubgoalComments method to insert comments and get markers
+      // Use the addSubgoalComments method to insert comments
       const result = SubgoalHighlightProcessor.addSubgoalComments(code, subgoals);
       
       if (!result.success) {
         return result;
       }
 
-      logger.debug(`Processed ${subgoals.length} subgoals with ${result.markers?.length || 0} markers`);
+      logger.debug(`Processed ${subgoals.length} subgoals`);
 
       // Add metadata to the result
       return {
@@ -50,35 +49,35 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       logger.error('Subgoal highlight processing error', errorMessage);
-      return { success: false, code: '', markers: [], error: errorMessage };
+      return { success: false, code: '', error: errorMessage };
     }
-  }
-
-  static createSubgoalMarker(subgoal: any, index: number): EditorMarker {
-    return {
-      startRow: subgoal.line_start - 1,
-      startCol: 0,
-      endRow: subgoal.line_end - 1,
-      endCol: 0,
-      className: `subgoal-marker subgoal-${index}`,
-      type: 'background',
-      subgoalIndex: index,
-      comment: subgoal.comment || subgoal.title || ''
-    };
   }
 
   static addSubgoalComments(code: string, subgoals: SubgoalData['subgoals']): HintResult {
     logger.debug('Adding subgoal comments to code');
+    logger.debug('Original code:', { 
+      code, 
+      length: code.length,
+      lineCount: code.split('\n').length,
+      hasNewlines: code.includes('\n')
+    });
     
     try {
       const lines = code.split('\n');
       const modifiedLines = [...lines];
-      const markers: EditorMarker[] = [];
+      
+      logger.debug('Original lines:', lines.map((line, idx) => ({
+        lineNumber: idx + 1,
+        content: line,
+        length: line.length
+      })));
       
       // Sort by line number (descending) to process from bottom to top
       const sortedSubgoals = [...subgoals]
         .map((sg, idx) => ({ subgoal: sg, originalIndex: idx }))
         .sort((a, b) => b.subgoal.line_start - a.subgoal.line_start);
+      
+      logger.debug('Sorted subgoals:', sortedSubgoals);
       
       // Process each subgoal
       sortedSubgoals.forEach(({ subgoal, originalIndex }) => {
@@ -88,61 +87,41 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
         const indentationMatch = targetLine.match(/^\s*/);
         const indentation = indentationMatch ? indentationMatch[0] : '';
         const stepNumber = originalIndex + 1;
-        const commentText = indentation + `# STEP ${stepNumber}: ${subgoal.title || subgoal.comment || 'Subgoal'}`;
+        // Use explanation field from backend (the actual field that exists)
+        const commentContent = subgoal.explanation || 'Subgoal';
+        const commentText = indentation + (`# STEP ${stepNumber}: ${commentContent}`.replace(/[^\x20-\x7E]/g, ''));
         const insertPosition = subgoal.line_start - 1; // Convert to 0-based
         
         // Insert comment before the target line
+        logger.debug(`Inserting comment at position ${insertPosition}:`, {
+          commentText,
+          targetLine,
+          indentation: indentation.length,
+          linesBeforeInsert: modifiedLines.length
+        });
+
         modifiedLines.splice(insertPosition, 0, commentText);
         
-        logger.debug(`Subgoal ${originalIndex}: inserted "${commentText}" at position ${insertPosition}`);
+        logger.debug(`After insertion:`, {
+          linesAfterInsert: modifiedLines.length,
+          insertedLine: modifiedLines[insertPosition],
+          nextLine: modifiedLines[insertPosition + 1]
+        });
       });
       
-      // Now create markers based on final positions
-      // Re-sort by ascending order for marker creation
-      const ascendingSubgoals = [...subgoals]
-        .map((sg, idx) => ({ subgoal: sg, originalIndex: idx }))
-        .sort((a, b) => a.subgoal.line_start - b.subgoal.line_start);
+      const joinedLines = modifiedLines.join('\n');
       
-      let offsetSoFar = 0;
-      ascendingSubgoals.forEach(({ subgoal, originalIndex }) => {
-        const commentRow = subgoal.line_start - 1 + offsetSoFar;
-
-        // compute horizontal space for the comment line based on foward whitespace of last line
-        const lastLine = modifiedLines[commentRow + 1] || '';
-        const whitespaceMatch = lastLine.match(/^\s*/);
-        const forwardWhitespace = whitespaceMatch ? whitespaceMatch[0].length : 0;
-        
-        // Marker for the comment line
-        markers.push({
-          startRow: commentRow,
-          startCol: forwardWhitespace,
-          endRow: commentRow,
-          endCol: forwardWhitespace,
-          className: `ace_subgoal-comment subgoal-${originalIndex}`,
-          type: 'fullLine'
-        });
-        
-        // Markers for the highlighted code lines
-        for (let i = 0; i <= subgoal.line_end - subgoal.line_start; i++) {
-          markers.push({
-            startRow: commentRow + 1 + i,
-            startCol: forwardWhitespace,
-            endRow: commentRow + 1 + i,
-            endCol: forwardWhitespace,
-            className: `ace_subgoal-highlight subgoal-${originalIndex}`,
-            type: 'fullLine'
-          });
-        }
-        
-        offsetSoFar++;
-        
-        logger.debug(`Subgoal ${originalIndex}: comment at ${commentRow}, highlighting ${commentRow + 1} to ${commentRow + 1 + (subgoal.line_end - subgoal.line_start)}`);
+      logger.debug('Final result:', {
+        modifiedCode: joinedLines,
+        length: joinedLines.length,
+        lineCount: modifiedLines.length,
+        firstFewLines: modifiedLines.slice(0, 5),
+        hasNewlines: joinedLines.includes('\n')
       });
       
       return {
         success: true,
-        code: modifiedLines.join('\n'),
-        markers,
+        code: joinedLines,
         metadata: {
           strategy: HintRenderStrategy.ANNOTATE_CODE,
           canStack: false,
@@ -152,7 +131,7 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
 
     } catch (error) {
       logger.error('Failed to add subgoal comments', error);
-      return { success: false, code, markers: [] };
+      return { success: false, code };
     }
   }
 }

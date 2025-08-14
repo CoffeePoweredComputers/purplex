@@ -3,8 +3,7 @@ import {
   HintProcessors,
   HintRenderStrategy,
   HintResult,
-  HintType,
-  EditorMarker as HintMarker
+  HintType
 } from '../services/hintProcessors'
 import { log } from '../utils/logger'
 
@@ -17,17 +16,6 @@ interface HintData {
 }
 
 
-interface EditorAnnotation {
-  row: number
-  text: string
-  type: string
-}
-
-interface EditorTooltip {
-  row: number
-  column: number
-  text: string
-}
 
 
 /**
@@ -42,10 +30,6 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
   const processingState = ref<boolean>(false)
   const errorState = ref<string | null>(null)
 
-  // Track editor modifications
-  const editorMarkers = ref<HintMarker[]>([])
-  const editorAnnotations = ref<EditorAnnotation[]>([])
-  const editorTooltips = ref<EditorTooltip[]>([])
 
   // Computed states
   const hasActiveHints = computed(() => activeHints.value.length > 0)
@@ -136,11 +120,18 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
           case HintRenderStrategy.ANNOTATE_CODE:
             // Update editor content
             if (result.code) {
+              log.debug('Modified code from hint:', {
+                code: result.code,
+                length: result.code.length,
+                lineCount: result.code.split('\n').length,
+                firstFewChars: result.code.substring(0, 100),
+                hasNewlines: result.code.includes('\n')
+              });
               modifiedCode.value = result.code
-            }
-            // Apply markers if any
-            if (result.markers) {
-              editorMarkers.value = [...editorMarkers.value, ...result.markers]
+              log.debug('modifiedCode.value set to:', {
+                value: modifiedCode.value,
+                length: modifiedCode.value.length
+              });
             }
             break
             
@@ -172,9 +163,8 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
         action: 'applied'
       } as HintData)
 
-      // Apply modifications to editor
+      // Let Vue's reactivity handle the update
       await nextTick()
-      applyModificationsToEditor()
 
       return true
     } catch (error) {
@@ -274,9 +264,6 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
       // Reset to original code
       modifiedCode.value = originalCode.value
 
-      // Clear all editor modifications
-      clearEditorModifications()
-
       // Record in history
       hintHistory.value.push({
         hintType: 'all',
@@ -321,9 +308,6 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
     modifiedCode.value = originalCode.value
     
     // Clear all editor modifications
-    editorMarkers.value = []
-    editorAnnotations.value = []
-    editorTooltips.value = []
 
     // Reapply each hint in order (excluding UI-only hints)
     const hintsToReapply = activeHints.value.filter(
@@ -349,10 +333,6 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
           if (result.code) {
             modifiedCode.value = result.code
           }
-          
-          if (result.markers) {
-            editorMarkers.value = [...editorMarkers.value, ...result.markers]
-          }
           // Annotations are not part of HintResult interface
           // if (result.annotations) {
           //   editorAnnotations.value = [...editorAnnotations.value, ...result.annotations]
@@ -361,51 +341,10 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
       }
     }
 
-    // Apply modifications to editor
+    // Let Vue's reactivity handle the update
     await nextTick()
-    applyModificationsToEditor()
   }
 
-  /**
-   * Apply visual modifications to the editor
-   * (markers, annotations, tooltips)
-   */
-  const applyModificationsToEditor = (): void => {
-    try {
-      if (!editorRef.value) return
-
-      // The ref points to the Editor Vue component, not the Ace instance
-      // Markers are automatically applied via the reactive hintMarkers prop
-      log.debug('Editor markers updated via reactive prop:', editorMarkers.value)
-
-      // Note: The Editor component handles markers through its hintMarkers prop
-      // We don't need to manually call setHintMarkers as it watches the prop
-
-    } catch (error) {
-      log.error('Error applying modifications to editor', error)
-    }
-  }
-
-  /**
-   * Clear all visual modifications from the editor
-   */
-  const clearEditorModifications = (): void => {
-    try {
-      // Clear markers - the Editor component will react to this change
-      editorMarkers.value = []
-      
-      // Clear annotations
-      editorAnnotations.value = []
-      
-      // Clear tooltips
-      editorTooltips.value = []
-
-      log.debug('Cleared all editor modifications')
-
-    } catch (error) {
-      log.error('Error clearing editor modifications', error)
-    }
-  }
 
   /**
    * Get hint statistics
@@ -470,8 +409,6 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
     hintsByType,
     processingState: computed(() => processingState.value),
     errorState: computed(() => errorState.value),
-    editorMarkers: computed(() => editorMarkers.value),
-    editorAnnotations: computed(() => editorAnnotations.value),
     
     // Methods
     applyHint,

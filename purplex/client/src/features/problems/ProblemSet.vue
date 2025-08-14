@@ -84,6 +84,7 @@
           </div>
           <Editor 
             ref="entry" 
+            :key="editorRenderKey"
             lang="python" 
             mode="python" 
             height="450px" 
@@ -92,7 +93,6 @@
             :read-only="true"
             :show-gutter="showLineNumbers"
             :theme="currentTheme"
-            :hint-markers="currentHintMarkers"
             @update:value="updateSolutionCode"
           />
           <div class="editor-toolbar">
@@ -299,7 +299,6 @@ export default {
         const {
             modifiedCode,
             hasActiveHints,
-            editorMarkers,
             activeOverlays,
             applyHint,
             removeHint,
@@ -329,7 +328,6 @@ export default {
             originalSolutionCode,
             modifiedCode,
             hasActiveHints,
-            editorMarkers,
             activeOverlays,
             applyHint,
             removeHint,
@@ -350,6 +348,9 @@ export default {
             
             /* Navigation State */
             currentProblem: 0,
+            
+            /* Editor State */
+            editorRenderKey: 0,
             
             /* Submission State */
             loading: false,
@@ -392,13 +393,15 @@ export default {
         },
         
         displayedCode() {
-            return this.hasActiveHints ? this.modifiedCode : this.solutionCode;
-        },
-        
-        currentHintMarkers() {
-            const markers = this.editorMarkers || [];
-            this.logger.debug('Current hint markers computed', { markers });
-            return markers;
+            const code = this.hasActiveHints ? this.modifiedCode : this.solutionCode;
+            this.logger.debug('displayedCode computed:', {
+                hasActiveHints: this.hasActiveHints,
+                codeLength: code.length,
+                lineCount: code.split('\n').length,
+                firstFewChars: code.substring(0, 100),
+                hasNewlines: code.includes('\n')
+            });
+            return code;
         },
         
         suggestedTraceOverlays() {
@@ -751,7 +754,7 @@ export default {
                 // Connect to SSE stream for real-time updates
                 await this.connectToEiPLSubmission(
                     submissionResponse.request_id,
-                    (variations, testResults) => {
+                    (variations, testResults, segmentation) => {
                         // Success callback - results are ready
                         this.logger.info('EiPL results received', { 
                             variations: variations.length,
@@ -784,8 +787,15 @@ export default {
                         this.promptCorrectness = perfectVariations;
                         this.userPrompt = promptText;
                         
-                        // TODO: Handle segmentation data when available
-                        this.segmentationData = null;
+                        // Handle segmentation data from SSE response
+                        this.segmentationData = segmentation || null;
+                        console.log('Segmentation data received from SSE:', {
+                            segmentation,
+                            hasSegmentation: !!segmentation,
+                            currentProblem: this.getCurrentProblem(),
+                            problemType: this.getCurrentProblem()?.problem_type,
+                            segmentationEnabled: this.getCurrentProblem()?.segmentation_enabled
+                        });
                         
                         // Calculate score based on total tests passed across all variations
                         const score = totalTestsRun > 0 
@@ -1101,6 +1111,10 @@ export default {
                     const success = await this.applyHint(hintType, hintData);
                     if (success) {
                         this.logger.info('Applied hint', { hintType });
+                        // Force complete re-render for subgoal hints to fix overlapping text
+                        if (hintType === 'subgoal_highlight') {
+                            this.editorRenderKey++;
+                        }
                     } else {
                         this.logger.error('Failed to apply hint', { hintType });
                     }
@@ -1109,6 +1123,10 @@ export default {
                     const success = await this.removeHint(hintType);
                     if (success) {
                         this.logger.info('Removed hint', { hintType });
+                        // Force complete re-render when removing subgoal hints
+                        if (hintType === 'subgoal_highlight') {
+                            this.editorRenderKey++;
+                        }
                     } else {
                         this.logger.error('Failed to remove hint', { hintType });
                     }

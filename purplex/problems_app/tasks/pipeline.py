@@ -226,7 +226,8 @@ def save_submission_helper(
         'passing_variations': successful_variations,
         'user_prompt': user_prompt,
         'problem_slug': problem.slug,
-        'user': user.username
+        'user': user.username,
+        'segmentation': segmentation  # Include segmentation data
     }
 
 
@@ -345,6 +346,9 @@ def execute_eipl_pipeline(
         )
         
         logger.info(f"Submission {submission_result['submission_id']} saved successfully")
+        logger.info(f"Submission result includes segmentation: {bool(submission_result.get('segmentation'))}")
+        if submission_result.get('segmentation'):
+            logger.info(f"Segmentation data: {submission_result['segmentation']}")
         publish_progress(task_id, 100, f"Submission complete! Score: {score}%")
         
         # Publish completion event

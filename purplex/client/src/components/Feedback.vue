@@ -137,7 +137,7 @@
               class="test-item passing"
             >
               <div class="test-content">
-                <code class="test-call">{{ test.function_call }} → {{ test.expected_output }}</code>
+                <code class="test-call">{{ test.function_call }} → {{ test.expected_output !== undefined && test.expected_output !== null && test.expected_output !== '' ? test.expected_output : 'None' }}</code>
               </div>
             </article>
           </div>
@@ -294,7 +294,16 @@ export default defineComponent({
     },
     shouldShowSegmentation(): boolean {
       // Show segmentation section if it's an EiPL problem and segmentation is enabled
-      return this.isEiPLProblem && this.segmentationEnabled;
+      const result = this.isEiPLProblem && this.segmentationEnabled;
+      console.log('Feedback.shouldShowSegmentation:', {
+        isEiPLProblem: this.isEiPLProblem,
+        problemType: this.problemType,
+        segmentationEnabled: this.segmentationEnabled,
+        hasSegmentation: !!this.segmentation,
+        segmentation: this.segmentation,
+        result
+      });
+      return result;
     },
     slides(): Slide[] {
       const slideResults = this.codeResults.map((code, index) => {
@@ -316,7 +325,9 @@ export default defineComponent({
               ...test,
               isSuccessful: test.isSuccessful !== undefined ? test.isSuccessful : (test.pass || false),
               function_call: test.function_call || '',
-              expected_output: test.expected_output || '',
+              expected_output: test.expected_output !== undefined && test.expected_output !== null 
+                ? String(test.expected_output)
+                : 'None',
               actual_output: test.actual_output !== undefined && test.actual_output !== null 
                 ? test.actual_output 
                 : (test.error ? `Error: ${test.error}` : 'No output'),
@@ -377,6 +388,26 @@ export default defineComponent({
     },
   },
   watch: {
+    segmentation: {
+      handler(newVal, oldVal) {
+        console.log('Feedback: segmentation prop changed', {
+          oldVal,
+          newVal,
+          problemType: this.problemType,
+          segmentationEnabled: this.segmentationEnabled,
+          shouldShowSegmentation: this.shouldShowSegmentation
+        });
+      },
+      deep: true
+    },
+    segmentationEnabled(newVal, oldVal) {
+      console.log('Feedback: segmentationEnabled prop changed', {
+        oldVal,
+        newVal,
+        problemType: this.problemType,
+        shouldShowSegmentation: this.shouldShowSegmentation
+      });
+    },
     slides: {
       handler() {
         this.updateSolutionCode();
@@ -385,6 +416,12 @@ export default defineComponent({
     },
   },
   mounted() {
+    console.log('Feedback component mounted with props:', {
+      problemType: this.problemType,
+      segmentationEnabled: this.segmentationEnabled,
+      segmentation: this.segmentation,
+      shouldShowSegmentation: this.shouldShowSegmentation
+    });
     this.updateSolutionCode();
   },
   methods: {
