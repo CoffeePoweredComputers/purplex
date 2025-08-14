@@ -8,8 +8,7 @@ import {
   HintProcessor, 
   HintRenderStrategy, 
   HintResult, 
-  VariableFadeData,
-  EditorMarker 
+  VariableFadeData
 } from './types';
 
 const logger = log.createComponentLogger('VariableFadeProcessor');
@@ -25,11 +24,10 @@ class VariableFadeProcessor implements HintProcessor<VariableFadeData> {
       
       if (!code || !actualMappings) {
         logger.warn('Invalid hint data: missing code or mappings');
-        return { success: false, code: '', markers: [], error: 'Missing required data' };
+        return { success: false, code: '', error: 'Missing required data' };
       }
 
       let modifiedCode = code;
-      const markers: EditorMarker[] = [];
 
       // Process each variable mapping
       for (const mapping of actualMappings) {
@@ -47,33 +45,16 @@ class VariableFadeProcessor implements HintProcessor<VariableFadeData> {
         // Replace variables in code
         const regex = new RegExp(`\\b${from}\\b`, 'g');
         modifiedCode = modifiedCode.replace(regex, to);
-
-        // Create markers for highlighting
-        const lines = modifiedCode.split('\n');
-        lines.forEach((line, lineIndex) => {
-          if (line.includes(to)) {
-            markers.push({
-              startRow: lineIndex,
-              startCol: line.indexOf(to),
-              endRow: lineIndex,
-              endCol: line.indexOf(to) + to.length,
-              className: 'ace_variable-meaningful',
-              type: 'text' as const
-            });
-          }
-        });
       }
 
       logger.debug('Variable fade processing completed', {
         originalLength: code.length,
-        modifiedLength: modifiedCode.length,
-        markersCount: markers.length
+        modifiedLength: modifiedCode.length
       });
 
       return {
         success: true,
         code: modifiedCode,
-        markers,
         metadata: {
           strategy: HintRenderStrategy.MODIFY_CODE,
           canStack: false,  // Cannot stack with other code modifications
@@ -84,7 +65,7 @@ class VariableFadeProcessor implements HintProcessor<VariableFadeData> {
     } catch (error) {
       logger.error('Variable fade processing error', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      return { success: false, code: '', markers: [], error: errorMessage };
+      return { success: false, code: '', error: errorMessage };
     }
   }
 

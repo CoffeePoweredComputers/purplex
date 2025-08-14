@@ -131,6 +131,8 @@ class StudentService:
                     'description': problem.description,
                     'difficulty': problem.difficulty,
                     'problem_type': problem.problem_type,
+                    'segmentation_enabled': problem.segmentation_enabled,  # Add this field
+                    'reference_solution': problem.reference_solution,  # Add this for segmentation display
                     'order': membership.order,
                     'categories': [cat.name for cat in problem.categories.all()],
                     'test_case_count': problem.test_cases.count(),

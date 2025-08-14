@@ -8,7 +8,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 📚 CRITICAL DOCUMENTATION - READ BEFORE CODING
 
-**See [DOCUMENTATION_INDEX.md](./DOCUMENTATION_INDEX.md) for complete documentation overview**
 
 **You MUST consult these core documents before writing any code:**
 
@@ -59,7 +58,7 @@ Purplex is a modern educational coding challenge platform that helps students pr
 - **Secure Code Execution**: Isolated Docker containers for safe code testing
 - **User Progress Tracking**: Detailed analytics on student performance and learning paths
 - **Rich Admin Interface**: Custom Vue.js admin panels for problem and user management
-- **Firebase Authentication**: Secure authentication with Google sign-in support
+- **Unified Authentication**: Mock Firebase for dev, real Firebase for production
 - **Real-time Feedback**: Immediate test results with detailed scoring
 - **Educational Hint System**: Multi-modal hint delivery (Variable Fade, Subgoal Highlighting, Suggested Trace)
 - **Course Context Support**: Full course enrollment and progress isolation
@@ -102,8 +101,6 @@ pytest -m integration           # Run integration tests only
 pytest -m "not slow"            # Skip slow tests
 pytest tests/unit/              # Run specific test directory
 
-# Run hint system tests specifically
-python run_hint_tests.py
 
 # Create superuser
 python manage.py createsuperuser
@@ -124,31 +121,25 @@ python manage.py shell
 cd purplex/client
 
 # Install dependencies
-npm install
-# or
 yarn install
 
 # Development server (starts both frontend and backend)
-npm run dev
-# or
 yarn dev
 
 # Frontend only
 yarn vite --mode development
 
 # Production build
-npm run build
-# or
 yarn build
 
 # Preview production build
-npm run preview
+yarn preview
 
 # Type checking
-npm run typecheck
+yarn typecheck
 
 # Linting
-npm run lint
+yarn lint
 ```
 
 ### Celery & Redis (Async Task Processing)
@@ -179,18 +170,19 @@ docker-compose -f docker-compose.dev.yml up
 # Or manually start services:
 # Terminal 1: PostgreSQL (if not using start.sh)
 docker run -d --name purplex-postgres \
-  -e POSTGRES_DB=purplex \
+  -e POSTGRES_DB=purplex_dev \
   -e POSTGRES_USER=purplex_user \
-  -e POSTGRES_PASSWORD=purplex2024prod \
+  -e POSTGRES_PASSWORD=devpass \
   -p 5432:5432 \
+  -v purplex_postgres_dev_data:/var/lib/postgresql/data \
   postgres:15-alpine
 
 # Terminal 2: Redis
 docker run -d --name purplex-redis -p 6379:6379 redis:7-alpine
 
-# Terminal 3: Django with PostgreSQL
-export DJANGO_SETTINGS_MODULE=purplex.settings_production
-export $(cat .env.production | grep -v '^#' | xargs)
+# Terminal 3: Django (settings auto-detected from PURPLEX_ENV)
+export PURPLEX_ENV=development  # or production
+export $(cat .env.development | grep -v '^#' | xargs)  # or .env.production
 python manage.py runserver
 
 # Terminal 4: Celery worker
@@ -205,7 +197,7 @@ celery -A purplex.celery_simple worker -l info
 - **Database**: PostgreSQL 15 (Docker container)
 - **Task Queue**: Celery 5.x with Redis broker
 - **Cache/Message Broker**: Redis 7 (multiple databases for different purposes)
-- **Authentication**: Firebase Authentication (custom Django integration)
+- **Authentication**: Unified authentication system (Mock Firebase for dev, real for prod)
 - **Code Execution**: Docker containers (isolated for security)
 - **State Management**: Vuex 4 + Vue Composables
 - **Editor**: Ace Editor
@@ -224,7 +216,13 @@ purplex/
 ├── pytest.ini               # Pytest configuration
 ├── start.sh                 # Development environment startup script
 ├── purplex/                 # Main Django app
-│   ├── settings.py          # Django settings
+│   ├── settings/            # Modular Django settings
+│   │   ├── __init__.py      # Auto-selects based on PURPLEX_ENV
+│   │   ├── base.py          # Shared settings
+│   │   ├── development.py   # Development settings
+│   │   └── production.py    # Production settings
+│   ├── config/              # Environment configuration
+│   │   └── environment.py   # Configuration management
 │   ├── urls.py              # Root URL configuration
 │   ├── celery_simple.py     # Celery configuration
 │   ├── problems_app/        # Problems and hints module
@@ -238,17 +236,23 @@ purplex/
 │   │   │   └── hint_views.py      # Hint system endpoints
 │   │   ├── course_views.py  # Course management views
 │   │   ├── services/        # Business logic layer
+│   │   │   ├── admin_service.py
+│   │   │   ├── ai_generation_service.py
 │   │   │   ├── code_execution_service.py
-│   │   │   ├── progress_service.py
-│   │   │   ├── student_service.py
 │   │   │   ├── hint_service.py
+│   │   │   ├── progress_service.py
+│   │   │   ├── segmentation_service.py
+│   │   │   ├── student_service.py
+│   │   │   ├── submission_validation_service.py
+│   │   │   ├── validation_service.py
 │   │   │   └── __init__.py
 │   │   ├── tasks/           # Celery async tasks
 │   │   │   └── pipeline.py         # Main task pipeline (execute_eipl_pipeline)
 │   │   └── tests/           # App-specific tests
 │   ├── submissions_app/     # Code submission handling
 │   ├── users_app/           # User management and auth
-│   │   └── authentication.py # Firebase authentication
+│   │   ├── unified_authentication.py  # Unified auth for all environments
+│   │   └── mock_firebase.py          # Mock Firebase for development
 │   └── client/              # Vue.js frontend
 │       ├── src/
 │       │   ├── components/  # Vue components
@@ -286,14 +290,14 @@ purplex/
 
 #### Progress & Hints Endpoints
 - `/api/progress/` - User progress tracking
-- `/api/progress/problem-set/<slug>/` - Problem set progress
+- `/api/problem-sets/<slug>/progress/` - Problem set progress
 - `/api/progress/summary/` - Overall progress summary
-- `/api/hints/<problem_slug>/availability/` - Check hint availability
-- `/api/hints/<problem_slug>/<hint_id>/` - Get specific hint
+- `/api/problems/<slug>/hints/` - Check hint availability
+- `/api/problems/<slug>/hints/<hint_type>/` - Get specific hint
 
 #### Real-time & Admin Endpoints
-- `/api/sse/task/<task_id>/` - Server-sent events for task updates
-- `/api/sse/batch/` - Batch task status updates
+- `/api/tasks/<task_id>/stream/` - Server-sent events for task updates
+- `/api/tasks/batch/stream/` - Batch task status updates
 - `/api/admin/problems/` - Admin problem management
 - `/api/admin/test-cases/` - Admin test case management
 - `/api/users/` - User authentication and profiles
@@ -305,7 +309,8 @@ purplex/
 - **ProblemCategory**: Problem categorization and tagging
 - **ProblemHint**: Hint definitions (Variable Fade, Subgoal, Trace)
 - **TestCase**: Input/output test cases for problems
-- **Submission**: User code submissions and results
+- **PromptSubmission**: User EiPL submissions and results
+- **SegmentationResult**: Segmentation analysis results
 - **UserProgress**: Detailed progress tracking per problem/course
 - **UserProblemSetProgress**: Aggregate progress for problem sets
 - **ProgressSnapshot**: Historical progress tracking over time
@@ -313,17 +318,7 @@ purplex/
 - **CourseEnrollment**: Student enrollments in courses
 - **CourseProblemSet**: Links problem sets to courses with ordering
 
-## Recent System Changes
-
-### Code Cleanup (Completed)
-- **Removed duplicate/unused files**: Various legacy implementations
-- **Removed unused frontend**: `hints/HintButton.vue`, `cleanSubmissionService.ts`, `useCleanSubmission.ts`
-- **Fixed dead code**: Corrected logic error in `AdminUserManagementView`
-- **Removed broken references**: Eliminated methods calling non-existent Celery tasks
-- **Cleaned dependencies**: Removed unused Python (django-celery-beat, django-celery-results, django-storages, boto3) and JavaScript (bootstrap-vue, vue-cli-service, punycode) packages
-- **Configuration improvements**: Made GPT model configurable via `GPT_MODEL` setting
-
-### Hint System Implementation (Previous)
+## Key System Features
 
 ### Architecture Overview
 - **Full-stack hint system**: Complete implementation across Django backend, Vue.js frontend, and database schema
@@ -332,22 +327,20 @@ purplex/
 - **Course context integration**: Full support for course enrollment and progress isolation
 - **Admin management**: Comprehensive hint authoring and configuration interface
 
-### Recent Architectural Improvements (Completed)
+### System Architecture Status
 
-✅ **RESOLVED ARCHITECTURE ISSUES**:
-1. **Service Layer Extraction**: All business logic moved from views to service classes
-2. **SSE Implementation Unified**: Removed legacy sse_views.py, using only sse_clean.py
-3. **State Management Guidelines**: Created comprehensive STATE_MANAGEMENT.md documentation
-4. **API Naming Consistency**: Verified all endpoints use kebab-case
+**Completed Improvements**:
+- Service layer architecture fully implemented
+- Single SSE implementation (sse_clean.py)
+- Clear state management guidelines (see STATE_MANAGEMENT.md)
+- Consistent API naming (kebab-case)
+- Unified authentication system
+- PostgreSQL for all environments
 
-⚠️ **Remaining Production Considerations**:
-1. **Rate Limiting**: Consider adding rate limiting on submission endpoints
-2. **Input Validation**: Strengthen EiPL prompt validation
-3. **Security Configuration**: Ensure CSRF_COOKIE_SECURE = True in production
-
-⚠️ **USER EXPERIENCE ISSUES** - Recently fixed:
-1. ~~**Poor Error Messages**: Frontend showed generic "Failed to load hint content" instead of helpful "need more attempts" messages~~ ✅ **FIXED**
-2. ~~**Missing Attempt Requirements**: No indication of current attempts vs required attempts for locked hints~~ ✅ **FIXED**
+**Production Considerations**:
+- Ensure rate limiting on submission endpoints
+- Validate EiPL prompts thoroughly
+- Enable all security settings in production (CSRF_COOKIE_SECURE, etc.)
 
 ### Technical Architecture
 - ✅ **Service Layer**: Complete separation of business logic from views
@@ -357,16 +350,6 @@ purplex/
 - **Testing**: Comprehensive pytest infrastructure with Django test support
 - **Performance**: Service layer caching, optimized queries
 
-### Architecture Quality Score: 9.5/10
-**Strengths**: 
-- Clean service layer architecture with complete separation of concerns
-- Unified SSE implementation
-- Clear state management guidelines
-- Modern technology stack, research-ready design
-
-**Areas for Enhancement**: 
-- Add comprehensive monitoring
-- Expand performance testing
 
 ## Development Guidelines
 
@@ -391,15 +374,24 @@ purplex/
 
 ## Environment Variables
 ```bash
-# Now using .env.production file (created during migration)
-# Key variables:
-DJANGO_SECRET_KEY=<generated-key>          # Unique for each deployment
-DJANGO_SETTINGS_MODULE=purplex.settings_production
-DATABASE_URL=postgresql://purplex_user:purplex2024prod@localhost:5432/purplex
+# Development (.env.development)
+PURPLEX_ENV=development
+DJANGO_SECRET_KEY=development-key
+DATABASE_URL=postgresql://purplex_user:devpass@localhost:5432/purplex_dev
 OPENAI_API_KEY=<your-key>                  # For AI-powered features
 GPT_MODEL=gpt-4o-mini                      # OpenAI model to use
-FIREBASE_CREDENTIALS_PATH=/home/anavarre/Projects/purplex/firebase-credentials.json
 REDIS_HOST=localhost
+REDIS_PORT=6379
+# Note: No Firebase credentials needed for dev (uses mock)
+
+# Production (.env.production)
+PURPLEX_ENV=production
+DJANGO_SECRET_KEY=<generated-key>          # Unique for each deployment
+DATABASE_URL=<production-database-url>
+OPENAI_API_KEY=<production-key>
+GPT_MODEL=gpt-4o-mini
+FIREBASE_CREDENTIALS_PATH=/path/to/firebase-credentials.json
+REDIS_HOST=<production-redis-host>
 REDIS_PORT=6379
 ```
 
@@ -424,12 +416,14 @@ docker-compose -f docker-compose.production.yml up
 
 ### Development Scripts
 - `start.sh` - Complete development environment startup (Redis, Celery, Django)
-- `run_hint_tests.py` - Dedicated hint system test runner
 - `monitoring/performance_test.py` - Performance testing utilities
 
 ### Key Python Modules
 - `purplex/celery_simple.py` - Simplified Celery configuration
-- `purplex/users_app/authentication.py` - Firebase authentication integration
+- `purplex/users_app/unified_authentication.py` - Unified authentication system
+- `purplex/users_app/mock_firebase.py` - Mock Firebase for development
+- `purplex/config/environment.py` - Environment configuration management
+- `purplex/settings/__init__.py` - Settings module auto-selection
 - `purplex/problems_app/tasks/pipeline.py` - Main EiPL task implementation (execute_eipl_pipeline)
 
 ## High-Level Architecture Patterns
@@ -449,9 +443,12 @@ The application uses Celery for asynchronous processing of long-running tasks:
 
 ### Authentication Flow
 - Frontend uses Firebase Authentication for user login (Google sign-in)
-- Backend verifies Firebase tokens using Firebase Admin SDK
+- Backend uses UnifiedAuthentication class for all environments:
+  - Development: Mock Firebase (no external dependencies)
+  - Production: Real Firebase Admin SDK
 - Custom Django user model integrates with Firebase UID
 - All API endpoints require authentication via Firebase token in headers
+- Service account authentication available for internal services
 
 ### Submission Processing Pipeline
 1. User submits code/EiPL through Vue frontend

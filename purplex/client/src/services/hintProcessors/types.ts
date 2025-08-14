@@ -9,17 +9,6 @@ export enum HintRenderStrategy {
   OVERLAY_UI = 'overlay_ui'         // Suggested Trace - shows UI overlay
 }
 
-export interface EditorMarker {
-  startRow: number;
-  endRow: number;
-  startCol?: number;
-  endCol?: number;
-  className: string;
-  type: 'fullLine' | 'text' | 'background';
-  subgoalIndex?: number;
-  comment?: string;
-}
-
 export interface HintMetadata {
   strategy: HintRenderStrategy;
   canStack: boolean;              // Can this hint be applied with others?
@@ -32,7 +21,6 @@ export interface HintResult {
   
   // For MODIFY_CODE and ANNOTATE_CODE strategies
   code?: string;                  // Modified code (if applicable)
-  markers?: EditorMarker[];       // Editor markers for highlighting
   
   // For OVERLAY_UI strategy
   overlayComponent?: string;      // Component name to render

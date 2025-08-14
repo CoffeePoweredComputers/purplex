@@ -301,7 +301,7 @@ export function useSSE() {
    */
   const connectToEiPLSubmission = async (
     requestId: string,
-    onSuccess: (variations: string[], testResults: any[]) => void,
+    onSuccess: (variations: string[], testResults: any[], segmentation?: any) => void,
     options: SSEOptions = {}
   ) => {
     await connectToTask(
@@ -309,12 +309,12 @@ export function useSSE() {
       (result) => {
         if (result.status === 'completed' && result.result) {
           // Check if this is the final submission task with test results
-          const { variations, test_results, submission_id } = result.result;
+          const { variations, test_results, submission_id, segmentation } = result.result;
           
           // Only call onSuccess when we have the final submission with test results
           if (submission_id && variations && test_results) {
             // This is the final submission result
-            onSuccess(variations, test_results);
+            onSuccess(variations, test_results, segmentation);
           } else if (result.result.status === 'testing') {
             // Generation complete, but testing still in progress
             log.debug('Variations generated, waiting for test results...', { requestId });
