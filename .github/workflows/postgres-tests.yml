@@ -115,7 +115,17 @@ jobs:
             FROM pg_stat_user_tables 
             ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
             LIMIT 10;
-          "
+          " || echo "Table statistics query failed, trying alternative..."
+          
+          # Alternative simpler query if the above fails
+          PGPASSWORD=testpass psql -h localhost -U purplex_test -d purplex_test -c "
+            SELECT 
+              tablename,
+              n_live_tup AS row_count
+            FROM pg_stat_user_tables 
+            ORDER BY n_live_tup DESC
+            LIMIT 10;
+          " || echo "Statistics not available"
       
       - name: Generate coverage report
         if: always()
