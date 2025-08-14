@@ -58,7 +58,7 @@ Purplex is a modern educational coding challenge platform that helps students pr
 - **Secure Code Execution**: Isolated Docker containers for safe code testing
 - **User Progress Tracking**: Detailed analytics on student performance and learning paths
 - **Rich Admin Interface**: Custom Vue.js admin panels for problem and user management
-- **Unified Authentication**: Mock Firebase for dev, real Firebase for production
+- **Service-Layer Authentication**: Clean authentication with centralized Firebase logic
 - **Real-time Feedback**: Immediate test results with detailed scoring
 - **Educational Hint System**: Multi-modal hint delivery (Variable Fade, Subgoal Highlighting, Suggested Trace)
 - **Course Context Support**: Full course enrollment and progress isolation
@@ -197,7 +197,7 @@ celery -A purplex.celery_simple worker -l info
 - **Database**: PostgreSQL 15 (Docker container)
 - **Task Queue**: Celery 5.x with Redis broker
 - **Cache/Message Broker**: Redis 7 (multiple databases for different purposes)
-- **Authentication**: Unified authentication system (Mock Firebase for dev, real for prod)
+- **Authentication**: Service-layer based system (Mock Firebase for dev, real for prod)
 - **Code Execution**: Docker containers (isolated for security)
 - **State Management**: Vuex 4 + Vue Composables
 - **Editor**: Ace Editor
@@ -251,7 +251,10 @@ purplex/
 │   │   └── tests/           # App-specific tests
 │   ├── submissions_app/     # Code submission handling
 │   ├── users_app/           # User management and auth
-│   │   ├── unified_authentication.py  # Unified auth for all environments
+│   │   ├── authentication.py         # Single PurplexAuthentication class
+│   │   ├── services/                 # Authentication business logic
+│   │   │   ├── authentication_service.py  # Central Firebase authentication service
+│   │   │   └── user_service.py            # User management service
 │   │   └── mock_firebase.py          # Mock Firebase for development
 │   └── client/              # Vue.js frontend
 │       ├── src/
@@ -334,7 +337,7 @@ purplex/
 - Single SSE implementation (sse_clean.py)
 - Clear state management guidelines (see STATE_MANAGEMENT.md)
 - Consistent API naming (kebab-case)
-- Unified authentication system
+- Service-layer authentication system
 - PostgreSQL for all environments
 
 **Production Considerations**:
@@ -420,7 +423,9 @@ docker-compose -f docker-compose.production.yml up
 
 ### Key Python Modules
 - `purplex/celery_simple.py` - Simplified Celery configuration
-- `purplex/users_app/unified_authentication.py` - Unified authentication system
+- `purplex/users_app/authentication.py` - Single PurplexAuthentication class
+- `purplex/users_app/services/authentication_service.py` - Central Firebase authentication service
+- `purplex/users_app/services/user_service.py` - User management service
 - `purplex/users_app/mock_firebase.py` - Mock Firebase for development
 - `purplex/config/environment.py` - Environment configuration management
 - `purplex/settings/__init__.py` - Settings module auto-selection
@@ -443,10 +448,12 @@ The application uses Celery for asynchronous processing of long-running tasks:
 
 ### Authentication Flow
 - Frontend uses Firebase Authentication for user login (Google sign-in)
-- Backend uses UnifiedAuthentication class for all environments:
+- Backend uses service-layer authentication architecture:
+  - Single PurplexAuthentication class handles all endpoints
+  - AuthenticationService centralizes all Firebase logic
   - Development: Mock Firebase (no external dependencies)
   - Production: Real Firebase Admin SDK
-- Custom Django user model integrates with Firebase UID
+- Django User model with UserProfile links to Firebase UID
 - All API endpoints require authentication via Firebase token in headers
 - Service account authentication available for internal services
 

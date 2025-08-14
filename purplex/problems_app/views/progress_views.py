@@ -43,14 +43,14 @@ class UserProgressView(APIView):
                             pass
                     
                     # Get progress for specific problem set context
-                    from ..models import UserProgress
-                    try:
-                        progress = UserProgress.objects.get(
-                            user=user,
-                            problem=problem,
-                            problem_set=problem_set,
-                            course=course
-                        )
+                    from ..services.progress_service import ProgressService
+                    progress = ProgressService.get_user_progress(
+                        user_id=user.id,
+                        problem_id=problem.id,
+                        problem_set_id=problem_set.id if problem_set else None,
+                        course_id=course.id if course else None
+                    )
+                    if progress:
                         progress_data = {
                             'problem_slug': problem.slug,
                             'status': progress.status,
@@ -61,7 +61,7 @@ class UserProgressView(APIView):
                             'last_attempt': progress.last_attempt,
                             'completed_at': progress.completed_at,
                         }
-                    except UserProgress.DoesNotExist:
+                    else:
                         # Return default values for this context
                         progress_data = {
                             'problem_slug': problem.slug,

@@ -91,6 +91,35 @@ class ProgressService:
             raise
     
     @staticmethod
+    def get_user_progress(
+        user_id: int,
+        problem_id: int,
+        problem_set_id: Optional[int] = None,
+        course_id: Optional[int] = None
+    ) -> Optional[UserProgress]:
+        """
+        Get user progress for a specific problem.
+        
+        Args:
+            user_id: User ID
+            problem_id: Problem ID
+            problem_set_id: Optional problem set ID for context
+            course_id: Optional course ID for context
+            
+        Returns:
+            UserProgress instance or None
+        """
+        try:
+            return UserProgress.objects.get(
+                user_id=user_id,
+                problem_id=problem_id,
+                problem_set_id=problem_set_id,
+                course_id=course_id
+            )
+        except UserProgress.DoesNotExist:
+            return None
+    
+    @staticmethod
     @transaction.atomic
     def bulk_update_progress(
         user_id: int,

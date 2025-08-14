@@ -258,18 +258,20 @@ def test_task_progress_events(self):
 
 ### Using Mock Firebase in Development
 ```python
-from purplex.users_app.unified_authentication import UnifiedAuthentication
+from purplex.users_app.authentication import PurplexAuthentication
+from purplex.users_app.services.authentication_service import AuthenticationService
 
 def test_mock_firebase_authentication(self):
     # In development, uses mock_firebase.py
-    auth = UnifiedAuthentication()
+    auth = PurplexAuthentication()
     
     # Mock token validation
-    with patch.object(auth, 'verify_token') as mock_verify:
-        mock_verify.return_value = {'uid': 'test-user-123'}
+    with patch.object(AuthenticationService, 'authenticate_token') as mock_auth:
+        test_user = User.objects.create_user('testuser')
+        mock_auth.return_value = (test_user, {'uid': 'test-user-123'})
         
-        result = auth.verify_token('mock-token')
-        self.assertEqual(result['uid'], 'test-user-123')
+        result = auth.authenticate(request)
+        self.assertEqual(result[0], test_user)
 ```
 
 ## Test Database Configuration
@@ -321,9 +323,10 @@ Many API tests fail with 403 (Forbidden) instead of expected 400 (Bad Request):
 ### 🔧 Quick Fix for Authentication
 ```python
 # Add to test setup for API tests
-@patch('purplex.users_app.unified_authentication.UnifiedAuthentication.verify_token')
-def test_with_mocked_auth(self, mock_verify):
-    mock_verify.return_value = {'uid': 'test-user-123'}
+@patch('purplex.users_app.services.authentication_service.AuthenticationService.authenticate_token')
+def test_with_mocked_auth(self, mock_auth):
+    test_user = User.objects.create_user('testuser')
+    mock_auth.return_value = (test_user, {'uid': 'test-user-123'})
     # Test code here
 ```
 

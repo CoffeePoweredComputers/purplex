@@ -11,8 +11,8 @@ from .views.submission_views import (
     TestSolutionView, SubmitSolutionView, EiPLSubmissionView
 )
 
-# SSE views for real-time updates - using clean implementation only
-from .views.sse_clean import CleanTaskSSEView, CleanBatchSSEView
+# SSE views for real-time updates
+from .views.sse import CleanTaskSSEView, CleanBatchSSEView
 
 # Progress tracking views
 from .views.progress_views import (
