@@ -1,13 +1,24 @@
 """Admin-specific service layer for problem management."""
 import logging
-from typing import Dict, List, Any, Optional, Tuple
-from django.db import transaction
+from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 from django.core.exceptions import ValidationError
 
-from ..models import (
-    Problem, ProblemCategory, ProblemSet, 
-    ProblemSetMembership, TestCase
+from ..repositories import (
+    ProblemRepository,
+    ProblemSetMembershipRepository,
+    ProblemCategoryRepository,
+    TestCaseRepository,
+    ProblemSetRepository
 )
+
+# Import models only for type hints
+if TYPE_CHECKING:
+    from django.db import transaction
+    from django.db.models import QuerySet
+    from ..models import (
+        Problem, ProblemCategory, ProblemSet, 
+        ProblemSetMembership, TestCase
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -28,17 +39,18 @@ class AdminProblemService:
         """
         if 'category' in data and data['category']:
             category_name = data.pop('category')
-            try:
-                category = ProblemCategory.objects.get(name__iexact=category_name)
+            # Use repository to find exact category match
+            category = ProblemRepository.find_category_by_exact_name(category_name)
+            
+            if category:
                 data['category_ids'] = [category.id]
-            except ProblemCategory.DoesNotExist:
+            else:
                 # Create a new category if it doesn't exist
-                with transaction.atomic():
-                    category = ProblemCategory.objects.create(
-                        name=category_name,
-                        description=f"Category for {category_name} problems"
-                    )
-                    data['category_ids'] = [category.id]
+                category = ProblemRepository.create_category(
+                    name=category_name,
+                    description=f"Category for {category_name} problems"
+                )
+                data['category_ids'] = [category.id]
         return data
     
     @staticmethod
@@ -61,9 +73,8 @@ class AdminProblemService:
         return data
     
     @staticmethod
-    @transaction.atomic
     def create_problem_with_relations(
-        problem: Problem, 
+        problem: 'Problem', 
         problem_set_slugs: List[str]
     ) -> Tuple[int, List[str]]:
         """
@@ -80,15 +91,17 @@ class AdminProblemService:
         missing_slugs = []
         
         for slug in problem_set_slugs:
-            try:
-                problem_set = ProblemSet.objects.get(slug=slug)
-                ProblemSetMembership.objects.create(
+            problem_set = ProblemRepository.get_problem_set_by_slug(slug)
+            if problem_set:
+                # Get the count of problems in the set for ordering
+                order = ProblemSetMembershipRepository.count_problem_set_memberships(problem_set)
+                ProblemSetMembershipRepository.create_membership(
                     problem_set=problem_set,
                     problem=problem,
-                    order=problem_set.problems.count()
+                    order=order
                 )
                 added_count += 1
-            except ProblemSet.DoesNotExist:
+            else:
                 logger.warning(f"Problem set with slug '{slug}' not found during problem creation")
                 missing_slugs.append(slug)
         
@@ -119,9 +132,8 @@ class AdminProblemService:
         return data, problem_set_slugs
     
     @staticmethod
-    @transaction.atomic
     def update_problem_sets(
-        problem: Problem, 
+        problem: 'Problem', 
         problem_set_slugs: List[str]
     ) -> Tuple[int, List[str]]:
         """
@@ -135,10 +147,53 @@ class AdminProblemService:
             Tuple of (updated_count, missing_slugs)
         """
         # Clear existing memberships
-        ProblemSetMembership.objects.filter(problem=problem).delete()
+        ProblemSetMembershipRepository.delete_problem_memberships(problem)
         
         # Add new memberships
         return AdminProblemService.create_problem_with_relations(problem, problem_set_slugs)
+    
+    @staticmethod
+    def get_all_problem_sets() -> List:
+        """
+        Get all problem sets for admin view.
+        
+        Returns:
+            List of all problem sets with related data
+        """
+        return ProblemRepository.get_all_problem_sets()
+    
+    @staticmethod
+    def get_all_categories() -> List[Dict[str, Any]]:
+        """
+        Get all problem categories for admin view.
+        
+        Returns:
+            List of category dictionaries
+        """
+        return ProblemRepository.get_all_categories()
+    
+    @staticmethod
+    def get_problem_sets_by_slugs(slugs: List[str]) -> List:
+        """
+        Get problem sets by their slugs.
+        
+        Args:
+            slugs: List of problem set slugs
+            
+        Returns:
+            List of matching problem sets
+        """
+        if not slugs:
+            return []
+        
+        # Get each problem set by slug
+        problem_sets = []
+        for slug in slugs:
+            problem_set = ProblemRepository.get_problem_set_by_slug(slug)
+            if problem_set:
+                problem_sets.append(problem_set)
+        
+        return problem_sets
     
     @staticmethod
     def validate_problem_set_title(title: str, current_slug: Optional[str] = None) -> Optional[str]:
@@ -158,17 +213,16 @@ class AdminProblemService:
         
         # Check if another problem set already has this slug
         if current_slug and potential_slug != current_slug:
-            if ProblemSet.objects.filter(slug=potential_slug).exists():
+            if ProblemRepository.get_problem_set_by_slug(potential_slug) is not None:
                 return f'A problem set with similar title already exists (slug: {potential_slug})'
-        elif not current_slug and ProblemSet.objects.filter(slug=potential_slug).exists():
+        elif not current_slug and ProblemRepository.get_problem_set_by_slug(potential_slug) is not None:
             return f'A problem set with similar title already exists (slug: {potential_slug})'
         
         return None
     
     @staticmethod
-    @transaction.atomic
     def create_problem_set_with_problems(
-        problem_set: ProblemSet,
+        problem_set: 'ProblemSet',
         problem_slugs: List[str]
     ) -> Dict[str, Any]:
         """
@@ -199,15 +253,15 @@ class AdminProblemService:
         added_problems = []
         
         for order, slug in enumerate(problem_slugs):
-            try:
-                problem = Problem.objects.get(slug=slug)
-                ProblemSetMembership.objects.create(
+            problem = ProblemRepository.get_problem_by_slug(slug)
+            if problem:
+                ProblemSetMembershipRepository.create_membership(
                     problem_set=problem_set,
                     problem=problem,
                     order=order
                 )
                 added_problems.append(slug)
-            except Problem.DoesNotExist:
+            else:
                 missing_problems.append(slug)
         
         # Report if some problems were not found
@@ -220,9 +274,8 @@ class AdminProblemService:
         }
     
     @staticmethod
-    @transaction.atomic
     def update_problem_set_with_problems(
-        problem_set: ProblemSet,
+        problem_set: 'ProblemSet',
         problem_slugs: Optional[List[str]]
     ) -> Dict[str, Any]:
         """
@@ -252,7 +305,7 @@ class AdminProblemService:
             raise ValidationError('problem_slugs must be an array')
         
         # Clear existing memberships
-        ProblemSetMembership.objects.filter(problem_set=problem_set).delete()
+        ProblemSetMembershipRepository.delete_problem_set_memberships(problem_set)
         
         # Collect results
         missing_problems = []
@@ -260,15 +313,15 @@ class AdminProblemService:
         
         # Add new memberships
         for order, slug in enumerate(problem_slugs):
-            try:
-                problem = Problem.objects.get(slug=slug)
-                ProblemSetMembership.objects.create(
+            problem = ProblemRepository.get_problem_by_slug(slug)
+            if problem:
+                ProblemSetMembershipRepository.create_membership(
                     problem_set=problem_set,
                     problem=problem,
                     order=order
                 )
                 added_problems.append(slug)
-            except Problem.DoesNotExist:
+            else:
                 missing_problems.append(slug)
         
         # Report if some problems were not found
@@ -279,3 +332,256 @@ class AdminProblemService:
             'problems_updated': len(added_problems),
             'missing_problems': missing_problems
         }
+    
+    @staticmethod
+    def get_all_problems_optimized() -> List:
+        """
+        Get all problems with optimized queries for admin interface.
+        
+        Returns:
+            List with select_related and prefetch_related optimizations
+        """
+        return ProblemRepository.get_all_problems()
+    
+    @staticmethod
+    def get_problem_detail_optimized(slug: str) -> 'Problem':
+        """
+        Get problem detail with all related data for admin.
+        
+        Args:
+            slug: Problem slug
+            
+        Returns:
+            Problem instance with optimized queries
+            
+        Raises:
+            Problem.DoesNotExist: If problem not found
+        """
+        problem = ProblemRepository.get_problem_with_test_cases(slug)
+        if not problem:
+            from django.http import Http404
+            raise Http404(f"Problem with slug '{slug}' not found")
+        return problem
+    
+    @staticmethod
+    def get_problem_by_slug(slug: str) -> Optional['Problem']:
+        """
+        Get a problem by slug.
+        
+        Args:
+            slug: Problem slug
+            
+        Returns:
+            Problem instance or None
+        """
+        return ProblemRepository.get_problem_by_slug(slug)
+    
+    @staticmethod
+    def get_problem_set_by_slug(slug: str) -> Optional['ProblemSet']:
+        """
+        Get a problem set by slug.
+        
+        Args:
+            slug: Problem set slug
+            
+        Returns:
+            ProblemSet instance or None
+        """
+        return ProblemRepository.get_problem_set_by_slug(slug)
+    
+    @staticmethod
+    def create_problem(validated_data: dict) -> 'Problem':
+        """
+        Create a new problem using repository.
+        
+        Args:
+            validated_data: Validated problem data
+            
+        Returns:
+            Created Problem instance
+        """
+        return ProblemRepository.create(**validated_data)
+    
+    @staticmethod
+    def update_problem(instance: 'Problem', validated_data: dict) -> 'Problem':
+        """
+        Update an existing problem.
+        
+        Args:
+            instance: Problem instance to update
+            validated_data: Validated data for update
+            
+        Returns:
+            Updated Problem instance
+        """
+        return ProblemRepository.update_problem(instance, **validated_data)
+    
+    @staticmethod
+    def get_categories_by_ids(category_ids: List[int]) -> List[Dict[str, Any]]:
+        """
+        Get categories by their IDs.
+        
+        Args:
+            category_ids: List of category IDs
+            
+        Returns:
+            List of category dictionaries
+        """
+        return ProblemCategoryRepository.get_categories_by_ids(category_ids)
+    
+    @staticmethod
+    def create_test_case(problem: 'Problem', test_case_data: dict) -> 'TestCase':
+        """
+        Create a test case for a problem.
+        
+        Args:
+            problem: Problem instance
+            test_case_data: Test case data
+            
+        Returns:
+            Created TestCase instance
+        """
+        return TestCaseRepository.create(problem=problem, **test_case_data)
+    
+    @staticmethod
+    def create_course(validated_data: dict) -> 'Course':
+        """
+        Create a new course using repository.
+        
+        Args:
+            validated_data: Validated course data
+            
+        Returns:
+            Created Course instance
+        """
+        from ..repositories import CourseRepository
+        return CourseRepository.create(**validated_data)
+    
+    @staticmethod
+    def get_problem_set_by_id(problem_set_id: int) -> Optional['ProblemSet']:
+        """
+        Get a problem set by ID.
+        
+        Args:
+            problem_set_id: Problem set ID
+            
+        Returns:
+            ProblemSet instance or None
+        """
+        return ProblemSetRepository.get_by_id(problem_set_id)
+    
+    @staticmethod
+    def create_course_problem_set(course: 'Course', problem_set: 'ProblemSet', order: int = 0) -> 'CourseProblemSet':
+        """
+        Create a course-problem set relationship.
+        
+        Args:
+            course: Course instance
+            problem_set: ProblemSet instance
+            order: Order in the course
+            
+        Returns:
+            Created CourseProblemSet instance
+        """
+        from ..repositories import CourseProblemSetRepository
+        return CourseProblemSetRepository.create(
+            course=course,
+            problem_set=problem_set,
+            order=order
+        )
+    
+    @staticmethod
+    def check_course_exists(course_id: str) -> bool:
+        """
+        Check if a course with the given course_id exists.
+        
+        Args:
+            course_id: Course ID to check
+            
+        Returns:
+            True if course exists, False otherwise
+        """
+        from ..repositories import CourseRepository
+        return CourseRepository.course_exists(course_id)
+    
+    @staticmethod
+    def get_test_case(test_case_id: int, problem_slug: str) -> Optional['TestCase']:
+        """
+        Get a test case by ID and problem slug.
+        
+        Args:
+            test_case_id: Test case ID
+            problem_slug: Problem slug for validation
+            
+        Returns:
+            TestCase instance or None
+        """
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if not problem:
+            return None
+        
+        # Get the test case and verify it belongs to the problem
+        return ProblemRepository.get_problem_test_case_by_id(problem, test_case_id, include_hidden=True)
+    
+    @staticmethod
+    def delete_problem(problem: 'Problem') -> bool:
+        """
+        Delete a problem.
+        
+        Args:
+            problem: Problem instance to delete
+            
+        Returns:
+            True if deleted successfully
+        """
+        try:
+            problem.delete()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete problem {problem.slug}: {str(e)}")
+            return False
+    
+    @staticmethod
+    def delete_problem_set(problem_set: 'ProblemSet') -> bool:
+        """
+        Delete a problem set.
+        
+        Args:
+            problem_set: ProblemSet instance to delete
+            
+        Returns:
+            True if deleted successfully
+        """
+        try:
+            problem_set.delete()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete problem set {problem_set.slug}: {str(e)}")
+            return False
+    
+    @staticmethod
+    def delete_test_case(test_case_id: int) -> bool:
+        """
+        Delete a test case by ID.
+        
+        Args:
+            test_case_id: Test case ID to delete
+            
+        Returns:
+            True if deleted successfully
+        """
+        return TestCaseRepository.delete_test_case(test_case_id)
+    
+    @staticmethod
+    def update_problem_set_relations(
+        problem: 'Problem', 
+        problem_sets: List['ProblemSet']
+    ) -> None:
+        """
+        Update problem set relationships for a problem.
+        
+        Args:
+            problem: Problem instance
+            problem_sets: List of ProblemSet instances to associate
+        """
+        ProblemRepository.set_problem_sets(problem, problem_sets)

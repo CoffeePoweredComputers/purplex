@@ -1,7 +1,11 @@
 """Submission validation service for centralizing submission validation logic."""
-from typing import Optional, Tuple
-from ..models import Problem, ProblemSet, Course
+from typing import Optional, Tuple, TYPE_CHECKING
+from ..repositories import ProblemRepository, CourseRepository
 from .validation_service import ProblemValidationService
+
+# Import models only for type hints
+if TYPE_CHECKING:
+    from ..models import Problem, ProblemSet, Course
 
 
 class SubmissionValidationService:
@@ -37,27 +41,24 @@ class SubmissionValidationService:
             return False, error, None
         
         # Validate problem exists and is active
-        try:
-            problem = Problem.objects.get(slug=problem_slug, is_active=True)
-            validated_data['problem'] = problem
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if not problem or not problem.is_active:
             return False, 'Problem not found', None
+        validated_data['problem'] = problem
         
         # Validate optional problem set
         if problem_set_slug:
-            try:
-                problem_set = ProblemSet.objects.get(slug=problem_set_slug)
-                validated_data['problem_set'] = problem_set
-            except ProblemSet.DoesNotExist:
+            problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
+            if not problem_set:
                 return False, 'Problem set not found', None
+            validated_data['problem_set'] = problem_set
         
         # Validate optional course
         if course_id:
-            try:
-                course = Course.objects.get(course_id=course_id, is_active=True, is_deleted=False)
-                validated_data['course'] = course
-            except (Course.DoesNotExist, ValueError):
+            course = CourseRepository.get_active_course(course_id)
+            if not course:
                 return False, 'Course not found', None
+            validated_data['course'] = course
         
         validated_data['user_prompt'] = user_prompt.strip()
         return True, None, validated_data
@@ -92,27 +93,24 @@ class SubmissionValidationService:
             return False, error, None
         
         # Validate problem exists and is active
-        try:
-            problem = Problem.objects.get(slug=problem_slug, is_active=True)
-            validated_data['problem'] = problem
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if not problem or not problem.is_active:
             return False, 'Problem not found', None
+        validated_data['problem'] = problem
         
         # Validate optional problem set
         if problem_set_slug:
-            try:
-                problem_set = ProblemSet.objects.get(slug=problem_set_slug)
-                validated_data['problem_set'] = problem_set
-            except ProblemSet.DoesNotExist:
+            problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
+            if not problem_set:
                 return False, 'Problem set not found', None
+            validated_data['problem_set'] = problem_set
         
         # Validate optional course
         if course_id:
-            try:
-                course = Course.objects.get(course_id=course_id, is_active=True, is_deleted=False)
-                validated_data['course'] = course
-            except (Course.DoesNotExist, ValueError):
+            course = CourseRepository.get_active_course(course_id)
+            if not course:
                 return False, 'Course not found', None
+            validated_data['course'] = course
         
         validated_data['user_code'] = user_code.strip()
         return True, None, validated_data

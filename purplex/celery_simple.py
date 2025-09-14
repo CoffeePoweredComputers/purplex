@@ -14,6 +14,11 @@ from celery import Celery
 os.environ.setdefault('PURPLEX_ENV', 'development')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'purplex.settings')
 
+# CRITICAL: Setup Django before creating Celery app
+# This ensures Django is fully initialized before Celery tries to use it
+import django
+django.setup()
+
 # Create Celery app instance
 app = Celery('purplex')
 

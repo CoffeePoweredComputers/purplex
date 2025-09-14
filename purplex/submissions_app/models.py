@@ -15,6 +15,9 @@ class PromptSubmission(models.Model):
     score = models.IntegerField(default=0)
     submitted_at = models.DateTimeField(auto_now_add=True, null=True)
     
+    # Task tracking
+    task_id = models.CharField(max_length=255, null=True, blank=True, db_index=True, help_text="Celery task ID for async processing")
+    
     # EiPL specific fields (stored as separate columns for efficiency)
     code_variations = models.JSONField(default=list, help_text="List of generated code variations")
     test_results = models.JSONField(default=list, help_text="Test results for each variation")

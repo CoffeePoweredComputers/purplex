@@ -51,8 +51,8 @@ class IsInstructorOrAdmin(permissions.BasePermission):
             return False
         
         # Check user profile role if it exists
-        if hasattr(request.user, 'userprofile'):
-            role = request.user.userprofile.role
+        if hasattr(request.user, 'profile'):
+            role = request.user.profile.role
             return role in ['instructor', 'admin']
         
         # Fallback to Django admin status
@@ -69,8 +69,8 @@ class IsAdmin(permissions.BasePermission):
             return False
         
         # Check user profile for admin role
-        if hasattr(request.user, 'userprofile'):
-            return request.user.userprofile.role == 'admin'
+        if hasattr(request.user, 'profile'):
+            return request.user.profile.role == 'admin'
         
         # Fallback to Django superuser status
         return request.user.is_superuser
@@ -90,8 +90,8 @@ class IsAdminOrReadOnly(permissions.BasePermission):
             return True
         
         # Write permissions for admins only
-        if hasattr(request.user, 'userprofile'):
-            return request.user.userprofile.role == 'admin'
+        if hasattr(request.user, 'profile'):
+            return request.user.profile.role == 'admin'
         
         return request.user.is_superuser
 
@@ -106,8 +106,8 @@ class IsInstructor(permissions.BasePermission):
             return False
         
         # Check user profile for instructor role
-        if hasattr(request.user, 'userprofile'):
-            role = request.user.userprofile.role
+        if hasattr(request.user, 'profile'):
+            role = request.user.profile.role
             return role in ['instructor', 'admin']
         
         # Fallback to Django staff status
@@ -128,8 +128,8 @@ class IsInstructorOrReadOnly(permissions.BasePermission):
             return True
         
         # Write permissions for instructors
-        if hasattr(request.user, 'userprofile'):
-            role = request.user.userprofile.role
+        if hasattr(request.user, 'profile'):
+            role = request.user.profile.role
             return role in ['instructor', 'admin']
         
         return request.user.is_staff or request.user.is_superuser
@@ -165,7 +165,7 @@ class IsEnrolledInCourse(permissions.BasePermission):
             return False
         
         # Import here to avoid circular imports
-        from purplex.problems_app.models import CourseEnrollment
+        from purplex.problems_app.repositories import CourseEnrollmentRepository
         
         # Get the course from the object
         course = None
@@ -175,21 +175,21 @@ class IsEnrolledInCourse(permissions.BasePermission):
             # Handle objects that might belong to multiple courses
             # Check if user is enrolled in any of them
             for c in obj.courses.all():
-                if CourseEnrollment.objects.filter(
+                if CourseEnrollmentRepository.exists(
                     user=request.user,
                     course=c,
                     is_active=True
-                ).exists():
+                ):
                     return True
             return False
         
         if course:
-            # Check enrollment
-            return CourseEnrollment.objects.filter(
+            # Check enrollment using repository
+            return CourseEnrollmentRepository.exists(
                 user=request.user,
                 course=course,
                 is_active=True
-            ).exists()
+            )
         
         return False
 
@@ -213,23 +213,24 @@ class CanSubmitSolution(permissions.BasePermission):
         
         # If course is specified, check enrollment
         if course_id:
-            from purplex.problems_app.models import Course, CourseEnrollment
+            from purplex.problems_app.repositories import CourseRepository, CourseEnrollmentRepository
             
-            try:
-                course = Course.objects.get(id=course_id)
-                # Check if user is enrolled
-                enrolled = CourseEnrollment.objects.filter(
-                    user=request.user,
-                    course=course,
-                    is_active=True
-                ).exists()
-                
-                # Instructors can also submit solutions to their own courses
-                is_instructor = course.instructor == request.user
-                
-                return enrolled or is_instructor or request.user.is_superuser
-            except Course.DoesNotExist:
+            # Use repository to get course
+            course = CourseRepository.get_by_id(course_id)
+            if not course:
                 return False
+            
+            # Check if user is enrolled using repository
+            enrolled = CourseEnrollmentRepository.exists(
+                user=request.user,
+                course=course,
+                is_active=True
+            )
+            
+            # Instructors can also submit solutions to their own courses
+            is_instructor = course.instructor == request.user
+            
+            return enrolled or is_instructor or request.user.is_superuser
         
         # No course specified - allow any authenticated user
         return True
@@ -276,11 +277,14 @@ class CanViewHint(permissions.BasePermission):
         # Check attempt count
         min_attempts = getattr(obj, 'min_attempts', 0)
         if min_attempts > 0:
-            # Get user's progress on this problem
-            progress = UserProgress.objects.filter(
+            # Import repository here to avoid circular imports
+            from purplex.problems_app.repositories import UserProgressRepository
+            
+            # Get user's progress on this problem using repository
+            progress = UserProgressRepository.get_user_problem_progress(
                 user=request.user,
                 problem=problem
-            ).first()
+            )
             
             if not progress or progress.attempts < min_attempts:
                 return False
@@ -320,8 +324,8 @@ class IsInstructorOrAdminOrOwner(permissions.BasePermission):
             return False
         
         # Instructors and admins have full access
-        if hasattr(request.user, 'userprofile'):
-            role = request.user.userprofile.role
+        if hasattr(request.user, 'profile'):
+            role = request.user.profile.role
             if role in ['instructor', 'admin']:
                 return True
         
@@ -333,8 +337,8 @@ class IsInstructorOrAdminOrOwner(permissions.BasePermission):
     
     def has_object_permission(self, request, view, obj) -> bool:
         # Instructors and admins have full access
-        if hasattr(request.user, 'userprofile'):
-            role = request.user.userprofile.role
+        if hasattr(request.user, 'profile'):
+            role = request.user.profile.role
             if role in ['instructor', 'admin']:
                 return True
         

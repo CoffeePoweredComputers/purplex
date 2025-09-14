@@ -49,7 +49,7 @@ WHITENOISE_COMPRESS_OFFLINE = True
 WHITENOISE_MANIFEST_STRICT = False
 
 # Database connection pooling
-DATABASES['default']['CONN_MAX_AGE'] = 600  # 10 minutes
+DATABASES['default']['CONN_MAX_AGE'] = config.db_conn_max_age
 DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 
 # Cache configuration for production (use Redis)
@@ -108,7 +108,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/var/log/purplex/django.log',
+            'filename': config.log_file_paths['django'],
             'maxBytes': 1024 * 1024 * 100,  # 100MB
             'backupCount': 10,
             'formatter': 'json',
@@ -116,7 +116,7 @@ LOGGING = {
         'error_file': {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/var/log/purplex/errors.log',
+            'filename': config.log_file_paths['error'],
             'maxBytes': 1024 * 1024 * 100,  # 100MB
             'backupCount': 10,
             'formatter': 'verbose',
@@ -156,8 +156,8 @@ LOGGING = {
 }
 
 # File upload restrictions for production
-FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = config.file_upload_max_memory_size
+DATA_UPLOAD_MAX_MEMORY_SIZE = config.get_int('DATA_UPLOAD_MAX_MEMORY_SIZE', config.file_upload_max_memory_size)
 FILE_UPLOAD_PERMISSIONS = 0o644
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 
@@ -193,7 +193,7 @@ if os.environ.get('SENTRY_DSN'):
     )
 
 # Performance optimizations
-CONN_MAX_AGE = 600  # Database connection pooling
+CONN_MAX_AGE = config.db_conn_max_age  # Database connection pooling
 ATOMIC_REQUESTS = True  # Wrap each request in a transaction
 
 # Celery production optimizations
@@ -201,7 +201,7 @@ CELERY_TASK_COMPRESSION = 'gzip'
 CELERY_MESSAGE_COMPRESSION = 'gzip'
 CELERY_TASK_RESULT_EXPIRES = 3600  # 1 hour
 CELERY_WORKER_PREFETCH_MULTIPLIER = 4
-CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+CELERY_WORKER_MAX_TASKS_PER_CHILD = config.get_int('CELERY_MAX_TASKS_PER_CHILD', 1000)
 
 # Security headers
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'

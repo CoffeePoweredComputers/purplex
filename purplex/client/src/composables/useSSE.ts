@@ -67,18 +67,35 @@ export function useSSE() {
     const connect = async () => {
       log.info('Connecting to SSE endpoint', { taskId });
 
-      // Get Firebase token for authentication
+      // Get SSE session token instead of exposing Firebase token
       let url = `/api/tasks/${taskId}/stream/`;
       if (firebaseAuth.currentUser) {
         try {
-          const token = await getIdToken(firebaseAuth.currentUser);
-          url += `?token=${encodeURIComponent(token)}`;
+          // First get Firebase token
+          const firebaseToken = await getIdToken(firebaseAuth.currentUser);
+          
+          // Exchange for SSE session token
+          const response = await fetch('/api/auth/sse-token/', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${firebaseToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            // Use SSE session token in query param (more secure than Firebase token)
+            url += `?sse_token=${encodeURIComponent(data.sse_token)}`;
+          } else {
+            log.error('Failed to get SSE session token', response.status);
+          }
         } catch (err) {
-          log.error('Failed to get Firebase token for SSE', err);
+          log.error('Failed to get SSE session token', err);
         }
       }
       
-      // Create SSE connection with token in query parameter
+      // Create SSE connection with session token
       eventSource = new EventSource(url, { withCredentials: true } as any);
 
       // Connection opened
@@ -240,14 +257,30 @@ export function useSSE() {
 
     log.info('Connecting to batch SSE endpoint', { taskCount: taskIds.length });
 
-    // Create batch SSE connection with authentication
+    // Create batch SSE connection with SSE session token
     let url = `/api/tasks/batch/stream/?task_ids=${taskIds.join(',')}`;
     if (firebaseAuth.currentUser) {
       try {
-        const token = await getIdToken(firebaseAuth.currentUser);
-        url += `&token=${encodeURIComponent(token)}`;
+        // Get Firebase token
+        const firebaseToken = await getIdToken(firebaseAuth.currentUser);
+        
+        // Exchange for SSE session token
+        const response = await fetch('/api/auth/sse-token/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${firebaseToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          url += `&sse_token=${encodeURIComponent(data.sse_token)}`;
+        } else {
+          log.error('Failed to get SSE session token for batch', response.status);
+        }
       } catch (err) {
-        log.error('Failed to get Firebase token for batch SSE', err);
+        log.error('Failed to get SSE session token for batch', err);
       }
     }
     eventSource = new EventSource(url, { withCredentials: true } as any);

@@ -62,7 +62,7 @@ class PurplexAuthentication(authentication.BaseAuthentication):
         if not token:
             return None
         
-        # Check rate limits before authentication
+        # Only check if IP is blocked due to too many FAILED attempts
         client_ip = RateLimitService.get_client_ip(request)
         
         # Check if IP is blocked due to too many failures
@@ -70,10 +70,9 @@ class PurplexAuthentication(authentication.BaseAuthentication):
             logger.warning(f"Blocked authentication attempt from {client_ip}")
             raise exceptions.AuthenticationFailed('Too many failed attempts. Please try again later.')
         
-        # Check rate limits
-        if not RateLimitService.check_auth_rate_limit(client_ip):
-            logger.warning(f"Auth rate limit exceeded for {client_ip}")
-            raise exceptions.AuthenticationFailed('Rate limit exceeded')
+        # NOTE: We do NOT rate limit valid token validation
+        # Rate limits are only for preventing brute force attacks on login
+        # Users with valid tokens should be able to navigate freely
         
         # Authenticate the token
         try:

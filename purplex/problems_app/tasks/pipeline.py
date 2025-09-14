@@ -11,9 +11,25 @@ import logging
 import os
 import time
 import redis
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, TYPE_CHECKING
 from django.conf import settings
 from django.db import transaction
+
+# Import services only (not repositories directly)
+from purplex.problems_app.services.problem_service import ProblemService
+from purplex.problems_app.services.test_case_service import TestCaseService
+from purplex.problems_app.services.submission_service import SubmissionService
+from purplex.problems_app.services.ai_generation_service import AITestGenerationService
+from purplex.problems_app.services.docker_execution_service import DockerExecutionService as CodeExecutionService
+from purplex.problems_app.services.segmentation_service import SegmentationService
+from purplex.problems_app.services.course_service import CourseService
+from purplex.users_app.services.user_service import UserService
+
+# Import models only for type hints
+if TYPE_CHECKING:
+    from django.contrib.auth.models import User
+    from purplex.problems_app.models import Problem, ProblemSet, Course
+    from purplex.submissions_app.models import PromptSubmission, SegmentationResult
 
 logger = logging.getLogger(__name__)
 
@@ -83,11 +99,12 @@ def publish_error(task_id: str, error_message: str):
 
 
 def generate_variations_helper(problem_id: int, user_prompt: str) -> List[str]:
-    """Helper function to generate code variations."""
-    from purplex.problems_app.models import Problem
-    from purplex.problems_app.services.ai_generation_service import AITestGenerationService
+    """Helper function to generate code variations using service layer."""
+    # Get problem through service
+    problem = ProblemService.get_problem_by_id(problem_id)
+    if not problem or not problem.is_active:
+        raise Exception(f"Problem {problem_id} not found or not active")
     
-    problem = Problem.objects.get(id=problem_id, is_active=True)
     ai_service = AITestGenerationService()
     result = ai_service.generate_eipl_variations(problem, user_prompt)
     
@@ -98,12 +115,14 @@ def generate_variations_helper(problem_id: int, user_prompt: str) -> List[str]:
 
 
 def test_variation_helper(code: str, problem_id: int, variation_index: int) -> Dict[str, Any]:
-    """Helper function to test a single variation."""
-    from purplex.problems_app.models import Problem
-    from purplex.problems_app.services.code_execution_service import CodeExecutionService
+    """Helper function to test a single variation using service layer."""
+    # Get problem through service
+    problem = ProblemService.get_problem_by_id(problem_id)
+    if not problem:
+        raise Exception(f"Problem {problem_id} not found")
     
-    problem = Problem.objects.get(id=problem_id)
-    test_cases = list(problem.test_cases.all().values('inputs', 'expected_output'))
+    # Get test cases formatted for testing through service
+    test_cases = TestCaseService.get_test_cases_for_testing(problem, include_hidden=True)
     
     logger.debug(f"Testing variation {variation_index} with {len(test_cases)} test cases")
     
@@ -122,6 +141,8 @@ def test_variation_helper(code: str, problem_id: int, variation_index: int) -> D
     
     # Test the code
     service = CodeExecutionService()
+    # Set user context for async task (no user context in celery tasks)
+    service.set_user_context(f"task_{variation_index}")
     result = service.test_solution(code, problem.function_name, test_cases)
     
     logger.debug(f"Test result keys: {list(result.keys())}")
@@ -143,11 +164,11 @@ def test_variation_helper(code: str, problem_id: int, variation_index: int) -> D
 
 
 def segment_prompt_helper(user_prompt: str, problem_id: int) -> Optional[Dict[str, Any]]:
-    """Helper function for prompt segmentation."""
-    from purplex.problems_app.models import Problem
-    from purplex.problems_app.services.segmentation_service import SegmentationService
-    
-    problem = Problem.objects.get(id=problem_id)
+    """Helper function for prompt segmentation using service layer."""
+    # Get problem through service
+    problem = ProblemService.get_problem_by_id(problem_id)
+    if not problem:
+        raise Exception(f"Problem {problem_id} not found")
     
     if not problem.segmentation_enabled:
         return None
@@ -170,18 +191,39 @@ def save_submission_helper(
     user_prompt: str,
     variations: List[str],
     test_results: List[Dict],
-    segmentation: Optional[Dict]
+    segmentation: Optional[Dict],
+    task_id: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Helper function to save the submission."""
-    from django.contrib.auth.models import User
-    from purplex.problems_app.models import Problem, ProblemSet, Course
-    from purplex.submissions_app.models import PromptSubmission, SegmentationResult
+    """Helper function to save the submission using service layer."""
+    # Get objects through services/repositories
+    user = UserService.get_user_by_id(user_id)
+    if not user:
+        raise Exception(f"User {user_id} not found")
     
-    # Get database objects
-    user = User.objects.get(id=user_id)
-    problem = Problem.objects.get(id=problem_id)
-    problem_set = ProblemSet.objects.get(id=problem_set_id) if problem_set_id else None
-    course = Course.objects.get(id=course_id) if course_id else None
+    problem = ProblemService.get_problem_by_id(problem_id)
+    if not problem:
+        raise Exception(f"Problem {problem_id} not found")
+    
+    problem_set = None
+    if problem_set_id:
+        problem_set = ProblemService.get_problem_set_by_id(problem_set_id)
+        if not problem_set:
+            raise Exception(f"Problem set {problem_set_id} not found")
+    
+    course = None
+    if course_id:
+        # Use get_course_by_pk for integer IDs
+        logger.info(f"Attempting to fetch course with ID: {course_id}")
+        course = CourseService.get_course_by_pk(course_id)
+        if not course:
+            # Add diagnostic information
+            logger.error(f"Course {course_id} not found in Celery task")
+            logger.error(f"Django settings module: {os.environ.get('DJANGO_SETTINGS_MODULE', 'NOT SET')}")
+            logger.error(f"PURPLEX_ENV: {os.environ.get('PURPLEX_ENV', 'NOT SET')}")
+            from django.conf import settings
+            logger.error(f"Database engine: {settings.DATABASES['default']['ENGINE']}")
+            logger.error(f"Database name: {settings.DATABASES['default'].get('NAME', 'UNKNOWN')}")
+            raise Exception(f"Course {course_id} not found")
     
     # Calculate score
     successful_variations = sum(1 for r in test_results if r.get('success', False))
@@ -190,17 +232,18 @@ def save_submission_helper(
     
     with transaction.atomic():
         # Create submission
-        submission = PromptSubmission.objects.create(
+        submission = SubmissionService.create_submission(
             user=user,
             problem=problem,
-            problem_set=problem_set,
-            course=course,
             prompt=user_prompt,
+            course=course,
+            problem_set=problem_set,
             score=score,
             code_variations=variations,
             test_results=test_results,
             passing_variations=successful_variations,
-            total_variations=total_variations
+            total_variations=total_variations,
+            task_id=task_id
         )
         
         # Create segmentation record if available
@@ -209,7 +252,7 @@ def save_submission_helper(
             if comp_level not in ['relational', 'multi_structural']:
                 comp_level = 'relational'
             
-            SegmentationResult.objects.create(
+            SubmissionService.create_segmentation_result(
                 submission=submission,
                 analysis=segmentation,
                 segment_count=segmentation.get('segment_count', 0),
@@ -259,11 +302,18 @@ def execute_eipl_pipeline(
     task_id = self.request.id
     logger.info(f"Starting EiPL pipeline {task_id} for problem {problem_id}")
     
-    # Log current settings module for debugging
+    # Ensure Django is properly initialized
     import django
+    if not django.apps.apps.ready:
+        logger.warning("Django apps not ready, calling setup()")
+        django.setup()
+    
+    # Log current settings module for debugging
     from django.conf import settings
     logger.info(f"Task using Django settings: {os.environ.get('DJANGO_SETTINGS_MODULE', 'NOT SET')}")
+    logger.info(f"PURPLEX_ENV: {os.environ.get('PURPLEX_ENV', 'NOT SET')}")
     logger.info(f"Database engine: {settings.DATABASES['default']['ENGINE']}")
+    logger.info(f"Database name: {settings.DATABASES['default'].get('NAME', 'UNKNOWN')}")
     
     try:
         # Verify database connection
@@ -342,7 +392,8 @@ def execute_eipl_pipeline(
             user_prompt=user_prompt,
             variations=variations,
             test_results=test_results,
-            segmentation=segmentation
+            segmentation=segmentation,
+            task_id=task_id
         )
         
         logger.info(f"Submission {submission_result['submission_id']} saved successfully")

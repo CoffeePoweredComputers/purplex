@@ -5,11 +5,12 @@ Copy these patterns exactly when implementing new features. All examples are fro
 ## Table of Contents
 1. [API Endpoint Pattern](#api-endpoint-pattern)
 2. [Service Layer Pattern](#service-layer-pattern)
-3. [Celery Task Pattern](#celery-task-pattern)
-4. [Vue Component Pattern](#vue-component-pattern)
-5. [Model Pattern](#model-pattern)
-6. [Authentication Pattern](#authentication-pattern)
-7. [Frontend Service Pattern](#frontend-service-pattern)
+3. [Repository Pattern](#repository-pattern) **NEW**
+4. [Celery Task Pattern](#celery-task-pattern)
+5. [Vue Component Pattern](#vue-component-pattern)
+6. [Model Pattern](#model-pattern)
+7. [Authentication Pattern](#authentication-pattern)
+8. [Frontend Service Pattern](#frontend-service-pattern)
 
 ## API Endpoint Pattern
 
@@ -28,8 +29,8 @@ class AdminProblemListView(APIView):
     permission_classes = [IsAdmin]
     
     def get(self, request):
-        # Optimize queries with select_related/prefetch_related
-        problems = Problem.objects.all().select_related('created_by').prefetch_related('categories', 'test_cases', 'problem_sets')
+        # Use service layer - NEVER query models directly
+        problems = AdminProblemService.get_all_problems_optimized()
         serializer = AdminProblemSerializer(problems, many=True)
         return Response(serializer.data)
     
@@ -95,7 +96,7 @@ class AdminProblemDetailView(APIView):
 ### SSE Streaming Pattern
 
 ```python
-# From: purplex/problems_app/views/sse_clean.py
+# From: purplex/problems_app/views/sse.py
 import json
 import redis
 from django.http import StreamingHttpResponse
@@ -152,7 +153,7 @@ class CleanTaskSSEView(View):
             pubsub.close()
 ```
 
-## Service Layer Pattern
+## Service Layer Pattern (FULLY ENFORCED - ALL DATABASE QUERIES HERE)
 
 ### Student Service Pattern
 
@@ -164,7 +165,14 @@ from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 
 class StudentService:
-    """Handle all student-related business logic."""
+    """Handle all student-related business logic.
+    
+    CRITICAL RULES:
+    - ALL database queries MUST be in service methods
+    - Views NEVER access models directly
+    - Query optimizations (select_related, prefetch_related) go here
+    - Business logic and validation in services, not views
+    """
     
     @staticmethod
     def get_active_problems(user=None) -> QuerySet:
@@ -251,7 +259,9 @@ class HintService:
         if problem_set_slug:
             problem_set = get_object_or_404(ProblemSet, slug=problem_set_slug)
         if course_id:
-            course = get_object_or_404(Course, course_id=course_id)
+            # Use CourseService for course operations
+            from .course_service import CourseService
+            course = CourseService.get_course_by_id(course_id)
         
         # Get user progress with context
         try:
@@ -304,6 +314,82 @@ class HintService:
             cache.set(cache_key, availability, 300)  # Cache for 5 minutes
         
         return availability
+```
+
+## Repository Pattern
+
+### Basic Repository Structure (NEW - Jan 2025)
+
+```python
+# From: purplex/problems_app/repositories/course_repository.py
+from typing import Optional, List
+from django.db.models import QuerySet
+from .base_repository import BaseRepository
+
+class CourseRepository(BaseRepository):
+    """
+    Repository for all Course-related database queries.
+    
+    RULES:
+    - ONLY place for .objects queries for this model
+    - NO business logic, only data access
+    - Return QuerySets or model instances
+    - Used by services, NEVER by views directly
+    """
+    
+    model_class = Course
+    
+    @classmethod
+    def get_active_course(cls, course_id: str) -> Optional[Course]:
+        """Get an active, non-deleted course by course_id."""
+        return Course.objects.filter(
+            course_id=course_id,
+            is_active=True,
+            is_deleted=False
+        ).first()
+    
+    @classmethod
+    def user_is_enrolled(cls, user: User, course: Course) -> bool:
+        """Check if a user is enrolled in a specific course."""
+        return CourseEnrollment.objects.filter(
+            user=user,
+            course=course,
+            is_active=True
+        ).exists()
+```
+
+### Service Using Repository (CORRECT PATTERN)
+
+```python
+# From: purplex/problems_app/services/course_service.py
+from ..repositories import CourseRepository
+
+class CourseService:
+    """Service using repository for data access."""
+    
+    @staticmethod
+    def validate_course_enrollment(user, course_id: str) -> Dict[str, Any]:
+        """
+        Business logic using repository for data.
+        Note: NO direct .objects queries here!
+        """
+        # Use repository for data access
+        course = CourseRepository.get_active_course(course_id)
+        
+        if not course:
+            return {
+                'success': False,
+                'error': 'Course not found'
+            }
+        
+        # Use repository for enrollment check
+        if not CourseRepository.user_is_enrolled(user, course):
+            return {
+                'success': False,
+                'error': 'Not enrolled'
+            }
+        
+        return {'success': True, 'course': course}
 ```
 
 ## Celery Task Pattern
@@ -405,7 +491,9 @@ def execute_eipl_pipeline(
 
 ## Vue Component Pattern
 
-### Options API Component Pattern
+**Note**: The codebase contains both Options API (legacy) and Composition API (preferred for new components) patterns. See STANDARDS.md for when to use each.
+
+### Options API Pattern (Existing Components)
 
 ```vue
 <!-- From: purplex/client/src/features/problems/ProblemSet.vue -->
@@ -496,6 +584,116 @@ export default {
 </script>
 ```
 
+### Composition API Pattern (New Components - Preferred)
+
+```vue
+<!-- New implementation pattern for ProblemSet.vue using Composition API -->
+<template>
+  <div v-if="isLoading" class="loading-container">
+    <div class="loading-message">Loading problem set...</div>
+  </div>
+  <div v-else-if="!problems || problems.length === 0" class="loading-container">
+    <div class="loading-message">No problems found in this set.</div>
+  </div>
+  <div v-else class="problem-set-container">
+    <div class="problem-navigation">
+      <div class="problem-selector">
+        <button class="nav-button" @click="prevProblem">
+          <span class="arrow-left">‹</span>
+        </button>
+        <div class="problem-info">
+          <div class="progress-summary">
+            <span class="progress-stat completed">{{ completedCount }} completed</span>
+            <span class="progress-stat in_progress">{{ inProgressCount }} in progress</span>
+            <span class="progress-stat remaining">{{ remainingCount }} remaining</span>
+          </div>
+          <div class="problem-progress">
+            <div
+              v-for="(problem, index) in problems"
+              :key="problem.slug" 
+              :class="['progress-bar', 
+                       { 'active': index === currentProblem },
+                       { 'completed': getProblemStatus(problem.slug) === 'completed' }
+              ]" 
+              @click="setProblem(index)"
+            >
+            </div>
+          </div>
+        </div>
+        <button class="nav-button" @click="nextProblem">
+          <span class="arrow-right">›</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useStore } from 'vuex'
+import type { Problem } from '@/types'
+
+// Props
+interface Props {
+  problemSetSlug?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  problemSetSlug: ''
+})
+
+// Store
+const store = useStore()
+
+// Reactive state
+const isLoading = ref(false)
+const currentProblem = ref(0)
+const problems = ref<Problem[]>([])
+
+// Computed properties
+const progressData = computed(() => store.state.progress.progressData)
+
+const completedCount = computed(() => 
+  problems.value.filter(p => getProblemStatus(p.slug) === 'completed').length
+)
+
+const inProgressCount = computed(() => 
+  problems.value.filter(p => getProblemStatus(p.slug) === 'in_progress').length
+)
+
+const remainingCount = computed(() => 
+  problems.value.filter(p => getProblemStatus(p.slug) === 'not_started').length
+)
+
+// Methods
+const getProblemStatus = (slug: string): string => {
+  const progress = progressData.value[slug]
+  if (!progress) return 'not_started'
+  return progress.best_score >= 100 ? 'completed' : 
+         progress.attempts > 0 ? 'in_progress' : 'not_started'
+}
+
+const prevProblem = (): void => {
+  if (currentProblem.value > 0) {
+    currentProblem.value--
+  }
+}
+
+const nextProblem = (): void => {
+  if (currentProblem.value < problems.value.length - 1) {
+    currentProblem.value++
+  }
+}
+
+const setProblem = (index: number): void => {
+  currentProblem.value = index
+}
+
+// Actions
+const fetchProgress = () => store.dispatch('progress/fetchProgress')
+</script>
+```
+
 ### Composable Pattern
 
 ```typescript
@@ -553,7 +751,7 @@ export function useSSE() {
       }
       
       const token = await getIdToken(currentUser);
-      const url = `/api/sse/task/${taskId}/?token=${encodeURIComponent(token)}`;
+      const url = `/api/tasks/${taskId}/stream/?token=${encodeURIComponent(token)}`;
       
       eventSource = new EventSource(url);
       
@@ -931,6 +1129,86 @@ class AuthenticationService:
             return user
 ```
 
+### Authentication View Pattern
+
+```python
+# From: purplex/users_app/user_views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .permissions import IsAuthenticated
+from .services.authentication_service import AuthenticationService
+from .services.rate_limit_service import RateLimitService
+import logging
+
+logger = logging.getLogger(__name__)
+
+class SSETokenView(APIView):
+    """
+    View for exchanging Firebase tokens for short-lived SSE session tokens.
+    
+    This demonstrates the consolidated authentication pattern:
+    - Class-based view (no function-based views)
+    - Thin controller delegating to services
+    - Multiple HTTP methods in one class
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        """Create a new SSE session token"""
+        try:
+            user = request.user
+            
+            # Delegate to service for rate limiting
+            if not RateLimitService.check_sse_token_rate_limit(user.id):
+                logger.warning(f"SSE token rate limit exceeded for user {user.username}")
+                return Response({
+                    'error': 'Rate limit exceeded. Please wait before requesting another token.'
+                }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+            
+            # Delegate to service for token creation
+            session_token = AuthenticationService.create_sse_session(user)
+            
+            return Response({
+                'sse_token': session_token,
+                'expires_in': 300  # 5 minutes
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Failed to create SSE token: {e}")
+            return Response({
+                'error': 'Failed to create session token'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def delete(self, request):
+        """Revoke an SSE session token"""
+        try:
+            sse_token = request.data.get('sse_token')
+            
+            if not sse_token:
+                return Response({
+                    'error': 'SSE token required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Delegate to service for token revocation
+            revoked = AuthenticationService.revoke_sse_session(sse_token)
+            
+            if revoked:
+                return Response({
+                    'message': 'Session revoked successfully'
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'message': 'Session not found or already expired'
+                }, status=status.HTTP_404_NOT_FOUND)
+                
+        except Exception as e:
+            logger.error(f"Failed to revoke SSE token: {e}")
+            return Response({
+                'error': 'Failed to revoke session'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+```
+
 ## Frontend Service Pattern
 
 ### TypeScript Service with Error Handling
@@ -942,6 +1220,7 @@ import {
   APIError,
   ProblemDetailed,
   ProblemCreateRequest,
+  TestProblemRequest,
   TestExecutionResult
 } from '../types';
 

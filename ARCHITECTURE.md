@@ -35,6 +35,9 @@ Vue Component (ProblemSet.vue)
               ▼
         SubmissionService
               │
+              ▼
+        Repository Layer
+              │
               ├──▶ Create Submission Record
               └──▶ Queue Celery Task
                      │
@@ -113,14 +116,27 @@ purplex/
 │   │   ├── submission_views.py
 │   │   ├── progress_views.py
 │   │   ├── hint_views.py
-│   │   └── sse_clean.py  # Server-sent events implementation
-│   ├── services/          # Business logic layer
-│   │   ├── code_execution_service.py
-│   │   ├── progress_service.py
-│   │   ├── student_service.py
-│   │   ├── hint_service.py
-│   │   ├── validation_service.py
-│   │   ├── submission_validation_service.py
+│   │   └── sse.py  # Server-sent events implementation
+│   ├── services/          # Business logic layer (PARTIALLY enforced)
+│   │   ├── admin_service.py              # Admin problem management
+│   │   ├── ai_generation_service.py      # AI test generation
+│   │   ├── code_execution_service.py     # Docker code execution
+│   │   ├── course_service.py             # Course validation & enrollment (✅ uses repositories)
+│   │   ├── hint_service.py               # Hint system logic
+│   │   ├── hint_display_service.py       # Hint display transformations (NEW)
+│   │   ├── progress_service.py           # Progress tracking
+│   │   ├── segmentation_service.py       # Prompt segmentation
+│   │   ├── student_service.py            # Student operations
+│   │   ├── submission_validation_service.py  # Submission validation
+│   │   ├── validation_service.py         # General validation
+│   │   └── __init__.py
+│   ├── repositories/      # Data access layer (NEW - Jan 2025)
+│   │   ├── base_repository.py            # Base repository pattern
+│   │   ├── course_repository.py          # Course data access
+│   │   ├── problem_repository.py         # Problem data access
+│   │   ├── hint_repository.py            # Hint data access
+│   │   ├── progress_repository.py        # Progress data access
+│   │   ├── submission_repository.py      # Submission data access
 │   │   └── __init__.py
 │   ├── serializers.py     # API serialization
 │   └── tasks/             # Async Celery tasks
@@ -129,9 +145,11 @@ purplex/
 ├── submissions_app/       # Code execution domain
 ├── users_app/            # Authentication domain
 │   ├── authentication.py         # Single PurplexAuthentication class
+│   ├── user_views.py            # All user/auth views (class-based)
 │   ├── services/                 # Authentication business logic
 │   │   ├── authentication_service.py  # Central Firebase authentication service
-│   │   └── user_service.py            # User management service
+│   │   ├── user_service.py            # User management service
+│   │   └── rate_limit_service.py      # Rate limiting for auth operations
 │   └── mock_firebase.py          # Mock Firebase for development
 ├── settings/             # Modular settings structure
 │   ├── base.py          # Shared settings
@@ -176,12 +194,27 @@ config/
 
 ## Key Architectural Decisions
 
-### 1. Service Layer Pattern
+### 1. Service Layer Pattern ✅ COMPLETE
 **Decision**: All business logic in service classes, views are thin controllers
-**Rationale**: Separation of concerns, testability, reusability
+**Status**: ✅ 100% Complete (Jan 2025)
+- ✅ Views: No direct model queries - all use services
+- ✅ Services: Business logic properly encapsulated
+- ✅ Tasks: No direct model queries - all use repositories
+- ✅ Repository layer fully implemented for data access
+
+**Current Architecture**:
 ```python
-View → Service → Model  # Never: View → Model directly
+# Achieved Architecture:
+View → Service → Repository → Model (for data operations)
+View → Service → Business Logic (for complex operations)
+Task → Repository → Model (for async operations)
 ```
+
+**Enforcement**: 
+- Business logic checker script (`scripts/check_business_logic.py`) validates compliance
+- 0 violations in views, services, or tasks
+- Repository pattern fully adopted for all data access in views/tasks
+- Services retain direct model access for complex business operations
 
 ### 2. Async Task Processing
 **Decision**: Celery for all long-running operations
@@ -212,6 +245,24 @@ useProblemSubmission()
 user, auth, app settings
 ```
 
+### 5. View Architecture Pattern
+**Decision**: All views use class-based APIView pattern
+**Rationale**: Consistency, better DRF integration, easier testing
+```python
+# ✅ CORRECT: Class-based views
+class ResourceView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Thin controller - delegate to service
+        return Response(Service.process())
+
+# ❌ DEPRECATED: Function-based views (removed)
+@api_view(['GET'])  # Don't use this pattern
+def resource_view(request):
+    pass
+```
+
 ## Database Schema Core Relationships
 
 ```
@@ -237,7 +288,11 @@ User
 - Action endpoints for operations: `/api/submit-solution/`, `/api/submit-eipl/`
 
 ### Key API Endpoints (Actual Implementation)
-- **SSE Endpoints**: `/api/sse/task/<task_id>/`, `/api/sse/batch/`
+- **Authentication Endpoints**: 
+  - `/api/users/auth/status/` - Check auth status (POST)
+  - `/api/users/auth/sse-token/` - Create/revoke SSE tokens (POST/DELETE)
+  - `/api/users/user/me/` - Get current user info (GET)
+- **SSE Endpoints**: `/api/tasks/<task_id>/stream/`, `/api/tasks/batch/stream/`
 - **Hint Endpoints**: `/api/hints/<problem_slug>/availability/`, `/api/hints/<problem_slug>/<hint_id>/`
 - **Progress Endpoints**: `/api/progress/`, `/api/progress/problem-set/<slug>/`
 - **Admin Endpoints**: `/api/admin/problems/`, `/api/admin/test-cases/`
@@ -281,11 +336,22 @@ User
 ### Authentication
 - Clean, service-layer based authentication system
 - Single PurplexAuthentication class for all endpoints
+- All auth views consolidated in user_views.py (class-based only)
 - AuthenticationService centralizes all Firebase logic
-- Development: Mock Firebase (no external dependencies)
+- Development: Mock Firebase with secure JWT secret from environment
 - Production: Real Firebase authentication
 - Django User model with UserProfile linking to Firebase UID
-- Service account authentication for internal services
+- Service account authentication with constant-time comparison
+- SSE session tokens prevent URL token exposure (5-minute TTL)
+- Rate limiting on all authentication endpoints
+- Comprehensive audit logging for security monitoring
+- Generic error messages prevent information disclosure
+
+**View Classes** (all in user_views.py):
+- `AuthStatusView` - Validate tokens and return user info
+- `SSETokenView` - Create/revoke SSE session tokens (POST/DELETE)
+- `UserRoleView` - Get current user role and permissions
+- `AdminUserManagementView` - Admin user management
 
 ### Authorization
 - Role-based: Admin, Instructor, Student

@@ -1,5 +1,16 @@
 # Development Workflow
 
+## Code Quality Checks
+
+```bash
+# Check for business logic violations (NEW)
+python scripts/check_business_logic.py
+
+# Run before committing to ensure no violations
+# Exit code 0 = no blocking violations
+# Exit code 1 = blocking violations found
+```
+
 ## Quick Start
 
 ```bash
@@ -71,31 +82,60 @@ class MultipleChoiceSubmitView(APIView):
 
 ### 2. Adding a New API Endpoint
 
-**Standard pattern:**
+**Standard pattern (MUST use class-based views):**
 ```python
-# views/feature_views.py
+# views/feature_views.py (or add to existing views file)
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .permissions import IsAuthenticated
+
 class FeatureView(APIView):
-    """Thin controller - delegates to service."""
+    """
+    REQUIRED: All views must be class-based using APIView.
+    Thin controller - delegates to service.
+    """
+    permission_classes = [IsAuthenticated]  # Always specify
     
     def get(self, request):
         # 1. Parse input
-        # 2. Call service
+        params = request.query_params
+        
+        # 2. Call service (NO business logic here)
+        result = FeatureService.process_feature(params)
+        
         # 3. Return response
-        pass
+        return Response(result, status=status.HTTP_200_OK)
+    
+    def post(self, request):
+        # Multiple HTTP methods in same class
+        data = request.data
+        result = FeatureService.create_feature(data)
+        return Response(result, status=status.HTTP_201_CREATED)
 
 # services/feature_service.py (or add to existing service file)
 class FeatureService:
-    """Contains all business logic."""
+    """Contains ALL business logic."""
     
     @staticmethod
-    def process_feature():
+    def process_feature(params):
         # Complex logic here
+        pass
+    
+    @staticmethod
+    def create_feature(data):
+        # Creation logic here
         pass
 
 # urls.py
 urlpatterns = [
-    path('api/feature/', FeatureView.as_view()),
+    path('api/feature/', FeatureView.as_view()),  # Single URL, multiple methods
 ]
+
+# ❌ NEVER USE function-based views:
+# @api_view(['GET'])  # Don't use this pattern
+# def feature_view(request):
+#     pass
 ```
 
 ### 3. Adding a Celery Task
@@ -203,12 +243,13 @@ pytest -m "not slow"
 ```bash
 python manage.py shell
 
-# Example debugging
-from purplex.problems_app.models import Problem
-from purplex.problems_app.services import ProblemService
+# Example debugging - ALWAYS use service layer
+from purplex.problems_app.services.admin_service import AdminProblemService
+from purplex.problems_app.services.student_service import StudentService
 
-problem = Problem.objects.first()
-result = ProblemService.calculate_score(problem)
+# Never query models directly in shell for business logic
+problems = AdminProblemService.get_all_problems_optimized()
+student_problems = StudentService.get_active_problems()
 ```
 
 #### Celery Task Debugging
@@ -251,6 +292,8 @@ test: add service layer tests
 - [ ] Migrations created if needed
 - [ ] Documentation updated
 - [ ] Following STANDARDS.md
+- [ ] NO direct model queries in views (Service Layer ENFORCED)
+- [ ] All business logic in service layer
 
 ## Environment Setup
 
@@ -364,7 +407,9 @@ ls -la firebase-credentials.json
 # Test authentication service directly
 python manage.py shell
 from purplex.users_app.services.authentication_service import AuthenticationService
+from purplex.users_app.user_views import AuthStatusView, SSETokenView
 # Test token verification (example)
+# All auth views are now in user_views.py (class-based only)
 ```
 
 ## Performance Optimization

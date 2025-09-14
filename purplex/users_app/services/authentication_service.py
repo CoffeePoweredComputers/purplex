@@ -2,11 +2,14 @@
 Central authentication service - single source of truth for all authentication.
 This is the ONLY place that handles Firebase authentication.
 """
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict, Any, TYPE_CHECKING
 from django.contrib.auth.models import User
 from django.conf import settings
-from django.db import transaction
 import logging
+
+# Import models only for type hints
+if TYPE_CHECKING:
+    from django.db import transaction
 import os
 import sys
 import hmac
@@ -19,6 +22,7 @@ import redis
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config.environment import config
 from purplex.users_app.models import UserProfile
+from purplex.users_app.repositories import UserRepository, UserProfileRepository
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +149,6 @@ class AuthenticationService:
                 raise ValueError("Authentication failed")
     
     @classmethod
-    @transaction.atomic
     def get_or_create_user(cls, firebase_uid: str, email: str, display_name: str) -> User:
         """
         Get existing user or create new one.
@@ -160,33 +163,35 @@ class AuthenticationService:
         Returns:
             Django User instance
         """
-        # Try to get existing user profile
-        try:
-            user_profile = UserProfile.objects.select_for_update().get(firebase_uid=firebase_uid)
-            user = user_profile.user
-            
-            # Update user info if changed
-            cls._update_user_if_needed(user, email, display_name)
-            
-            return user
-            
-        except UserProfile.DoesNotExist:
-            # Create new user
-            user = cls._create_django_user(firebase_uid, email, display_name)
-            
-            # Create user profile
-            user_profile = UserProfile.objects.create(
-                user=user,
-                firebase_uid=firebase_uid,
-                role='user'
-            )
-            
-            # Apply test user permissions in development
-            if config.is_development and email:
-                cls._apply_test_user_permissions(user, user_profile, email)
-            
-            logger.info(f"Created new user: {user.username} (Firebase UID: {firebase_uid})")
-            return user
+        from django.db import transaction
+        
+        with transaction.atomic():
+            # Try to get existing user profile with lock for update
+            user_profile = UserProfileRepository.get_by_firebase_uid_for_update(firebase_uid)
+            if user_profile:
+                user = user_profile.user
+                
+                # Update user info if changed
+                cls._update_user_if_needed(user, email, display_name)
+                
+                return user
+            else:
+                # Create new user
+                user = cls._create_django_user(firebase_uid, email, display_name)
+                
+                # Create user profile using repository
+                user_profile = UserProfileRepository.create(
+                    user=user,
+                    firebase_uid=firebase_uid,
+                    role='user'
+                )
+                
+                # Apply test user permissions in development
+                if config.is_development and email:
+                    cls._apply_test_user_permissions(user, user_profile, email)
+                
+                logger.info(f"Created new user: {user.username} (Firebase UID: {firebase_uid})")
+                return user
     
     @classmethod
     def _create_django_user(cls, firebase_uid: str, email: str, display_name: str) -> User:
@@ -207,15 +212,15 @@ class AuthenticationService:
         else:
             username_base = firebase_uid[:15]
         
-        # Ensure username is unique
+        # Ensure username is unique using repository
         username = username_base
         counter = 1
-        while User.objects.filter(username=username).exists():
+        while UserRepository.username_exists(username):
             username = f"{username_base}{counter}"
             counter += 1
         
-        # Create the Django user
-        user = User.objects.create(
+        # Create the Django user using repository
+        user = UserRepository.create(
             username=username,
             email=email or '',
             first_name=display_name or ''
@@ -302,18 +307,17 @@ class AuthenticationService:
         # Log successful service account authentication
         logger.info(f"Service account authenticated successfully")
         
-        # Get or create service user
-        try:
-            service_user = User.objects.get(username='service_account')
-        except User.DoesNotExist:
+        # Get or create service user using repository
+        service_user = UserRepository.get_service_account()
+        if not service_user:
             if config.is_development:
-                # Create service account in development
-                service_user = User.objects.create(
+                # Create service account in development using repository
+                service_user = UserRepository.create(
                     username='service_account',
                     email='service@purplex.local',
                     is_staff=True
                 )
-                UserProfile.objects.create(
+                UserProfileRepository.create(
                     user=service_user,
                     firebase_uid='service-account',
                     role='service'
@@ -388,11 +392,13 @@ class AuthenticationService:
             # Refresh TTL on activity (sliding expiration)
             redis_client.expire(session_key, 300)
             
-            # Get user from database
-            user = User.objects.get(id=user_id)
+            # Get user from database using repository
+            user = UserRepository.get_by_id(user_id)
+            if not user:
+                raise ValueError("User not found")
             return user
             
-        except (json.JSONDecodeError, User.DoesNotExist) as e:
+        except (json.JSONDecodeError, ValueError) as e:
             logger.error(f"Invalid SSE session data: {e}")
             # Clean up invalid session
             redis_client.delete(session_key)

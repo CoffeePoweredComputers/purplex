@@ -3,6 +3,44 @@
 ## Purpose
 This document preserves the history of resolved architectural issues and completed migrations for reference. All issues listed here have been successfully resolved.
 
+## 2025-08-16: Repository Layer Implementation
+
+### What Was Done
+1. **Created Repository Layer**:
+   - `BaseRepository` with common database patterns
+   - `CourseRepository`, `ProblemRepository`, `HintRepository`
+   - `ProgressRepository`, `SubmissionRepository`
+   - All repositories follow consistent pattern
+
+2. **Partial Service Refactoring**:
+   - `CourseService` fully refactored to use `CourseRepository`
+   - `HintDisplayService` created to extract display logic from views
+   - Other services still need refactoring (60+ violations remain)
+
+3. **View Layer Fixes**:
+   - `hint_views.py` - Removed display logic
+   - `submission_views.py` - Fixed enrollment checks
+   - `admin_views.py` - Removed direct model queries
+   - `progress_views.py` - Fixed direct model operations
+   - **Result**: 0 BLOCKING violations in views
+
+4. **Enforcement Tooling**:
+   - Created `scripts/check_business_logic.py` violation detector
+   - AST-based analysis with severity levels
+   - Can be integrated into CI/CD pipeline
+
+### Current State
+- **Architecture**: `View → Service → Repository → Model` (partially implemented)
+- **Views**: ✅ Clean (no direct model queries)
+- **Services**: ⚠️ Mixed (most still have direct queries)
+- **Repositories**: ✅ Created but underutilized
+
+### Remaining Work
+- Refactor remaining services to use repositories
+- Fix 60+ WARNING violations in services
+- Update all services to follow CourseService pattern
+- Add pre-commit hooks for enforcement
+
 ## Completed Migrations
 
 ### PostgreSQL Migration (Completed: 2025-08-12)
@@ -10,10 +48,14 @@ This document preserves the history of resolved architectural issues and complet
 - Implemented unified database configuration
 - All data successfully migrated
 
-### Service Layer Refactoring (Completed: 2025-08-12)
-- Extracted all business logic from views to service classes
-- Created comprehensive service layer in `problems_app/services/`
-- All views now act as thin controllers
+### Service Layer Refactoring (IN PROGRESS: Started 2025-08-12, Repository Layer Added 2025-08-16)
+- ✅ Extracted all business logic from views to service classes
+- ✅ Created comprehensive service layer in `problems_app/services/`
+- ✅ All views now act as thin controllers (no direct model queries)
+- ✅ Created repository layer in `problems_app/repositories/` (2025-08-16)
+- ⚠️ Services still contain direct model queries (60+ violations remain)
+- ⚠️ Only CourseService fully uses repositories
+- ⚠️ Migration to full repository pattern ~40% complete
 
 ### Authentication System Modernization (Completed: 2025-08-14)
 - Implemented service-layer authentication architecture
@@ -30,7 +72,7 @@ This document preserves the history of resolved architectural issues and complet
 
 ### SSE Implementation Consolidation (Completed: 2025-08-12)
 - Removed legacy `sse_views.py`
-- Unified on `sse_clean.py` implementation
+- Unified on `sse.py` implementation
 - Updated all imports and tests
 
 ## Resolved Architecture Issues

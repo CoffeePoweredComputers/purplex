@@ -2,7 +2,6 @@
 
 import json
 import logging
-from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -11,13 +10,11 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-
-from ..models import Problem, ProblemSet, ProblemCategory, TestCase, ProblemSetMembership
 from ..serializers import (
     AdminProblemSerializer, ProblemSetSerializer, ProblemCategorySerializer,
     TestCaseSerializer
 )
-from ..services.code_execution_service import CodeExecutionService
+from ..services.docker_execution_service import DockerExecutionService as CodeExecutionService
 from ..services.admin_service import AdminProblemService
 from purplex.users_app.permissions import IsAdmin
 
@@ -30,8 +27,8 @@ class AdminProblemListView(APIView):
     permission_classes = [IsAdmin]
     
     def get(self, request):
-        # Fixed N+1 query: add select_related for created_by since AdminProblemSerializer uses it
-        problems = Problem.objects.all().select_related('created_by').prefetch_related('categories', 'test_cases', 'problem_sets')
+        # Use service layer to get problems with optimized queries
+        problems = AdminProblemService.get_all_problems_optimized()
         serializer = AdminProblemSerializer(problems, many=True)
         return Response(serializer.data)
     
@@ -67,12 +64,22 @@ class AdminProblemDetailView(APIView):
     permission_classes = [IsAdmin]
     
     def get(self, request, slug):
-        problem = get_object_or_404(Problem, slug=slug)
+        problem = AdminProblemService.get_problem_by_slug(slug)
+        if not problem:
+            return Response(
+                {'error': f'Problem with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         serializer = AdminProblemSerializer(problem)
         return Response(serializer.data)
     
     def put(self, request, slug):
-        problem = get_object_or_404(Problem, slug=slug)
+        problem = AdminProblemService.get_problem_by_slug(slug)
+        if not problem:
+            return Response(
+                {'error': f'Problem with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         # Use service layer to prepare data
         data, problem_sets_slugs = AdminProblemService.prepare_problem_data(request.data)
@@ -86,8 +93,8 @@ class AdminProblemDetailView(APIView):
                     # Use service layer to handle problem sets relationship
                     # Only update problem sets if explicitly provided in the request
                     if 'problem_sets' in request.data:
-                        problem_sets = ProblemSet.objects.filter(slug__in=problem_sets_slugs)
-                        problem.problem_sets.set(problem_sets)
+                        problem_sets = AdminProblemService.get_problem_sets_by_slugs(problem_sets_slugs)
+                        AdminProblemService.update_problem_set_relations(problem, problem_sets)
                     
                     # Return fresh data with all relationships
                     return Response(AdminProblemSerializer(problem).data)
@@ -106,9 +113,21 @@ class AdminProblemDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request, slug):
-        problem = get_object_or_404(Problem, slug=slug)
-        problem.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        problem = AdminProblemService.get_problem_by_slug(slug)
+        if not problem:
+            return Response(
+                {'error': f'Problem with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Use service layer to delete the problem
+        if AdminProblemService.delete_problem(problem):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(
+                {'error': 'Failed to delete problem'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class AdminTestProblemView(APIView):
@@ -137,6 +156,8 @@ class AdminTestProblemView(APIView):
         # Test the reference solution with error handling
         try:
             code_service = CodeExecutionService()
+            # Set user context for rate limiting
+            code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
             result = code_service.test_solution(
                 problem_data['reference_solution'],
                 problem_data['function_name'],
@@ -160,7 +181,12 @@ class AdminTestCaseView(APIView):
     
     def post(self, request, problem_slug):
         """Add test case to a problem"""
-        problem = get_object_or_404(Problem, slug=problem_slug)
+        problem = AdminProblemService.get_problem_by_slug(problem_slug)
+        if not problem:
+            return Response(
+                {'error': f'Problem with slug {problem_slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         serializer = TestCaseSerializer(data=request.data)
         if serializer.is_valid():
@@ -170,7 +196,12 @@ class AdminTestCaseView(APIView):
     
     def put(self, request, problem_slug, test_case_id):
         """Update a test case"""
-        test_case = get_object_or_404(TestCase, id=test_case_id, problem__slug=problem_slug)
+        test_case = AdminProblemService.get_test_case(test_case_id, problem_slug)
+        if not test_case:
+            return Response(
+                {'error': f'Test case {test_case_id} not found for problem {problem_slug}'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         serializer = TestCaseSerializer(test_case, data=request.data, partial=True)
         if serializer.is_valid():
@@ -180,9 +211,21 @@ class AdminTestCaseView(APIView):
     
     def delete(self, request, problem_slug, test_case_id):
         """Delete a test case"""
-        test_case = get_object_or_404(TestCase, id=test_case_id, problem__slug=problem_slug)
-        test_case.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        test_case = AdminProblemService.get_test_case(test_case_id, problem_slug)
+        if not test_case:
+            return Response(
+                {'error': f'Test case {test_case_id} not found for problem {problem_slug}'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Use service layer to delete the test case
+        if AdminProblemService.delete_test_case(test_case_id):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(
+                {'error': 'Failed to delete test case'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class AdminProblemSetListView(APIView):
@@ -191,7 +234,7 @@ class AdminProblemSetListView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get(self, request):
-        problem_sets = ProblemSet.objects.all().select_related('created_by').prefetch_related('problems')
+        problem_sets = AdminProblemService.get_all_problem_sets()
         serializer = ProblemSetSerializer(problem_sets, many=True)
         
         # Add full URLs for icons
@@ -257,7 +300,12 @@ class AdminProblemSetDetailView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get(self, request, slug):
-        problem_set = get_object_or_404(ProblemSet, slug=slug)
+        problem_set = AdminProblemService.get_problem_set_by_slug(slug)
+        if not problem_set:
+            return Response(
+                {'error': f'Problem set with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         serializer = ProblemSetSerializer(problem_set)
         data = serializer.data
         
@@ -267,7 +315,12 @@ class AdminProblemSetDetailView(APIView):
         return Response(data)
     
     def put(self, request, slug):
-        problem_set = get_object_or_404(ProblemSet, slug=slug)
+        problem_set = AdminProblemService.get_problem_set_by_slug(slug)
+        if not problem_set:
+            return Response(
+                {'error': f'Problem set with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         # Use service to check if title change would create a duplicate
         if 'title' in request.data:
@@ -316,9 +369,21 @@ class AdminProblemSetDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request, slug):
-        problem_set = get_object_or_404(ProblemSet, slug=slug)
-        problem_set.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        problem_set = AdminProblemService.get_problem_set_by_slug(slug)
+        if not problem_set:
+            return Response(
+                {'error': f'Problem set with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Use service layer to delete the problem set
+        if AdminProblemService.delete_problem_set(problem_set):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(
+                {'error': 'Failed to delete problem set'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class AdminCategoryView(APIView):
@@ -326,7 +391,7 @@ class AdminCategoryView(APIView):
     permission_classes = [IsAdmin]
     
     def get(self, request):
-        categories = ProblemCategory.objects.all()
+        categories = AdminProblemService.get_all_categories()
         serializer = ProblemCategorySerializer(categories, many=True)
         return Response(serializer.data)
     

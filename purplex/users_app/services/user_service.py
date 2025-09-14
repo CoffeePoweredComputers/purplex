@@ -1,11 +1,20 @@
 """
 User management service - handles all user-related business logic.
 """
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from django.contrib.auth.models import User
-from django.db import transaction
-from django.db.models import Q, Count, Avg
 from purplex.users_app.models import UserProfile
+
+# Import models only for type hints
+if TYPE_CHECKING:
+    from django.db import transaction
+    from django.db.models import Q, Count, Avg
+from purplex.users_app.repositories import UserRepository, UserProfileRepository
+from purplex.problems_app.repositories import (
+    UserProgressRepository,
+    SubmissionRepository,
+    CourseEnrollmentRepository
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,10 +39,7 @@ class UserService:
         Returns:
             User instance or None
         """
-        try:
-            return User.objects.select_related('userprofile').get(id=user_id)
-        except User.DoesNotExist:
-            return None
+        return UserRepository.get_with_profile(user_id)
     
     @classmethod
     def get_user_by_firebase_uid(cls, firebase_uid: str) -> Optional[User]:
@@ -46,11 +52,8 @@ class UserService:
         Returns:
             User instance or None
         """
-        try:
-            profile = UserProfile.objects.select_related('user').get(firebase_uid=firebase_uid)
-            return profile.user
-        except UserProfile.DoesNotExist:
-            return None
+        profile = UserProfileRepository.get_by_firebase_with_user(firebase_uid)
+        return profile.user if profile else None
     
     @classmethod
     def get_user_profile(cls, user: User) -> Optional[UserProfile]:
@@ -69,7 +72,6 @@ class UserService:
             return None
     
     @classmethod
-    @transaction.atomic
     def update_user_role(cls, user: User, role: str) -> UserProfile:
         """
         Update user's role.
@@ -122,7 +124,7 @@ class UserService:
         Returns:
             List of User instances
         """
-        return User.objects.filter(userprofile__role=role).select_related('userprofile')
+        return UserRepository.get_by_role(role)
     
     @classmethod
     def search_users(cls, query: str) -> List[User]:
@@ -135,12 +137,8 @@ class UserService:
         Returns:
             List of User instances
         """
-        return User.objects.filter(
-            Q(username__icontains=query) |
-            Q(email__icontains=query) |
-            Q(first_name__icontains=query) |
-            Q(last_name__icontains=query)
-        ).select_related('userprofile')[:20]
+        # Use repository search method
+        return UserRepository.search_users(query, limit=20)
     
     @classmethod
     def get_user_statistics(cls, user: User) -> Dict[str, Any]:
@@ -153,8 +151,6 @@ class UserService:
         Returns:
             Dictionary with user statistics
         """
-        from purplex.problems_app.models import UserProgress, PromptSubmission
-        
         stats = {
             'username': user.username,
             'email': user.email,
@@ -168,21 +164,16 @@ class UserService:
         if profile:
             stats['role'] = profile.role
         
-        # Get progress statistics
-        progress = UserProgress.objects.filter(user=user).aggregate(
-            problems_attempted=Count('id'),
-            problems_solved=Count('id', filter=Q(solved=True)),
-            avg_attempts=Avg('attempts')
-        )
-        stats.update(progress)
+        # Get progress statistics using repository
+        progress_stats = UserProgressRepository.get_user_statistics(user)
+        stats.update(progress_stats)
         
-        # Get submission count
-        stats['total_submissions'] = PromptSubmission.objects.filter(user=user).count()
+        # Get submission count using repository
+        stats['total_submissions'] = SubmissionRepository.count(user=user)
         
         return stats
     
     @classmethod
-    @transaction.atomic
     def delete_user_data(cls, user: User) -> None:
         """
         Delete all user data (for GDPR compliance).
@@ -191,22 +182,19 @@ class UserService:
             user: User instance
         """
         # Delete all related data
-        from purplex.problems_app.models import (
-            UserProgress, PromptSubmission, CourseEnrollment
-        )
         
-        # Delete progress
-        UserProgress.objects.filter(user=user).delete()
+        # Delete progress using repository
+        UserProgressRepository.delete(user=user)
         
-        # Delete submissions
-        PromptSubmission.objects.filter(user=user).delete()
+        # Delete submissions using repository
+        SubmissionRepository.delete(user=user)
         
-        # Delete enrollments
-        CourseEnrollment.objects.filter(user=user).delete()
+        # Delete enrollments using repository
+        CourseEnrollmentRepository.delete(user=user)
         
         # Delete profile and user
         try:
-            user.userprofile.delete()
+            user.profile.delete()
         except UserProfile.DoesNotExist:
             pass
         

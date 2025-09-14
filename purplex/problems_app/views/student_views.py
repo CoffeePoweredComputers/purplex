@@ -10,6 +10,7 @@ from ..serializers import (
 )
 from ..services.student_service import StudentService
 from purplex.users_app.permissions import IsAuthenticated
+from ..repositories import ProblemRepository
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +71,10 @@ class ProblemSetDetailView(APIView):
         # Enhance with serialized test cases
         for problem_dict in problems_data:
             # Get the actual problem object for test cases
-            for problem in problem_set.problems.all():
-                if problem.slug == problem_dict['slug']:
-                    visible_test_cases = StudentService.get_visible_test_cases(problem)
-                    problem_dict['test_cases'] = TestCaseSerializer(visible_test_cases, many=True).data
-                    break
+            problem = ProblemRepository.get_problem_by_slug(problem_dict['slug'])
+            if problem:
+                visible_test_cases = StudentService.get_visible_test_cases(problem)
+                problem_dict['test_cases'] = TestCaseSerializer(visible_test_cases, many=True).data
         
         data['problems'] = problems_data
         return Response(data)

@@ -163,8 +163,8 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
-CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes
+CELERY_TASK_TIME_LIMIT = config.celery_task_time_limit
+CELERY_TASK_SOFT_TIME_LIMIT = config.celery_task_soft_time_limit
 
 # Celery task routing
 CELERY_TASK_ROUTES = {
@@ -181,11 +181,14 @@ GPT_MODEL = os.environ.get('GPT_MODEL', 'gpt-4o-mini')
 FIREBASE_CONFIG = config.get_firebase_config()
 
 # Feature Flags
-ENABLE_EIPL = os.environ.get('ENABLE_EIPL', 'true').lower() == 'true'
-ENABLE_HINTS = os.environ.get('ENABLE_HINTS', 'true').lower() == 'true'
-ENABLE_COURSES = os.environ.get('ENABLE_COURSES', 'true').lower() == 'true'
+ENABLE_EIPL = config.enable_eipl
+ENABLE_HINTS = config.enable_hints
+ENABLE_COURSES = config.enable_courses
 
 # Custom settings from environment config
 USE_MOCK_FIREBASE = config.use_mock_firebase
 USE_MOCK_OPENAI = config.use_mock_openai
 PURPLEX_ENVIRONMENT = config.env.value
+
+# Import security configuration
+from purplex.settings.security import CODE_EXECUTION, RATE_LIMITS

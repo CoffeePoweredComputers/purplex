@@ -23,7 +23,7 @@ Before writing ANY code:
 - [ ] Check PATTERNS.md for similar implementations
 - [ ] Use service layer for business logic (never in views)
 - [ ] Follow naming conventions strictly
-- [ ] Check existing clean implementations (e.g., sse_clean.py)
+- [ ] Check existing clean implementations (e.g., sse.py)
 
 ## 🤖 AUTOMATIC AGENT ENFORCEMENT
 
@@ -33,7 +33,7 @@ Before writing ANY code:
 - **Before writing**: Run `pattern-matcher` agent to get correct template
 - **After writing**: Run `standards-enforcer` to validate changes
 - **For significant changes**: Run `architecture-validator`
-- **Check for clean versions**: Look for `_clean.py` variants (e.g., sse_clean.py)
+- **Check for clean versions**: Look for `_clean.py` variants (e.g., sse.py)
 
 ### When Committing:
 - **Always run**: `code-quality-orchestrator` (runs all validations)
@@ -55,10 +55,10 @@ Purplex is a modern educational coding challenge platform that helps students pr
 - **Database-Native Problem Creation**: Rich web-based problem editor with live validation
 - **AI-Powered Test Generation**: Automated test case creation using OpenAI GPT-4
 - **EiPL (Explain in Plain Language)**: Natural language code submissions with AI processing
-- **Secure Code Execution**: Isolated Docker containers for safe code testing
+- **Secure Code Execution**: Fully isolated Docker containers with resource limits, network isolation, and code validation
 - **User Progress Tracking**: Detailed analytics on student performance and learning paths
 - **Rich Admin Interface**: Custom Vue.js admin panels for problem and user management
-- **Service-Layer Authentication**: Clean authentication with centralized Firebase logic
+- **Secure Authentication**: Service-layer auth with SSE session tokens and rate limiting
 - **Real-time Feedback**: Immediate test results with detailed scoring
 - **Educational Hint System**: Multi-modal hint delivery (Variable Fade, Subgoal Highlighting, Suggested Trace)
 - **Course Context Support**: Full course enrollment and progress isolation
@@ -197,8 +197,8 @@ celery -A purplex.celery_simple worker -l info
 - **Database**: PostgreSQL 15 (Docker container)
 - **Task Queue**: Celery 5.x with Redis broker
 - **Cache/Message Broker**: Redis 7 (multiple databases for different purposes)
-- **Authentication**: Service-layer based system (Mock Firebase for dev, real for prod)
-- **Code Execution**: Docker containers (isolated for security)
+- **Authentication**: Secure service-layer system with SSE tokens, rate limiting, and audit logging
+- **Code Execution**: Secure Docker containers with full isolation, resource limits, and code validation
 - **State Management**: Vuex 4 + Vue Composables
 - **Editor**: Ace Editor
 - **AI Services**: OpenAI GPT-4 API
@@ -231,7 +231,7 @@ purplex/
 │   │   │   ├── admin_views.py      # Admin management views
 │   │   │   ├── student_views.py    # Student-facing views
 │   │   │   ├── submission_views.py # Code submission handling
-│   │   │   ├── sse_clean.py       # Server-sent events implementation
+│   │   │   ├── sse.py       # Server-sent events implementation
 │   │   │   ├── progress_views.py  # Progress tracking
 │   │   │   └── hint_views.py      # Hint system endpoints
 │   │   ├── course_views.py  # Course management views
@@ -252,9 +252,11 @@ purplex/
 │   ├── submissions_app/     # Code submission handling
 │   ├── users_app/           # User management and auth
 │   │   ├── authentication.py         # Single PurplexAuthentication class
+│   │   ├── user_views.py            # All auth views (class-based only)
 │   │   ├── services/                 # Authentication business logic
 │   │   │   ├── authentication_service.py  # Central Firebase authentication service
-│   │   │   └── user_service.py            # User management service
+│   │   │   ├── user_service.py            # User management service
+│   │   │   └── rate_limit_service.py      # Rate limiting for auth
 │   │   └── mock_firebase.py          # Mock Firebase for development
 │   └── client/              # Vue.js frontend
 │       ├── src/
@@ -332,13 +334,18 @@ purplex/
 
 ### System Architecture Status
 
-**Completed Improvements**:
-- Service layer architecture fully implemented
-- Single SSE implementation (sse_clean.py)
-- Clear state management guidelines (see STATE_MANAGEMENT.md)
-- Consistent API naming (kebab-case)
-- Service-layer authentication system
-- PostgreSQL for all environments
+**Completed Improvements (Jan 2025)**:
+- ✅ Service layer architecture FULLY ENFORCED - Zero direct model queries in views
+- ✅ All 8 identified service layer violations fixed
+- ✅ CourseService created for course validation and enrollment
+- ✅ Enhanced ProgressService, AdminProblemService, HintService
+- ✅ Single SSE implementation (sse.py)
+- ✅ Clear state management guidelines (see STATE_MANAGEMENT.md)
+- ✅ Consistent API naming (kebab-case)
+- ✅ Service-layer authentication system
+- ✅ PostgreSQL for all environments
+- ✅ All views are class-based (APIView pattern, no function-based views)
+- ✅ Authentication consolidated in user_views.py (no competing auth patterns)
 
 **Production Considerations**:
 - Ensure rate limiting on submission endpoints
@@ -347,7 +354,7 @@ purplex/
 
 ### Technical Architecture
 - ✅ **Service Layer**: Complete separation of business logic from views
-- ✅ **SSE Implementation**: Single, clean implementation (sse_clean.py only)
+- ✅ **SSE Implementation**: Single, clean implementation (sse.py only)
 - ✅ **State Management**: Clear guidelines - Vuex for global, composables for local (see STATE_MANAGEMENT.md)
 - ✅ **Modular Views**: Views refactored into focused modules
 - **Testing**: Comprehensive pytest infrastructure with Django test support

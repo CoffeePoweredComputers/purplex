@@ -1,11 +1,20 @@
 """Service layer for hint-related business logic."""
 
 import logging
-from typing import Dict, List, Optional, Any
-from django.shortcuts import get_object_or_404
+from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from django.core.cache import cache
+from django.http import Http404
 
-from ..models import Problem, ProblemHint, UserProgress
+from ..repositories import (
+    ProblemRepository,
+    HintRepository,
+    ProgressRepository,
+    CourseRepository
+)
+
+# Import models only for type hints
+if TYPE_CHECKING:
+    from ..models import Problem, ProblemHint, UserProgress, ProblemSet, Course, CourseEnrollment
 
 logger = logging.getLogger(__name__)
 
@@ -39,42 +48,36 @@ class HintService:
         Returns:
             Dictionary with hint availability information
         """
-        from ..models import ProblemSet, Course
-        
-        problem = get_object_or_404(Problem, slug=problem_slug)
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if not problem:
+            raise Http404("Problem not found")
         
         # Get optional context
         problem_set = None
         course = None
         
         if problem_set_slug:
-            problem_set = get_object_or_404(ProblemSet, slug=problem_set_slug)
+            problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
+            if not problem_set:
+                raise Http404("Problem set not found")
             
         if course_id:
-            course = get_object_or_404(Course, course_id=course_id)
+            course = CourseRepository.get_active_course(course_id)
+            if not course:
+                raise Http404("Course not found")
         
-        # Get user progress with context
-        try:
-            if problem_set:
-                progress = UserProgress.objects.get(
-                    user=user, 
-                    problem=problem,
-                    problem_set=problem_set,
-                    course=course
-                )
-            else:
-                progress = UserProgress.objects.get(user=user, problem=problem)
-            attempts = progress.attempts
-        except UserProgress.DoesNotExist:
-            attempts = 0
+        # Get user progress with context using ID-based method
+        progress = ProgressRepository.get_by_ids(
+            user_id=user.id,
+            problem_id=problem.id,
+            problem_set_id=problem_set.id if problem_set else None,
+            course_id=course.id if course else None
+        )
+        
+        attempts = progress.attempts if progress else 0
         
         # Get only enabled hints for the problem
-        hints = ProblemHint.objects.filter(
-            problem=problem,
-            is_enabled=True
-        ).values(
-            'id', 'hint_type', 'min_attempts'
-        )
+        hints = HintRepository.get_enabled_hints_for_problem(problem)
         
         # Build availability response
         availability = {
@@ -119,19 +122,16 @@ class HintService:
         Returns:
             Dictionary with hint content or error information
         """
-        from ..models import Problem, ProblemSet, Course, CourseEnrollment
-        
         # Get the problem
-        try:
-            problem = Problem.objects.get(slug=problem_slug, is_active=True)
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if not problem or not problem.is_active:
             return {
                 'error': 'not_found',
                 'message': 'Problem not found'
             }
         
         # Validate hint type
-        valid_hint_types = [choice[0] for choice in ProblemHint.HINT_TYPE_CHOICES]
+        valid_hint_types = HintRepository.get_valid_hint_types()
         if hint_type not in valid_hint_types:
             return {
                 'error': 'invalid_type',
@@ -143,37 +143,35 @@ class HintService:
         problem_set = None
         
         if problem_set_slug:
-            try:
-                problem_set = ProblemSet.objects.get(slug=problem_set_slug)
-                if not problem.problem_sets.filter(id=problem_set.id).exists():
-                    return {
-                        'error': 'invalid_context',
-                        'message': 'Problem does not belong to the specified problem set'
-                    }
-            except ProblemSet.DoesNotExist:
+            problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
+            if not problem_set:
                 return {
                     'error': 'not_found',
                     'message': 'Problem set not found'
                 }
+            if not ProblemRepository.problem_in_set(problem, problem_set):
+                return {
+                    'error': 'invalid_context',
+                    'message': 'Problem does not belong to the specified problem set'
+                }
         
         if course_id:
-            try:
-                course = Course.objects.get(course_id=course_id, is_active=True, is_deleted=False)
-                if not CourseEnrollment.objects.filter(user=user, course=course, is_active=True).exists():
-                    return {
-                        'error': 'forbidden',
-                        'message': 'You are not enrolled in this course'
-                    }
-            except Course.DoesNotExist:
+            course = CourseRepository.get_active_course(course_id)
+            if not course:
                 return {
                     'error': 'not_found',
                     'message': 'Course not found'
                 }
+            if not CourseRepository.user_is_enrolled(user, course):
+                return {
+                    'error': 'forbidden',
+                    'message': 'You are not enrolled in this course'
+                }
         
         # Get the hint
-        try:
-            hint = ProblemHint.objects.get(problem=problem, hint_type=hint_type)
-        except ProblemHint.DoesNotExist:
+        hints = HintRepository.get_problem_hints_by_type(problem, hint_type)
+        hint = hints[0] if hints else None
+        if not hint:
             return {
                 'error': 'not_found',
                 'message': 'Hint not found for this problem'
@@ -186,25 +184,14 @@ class HintService:
                 'message': 'This hint is not enabled'
             }
         
-        # Get user attempts with context
-        user_attempts = 0
-        if problem_set:
-            try:
-                progress = UserProgress.objects.get(
-                    user=user,
-                    problem=problem,
-                    problem_set=problem_set,
-                    course=course
-                )
-                user_attempts = progress.attempts
-            except UserProgress.DoesNotExist:
-                user_attempts = 0
-        else:
-            try:
-                progress = UserProgress.objects.get(user=user, problem=problem)
-                user_attempts = progress.attempts
-            except UserProgress.DoesNotExist:
-                user_attempts = 0
+        # Get user attempts with context using ID-based method
+        progress = ProgressRepository.get_by_ids(
+            user_id=user.id,
+            problem_id=problem.id,
+            problem_set_id=problem_set.id if problem_set else None,
+            course_id=course.id if course else None
+        )
+        user_attempts = progress.attempts if progress else 0
         
         # Check if user has enough attempts
         if user_attempts < hint.min_attempts:
@@ -237,24 +224,26 @@ class HintService:
         Returns:
             True if recorded successfully
         """
-        try:
-            problem = Problem.objects.get(slug=problem_slug)
-            hint = ProblemHint.objects.get(
-                problem=problem,
-                hint_type=HintService.HINT_TYPE_CHOICES.get(hint_type, hint_type)
-            )
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if problem:
+            hint_type_mapped = HintService.HINT_TYPE_CHOICES.get(hint_type, hint_type)
+            hints = HintRepository.get_problem_hints_by_type(problem, hint_type_mapped)
+            hint = hints.first() if hints else None
             
-            # Record usage (could be extended to track in a separate model)
-            logger.info(f"User {user.id} used {hint_type} hint for problem {problem_slug}")
-            
-            # Invalidate any cached hint data
-            cache_key = f'hint_usage:{user.id}:{problem_slug}'
-            cache.delete(cache_key)
-            
-            return True
-            
-        except (Problem.DoesNotExist, ProblemHint.DoesNotExist) as e:
-            logger.error(f"Error recording hint usage: {e}")
+            if hint:
+                # Record usage (could be extended to track in a separate model)
+                logger.info(f"User {user.id} used {hint_type} hint for problem {problem_slug}")
+                
+                # Invalidate any cached hint data
+                cache_key = f'hint_usage:{user.id}:{problem_slug}'
+                cache.delete(cache_key)
+                
+                return True
+            else:
+                logger.error(f"Hint not found for problem {problem_slug} and type {hint_type}")
+                return False
+        else:
+            logger.error(f"Problem not found: {problem_slug}")
             return False
     
     @staticmethod
@@ -295,6 +284,101 @@ class HintService:
         
         for key in cache_keys:
             cache.delete(key)
+    
+    @staticmethod
+    def validate_hint_access_context(user, problem_slug: str,
+                                   course_id: Optional[str] = None,
+                                   problem_set_slug: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Validate user's access to hints with course context.
+        
+        Args:
+            user: Django User instance
+            problem_slug: Problem slug
+            course_id: Optional course ID
+            problem_set_slug: Optional problem set slug
+            
+        Returns:
+            Dict with validation results and context data
+        """
+        
+        result = {
+            'valid': True,
+            'problem': None,
+            'problem_set': None,
+            'course': None,
+            'error': None,
+            'user_attempts': 0,
+            'hints_available': []
+        }
+        
+        # Validate problem
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if not problem or not problem.is_active:
+            result['valid'] = False
+            result['error'] = 'Problem not found'
+            return result
+        result['problem'] = problem
+        
+        # Validate problem set if provided
+        if problem_set_slug:
+            problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
+            if not problem_set:
+                result['valid'] = False
+                result['error'] = 'Problem set not found'
+                return result
+            result['problem_set'] = problem_set
+            
+            # Check if problem belongs to problem set
+            if not ProblemRepository.problem_in_set(problem, problem_set):
+                result['valid'] = False
+                result['error'] = 'Problem does not belong to the specified problem set'
+                return result
+        
+        # Validate course access if provided
+        if course_id:
+            course = CourseRepository.get_active_course(course_id)
+            if not course:
+                result['valid'] = False
+                result['error'] = 'Course not found'
+                return result
+            result['course'] = course
+            
+            # Check enrollment
+            if not CourseRepository.user_is_enrolled(user, course):
+                result['valid'] = False
+                result['error'] = 'You are not enrolled in this course'
+                return result
+        
+        # Get user progress with context using ID-based method
+        if result['problem_set'] and result['course']:
+            progress = ProgressRepository.get_by_ids(
+                user_id=user.id,
+                problem_id=problem.id,
+                problem_set_id=result['problem_set'].id,
+                course_id=result['course'].id
+            )
+        elif result['problem_set']:
+            progress = ProgressRepository.get_by_ids(
+                user_id=user.id,
+                problem_id=problem.id,
+                problem_set_id=result['problem_set'].id
+            )
+        else:
+            progress = ProgressRepository.get_by_ids(
+                user_id=user.id,
+                problem_id=problem.id
+            )
+        result['user_attempts'] = progress.attempts if progress else 0
+        
+        # Get available hints
+        hints = HintRepository.get_enabled_hints_for_problem(problem)
+        
+        for hint in hints:
+            if result['user_attempts'] >= hint['min_attempts']:
+                result['hints_available'].append(hint['hint_type'])
+        
+        return result
 
 
 class AdminHintService:
@@ -311,15 +395,12 @@ class AdminHintService:
         Returns:
             Dictionary with problem slug and hint configurations
         """
-        from ..models import Problem, ProblemHint
-        
-        try:
-            problem = Problem.objects.get(slug=problem_slug)
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if not problem:
             raise ValueError(f"Problem with slug {problem_slug} not found")
         
         # Get all hints for this problem
-        hints = ProblemHint.objects.filter(problem=problem)
+        hints = HintRepository.get_problem_hints(problem)
         
         # Build response with all hint types
         hint_configs = []
@@ -336,7 +417,7 @@ class AdminHintService:
             hint_types_found.add(hint.hint_type)
         
         # Add default configs for missing hint types
-        for hint_type, display_name in ProblemHint.HINT_TYPE_CHOICES:
+        for hint_type in HintRepository.get_valid_hint_types():
             if hint_type not in hint_types_found:
                 default_content = {
                     'variable_fade': {'mappings': []},
@@ -367,69 +448,64 @@ class AdminHintService:
         Returns:
             Dictionary with updated hint configurations
         """
-        from django.db import transaction
         from django.core.exceptions import ValidationError
-        from ..models import Problem, ProblemHint
         
-        try:
-            problem = Problem.objects.get(slug=problem_slug)
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if not problem:
             raise ValueError(f"Problem with slug {problem_slug} not found")
         
         if not isinstance(hints_data, list):
             raise ValueError("hints must be an array of hint configurations")
         
         # Validate hint types
-        valid_hint_types = [choice[0] for choice in ProblemHint.HINT_TYPE_CHOICES]
+        valid_hint_types = HintRepository.get_valid_hint_types()
         
         try:
-            with transaction.atomic():
-                updated_hints = []
+            updated_hints = []
+            
+            for hint_data in hints_data:
+                # Validate required fields
+                hint_type = hint_data.get('type')
+                if not hint_type:
+                    raise ValueError("Each hint must have a type field")
                 
-                for hint_data in hints_data:
-                    # Validate required fields
-                    hint_type = hint_data.get('type')
-                    if not hint_type:
-                        raise ValueError("Each hint must have a type field")
-                    
-                    if hint_type not in valid_hint_types:
-                        raise ValueError(
-                            f'Invalid hint type: {hint_type}. Must be one of: {", ".join(valid_hint_types)}'
-                        )
-                    
-                    # Get or create the hint
-                    hint, created = ProblemHint.objects.get_or_create(
-                        problem=problem,
-                        hint_type=hint_type,
-                        defaults={
-                            'is_enabled': hint_data.get('is_enabled', False),
-                            'min_attempts': hint_data.get('min_attempts', 3),
-                            'content': hint_data.get('content', {})
-                        }
+                if hint_type not in valid_hint_types:
+                    raise ValueError(
+                        f'Invalid hint type: {hint_type}. Must be one of: {", ".join(valid_hint_types)}'
                     )
-                    
-                    # Update existing hint
-                    if not created:
-                        hint.is_enabled = hint_data.get('is_enabled', hint.is_enabled)
-                        hint.min_attempts = hint_data.get('min_attempts', hint.min_attempts)
-                        hint.content = hint_data.get('content', hint.content)
-                    
-                    # Validate the hint content structure
-                    hint.clean()
-                    hint.save()
-                    
-                    updated_hints.append({
-                        'type': hint.hint_type,
-                        'is_enabled': hint.is_enabled,
-                        'min_attempts': hint.min_attempts,
-                        'content': hint.content,
-                        'created': created
-                    })
                 
-                return {
-                    'problem_slug': problem.slug,
-                    'hints': updated_hints
-                }
+                # Get or create the hint
+                hint, created = HintRepository.get_or_create_hint(
+                    problem=problem,
+                    hint_type=hint_type,
+                    defaults={
+                        'is_enabled': hint_data.get('is_enabled', False),
+                        'min_attempts': hint_data.get('min_attempts', 3),
+                        'content': hint_data.get('content', {})
+                    }
+                )
+                
+                # Update existing hint
+                if not created:
+                    hint = HintRepository.update_hint(
+                        hint,
+                        is_enabled=hint_data.get('is_enabled', hint.is_enabled),
+                        min_attempts=hint_data.get('min_attempts', hint.min_attempts),
+                        content=hint_data.get('content', hint.content)
+                    )
+                
+                updated_hints.append({
+                    'type': hint.hint_type,
+                    'is_enabled': hint.is_enabled,
+                    'min_attempts': hint.min_attempts,
+                    'content': hint.content,
+                    'created': created
+                })
+            
+            return {
+                'problem_slug': problem.slug,
+                'hints': updated_hints
+            }
                 
         except ValidationError as e:
             raise ValueError(str(e))
