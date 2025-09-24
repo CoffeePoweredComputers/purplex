@@ -90,6 +90,7 @@
               <th>Problem</th>
               <th>Problem Set</th>
               <th>Score</th>
+              <th>Comprehension</th>
               <th>Status</th>
               <th>Submitted</th>
               <th>Actions</th>
@@ -119,6 +120,14 @@
                 >
                   {{ submission.score }}%
                 </div>
+              </td>
+              <td>
+                <span
+                  class="comprehension-badge"
+                  :class="comprehensionLevelClass(submission.comprehension_level)"
+                >
+                  {{ formatComprehensionLevel(submission.comprehension_level) }}
+                </span>
               </td>
               <td>
                 <span
@@ -469,6 +478,40 @@ export default defineComponent({
           return 'default-badge';
       }
     },
+
+    comprehensionLevelClass(level: string): string {
+      if (!level) return 'comprehension-not-evaluated';
+
+      switch(level.toLowerCase()) {
+        case 'high-level':
+        case 'relational':
+          return 'comprehension-high';
+        case 'low-level':
+        case 'multi_structural':
+        case 'multistructural':
+          return 'comprehension-low';
+        case 'not_evaluated':
+        default:
+          return 'comprehension-not-evaluated';
+      }
+    },
+
+    formatComprehensionLevel(level: string): string {
+      if (!level) return 'Not Evaluated';
+
+      switch(level.toLowerCase()) {
+        case 'high-level':
+        case 'relational':
+          return 'High-level';
+        case 'low-level':
+        case 'multi_structural':
+        case 'multistructural':
+          return 'Low-level';
+        case 'not_evaluated':
+        default:
+          return 'Not Evaluated';
+      }
+    },
     
     formatISODate(dateString: string | null): string {
       if (!dateString) {return 'Unknown';}
@@ -508,6 +551,8 @@ export default defineComponent({
           'Problem Set',
           'Course',
           'Score (%)',
+          'Comprehension Level',
+          'Is Correct',
           'Status',
           'Submitted At',
           'Total Variations',
@@ -528,6 +573,8 @@ export default defineComponent({
             `"${submission.problem_set || 'Unknown'}"`,
             `"${submission.course || 'N/A'}"`,
             submission.score,
+            `"${this.formatComprehensionLevel(submission.comprehension_level)}"`,
+            submission.is_correct || false,
             `"${submission.status}"`,
             `"${new Date(submission.submitted_at).toLocaleString()}"`,
             submission.total_variations || 0,
@@ -1079,6 +1126,38 @@ export default defineComponent({
   background: var(--color-info-bg);
   color: var(--color-info);
   border: 1px solid var(--color-info);
+}
+
+/* Comprehension Level Badge Styles */
+.comprehension-badge {
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--radius-base);
+  font-weight: 500;
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  white-space: nowrap;
+  min-width: 80px;
+  display: inline-block;
+}
+
+.comprehension-high {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.comprehension-low {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+}
+
+.comprehension-not-evaluated {
+  background: var(--color-bg-hover);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-bg-input);
 }
 
 .submission-time {

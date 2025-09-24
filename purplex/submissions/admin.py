@@ -48,6 +48,7 @@ class SubmissionAdmin(admin.ModelAdmin):
         'problem',
         'submission_type',
         'score_display',
+        'comprehension_level_display',
         'completion_status_display',
         'submitted_at'
     ]
@@ -56,6 +57,8 @@ class SubmissionAdmin(admin.ModelAdmin):
         'submission_type',
         'execution_status',
         'completion_status',
+        'comprehension_level',
+        'is_correct',
         'passed_all_tests',
         'course',
         'problem_set',
@@ -91,7 +94,7 @@ class SubmissionAdmin(admin.ModelAdmin):
             'fields': ('execution_status', 'execution_time_ms', 'memory_used_mb', 'celery_task_id')
         }),
         ('Results', {
-            'fields': ('score', 'passed_all_tests', 'completion_status')
+            'fields': ('score', 'passed_all_tests', 'is_correct', 'completion_status', 'comprehension_level')
         }),
     )
 
@@ -124,6 +127,27 @@ class SubmissionAdmin(admin.ModelAdmin):
             obj.get_completion_status_display()
         )
     completion_status_display.short_description = 'Status'
+
+    def comprehension_level_display(self, obj):
+        """Display comprehension level with color coding."""
+        if obj.comprehension_level == 'high-level':
+            color = 'green'
+            icon = '🎯'
+            text = 'High-level'
+        elif obj.comprehension_level == 'low-level':
+            color = 'orange'
+            icon = '📝'
+            text = 'Low-level'
+        else:
+            color = 'gray'
+            icon = '⭕'
+            text = 'Not Evaluated'
+
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{} {}</span>',
+            color, icon, text
+        )
+    comprehension_level_display.short_description = 'Comprehension'
 
 
 @admin.register(SegmentationAnalysis)

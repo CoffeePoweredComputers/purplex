@@ -67,7 +67,10 @@ class SubmissionService:
             raw_input=raw_input,
             submission_type=submission_type,
             time_spent=time_spent,
-            execution_status='pending'
+            execution_status='pending',
+            # Explicitly set defaults for new grading fields
+            comprehension_level='not_evaluated',
+            is_correct=False
         )
 
         # Track hint activations

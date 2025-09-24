@@ -85,23 +85,28 @@ fi
 
 source $VENV_DIR/bin/activate
 pip install --upgrade pip
-pip install -r requirements.txt || error "Failed to install Python dependencies"
+# Using production requirements from modular structure
+pip install -r requirements/production.txt || error "Failed to install Python dependencies"
 
 # Step 5: Setup Frontend
 log "Building frontend..."
 cd $PROJECT_DIR/purplex/client
-npm install || error "Failed to install Node dependencies"
-npm run build || error "Failed to build frontend"
+# Use yarn instead of npm (as per project conventions)
+yarn install || npm install || error "Failed to install Node dependencies"
+yarn build || npm run build || error "Failed to build frontend"
 cd $PROJECT_DIR
 
 # Step 6: Environment Configuration
 if [ ! -f "$PROJECT_DIR/.env" ]; then
     log "Creating environment configuration..."
     cat > $PROJECT_DIR/.env << 'EOF'
+# Environment
+PURPLEX_ENV=production
+
 # Django
 DJANGO_SECRET_KEY=CHANGE_THIS_TO_A_RANDOM_SECRET_KEY
 DJANGO_DEBUG=False
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+ALLOWED_HOSTS=localhost,127.0.0.1
 
 # Database
 DATABASE_URL=postgresql://purplex:purplex_password@localhost:5432/purplex
@@ -113,9 +118,10 @@ CELERY_BROKER_URL=redis://localhost:6379/1
 
 # OpenAI
 OPENAI_API_KEY=your-openai-key-here
+GPT_MODEL=gpt-4o-mini
 
 # Firebase
-GOOGLE_APPLICATION_CREDENTIALS=/home/ubuntu/purplex/firebase-credentials.json
+FIREBASE_CREDENTIALS_PATH=/home/ubuntu/purplex/firebase-credentials.json
 EOF
     
     warning "Please edit $PROJECT_DIR/.env with your actual configuration values"
@@ -182,7 +188,7 @@ Group=ubuntu
 WorkingDirectory=$PROJECT_DIR
 Environment="PATH=$VENV_DIR/bin"
 EnvironmentFile=$PROJECT_DIR/.env
-ExecStart=$VENV_DIR/bin/celery -A purplex worker -l info
+ExecStart=$VENV_DIR/bin/celery -A purplex.celery_simple worker -l info
 
 Restart=always
 RestartSec=10
@@ -203,7 +209,7 @@ Group=ubuntu
 WorkingDirectory=$PROJECT_DIR
 Environment="PATH=$VENV_DIR/bin"
 EnvironmentFile=$PROJECT_DIR/.env
-ExecStart=$VENV_DIR/bin/celery -A purplex beat -l info
+ExecStart=$VENV_DIR/bin/celery -A purplex.celery_simple beat -l info
 
 Restart=always
 RestartSec=10
@@ -316,12 +322,12 @@ cat > /home/ubuntu/update-purplex.sh << 'EOF'
 cd /home/ubuntu/purplex
 git pull
 source env/bin/activate
-pip install -r requirements.txt
+pip install -r requirements/production.txt
 python manage.py migrate
 python manage.py collectstatic --noinput
 cd purplex/client
-npm install
-npm run build
+yarn install || npm install
+yarn build || npm run build
 sudo systemctl restart purplex
 sudo systemctl restart purplex-celery
 sudo systemctl restart purplex-celery-beat
