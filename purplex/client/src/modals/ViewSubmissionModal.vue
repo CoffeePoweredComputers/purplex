@@ -79,7 +79,8 @@
       <div class="modal-footer">
         <button
           class="action-button download-button"
-          @click="$emit('download', submission)"
+          :disabled="!submission || !submission.id"
+          @click="submission && submission.id ? $emit('download', submission) : null"
         >
           Download Data
         </button>
@@ -509,9 +510,17 @@ export default {
   border: 1px solid var(--color-success);
 }
 
-.download-button:hover {
+.download-button:hover:not(:disabled) {
   background: var(--color-success);
   color: var(--color-text-primary);
+}
+
+.download-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-bg-input);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-bg-border);
 }
 
 .cancel-button {

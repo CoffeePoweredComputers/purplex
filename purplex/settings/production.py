@@ -56,7 +56,7 @@ DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': config.get_redis_url(),
+        'LOCATION': config.redis_url,
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'CONNECTION_POOL_KWARGS': {

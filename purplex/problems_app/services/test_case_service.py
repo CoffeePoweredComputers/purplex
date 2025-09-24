@@ -55,6 +55,7 @@ class TestCaseService:
         # Convert TestCase objects to the format needed for testing
         return [
             {
+                'id': tc.id,  # Include the ID for TestExecution tracking
                 'inputs': tc.inputs,
                 'expected_output': tc.expected_output
             }

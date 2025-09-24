@@ -13,9 +13,10 @@ from django.utils.decorators import method_decorator
 from ..services.docker_execution_service import DockerExecutionService as CodeExecutionService
 from ..services.ai_generation_service import AITestGenerationService
 from ..services.submission_validation_service import SubmissionValidationService
-from ..services.submission_service import SubmissionService
+from purplex.submissions.services import SubmissionService  # Use new submission service
 from ..services.course_service import CourseService
 from ..services.student_service import StudentService
+from ..services.problem_service import ProblemService
 from ..repositories import TestCaseRepository
 from purplex.users_app.permissions import IsAuthenticated
 from celery.result import AsyncResult
@@ -137,8 +138,8 @@ class SubmitSolutionView(APIView):
         user_code = validated_data['user_code']
         course = validated_data.get('course')
         
-        # Get problem set using service
-        problem_set = SubmissionService.get_problem_set_by_slug(problem_set_slug)
+        # Get problem set using problem service
+        problem_set = ProblemService.get_problem_set_by_slug(problem_set_slug)
         if not problem_set:
             return Response({
                 'error': 'Problem set not found'
@@ -155,8 +156,8 @@ class SubmitSolutionView(APIView):
                 'error': 'prompt must not exceed 2000 characters'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Verify problem belongs to the problem set using service
-        if not SubmissionService.verify_problem_in_set(problem, problem_set):
+        # Verify problem belongs to the problem set
+        if not problem_set.problems.filter(id=problem.id).exists():
             return Response({
                 'error': 'Problem does not belong to the specified problem set'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -226,26 +227,47 @@ class SubmitSolutionView(APIView):
         time_spent_delta = None
         if time_spent:
             time_spent_delta = timedelta(seconds=int(time_spent))
-        
-        # Create submission record using service
+
+        # Create submission record using new service
         submission = SubmissionService.create_submission(
             user=request.user,
             problem=problem,
-            prompt=prompt or user_code,  # Store code if no prompt provided
+            raw_input=prompt or user_code,  # Store code if no prompt provided
+            submission_type='direct_code',
             problem_set=problem_set,
-            score=score,
-            test_results=result,
-            course=course,  # Include course context
+            course=course,
             time_spent=time_spent_delta
         )
-        
-        # Progress is automatically updated via the PromptSubmission model's save method
-        # Get the updated progress for response using service
-        progress = SubmissionService.get_user_progress(
+
+        # Record test results
+        test_execution_data = []
+        if 'results' in result:
+            for i, (test_result, test_case) in enumerate(zip(result['results'], all_test_cases)):
+                test_execution_data.append({
+                    'test_case_id': test_case.id,
+                    'passed': test_result.get('pass', False),
+                    'inputs': test_case.inputs,
+                    'expected': test_case.expected_output,
+                    'actual': test_result.get('output', ''),
+                    'error_type': 'none' if test_result.get('pass') else 'wrong_output',
+                    'error_message': test_result.get('error', '')
+                })
+
+        SubmissionService.record_test_results(
+            submission=submission,
+            test_results=test_execution_data,
+            processed_code=user_code,
+            execution_time_ms=None,
+            memory_used_mb=None
+        )
+
+        # Get the updated progress for response
+        from ..models import UserProgress
+        progress = UserProgress.objects.filter(
             user=request.user,
             problem=problem,
             course=course
-        )
+        ).first()
         
         # Return only visible test results to student
         visible_results = []
@@ -255,17 +277,22 @@ class SubmitSolutionView(APIView):
                 if not tc.is_hidden and i < len(result['results']):
                     visible_results.append(result['results'][i])
         
+        # Import GradingService to calculate grade
+        from purplex.submissions.grading_service import GradingService
+
         return Response({
-            'submission_id': submission.id,
-            'score': score,
-            'testsPassed': passed_tests,
-            'totalTests': total_tests,
+            'submission_id': str(submission.submission_id),  # Use UUID
+            'score': submission.score,
+            'testsPassed': result.get('testsPassed', 0),
+            'totalTests': result.get('totalTests', 0),
             'results': visible_results,  # Only visible test results
+            'grade': GradingService.calculate_grade(submission),  # New grade field
             'progress': {
-                'status': progress.status,
-                'best_score': progress.best_score,
-                'attempts': progress.attempts,
-                'is_completed': progress.is_completed,
+                'status': progress.status if progress else 'not_started',
+                'best_score': progress.best_score if progress else 0,
+                'attempts': progress.attempts if progress else 0,
+                'is_completed': progress.is_completed if progress else False,
+                'grade': getattr(progress, 'grade', None),  # Include grade in progress too
             }
         })
 
@@ -297,8 +324,8 @@ class EiPLSubmissionView(APIView):
         course = validated_data.get('course')
         user_prompt = validated_data['user_prompt']
         
-        # Additional validation for problem set membership using service
-        if problem_set and not SubmissionService.verify_problem_in_set(problem, problem_set):
+        # Additional validation for problem set membership
+        if problem_set and not problem_set.problems.filter(id=problem.id).exists():
             return Response({
                 'error': 'Problem does not belong to the specified problem set'
             }, status=status.HTTP_400_BAD_REQUEST)

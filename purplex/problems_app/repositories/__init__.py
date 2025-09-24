@@ -11,7 +11,6 @@ from .course_repository import CourseRepository
 from .problem_repository import ProblemRepository
 from .hint_repository import HintRepository
 from .progress_repository import ProgressRepository
-from .submission_repository import SubmissionRepository
 from .problem_set_membership_repository import ProblemSetMembershipRepository
 from .test_case_repository import TestCaseRepository
 from .problem_category_repository import ProblemCategoryRepository
@@ -31,7 +30,6 @@ __all__ = [
     'ProblemRepository',
     'HintRepository',
     'ProgressRepository',
-    'SubmissionRepository',
     'ProblemSetMembershipRepository',
     'TestCaseRepository',
     'ProblemCategoryRepository',

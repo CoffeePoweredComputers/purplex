@@ -190,13 +190,14 @@
             class="draft-indicator"
           >✓ Draft saved</span>
           <div class="prompt-editor-wrapper">
-            <Editor 
-              ref="prompt_entry" 
-              lang="text" 
-              mode="text" 
-              height="100px" 
+            <Editor
+              ref="prompt_entry"
+              v-model:value="promptEditorValue"
+              lang="text"
+              mode="text"
+              height="100px"
               width="100%"
-              :show-gutter="false" 
+              :show-gutter="false"
               :wrap="true"
               :theme="currentTheme"
             />
@@ -345,13 +346,14 @@ export default {
             problemSet: {},
             problems: [],
             isLoading: true,
-            
+
             /* Navigation State */
             currentProblem: 0,
-            
+
             /* Editor State */
             editorRenderKey: 0,
-            
+            promptEditorValue: '',  // Controlled value for prompt editor
+
             /* Submission State */
             loading: false,
             codeResults: [],
@@ -360,28 +362,28 @@ export default {
             comprehensionResults: '',
             userPrompt: '',
             segmentationData: null,
-            
+
             /* Problem Status Tracking */
             problemStatuses: {},
             problemSetProgress: null,
-            
+
             /* Editor Settings */
             editorFontSize: 14,
             codeCopied: false,
             showLineNumbers: true,
             editorTheme: 'tomorrow-night',
-            
+
             /* Draft Management */
             autoSaveInterval: null,
             draftSaved: false,
-            
+
             /* Submission Data Cache - Simple 5min cache */
             submissionCache: new Map(),
-            
+
             /* PyTutor Modal */
             showPyTutorModal: false,
             pyTutorUrl: '',
-            
+
             /* Hint State Storage per Problem */
             problemHintStates: {}
         };
@@ -535,8 +537,16 @@ export default {
                 this.comprehensionResults = submissionData.feedback || '';
                 this.userPrompt = submissionData.user_prompt || '';
                 this.segmentationData = submissionData.segmentation || null;
-                
-                // Load draft after data is ready
+
+                this.logger.info('Navigation: Applied submission data', {
+                    problemSlug: problem.slug,
+                    hasSubmission: submissionData.has_submission,
+                    codeResults: this.codeResults.length,
+                    testResults: this.testResults.length,
+                    userPrompt: this.userPrompt?.substring(0, 50)
+                });
+
+                // Load draft after data is ready (this will update promptEditorValue)
                 await this.$nextTick();
                 this.loadDraft();
                 
@@ -558,7 +568,15 @@ export default {
             try {
                 // Load submission data with caching
                 const submissionData = await this.loadSubmissionData(problem.slug);
-                
+
+                this.logger.info('Loaded submission data', {
+                    problemSlug: problem.slug,
+                    hasSubmission: submissionData.has_submission,
+                    variations: submissionData.variations?.length || 0,
+                    userPrompt: submissionData.user_prompt?.substring(0, 50),
+                    segmentationPassed: submissionData.segmentation_passed
+                });
+
                 // Apply submission data
                 this.codeResults = submissionData.variations || [];
                 this.testResults = submissionData.results || [];
@@ -566,8 +584,21 @@ export default {
                 this.comprehensionResults = submissionData.feedback || '';
                 this.userPrompt = submissionData.user_prompt || '';
                 this.segmentationData = submissionData.segmentation || null;
-                
-                // Load draft for this problem
+
+                this.logger.info('Applied submission data to component', {
+                    codeResults: this.codeResults.length,
+                    testResults: this.testResults.length,
+                    promptCorrectness: this.promptCorrectness,
+                    userPrompt: this.userPrompt?.substring(0, 50),
+                    hasSegmentation: !!this.segmentationData
+                });
+
+                // Update problem status with segmentation_passed if available
+                if (submissionData.has_submission && this.problemStatuses[problem.slug]) {
+                    this.problemStatuses[problem.slug].segmentationPassed = submissionData.segmentation_passed;
+                }
+
+                // Load draft for this problem (this will update promptEditorValue)
                 await this.$nextTick();
                 this.loadDraft();
                 
@@ -628,6 +659,7 @@ export default {
             this.comprehensionResults = '';
             this.userPrompt = '';
             this.segmentationData = null;
+            // Note: We don't clear promptEditorValue here as it may contain draft text
         },
         
         getCurrentProblem() {
@@ -696,26 +728,23 @@ export default {
         
         async submit() {
             if (this.loading) return;
-            
+
             this.loading = true;
             const currentProblemSlug = this.getCurrentProblem().slug;
-            
+
             try {
-                // Add defensive checks for editor availability
-                if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {
-                    this.notify.error('Editor not available. Please refresh the page.');
-                    this.loading = false;
-                    return;
-                }
-                
-                const promptText = this.$refs.prompt_entry.editor.getValue();
-                
+                const promptText = this.promptEditorValue;
+
                 if (!promptText || promptText.trim() === '') {
                     this.notify.warning('Please enter a description of what the function does.');
                     this.loading = false;
                     return;
                 }
-                
+
+                // Clear cache for this problem to ensure fresh data on next load
+                const cacheKey = `${this.$route.params.slug}_${currentProblemSlug}_${this.courseId || 'standalone'}`;
+                this.submissionCache.delete(cacheKey);
+
                 // Clear previous feedback
                 this.clearFeedbackData();
                 
@@ -786,6 +815,8 @@ export default {
                         // Store perfect variations count for compatibility
                         this.promptCorrectness = perfectVariations;
                         this.userPrompt = promptText;
+                        // Keep promptEditorValue in sync with successful submission
+                        this.promptEditorValue = promptText;
                         
                         // Handle segmentation data from SSE response
                         this.segmentationData = segmentation || null;
@@ -803,10 +834,24 @@ export default {
                             : 0;
                         
                         // Update progress tracking with final status
+                        // Determine if segmentation passed
+                        const segmentationPassed = segmentation?.passed ?? null;
+
+                        // For EiPL problems with segmentation, check both conditions
+                        let finalStatus = 'in_progress';
+                        if (this.getCurrentProblem()?.problem_type === 'eipl' && this.getCurrentProblem()?.segmentation_enabled) {
+                            // Requires both 100% score AND segmentation passed
+                            finalStatus = (score >= 100 && segmentationPassed === true) ? 'completed' : 'in_progress';
+                        } else {
+                            // Non-EiPL or EiPL without segmentation: just check score
+                            finalStatus = score >= 100 ? 'completed' : 'in_progress';
+                        }
+
                         this.problemStatuses[currentProblemSlug] = {
-                            status: score >= 100 ? 'completed' : 'in_progress',
+                            status: finalStatus,
                             score: score,
-                            attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
+                            attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1,
+                            segmentationPassed: segmentationPassed
                         };
                         
                         this.clearOptimistic(currentProblemSlug);
@@ -935,7 +980,8 @@ export default {
                     newStatuses[progress.problem_slug] = {
                         status: this.mapStatusFromAPI(progress.status, progress.best_score),
                         score: progress.best_score,
-                        attempts: progress.attempts
+                        attempts: progress.attempts,
+                        segmentationPassed: progress.segmentation_passed !== undefined ? progress.segmentation_passed : null
                     };
                 });
                 
@@ -997,62 +1043,52 @@ export default {
         
         // Draft Management - Simplified
         saveDraft() {
-            // Add defensive checks to prevent accessing destroyed editor
-            try {
-                if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {
-                    return;
-                }
-                
-                // Additional safety check for editor availability
-                if (typeof this.$refs.prompt_entry.editor.getValue !== 'function') {
-                    return;
-                }
-                
-                const promptText = this.$refs.prompt_entry.editor.getValue();
-                if (promptText && promptText.trim()) {
-                    const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
-                    localStorage.setItem(draftKey, promptText);
-                    localStorage.setItem(`${draftKey}_timestamp`, Date.now().toString());
-                    
-                    this.draftSaved = true;
-                    setTimeout(() => {
-                        this.draftSaved = false;
-                    }, 2000);
-                }
-            } catch (error) {
-                // Silently fail if editor is not available during navigation
-                this.logger.debug('Draft save skipped during navigation', error);
+            const promptText = this.promptEditorValue;
+            if (promptText && promptText.trim()) {
+                const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
+                localStorage.setItem(draftKey, promptText);
+                localStorage.setItem(`${draftKey}_timestamp`, Date.now().toString());
+
+                this.draftSaved = true;
+                setTimeout(() => {
+                    this.draftSaved = false;
+                }, 2000);
             }
         },
         
         loadDraft() {
-            try {
-                if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {
-                    return;
+            // First priority: Load the last submission (userPrompt)
+            if (this.userPrompt) {
+                this.promptEditorValue = this.userPrompt;
+                this.logger.debug('Loaded previous submission into prompt editor', {
+                    promptLength: this.userPrompt.length
+                });
+                return;
+            }
+
+            // Second priority: Load draft from localStorage
+            const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
+            const draft = localStorage.getItem(draftKey);
+            const timestamp = localStorage.getItem(`${draftKey}_timestamp`);
+
+            if (draft && timestamp) {
+                const age = Date.now() - parseInt(timestamp);
+                const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+
+                if (age < maxAge) {
+                    this.promptEditorValue = draft;
+                    this.logger.debug('Loaded draft into prompt editor', {
+                        draftLength: draft.length,
+                        ageMinutes: Math.round(age / 60000)
+                    });
+                } else {
+                    localStorage.removeItem(draftKey);
+                    localStorage.removeItem(`${draftKey}_timestamp`);
+                    this.promptEditorValue = '';
                 }
-                
-                // Additional safety check for editor availability
-                if (typeof this.$refs.prompt_entry.editor.setValue !== 'function') {
-                    return;
-                }
-                
-                const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
-                const draft = localStorage.getItem(draftKey);
-                const timestamp = localStorage.getItem(`${draftKey}_timestamp`);
-                
-                if (draft && timestamp) {
-                    const age = Date.now() - parseInt(timestamp);
-                    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-                    
-                    if (age < maxAge) {
-                        this.$refs.prompt_entry.editor.setValue(draft);
-                    } else {
-                        localStorage.removeItem(draftKey);
-                        localStorage.removeItem(`${draftKey}_timestamp`);
-                    }
-                }
-            } catch (error) {
-                this.logger.debug('Draft load skipped during navigation', error);
+            } else {
+                // Clear the editor if no submission and no draft
+                this.promptEditorValue = '';
             }
         },
         

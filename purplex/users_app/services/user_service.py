@@ -12,7 +12,6 @@ if TYPE_CHECKING:
 from purplex.users_app.repositories import UserRepository, UserProfileRepository
 from purplex.problems_app.repositories import (
     UserProgressRepository,
-    SubmissionRepository,
     CourseEnrollmentRepository
 )
 import logging
@@ -168,8 +167,9 @@ class UserService:
         progress_stats = UserProgressRepository.get_user_statistics(user)
         stats.update(progress_stats)
         
-        # Get submission count using repository
-        stats['total_submissions'] = SubmissionRepository.count(user=user)
+        # Get submission count using new submission model
+        from purplex.submissions.models import Submission
+        stats['total_submissions'] = Submission.objects.filter(user=user).count()
         
         return stats
     
@@ -186,8 +186,9 @@ class UserService:
         # Delete progress using repository
         UserProgressRepository.delete(user=user)
         
-        # Delete submissions using repository
-        SubmissionRepository.delete(user=user)
+        # Delete submissions using new submission model
+        from purplex.submissions.models import Submission
+        Submission.objects.filter(user=user).delete()
         
         # Delete enrollments using repository
         CourseEnrollmentRepository.delete(user=user)

@@ -22,8 +22,8 @@ from .views.progress_views import (
 # Admin views
 from .views.admin_views import (
     AdminProblemListView, AdminProblemDetailView, AdminTestProblemView,
-    AdminTestCaseView, AdminProblemSetListView, AdminProblemSetDetailView, 
-    AdminCategoryView
+    AdminTestCaseView, AdminProblemSetListView, AdminProblemSetDetailView,
+    AdminCategoryView, AdminSubmissionListView, AdminSubmissionDetailView
 )
 
 # Hint system views
@@ -87,7 +87,12 @@ urlpatterns = [
     # Admin endpoints - Categories
     path('admin/categories/', AdminCategoryView.as_view(), name='admin_category_list'),
     path('admin/categories/<int:pk>/', AdminCategoryView.as_view(), name='admin_category_detail'),
-    
+
+    # Admin endpoints - Submissions
+    path('admin/submissions/', AdminSubmissionListView.as_view(), name='admin_submission_list'),
+    path('admin/submissions/export/', AdminSubmissionListView.as_view(), name='admin_submission_export'),
+    path('admin/submissions/<str:submission_id>/', AdminSubmissionDetailView.as_view(), name='admin_submission_detail'),
+
     # Admin Course Management
     path('admin/courses/', AdminCourseListCreateView.as_view(), name='admin_course_list'),
     path('admin/courses/<str:course_id>/', AdminCourseDetailView.as_view(), name='admin_course_detail'),

@@ -1,0 +1,55 @@
+# =====================================================================================
+# GRAFANA DATASOURCES CONFIGURATION
+# =====================================================================================
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "60s"
+      httpMethod: "GET"
+
+  - name: PostgreSQL
+    type: postgres
+    url: postgres:5432
+    database: purplex
+    user: monitoring_user
+    secureJsonData:
+      password: ${POSTGRES_MONITORING_PASSWORD}
+    jsonData:
+      sslmode: 'require'
+      maxOpenConns: 10
+      maxIdleConns: 10
+      connMaxLifetime: 14400
+      postgresVersion: 1500
+      timescaledb: false
+
+  - name: Redis
+    type: redis-datasource
+    access: proxy
+    url: redis://redis:6379
+    jsonData:
+      client: standalone
+      poolSize: 10
+      timeout: 10
+      pingInterval: 30
+      pipelineWindow: 0
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: "trace_id=(\\w+)"
+          name: TraceID
+          url: "$${__value.raw}"

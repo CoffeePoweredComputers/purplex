@@ -21,7 +21,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'development-key-change-in-prod
 DEBUG = config.debug
 
 # Allowed hosts from environment configuration
-ALLOWED_HOSTS = config.get_allowed_hosts()
+ALLOWED_HOSTS = config.allowed_hosts
 
 # Application definition
 INSTALLED_APPS = [
@@ -38,8 +38,8 @@ INSTALLED_APPS = [
     
     # Our apps
     'purplex.problems_app',
-    'purplex.submissions_app',
     'purplex.users_app',
+    'purplex.submissions',  # New clean submission system
 ]
 
 MIDDLEWARE = [
@@ -78,7 +78,7 @@ import dj_database_url
 
 DATABASES = {
     'default': dj_database_url.parse(
-        config.get_database_url(),
+        config.database_url,
         conn_max_age=60 if config.is_production else 0
     )
 }
@@ -140,7 +140,7 @@ REST_FRAMEWORK = {
 }
 
 # CORS configuration from environment
-CORS_ALLOWED_ORIGINS = config.get_cors_origins()
+CORS_ALLOWED_ORIGINS = config.cors_allowed_origins
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'accept',
@@ -156,8 +156,8 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # Celery Configuration
-CELERY_BROKER_URL = config.get_redis_url()
-CELERY_RESULT_BACKEND = config.get_redis_url()
+CELERY_BROKER_URL = config.redis_url
+CELERY_RESULT_BACKEND = config.redis_url
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -178,7 +178,8 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 GPT_MODEL = os.environ.get('GPT_MODEL', 'gpt-4o-mini')
 
 # Firebase Configuration (handled by environment config)
-FIREBASE_CONFIG = config.get_firebase_config()
+# Firebase configuration is handled directly via environment variables
+FIREBASE_CREDENTIALS_PATH = config.firebase_credentials_path
 
 # Feature Flags
 ENABLE_EIPL = config.enable_eipl

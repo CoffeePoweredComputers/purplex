@@ -18,7 +18,8 @@ from django.db import transaction
 # Import services only (not repositories directly)
 from purplex.problems_app.services.problem_service import ProblemService
 from purplex.problems_app.services.test_case_service import TestCaseService
-from purplex.problems_app.services.submission_service import SubmissionService
+from purplex.submissions.services import SubmissionService  # Use new submission service
+from purplex.submissions.models import CodeVariation
 from purplex.problems_app.services.ai_generation_service import AITestGenerationService
 from purplex.problems_app.services.docker_execution_service import DockerExecutionService as CodeExecutionService
 from purplex.problems_app.services.segmentation_service import SegmentationService
@@ -29,7 +30,7 @@ from purplex.users_app.services.user_service import UserService
 if TYPE_CHECKING:
     from django.contrib.auth.models import User
     from purplex.problems_app.models import Problem, ProblemSet, Course
-    from purplex.submissions_app.models import PromptSubmission, SegmentationResult
+    from purplex.submissions.models import Submission, SegmentationAnalysis
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,6 @@ def publish_progress(task_id: str, progress: float, message: str, extra_data: di
     
     try:
         redis_client.publish(channel, json.dumps(event_data))
-        logger.debug(f"Published progress {progress}%: {message}")
     except Exception as e:
         logger.error(f"Failed to publish progress event: {e}")
 
@@ -120,12 +120,13 @@ def test_variation_helper(code: str, problem_id: int, variation_index: int) -> D
     problem = ProblemService.get_problem_by_id(problem_id)
     if not problem:
         raise Exception(f"Problem {problem_id} not found")
-    
+
     # Get test cases formatted for testing through service
     test_cases = TestCaseService.get_test_cases_for_testing(problem, include_hidden=True)
-    
-    logger.debug(f"Testing variation {variation_index} with {len(test_cases)} test cases")
-    
+
+    # Store original test case IDs for later mapping
+    test_case_ids = [tc.get('id') for tc in test_cases]
+
     # Parse JSON fields if needed
     for tc in test_cases:
         if isinstance(tc['inputs'], str):
@@ -138,28 +139,30 @@ def test_variation_helper(code: str, problem_id: int, variation_index: int) -> D
                 tc['expected_output'] = json.loads(tc['expected_output'])
             except (json.JSONDecodeError, TypeError):
                 pass
-    
+
     # Test the code
     service = CodeExecutionService()
     # Set user context for async task (no user context in celery tasks)
     service.set_user_context(f"task_{variation_index}")
     result = service.test_solution(code, problem.function_name, test_cases)
-    
-    logger.debug(f"Test result keys: {list(result.keys())}")
-    logger.debug(f"Test result: {result}")
-    
+
     testsPassed = result.get('testsPassed', 0)
     totalTests = result.get('totalTests', 0)
-    
-    logger.debug(f"Variation {variation_index}: {testsPassed}/{totalTests} tests passed")
-    
+
+    # Add test case IDs to results
+    results_with_ids = []
+    for idx, test_result in enumerate(result.get('results', [])):
+        if idx < len(test_case_ids):
+            test_result['test_case_id'] = test_case_ids[idx]
+        results_with_ids.append(test_result)
+
     return {
         'variation_index': variation_index,
         'code': code,
         'testsPassed': testsPassed,
         'totalTests': totalTests,
         'success': testsPassed == totalTests and totalTests > 0,
-        'test_results': result.get('results', [])
+        'test_results': results_with_ids
     }
 
 
@@ -194,76 +197,136 @@ def save_submission_helper(
     segmentation: Optional[Dict],
     task_id: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Helper function to save the submission using service layer."""
+    """Helper function to save the submission using new service layer."""
     # Get objects through services/repositories
     user = UserService.get_user_by_id(user_id)
     if not user:
         raise Exception(f"User {user_id} not found")
-    
+
     problem = ProblemService.get_problem_by_id(problem_id)
     if not problem:
         raise Exception(f"Problem {problem_id} not found")
-    
+
     problem_set = None
     if problem_set_id:
         problem_set = ProblemService.get_problem_set_by_id(problem_set_id)
         if not problem_set:
             raise Exception(f"Problem set {problem_set_id} not found")
-    
+
     course = None
     if course_id:
         # Use get_course_by_pk for integer IDs
-        logger.info(f"Attempting to fetch course with ID: {course_id}")
         course = CourseService.get_course_by_pk(course_id)
         if not course:
-            # Add diagnostic information
             logger.error(f"Course {course_id} not found in Celery task")
-            logger.error(f"Django settings module: {os.environ.get('DJANGO_SETTINGS_MODULE', 'NOT SET')}")
-            logger.error(f"PURPLEX_ENV: {os.environ.get('PURPLEX_ENV', 'NOT SET')}")
-            from django.conf import settings
-            logger.error(f"Database engine: {settings.DATABASES['default']['ENGINE']}")
-            logger.error(f"Database name: {settings.DATABASES['default'].get('NAME', 'UNKNOWN')}")
             raise Exception(f"Course {course_id} not found")
-    
-    # Calculate score
+
+    # Calculate score from test results
     successful_variations = sum(1 for r in test_results if r.get('success', False))
     total_variations = len(test_results)
-    score = int((successful_variations / total_variations * 100) if total_variations > 0 else 0)
-    
+
     with transaction.atomic():
-        # Create submission
+        # Create submission using new service
         submission = SubmissionService.create_submission(
             user=user,
             problem=problem,
-            prompt=user_prompt,
-            course=course,
+            raw_input=user_prompt,
+            submission_type='eipl',
             problem_set=problem_set,
-            score=score,
-            code_variations=variations,
-            test_results=test_results,
-            passing_variations=successful_variations,
-            total_variations=total_variations,
-            task_id=task_id
+            course=course,
+            time_spent=None,  # Could be passed from frontend in future
+            activated_hints=None  # Could track hints in future
         )
-        
-        # Create segmentation record if available
-        if segmentation and segmentation.get('success'):
-            comp_level = segmentation.get('comprehension_level', 'relational')
-            if comp_level not in ['relational', 'multi_structural']:
-                comp_level = 'relational'
-            
-            SubmissionService.create_segmentation_result(
+
+        # Set the celery task ID
+        submission.celery_task_id = task_id
+        submission.save()
+
+        # Record code variations for EiPL
+        variation_data = []
+        for idx, (code, result) in enumerate(zip(variations, test_results)):
+            variation_data.append({
+                'code': code,
+                'tests_passed': result.get('testsPassed', 0),
+                'tests_total': result.get('totalTests', 0),
+                'score': int((result.get('testsPassed', 0) / result.get('totalTests', 1) * 100)),
+                'model': 'gpt-4o-mini'
+            })
+
+        # Create variations first
+        created_variations = []
+        for var_data in variation_data:
+            variation = CodeVariation.objects.create(
                 submission=submission,
-                analysis=segmentation,
-                segment_count=segmentation.get('segment_count', 0),
-                comprehension_level=comp_level
+                variation_index=len(created_variations),
+                generated_code=var_data['code'],
+                tests_passed=var_data.get('tests_passed', 0),
+                tests_total=var_data.get('tests_total', 0),
+                score=var_data.get('score', 0),
+                model_used=var_data.get('model', 'gpt-4o-mini')
             )
-    
+            created_variations.append(variation)
+
+        # Mark best variation
+        best_idx = max(range(len(test_results)), key=lambda i: test_results[i].get('testsPassed', 0))
+        best_variation = created_variations[best_idx]
+        best_variation.is_selected = True
+        best_variation.save()
+
+        # Record test results for ALL variations
+        variations_with_tests = []
+        for variation, result in zip(created_variations, test_results):
+            test_execution_data = []
+            for test_result in result.get('test_results', []):
+                test_case_id = test_result.get('test_case_id')
+                if test_case_id:
+                    test_execution_data.append({
+                        'test_case_id': test_case_id,
+                        'passed': test_result.get('pass', False) or test_result.get('isSuccessful', False),
+                        'inputs': test_result.get('inputs', {}),
+                        'expected': test_result.get('expected_output', ''),
+                        'actual': test_result.get('actual_output', '') or test_result.get('output', ''),
+                        'error_type': 'none' if (test_result.get('pass', False) or test_result.get('isSuccessful', False)) else 'wrong_output',
+                        'error_message': test_result.get('error', '') or ''
+                    })
+                else:
+                    logger.warning(f"Skipping test result without test_case_id")
+            variations_with_tests.append({
+                'variation': variation,
+                'test_results': test_execution_data
+            })
+
+        SubmissionService.record_eipl_test_results(
+            submission=submission,
+            variations_with_tests=variations_with_tests
+        )
+
+        # Store the best code for reference
+        submission.processed_code = best_variation.generated_code
+        submission.is_correct = submission.passed_all_tests
+        submission.save()
+
+        # Record segmentation if available
+        if segmentation and segmentation.get('success'):
+            segmentation_data = {
+                'segment_count': segmentation.get('segment_count', 0),
+                'comprehension_level': segmentation.get('comprehension_level', 'relational'),
+                'segments': segmentation.get('segments', []),
+                'code_mappings': segmentation.get('code_mappings', {}),
+                'confidence': segmentation.get('confidence', 0.8),
+                'processing_time_ms': int(segmentation.get('processing_time', 0) * 1000),
+                'model': 'gpt-4o-mini',
+                'feedback': segmentation.get('feedback', ''),
+                'improvements': segmentation.get('suggestions', [])
+            }
+
+            SubmissionService.record_segmentation(submission, segmentation_data)
+
     return {
-        'submission_id': submission.id,
+        'submission_id': str(submission.submission_id),  # Use UUID
         'variations': variations,
         'test_results': test_results,
-        'score': score,
+        'score': submission.score,
         'successful_variations': successful_variations,
         'total_variations': total_variations,
         'passing_variations': successful_variations,
@@ -308,19 +371,7 @@ def execute_eipl_pipeline(
         logger.warning("Django apps not ready, calling setup()")
         django.setup()
     
-    # Log current settings module for debugging
-    from django.conf import settings
-    logger.info(f"Task using Django settings: {os.environ.get('DJANGO_SETTINGS_MODULE', 'NOT SET')}")
-    logger.info(f"PURPLEX_ENV: {os.environ.get('PURPLEX_ENV', 'NOT SET')}")
-    logger.info(f"Database engine: {settings.DATABASES['default']['ENGINE']}")
-    logger.info(f"Database name: {settings.DATABASES['default'].get('NAME', 'UNKNOWN')}")
-    
     try:
-        # Verify database connection
-        from django.db import connection
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
-            logger.info("Database connection verified successfully")
         
         # Initialize
         publish_progress(task_id, 0, "Starting pipeline...")
@@ -397,9 +448,6 @@ def execute_eipl_pipeline(
         )
         
         logger.info(f"Submission {submission_result['submission_id']} saved successfully")
-        logger.info(f"Submission result includes segmentation: {bool(submission_result.get('segmentation'))}")
-        if submission_result.get('segmentation'):
-            logger.info(f"Segmentation data: {submission_result['segmentation']}")
         publish_progress(task_id, 100, f"Submission complete! Score: {score}%")
         
         # Publish completion event
@@ -410,18 +458,6 @@ def execute_eipl_pipeline(
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Pipeline failed: {error_msg}", exc_info=True)
-        
-        # Include more details in the error message
-        detailed_error = {
-            'error': error_msg,
-            'task_id': task_id,
-            'problem_id': problem_id,
-            'user_id': user_id,
-            'settings_module': os.environ.get('DJANGO_SETTINGS_MODULE', 'NOT SET'),
-            'database_engine': settings.DATABASES['default'].get('ENGINE', 'UNKNOWN')
-        }
-        
-        logger.error(f"Pipeline failure details: {json.dumps(detailed_error)}")
         publish_error(task_id, error_msg)
         
         # Re-raise to mark task as failed in Celery

@@ -6,10 +6,12 @@ from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.conf import settings
+from django.db.models import Q, Count, Avg
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.pagination import PageNumberPagination
 from ..serializers import (
     AdminProblemSerializer, ProblemSetSerializer, ProblemCategorySerializer,
     TestCaseSerializer
@@ -17,6 +19,8 @@ from ..serializers import (
 from ..services.docker_execution_service import DockerExecutionService as CodeExecutionService
 from ..services.admin_service import AdminProblemService
 from purplex.users_app.permissions import IsAdmin
+from purplex.submissions.models import Submission
+from purplex.submissions.services import SubmissionService
 
 logger = logging.getLogger(__name__)
 SERVER_URL = getattr(settings, 'SERVER_URL', 'http://localhost:8000')
@@ -389,17 +393,157 @@ class AdminProblemSetDetailView(APIView):
 class AdminCategoryView(APIView):
     """Admin view for managing problem categories."""
     permission_classes = [IsAdmin]
-    
+
     def get(self, request):
         categories = AdminProblemService.get_all_categories()
         serializer = ProblemCategorySerializer(categories, many=True)
         return Response(serializer.data)
-    
+
     def post(self, request):
         serializer = ProblemCategorySerializer(data=request.data)
         if serializer.is_valid():
             category = serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminSubmissionListView(APIView):
+    """Admin view for listing submissions with pagination and filtering."""
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        # Get query parameters
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('page_size', 25)
+        search = request.query_params.get('search', '')
+        submission_type = request.query_params.get('type', '')
+        status_filter = request.query_params.get('status', '')
+
+        # Build queryset
+        queryset = Submission.objects.select_related(
+            'user', 'problem', 'problem_set', 'course'
+        ).prefetch_related(
+            'test_executions', 'code_variations', 'segmentation'
+        )
+
+        # Apply filters
+        if search:
+            queryset = queryset.filter(
+                Q(user__username__icontains=search) |
+                Q(user__email__icontains=search) |
+                Q(problem__title__icontains=search) |
+                Q(submission_id__icontains=search)
+            )
+
+        if submission_type:
+            queryset = queryset.filter(submission_type=submission_type)
+
+        if status_filter:
+            queryset = queryset.filter(completion_status=status_filter)
+
+        # Order by most recent
+        queryset = queryset.order_by('-submitted_at')
+
+        # Paginate
+        paginator = PageNumberPagination()
+        paginator.page_size = int(page_size)
+        paginated_submissions = paginator.paginate_queryset(queryset, request)
+
+        # Serialize data
+        submissions_data = []
+        for submission in paginated_submissions:
+            submissions_data.append({
+                'id': str(submission.submission_id),
+                'user': submission.user.username,
+                'problem': submission.problem.title,
+                'problem_slug': submission.problem.slug,
+                'problem_set': submission.problem_set.title if submission.problem_set else None,
+                'course': submission.course.name if submission.course else None,
+                'submission_type': submission.submission_type,
+                'score': submission.score,
+                'status': submission.completion_status,
+                'execution_status': submission.execution_status,
+                'submitted_at': submission.submitted_at.isoformat(),
+                'passed_all_tests': submission.passed_all_tests,
+                'execution_time_ms': submission.execution_time_ms,
+                'memory_used_mb': submission.memory_used_mb
+            })
+
+        return paginator.get_paginated_response(submissions_data)
+
+    def post(self, request):
+        """Export submissions data."""
+        # Get filter parameters
+        filters = request.data.get('filters', {})
+        format_type = request.data.get('format', 'json')
+
+        queryset = Submission.objects.select_related(
+            'user', 'problem', 'problem_set', 'course'
+        )
+
+        # Apply filters
+        if filters.get('start_date'):
+            queryset = queryset.filter(submitted_at__gte=filters['start_date'])
+        if filters.get('end_date'):
+            queryset = queryset.filter(submitted_at__lte=filters['end_date'])
+        if filters.get('course_id'):
+            queryset = queryset.filter(course__course_id=filters['course_id'])
+        if filters.get('problem_set_slug'):
+            queryset = queryset.filter(problem_set__slug=filters['problem_set_slug'])
+
+        # Prepare export data
+        export_data = []
+        for submission in queryset:
+            export_data.append({
+                'submission_id': str(submission.submission_id),
+                'user': submission.user.username,
+                'problem': submission.problem.title,
+                'problem_set': submission.problem_set.title if submission.problem_set else '',
+                'course': submission.course.name if submission.course else '',
+                'submission_type': submission.submission_type,
+                'score': submission.score,
+                'status': submission.completion_status,
+                'submitted_at': submission.submitted_at.isoformat(),
+                'execution_time_ms': submission.execution_time_ms,
+                'memory_used_mb': submission.memory_used_mb
+            })
+
+        if format_type == 'csv':
+            # Return CSV response
+            import csv
+            from django.http import HttpResponse
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="submissions.csv"'
+
+            if export_data:
+                writer = csv.DictWriter(response, fieldnames=export_data[0].keys())
+                writer.writeheader()
+                writer.writerows(export_data)
+
+            return response
+        else:
+            return Response(export_data)
+
+
+class AdminSubmissionDetailView(APIView):
+    """Admin view for individual submission details."""
+    permission_classes = [IsAdmin]
+
+    def get(self, request, submission_id):
+        try:
+            # Get submission details using service
+            submission_data = SubmissionService.get_submission_details(submission_id)
+            return Response(submission_data)
+        except Submission.DoesNotExist:
+            return Response(
+                {'error': 'Submission not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error fetching submission details: {str(e)}")
+            return Response(
+                {'error': 'Failed to fetch submission details'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 

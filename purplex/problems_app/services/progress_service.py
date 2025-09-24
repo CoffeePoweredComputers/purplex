@@ -8,7 +8,7 @@ from django.db import transaction
 
 from ..repositories import (
     ProgressRepository, ProblemRepository, CourseRepository,
-    SubmissionRepository, ProblemSetMembershipRepository
+    ProblemSetMembershipRepository
 )
 
 # Import models only for type hints
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from django.db.models import F, Q, Count, Avg
     from django.contrib.auth.models import User
     from ..models import UserProgress, UserProblemSetProgress, Problem, ProblemSet, Course
-    from purplex.submissions_app.models import PromptSubmission as Submission
+    from purplex.submissions.models import Submission
 
 logger = logging.getLogger(__name__)
 
@@ -361,14 +361,18 @@ class ProgressService:
         """
         problems_progress = []
         for item in problems_with_progress:
-            problems_progress.append({
+            progress_data = {
                 'problem_slug': item['problem'].slug,
                 'problem_title': item['problem'].title,
                 'order': item['order'],
                 'status': item['status'],
                 'best_score': item['best_score'],
                 'attempts': item['attempts'],
-            })
+            }
+            # Include segmentation_passed if available
+            if 'segmentation_passed' in item:
+                progress_data['segmentation_passed'] = item['segmentation_passed']
+            problems_progress.append(progress_data)
         
         # Sort by order
         problems_progress.sort(key=lambda x: x['order'])
@@ -651,13 +655,28 @@ class ProgressService:
                     user, problem, course
                 )
                 
+                # Get last submission to include segmentation_passed
+                last_submission = None
+                segmentation_passed = None
+                if user_progress:
+                    # Import new submission model for querying
+                    from purplex.submissions.models import Submission
+                    last_submission = Submission.objects.filter(
+                        user=user,
+                        problem=problem,
+                        course=course
+                    ).order_by('-submitted_at').first()
+                    if last_submission and hasattr(last_submission, 'segmentation'):
+                        segmentation_passed = last_submission.segmentation.is_good_comprehension if last_submission.segmentation else None
+
                 problems_with_progress.append({
                     'problem': problem,
                     'order': membership.order,
                     'progress': user_progress,
                     'status': user_progress.status if user_progress else 'not_started',
                     'best_score': user_progress.best_score if user_progress else 0,
-                    'attempts': user_progress.attempts if user_progress else 0
+                    'attempts': user_progress.attempts if user_progress else 0,
+                    'segmentation_passed': segmentation_passed
                 })
             
             return {
@@ -680,86 +699,184 @@ class ProgressService:
                                        problem_set_slug: Optional[str] = None,
                                        course_id: Optional[str] = None) -> Dict[str, Any]:
         """
-        Get last submission with complete context validation.
-        
+        Get last submission with clean data transformation.
+
         Args:
             user: Django User instance
             problem_slug: Problem slug
             problem_set_slug: Optional problem set slug
             course_id: Optional course ID
-            
+
         Returns:
-            Dict with submission data or None values if not found
+            Dict with properly formatted submission data
         """
-        try:
-            # Get problem
-            problem = ProblemRepository.get_problem_by_slug(problem_slug)
-            if not problem:
-                raise ValueError(f'Problem {problem_slug} not found')
-            
-            # Get problem set if provided
-            problem_set = None
-            if problem_set_slug:
-                try:
-                    problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
-                    if not problem_set:
-                        raise ValueError(f'Problem set {problem_set_slug} not found')
-                except Exception:
-                    pass
-            
-            # Get course if provided
-            course = None
-            if course_id:
-                try:
-                    course = CourseRepository.get_course_by_id(course_id)
-                except Exception:
-                    pass
-            
-            # Get last submission
-            last_submission = SubmissionRepository.get_last_submission(
-                user, problem, course
-            )
-            
-            # Get user progress
-            progress_filters = {
-                'user': user,
-                'problem': problem
-            }
-            if problem_set:
-                progress_filters['problem_set'] = problem_set
-            if course:
-                progress_filters['course'] = course
-                
-            progress = ProgressRepository.get_user_progress(
-                progress_filters.get('user'),
-                progress_filters.get('problem'),
-                progress_filters.get('course')
-            )
-            
-            return {
-                'problem': problem,
-                'problem_set': problem_set,
-                'course': course,
-                'submission': last_submission,
-                'progress': progress,
-                'has_submission': last_submission is not None,
-                'submission_data': {
-                    'id': last_submission.id if last_submission else None,
-                    'prompt': last_submission.prompt if last_submission else None,
-                    'result': last_submission.result if last_submission else None,
-                    'score': last_submission.score if last_submission else None,
-                    'created_at': last_submission.created_at if last_submission else None,
-                } if last_submission else None
-            }
-            
-        except Exception:
+        # Get problem
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if not problem:
             return {
                 'problem': None,
-                'problem_set': None,
-                'course': None,
                 'submission': None,
-                'progress': None,
-                'has_submission': False,
-                'submission_data': None,
-                'error': f'Problem {problem_slug} not found'
+                'has_submission': False
             }
+
+        # Get problem set if provided
+        problem_set = None
+        if problem_set_slug:
+            problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
+
+        # Get course if provided
+        course = None
+        if course_id:
+            course = CourseRepository.get_course_by_id(course_id)
+
+        # Get last submission using new model
+        from purplex.submissions.models import Submission
+        submission = Submission.objects.filter(
+            user=user,
+            problem=problem,
+            course=course
+        ).order_by('-submitted_at').first()
+
+        return {
+            'problem': problem,
+            'problem_set': problem_set,
+            'course': course,
+            'submission': submission,
+            'has_submission': submission is not None
+        }
+
+    @staticmethod
+    def _extract_variations(submission):
+        """Extract code variations for EiPL, single code for direct."""
+        if submission.submission_type == 'eipl':
+            variations = submission.code_variations.all().order_by('variation_index')
+            return [v.generated_code for v in variations]
+        elif submission.processed_code:
+            return [submission.processed_code]
+        return []
+
+    @staticmethod
+    def _extract_test_results(submission, problem):
+        """Transform TestExecution objects to frontend format."""
+        results = []
+
+        if submission.submission_type == 'eipl':
+            # Group test results by code variation
+            variations = submission.code_variations.all().order_by('variation_index')
+            for variation in variations:
+                test_execs = variation.test_executions.all().order_by('execution_order')
+                var_results = []
+
+                # If we have TestExecution records, use them
+                if test_execs.exists():
+                    for test_exec in test_execs:
+                        var_results.append({
+                            'isSuccessful': test_exec.passed,
+                            'function_call': ProgressService._format_function_call(
+                                problem.function_name, test_exec.input_values
+                            ),
+                            'expected_output': test_exec.expected_output,
+                            'actual_output': test_exec.actual_output if test_exec.actual_output is not None else 'No output',
+                            'error': test_exec.error_message
+                        })
+                # Fallback: If no TestExecution records exist but we have summary data
+                elif variation.tests_total > 0:
+                    # We don't have individual test details, but we can show summary
+                    # Create placeholder results based on the summary
+                    for i in range(variation.tests_total):
+                        is_passed = i < variation.tests_passed
+                        var_results.append({
+                            'isSuccessful': is_passed,
+                            'function_call': f"{problem.function_name}(test_case_{i+1})",
+                            'expected_output': 'Test details not available',
+                            'actual_output': 'Passed' if is_passed else 'Failed',
+                            'error': '' if is_passed else 'Test failed (details not available)'
+                        })
+
+                results.append({
+                    'success': variation.tests_passed == variation.tests_total and variation.tests_total > 0,
+                    'testsPassed': variation.tests_passed,
+                    'totalTests': variation.tests_total,
+                    'test_results': var_results,
+                    'results': var_results  # Duplicate for frontend compatibility
+                })
+        else:
+            # Direct code submission - single result set
+            test_execs = submission.test_executions.all().order_by('execution_order')
+            all_results = []
+
+            for test_exec in test_execs:
+                all_results.append({
+                    'isSuccessful': test_exec.passed,
+                    'function_call': ProgressService._format_function_call(
+                        problem.function_name, test_exec.input_values
+                    ),
+                    'expected_output': test_exec.expected_output,
+                    'actual_output': test_exec.actual_output if test_exec.actual_output is not None else 'No output',
+                    'error': test_exec.error_message
+                })
+
+            tests_passed = submission.test_executions.filter(passed=True).count()
+            tests_total = submission.test_executions.count()
+
+            results.append({
+                'success': tests_passed == tests_total and tests_total > 0,
+                'testsPassed': tests_passed,
+                'totalTests': tests_total,
+                'test_results': all_results,
+                'results': all_results  # Duplicate for frontend compatibility
+            })
+
+        return results
+
+    @staticmethod
+    def _format_function_call(function_name, input_values):
+        """Format a function call string from function name and input values."""
+        if isinstance(input_values, list):
+            args = ', '.join(str(v) for v in input_values)
+        else:
+            args = str(input_values)
+        return f"{function_name}({args})"
+
+    @staticmethod
+    def _extract_segmentation(submission):
+        """Extract segmentation data if exists."""
+        if hasattr(submission, 'segmentation'):
+            seg = submission.segmentation
+            return {
+                'segments': seg.segments,
+                'segment_count': seg.segment_count,
+                'comprehension_level': seg.comprehension_level,
+                'feedback': seg.feedback_message,
+                'passed': seg.is_good_comprehension
+            }
+        return None
+
+    @staticmethod
+    def _calculate_passing_variations(submission):
+        """Calculate number of passing variations."""
+        from django.db import models
+        if submission.submission_type == 'eipl':
+            return submission.code_variations.filter(
+                tests_passed=models.F('tests_total'),
+                tests_total__gt=0
+            ).count()
+        elif submission.passed_all_tests:
+            return 1
+        return 0
+
+    @staticmethod
+    def _count_variations(submission):
+        """Count total variations."""
+        if submission.submission_type == 'eipl':
+            return submission.code_variations.count()
+        elif submission.processed_code:
+            return 1
+        return 0
+
+    @staticmethod
+    def _check_segmentation_passed(submission):
+        """Check if segmentation passed (good comprehension)."""
+        if hasattr(submission, 'segmentation'):
+            return submission.segmentation.is_good_comprehension
+        return None

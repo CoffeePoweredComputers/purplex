@@ -165,10 +165,10 @@ class ProgressRepository(BaseRepository):
                                          course: Optional[Course] = None) -> tuple:
         """Get or create problem set progress."""
         defaults = {
-            'problems_completed': 0,
-            'total_score': 0.0
+            'completed_problems': 0,
+            'average_score': 0.0
         }
-        
+
         return UserProblemSetProgress.objects.get_or_create(
             user=user,
             problem_set=problem_set,
@@ -429,8 +429,8 @@ class ProgressRepository(BaseRepository):
             problem_set_id=problem_set_id,
             course_id=course_id,
             defaults={
-                'problems_completed': 0,
-                'total_score': 0.0
+                'completed_problems': 0,
+                'average_score': 0.0
             }
         )
     

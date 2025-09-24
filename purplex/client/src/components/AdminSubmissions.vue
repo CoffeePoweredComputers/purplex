@@ -567,6 +567,13 @@ export default defineComponent({
     },
     
     async downloadSubmissionData(submission: SubmissionDetailed): Promise<void> {
+      // Guard against undefined or missing submission
+      if (!submission || !submission.id) {
+        log.error('Cannot download submission: invalid or missing submission data', { submission });
+        this.notify.error('Unable to download submission data. Submission information is missing.');
+        return;
+      }
+
       try {
         // Fetch full submission details
         const response = await axios.get(`/api/admin/submissions/${submission.id}/`);

@@ -50,6 +50,7 @@ class UserProgressView(APIView):
                             'completion_percentage': progress.completion_percentage,
                             'last_attempt': progress.last_attempt,
                             'completed_at': progress.completed_at,
+                            'grade': getattr(progress, 'grade', None),  # New grade field
                         }
                     else:
                         # Return default values for this context
@@ -62,6 +63,7 @@ class UserProgressView(APIView):
                             'completion_percentage': 0,
                             'last_attempt': None,
                             'completed_at': None,
+                            'grade': 'incomplete',  # Default grade
                         }
                     return Response(progress_data)
                 else:
@@ -178,15 +180,15 @@ class UserProgressSummaryView(APIView):
 class LastSubmissionView(APIView):
     """Get user's last submission for a specific problem with problem set context."""
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request, problem_slug):
         user = request.user
-        
+
         # Get context parameters from query params
         query_params = getattr(request, 'query_params', request.GET)
         problem_set_slug = query_params.get('problem_set_slug')
         course_id = query_params.get('course_id')
-        
+
         # Use service layer to get last submission with context
         submission_context = ProgressService.get_last_submission_with_context(
             user=user,
@@ -194,53 +196,40 @@ class LastSubmissionView(APIView):
             problem_set_slug=problem_set_slug,
             course_id=course_id
         )
-        
+
         problem = submission_context['problem']
         submission = submission_context['submission']
-        
+
         # Check if problem was found
         if problem is None:
             return Response(
                 {'error': f'Problem {problem_slug} not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Check if problem_set was specified but not found
         if problem_set_slug and submission_context.get('problem_set') is None:
             return Response(
                 {'error': f'Problem set {problem_set_slug} not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         if submission:
-            # Get segmentation data if exists
-            segmentation_data = None
-            try:
-                if hasattr(submission, 'segmentation'):
-                    segmentation = submission.segmentation
-                    segmentation_data = {
-                        'segments': segmentation.analysis.get('segments', []),
-                        'segment_count': segmentation.segment_count,
-                        'comprehension_level': segmentation.comprehension_level,
-                        'feedback': segmentation.analysis.get('feedback', ''),
-                        'passed': submission.segmentation_passed
-                    }
-            except Exception:
-                # Handle any exception related to accessing segmentation
-                pass
-            
+            # Use service methods to extract clean data
             return Response({
                 'has_submission': True,
-                'submission_id': submission.id,
-                'variations': submission.code_variations or [],
-                'results': submission.test_results or [],
-                'passing_variations': submission.passing_variations,
-                'total_variations': submission.total_variations,
-                'user_prompt': submission.prompt,
-                'feedback': '',  # Legacy field
-                'segmentation': segmentation_data,
+                'submission_id': str(submission.submission_id),
+                'variations': ProgressService._extract_variations(submission),
+                'results': ProgressService._extract_test_results(submission, problem),
+                'passing_variations': ProgressService._calculate_passing_variations(submission),
+                'total_variations': ProgressService._count_variations(submission),
+                'user_prompt': submission.raw_input,
+                'feedback': '',  # Legacy field, kept empty
+                'segmentation': ProgressService._extract_segmentation(submission),
+                'segmentation_passed': ProgressService._check_segmentation_passed(submission),
                 'score': submission.score,
-                'submitted_at': submission.submitted_at
+                'submitted_at': submission.submitted_at,
+                'grade': getattr(submission, 'grade', None) if hasattr(submission, 'grade') else None,  # New grade field
             })
         else:
             # No submission found for this context
@@ -252,5 +241,8 @@ class LastSubmissionView(APIView):
                 'total_variations': 0,
                 'user_prompt': '',
                 'feedback': '',
-                'segmentation': None
+                'segmentation': None,
+                'segmentation_passed': None,
+                'score': 0,
+                'submitted_at': None
             })
