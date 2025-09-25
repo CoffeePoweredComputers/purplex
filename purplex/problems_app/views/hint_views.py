@@ -6,7 +6,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from ..services.hint_service import HintService, AdminHintService
-from ..models import Course, CourseEnrollment
+from ..services.hint_display_service import HintDisplayService
+from ..services.course_service import CourseService
 from purplex.users_app.permissions import IsAuthenticated, IsAdmin
 
 logger = logging.getLogger(__name__)
@@ -26,17 +27,11 @@ class ProblemHintAvailabilityView(APIView):
         
         # Validate course enrollment if provided
         if course_id:
-            try:
-                course = Course.objects.get(course_id=course_id, is_active=True, is_deleted=False)
-                # Verify user is enrolled
-                if not CourseEnrollment.objects.filter(user=user, course=course, is_active=True).exists():
-                    return Response({
-                        'error': 'You are not enrolled in this course'
-                    }, status=status.HTTP_403_FORBIDDEN)
-            except Course.DoesNotExist:
+            validation_result = CourseService.validate_course_enrollment(user, course_id)
+            if not validation_result['success']:
                 return Response({
-                    'error': 'Course not found'
-                }, status=status.HTTP_404_NOT_FOUND)
+                    'error': validation_result['error']
+                }, status=validation_result['status_code'])
         
         # Use service layer for hint availability
         availability_data = HintService.get_hint_availability(
@@ -46,27 +41,8 @@ class ProblemHintAvailabilityView(APIView):
             problem_set_slug=problem_set_slug
         )
         
-        # Transform data to match expected response format
-        available_hints = []
-        for hint in availability_data.get('hints', []):
-            # Get display title for hint type
-            display_titles = {
-                'variable_fade': 'Variable Fade',
-                'subgoal_hints': 'Subgoal Highlighting',
-                'subgoal_highlight': 'Subgoal Highlighting',
-                'suggested_trace': 'Suggested Trace',
-                'trace': 'Suggested Trace'
-            }
-            title = display_titles.get(hint['type'], hint['type'])
-            
-            available_hints.append({
-                'type': hint['type'],
-                'title': title,
-                'description': f'Get help with {title.lower()}',
-                'unlocked': hint['available'],
-                'available': hint['available'],
-                'attempts_needed': hint['attempts_needed']
-            })
+        # Use HintDisplayService to format hints for display
+        available_hints = HintDisplayService.format_available_hints(availability_data.get('hints', []))
         
         return Response({
             'available_hints': available_hints,

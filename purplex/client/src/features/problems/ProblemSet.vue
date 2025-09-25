@@ -39,13 +39,14 @@
           <div class="problem-progress">
             <div
               v-for="(problem, index) in problems"
-              :key="problem.slug" 
-              :class="['progress-bar', 
+              :key="problem.slug"
+              :class="['progress-bar',
                        { 'active': index === currentProblem },
-                       { 'completed': getProblemStatus(problem.slug) === 'completed' },
-                       { 'in_progress': getProblemStatus(problem.slug) === 'in_progress' },
-                       { 'not_started': getProblemStatus(problem.slug) === 'not_started' }
-              ]" 
+                       { 'submitting': isCurrentProblemSubmitting(problem.slug) },
+                       { 'completed': !isCurrentProblemSubmitting(problem.slug) && getProblemStatus(problem.slug) === 'completed' },
+                       { 'in_progress': !isCurrentProblemSubmitting(problem.slug) && getProblemStatus(problem.slug) === 'in_progress' },
+                       { 'not_started': !isCurrentProblemSubmitting(problem.slug) && getProblemStatus(problem.slug) === 'not_started' }
+              ]"
               :title="getProblemTooltip(problem, index)"
               @click="setProblem(index)"
             />
@@ -190,29 +191,30 @@
             class="draft-indicator"
           >✓ Draft saved</span>
           <div class="prompt-editor-wrapper">
-            <Editor 
-              ref="prompt_entry" 
-              lang="text" 
-              mode="text" 
-              height="100px" 
+            <Editor
+              ref="prompt_entry"
+              v-model:value="promptEditorValue"
+              lang="text"
+              mode="text"
+              height="100px"
               width="100%"
-              :show-gutter="false" 
+              :show-gutter="false"
               :wrap="true"
               :theme="currentTheme"
             />
           </div>
-          <button 
-            id="submitButton" 
-            class="submit-button" 
-            :disabled="loading"
+          <button
+            id="submitButton"
+            class="submit-button"
+            :disabled="isCurrentProblemSubmitting(getCurrentProblem().slug)"
             @click="submit"
           >
             <span
-              v-if="!loading"
+              v-if="!isCurrentProblemSubmitting(getCurrentProblem().slug)"
               class="button-text"
             >Submit Solution</span>
             <div
-              v-if="loading"
+              v-if="isCurrentProblemSubmitting(getCurrentProblem().slug)"
               class="loading-content"
             >
               <div class="bouncing-dots">
@@ -289,12 +291,12 @@ export default {
         const logger = useLogger();
         const { updateProgress, getProgress, clearOptimistic } = useOptimisticProgress();
         const { trackHintUsage, getHintsUsed } = useHintTracking();
-        const { connectToEiPLSubmission, isConnected, error: sseError } = useSSE();
-        
+        // Note: We'll create individual SSE connections per submission instead of sharing one
+
         // Hint system setup
         const entry = ref(null);
         const originalSolutionCode = ref('');
-        
+
         // Initialize hint system
         const {
             modifiedCode,
@@ -310,19 +312,15 @@ export default {
             saveState,
             restoreState
         } = useEditorHints(entry, originalSolutionCode);
-        
-        return { 
-            notify, 
+
+        return {
+            notify,
             logger,
-            updateProgress, 
-            getProgress, 
-            clearOptimistic, 
-            trackHintUsage, 
+            updateProgress,
+            getProgress,
+            clearOptimistic,
+            trackHintUsage,
             getHintsUsed,
-            // SSE connection
-            connectToEiPLSubmission,
-            isConnected,
-            sseError,
             // Hint system
             entry,
             originalSolutionCode,
@@ -345,43 +343,46 @@ export default {
             problemSet: {},
             problems: [],
             isLoading: true,
-            
+
             /* Navigation State */
             currentProblem: 0,
-            
+
             /* Editor State */
             editorRenderKey: 0,
-            
+            promptEditorValue: '',  // Controlled value for prompt editor
+
             /* Submission State */
             loading: false,
+            submittingProblems: new Set(), // Tracks all problem slugs currently being submitted
+            submissionConnections: new Map(), // Tracks individual SSE connections per problem
             codeResults: [],
             testResults: [],
             promptCorrectness: 0,
             comprehensionResults: '',
             userPrompt: '',
             segmentationData: null,
-            
+
             /* Problem Status Tracking */
             problemStatuses: {},
             problemSetProgress: null,
-            
+
             /* Editor Settings */
             editorFontSize: 14,
             codeCopied: false,
             showLineNumbers: true,
             editorTheme: 'tomorrow-night',
-            
+
             /* Draft Management */
             autoSaveInterval: null,
             draftSaved: false,
-            
+
             /* Submission Data Cache - Simple 5min cache */
             submissionCache: new Map(),
-            
+
             /* PyTutor Modal */
             showPyTutorModal: false,
             pyTutorUrl: '',
-            
+
             /* Hint State Storage per Problem */
             problemHintStates: {}
         };
@@ -489,6 +490,13 @@ export default {
     beforeUnmount() {
         this.stopAutoSave();
         this.saveDraft(); // Save draft before leaving
+
+        // Clean up all active SSE connections
+        for (const [problemSlug, connection] of this.submissionConnections) {
+            this.logger.debug('Cleaning up SSE connection for problem', { problemSlug });
+            connection.disconnect();
+        }
+        this.submissionConnections.clear();
     },
     
     methods: {
@@ -520,23 +528,42 @@ export default {
                 
                 // Pre-fetch data to reduce loading time
                 const problem = this.problems[newIndex];
-                const submissionDataPromise = this.loadSubmissionData(problem.slug);
-                
+
                 // Update current problem index
                 this.currentProblem = newIndex;
-                
-                // Wait for data and update UI smoothly
-                const submissionData = await submissionDataPromise;
-                
-                // Apply submission data without clearing first
-                this.codeResults = submissionData.variations || [];
-                this.testResults = submissionData.results || [];
-                this.promptCorrectness = submissionData.passing_variations || 0;
-                this.comprehensionResults = submissionData.feedback || '';
-                this.userPrompt = submissionData.user_prompt || '';
-                this.segmentationData = submissionData.segmentation || null;
-                
-                // Load draft after data is ready
+
+                // Update loading state for the new current problem
+                this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
+
+                // Check if this problem is currently submitting
+                if (this.submittingProblems.has(problem.slug)) {
+                    // Clear the feedback data to show loading state
+                    this.clearFeedbackData();
+                    this.logger.info('Navigation: Problem is submitting, showing loading state', {
+                        problemSlug: problem.slug
+                    });
+                } else {
+                    // Only load last submission if NOT actively submitting
+                    const submissionData = await this.loadSubmissionData(problem.slug);
+
+                    // Apply submission data without clearing first
+                    this.codeResults = submissionData.variations || [];
+                    this.testResults = submissionData.results || [];
+                    this.promptCorrectness = submissionData.passing_variations || 0;
+                    this.comprehensionResults = submissionData.feedback || '';
+                    this.userPrompt = submissionData.user_prompt || '';
+                    this.segmentationData = submissionData.segmentation || null;
+
+                    this.logger.info('Navigation: Applied submission data', {
+                        problemSlug: problem.slug,
+                        hasSubmission: submissionData.has_submission,
+                        codeResults: this.codeResults.length,
+                        testResults: this.testResults.length,
+                        userPrompt: this.userPrompt?.substring(0, 50)
+                    });
+                }
+
+                // Load draft after data is ready (this will update promptEditorValue)
                 await this.$nextTick();
                 this.loadDraft();
                 
@@ -554,11 +581,29 @@ export default {
         async loadProblemData() {
             const problem = this.getCurrentProblem();
             if (!problem.slug) {return;}
-            
+
+            // Check if this problem is currently submitting
+            if (this.submittingProblems.has(problem.slug)) {
+                // Clear the feedback data to show loading state
+                this.clearFeedbackData();
+                this.logger.info('loadProblemData: Problem is submitting, showing loading state', {
+                    problemSlug: problem.slug
+                });
+                return; // Don't load old submission
+            }
+
             try {
-                // Load submission data with caching
+                // Only load last submission if NOT actively submitting
                 const submissionData = await this.loadSubmissionData(problem.slug);
-                
+
+                this.logger.info('Loaded submission data', {
+                    problemSlug: problem.slug,
+                    hasSubmission: submissionData.has_submission,
+                    variations: submissionData.variations?.length || 0,
+                    userPrompt: submissionData.user_prompt?.substring(0, 50),
+                    segmentationPassed: submissionData.segmentation_passed
+                });
+
                 // Apply submission data
                 this.codeResults = submissionData.variations || [];
                 this.testResults = submissionData.results || [];
@@ -566,8 +611,28 @@ export default {
                 this.comprehensionResults = submissionData.feedback || '';
                 this.userPrompt = submissionData.user_prompt || '';
                 this.segmentationData = submissionData.segmentation || null;
-                
-                // Load draft for this problem
+
+                this.logger.info('Applied submission data to component', {
+                    codeResults: this.codeResults.length,
+                    testResults: this.testResults.length,
+                    promptCorrectness: this.promptCorrectness,
+                    userPrompt: this.userPrompt?.substring(0, 50),
+                    hasSegmentation: !!this.segmentationData
+                });
+
+                // Update problem status with segmentation_passed if available
+                if (submissionData.has_submission && this.problemStatuses[problem.slug]) {
+                    // Use Vue 3 reactive update by replacing entire object
+                    this.problemStatuses = {
+                        ...this.problemStatuses,
+                        [problem.slug]: {
+                            ...this.problemStatuses[problem.slug],
+                            segmentationPassed: submissionData.segmentation_passed
+                        }
+                    };
+                }
+
+                // Load draft for this problem (this will update promptEditorValue)
                 await this.$nextTick();
                 this.loadDraft();
                 
@@ -628,6 +693,7 @@ export default {
             this.comprehensionResults = '';
             this.userPrompt = '';
             this.segmentationData = null;
+            // Note: We don't clear promptEditorValue here as it may contain draft text
         },
         
         getCurrentProblem() {
@@ -695,30 +761,29 @@ export default {
         },
         
         async submit() {
-            if (this.loading) return;
-            
-            this.loading = true;
             const currentProblemSlug = this.getCurrentProblem().slug;
-            
+            if (this.submittingProblems.has(currentProblemSlug)) return;
+
+            this.addToSubmitting(currentProblemSlug);
+            this.loading = true; // Track current problem's loading state for Feedback component
+
             try {
-                // Add defensive checks for editor availability
-                if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {
-                    this.notify.error('Editor not available. Please refresh the page.');
-                    this.loading = false;
-                    return;
-                }
-                
-                const promptText = this.$refs.prompt_entry.editor.getValue();
-                
+                const promptText = this.promptEditorValue;
+
                 if (!promptText || promptText.trim() === '') {
                     this.notify.warning('Please enter a description of what the function does.');
-                    this.loading = false;
+                    this.removeFromSubmitting(currentProblemSlug);
+                    this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
                     return;
                 }
-                
+
+                // Clear cache for this problem to ensure fresh data on next load
+                const cacheKey = `${this.$route.params.slug}_${currentProblemSlug}_${this.courseId || 'standalone'}`;
+                this.submissionCache.delete(cacheKey);
+
                 // Clear previous feedback
                 this.clearFeedbackData();
-                
+
                 // Optimistic update
                 let rollback = null;
                 rollback = this.updateProgress(currentProblemSlug, {
@@ -732,27 +797,33 @@ export default {
                     problem_set_slug: this.$route.params.slug,
                     user_prompt: promptText
                 };
-                
+
                 // Include course_id if we're in a course context
                 if (this.courseId) {
                     submissionData.course_id = this.courseId;
                 }
-                
+
                 this.logger.info('Submitting EiPL solution', { problemSlug: currentProblemSlug });
-                
+
                 // Submit to async endpoint
                 const submissionResponse = await submissionService.submitEiPL(submissionData);
-                
+
                 if (!submissionResponse.request_id) {
                     throw new Error('No request ID received from server');
                 }
-                
-                this.logger.info('EiPL submission accepted, connecting to SSE stream', { 
-                    requestId: submissionResponse.request_id 
+
+                this.logger.info('EiPL submission accepted, connecting to SSE stream', {
+                    requestId: submissionResponse.request_id
                 });
-                
+
+                // Create a new SSE connection specifically for this submission
+                const { connectToEiPLSubmission, disconnect } = useSSE();
+
+                // Store the connection so we can clean it up later
+                this.submissionConnections.set(currentProblemSlug, { disconnect });
+
                 // Connect to SSE stream for real-time updates
-                await this.connectToEiPLSubmission(
+                await connectToEiPLSubmission(
                     submissionResponse.request_id,
                     (variations, testResults, segmentation) => {
                         // Success callback - results are ready
@@ -786,7 +857,9 @@ export default {
                         // Store perfect variations count for compatibility
                         this.promptCorrectness = perfectVariations;
                         this.userPrompt = promptText;
-                        
+                        // Keep promptEditorValue in sync with successful submission
+                        this.promptEditorValue = promptText;
+
                         // Handle segmentation data from SSE response
                         this.segmentationData = segmentation || null;
                         console.log('Segmentation data received from SSE:', {
@@ -796,21 +869,42 @@ export default {
                             problemType: this.getCurrentProblem()?.problem_type,
                             segmentationEnabled: this.getCurrentProblem()?.segmentation_enabled
                         });
-                        
+
                         // Calculate score based on total tests passed across all variations
-                        const score = totalTestsRun > 0 
+                        const score = totalTestsRun > 0
                             ? Math.round((totalTestsPassed / totalTestsRun) * 100)
                             : 0;
-                        
+
                         // Update progress tracking with final status
-                        this.problemStatuses[currentProblemSlug] = {
-                            status: score >= 100 ? 'completed' : 'in_progress',
-                            score: score,
-                            attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
+                        // Determine if segmentation passed
+                        const segmentationPassed = segmentation?.passed ?? null;
+
+                        // Get the actual problem that was submitted (not the currently selected one)
+                        const submittedProblem = this.problems.find(p => p.slug === currentProblemSlug);
+
+                        // For EiPL problems with segmentation, check both conditions
+                        let finalStatus = 'in_progress';
+                        if (submittedProblem?.problem_type === 'eipl' && submittedProblem?.segmentation_enabled) {
+                            // Requires both 100% score AND segmentation passed
+                            finalStatus = (score >= 100 && segmentationPassed === true) ? 'completed' : 'in_progress';
+                        } else {
+                            // Non-EiPL or EiPL without segmentation: just check score
+                            finalStatus = score >= 100 ? 'completed' : 'in_progress';
+                        }
+
+                        // Use Vue 3 reactive update by replacing entire object
+                        this.problemStatuses = {
+                            ...this.problemStatuses,
+                            [currentProblemSlug]: {
+                                status: finalStatus,
+                                score: score,
+                                attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1,
+                                segmentationPassed: segmentationPassed
+                            }
                         };
-                        
+
                         this.clearOptimistic(currentProblemSlug);
-                        
+
                         // Update cache with new submission data
                         const cacheKey = `${this.$route.params.slug}_${currentProblemSlug}_${this.courseId || 'standalone'}`;
                         this.submissionCache.set(cacheKey, {
@@ -824,33 +918,68 @@ export default {
                             },
                             timestamp: Date.now()
                         });
-                        
+
                         // Store successful submission
                         if (this.userSubmissions) {
                             this.userSubmissions[currentProblemSlug] = promptText;
                         }
-                        
-                        // Create detailed success message
-                        let message = `Solution submitted successfully! Score: ${score}%`;
-                        if (totalTestsRun > 0) {
-                            message += ` (${totalTestsPassed}/${totalTestsRun} tests passed across ${variations.length} variations)`;
+
+                        // Get the problem index for clearer messaging (don't use title as it gives away the answer!)
+                        const problemIndex = this.problems.findIndex(p => p.slug === currentProblemSlug);
+                        const problemIdentifier = problemIndex >= 0 ? `Problem ${problemIndex + 1}` : 'Submission';
+
+                        // Create detailed success message with problem identifier
+                        let message = `${problemIdentifier}: `;
+
+                        // Add high-level/low-level status if segmentation is enabled for this problem
+                        if (submittedProblem?.problem_type === 'eipl' && submittedProblem?.segmentation_enabled && segmentation) {
+                            // Report both low-level (variations) and high-level (segmentation)
+                            const highLevelMark = segmentationPassed === true ? '✓' : '✗';
+                            message += `Low: ${perfectVariations}/${variations.length}, High: ${highLevelMark}`;
+                        } else {
+                            // Just report variations if segmentation is not enabled
+                            message += `${perfectVariations}/${variations.length} correct`;
                         }
                         this.notify.success(message);
-                        this.loading = false;
+                        this.removeFromSubmitting(currentProblemSlug);
+                        this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
+
+                        // Clean up the SSE connection for this submission
+                        const connection = this.submissionConnections.get(currentProblemSlug);
+                        if (connection) {
+                            connection.disconnect();
+                            this.submissionConnections.delete(currentProblemSlug);
+                        }
                     },
                     {
                         // SSE options
                         onError: (error) => {
                             this.logger.error('SSE connection error', error);
                             this.notify.error(error.error || 'Failed to get results');
-                            this.loading = false;
+                            this.removeFromSubmitting(currentProblemSlug);
+                            this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
                             if (rollback) rollback(); // Rollback optimistic update on error
+
+                            // Clean up the SSE connection for this submission
+                            const connection = this.submissionConnections.get(currentProblemSlug);
+                            if (connection) {
+                                connection.disconnect();
+                                this.submissionConnections.delete(currentProblemSlug);
+                            }
                         },
                         onTimeout: () => {
                             this.logger.warn('SSE connection timeout');
                             this.notify.warning('Connection timeout. Please try again.');
-                            this.loading = false;
+                            this.removeFromSubmitting(currentProblemSlug);
+                            this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
                             if (rollback) rollback();
+
+                            // Clean up the SSE connection for this submission
+                            const connection = this.submissionConnections.get(currentProblemSlug);
+                            if (connection) {
+                                connection.disconnect();
+                                this.submissionConnections.delete(currentProblemSlug);
+                            }
                         },
                         reconnectAttempts: 3,
                         reconnectDelay: 2000
@@ -880,9 +1009,17 @@ export default {
                     this.notify.error('Error', error.message);
                 }
                 // Reset loading state on error during initial submission
-                this.loading = false;
+                this.removeFromSubmitting(currentProblemSlug);
+                this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
                 // Rollback optimistic update on error
                 if (rollback) rollback();
+
+                // Clean up any SSE connection if error occurred during submission
+                const connection = this.submissionConnections.get(currentProblemSlug);
+                if (connection) {
+                    connection.disconnect();
+                    this.submissionConnections.delete(currentProblemSlug);
+                }
             } finally {
                 // Loading state is managed in SSE callbacks
                 // Don't reset it here as SSE is still processing
@@ -935,7 +1072,8 @@ export default {
                     newStatuses[progress.problem_slug] = {
                         status: this.mapStatusFromAPI(progress.status, progress.best_score),
                         score: progress.best_score,
-                        attempts: progress.attempts
+                        attempts: progress.attempts,
+                        segmentationPassed: progress.segmentation_passed !== undefined ? progress.segmentation_passed : null
                     };
                 });
                 
@@ -984,7 +1122,7 @@ export default {
         getProblemTooltip(problem, index) {
             const status = this.problemStatuses[problem.slug];
             const problemName = problem.title || `Problem ${index + 1}`;
-            
+
             if (!status || status.status === 'not_started') {
                 return `${problemName} - Not attempted`;
             } else if (status.status === 'in_progress') {
@@ -994,65 +1132,75 @@ export default {
             }
             return problemName;
         },
-        
+
+        isCurrentProblemSubmitting(problemSlug) {
+            // Check if this specific problem is currently being submitted
+            return this.submittingProblems.has(problemSlug);
+        },
+
+        // Helper methods for reactive Set updates
+        addToSubmitting(problemSlug) {
+            // Replace the entire Set to trigger Vue reactivity
+            const newSet = new Set(this.submittingProblems);
+            newSet.add(problemSlug);
+            this.submittingProblems = newSet;
+        },
+
+        removeFromSubmitting(problemSlug) {
+            // Replace the entire Set to trigger Vue reactivity
+            const newSet = new Set(this.submittingProblems);
+            newSet.delete(problemSlug);
+            this.submittingProblems = newSet;
+        },
+
         // Draft Management - Simplified
         saveDraft() {
-            // Add defensive checks to prevent accessing destroyed editor
-            try {
-                if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {
-                    return;
-                }
-                
-                // Additional safety check for editor availability
-                if (typeof this.$refs.prompt_entry.editor.getValue !== 'function') {
-                    return;
-                }
-                
-                const promptText = this.$refs.prompt_entry.editor.getValue();
-                if (promptText && promptText.trim()) {
-                    const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
-                    localStorage.setItem(draftKey, promptText);
-                    localStorage.setItem(`${draftKey}_timestamp`, Date.now().toString());
-                    
-                    this.draftSaved = true;
-                    setTimeout(() => {
-                        this.draftSaved = false;
-                    }, 2000);
-                }
-            } catch (error) {
-                // Silently fail if editor is not available during navigation
-                this.logger.debug('Draft save skipped during navigation', error);
+            const promptText = this.promptEditorValue;
+            if (promptText && promptText.trim()) {
+                const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
+                localStorage.setItem(draftKey, promptText);
+                localStorage.setItem(`${draftKey}_timestamp`, Date.now().toString());
+
+                this.draftSaved = true;
+                setTimeout(() => {
+                    this.draftSaved = false;
+                }, 2000);
             }
         },
         
         loadDraft() {
-            try {
-                if (!this.$refs.prompt_entry || !this.$refs.prompt_entry.editor) {
-                    return;
+            // First priority: Load the last submission (userPrompt)
+            if (this.userPrompt) {
+                this.promptEditorValue = this.userPrompt;
+                this.logger.debug('Loaded previous submission into prompt editor', {
+                    promptLength: this.userPrompt.length
+                });
+                return;
+            }
+
+            // Second priority: Load draft from localStorage
+            const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
+            const draft = localStorage.getItem(draftKey);
+            const timestamp = localStorage.getItem(`${draftKey}_timestamp`);
+
+            if (draft && timestamp) {
+                const age = Date.now() - parseInt(timestamp);
+                const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+
+                if (age < maxAge) {
+                    this.promptEditorValue = draft;
+                    this.logger.debug('Loaded draft into prompt editor', {
+                        draftLength: draft.length,
+                        ageMinutes: Math.round(age / 60000)
+                    });
+                } else {
+                    localStorage.removeItem(draftKey);
+                    localStorage.removeItem(`${draftKey}_timestamp`);
+                    this.promptEditorValue = '';
                 }
-                
-                // Additional safety check for editor availability
-                if (typeof this.$refs.prompt_entry.editor.setValue !== 'function') {
-                    return;
-                }
-                
-                const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
-                const draft = localStorage.getItem(draftKey);
-                const timestamp = localStorage.getItem(`${draftKey}_timestamp`);
-                
-                if (draft && timestamp) {
-                    const age = Date.now() - parseInt(timestamp);
-                    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-                    
-                    if (age < maxAge) {
-                        this.$refs.prompt_entry.editor.setValue(draft);
-                    } else {
-                        localStorage.removeItem(draftKey);
-                        localStorage.removeItem(`${draftKey}_timestamp`);
-                    }
-                }
-            } catch (error) {
-                this.logger.debug('Draft load skipped during navigation', error);
+            } else {
+                // Clear the editor if no submission and no draft
+                this.promptEditorValue = '';
             }
         },
         
@@ -1325,6 +1473,22 @@ export default {
     background: var(--color-success);
 }
 
+.progress-bar.submitting {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    animation: submittingPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes submittingPulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
 /* Active state */
 .progress-bar.active {
     box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-primary-gradient-start);
@@ -1342,6 +1506,10 @@ export default {
 .progress-bar.active.completed {
     background: var(--color-success);
     box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-success);
+}
+
+.progress-bar.active.submitting {
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px #667eea;
 }
 
 /* Hover effects */

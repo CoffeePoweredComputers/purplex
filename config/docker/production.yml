@@ -1,0 +1,309 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: purplex
+      POSTGRES_USER: purplex
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "-c shared_buffers=256MB -c max_connections=200"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - purplex_network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U purplex"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL Read Replica 1
+  postgres_replica1:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: purplex
+      POSTGRES_USER: purplex_replica
+      POSTGRES_PASSWORD: ${POSTGRES_REPLICA_PASSWORD}
+      POSTGRES_MASTER_SERVICE: postgres
+    volumes:
+      - postgres_replica1_data:/var/lib/postgresql/data
+    networks:
+      - purplex_network
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # PostgreSQL Read Replica 2
+  postgres_replica2:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: purplex
+      POSTGRES_USER: purplex_replica
+      POSTGRES_PASSWORD: ${POSTGRES_REPLICA_PASSWORD}
+      POSTGRES_MASTER_SERVICE: postgres
+    volumes:
+      - postgres_replica2_data:/var/lib/postgresql/data
+    networks:
+      - purplex_network
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - purplex_network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Session Store
+  redis_sessions:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 1gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_sessions_data:/data
+    networks:
+      - purplex_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+
+  # Celery Worker - Code Execution
+  celery_code_execution:
+    build: .
+    command: celery -A purplex worker -Q code_execution -n worker_code@%h --concurrency=10
+    environment:
+      - DJANGO_SETTINGS_MODULE=purplex.settings_production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    volumes:
+      - ./:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - purplex_network
+    depends_on:
+      - redis
+      - postgres
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Celery Worker - AI Generation
+  celery_ai_generation:
+    build: .
+    command: celery -A purplex worker -Q ai_generation -n worker_ai@%h --concurrency=5
+    environment:
+      - DJANGO_SETTINGS_MODULE=purplex.settings_production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./:/app
+    networks:
+      - purplex_network
+    depends_on:
+      - redis
+      - postgres
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Celery Worker - Progress Updates
+  celery_progress:
+    build: .
+    command: celery -A purplex worker -Q progress_updates -n worker_progress@%h --concurrency=20
+    environment:
+      - DJANGO_SETTINGS_MODULE=purplex.settings_production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    volumes:
+      - ./:/app
+    networks:
+      - purplex_network
+    depends_on:
+      - redis
+      - postgres
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Celery Beat Scheduler
+  celery_beat:
+    build: .
+    command: celery -A purplex beat -l info
+    environment:
+      - DJANGO_SETTINGS_MODULE=purplex.settings_production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    volumes:
+      - ./:/app
+    networks:
+      - purplex_network
+    depends_on:
+      - redis
+      - postgres
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Django App Server 1
+  web1:
+    build: .
+    command: gunicorn purplex.wsgi:application -c gunicorn_config.py --bind 0.0.0.0:8000
+    environment:
+      - DJANGO_SETTINGS_MODULE=purplex.settings_production
+      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_REPLICA1_URL=${DATABASE_REPLICA1_URL}
+      - DATABASE_REPLICA2_URL=${DATABASE_REPLICA2_URL}
+      - REDIS_URL=${REDIS_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    volumes:
+      - ./:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    networks:
+      - purplex_network
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Django App Server 2-4 (same as web1 but different ports)
+  web2:
+    extends: web1
+    command: gunicorn purplex.wsgi:application -c gunicorn_config.py --bind 0.0.0.0:8001
+
+  web3:
+    extends: web1
+    command: gunicorn purplex.wsgi:application -c gunicorn_config.py --bind 0.0.0.0:8002
+
+  web4:
+    extends: web1
+    command: gunicorn purplex.wsgi:application -c gunicorn_config.py --bind 0.0.0.0:8003
+
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/var/www/purplex/staticfiles
+      - media_volume:/var/www/purplex/media
+      - ./purplex/client/dist:/var/www/purplex/client/dist
+      - nginx_cache:/var/cache/nginx
+    networks:
+      - purplex_network
+    depends_on:
+      - web1
+      - web2
+      - web3
+      - web4
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    networks:
+      - purplex_network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    networks:
+      - purplex_network
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+volumes:
+  postgres_data:
+  postgres_replica1_data:
+  postgres_replica2_data:
+  redis_data:
+  redis_sessions_data:
+  static_volume:
+  media_volume:
+  nginx_cache:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  purplex_network:
+    driver: bridge

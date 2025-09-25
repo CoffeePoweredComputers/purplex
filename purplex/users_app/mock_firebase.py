@@ -5,6 +5,8 @@ production behavior without requiring actual Firebase infrastructure.
 """
 import jwt
 import time
+import os
+import secrets
 from typing import Dict, Optional, List
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
@@ -63,7 +65,21 @@ class MockFirebaseAuth:
     }
     
     # Mock secret for JWT encoding/decoding in development
-    MOCK_SECRET = 'development-mock-firebase-secret-not-for-production'
+    @classmethod
+    def get_mock_secret(cls):
+        """Get mock JWT secret from environment or generate one."""
+        # Never allow mock in production
+        if os.environ.get('PURPLEX_ENV') == 'production':
+            raise RuntimeError("Mock Firebase cannot be used in production")
+        
+        # Get from environment or generate random
+        mock_secret = os.environ.get('MOCK_JWT_SECRET')
+        if not mock_secret:
+            # Generate a random secret for this session
+            mock_secret = secrets.token_hex(32)
+            os.environ['MOCK_JWT_SECRET'] = mock_secret
+        
+        return mock_secret
     
     @classmethod
     def verify_id_token(cls, token: str, check_revoked: bool = False) -> Dict:
@@ -132,7 +148,7 @@ class MockFirebaseAuth:
             # Decode the mock token
             payload = jwt.decode(
                 token, 
-                cls.MOCK_SECRET, 
+                cls.get_mock_secret(), 
                 algorithms=['HS256'],
                 options={"verify_exp": True}
             )
@@ -205,7 +221,7 @@ class MockFirebaseAuth:
         if developer_claims:
             payload.update(developer_claims)
         
-        token = jwt.encode(payload, cls.MOCK_SECRET, algorithm='HS256')
+        token = jwt.encode(payload, cls.get_mock_secret(), algorithm='HS256')
         return token.encode() if isinstance(token, str) else token
     
     @classmethod

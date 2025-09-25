@@ -1,94 +1,168 @@
-# Created by https://www.gitignore.io
-
-### OSX ###
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Icon must end with two \r
-Icon
-
-
-# Thumbnails
-._*
-
-# Files that might appear on external disk
-.Spotlight-V100
-.Trashes
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-
-### Python ###
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
-
-# C extensions
+*$py.class
 *.so
-
-# Distribution / packaging
 .Python
 env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
+venv/
+ENV/
 *.egg
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+.cache
+.hypothesis/
+*.cover
+coverage.xml
+htmlcov/
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+!staticfiles/.gitkeep
 
-# Installer logs
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+!.env.test
+firebase-credentials.json
+*.pem
+*.key
+*.crt
+*.cert
+
+# Frontend/Node
+node_modules/
+dist/
+*.local
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.yarn-integrity
+.npm
+
+# Build outputs
+*.min.js
+*.min.css
+bundle.js
+bundle.css
+
+# IDE/Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.DS_Store
+Thumbs.db
+.Rhistory
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# Testing/Reports
+coverage/
+.nyc_output/
+test-results/
+junit.xml
+*_report.json
+*.report.json
+*_report.html
+*.report.html
+
+# Logs
+logs/
+!logs/.gitkeep
+*.log
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.cache
-nosetests.xml
-coverage.xml
+# Claude/Serena/AI tools
+.claude/settings.local.json
+.serena/memories/
+*.claude.backup
 
-# Translations
-*.mo
-*.pot
+# Docker
+docker/volumes/
+docker/sandbox/volumes/
 
-# Sphinx documentation
+# Temporary files
+*.tmp
+*.bak
+*.backup
+*.old
+*.orig
+tmp/
+temp/
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Development artifacts
+verify_architecture.py
+architecture_verification_report.json
+architecture_enforcement_report.json
+code_smell_report.json
+enhanced_tracking_models.py
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+celerybeat-schedule.db
+
+# Documentation build
 docs/_build/
+site/
 
-# PyBuilder
-target/
+# Build artifacts
+build-info.json
+VERSION.bak
 
+# PyInstaller
+*.manifest
+*.spec
 
-### Django ###
-*.log
-*.pot
-*.pyc
-__pycache__/
-local_settings.py
+# Jupyter Notebook
+.ipynb_checkpoints
 
-.env
-db.sqlite3
+# pyenv
+.python-version
 
-# vue3 project
-node_modules/
-dist/
+# pipenv
+Pipfile.lock
 
+# poetry
+poetry.lock
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Cython debug symbols
+cython_debug/

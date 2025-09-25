@@ -2,24 +2,25 @@
 
 import json
 import logging
-from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.conf import settings
+from django.db.models import Q, Count, Avg
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-
-from ..models import Problem, ProblemSet, ProblemCategory, TestCase, ProblemSetMembership
+from rest_framework.pagination import PageNumberPagination
 from ..serializers import (
     AdminProblemSerializer, ProblemSetSerializer, ProblemCategorySerializer,
     TestCaseSerializer
 )
-from ..services.code_execution_service import CodeExecutionService
+from ..services.docker_execution_service import DockerExecutionService as CodeExecutionService
 from ..services.admin_service import AdminProblemService
 from purplex.users_app.permissions import IsAdmin
+from purplex.submissions.repositories import SubmissionRepository
+from purplex.submissions.services import SubmissionService
 
 logger = logging.getLogger(__name__)
 SERVER_URL = getattr(settings, 'SERVER_URL', 'http://localhost:8000')
@@ -30,8 +31,8 @@ class AdminProblemListView(APIView):
     permission_classes = [IsAdmin]
     
     def get(self, request):
-        # Fixed N+1 query: add select_related for created_by since AdminProblemSerializer uses it
-        problems = Problem.objects.all().select_related('created_by').prefetch_related('categories', 'test_cases', 'problem_sets')
+        # Use service layer to get problems with optimized queries
+        problems = AdminProblemService.get_all_problems_optimized()
         serializer = AdminProblemSerializer(problems, many=True)
         return Response(serializer.data)
     
@@ -67,12 +68,22 @@ class AdminProblemDetailView(APIView):
     permission_classes = [IsAdmin]
     
     def get(self, request, slug):
-        problem = get_object_or_404(Problem, slug=slug)
+        problem = AdminProblemService.get_problem_by_slug(slug)
+        if not problem:
+            return Response(
+                {'error': f'Problem with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         serializer = AdminProblemSerializer(problem)
         return Response(serializer.data)
     
     def put(self, request, slug):
-        problem = get_object_or_404(Problem, slug=slug)
+        problem = AdminProblemService.get_problem_by_slug(slug)
+        if not problem:
+            return Response(
+                {'error': f'Problem with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         # Use service layer to prepare data
         data, problem_sets_slugs = AdminProblemService.prepare_problem_data(request.data)
@@ -86,8 +97,8 @@ class AdminProblemDetailView(APIView):
                     # Use service layer to handle problem sets relationship
                     # Only update problem sets if explicitly provided in the request
                     if 'problem_sets' in request.data:
-                        problem_sets = ProblemSet.objects.filter(slug__in=problem_sets_slugs)
-                        problem.problem_sets.set(problem_sets)
+                        problem_sets = AdminProblemService.get_problem_sets_by_slugs(problem_sets_slugs)
+                        AdminProblemService.update_problem_set_relations(problem, problem_sets)
                     
                     # Return fresh data with all relationships
                     return Response(AdminProblemSerializer(problem).data)
@@ -106,9 +117,21 @@ class AdminProblemDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request, slug):
-        problem = get_object_or_404(Problem, slug=slug)
-        problem.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        problem = AdminProblemService.get_problem_by_slug(slug)
+        if not problem:
+            return Response(
+                {'error': f'Problem with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Use service layer to delete the problem
+        if AdminProblemService.delete_problem(problem):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(
+                {'error': 'Failed to delete problem'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class AdminTestProblemView(APIView):
@@ -134,15 +157,17 @@ class AdminTestProblemView(APIView):
                 'error': 'At least one test case is required for testing',
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Test the reference solution with error handling
+        # Test the reference solution with error handling and proper resource cleanup
         try:
-            code_service = CodeExecutionService()
-            result = code_service.test_solution(
-                problem_data['reference_solution'],
-                problem_data['function_name'],
-                problem_data.get('test_cases', [])
-            )
-            return Response(result)
+            with CodeExecutionService() as code_service:
+                # Set user context for rate limiting
+                code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
+                result = code_service.test_solution(
+                    problem_data['reference_solution'],
+                    problem_data['function_name'],
+                    problem_data.get('test_cases', [])
+                )
+                return Response(result)
         except Exception as e:
             logger.error(f"Reference solution testing failed: {str(e)}")
             return Response({
@@ -160,7 +185,12 @@ class AdminTestCaseView(APIView):
     
     def post(self, request, problem_slug):
         """Add test case to a problem"""
-        problem = get_object_or_404(Problem, slug=problem_slug)
+        problem = AdminProblemService.get_problem_by_slug(problem_slug)
+        if not problem:
+            return Response(
+                {'error': f'Problem with slug {problem_slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         serializer = TestCaseSerializer(data=request.data)
         if serializer.is_valid():
@@ -170,7 +200,12 @@ class AdminTestCaseView(APIView):
     
     def put(self, request, problem_slug, test_case_id):
         """Update a test case"""
-        test_case = get_object_or_404(TestCase, id=test_case_id, problem__slug=problem_slug)
+        test_case = AdminProblemService.get_test_case(test_case_id, problem_slug)
+        if not test_case:
+            return Response(
+                {'error': f'Test case {test_case_id} not found for problem {problem_slug}'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         serializer = TestCaseSerializer(test_case, data=request.data, partial=True)
         if serializer.is_valid():
@@ -180,9 +215,21 @@ class AdminTestCaseView(APIView):
     
     def delete(self, request, problem_slug, test_case_id):
         """Delete a test case"""
-        test_case = get_object_or_404(TestCase, id=test_case_id, problem__slug=problem_slug)
-        test_case.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        test_case = AdminProblemService.get_test_case(test_case_id, problem_slug)
+        if not test_case:
+            return Response(
+                {'error': f'Test case {test_case_id} not found for problem {problem_slug}'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Use service layer to delete the test case
+        if AdminProblemService.delete_test_case(test_case_id):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(
+                {'error': 'Failed to delete test case'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class AdminProblemSetListView(APIView):
@@ -191,7 +238,7 @@ class AdminProblemSetListView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get(self, request):
-        problem_sets = ProblemSet.objects.all().select_related('created_by').prefetch_related('problems')
+        problem_sets = AdminProblemService.get_all_problem_sets()
         serializer = ProblemSetSerializer(problem_sets, many=True)
         
         # Add full URLs for icons
@@ -257,7 +304,12 @@ class AdminProblemSetDetailView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get(self, request, slug):
-        problem_set = get_object_or_404(ProblemSet, slug=slug)
+        problem_set = AdminProblemService.get_problem_set_by_slug(slug)
+        if not problem_set:
+            return Response(
+                {'error': f'Problem set with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         serializer = ProblemSetSerializer(problem_set)
         data = serializer.data
         
@@ -267,7 +319,12 @@ class AdminProblemSetDetailView(APIView):
         return Response(data)
     
     def put(self, request, slug):
-        problem_set = get_object_or_404(ProblemSet, slug=slug)
+        problem_set = AdminProblemService.get_problem_set_by_slug(slug)
+        if not problem_set:
+            return Response(
+                {'error': f'Problem set with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         # Use service to check if title change would create a duplicate
         if 'title' in request.data:
@@ -316,25 +373,160 @@ class AdminProblemSetDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request, slug):
-        problem_set = get_object_or_404(ProblemSet, slug=slug)
-        problem_set.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        problem_set = AdminProblemService.get_problem_set_by_slug(slug)
+        if not problem_set:
+            return Response(
+                {'error': f'Problem set with slug {slug} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Use service layer to delete the problem set
+        if AdminProblemService.delete_problem_set(problem_set):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response(
+                {'error': 'Failed to delete problem set'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class AdminCategoryView(APIView):
     """Admin view for managing problem categories."""
     permission_classes = [IsAdmin]
-    
+
     def get(self, request):
-        categories = ProblemCategory.objects.all()
+        categories = AdminProblemService.get_all_categories()
         serializer = ProblemCategorySerializer(categories, many=True)
         return Response(serializer.data)
-    
+
     def post(self, request):
         serializer = ProblemCategorySerializer(data=request.data)
         if serializer.is_valid():
             category = serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminSubmissionListView(APIView):
+    """Admin view for listing submissions with pagination and filtering."""
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        # Get query parameters
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 25))
+        search = request.query_params.get('search', '')
+        submission_type = request.query_params.get('type', '')
+        status_filter = request.query_params.get('status', '')
+
+        # Get paginated submissions using repository
+        paginated_data = SubmissionRepository.get_paginated_submissions(
+            page=page,
+            page_size=page_size,
+            search=search,
+            submission_type=submission_type if submission_type else None,
+            status_filter=status_filter if status_filter else None
+        )
+
+        paginated_submissions = paginated_data['submissions']
+
+        # Serialize data
+        submissions_data = []
+        for submission in paginated_submissions:
+            submissions_data.append({
+                'id': str(submission.submission_id),
+                'user': submission.user.username,
+                'problem': submission.problem.title,
+                'problem_slug': submission.problem.slug,
+                'problem_set': submission.problem_set.title if submission.problem_set else None,
+                'course': submission.course.name if submission.course else None,
+                'submission_type': submission.submission_type,
+                'score': submission.score,
+                'status': submission.completion_status,
+                'comprehension_level': submission.comprehension_level,
+                'is_correct': submission.is_correct,
+                'execution_status': submission.execution_status,
+                'submitted_at': submission.submitted_at.isoformat(),
+                'passed_all_tests': submission.passed_all_tests,
+                'execution_time_ms': submission.execution_time_ms,
+                'memory_used_mb': submission.memory_used_mb
+            })
+
+        # Build response with pagination metadata
+        return Response({
+            'results': submissions_data,
+            'count': paginated_data['total_count'],
+            'next': f"?page={page + 1}" if paginated_data['has_next'] else None,
+            'previous': f"?page={page - 1}" if paginated_data['has_previous'] else None,
+            'total_pages': paginated_data['total_pages'],
+            'current_page': paginated_data['current_page']
+        })
+
+    def post(self, request):
+        """Export submissions data."""
+        # Get filter parameters
+        filters = request.data.get('filters', {})
+        format_type = request.data.get('format', 'json')
+
+        # Get submissions using repository
+        submissions = SubmissionRepository.export_submissions(filters)
+
+        # Prepare export data
+        export_data = []
+        for submission in submissions:
+            export_data.append({
+                'submission_id': str(submission.submission_id),
+                'user': submission.user.username,
+                'problem': submission.problem.title,
+                'problem_set': submission.problem_set.title if submission.problem_set else '',
+                'course': submission.course.name if submission.course else '',
+                'submission_type': submission.submission_type,
+                'score': submission.score,
+                'comprehension_level': submission.comprehension_level,
+                'is_correct': submission.is_correct,
+                'status': submission.completion_status,
+                'submitted_at': submission.submitted_at.isoformat(),
+                'execution_time_ms': submission.execution_time_ms,
+                'memory_used_mb': submission.memory_used_mb
+            })
+
+        if format_type == 'csv':
+            # Return CSV response
+            import csv
+            from django.http import HttpResponse
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="submissions.csv"'
+
+            if export_data:
+                writer = csv.DictWriter(response, fieldnames=export_data[0].keys())
+                writer.writeheader()
+                writer.writerows(export_data)
+
+            return response
+        else:
+            return Response(export_data)
+
+
+class AdminSubmissionDetailView(APIView):
+    """Admin view for individual submission details."""
+    permission_classes = [IsAdmin]
+
+    def get(self, request, submission_id):
+        try:
+            # Get submission details using service
+            submission_data = SubmissionService.get_submission_details(submission_id)
+            return Response(submission_data)
+        except Exception as e:
+            if "DoesNotExist" in str(type(e).__name__):
+                return Response(
+                    {'error': 'Submission not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            else:
+                logger.error(f"Error fetching submission details: {str(e)}")
+                return Response(
+                    {'error': 'Failed to fetch submission details'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
 

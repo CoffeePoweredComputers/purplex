@@ -21,7 +21,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'development-key-change-in-prod
 DEBUG = config.debug
 
 # Allowed hosts from environment configuration
-ALLOWED_HOSTS = config.get_allowed_hosts()
+ALLOWED_HOSTS = config.allowed_hosts
 
 # Application definition
 INSTALLED_APPS = [
@@ -38,8 +38,8 @@ INSTALLED_APPS = [
     
     # Our apps
     'purplex.problems_app',
-    'purplex.submissions_app',
     'purplex.users_app',
+    'purplex.submissions',  # New clean submission system
 ]
 
 MIDDLEWARE = [
@@ -78,7 +78,7 @@ import dj_database_url
 
 DATABASES = {
     'default': dj_database_url.parse(
-        config.get_database_url(),
+        config.database_url,
         conn_max_age=60 if config.is_production else 0
     )
 }
@@ -122,11 +122,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # REST Framework configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'purplex.users_app.unified_authentication.UnifiedAuthentication',
-        'purplex.users_app.unified_authentication.ServiceAccountAuthentication',
+        'purplex.users_app.authentication.PurplexAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'purplex.users_app.permissions.IsAuthenticated',
     ],
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
@@ -141,7 +140,7 @@ REST_FRAMEWORK = {
 }
 
 # CORS configuration from environment
-CORS_ALLOWED_ORIGINS = config.get_cors_origins()
+CORS_ALLOWED_ORIGINS = config.cors_allowed_origins
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'accept',
@@ -157,15 +156,15 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # Celery Configuration
-CELERY_BROKER_URL = config.get_redis_url()
-CELERY_RESULT_BACKEND = config.get_redis_url()
+CELERY_BROKER_URL = config.redis_url
+CELERY_RESULT_BACKEND = config.redis_url
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
-CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes
+CELERY_TASK_TIME_LIMIT = config.celery_task_time_limit
+CELERY_TASK_SOFT_TIME_LIMIT = config.celery_task_soft_time_limit
 
 # Celery task routing
 CELERY_TASK_ROUTES = {
@@ -179,14 +178,18 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 GPT_MODEL = os.environ.get('GPT_MODEL', 'gpt-4o-mini')
 
 # Firebase Configuration (handled by environment config)
-FIREBASE_CONFIG = config.get_firebase_config()
+# Firebase configuration is handled directly via environment variables
+FIREBASE_CREDENTIALS_PATH = config.firebase_credentials_path
 
 # Feature Flags
-ENABLE_EIPL = os.environ.get('ENABLE_EIPL', 'true').lower() == 'true'
-ENABLE_HINTS = os.environ.get('ENABLE_HINTS', 'true').lower() == 'true'
-ENABLE_COURSES = os.environ.get('ENABLE_COURSES', 'true').lower() == 'true'
+ENABLE_EIPL = config.enable_eipl
+ENABLE_HINTS = config.enable_hints
+ENABLE_COURSES = config.enable_courses
 
 # Custom settings from environment config
 USE_MOCK_FIREBASE = config.use_mock_firebase
 USE_MOCK_OPENAI = config.use_mock_openai
 PURPLEX_ENVIRONMENT = config.env.value
+
+# Import security configuration
+from purplex.settings.security import CODE_EXECUTION, RATE_LIMITS

@@ -25,7 +25,6 @@ urlpatterns = [
     path('api/', include([
         path('csrf/', csrf_token, name='csrf_token'),
         path('', include('purplex.problems_app.urls')),
-        path('', include('purplex.submissions_app.urls')),
         path('', include('purplex.users_app.urls')),
     ])),
 ]

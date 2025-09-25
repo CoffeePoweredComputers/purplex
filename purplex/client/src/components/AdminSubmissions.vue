@@ -90,6 +90,7 @@
               <th>Problem</th>
               <th>Problem Set</th>
               <th>Score</th>
+              <th>Comprehension</th>
               <th>Status</th>
               <th>Submitted</th>
               <th>Actions</th>
@@ -119,6 +120,14 @@
                 >
                   {{ submission.score }}%
                 </div>
+              </td>
+              <td>
+                <span
+                  class="comprehension-badge"
+                  :class="comprehensionLevelClass(submission.comprehension_level)"
+                >
+                  {{ formatComprehensionLevel(submission.comprehension_level) }}
+                </span>
               </td>
               <td>
                 <span
@@ -469,6 +478,40 @@ export default defineComponent({
           return 'default-badge';
       }
     },
+
+    comprehensionLevelClass(level: string): string {
+      if (!level) return 'comprehension-not-evaluated';
+
+      switch(level.toLowerCase()) {
+        case 'high-level':
+        case 'relational':
+          return 'comprehension-high';
+        case 'low-level':
+        case 'multi_structural':
+        case 'multistructural':
+          return 'comprehension-low';
+        case 'not_evaluated':
+        default:
+          return 'comprehension-not-evaluated';
+      }
+    },
+
+    formatComprehensionLevel(level: string): string {
+      if (!level) return 'Not Evaluated';
+
+      switch(level.toLowerCase()) {
+        case 'high-level':
+        case 'relational':
+          return 'High-level';
+        case 'low-level':
+        case 'multi_structural':
+        case 'multistructural':
+          return 'Low-level';
+        case 'not_evaluated':
+        default:
+          return 'Not Evaluated';
+      }
+    },
     
     formatISODate(dateString: string | null): string {
       if (!dateString) {return 'Unknown';}
@@ -508,6 +551,8 @@ export default defineComponent({
           'Problem Set',
           'Course',
           'Score (%)',
+          'Comprehension Level',
+          'Is Correct',
           'Status',
           'Submitted At',
           'Total Variations',
@@ -528,16 +573,27 @@ export default defineComponent({
             `"${submission.problem_set || 'Unknown'}"`,
             `"${submission.course || 'N/A'}"`,
             submission.score,
+            `"${this.formatComprehensionLevel(submission.comprehension_level)}"`,
+            submission.is_correct || false,
             `"${submission.status}"`,
+            `"${submission.submission_type || 'code'}"`,
             `"${new Date(submission.submitted_at).toLocaleString()}"`,
             submission.total_variations || 0,
             submission.passing_variations || 0,
             submission.total_variations ? Math.round((submission.passing_variations || 0) / submission.total_variations * 100) : 0,
+            this.getBestVariationScore(submission),
+            this.getWorstVariationScore(submission),
+            submission.execution_time || 0,
+            submission.memory_used_mb || 'N/A',
+            `"${submission.time_spent || 'N/A'}"`,
+            submission.segmentation?.confidence_score ? Math.round(submission.segmentation.confidence_score * 100) : 'N/A',
+            `"${(submission.segmentation?.feedback_message || 'N/A').replace(/"/g, '""')}"`,
+            submission.segmentation?.segment_count || submission.segmentation?.segments?.length || 'N/A',
+            submission.segmentation?.suggested_improvements?.length || 0,
+            `"${(submission.raw_input || submission.prompt || '').replace(/"/g, '""')}"`,
             `"${this.formatCodeVariationsForCSV(submission.code_variations)}"`,
             `"${this.formatTestResultsForCSV(submission.test_results)}"`,
-            submission.execution_time || 0,
-            `"${submission.time_spent || 'N/A'}"`,
-            `"${(submission.prompt || '').replace(/"/g, '""')}"`
+            `"${this.formatSegmentationForCSV(submission.segmentation)}"`
           ].join(','))
         ].join('\n');
         
@@ -567,6 +623,13 @@ export default defineComponent({
     },
     
     async downloadSubmissionData(submission: SubmissionDetailed): Promise<void> {
+      // Guard against undefined or missing submission
+      if (!submission || !submission.id) {
+        log.error('Cannot download submission: invalid or missing submission data', { submission });
+        this.notify.error('Unable to download submission data. Submission information is missing.');
+        return;
+      }
+
       try {
         // Fetch full submission details
         const response = await axios.get(`/api/admin/submissions/${submission.id}/`);
@@ -583,7 +646,7 @@ export default defineComponent({
           status: fullSubmission.status,
           submitted_at: fullSubmission.submitted_at,
           prompt: fullSubmission.prompt || null,
-          
+
           // New submission fields
           code_variations: fullSubmission.code_variations || [],
           test_results: fullSubmission.test_results || [],
@@ -591,9 +654,17 @@ export default defineComponent({
           total_variations: fullSubmission.total_variations || 0,
           execution_time: fullSubmission.execution_time || null,
           time_spent: fullSubmission.time_spent || null,
-          
+
+          // Segmentation analysis
+          segmentation: fullSubmission.segmentation || null,
+          comprehension_level: fullSubmission.comprehension_level || null,
+
+          // Hint activations
+          hints_activated: fullSubmission.hints_activated || [],
+          hint_details: fullSubmission.hint_details || [],
+
           // Computed fields for convenience
-          success_rate: fullSubmission.total_variations ? 
+          success_rate: fullSubmission.total_variations ?
             Math.round((fullSubmission.passing_variations || 0) / fullSubmission.total_variations * 100) : 0
         }, null, 2);
         
@@ -629,7 +700,7 @@ export default defineComponent({
     
     formatTestResultsForCSV(testResults: any): string {
       if (!testResults || !Array.isArray(testResults)) {return '[]';}
-      
+
       // Return as pretty-printed JSON string for easy analysis
       try {
         return JSON.stringify(testResults, null, 2).replace(/"/g, '""');
@@ -637,6 +708,50 @@ export default defineComponent({
         log.error('Error formatting test results', { error });
         return '[]';
       }
+    },
+
+    formatSegmentationForCSV(segmentation: any): string {
+      if (!segmentation) {return 'N/A';}
+
+      try {
+        // Create a clean segmentation object without overwhelming detail
+        const cleanSegmentation = {
+          comprehension_level: segmentation.comprehension_level,
+          confidence_score: segmentation.confidence_score,
+          segment_count: segmentation.segment_count || segmentation.segments?.length,
+          has_feedback: !!segmentation.feedback_message,
+          improvements_count: segmentation.suggested_improvements?.length || 0,
+          segments: segmentation.segments || []
+        };
+        return JSON.stringify(cleanSegmentation, null, 2).replace(/"/g, '""');
+      } catch (error) {
+        log.error('Error formatting segmentation data', { error });
+        return 'Error';
+      }
+    },
+
+    getBestVariationScore(submission: any): number | string {
+      if (!submission.code_variations || !Array.isArray(submission.code_variations)) {
+        return 'N/A';
+      }
+
+      const scores = submission.code_variations
+        .map(cv => cv.tests_passed && cv.tests_total ? Math.round((cv.tests_passed / cv.tests_total) * 100) : 0)
+        .filter(score => score !== undefined);
+
+      return scores.length > 0 ? Math.max(...scores) : 'N/A';
+    },
+
+    getWorstVariationScore(submission: any): number | string {
+      if (!submission.code_variations || !Array.isArray(submission.code_variations)) {
+        return 'N/A';
+      }
+
+      const scores = submission.code_variations
+        .map(cv => cv.tests_passed && cv.tests_total ? Math.round((cv.tests_passed / cv.tests_total) * 100) : 0)
+        .filter(score => score !== undefined);
+
+      return scores.length > 0 ? Math.min(...scores) : 'N/A';
     }
   }
 })
@@ -1072,6 +1187,38 @@ export default defineComponent({
   background: var(--color-info-bg);
   color: var(--color-info);
   border: 1px solid var(--color-info);
+}
+
+/* Comprehension Level Badge Styles */
+.comprehension-badge {
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--radius-base);
+  font-weight: 500;
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  white-space: nowrap;
+  min-width: 80px;
+  display: inline-block;
+}
+
+.comprehension-high {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.comprehension-low {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+}
+
+.comprehension-not-evaluated {
+  background: var(--color-bg-hover);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-bg-input);
 }
 
 .submission-time {

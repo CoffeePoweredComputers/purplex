@@ -16,20 +16,22 @@ echo -e "${GREEN}     Starting Purplex Development Environment          ${NC}"
 echo -e "${GREEN}═══════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Load environment variables - prefer .env.development for local development
-if [ -f .env.development ]; then
-    echo -e "${YELLOW}Loading environment variables from .env.development file...${NC}"
-    export $(cat .env.development | grep -v '^#' | xargs)
-    export PURPLEX_ENV=development
-    export DJANGO_SETTINGS_MODULE=purplex.settings
-    echo -e "${GREEN}✓ Development environment variables loaded${NC}"
-elif [ -f .env ]; then
+# Load environment variables from unified .env file
+if [ -f .env ]; then
     echo -e "${YELLOW}Loading environment variables from .env file...${NC}"
-    export $(cat .env | grep -v '^#' | xargs)
-    echo -e "${GREEN}✓ Environment variables loaded${NC}"
+    # Export all variables properly for subprocesses
+    set -a
+    source .env
+    set +a
+    # Ensure Django settings module is set
+    export DJANGO_SETTINGS_MODULE=purplex.settings
+    echo -e "${GREEN}✓ Environment variables loaded and exported${NC}"
 else
-    echo -e "${YELLOW}No .env file found. Using system environment variables.${NC}"
-    echo -e "${YELLOW}Copy .env.development to set up your development environment.${NC}"
+    echo -e "${RED}✗ No .env file found!${NC}"
+    echo -e "${YELLOW}Please create a .env file with at least:${NC}"
+    echo "  PURPLEX_ENV=development"
+    echo "  OPENAI_API_KEY=your-key-here"
+    exit 1
 fi
 echo ""
 
@@ -194,11 +196,8 @@ sleep 1
 
 # 6. Start Celery Worker with increased concurrency
 echo -e "${YELLOW}Starting Celery Worker...${NC}"
-# Ensure environment variables are passed to Celery
-export OPENAI_API_KEY="${OPENAI_API_KEY}"
-# Using new clean Celery configuration
-# Pass DJANGO_SETTINGS_MODULE explicitly to ensure Celery uses the right settings
-nohup env OPENAI_API_KEY="${OPENAI_API_KEY}" DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-purplex.settings}" celery -A purplex.celery_simple worker \
+# Celery will inherit all exported environment variables from above
+nohup celery -A purplex.celery_simple worker \
     -l info \
     --concurrency=4 \
     --pool=prefork \

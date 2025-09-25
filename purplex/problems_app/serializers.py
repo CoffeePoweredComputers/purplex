@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Problem, ProblemSet, ProblemCategory, TestCase, ProblemSetMembership, Course, CourseProblemSet, CourseEnrollment
+from .repositories.problem_category_repository import ProblemCategoryRepository
+from .services.admin_service import AdminProblemService
 
 class ProblemCategorySerializer(serializers.ModelSerializer):
     problems_count = serializers.ReadOnlyField()
@@ -23,7 +25,7 @@ class ProblemSerializer(serializers.ModelSerializer):
     categories = ProblemCategorySerializer(many=True, read_only=True)
     category_ids = serializers.PrimaryKeyRelatedField(
         many=True, 
-        queryset=ProblemCategory.objects.all(),
+        queryset=ProblemCategoryRepository.get_all(),
         source='categories',
         write_only=True,
         required=False
@@ -171,18 +173,18 @@ class AdminProblemSerializer(ProblemSerializer):
         category_ids = validated_data.pop('category_ids', [])
         
         with transaction.atomic():
-            # Create the problem
-            problem = Problem.objects.create(**validated_data)
+            # Create the problem using service
+            problem = AdminProblemService.create_problem(validated_data)
             
-            # Set categories
+            # Set categories using service
             if category_ids:
-                categories = ProblemCategory.objects.filter(id__in=category_ids)
+                categories = AdminProblemService.get_categories_by_ids(category_ids)
                 problem.categories.set(categories)
             
-            # Create test cases
+            # Create test cases using service
             for order, test_case_data in enumerate(test_cases_data):
                 test_case_data['order'] = order
-                TestCase.objects.create(problem=problem, **test_case_data)
+                AdminProblemService.create_test_case(problem, test_case_data)
             
             return problem
 
@@ -202,9 +204,9 @@ class AdminProblemSerializer(ProblemSerializer):
             instance.version += 1
             instance.save()
             
-            # Update categories if provided
+            # Update categories if provided using service
             if category_ids is not None:
-                categories = ProblemCategory.objects.filter(id__in=category_ids)
+                categories = AdminProblemService.get_categories_by_ids(category_ids)
                 instance.categories.set(categories)
             
             # Update test cases if provided
@@ -212,10 +214,10 @@ class AdminProblemSerializer(ProblemSerializer):
                 # Delete existing test cases
                 instance.test_cases.all().delete()
                 
-                # Create new test cases
+                # Create new test cases using service
                 for order, test_case_data in enumerate(test_cases_data):
                     test_case_data['order'] = order
-                    TestCase.objects.create(problem=instance, **test_case_data)
+                    AdminProblemService.create_test_case(instance, test_case_data)
             
             return instance
 
@@ -319,31 +321,33 @@ class CourseCreateUpdateSerializer(serializers.ModelSerializer):
                 "Course ID can only contain letters, numbers, hyphens, and underscores"
             )
         
-        # Check uniqueness (exclude current instance for updates)
-        qs = Course.objects.filter(course_id=value)
+        # Check uniqueness using service (exclude current instance for updates)
         if self.instance:
-            qs = qs.exclude(pk=self.instance.pk)
-        if qs.exists():
-            raise serializers.ValidationError("A course with this ID already exists")
+            # For updates, check if another course has this ID
+            exists = AdminProblemService.check_course_exists(value)
+            if exists and self.instance.course_id != value:
+                raise serializers.ValidationError("A course with this ID already exists")
+        else:
+            # For creation, check if any course has this ID
+            if AdminProblemService.check_course_exists(value):
+                raise serializers.ValidationError("A course with this ID already exists")
         
         return value
     
     def create(self, validated_data):
         problem_set_ids = validated_data.pop('problem_set_ids', [])
-        course = Course.objects.create(**validated_data)
+        # Create course using service
+        course = AdminProblemService.create_course(validated_data)
         
-        # Add problem sets with ordering
+        # Add problem sets with ordering using service
         for order, ps_id in enumerate(problem_set_ids):
-            try:
-                problem_set = ProblemSet.objects.get(id=ps_id)
-                CourseProblemSet.objects.create(
+            problem_set = AdminProblemService.get_problem_set_by_id(ps_id)
+            if problem_set:
+                AdminProblemService.create_course_problem_set(
                     course=course,
                     problem_set=problem_set,
-                    order=order,
-                    problem_set_version=problem_set.version
+                    order=order
                 )
-            except ProblemSet.DoesNotExist:
-                pass
         
         return course
     
@@ -359,18 +363,15 @@ class CourseCreateUpdateSerializer(serializers.ModelSerializer):
             # Clear existing
             instance.courseproblemset_set.all().delete()
             
-            # Add new ones
+            # Add new ones using service
             for order, ps_id in enumerate(problem_set_ids):
-                try:
-                    problem_set = ProblemSet.objects.get(id=ps_id)
-                    CourseProblemSet.objects.create(
+                problem_set = AdminProblemService.get_problem_set_by_id(ps_id)
+                if problem_set:
+                    AdminProblemService.create_course_problem_set(
                         course=instance,
                         problem_set=problem_set,
-                        order=order,
-                        problem_set_version=problem_set.version
+                        order=order
                     )
-                except ProblemSet.DoesNotExist:
-                    pass
         
         return instance
 

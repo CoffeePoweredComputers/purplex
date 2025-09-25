@@ -3,6 +3,8 @@
 ## Overview
 This testing framework provides comprehensive coverage for the submission pipeline, hint system, and progress tracking functionality. Tests are organized using Django TestCase classes and pytest markers for different test types.
 
+**⚠️ CURRENT STATUS**: Most tests are blocked by authentication issues. Only basic infrastructure tests are fully working. The test framework is well-structured but needs authentication mocking fixes to be functional.
+
 ## Working Test Setup
 
 ### Commands That Work
@@ -14,14 +16,14 @@ export DJANGO_SETTINGS_MODULE=purplex.settings
 # Basic tests that pass
 pytest tests/test_setup.py         # 3/3 passing - infrastructure tests
 
-# Test categories (with caveats)
-pytest -m unit                     # Some pass, many fail with auth issues
-pytest -m integration              # Most fail due to missing modules
+# Test categories (with significant issues)
+pytest -m unit                     # 12/32 passing - authentication errors (403)
+pytest -m integration              # 1/27 passing - authentication errors (403)
 pytest -m "not slow"               # Skip slow tests
 
 # Specific modules with issues
-pytest tests/unit/                 # Authentication errors (403)
-pytest tests/integration/           # Import errors (channels module missing)
+pytest tests/unit/                 # Most fail: authentication errors (403)
+pytest tests/integration/           # All fail: authentication errors (403)
 ```
 
 ## Actual Test Structure
@@ -53,7 +55,22 @@ pytest tests/integration/           # Import errors (channels module missing)
 
 ## Test Coverage
 
-### Working Test Modules
+### Test Module Status
+
+#### ✅ Fully Working
+- `tests/test_setup.py` - Infrastructure validation (3/3 tests pass)
+
+#### ⚠️ Partially Working  
+- `tests/unit/test_progress_tracking.py` - Business logic works, course isolation has issues (9/13 pass)
+- `tests/unit/test_validation.py` - Service layer works, API endpoints blocked by auth (2/6 pass)
+
+#### 🚫 Blocked by Authentication
+- `tests/unit/test_hint_system.py` - All hint functionality tests (0/13 pass)
+- `tests/integration/test_submission_pipeline.py` - Full submission workflow (0/20 pass)
+- `tests/integration/test_full_workflow.py` - End-to-end scenarios (1/6 pass)
+- `tests/integration/test_rate_limiting.py` - Rate limiting functionality (0/4 pass)
+
+### Planned Test Modules (Referenced in Documentation)
 
 #### Submission Pipeline (`tests/integration/test_submission_pipeline.py`)
 **Input Validation (TestSubmissionInputValidation)**
@@ -144,31 +161,40 @@ export DJANGO_SETTINGS_MODULE=purplex.settings
 ```
 
 ### Test Commands
+
+#### Working Commands
 ```bash
-# Run all tests
-pytest tests/
+# Run basic infrastructure tests (✅ All pass)
+pytest tests/test_setup.py
 
-# Run by markers
-pytest -m unit                     # Unit tests only
-pytest -m integration              # Integration tests only
-pytest -m "not slow"               # Skip slow tests
-pytest -m django_db                # Database-dependent tests
+# Run progress tracking tests (⚠️ Partial - 9/13 pass)  
+pytest tests/unit/test_progress_tracking.py
 
-# Run specific modules
-pytest tests/unit/test_hint_system.py
-pytest tests/integration/test_submission_pipeline.py
+# Run service layer validation tests (⚠️ Partial - 2/6 pass)
+pytest tests/unit/test_validation.py
+```
 
-# Run with coverage
+#### Currently Failing Commands (Authentication Issues)
+```bash
+# These fail with 403 errors due to missing auth mocking:
+pytest -m unit                     # 12/32 passing
+pytest -m integration              # 1/27 passing 
+pytest tests/unit/test_hint_system.py          # 0/13 passing
+pytest tests/integration/test_submission_pipeline.py  # 0/20 passing
+pytest tests/integration/test_full_workflow.py         # 1/6 passing
+pytest tests/integration/test_rate_limiting.py         # 0/4 passing
+```
+
+#### Diagnostic Commands
+```bash
+# Run with verbose output to see failure details
+pytest tests/unit/ -v --tb=short
+
+# Run specific failing test to debug
+pytest tests/unit/test_hint_system.py::TestHintAvailability::test_hints_locked_with_insufficient_attempts -v
+
+# Run with coverage (when tests are fixed)
 pytest tests/ --cov=purplex --cov-report=html
-
-# Run with verbose output
-pytest tests/ -v
-
-# Run specific test class
-pytest tests/unit/test_hint_system.py::TestHintAvailability
-
-# Run specific test method
-pytest tests/unit/test_hint_system.py::TestHintAvailability::test_hints_unlocked_with_sufficient_attempts
 ```
 
 ## Key Testing Principles
@@ -179,37 +205,55 @@ pytest tests/unit/test_hint_system.py::TestHintAvailability::test_hints_unlocked
 4. **Fast**: No actual code execution or AI calls
 5. **Maintainable**: Factories and helpers reduce duplication
 
-## Broken Test Files (Need Refactoring)
+## Known Issues and Workarounds
 
-### `tests/integration/test_eipl_pipeline.py`
-**Status**: ⚠️ SKIPPED - modules missing
-**Issue**: Imports non-existent modules:
-- `purplex.problems_app.tasks.ai_operations` (removed)
-- `purplex.problems_app.tasks.execution` (removed)
-- `channels.testing` (dependency not installed)
+### Authentication Issues (Primary Problem)
+**Status**: 🚫 BLOCKING - Most tests fail with 403 errors
+**Issue**: Tests expect validation errors (400) but get authentication errors (403) first
+**Root Cause**: Firebase token authentication required for most endpoints, but tests don't properly mock authentication
 
-**Fix Required**: Refactor to use `purplex.problems_app.tasks.pipeline.execute_eipl_pipeline`
+**Workaround for Individual Tests**:
+```python
+# Add to test setup for API tests
+@patch('purplex.users_app.services.authentication_service.AuthenticationService.authenticate_token')
+def test_with_mocked_auth(self, mock_auth):
+    test_user = User.objects.create_user('testuser')
+    mock_auth.return_value = (test_user, {'uid': 'test-user-123'})
+    # Test code here
+```
 
-### `tests/unit/test_task_execution.py` 
-**Status**: ⚠️ SKIPPED - modules missing
-**Issue**: Same import problems as above
-**Fix Required**: Update to test the new pipeline architecture
+### Database Constraint Issues
+**Status**: ⚠️ WARNING - Some tests fail with IntegrityError
+**Issue**: Duplicate key violations for username fields (e.g., 'instructor')
+**Cause**: Test isolation problems in factories
 
-### `tests/test_eipl_pipeline_integration.py`
-**Status**: ⚠️ Import error
-**Issue**: Cannot import `generate_eipl_variations` from tasks module
-**Fix Required**: Update imports to use current pipeline implementation
+### Missing/Outdated References
+**Status**: ℹ️ INFO - Documentation and tests reference non-existent modules
+**Issue**: Tests and documentation reference outdated imports:
+- References to `generate_eipl_variations` function (current tests still use this)
+- Documentation referenced files that don't exist:
+  - `tests/integration/test_eipl_pipeline.py` (doesn't exist)
+  - `tests/unit/test_task_execution.py` (doesn't exist) 
+  - `tests/test_eipl_pipeline_integration.py` (doesn't exist)
+
+**Current Status**: Tests use mocked `generate_eipl_variations` but actual implementation may have changed to use the new pipeline architecture in `purplex.problems_app.tasks.pipeline.execute_eipl_pipeline`
 
 ## Celery Task Testing with Current Architecture
 
-### Working Task: `execute_eipl_pipeline`
+### Current Pipeline Architecture: `execute_eipl_pipeline`
+**Status**: ✅ Available but not properly tested
 ```python
 # Current working task in pipeline.py
 from purplex.problems_app.tasks.pipeline import execute_eipl_pipeline
 
-# Example test pattern:
+# Example test pattern (needs auth mocking):
 @patch('purplex.problems_app.tasks.pipeline.some_dependency')
-def test_eipl_pipeline_execution(self, mock_dependency):
+@patch('purplex.users_app.services.authentication_service.AuthenticationService.authenticate_token')
+def test_eipl_pipeline_execution(self, mock_auth, mock_dependency):
+    # Mock authentication first
+    test_user = User.objects.create_user('testuser')
+    mock_auth.return_value = (test_user, {'uid': 'test-user-123'})
+    
     result = execute_eipl_pipeline.apply_async(
         args=[prompt, problem_id, user_id],
         kwargs={'request_id': 'test-123'}
@@ -218,16 +262,18 @@ def test_eipl_pipeline_execution(self, mock_dependency):
     self.assertTrue(task_result['success'])
 ```
 
+**Note**: Current tests reference `generate_eipl_variations` which may be outdated. New tests should target the actual pipeline implementation.
+
 ## SSE Testing Patterns
 
 ### Testing SSE Views
 ```python
-# Test SSE endpoint from sse_clean.py
-from purplex.problems_app.views.sse_clean import CleanTaskSSEView
+# Test SSE endpoint from sse.py
+from purplex.problems_app.views.sse import CleanTaskSSEView
 
 def test_sse_stream_response(self):
     factory = RequestFactory()
-    request = factory.get('/api/sse/task/test-123/?token=mock-token')
+    request = factory.get('/api/tasks/test-123/stream/?token=mock-token')
     
     view = CleanTaskSSEView()
     response = view.get(request, task_id='test-123')
@@ -258,18 +304,20 @@ def test_task_progress_events(self):
 
 ### Using Mock Firebase in Development
 ```python
-from purplex.users_app.unified_authentication import UnifiedAuthentication
+from purplex.users_app.authentication import PurplexAuthentication
+from purplex.users_app.services.authentication_service import AuthenticationService
 
 def test_mock_firebase_authentication(self):
     # In development, uses mock_firebase.py
-    auth = UnifiedAuthentication()
+    auth = PurplexAuthentication()
     
     # Mock token validation
-    with patch.object(auth, 'verify_token') as mock_verify:
-        mock_verify.return_value = {'uid': 'test-user-123'}
+    with patch.object(AuthenticationService, 'authenticate_token') as mock_auth:
+        test_user = User.objects.create_user('testuser')
+        mock_auth.return_value = (test_user, {'uid': 'test-user-123'})
         
-        result = auth.verify_token('mock-token')
-        self.assertEqual(result['uid'], 'test-user-123')
+        result = auth.authenticate(request)
+        self.assertEqual(result[0], test_user)
 ```
 
 ## Test Database Configuration
@@ -306,26 +354,37 @@ class TestNewFeature(TestCase):
 
 ## Current Test Status
 
-### ✅ Working Tests
-- `tests/test_setup.py` - All passing (basic infrastructure)
-- `tests/unit/test_validation.py` - Service layer tests (2/6 passing)
-- `tests/test_code_cleanup_verification.py` - Code quality checks
-- `tests/test_vestigial_cleanup.py` - Cleanup verification
+### ✅ Working Tests (Fully Passing)
+- `tests/test_setup.py` - 3/3 passing (basic infrastructure)
 
-### ⚠️ Authentication Issues
-Many API tests fail with 403 (Forbidden) instead of expected 400 (Bad Request):
-- Tests expect validation errors but get authentication errors first
-- Firebase token authentication required for most endpoints
-- Need to mock Firebase authentication properly in test fixtures
+### ⚠️ Partially Working Tests 
+- `tests/unit/test_progress_tracking.py` - 9/13 passing (progress logic works, course isolation fails)
+- `tests/unit/test_validation.py` - 2/6 passing (service layer works, API validation fails with 403)
 
-### 🔧 Quick Fix for Authentication
-```python
-# Add to test setup for API tests
-@patch('purplex.users_app.unified_authentication.UnifiedAuthentication.verify_token')
-def test_with_mocked_auth(self, mock_verify):
-    mock_verify.return_value = {'uid': 'test-user-123'}
-    # Test code here
-```
+### 🚫 Failing Tests (Authentication Blocking)
+- `tests/unit/test_hint_system.py` - 0/13 passing (all fail with 403 or missing auth context)
+- `tests/integration/test_submission_pipeline.py` - 0/20 passing (all fail with 403)
+- `tests/integration/test_full_workflow.py` - 1/6 passing (only unauthorized access test passes)
+- `tests/integration/test_rate_limiting.py` - 0/4 passing (all fail with 403)
+
+### Root Cause Analysis
+**Primary Issue**: Authentication system not properly mocked in test fixtures
+- Most API endpoints require Firebase authentication
+- Tests written expecting validation errors (400) but get auth errors (403) first  
+- Need systematic auth mocking in `conftest.py` or test base classes
+
+### Immediate Fixes Required
+1. **Update `tests/conftest.py`**: Add global auth mocking for `authenticated_client` fixture
+2. **Fix factory uniqueness**: Ensure test users have unique usernames to prevent IntegrityError
+3. **Update test assertions**: Change expected status codes from 400 to 403 where auth fails first
+4. **Add auth bypass option**: Create fixtures for testing validation logic without auth
+
+### Test Infrastructure Status
+- **Factories**: ✅ Working (in `tests/factories.py`) 
+- **Fixtures**: 🚫 BROKEN (missing auth mocking in `tests/conftest.py`)
+- **Markers**: ✅ Working (pytest.ini configured correctly)
+- **Database**: ✅ Working (PostgreSQL test DB configured)
+- **Mocks**: ⚠️ Incomplete (OpenAI mocked, Firebase authentication not mocked)
 
 ## Key Testing Patterns
 

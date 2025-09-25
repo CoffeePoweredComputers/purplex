@@ -3,7 +3,6 @@
 import json
 import logging
 from datetime import timedelta
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
@@ -11,12 +10,16 @@ from rest_framework.response import Response
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 
-from ..models import Problem, ProblemSet, Course, CourseEnrollment, UserProgress
-from ..services.code_execution_service import CodeExecutionService
+from ..services.docker_execution_service import DockerExecutionService as CodeExecutionService
 from ..services.ai_generation_service import AITestGenerationService
 from ..services.submission_validation_service import SubmissionValidationService
+from purplex.submissions.services import SubmissionService  # Use new submission service
+from ..services.course_service import CourseService
+from ..services.student_service import StudentService
+from ..services.problem_service import ProblemService
+from ..services.progress_service import ProgressService
+from ..repositories import TestCaseRepository
 from purplex.users_app.permissions import IsAuthenticated
-from purplex.submissions_app.models import PromptSubmission, SegmentationResult
 from celery.result import AsyncResult
 from ..tasks.pipeline import execute_eipl_pipeline
 import uuid
@@ -77,7 +80,7 @@ class TestSolutionView(APIView):
         user_code = validated_data['user_code']
         
         # Get test cases (only visible ones for students)
-        test_cases = problem.test_cases.filter(is_hidden=False)
+        test_cases = StudentService.get_visible_test_cases(problem)
         test_data = [
             {
                 'inputs': tc.inputs,
@@ -87,11 +90,13 @@ class TestSolutionView(APIView):
             for tc in test_cases
         ]
         
-        # Run tests with error handling
+        # Run tests with error handling and proper resource cleanup
         try:
-            code_service = CodeExecutionService()
-            result = code_service.test_solution(user_code, problem.function_name, test_data)
-            return Response(result)
+            with CodeExecutionService() as code_service:
+                # Set user context for rate limiting
+                code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
+                result = code_service.test_solution(user_code, problem.function_name, test_data)
+                return Response(result)
         except Exception as e:
             logger.error(f"Code execution failed for problem {problem.slug}: {str(e)}")
             return Response({
@@ -134,10 +139,9 @@ class SubmitSolutionView(APIView):
         user_code = validated_data['user_code']
         course = validated_data.get('course')
         
-        # Get problem set separately since it's required for this view
-        try:
-            problem_set = ProblemSet.objects.get(slug=problem_set_slug)
-        except ProblemSet.DoesNotExist:
+        # Get problem set using problem service
+        problem_set = ProblemService.get_problem_set_by_slug(problem_set_slug)
+        if not problem_set:
             return Response({
                 'error': 'Problem set not found'
             }, status=status.HTTP_404_NOT_FOUND)
@@ -145,6 +149,7 @@ class SubmitSolutionView(APIView):
         # Extract additional optional fields
         prompt = request.data.get('prompt', '')  # For EiPL problems
         time_spent = request.data.get('time_spent')  # Optional, in seconds
+        course_id = request.data.get('course_id')  # Optional course context
         
         # Validate optional prompt for EiPL problems
         if prompt and len(prompt) > 2000:
@@ -153,7 +158,7 @@ class SubmitSolutionView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Verify problem belongs to the problem set
-        if not problem.problem_sets.filter(id=problem_set.id).exists():
+        if not problem_set.problems.filter(id=problem.id).exists():
             return Response({
                 'error': 'Problem does not belong to the specified problem set'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -161,32 +166,25 @@ class SubmitSolutionView(APIView):
         # Validate course context if provided
         course = None
         if course_id:
-            try:
-                course = Course.objects.get(course_id=course_id, is_active=True, is_deleted=False)
-                
-                # Verify user is enrolled in the course
-                if not CourseEnrollment.objects.filter(
-                    user=request.user,
-                    course=course,
-                    is_active=True
-                ).exists():
-                    return Response({
-                        'error': 'You are not enrolled in this course'
-                    }, status=status.HTTP_403_FORBIDDEN)
-                
-                # Verify problem set belongs to the course
-                if not course.problem_sets.filter(id=problem_set.id).exists():
-                    return Response({
-                        'error': 'Problem set does not belong to this course'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-                    
-            except Course.DoesNotExist:
+            # Use CourseService to validate enrollment and get course
+            validation_result = CourseService.validate_course_enrollment(request.user, course_id)
+            if not validation_result['success']:
                 return Response({
-                    'error': 'Course not found'
-                }, status=status.HTTP_404_NOT_FOUND)
+                    'error': validation_result['error']
+                }, status=validation_result['status_code'])
+            
+            course = validation_result['course']
+            
+            # Verify problem set belongs to the course
+            # Using repository pattern to check relationship
+            from ..repositories import CourseRepository
+            if problem_set.id not in CourseRepository.get_course_problem_set_ids(course):
+                return Response({
+                    'error': 'Problem set does not belong to this course'
+                }, status=status.HTTP_400_BAD_REQUEST)
         
         # Get all test cases (including hidden ones for grading)
-        all_test_cases = list(problem.test_cases.all())
+        all_test_cases = TestCaseRepository.get_problem_test_cases(problem, include_hidden=True)
         test_data = [
             {
                 'id': tc.id,
@@ -197,15 +195,17 @@ class SubmitSolutionView(APIView):
             for tc in all_test_cases
         ]
         
-        # Run tests with error handling
+        # Run tests with error handling and proper resource cleanup
         try:
-            code_service = CodeExecutionService()
-            result = code_service.test_solution(user_code, problem.function_name, test_data)
-            
-            # Calculate score based on all tests
-            passed_tests = result.get('passed', 0)
-            total_tests = result.get('total', 0)
-            score = int((passed_tests / total_tests * 100) if total_tests > 0 else 0)
+            with CodeExecutionService() as code_service:
+                # Set user context for rate limiting
+                code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
+                result = code_service.test_solution(user_code, problem.function_name, test_data)
+
+                # Calculate score based on all tests
+                passed_tests = result.get('passed', 0)
+                total_tests = result.get('total', 0)
+                score = int((passed_tests / total_tests * 100) if total_tests > 0 else 0)
         except Exception as e:
             logger.error(f"Code execution failed for problem {problem.slug}: {str(e)}")
             return Response({
@@ -228,47 +228,71 @@ class SubmitSolutionView(APIView):
         time_spent_delta = None
         if time_spent:
             time_spent_delta = timedelta(seconds=int(time_spent))
-        
-        # Create submission record
-        submission = PromptSubmission.objects.create(
+
+        # Create submission record using new service
+        submission = SubmissionService.create_submission(
             user=request.user,
             problem=problem,
+            raw_input=prompt or user_code,  # Store code if no prompt provided
+            submission_type='direct_code',
             problem_set=problem_set,
-            score=score,
-            prompt=prompt or user_code,  # Store code if no prompt provided
-            test_results=result,
-            course=course,  # Include course context
+            course=course,
             time_spent=time_spent_delta
         )
-        
-        # Progress is automatically updated via the PromptSubmission model's save method
+
+        # Record test results
+        test_execution_data = []
+        if 'results' in result:
+            for i, (test_result, test_case) in enumerate(zip(result['results'], all_test_cases)):
+                test_execution_data.append({
+                    'test_case_id': test_case.id,
+                    'passed': test_result.get('pass', False),
+                    'inputs': test_case.inputs,
+                    'expected': test_case.expected_output,
+                    'actual': test_result.get('output', ''),
+                    'error_type': 'none' if test_result.get('pass') else 'wrong_output',
+                    'error_message': test_result.get('error', '')
+                })
+
+        SubmissionService.record_test_results(
+            submission=submission,
+            test_results=test_execution_data,
+            processed_code=user_code,
+            execution_time_ms=None,
+            memory_used_mb=None
+        )
+
         # Get the updated progress for response
-        progress = UserProgress.objects.get(
-            user=request.user,
-            problem=problem,
-            problem_set=problem_set,
-            course=course
+        progress = ProgressService.get_user_progress(
+            user_id=request.user.id,
+            problem_id=problem.id,
+            course_id=course.id if course else None
         )
         
         # Return only visible test results to student
         visible_results = []
         if 'results' in result:
-            visible_test_cases = list(problem.test_cases.filter(is_hidden=False))
+            visible_test_cases = StudentService.get_visible_test_cases(problem)
             for i, tc in enumerate(all_test_cases):
                 if not tc.is_hidden and i < len(result['results']):
                     visible_results.append(result['results'][i])
         
+        # Import GradingService to calculate grade
+        from purplex.submissions.grading_service import GradingService
+
         return Response({
-            'submission_id': submission.id,
-            'score': score,
-            'testsPassed': passed_tests,
-            'totalTests': total_tests,
+            'submission_id': str(submission.submission_id),  # Use UUID
+            'score': submission.score,
+            'testsPassed': result.get('testsPassed', 0),
+            'totalTests': result.get('totalTests', 0),
             'results': visible_results,  # Only visible test results
+            'grade': GradingService.calculate_grade(submission),  # New grade field
             'progress': {
-                'status': progress.status,
-                'best_score': progress.best_score,
-                'attempts': progress.attempts,
-                'is_completed': progress.is_completed,
+                'status': progress.status if progress else 'not_started',
+                'best_score': progress.best_score if progress else 0,
+                'attempts': progress.attempts if progress else 0,
+                'is_completed': progress.is_completed if progress else False,
+                'grade': getattr(progress, 'grade', None),  # Include grade in progress too
             }
         })
 
@@ -301,20 +325,21 @@ class EiPLSubmissionView(APIView):
         user_prompt = validated_data['user_prompt']
         
         # Additional validation for problem set membership
-        if problem_set and not problem.problem_sets.filter(id=problem_set.id).exists():
+        if problem_set and not problem_set.problems.filter(id=problem.id).exists():
             return Response({
                 'error': 'Problem does not belong to the specified problem set'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Additional validation for course enrollment  
-        if course and not CourseEnrollment.objects.filter(
-            user=request.user,
-            course=course,
-            is_active=True
-        ).exists():
-            return Response({
-                'error': 'You are not enrolled in this course'
-            }, status=status.HTTP_403_FORBIDDEN)
+        # Additional validation for course enrollment using service
+        if course:
+            enrollment_result = CourseService.validate_course_enrollment(
+                request.user, 
+                course.course_id
+            )
+            if not enrollment_result['success']:
+                return Response({
+                    'error': enrollment_result['error']
+                }, status=enrollment_result['status_code'])
         
         # Log submission attempt
         logger.info(f"EiPL submission attempt for problem {problem.slug} by user {request.user.username}")

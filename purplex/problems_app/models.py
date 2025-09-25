@@ -76,6 +76,16 @@ class Problem(models.Model):
         blank=True,
         help_text="Complete segmentation configuration including threshold, examples, and settings"
     )
+
+    # Direct grading configuration fields (for GRADING_PIPELINE.md implementation)
+    segmentation_threshold = models.PositiveIntegerField(
+        default=2,
+        help_text="Maximum number of segments for high-level comprehension in EiPL problems"
+    )
+    requires_highlevel_comprehension = models.BooleanField(
+        default=True,
+        help_text="Whether EiPL problems require high-level comprehension for full credit"
+    )
     
     # Educational metadata
     max_attempts = models.IntegerField(
@@ -116,11 +126,17 @@ class Problem(models.Model):
     @property
     def segmentation_enabled(self):
         """Check if segmentation is enabled for this EiPL problem"""
-        return self.problem_type == 'eipl' and self.segmentation_config.get('enabled', True)
+        # Check both new field and legacy JSON config
+        return (self.problem_type == 'eipl' and
+                self.requires_highlevel_comprehension and
+                self.segmentation_config.get('enabled', True))
 
     @property
-    def segmentation_threshold(self):
+    def get_segmentation_threshold(self):
         """Get the segmentation threshold for this problem"""
+        # Use new field if set, otherwise fall back to JSON config
+        if self.segmentation_threshold and self.segmentation_threshold > 0:
+            return self.segmentation_threshold
         return self.segmentation_config.get('threshold', 2)
 
     def get_segmentation_examples(self):
@@ -217,6 +233,19 @@ class UserProgress(models.Model):
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),       # Met completion criteria
     ], default='not_started')
+
+    # Grade per GRADING_PIPELINE.md specification
+    grade = models.CharField(
+        max_length=20,
+        choices=[
+            ('incomplete', 'Incomplete'),
+            ('partial', 'Partially Complete'),
+            ('complete', 'Complete')
+        ],
+        default='incomplete',
+        help_text="Grade based on correctness and high-levelness dimensions",
+        db_index=True
+    )
     
     # Scoring and attempts
     best_score = models.IntegerField(default=0)
@@ -300,25 +329,33 @@ class UserProgress(models.Model):
     def _check_completion(self, submission):
         """Flexible completion checking supporting multiple criteria"""
         completion_criteria = self.problem.completion_criteria or {}
-        
+
         # For EiPL problems with segmentation enabled, require both test passing AND segmentation passing
         if self.problem.problem_type == 'eipl' and self.problem.segmentation_enabled:
-            # First check if all variations passed tests
-            if submission.score < 100:  # Less than 100% means not all variations passed
+            # Require ALL of the following:
+            # 1. Score must be 100% (all variations passed all tests)
+            if submission.score < 100:
                 return False
-            
-            # Then check if segmentation passed (if segmentation was performed)
-            if submission.segmentation_passed is not None and not submission.segmentation_passed:
+
+            # 2. Segmentation must have passed (low-level description threshold met)
+            # If segmentation_passed is None, segmentation was not performed or failed
+            # If segmentation_passed is False, it didn't meet the threshold
+            # Only True means it passed the threshold
+            if submission.segmentation_passed != True:
                 return False
-        
+
+            # Both conditions met for EiPL with segmentation
+            return True
+
+        # For non-EiPL or EiPL without segmentation, use standard completion criteria
         # Default to threshold-based completion
         if not completion_criteria:
             return submission.score >= (self.problem.completion_threshold or 100)
-        
+
         if 'min_score' in completion_criteria:
             if submission.score < completion_criteria['min_score']:
                 return False
-        
+
         if 'required_test_cases' in completion_criteria:
             # Check specific test cases passed by analyzing test_results
             passed_tests = set()
@@ -330,12 +367,12 @@ class UserProgress(models.Model):
             required = set(completion_criteria['required_test_cases'])
             if not required.issubset(passed_tests):
                 return False
-        
+
         if 'time_limit' in completion_criteria:
             execution_time = getattr(submission, 'execution_time', None)
             if execution_time and execution_time > completion_criteria['time_limit']:
                 return False
-        
+
         return True
     
     
