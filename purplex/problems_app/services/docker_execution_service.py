@@ -26,7 +26,7 @@ class DockerExecutionService:
         """Initialize the Docker execution service with container pooling."""
         if docker is None:
             raise ImportError("Docker SDK is not installed. Run: pip install docker")
-            
+
         # Load security settings
         security_config = getattr(settings, 'CODE_EXECUTION', {})
         self.max_execution_time = security_config.get('MAX_EXECUTION_TIME', 5)
@@ -37,24 +37,25 @@ class DockerExecutionService:
         self.forbidden_builtins = security_config.get('FORBIDDEN_BUILTINS', [])
         self.rate_limit_per_minute = security_config.get('RATE_LIMIT_PER_MINUTE', 10)
         self.log_executions = security_config.get('LOG_EXECUTIONS', True)
-        
+
         # Container pool settings
         self.pool_enabled = security_config.get('POOL_ENABLED', True)
         self.pool_size = security_config.get('POOL_SIZE', 5)
         self.container_pool = []
         self.pool_lock = threading.Lock()
         self._pool_initialized = False
-        
+        self._closed = False
+
         # Initialize Docker client
         try:
             self.docker_client = docker.from_env()
             self._ensure_image_exists()
-            
+
             # Initialize container pool if enabled
             if self.pool_enabled:
                 self._init_pool()
                 # Register cleanup on exit
-                atexit.register(self._cleanup_pool)
+                atexit.register(self._cleanup_and_close)
         except Exception as e:
             logger.error(f"Failed to initialize Docker client: {e}")
             raise
@@ -248,7 +249,7 @@ while True:
     def _cleanup_pool(self):
         """Clean up all pool containers on shutdown."""
         logger.info("Cleaning up container pool")
-        
+
         with self.pool_lock:
             for container in self.container_pool:
                 try:
@@ -256,23 +257,70 @@ while True:
                     logger.debug(f"Removed pool container {container.id[:12]}")
                 except Exception as e:
                     logger.warning(f"Failed to remove container: {e}")
-            
+
             self.container_pool.clear()
-        
-        # Also clean up any orphaned pool containers
+
+        # Clean up orphaned containers only on full cleanup (not every time)
+        # This prevents excessive cleanup during normal operations
+        if getattr(self, '_do_orphan_cleanup', False):
+            try:
+                if hasattr(self, 'docker_client') and self.docker_client:
+                    containers = self.docker_client.containers.list(
+                        all=True,
+                        filters={'label': 'purplex-pool=true'}
+                    )
+                    if containers:
+                        logger.info(f"Cleaning up {len(containers)} orphaned pool containers")
+                        for container in containers:
+                            try:
+                                container.remove(force=True)
+                                logger.debug(f"Removed orphaned pool container {container.id[:12]}")
+                            except:
+                                pass
+            except Exception as e:
+                logger.warning(f"Error cleaning orphaned containers: {e}")
+
+    def close(self):
+        """Close Docker client connection and clean up resources."""
+        if self._closed:
+            return
+
+        logger.info("Closing Docker execution service")
+
+        # Clean up container pool first
+        self._cleanup_pool()
+
+        # Close Docker client connection
+        if hasattr(self, 'docker_client') and self.docker_client:
+            try:
+                self.docker_client.close()
+                logger.debug("Docker client connection closed")
+            except Exception as e:
+                logger.warning(f"Error closing Docker client: {e}")
+            finally:
+                self.docker_client = None
+
+        self._closed = True
+
+    def _cleanup_and_close(self):
+        """Cleanup method called by atexit."""
+        self.close()
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensure cleanup."""
+        self.close()
+
+    def __del__(self):
+        """Destructor - ensure cleanup if not already done."""
         try:
-            containers = self.docker_client.containers.list(
-                all=True,
-                filters={'label': 'purplex-pool=true'}
-            )
-            for container in containers:
-                try:
-                    container.remove(force=True)
-                    logger.debug(f"Removed orphaned pool container {container.id[:12]}")
-                except:
-                    pass
-        except Exception as e:
-            logger.warning(f"Error cleaning orphaned containers: {e}")
+            self.close()
+        except:
+            # Ignore errors during destruction
+            pass
     
     def test_solution(self, user_code: str, function_name: str, test_cases: List[Dict]) -> Dict:
         """
@@ -458,8 +506,8 @@ for i, test_case in enumerate(test_cases):
         if test_passed:
             passed_count += 1
             
-        # Format the function call string
-        args_str = ', '.join(repr(arg) for arg in inputs)
+        # Format the function call string with proper repr for all arguments
+        args_str = ', '.join(json.dumps(arg) if isinstance(arg, str) else repr(arg) for arg in inputs)
         function_call = "{function_name}(" + args_str + ")"
         
         results.append({{
@@ -473,7 +521,7 @@ for i, test_case in enumerate(test_cases):
         }})
     except Exception as e:
         inputs = test_case.get('inputs', [])
-        args_str = ', '.join(repr(arg) for arg in inputs)
+        args_str = ', '.join(json.dumps(arg) if isinstance(arg, str) else repr(arg) for arg in inputs)
         function_call = "{function_name}(" + args_str + ")"
         
         results.append({{

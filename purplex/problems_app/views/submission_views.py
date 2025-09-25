@@ -17,6 +17,7 @@ from purplex.submissions.services import SubmissionService  # Use new submission
 from ..services.course_service import CourseService
 from ..services.student_service import StudentService
 from ..services.problem_service import ProblemService
+from ..services.progress_service import ProgressService
 from ..repositories import TestCaseRepository
 from purplex.users_app.permissions import IsAuthenticated
 from celery.result import AsyncResult
@@ -89,13 +90,13 @@ class TestSolutionView(APIView):
             for tc in test_cases
         ]
         
-        # Run tests with error handling
+        # Run tests with error handling and proper resource cleanup
         try:
-            code_service = CodeExecutionService()
-            # Set user context for rate limiting
-            code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
-            result = code_service.test_solution(user_code, problem.function_name, test_data)
-            return Response(result)
+            with CodeExecutionService() as code_service:
+                # Set user context for rate limiting
+                code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
+                result = code_service.test_solution(user_code, problem.function_name, test_data)
+                return Response(result)
         except Exception as e:
             logger.error(f"Code execution failed for problem {problem.slug}: {str(e)}")
             return Response({
@@ -194,17 +195,17 @@ class SubmitSolutionView(APIView):
             for tc in all_test_cases
         ]
         
-        # Run tests with error handling
+        # Run tests with error handling and proper resource cleanup
         try:
-            code_service = CodeExecutionService()
-            # Set user context for rate limiting
-            code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
-            result = code_service.test_solution(user_code, problem.function_name, test_data)
-            
-            # Calculate score based on all tests
-            passed_tests = result.get('passed', 0)
-            total_tests = result.get('total', 0)
-            score = int((passed_tests / total_tests * 100) if total_tests > 0 else 0)
+            with CodeExecutionService() as code_service:
+                # Set user context for rate limiting
+                code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
+                result = code_service.test_solution(user_code, problem.function_name, test_data)
+
+                # Calculate score based on all tests
+                passed_tests = result.get('passed', 0)
+                total_tests = result.get('total', 0)
+                score = int((passed_tests / total_tests * 100) if total_tests > 0 else 0)
         except Exception as e:
             logger.error(f"Code execution failed for problem {problem.slug}: {str(e)}")
             return Response({
@@ -262,12 +263,11 @@ class SubmitSolutionView(APIView):
         )
 
         # Get the updated progress for response
-        from ..models import UserProgress
-        progress = UserProgress.objects.filter(
-            user=request.user,
-            problem=problem,
-            course=course
-        ).first()
+        progress = ProgressService.get_user_progress(
+            user_id=request.user.id,
+            problem_id=problem.id,
+            course_id=course.id if course else None
+        )
         
         # Return only visible test results to student
         visible_results = []

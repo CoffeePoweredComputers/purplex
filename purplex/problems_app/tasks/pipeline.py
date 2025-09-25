@@ -21,7 +21,7 @@ from purplex.problems_app.services.test_case_service import TestCaseService
 from purplex.submissions.services import SubmissionService  # Use new submission service
 from purplex.submissions.models import CodeVariation
 from purplex.problems_app.services.ai_generation_service import AITestGenerationService
-from purplex.problems_app.services.docker_execution_service import DockerExecutionService as CodeExecutionService
+from purplex.problems_app.services.docker_service_factory import SharedDockerServiceContext
 from purplex.problems_app.services.segmentation_service import SegmentationService
 from purplex.problems_app.services.course_service import CourseService
 from purplex.users_app.services.user_service import UserService
@@ -140,11 +140,11 @@ def test_variation_helper(code: str, problem_id: int, variation_index: int) -> D
             except (json.JSONDecodeError, TypeError):
                 pass
 
-    # Test the code
-    service = CodeExecutionService()
-    # Set user context for async task (no user context in celery tasks)
-    service.set_user_context(f"task_{variation_index}")
-    result = service.test_solution(code, problem.function_name, test_cases)
+    # Test the code using shared Docker service (no cleanup needed)
+    with SharedDockerServiceContext() as service:
+        # Set user context for async task (no user context in celery tasks)
+        service.set_user_context(f"task_{variation_index}")
+        result = service.test_solution(code, problem.function_name, test_cases)
 
     testsPassed = result.get('testsPassed', 0)
     totalTests = result.get('totalTests', 0)

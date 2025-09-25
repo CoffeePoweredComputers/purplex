@@ -417,15 +417,15 @@ class AdminProblemService:
         return ProblemRepository.update_problem(instance, **validated_data)
     
     @staticmethod
-    def get_categories_by_ids(category_ids: List[int]) -> List[Dict[str, Any]]:
+    def get_categories_by_ids(category_ids: List[int]) -> List['ProblemCategory']:
         """
         Get categories by their IDs.
-        
+
         Args:
             category_ids: List of category IDs
-            
+
         Returns:
-            List of category dictionaries
+            List of ProblemCategory model instances
         """
         return ProblemCategoryRepository.get_categories_by_ids(category_ids)
     

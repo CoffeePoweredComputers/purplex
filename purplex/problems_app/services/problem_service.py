@@ -1,7 +1,5 @@
 """Service for managing problems with proper abstraction."""
 from typing import List, Optional, Dict, Any, TYPE_CHECKING
-from django.contrib.auth.models import User
-from django.db.models import QuerySet
 
 from ..repositories import ProblemRepository
 
@@ -112,17 +110,17 @@ class ProblemService:
         return ProblemRepository.get_problem_with_test_cases(slug)
     
     @staticmethod
-    def get_user_created_problems(user: User) -> List['Problem']:
+    def get_user_created_problems(user_id: int) -> List['Problem']:
         """
         Get all problems created by a specific user.
-        
+
         Args:
-            user: The user who created the problems
-            
+            user_id: The ID of the user who created the problems
+
         Returns:
             List of Problem instances created by the user
         """
-        return ProblemRepository.get_user_created_problems(user)
+        return ProblemRepository.get_user_created_problems(user_id)
     
     @staticmethod
     def count_problems_by_difficulty() -> Dict[int, int]:

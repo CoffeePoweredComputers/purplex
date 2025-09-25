@@ -117,29 +117,17 @@ class ProblemCategoryRepository(BaseRepository):
         return updated > 0
     
     @classmethod
-    def get_categories_by_ids(cls, category_ids: List[int]) -> List[Dict[str, Any]]:
+    def get_categories_by_ids(cls, category_ids: List[int]) -> List[ProblemCategory]:
         """
         Get categories by their IDs.
-        
+
         Args:
             category_ids: List of category IDs
-            
+
         Returns:
-            List of category dictionaries
+            List of ProblemCategory model instances
         """
-        categories = ProblemCategory.objects.filter(id__in=category_ids)
-        return [
-            {
-                'id': cat.id,
-                'name': cat.name,
-                'slug': cat.slug,
-                'description': cat.description,
-                'icon': cat.icon,
-                'color': cat.color,
-                'order': cat.order
-            }
-            for cat in categories
-        ]
+        return list(ProblemCategory.objects.filter(id__in=category_ids))
     
     @classmethod
     def delete_category(cls, category_id: int) -> bool:

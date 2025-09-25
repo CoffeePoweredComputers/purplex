@@ -1,6 +1,7 @@
 """Services package for business logic."""
 
 from .docker_execution_service import DockerExecutionService
+from .docker_service_factory import get_shared_docker_service, cleanup_shared_service, SharedDockerServiceContext
 # Alias for backwards compatibility
 CodeExecutionService = DockerExecutionService
 from .ai_generation_service import AITestGenerationService
@@ -15,8 +16,10 @@ from .admin_service import AdminProblemService
 from .course_service import CourseService
 
 __all__ = [
-    'CodeExecutionService', 
-    'AITestGenerationService', 
+    'CodeExecutionService',
+    'get_shared_docker_service',
+    'cleanup_shared_service',
+    'AITestGenerationService',
     'SegmentationService',
     'ProblemValidationService',
     'SubmissionValidationService',

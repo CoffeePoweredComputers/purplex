@@ -576,15 +576,24 @@ export default defineComponent({
             `"${this.formatComprehensionLevel(submission.comprehension_level)}"`,
             submission.is_correct || false,
             `"${submission.status}"`,
+            `"${submission.submission_type || 'code'}"`,
             `"${new Date(submission.submitted_at).toLocaleString()}"`,
             submission.total_variations || 0,
             submission.passing_variations || 0,
             submission.total_variations ? Math.round((submission.passing_variations || 0) / submission.total_variations * 100) : 0,
+            this.getBestVariationScore(submission),
+            this.getWorstVariationScore(submission),
+            submission.execution_time || 0,
+            submission.memory_used_mb || 'N/A',
+            `"${submission.time_spent || 'N/A'}"`,
+            submission.segmentation?.confidence_score ? Math.round(submission.segmentation.confidence_score * 100) : 'N/A',
+            `"${(submission.segmentation?.feedback_message || 'N/A').replace(/"/g, '""')}"`,
+            submission.segmentation?.segment_count || submission.segmentation?.segments?.length || 'N/A',
+            submission.segmentation?.suggested_improvements?.length || 0,
+            `"${(submission.raw_input || submission.prompt || '').replace(/"/g, '""')}"`,
             `"${this.formatCodeVariationsForCSV(submission.code_variations)}"`,
             `"${this.formatTestResultsForCSV(submission.test_results)}"`,
-            submission.execution_time || 0,
-            `"${submission.time_spent || 'N/A'}"`,
-            `"${(submission.prompt || '').replace(/"/g, '""')}"`
+            `"${this.formatSegmentationForCSV(submission.segmentation)}"`
           ].join(','))
         ].join('\n');
         
@@ -637,7 +646,7 @@ export default defineComponent({
           status: fullSubmission.status,
           submitted_at: fullSubmission.submitted_at,
           prompt: fullSubmission.prompt || null,
-          
+
           // New submission fields
           code_variations: fullSubmission.code_variations || [],
           test_results: fullSubmission.test_results || [],
@@ -645,9 +654,17 @@ export default defineComponent({
           total_variations: fullSubmission.total_variations || 0,
           execution_time: fullSubmission.execution_time || null,
           time_spent: fullSubmission.time_spent || null,
-          
+
+          // Segmentation analysis
+          segmentation: fullSubmission.segmentation || null,
+          comprehension_level: fullSubmission.comprehension_level || null,
+
+          // Hint activations
+          hints_activated: fullSubmission.hints_activated || [],
+          hint_details: fullSubmission.hint_details || [],
+
           // Computed fields for convenience
-          success_rate: fullSubmission.total_variations ? 
+          success_rate: fullSubmission.total_variations ?
             Math.round((fullSubmission.passing_variations || 0) / fullSubmission.total_variations * 100) : 0
         }, null, 2);
         
@@ -683,7 +700,7 @@ export default defineComponent({
     
     formatTestResultsForCSV(testResults: any): string {
       if (!testResults || !Array.isArray(testResults)) {return '[]';}
-      
+
       // Return as pretty-printed JSON string for easy analysis
       try {
         return JSON.stringify(testResults, null, 2).replace(/"/g, '""');
@@ -691,6 +708,50 @@ export default defineComponent({
         log.error('Error formatting test results', { error });
         return '[]';
       }
+    },
+
+    formatSegmentationForCSV(segmentation: any): string {
+      if (!segmentation) {return 'N/A';}
+
+      try {
+        // Create a clean segmentation object without overwhelming detail
+        const cleanSegmentation = {
+          comprehension_level: segmentation.comprehension_level,
+          confidence_score: segmentation.confidence_score,
+          segment_count: segmentation.segment_count || segmentation.segments?.length,
+          has_feedback: !!segmentation.feedback_message,
+          improvements_count: segmentation.suggested_improvements?.length || 0,
+          segments: segmentation.segments || []
+        };
+        return JSON.stringify(cleanSegmentation, null, 2).replace(/"/g, '""');
+      } catch (error) {
+        log.error('Error formatting segmentation data', { error });
+        return 'Error';
+      }
+    },
+
+    getBestVariationScore(submission: any): number | string {
+      if (!submission.code_variations || !Array.isArray(submission.code_variations)) {
+        return 'N/A';
+      }
+
+      const scores = submission.code_variations
+        .map(cv => cv.tests_passed && cv.tests_total ? Math.round((cv.tests_passed / cv.tests_total) * 100) : 0)
+        .filter(score => score !== undefined);
+
+      return scores.length > 0 ? Math.max(...scores) : 'N/A';
+    },
+
+    getWorstVariationScore(submission: any): number | string {
+      if (!submission.code_variations || !Array.isArray(submission.code_variations)) {
+        return 'N/A';
+      }
+
+      const scores = submission.code_variations
+        .map(cv => cv.tests_passed && cv.tests_total ? Math.round((cv.tests_passed / cv.tests_total) * 100) : 0)
+        .filter(score => score !== undefined);
+
+      return scores.length > 0 ? Math.min(...scores) : 'N/A';
     }
   }
 })

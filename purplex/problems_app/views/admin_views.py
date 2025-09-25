@@ -19,7 +19,7 @@ from ..serializers import (
 from ..services.docker_execution_service import DockerExecutionService as CodeExecutionService
 from ..services.admin_service import AdminProblemService
 from purplex.users_app.permissions import IsAdmin
-from purplex.submissions.models import Submission
+from purplex.submissions.repositories import SubmissionRepository
 from purplex.submissions.services import SubmissionService
 
 logger = logging.getLogger(__name__)
@@ -157,17 +157,17 @@ class AdminTestProblemView(APIView):
                 'error': 'At least one test case is required for testing',
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Test the reference solution with error handling
+        # Test the reference solution with error handling and proper resource cleanup
         try:
-            code_service = CodeExecutionService()
-            # Set user context for rate limiting
-            code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
-            result = code_service.test_solution(
-                problem_data['reference_solution'],
-                problem_data['function_name'],
-                problem_data.get('test_cases', [])
-            )
-            return Response(result)
+            with CodeExecutionService() as code_service:
+                # Set user context for rate limiting
+                code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
+                result = code_service.test_solution(
+                    problem_data['reference_solution'],
+                    problem_data['function_name'],
+                    problem_data.get('test_cases', [])
+                )
+                return Response(result)
         except Exception as e:
             logger.error(f"Reference solution testing failed: {str(e)}")
             return Response({
@@ -413,41 +413,22 @@ class AdminSubmissionListView(APIView):
 
     def get(self, request):
         # Get query parameters
-        page = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 25)
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 25))
         search = request.query_params.get('search', '')
         submission_type = request.query_params.get('type', '')
         status_filter = request.query_params.get('status', '')
 
-        # Build queryset
-        queryset = Submission.objects.select_related(
-            'user', 'problem', 'problem_set', 'course'
-        ).prefetch_related(
-            'test_executions', 'code_variations', 'segmentation'
+        # Get paginated submissions using repository
+        paginated_data = SubmissionRepository.get_paginated_submissions(
+            page=page,
+            page_size=page_size,
+            search=search,
+            submission_type=submission_type if submission_type else None,
+            status_filter=status_filter if status_filter else None
         )
 
-        # Apply filters
-        if search:
-            queryset = queryset.filter(
-                Q(user__username__icontains=search) |
-                Q(user__email__icontains=search) |
-                Q(problem__title__icontains=search) |
-                Q(submission_id__icontains=search)
-            )
-
-        if submission_type:
-            queryset = queryset.filter(submission_type=submission_type)
-
-        if status_filter:
-            queryset = queryset.filter(completion_status=status_filter)
-
-        # Order by most recent
-        queryset = queryset.order_by('-submitted_at')
-
-        # Paginate
-        paginator = PageNumberPagination()
-        paginator.page_size = int(page_size)
-        paginated_submissions = paginator.paginate_queryset(queryset, request)
+        paginated_submissions = paginated_data['submissions']
 
         # Serialize data
         submissions_data = []
@@ -471,7 +452,15 @@ class AdminSubmissionListView(APIView):
                 'memory_used_mb': submission.memory_used_mb
             })
 
-        return paginator.get_paginated_response(submissions_data)
+        # Build response with pagination metadata
+        return Response({
+            'results': submissions_data,
+            'count': paginated_data['total_count'],
+            'next': f"?page={page + 1}" if paginated_data['has_next'] else None,
+            'previous': f"?page={page - 1}" if paginated_data['has_previous'] else None,
+            'total_pages': paginated_data['total_pages'],
+            'current_page': paginated_data['current_page']
+        })
 
     def post(self, request):
         """Export submissions data."""
@@ -479,23 +468,12 @@ class AdminSubmissionListView(APIView):
         filters = request.data.get('filters', {})
         format_type = request.data.get('format', 'json')
 
-        queryset = Submission.objects.select_related(
-            'user', 'problem', 'problem_set', 'course'
-        )
-
-        # Apply filters
-        if filters.get('start_date'):
-            queryset = queryset.filter(submitted_at__gte=filters['start_date'])
-        if filters.get('end_date'):
-            queryset = queryset.filter(submitted_at__lte=filters['end_date'])
-        if filters.get('course_id'):
-            queryset = queryset.filter(course__course_id=filters['course_id'])
-        if filters.get('problem_set_slug'):
-            queryset = queryset.filter(problem_set__slug=filters['problem_set_slug'])
+        # Get submissions using repository
+        submissions = SubmissionRepository.export_submissions(filters)
 
         # Prepare export data
         export_data = []
-        for submission in queryset:
+        for submission in submissions:
             export_data.append({
                 'submission_id': str(submission.submission_id),
                 'user': submission.user.username,
@@ -538,16 +516,17 @@ class AdminSubmissionDetailView(APIView):
             # Get submission details using service
             submission_data = SubmissionService.get_submission_details(submission_id)
             return Response(submission_data)
-        except Submission.DoesNotExist:
-            return Response(
-                {'error': 'Submission not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
         except Exception as e:
-            logger.error(f"Error fetching submission details: {str(e)}")
-            return Response(
-                {'error': 'Failed to fetch submission details'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            if "DoesNotExist" in str(type(e).__name__):
+                return Response(
+                    {'error': 'Submission not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            else:
+                logger.error(f"Error fetching submission details: {str(e)}")
+                return Response(
+                    {'error': 'Failed to fetch submission details'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
 

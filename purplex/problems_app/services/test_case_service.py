@@ -1,6 +1,5 @@
 """Service for managing test cases with proper abstraction."""
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
-from django.contrib.auth.models import User
 
 from ..repositories import TestCaseRepository
 

@@ -357,7 +357,7 @@ class SubmissionService:
         ).prefetch_related(
             'test_executions__test_case',
             'hint_activations__hint',
-            'code_variations',
+            'code_variations__test_executions__test_case',  # Prefetch per-variation test results
             'feedback',
             'segmentation'
         ).get(submission_id=submission_id)
@@ -433,17 +433,38 @@ class SubmissionService:
 
         # Add code variations for EiPL
         if submission.submission_type == 'eipl':
-            details['code_variations'] = [
-                {
+            details['code_variations'] = []
+            for cv in submission.code_variations.all():
+                # Get test results for this specific variation
+                variation_test_results = [
+                    {
+                        'test_case_id': te.test_case.id,
+                        'description': te.test_case.description,
+                        'passed': te.passed,
+                        'isSuccessful': te.passed,  # For frontend compatibility
+                        'inputs': te.input_values,
+                        'expected': te.expected_output,
+                        'expected_output': te.expected_output,  # For frontend compatibility
+                        'actual': te.actual_output,
+                        'actual_output': te.actual_output,  # For frontend compatibility
+                        'error_type': te.error_type,
+                        'error_message': te.error_message,
+                        'error': te.error_message,  # For frontend compatibility
+                        'execution_time_ms': te.execution_time_ms,
+                        'is_hidden': te.test_case.is_hidden
+                    }
+                    for te in cv.test_executions.all()
+                ]
+
+                details['code_variations'].append({
                     'index': cv.variation_index,
                     'score': cv.score,
                     'tests_passed': cv.tests_passed,
                     'tests_total': cv.tests_total,
                     'is_selected': cv.is_selected,
-                    'code': cv.generated_code if cv.is_selected else None  # Only include selected code
-                }
-                for cv in submission.code_variations.all()
-            ]
+                    'code': cv.generated_code,
+                    'test_results': variation_test_results  # Add per-variation test results
+                })
 
         # Add feedback
         details['feedback'] = [

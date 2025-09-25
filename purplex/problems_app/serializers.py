@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Problem, ProblemSet, ProblemCategory, TestCase, ProblemSetMembership, Course, CourseProblemSet, CourseEnrollment
 from .repositories.problem_category_repository import ProblemCategoryRepository
+from .services.admin_service import AdminProblemService
 
 class ProblemCategorySerializer(serializers.ModelSerializer):
     problems_count = serializers.ReadOnlyField()

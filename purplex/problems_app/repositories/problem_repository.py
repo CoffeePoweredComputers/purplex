@@ -243,20 +243,20 @@ class ProblemRepository(BaseRepository):
         return ProblemCategory.objects.filter(name__iexact=name).first()
     
     @classmethod
-    def get_user_created_problems(cls, user: User) -> List[Problem]:
+    def get_user_created_problems(cls, user_id: int) -> List[Problem]:
         """Get all problems created by a specific user."""
         return list(
             Problem.objects.filter(
-                created_by=user
+                created_by_id=user_id
             ).prefetch_related('categories').order_by('-created_at')
         )
     
     @classmethod
-    def get_user_created_problem_sets(cls, user: User) -> List[ProblemSet]:
+    def get_user_created_problem_sets(cls, user_id: int) -> List[ProblemSet]:
         """Get all problem sets created by a specific user."""
         return list(
             ProblemSet.objects.filter(
-                created_by=user
+                created_by_id=user_id
             ).annotate(
                 problem_count=Count('problemsetmembership')
             ).order_by('-created_at')

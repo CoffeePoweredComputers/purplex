@@ -26,9 +26,10 @@ class ProgressService:
     """Service for managing user progress with proper locking and caching."""
     
     @staticmethod
+    @transaction.atomic
     def update_user_progress(
-        user_id: int, 
-        problem_id: int, 
+        user_id: int,
+        problem_id: int,
         submission: 'Submission',
         problem_set_id: Optional[int] = None,
         course_id: Optional[int] = None
@@ -409,6 +410,7 @@ class ProgressService:
         return course_data
     
     @staticmethod
+    @transaction.atomic
     def _update_problem_set_progress(
         user_id: int,
         problem_set_id: int,
