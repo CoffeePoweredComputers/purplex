@@ -300,20 +300,22 @@ class ProgressService:
     def get_user_progress_for_problem(
         user: 'User',
         problem: 'Problem',
-        course: Optional['Course'] = None
+        course: Optional['Course'] = None,
+        problem_set: Optional['ProblemSet'] = None
     ) -> 'UserProgress':
         """
         Get user's progress for a specific problem.
-        
+
         Args:
             user: The user
             problem: The problem
             course: Optional course context
-            
+            problem_set: Optional problem set context
+
         Returns:
             UserProgress instance or None
         """
-        return ProgressRepository.get_user_progress(user, problem, course)
+        return ProgressRepository.get_user_progress(user, problem, course, problem_set)
     
     @staticmethod
     def get_user_all_progress(
@@ -653,10 +655,12 @@ class ProgressService:
             problems_with_progress = []
             for membership in ProblemSetMembershipRepository.get_problem_set_memberships(problem_set):
                 problem = membership.problem
+                # Query for user progress without problem_set constraint to find progress
+                # from any context (problem might have been submitted from different problem sets)
                 user_progress = ProgressRepository.get_user_progress(
-                    user, problem, course
+                    user, problem, course, None  # Don't filter by problem_set
                 )
-                
+
                 # Get last submission to include segmentation_passed
                 last_submission = None
                 segmentation_passed = None
@@ -669,7 +673,7 @@ class ProgressService:
                         course=course
                     ).order_by('-submitted_at').first()
                     if last_submission and hasattr(last_submission, 'segmentation'):
-                        segmentation_passed = last_submission.segmentation.is_good_comprehension if last_submission.segmentation else None
+                        segmentation_passed = last_submission.segmentation.passed if last_submission.segmentation else None
 
                 problems_with_progress.append({
                     'problem': problem,
@@ -853,7 +857,7 @@ class ProgressService:
                 'segment_count': seg.segment_count,
                 'comprehension_level': seg.comprehension_level,
                 'feedback': seg.feedback_message,
-                'passed': seg.is_good_comprehension
+                'passed': seg.passed
             }
         return None
 
@@ -883,5 +887,5 @@ class ProgressService:
     def _check_segmentation_passed(submission):
         """Check if segmentation passed (good comprehension)."""
         if hasattr(submission, 'segmentation'):
-            return submission.segmentation.is_good_comprehension
+            return submission.segmentation.passed
         return None

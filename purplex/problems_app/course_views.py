@@ -425,15 +425,15 @@ class AdminCourseProblemSetsView(APIView):
         response_data = []
         for cps in course_problem_sets:
             response_data.append({
-                'id': cps.id,
+                'id': cps['course_problem_set_id'],
                 'problem_set': {
-                    'slug': cps.problem_set.slug,
-                    'title': cps.problem_set.title,
-                    'problems_count': cps.problem_set.problems.count()
+                    'slug': cps['problem_set']['slug'],
+                    'title': cps['problem_set']['title'],
+                    'problems_count': cps['problem_set']['problems_count']
                 },
-                'order': cps.order,
-                'is_required': cps.is_required,
-                'added_at': cps.added_at
+                'order': cps['order'],
+                'is_required': cps['is_required'],
+                'added_at': cps.get('added_at')  # This might not be in the dict
             })
         
         return Response(response_data)
@@ -545,10 +545,10 @@ class AdminAvailableProblemSetsView(APIView):
         response_data = []
         for ps in available_problem_sets:
             response_data.append({
-                'slug': ps.slug,
-                'title': ps.title,
-                'problems_count': ps.problems.count(),
-                'description': ps.description
+                'slug': ps['slug'],
+                'title': ps['title'],
+                'problems_count': ps['problems_count'],
+                'description': ps['description']
             })
         
         return Response(response_data)

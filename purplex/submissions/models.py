@@ -266,6 +266,13 @@ class SegmentationAnalysis(models.Model):
         help_text="Specific suggestions for improvement"
     )
 
+    # Pass/fail status based on threshold
+    passed = models.BooleanField(
+        default=False,
+        help_text="Whether segmentation meets the threshold (segment_count <= threshold)",
+        db_index=True
+    )
+
     class Meta:
         indexes = [
             models.Index(fields=['comprehension_level', 'segment_count']),
@@ -276,8 +283,9 @@ class SegmentationAnalysis(models.Model):
 
     @property
     def is_good_comprehension(self):
-        """Check if this represents good (relational) comprehension"""
-        return self.comprehension_level == 'relational'
+        """DEPRECATED: Use 'passed' field instead. Kept for backward compatibility."""
+        # Return the actual passed field, not the comprehension_level check
+        return self.passed
 
 
 class SubmissionFeedback(models.Model):

@@ -485,6 +485,12 @@ export default {
     },
     
     async mounted() {
+        console.log('=== ProblemSet Component Mounted ===');
+        console.log('Route params:', this.$route.params);
+        console.log('CourseId prop:', this.courseId);
+        console.log('Route name:', this.$route.name);
+        console.log('Full route:', this.$route);
+
         await this.loadProblemSet();
         if (this.problems.length > 0) {
             await this.loadProblemData();
@@ -1110,19 +1116,42 @@ export default {
                         const problemIndex = this.problems.findIndex(p => p.slug === currentProblemSlug);
                         const problemIdentifier = problemIndex >= 0 ? `Problem ${problemIndex + 1}` : 'Submission';
 
-                        // Create detailed success message with problem identifier
+                        // Create detailed message with problem identifier
                         let message = `${problemIdentifier}: `;
+                        let notificationType = 'info';
 
                         // Add high-level/low-level status if segmentation is enabled for this problem
                         if (submittedProblem?.problem_type === 'eipl' && submittedProblem?.segmentation_enabled && segmentation) {
-                            // Report both low-level (variations) and high-level (segmentation)
-                            const highLevelMark = segmentationPassed === true ? '✓' : '✗';
-                            message += `Low: ${perfectVariations}/${variations.length}, High: ${highLevelMark}`;
+                            // Report both variations (low-level) and segmentation (high-level)
+                            const segmentCount = segmentation.segment_count || 0;
+                            const threshold = submittedProblem.segmentation_config?.threshold || 2;
+                            const highLevelText = segmentationPassed ? `✓ High-level (${segmentCount} segments)` : `✗ High-level (${segmentCount} segments, need ≤${threshold})`;
+                            message += `Variations: ${perfectVariations}/${variations.length} passing, ${highLevelText}`;
+
+                            // Determine notification type based on results
+                            if (perfectVariations === variations.length && segmentationPassed) {
+                                notificationType = 'success';  // Green - complete
+                            } else {
+                                notificationType = 'warning';  // Yellow - incomplete/partial
+                            }
                         } else {
                             // Just report variations if segmentation is not enabled
-                            message += `${perfectVariations}/${variations.length} correct`;
+                            message += `Variations: ${perfectVariations}/${variations.length} passing`;
+
+                            // Determine notification type
+                            if (perfectVariations === variations.length) {
+                                notificationType = 'success';  // Green - all tests pass
+                            } else {
+                                notificationType = 'warning';  // Yellow - some tests fail
+                            }
                         }
-                        this.notify.success(message);
+
+                        // Show notification with appropriate type
+                        if (notificationType === 'success') {
+                            this.notify.success(message);
+                        } else {
+                            this.notify.warning(message);
+                        }
                         this.removeFromSubmitting(currentProblemSlug);
                         this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
 
@@ -1710,9 +1739,9 @@ export default {
 }
 
 .progress-bar {
-    width: 40px;
-    height: 6px;
-    border-radius: 3px;
+    width: 50px;
+    height: 8px;
+    border-radius: 4px;
     background: var(--color-bg-hover);
     cursor: pointer;
     transition: background 0.2s ease, box-shadow 0.2s ease;
@@ -1721,11 +1750,12 @@ export default {
 
 /* Status styles */
 .progress-bar.not_started {
-    background: var(--color-bg-hover);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .progress-bar.in_progress {
-    background: var(--color-warning);
+    background: var(--color-warning);  /* Yellow for incomplete/partial */
 }
 
 .progress-bar.completed {
@@ -1734,17 +1764,58 @@ export default {
 
 .progress-bar.submitting {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    animation: submittingPulse 1.5s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
 }
 
-@keyframes submittingPulse {
+/* Ripple Wave Animation */
+.progress-bar.submitting::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    );
+    animation: rippleWave 1.5s linear infinite;
+}
+
+.progress-bar.submitting::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 200%;
+    background: radial-gradient(circle,
+        rgba(255, 255, 255, 0.3) 0%,
+        transparent 70%
+    );
+    transform: translate(-50%, -50%) scale(0);
+    animation: pulseCenter 2s ease-in-out infinite;
+}
+
+@keyframes rippleWave {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 200%;
+    }
+}
+
+@keyframes pulseCenter {
     0%, 100% {
-        opacity: 1;
-        transform: scale(1);
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
     }
     50% {
-        opacity: 0.8;
-        transform: scale(1.05);
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
     }
 }
 
@@ -1754,11 +1825,12 @@ export default {
 }
 
 .progress-bar.active.not_started {
-    background: linear-gradient(90deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .progress-bar.active.in_progress {
-    background: var(--color-warning);
+    background: var(--color-warning);  /* Yellow for incomplete/partial */
     box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-warning);
 }
 
@@ -1774,8 +1846,7 @@ export default {
 /* Hover effects */
 .progress-bar:hover {
     opacity: 0.8;
-    transform: translateY(-1px);
-    transition: all 0.2s ease;
+    transition: opacity 0.2s ease;
 }
 
 /* Main Workspace */

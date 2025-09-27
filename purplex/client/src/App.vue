@@ -24,6 +24,22 @@
     <router-view />
   </div>
   <NotificationToast />
+  <footer class="app-footer">
+    <div class="footer-content">
+      <div class="footer-left">
+        <span class="copyright">© 2025 Purplex. All rights reserved.</span>
+      </div>
+      <div class="footer-right">
+        <span class="sponsor">Sponsored by</span>
+        <img
+          class="meta-logo"
+          src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/2560px-Meta_Platforms_Inc._logo.svg.png"
+          alt="Meta"
+          height="20"
+        >
+      </div>
+    </div>
+  </footer>
 </template>
 
 <script lang="ts">
@@ -320,5 +336,78 @@ export default defineComponent({
     padding: var(--spacing-md);
     border-radius: var(--radius-xs);
     background-color: var(--color-error-bg);
+}
+
+/* Footer Styles */
+.app-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--color-bg-header);
+    border-top: 1px solid var(--color-bg-border);
+    padding: var(--spacing-md) var(--spacing-xl);
+    z-index: 100;
+}
+
+.footer-content {
+    max-width: var(--max-width-app);
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.footer-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.footer-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.copyright {
+    opacity: 0.8;
+}
+
+.sponsor {
+    opacity: 0.8;
+    margin-right: 8px;
+}
+
+.meta-logo {
+    vertical-align: middle;
+    filter: brightness(0) invert(0.7);  /* Makes the logo lighter for dark theme */
+    opacity: 0.8;
+    transition: all 0.2s;
+}
+
+.meta-logo:hover {
+    opacity: 1;
+    filter: brightness(0) invert(0.9);  /* Even lighter on hover */
+}
+
+/* Add padding to body to account for fixed footer */
+body {
+    padding-bottom: 60px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .footer-content {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        text-align: center;
+    }
+
+    .app-footer {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
 }
 </style>

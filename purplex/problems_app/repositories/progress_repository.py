@@ -26,16 +26,18 @@ class ProgressRepository(BaseRepository):
     model_class = UserProgress
     
     @classmethod
-    def get_user_progress(cls, user: User, problem: Problem, 
-                         course: Optional[Course] = None) -> Optional[UserProgress]:
+    def get_user_progress(cls, user: User, problem: Problem,
+                         course: Optional[Course] = None,
+                         problem_set: Optional[ProblemSet] = None) -> Optional[UserProgress]:
         """
         Get a user's progress for a specific problem.
-        
+
         Args:
             user: The user
             problem: The problem
             course: Optional course context
-            
+            problem_set: Optional problem set context
+
         Returns:
             UserProgress instance or None
         """
@@ -45,7 +47,9 @@ class ProgressRepository(BaseRepository):
         }
         if course:
             filters['course'] = course
-        
+        if problem_set:
+            filters['problem_set'] = problem_set
+
         return UserProgress.objects.filter(**filters).first()
     
     @classmethod
@@ -117,9 +121,10 @@ class ProgressRepository(BaseRepository):
     
     @classmethod
     def get_user_attempts(cls, user: User, problem: Problem,
-                        course: Optional[Course] = None) -> int:
+                        course: Optional[Course] = None,
+                        problem_set: Optional[ProblemSet] = None) -> int:
         """Get the number of attempts a user has made on a problem."""
-        progress = cls.get_user_progress(user, problem, course)
+        progress = cls.get_user_progress(user, problem, course, problem_set)
         return progress.attempts if progress else 0
     
     @classmethod

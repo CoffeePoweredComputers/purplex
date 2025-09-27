@@ -323,6 +323,15 @@ class SubmissionService:
         Returns:
             Created SegmentationAnalysis instance
         """
+        # Calculate passed status based on threshold
+        # Get threshold from submission's problem config or use default
+        threshold = 2  # Default threshold
+        if submission.problem and hasattr(submission.problem, 'segmentation_config'):
+            threshold = submission.problem.segmentation_config.get('threshold', 2)
+
+        # Use passed from segmentation_data if available, otherwise calculate
+        passed = segmentation_data.get('passed', segmentation_data['segment_count'] <= threshold)
+
         analysis = SegmentationAnalysis.objects.create(
             submission=submission,
             segment_count=segmentation_data['segment_count'],
@@ -333,7 +342,8 @@ class SubmissionService:
             processing_time_ms=segmentation_data.get('processing_time_ms', 0),
             model_used=segmentation_data.get('model', 'gpt-5'),
             feedback_message=segmentation_data.get('feedback', ''),
-            suggested_improvements=segmentation_data.get('improvements', [])
+            suggested_improvements=segmentation_data.get('improvements', []),
+            passed=passed
         )
 
         # Update submission's comprehension level

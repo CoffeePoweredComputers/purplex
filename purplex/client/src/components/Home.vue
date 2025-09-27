@@ -408,7 +408,7 @@ export default defineComponent({
 
 .add-course-btn.floating {
   position: fixed;
-  bottom: var(--spacing-xl);
+  bottom: calc(60px + var(--spacing-xl)); /* Account for footer height */
   right: var(--spacing-xl);
   width: 56px;
   height: 56px;
