@@ -480,7 +480,7 @@ export default defineComponent({
     },
 
     comprehensionLevelClass(level: string): string {
-      if (!level) return 'comprehension-not-evaluated';
+      if (!level) {return 'comprehension-not-evaluated';}
 
       switch(level.toLowerCase()) {
         case 'high-level':
@@ -497,7 +497,7 @@ export default defineComponent({
     },
 
     formatComprehensionLevel(level: string): string {
-      if (!level) return 'Not Evaluated';
+      if (!level) {return 'Not Evaluated';}
 
       switch(level.toLowerCase()) {
         case 'high-level':
@@ -558,11 +558,16 @@ export default defineComponent({
           'Total Variations',
           'Passing Variations',
           'Success Rate (%)',
+          'Hints Activated Count',
+          'Hint Types Used',
+          'First Hint Time',
+          'Last Hint Time',
           'Code Variations',
           'Test Results',
           'Execution Time (s)',
           'Time Spent',
-          'Prompt'
+          'Prompt',
+          'Hint Details'
         ];
         
         const csvContent = [
@@ -576,24 +581,20 @@ export default defineComponent({
             `"${this.formatComprehensionLevel(submission.comprehension_level)}"`,
             submission.is_correct || false,
             `"${submission.status}"`,
-            `"${submission.submission_type || 'code'}"`,
             `"${new Date(submission.submitted_at).toLocaleString()}"`,
             submission.total_variations || 0,
             submission.passing_variations || 0,
             submission.total_variations ? Math.round((submission.passing_variations || 0) / submission.total_variations * 100) : 0,
-            this.getBestVariationScore(submission),
-            this.getWorstVariationScore(submission),
-            submission.execution_time || 0,
-            submission.memory_used_mb || 'N/A',
-            `"${submission.time_spent || 'N/A'}"`,
-            submission.segmentation?.confidence_score ? Math.round(submission.segmentation.confidence_score * 100) : 'N/A',
-            `"${(submission.segmentation?.feedback_message || 'N/A').replace(/"/g, '""')}"`,
-            submission.segmentation?.segment_count || submission.segmentation?.segments?.length || 'N/A',
-            submission.segmentation?.suggested_improvements?.length || 0,
-            `"${(submission.raw_input || submission.prompt || '').replace(/"/g, '""')}"`,
+            submission.hints_activated_count || 0,
+            `"${submission.hint_types_used || ''}"`,
+            submission.first_hint_time ? `"${new Date(submission.first_hint_time).toLocaleString()}"` : '',
+            submission.last_hint_time ? `"${new Date(submission.last_hint_time).toLocaleString()}"` : '',
             `"${this.formatCodeVariationsForCSV(submission.code_variations)}"`,
             `"${this.formatTestResultsForCSV(submission.test_results)}"`,
-            `"${this.formatSegmentationForCSV(submission.segmentation)}"`
+            submission.execution_time || 0,
+            submission.memory_used_mb || 'N/A',
+            `"${(submission.raw_input || submission.prompt || '').replace(/"/g, '""')}"`,
+            `"${(submission.hint_details || '').replace(/"/g, '""')}"`
           ].join(','))
         ].join('\n');
         

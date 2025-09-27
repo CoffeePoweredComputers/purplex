@@ -39,7 +39,7 @@
           <div class="problem-progress">
             <div
               v-for="(problem, index) in problems"
-              :key="problem.slug"
+              :key="`${problem.slug}-${getProblemStatus(problem.slug)}-${index}`"
               :class="['progress-bar',
                        { 'active': index === currentProblem },
                        { 'submitting': isCurrentProblemSubmitting(problem.slug) },
@@ -229,19 +229,21 @@
 
       <!-- Right panel: Feedback -->
       <div class="right-panel">
-        <Feedback 
-          :progress="promptCorrectness" 
-          :notches="6" 
-          :code-results="codeResults" 
+        <Feedback
+          :progress="promptCorrectness"
+          :notches="6"
+          :code-results="codeResults"
           :test-results="testResults"
-          :comprehension-results="comprehensionResults" 
+          :comprehension-results="comprehensionResults"
           :user-prompt="userPrompt"
           :segmentation="segmentationData"
           :reference-code="getCurrentProblem()?.reference_solution || ''"
           :problem-type="getCurrentProblem()?.problem_type || ''"
           :segmentation-enabled="getCurrentProblem()?.segmentation_enabled || false"
           :is-loading="loading"
-          title="Feedback" 
+          :submission-history="submissionHistory"
+          title="Feedback"
+          @load-attempt="loadSpecificAttempt"
         />
       </div>
     </div>
@@ -268,7 +270,7 @@ import { useOptimisticProgress } from '@/composables/useOptimisticProgress'
 import { useHintTracking } from '@/composables/useHintTracking'
 import { useEditorHints } from '@/composables/useEditorHints'
 import { useSSE } from '@/composables/useSSE'
-import submissionService from '@/services/submissionService'
+import { submissionService } from '@/services/submissionService'
 import { computed, ref, watch } from 'vue'
 
 export default {
@@ -384,7 +386,10 @@ export default {
             pyTutorUrl: '',
 
             /* Hint State Storage per Problem */
-            problemHintStates: {}
+            problemHintStates: {},
+
+            /* Submission History */
+            submissionHistory: []
         };
     },
     
@@ -412,15 +417,24 @@ export default {
         },
         
         completedCount() {
-            return Object.values(this.problemStatuses).filter(s => s.status === 'completed').length;
+            const count = Object.values(this.problemStatuses).filter(s => s && s.status === 'completed').length;
+            console.log('completedCount computed:', count, 'from statuses:', this.problemStatuses);
+            return count;
         },
-        
+
         inProgressCount() {
-            return Object.values(this.problemStatuses).filter(s => s.status === 'in_progress').length;
+            const count = Object.values(this.problemStatuses).filter(s => s && s.status === 'in_progress').length;
+            console.log('inProgressCount computed:', count, 'from statuses:', this.problemStatuses);
+            return count;
         },
-        
+
         remainingCount() {
-            return this.problems.length - this.completedCount - this.inProgressCount;
+            const totalProblems = this.problems.length;
+            const completed = this.completedCount;
+            const inProgress = this.inProgressCount;
+            const remaining = totalProblems - completed - inProgress;
+            console.log(`remainingCount computed: ${remaining} = ${totalProblems} - ${completed} - ${inProgress}`);
+            return remaining;
         },
         
         currentTheme() {
@@ -535,6 +549,9 @@ export default {
                 // Update loading state for the new current problem
                 this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
 
+                // Load submission history for attempt selector
+                await this.loadSubmissionHistory(problem.slug);
+
                 // Check if this problem is currently submitting
                 if (this.submittingProblems.has(problem.slug)) {
                     // Clear the feedback data to show loading state
@@ -593,6 +610,9 @@ export default {
             }
 
             try {
+                // Load submission history for attempt selector
+                await this.loadSubmissionHistory(problem.slug);
+
                 // Only load last submission if NOT actively submitting
                 const submissionData = await this.loadSubmissionData(problem.slug);
 
@@ -695,7 +715,147 @@ export default {
             this.segmentationData = null;
             // Note: We don't clear promptEditorValue here as it may contain draft text
         },
-        
+
+        async loadSubmissionHistory(problemSlug) {
+            console.log('loadSubmissionHistory called for:', problemSlug);
+            try {
+                const historyResponse = await submissionService.getSubmissionHistory(
+                    problemSlug,
+                    this.$route.params.slug, // problem_set_slug
+                    this.courseId,
+                    50 // limit to last 50 attempts
+                );
+
+                console.log('Submission history response:', historyResponse);
+                this.submissionHistory = historyResponse.submissions || [];
+                this.logger.info('Loaded submission history', {
+                    problemSlug,
+                    totalAttempts: historyResponse.total_attempts,
+                    bestScore: historyResponse.best_score,
+                    submissions: this.submissionHistory
+                });
+            } catch (error) {
+                console.error('Error loading submission history:', error);
+                this.logger.error('Error loading submission history', error);
+                this.submissionHistory = [];
+            }
+        },
+
+        async loadSpecificAttempt(attempt) {
+            // Load data from specific attempt
+            this.logger.info('Loading specific attempt', {
+                attemptId: attempt.id,
+                attemptNumber: attempt.attempt_number,
+                score: attempt.score
+            });
+
+            // Apply the attempt data
+            if (attempt.data) {
+                const data = attempt.data;
+
+                // Transform variations into code results
+                if (data.variations && data.variations.length > 0) {
+                    this.codeResults = data.variations.map(v => v.code);
+                } else {
+                    // For non-variation submissions, use processed_code
+                    this.codeResults = [data.processed_code || data.raw_input];
+                }
+
+                // Transform test results into the format expected by Feedback
+                const testResultsPerVariation = [];
+                if (data.variations && data.variations.length > 0) {
+                    // Create test results for each variation
+                    data.variations.forEach(variation => {
+                        // Use test_results from the variation itself
+                        const testResultsArray = variation.test_results || [];
+                        const varTestResults = {
+                            success: variation.passed_all_tests,
+                            testsPassed: variation.tests_passed,
+                            totalTests: variation.total_tests,
+                            results: testResultsArray.map(tr => ({
+                                pass: tr.passed,
+                                isSuccessful: tr.passed,
+                                expected_output: tr.expected,
+                                actual_output: tr.actual !== undefined && tr.actual !== null ? tr.actual : tr.error_message,
+                                error: tr.error_message,
+                                function_call: this.reconstructFunctionCall(tr),
+                                inputs: tr.inputs
+                            }))
+                        };
+                        testResultsPerVariation.push(varTestResults);
+                    });
+                } else if (data.test_results && data.test_results.length > 0) {
+                    // For non-variation submissions, use top-level test_results
+                    const varTestResults = {
+                        success: attempt.passed_all_tests,
+                        testsPassed: attempt.tests_passed,
+                        totalTests: attempt.total_tests,
+                        results: data.test_results.map(tr => ({
+                            pass: tr.passed,
+                            isSuccessful: tr.passed,
+                            expected_output: tr.expected,
+                            actual_output: tr.actual !== undefined && tr.actual !== null ? tr.actual : tr.error_message,
+                            error: tr.error_message,
+                            function_call: this.reconstructFunctionCall(tr),
+                            inputs: tr.inputs
+                        }))
+                    };
+                    testResultsPerVariation.push(varTestResults);
+                }
+
+                this.testResults = testResultsPerVariation;
+                this.promptCorrectness = attempt.score;
+                this.userPrompt = data.raw_input;
+                this.comprehensionResults = '';
+                // Apply segmentation data if present
+                this.segmentationData = attempt.segmentation || null;
+
+                // Update UI to reflect loaded attempt
+                this.logger.info('Applied attempt data to feedback', {
+                    codeResults: this.codeResults.length,
+                    testResults: this.testResults.length,
+                    score: attempt.score
+                });
+            }
+        },
+
+        reconstructFunctionCall(testResult) {
+            // Try to reconstruct function call from test data
+            const problemSlug = this.currentProblemSlug;
+            const problem = this.problems?.find(p => p.slug === problemSlug);
+            const functionName = problem?.function_name || 'foo';
+
+            // Format inputs for display
+            if (testResult.inputs !== undefined && testResult.inputs !== null) {
+                // If inputs is already a string representation, use it
+                if (typeof testResult.inputs === 'string') {
+                    return `${functionName}(${testResult.inputs})`;
+                }
+                // Otherwise format the value
+                const formattedInput = this.formatTestValue(testResult.inputs);
+                return `${functionName}(${formattedInput})`;
+            }
+
+            // Fallback to a generic representation
+            return `${functionName}(...)`;
+        },
+
+        formatTestValue(value) {
+            // Handle different types of values
+            if (value === null) return 'None';
+            if (value === undefined) return 'undefined';
+            if (typeof value === 'string') return `"${value}"`;
+            if (typeof value === 'boolean') return value ? 'True' : 'False';
+            if (typeof value === 'number') return value.toString();
+            if (Array.isArray(value)) {
+                return '[' + value.map(v => this.formatTestValue(v)).join(', ') + ']';
+            }
+            if (typeof value === 'object') {
+                return JSON.stringify(value);
+            }
+            return String(value);
+        },
+
         getCurrentProblem() {
             if (!this.problems || this.problems.length === 0) {
                 return { solution: '', slug: '', name: 'Loading...' };
@@ -762,7 +922,7 @@ export default {
         
         async submit() {
             const currentProblemSlug = this.getCurrentProblem().slug;
-            if (this.submittingProblems.has(currentProblemSlug)) return;
+            if (this.submittingProblems.has(currentProblemSlug)) {return;}
 
             this.addToSubmitting(currentProblemSlug);
             this.loading = true; // Track current problem's loading state for Feedback component
@@ -792,10 +952,26 @@ export default {
                     attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
                 });
 
+                // Get hints that were used for this problem
+                const hintsUsed = this.getHintsUsed(
+                    currentProblemSlug,
+                    this.courseId,
+                    this.$route.params.slug
+                );
+
+                // Transform hint tracking data to match backend expectations
+                // Backend will look up hints by type, not ID
+                const activatedHints = hintsUsed.map((hintType, index) => ({
+                    hint_type: hintType,
+                    trigger_type: 'manual'  // We can enhance this later to track actual trigger
+                    // Note: Do not send hint_id - backend will look up by hint_type
+                }));
+
                 const submissionData = {
                     problem_slug: currentProblemSlug,
                     problem_set_slug: this.$route.params.slug,
-                    user_prompt: promptText
+                    user_prompt: promptText,
+                    activated_hints: activatedHints
                 };
 
                 // Include course_id if we're in a course context
@@ -834,16 +1010,12 @@ export default {
 
                         console.log('Test Results:', testResults);
                         console.log('Sample test result structure:', testResults[0]);
-                        
-                        // Update feedback data
-                        this.codeResults = variations;
-                        this.testResults = testResults;
-                        
+
                         // Calculate test results across all variations
                         let totalTestsPassed = 0;
                         let totalTestsRun = 0;
                         let perfectVariations = 0;
-                        
+
                         testResults.forEach(r => {
                             const passed = r.testsPassed || 0;
                             const total = r.totalTests || 0;
@@ -853,22 +1025,32 @@ export default {
                                 perfectVariations++;
                             }
                         });
-                        
-                        // Store perfect variations count for compatibility
-                        this.promptCorrectness = perfectVariations;
-                        this.userPrompt = promptText;
-                        // Keep promptEditorValue in sync with successful submission
-                        this.promptEditorValue = promptText;
 
-                        // Handle segmentation data from SSE response
-                        this.segmentationData = segmentation || null;
-                        console.log('Segmentation data received from SSE:', {
-                            segmentation,
-                            hasSegmentation: !!segmentation,
-                            currentProblem: this.getCurrentProblem(),
-                            problemType: this.getCurrentProblem()?.problem_type,
-                            segmentationEnabled: this.getCurrentProblem()?.segmentation_enabled
-                        });
+                        // Only update displayed feedback if this submission is for the currently viewed problem
+                        if (currentProblemSlug === this.getCurrentProblem().slug) {
+                            // Update feedback data for display
+                            this.codeResults = variations;
+                            this.testResults = testResults;
+                            this.promptCorrectness = perfectVariations;
+                            this.userPrompt = promptText;
+                            // Keep promptEditorValue in sync with successful submission
+                            this.promptEditorValue = promptText;
+
+                            // Handle segmentation data from SSE response
+                            this.segmentationData = segmentation || null;
+                            console.log('Segmentation data received from SSE:', {
+                                segmentation,
+                                hasSegmentation: !!segmentation,
+                                currentProblem: this.getCurrentProblem(),
+                                problemType: this.getCurrentProblem()?.problem_type,
+                                segmentationEnabled: this.getCurrentProblem()?.segmentation_enabled
+                            });
+                        } else {
+                            this.logger.info('SSE results received for different problem, not updating display', {
+                                submittedProblem: currentProblemSlug,
+                                currentProblem: this.getCurrentProblem().slug
+                            });
+                        }
 
                         // Calculate score based on total tests passed across all variations
                         const score = totalTestsRun > 0
@@ -905,16 +1087,16 @@ export default {
 
                         this.clearOptimistic(currentProblemSlug);
 
-                        // Update cache with new submission data
+                        // Always update cache with new submission data for ALL problems
                         const cacheKey = `${this.$route.params.slug}_${currentProblemSlug}_${this.courseId || 'standalone'}`;
                         this.submissionCache.set(cacheKey, {
                             data: {
                                 has_submission: true,
-                                variations: this.codeResults,
-                                results: this.testResults,
-                                passing_variations: this.promptCorrectness,
-                                user_prompt: this.userPrompt,
-                                segmentation: this.segmentationData
+                                variations: variations,  // Use the actual data, not display variables
+                                results: testResults,     // Use the actual data, not display variables
+                                passing_variations: perfectVariations,  // Use calculated value
+                                user_prompt: promptText,  // Use original prompt text
+                                segmentation: segmentation  // Use actual segmentation data
                             },
                             timestamp: Date.now()
                         });
@@ -958,7 +1140,7 @@ export default {
                             this.notify.error(error.error || 'Failed to get results');
                             this.removeFromSubmitting(currentProblemSlug);
                             this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
-                            if (rollback) rollback(); // Rollback optimistic update on error
+                            if (rollback) {rollback();} // Rollback optimistic update on error
 
                             // Clean up the SSE connection for this submission
                             const connection = this.submissionConnections.get(currentProblemSlug);
@@ -972,7 +1154,7 @@ export default {
                             this.notify.warning('Connection timeout. Please try again.');
                             this.removeFromSubmitting(currentProblemSlug);
                             this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
-                            if (rollback) rollback();
+                            if (rollback) {rollback();}
 
                             // Clean up the SSE connection for this submission
                             const connection = this.submissionConnections.get(currentProblemSlug);
@@ -1012,7 +1194,7 @@ export default {
                 this.removeFromSubmitting(currentProblemSlug);
                 this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
                 // Rollback optimistic update on error
-                if (rollback) rollback();
+                if (rollback) {rollback();}
 
                 // Clean up any SSE connection if error occurred during submission
                 const connection = this.submissionConnections.get(currentProblemSlug);
@@ -1029,11 +1211,18 @@ export default {
         async loadProblemSet() {
             const problemSetSlug = this.$route.params.slug;
             this.isLoading = true;
-            
+
+            console.log('=== LOADING PROBLEM SET ===');
+            console.log('Slug:', problemSetSlug);
+
+            // Clear submission cache for fresh data
+            this.submissionCache.clear();
+            console.log('Cleared submission cache');
+
             try {
                 const response = await axios.get(`/api/problem-sets/${problemSetSlug}`);
                 this.problemSet = response.data;
-                
+
                 if (response.data.problems_detail && Array.isArray(response.data.problems_detail)) {
                     this.problems = response.data.problems_detail.map(pd => pd.problem);
                 } else if (response.data.problems && Array.isArray(response.data.problems)) {
@@ -1041,9 +1230,11 @@ export default {
                 } else {
                     this.problems = [];
                 }
-                
+
+                console.log('Problems loaded:', this.problems.map(p => ({ slug: p.slug, title: p.title })));
+
                 await this.loadProblemStatuses();
-                
+
             } catch (error) {
                 this.logger.error('Error fetching problem set', error);
                 this.notify.error('Load Error', 'Failed to load problem set.');
@@ -1054,53 +1245,117 @@ export default {
         
         async loadProblemStatuses() {
             const problemSetSlug = this.$route.params.slug;
-            
+
+            console.log('=== LOADING PROBLEM STATUSES ===');
+            console.log('Problem Set Slug:', problemSetSlug);
+            console.log('Current Problems in component:', this.problems.map(p => p.slug));
+            console.log('Current problemStatuses before load:', { ...this.problemStatuses });
+
             try {
                 // Include course_id in query params if available
                 const params = this.courseId ? { course_id: this.courseId } : {};
                 this.logger.debug('Loading problem statuses', { problemSetSlug, params });
-                
+                console.log('API Request params:', params);
+
                 const response = await axios.get(`/api/problem-sets/${problemSetSlug}/progress/`, { params });
                 const progressData = response.data.problems_progress || [];
-                
+
+                console.log('API Response:', response.data);
+                console.log('Progress Data from API:', progressData);
+
                 this.logger.debug('Progress data received', { progressData, problemSetProgress: response.data.problem_set });
-                
+
                 // Create new object for Vue reactivity
                 const newStatuses = {};
-                
+
                 progressData.forEach(progress => {
+                    const mappedStatus = this.mapStatusFromAPI(progress.status, progress.best_score);
+                    console.log(`Mapping ${progress.problem_slug}: API status="${progress.status}" -> mapped="${mappedStatus}", score=${progress.best_score}, attempts=${progress.attempts}`);
+
                     newStatuses[progress.problem_slug] = {
-                        status: this.mapStatusFromAPI(progress.status, progress.best_score),
+                        status: mappedStatus,
                         score: progress.best_score,
                         attempts: progress.attempts,
                         segmentationPassed: progress.segmentation_passed !== undefined ? progress.segmentation_passed : null
                     };
                 });
-                
-                // Replace entire object to trigger reactivity
-                this.problemStatuses = newStatuses;
-                
-                this.logger.debug('Problem statuses loaded', {
-                    statuses: this.problemStatuses,
-                    completedCount: this.completedCount,
-                    inProgressCount: this.inProgressCount,
-                    remainingCount: this.remainingCount
-                });
-                
+
+                console.log('New Statuses Object:', newStatuses);
+
+                // Store problem set progress first
                 if (response.data.problem_set) {
                     this.problemSetProgress = response.data.problem_set;
                 }
-                
-                // Force Vue to update the computed properties
+
+                // Force Vue 3 reactivity by creating a completely new object
+                this.problemStatuses = {};
                 this.$nextTick(() => {
-                    this.logger.debug('Counts recomputed after nextTick', {
-                        completedCount: this.completedCount,
-                        inProgressCount: this.inProgressCount,
-                        remainingCount: this.remainingCount
+                    this.problemStatuses = { ...newStatuses };
+                    console.log('Problem Statuses After Update:', this.problemStatuses);
+
+                    // Another tick to ensure computed properties update
+                    this.$nextTick(() => {
+                        console.log('=== AFTER DOUBLE NEXTTICK ===');
+                        console.log('Completed Count:', this.completedCount);
+                        console.log('In Progress Count:', this.inProgressCount);
+                        console.log('Remaining Count:', this.remainingCount);
+
+                        // Log the actual status for each problem
+                        this.problems.forEach((problem, index) => {
+                            const status = this.getProblemStatus(problem.slug);
+                            console.log(`Problem ${index}: ${problem.slug} -> status="${status}"`);
+                        });
+
+                        // Also check what CSS classes would be applied
+                        this.problems.forEach((problem, index) => {
+                            const status = this.getProblemStatus(problem.slug);
+                            const isSubmitting = this.isCurrentProblemSubmitting(problem.slug);
+                            const classes = {
+                                'active': index === this.currentProblem,
+                                'submitting': isSubmitting,
+                                'completed': !isSubmitting && status === 'completed',
+                                'in_progress': !isSubmitting && status === 'in_progress',
+                                'not_started': !isSubmitting && status === 'not_started'
+                            };
+                            console.log(`CSS classes for ${problem.slug}:`, classes);
+                        });
+
+                        this.logger.debug('Counts recomputed after nextTick', {
+                            completedCount: this.completedCount,
+                            inProgressCount: this.inProgressCount,
+                            remainingCount: this.remainingCount,
+                            statuses: this.problemStatuses
+                        });
+
+                        // Final diagnostic summary
+                        console.log('=== FINAL DIAGNOSTIC SUMMARY ===');
+                        console.log('Problem Set:', problemSetSlug);
+                        console.log('Total Problems:', this.problems.length);
+                        console.log('Status Distribution:');
+                        console.log('  - Completed:', this.completedCount);
+                        console.log('  - In Progress:', this.inProgressCount);
+                        console.log('  - Remaining:', this.remainingCount);
+                        console.log('Problem Statuses Object Keys:', Object.keys(this.problemStatuses));
+                        console.log('Problems Array Slugs:', this.problems.map(p => p.slug));
+
+                        // Check for mismatches
+                        const statusSlugs = new Set(Object.keys(this.problemStatuses));
+                        const problemSlugs = new Set(this.problems.map(p => p.slug));
+                        const inStatusButNotProblems = [...statusSlugs].filter(s => !problemSlugs.has(s));
+                        const inProblemsButNotStatus = [...problemSlugs].filter(p => !statusSlugs.has(p));
+
+                        if (inStatusButNotProblems.length > 0) {
+                            console.warn('⚠️ Slugs in status but not in problems:', inStatusButNotProblems);
+                        }
+                        if (inProblemsButNotStatus.length > 0) {
+                            console.warn('⚠️ Slugs in problems but not in status:', inProblemsButNotStatus);
+                        }
+                        console.log('=== END DIAGNOSTIC ===');
                     });
                 });
-                
+
             } catch (error) {
+                console.error('ERROR loading progress data:', error);
                 this.logger.error('Error loading progress data', {
                     error,
                     response: error.response?.data
@@ -1115,8 +1370,12 @@ export default {
         
         getProblemStatus(problemSlug) {
             const actualStatus = this.problemStatuses[problemSlug];
-            const optimisticStatus = this.getProgress(problemSlug, actualStatus);
-            return optimisticStatus?.status || 'not_started';
+            // For debugging, bypass optimistic updates temporarily
+            const useOptimistic = false; // Toggle this to test
+            const optimisticStatus = useOptimistic ? this.getProgress(problemSlug, actualStatus) : actualStatus;
+            const finalStatus = optimisticStatus?.status || 'not_started';
+            console.log(`getProblemStatus(${problemSlug}): actual=${JSON.stringify(actualStatus)}, optimistic=${JSON.stringify(optimisticStatus)}, bypassed=${!useOptimistic}, final=${finalStatus}`);
+            return finalStatus;
         },
         
         getProblemTooltip(problem, index) {

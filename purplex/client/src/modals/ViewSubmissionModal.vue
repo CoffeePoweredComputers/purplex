@@ -11,7 +11,9 @@
       <!-- Header -->
       <div class="modal-header">
         <div class="header-info">
-          <h2 class="modal-title">Submission Details</h2>
+          <h2 class="modal-title">
+            Submission Details
+          </h2>
           <div class="header-meta">
             <span class="meta-item">{{ submission?.user || 'Unknown User' }}</span>
             <span class="meta-separator">•</span>
@@ -25,16 +27,16 @@
         <div class="header-actions">
           <button
             class="download-btn"
-            @click="$emit('download', submission)"
             :disabled="!submission"
             title="Download Data"
+            @click="$emit('download', submission)"
           >
             Download
           </button>
           <button
             class="close-btn"
-            @click="$emit('close')"
             aria-label="Close"
+            @click="$emit('close')"
           >
             ✕
           </button>
@@ -61,29 +63,44 @@
             {{ submission?.completion_status || submission?.status || 'Unknown' }}
           </span>
         </div>
-        <div v-if="hasVariations" class="metric">
+        <div
+          v-if="hasVariations"
+          class="metric"
+        >
           <span class="metric-label">Variations:</span>
           <span class="metric-value">
             {{ passingVariationsCount }}/{{ totalVariationsCount }} passed all tests
           </span>
         </div>
-        <div v-if="currentVariationData" class="metric">
+        <div
+          v-if="currentVariationData"
+          class="metric"
+        >
           <span class="metric-label">Current Variation:</span>
           <span class="metric-value">
             {{ currentVariationData.testsPassed }}/{{ currentVariationData.totalTests }} tests passed
           </span>
         </div>
-        <div v-if="submission?.execution_time_ms" class="metric">
+        <div
+          v-if="submission?.execution_time_ms"
+          class="metric"
+        >
           <span class="metric-label">Time:</span>
           <span class="metric-value">{{ submission.execution_time_ms }}ms</span>
         </div>
       </div>
 
       <!-- Variation Navigation (only show for EiPL submissions) -->
-      <div v-if="hasVariations" class="variation-nav">
+      <div
+        v-if="hasVariations"
+        class="variation-nav"
+      >
         <div class="nav-info">
           <span class="variation-label">Variation {{ currentVariationIndex + 1 }} of {{ totalVariationsCount }}</span>
-          <div class="variation-status" :class="currentVariationStatusClass">
+          <div
+            class="variation-status"
+            :class="currentVariationStatusClass"
+          >
             {{ currentVariationData?.success ? 'All tests passed' : `${currentVariationData?.testsPassed || 0}/${currentVariationData?.totalTests || 0} tests passed` }}
           </div>
         </div>
@@ -91,16 +108,16 @@
           <button
             class="nav-btn"
             :disabled="currentVariationIndex === 0"
-            @click="prevVariation"
             title="Previous variation"
+            @click="prevVariation"
           >
             ← Previous
           </button>
           <button
             class="nav-btn"
             :disabled="currentVariationIndex >= totalVariationsCount - 1"
-            @click="nextVariation"
             title="Next variation"
+            @click="nextVariation"
           >
             Next →
           </button>
@@ -114,7 +131,10 @@
           <!-- Left Column: Code -->
           <div class="code-column">
             <!-- EiPL Prompt if applicable -->
-            <div v-if="submission?.submission_type === 'eipl' && submission?.raw_input" class="code-section">
+            <div
+              v-if="submission?.submission_type === 'eipl' && submission?.raw_input"
+              class="code-section"
+            >
               <div class="section-header">
                 <span class="section-title">Natural Language Prompt</span>
               </div>
@@ -151,16 +171,25 @@
             <div class="section-header">
               <span class="section-title">
                 Test Results
-                <span v-if="currentTestResults.length > 0" class="test-count">
+                <span
+                  v-if="currentTestResults.length > 0"
+                  class="test-count"
+                >
                   ({{ currentPassingTests }}/{{ currentTestResults.length }} passing)
                 </span>
               </span>
             </div>
 
-            <div v-if="!currentTestResults || currentTestResults.length === 0" class="empty-state">
+            <div
+              v-if="!currentTestResults || currentTestResults.length === 0"
+              class="empty-state"
+            >
               No test results available{{ hasVariations ? ' for current variation' : '' }}
             </div>
-            <div v-else class="test-results">
+            <div
+              v-else
+              class="test-results"
+            >
               <!-- Test Summary Bar -->
               <div class="test-summary-bar">
                 <div class="summary-counts">
@@ -189,7 +218,12 @@
                       <code class="test-call">{{ formatTestCall(test) }}</code>
                       <div class="test-diff">
                         <div>Expected: <code class="expected">{{ formatValue(test.expected_output || test.expected) }}</code></div>
-                        <div>Got: <code class="actual">{{ formatValue(test.actual_output || test.actual) || test.error_message || test.error || 'No output' }}</code></div>
+                        <div>
+                          Got: <code
+                            class="actual"
+                            :class="getValueDisplayClass(test.actual_output || test.actual)"
+                          >{{ formatTestValue(test.actual_output || test.actual) }}</code>
+                        </div>
                       </div>
                     </div>
                   </article>
@@ -222,35 +256,67 @@
         </div>
 
         <!-- Analysis Section - Always Visible Below -->
-        <div v-if="submission?.segmentation" class="analysis-section-static">
+        <div
+          v-if="submission?.segmentation"
+          class="analysis-section-static"
+        >
           <div class="section-header">
-            <h3 class="section-title">Analysis</h3>
+            <h3 class="section-title">
+              Analysis
+            </h3>
           </div>
 
           <div class="analysis-content">
-            <div v-if="submission.segmentation.confidence_score" class="info-item">
+            <div
+              v-if="submission.segmentation.confidence_score"
+              class="info-item"
+            >
               <span class="info-label">Confidence:</span>
               <span class="info-value">{{ Math.round(submission.segmentation.confidence_score * 100) }}%</span>
             </div>
 
-            <div v-if="submission.segmentation.feedback_message" class="analysis-section">
-              <h4 class="section-title">Feedback</h4>
-              <p class="feedback-text">{{ submission.segmentation.feedback_message }}</p>
+            <div
+              v-if="submission.segmentation.feedback_message"
+              class="analysis-section"
+            >
+              <h4 class="section-title">
+                Feedback
+              </h4>
+              <p class="feedback-text">
+                {{ submission.segmentation.feedback_message }}
+              </p>
             </div>
 
-            <div v-if="submission.segmentation.suggested_improvements?.length" class="analysis-section">
-              <h4 class="section-title">Suggested Improvements</h4>
+            <div
+              v-if="submission.segmentation.suggested_improvements?.length"
+              class="analysis-section"
+            >
+              <h4 class="section-title">
+                Suggested Improvements
+              </h4>
               <ul class="improvements-list">
-                <li v-for="(improvement, idx) in submission.segmentation.suggested_improvements" :key="idx">
+                <li
+                  v-for="(improvement, idx) in submission.segmentation.suggested_improvements"
+                  :key="idx"
+                >
                   {{ improvement }}
                 </li>
               </ul>
             </div>
 
-            <div v-if="submission.segmentation.segments?.length" class="analysis-section">
-              <h4 class="section-title">Code Segments ({{ submission.segmentation.segment_count || submission.segmentation.segments.length }})</h4>
+            <div
+              v-if="submission.segmentation.segments?.length"
+              class="analysis-section"
+            >
+              <h4 class="section-title">
+                Code Segments ({{ submission.segmentation.segment_count || submission.segmentation.segments.length }})
+              </h4>
               <div class="segments-list">
-                <div v-for="(segment, idx) in submission.segmentation.segments" :key="idx" class="segment-item">
+                <div
+                  v-for="(segment, idx) in submission.segmentation.segments"
+                  :key="idx"
+                  class="segment-item"
+                >
                   {{ segment }}
                 </div>
               </div>
@@ -264,6 +330,7 @@
 
 <script>
 import Editor from '@/features/editor/Editor.vue';
+import { formatTestValue, getValueDisplayClass, isMissingValue } from '@/utils/testValueFormatter';
 
 export default {
   name: 'ViewSubmissionModal',
@@ -288,6 +355,12 @@ export default {
   },
   computed: {
     hasVariations() {
+      // For submission history endpoint: check data.variations
+      // Consider it has variations if there's at least 1 variation (EiPL submissions)
+      if (this.submission?.data?.variations?.length >= 1) {
+        return true;
+      }
+
       // For admin endpoint: check code_variations array
       if (this.submission?.code_variations?.length > 1) {
         return true;
@@ -300,6 +373,11 @@ export default {
     },
 
     totalVariationsCount() {
+      // Submission history endpoint: count data.variations
+      if (this.submission?.data?.variations?.length) {
+        return this.submission.data.variations.length;
+      }
+
       // Admin endpoint: count code_variations
       if (this.submission?.code_variations?.length) {
         return this.submission.code_variations.length;
@@ -313,6 +391,13 @@ export default {
     },
 
     passingVariationsCount() {
+      // Submission history endpoint: count data.variations with all tests passed
+      if (this.submission?.data?.variations?.length) {
+        return this.submission.data.variations.filter(v =>
+          v.passed_all_tests || (v.tests_passed === v.total_tests && v.total_tests > 0)
+        ).length;
+      }
+
       // Admin endpoint: count code_variations with perfect scores
       if (this.submission?.code_variations?.length) {
         return this.submission.code_variations.filter(cv =>
@@ -340,6 +425,18 @@ export default {
         return null;
       }
 
+      // Submission history endpoint: get from data.variations
+      if (this.submission?.data?.variations?.length) {
+        const variation = this.submission.data.variations[this.currentVariationIndex];
+        if (variation) {
+          return {
+            testsPassed: variation.tests_passed,
+            totalTests: variation.total_tests,
+            success: variation.passed_all_tests || (variation.tests_passed === variation.total_tests && variation.total_tests > 0)
+          };
+        }
+      }
+
       // Admin endpoint: get from code_variations
       if (this.submission?.code_variations?.length) {
         const variation = this.submission.code_variations[this.currentVariationIndex];
@@ -357,12 +454,18 @@ export default {
     },
 
     currentVariationStatusClass() {
-      if (!this.currentVariationData) return '';
+      if (!this.currentVariationData) {return '';}
       return this.currentVariationData.success ? 'success' : 'partial';
     },
 
     currentCodeToDisplay() {
       if (this.hasVariations) {
+        // Submission history endpoint: get from data.variations
+        if (this.submission?.data?.variations?.length) {
+          const variation = this.submission.data.variations[this.currentVariationIndex];
+          return variation?.code || '';
+        }
+
         // Admin endpoint: get from code_variations
         if (this.submission?.code_variations?.length) {
           const variation = this.submission.code_variations[this.currentVariationIndex];
@@ -375,13 +478,28 @@ export default {
         }
       }
 
+      // Check for submission history endpoint data structure
+      if (this.submission?.data?.processed_code) {
+        return this.submission.data.processed_code;
+      }
+
       return this.submission?.processed_code || this.submission?.raw_input || '';
     },
 
     currentTestResults() {
       if (!this.hasVariations) {
         // For single submissions, return the test_results directly
+        // First check if it's from submission history endpoint
+        if (this.submission?.data?.test_results) {
+          return this.submission.data.test_results;
+        }
         return this.submission?.test_results || [];
+      }
+
+      // Submission history endpoint: get test results from variation data
+      if (this.submission?.data?.variations?.length) {
+        const variation = this.submission.data.variations[this.currentVariationIndex];
+        return variation?.test_results || [];
       }
 
       // Admin endpoint: get per-variation test results
@@ -420,21 +538,21 @@ export default {
   },
   methods: {
     getScoreClass(score) {
-      if (score >= 100) return 'success';
-      if (score >= 60) return 'warning';
+      if (score >= 100) {return 'success';}
+      if (score >= 60) {return 'warning';}
       return 'error';
     },
 
     getStatusClass(status) {
       const s = status?.toLowerCase();
-      if (s === 'passed' || s === 'complete') return 'success';
-      if (s === 'partial') return 'warning';
-      if (s === 'failed' || s === 'error') return 'error';
+      if (s === 'passed' || s === 'complete') {return 'success';}
+      if (s === 'partial') {return 'warning';}
+      if (s === 'failed' || s === 'error') {return 'error';}
       return '';
     },
 
     formatDate(dateString) {
-      if (!dateString) return 'Unknown';
+      if (!dateString) {return 'Unknown';}
       const date = new Date(dateString);
       return date.toLocaleString('en-US', {
         month: 'short',
@@ -446,26 +564,26 @@ export default {
     },
 
     formatComprehension(level) {
-      if (!level) return 'Not evaluated';
-      if (level === 'high_level' || level === 'high-level') return 'High Level';
-      if (level === 'low_level' || level === 'low-level') return 'Low Level';
+      if (!level) {return 'Not evaluated';}
+      if (level === 'high_level' || level === 'high-level') {return 'High Level';}
+      if (level === 'low_level' || level === 'low-level') {return 'Low Level';}
       return level;
     },
 
     formatTimeSpent(seconds) {
-      if (!seconds) return 'N/A';
+      if (!seconds) {return 'N/A';}
       const mins = Math.floor(seconds / 60);
       const secs = Math.floor(seconds % 60);
       return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
     },
 
     formatValue(value) {
-      if (value === null || value === undefined) return 'null';
-      if (typeof value === 'string') return `"${value}"`;
-      if (Array.isArray(value)) return JSON.stringify(value);
-      if (typeof value === 'object') return JSON.stringify(value);
-      return String(value);
+      return formatTestValue(value);
     },
+
+    formatTestValue,
+    isMissingValue,
+    getValueDisplayClass,
 
     prevVariation() {
       if (this.currentVariationIndex > 0) {
@@ -487,7 +605,7 @@ export default {
       if (test.description) {
         // Try to extract function call from description
         const match = test.description.match(/([a-zA-Z_][a-zA-Z0-9_]*\([^)]*\))/);
-        if (match) return match[1];
+        if (match) {return match[1];}
         return test.description;
       }
       if (test.inputs !== undefined) {
@@ -500,7 +618,7 @@ export default {
       if (!code) {
         code = this.currentCodeToDisplay;
       }
-      if (!code) return;
+      if (!code) {return;}
 
       try {
         await navigator.clipboard.writeText(code);

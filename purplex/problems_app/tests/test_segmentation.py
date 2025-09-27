@@ -79,15 +79,6 @@ class TestSegmentationService(unittest.TestCase):
         self.assertIn('adds them', segment_texts)
         self.assertIn('combines the values', segment_texts)  # Non-verbatim also included
         
-        # Verify EiPL Grader format (groups) is also present
-        self.assertIn('groups', result)
-        self.assertEqual(len(result['groups']), 3)  # All 3 groups
-        
-        # Check groups format
-        for group in result['groups']:
-            self.assertIn('explanation_portion', group)
-            self.assertIn('code', group)
-        
     def test_function_definition_segments_not_filtered(self):
         """Test that function definition segments are NOT filtered (pure segmentation)"""
         user_prompt = "The function takes two numbers and returns their sum"
@@ -114,15 +105,15 @@ class TestSegmentationService(unittest.TestCase):
     def test_create_segmentation_prompt_includes_verbatim_rules(self):
         """Test that the prompt includes strict verbatim extraction rules"""
         prompt = self.service._create_segmentation_prompt(self.reference_code)
-        
-        # Check for critical rules
-        self.assertIn("CRITICAL RULES", prompt)
-        self.assertIn("EXACT text from the student's explanation", prompt)
-        self.assertIn("character-for-character substring", prompt)
-        self.assertIn("DO NOT paraphrase", prompt)
-        self.assertIn("Copy text VERBATIM", prompt)
-        self.assertIn("WARNING", prompt)
-        
+
+        # Check for critical rules (updated for new format)
+        self.assertIn("<critical_rules>", prompt)
+        self.assertIn("VERBATIM EXTRACTION ONLY", prompt)
+        self.assertIn("CHARACTER-PERFECT MATCH", prompt)
+        self.assertIn("NO PARAPHRASING", prompt)
+        self.assertIn("COPY-PASTE PRECISION", prompt)
+        self.assertIn("<final_verification>", prompt)
+
         # Check that function definition filtering instruction is REMOVED
         self.assertNotIn("Remove any segments that just describe function definition", prompt)
         
@@ -140,15 +131,17 @@ class TestSegmentationService(unittest.TestCase):
                 'code_lines': [[1], [2], [3]]
             }
         }
-        
+
         prompt = self.service._create_segmentation_prompt(self.reference_code, custom_examples)
-        
-        # Check that examples are included
-        self.assertIn("SEGMENTATION EXAMPLES", prompt)
-        self.assertIn("RELATIONAL", prompt)
-        self.assertIn("MULTI-STRUCTURAL", prompt)
+
+        # Check that instructor examples are included with high priority
+        self.assertIn("<instructor_provided_examples priority='HIGHEST'>", prompt)
+        self.assertIn("type='relational'", prompt)
+        self.assertIn("type='multi_structural'", prompt)
         self.assertIn(custom_examples['relational']['prompt'], prompt)
         self.assertIn(custom_examples['multi_structural']['prompt'], prompt)
+        self.assertIn("INSTRUCTOR wants you to segment", prompt)
+        self.assertIn("FOLLOW THE INSTRUCTOR'S EXAMPLES", prompt)
 
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@
  * server load and better user experience.
  */
 
-import { ref, onUnmounted, Ref } from 'vue';
+import { onUnmounted, Ref, ref } from 'vue';
 import { log } from '../utils/logger';
 import { firebaseAuth } from '../firebaseConfig';
 import { getIdToken } from 'firebase/auth';

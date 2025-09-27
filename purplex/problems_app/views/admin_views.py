@@ -39,19 +39,23 @@ class AdminProblemListView(APIView):
     def post(self, request):
         # Use service layer to prepare data
         data, problem_set_slugs = AdminProblemService.prepare_problem_data(request.data)
-        
+
+        # Add detailed logging to understand what data we're receiving
+        logger.info(f"Creating problem with data: {data}")
+        logger.info(f"Problem set slugs: {problem_set_slugs}")
+
         serializer = AdminProblemSerializer(data=data)
         if serializer.is_valid():
             try:
                 with transaction.atomic():
                     problem = serializer.save(created_by=request.user)
-                    
+
                     # Use service layer to handle problem set assignments
                     if problem_set_slugs:
                         AdminProblemService.create_problem_with_relations(
                             problem, problem_set_slugs
                         )
-                    
+
                     # Return the serialized problem with all relations
                     serializer = AdminProblemSerializer(problem)
                     return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -60,6 +64,9 @@ class AdminProblemListView(APIView):
                 return Response({
                     'error': 'Failed to create problem. Please try again.'
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Log the validation errors to help debug
+        logger.warning(f"Problem creation failed with validation errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -474,6 +481,23 @@ class AdminSubmissionListView(APIView):
         # Prepare export data
         export_data = []
         for submission in submissions:
+            # Get hint activation data
+            hint_activations = submission.hint_activations.all()
+            hints_count = hint_activations.count()
+            hint_types = list(set([ha.hint.hint_type for ha in hint_activations])) if hints_count > 0 else []
+            first_hint_time = min([ha.activated_at for ha in hint_activations]).isoformat() if hints_count > 0 else ''
+            last_hint_time = max([ha.activated_at for ha in hint_activations]).isoformat() if hints_count > 0 else ''
+
+            # Format hint details for export
+            hint_details = []
+            for ha in hint_activations:
+                hint_details.append({
+                    'type': ha.hint.hint_type,
+                    'trigger': ha.trigger_type,
+                    'time': ha.activated_at.isoformat(),
+                    'duration_seconds': ha.viewed_duration_seconds
+                })
+
             export_data.append({
                 'submission_id': str(submission.submission_id),
                 'user': submission.user.username,
@@ -487,7 +511,12 @@ class AdminSubmissionListView(APIView):
                 'status': submission.completion_status,
                 'submitted_at': submission.submitted_at.isoformat(),
                 'execution_time_ms': submission.execution_time_ms,
-                'memory_used_mb': submission.memory_used_mb
+                'memory_used_mb': submission.memory_used_mb,
+                'hints_activated_count': hints_count,
+                'hint_types_used': ','.join(hint_types) if hint_types else '',
+                'first_hint_time': first_hint_time,
+                'last_hint_time': last_hint_time,
+                'hint_details': json.dumps(hint_details) if hint_details else ''
             })
 
         if format_type == 'csv':

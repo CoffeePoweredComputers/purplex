@@ -1,11 +1,11 @@
 import type { 
-  ProblemCategory, 
+  BaseSubmission, 
+  HintConfig,
+  ProblemCategory,
   ProblemDetailed,
   ProblemSummary,
-  TestCaseDisplay,
-  BaseSubmission,
   SubmissionTestResult,
-  HintConfig,
+  TestCaseDisplay,
   User
 } from '../../types'
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest'
 import axios from 'axios'
 import authService from '../auth.service'
 import { firebaseAuth } from '../../firebaseConfig'

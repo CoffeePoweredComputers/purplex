@@ -102,7 +102,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch, type PropType } from 'vue'
+import { defineComponent, type PropType, ref, watch } from 'vue'
 import axios, { type AxiosError } from 'axios'
 import { useNotification } from '@/composables/useNotification'
 import { log } from '@/utils/logger'

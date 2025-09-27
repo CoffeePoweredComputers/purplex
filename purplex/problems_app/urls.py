@@ -8,7 +8,7 @@ from .views.student_views import (
 
 # Submission views
 from .views.submission_views import (
-    TestSolutionView, SubmitSolutionView, EiPLSubmissionView
+    TestSolutionView, SubmitSolutionView, EiPLSubmissionView, SubmissionHistoryView
 )
 
 # SSE views for real-time updates
@@ -54,7 +54,8 @@ urlpatterns = [
     path('test-solution/', TestSolutionView.as_view(), name='test_solution'),
     path('submit-solution/', SubmitSolutionView.as_view(), name='submit_solution'),
     path('submit-eipl/', EiPLSubmissionView.as_view(), name='submit_eipl'),
-    
+    path('submissions/history/<slug:problem_slug>/', SubmissionHistoryView.as_view(), name='submission_history'),
+
     # SSE endpoints for real-time updates
     path('tasks/<str:task_id>/stream/', CleanTaskSSEView.as_view(), name='task_stream'),
     path('tasks/batch/stream/', CleanBatchSSEView.as_view(), name='task_batch_stream'),

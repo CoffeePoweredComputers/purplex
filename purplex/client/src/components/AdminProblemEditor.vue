@@ -899,7 +899,9 @@
                 <span class="example-icon">✅</span>
                 Good Example (Relational)
               </h5>
-              <p class="example-help">Show how a high-level description should look</p>
+              <p class="example-help">
+                Show how a high-level description should look
+              </p>
               
               <div class="form-group">
                 <label>Student Description</label>
@@ -907,7 +909,7 @@
                   v-model="segmentation.examples.relational.prompt"
                   placeholder="Example: The function checks if a word is a palindrome by comparing it with its reverse"
                   rows="3"
-                ></textarea>
+                />
               </div>
               
               <div class="segments-editor">
@@ -958,7 +960,9 @@
                 <span class="example-icon">❌</span>
                 Needs Work Example (Multi-structural)
               </h5>
-              <p class="example-help">Show how a line-by-line description looks</p>
+              <p class="example-help">
+                Show how a line-by-line description looks
+              </p>
               
               <div class="form-group">
                 <label>Student Description</label>
@@ -966,7 +970,7 @@
                   v-model="segmentation.examples.multi_structural.prompt"
                   placeholder="Example: It takes the input. Converts each character. Creates empty string. Loops through..."
                   rows="3"
-                ></textarea>
+                />
               </div>
               
               <div class="segments-editor">
@@ -1011,7 +1015,6 @@
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </form>
@@ -1079,17 +1082,17 @@ import {
   validateValueAgainstType
 } from '@/utils/typeSystem'
 import type { 
-  ProblemDetailed, 
-  TestCaseInput, 
+  DifficultyLevel, 
+  HintConfig, 
   ProblemCategory,
-  DifficultyLevel,
+  ProblemDetailed,
   ProblemType,
-  TestResult,
-  TestExecutionResult,
-  HintConfig,
-  VariableFadeHint,
   SubgoalHighlightHint,
-  SuggestedTraceHint
+  SuggestedTraceHint,
+  TestCaseInput,
+  TestExecutionResult,
+  TestResult,
+  VariableFadeHint
 } from '@/types'
 
 // Type definitions
@@ -2360,7 +2363,7 @@ export default defineComponent({
     
     parseLineRange(input) {
       // Parse line ranges like "1-3" or "1,2,3" or "1-3,5,7-9"
-      if (!input || typeof input !== 'string') return [];
+      if (!input || typeof input !== 'string') {return [];}
       
       const lines = [];
       const parts = input.split(',');
@@ -2389,15 +2392,15 @@ export default defineComponent({
     },
     
     getLineRangeHelp(segment) {
-      if (!segment.lines) return '';
+      if (!segment.lines) {return '';}
       const parsed = this.parseLineRange(segment.lines);
-      if (parsed.length === 0) return '';
+      if (parsed.length === 0) {return '';}
       return `Lines: ${parsed.join(', ')}`;
     },
 
     formatLineRangeFromArray(lineNumbers) {
       // Convert array of line numbers back to compact string format
-      if (!Array.isArray(lineNumbers) || lineNumbers.length === 0) return '';
+      if (!Array.isArray(lineNumbers) || lineNumbers.length === 0) {return '';}
       
       // Sort the numbers
       const sorted = [...lineNumbers].sort((a, b) => a - b);

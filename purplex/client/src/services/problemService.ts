@@ -179,6 +179,28 @@ class ProblemServiceImpl {
    */
   private _handleError(error: any, defaultMessage: string): APIError {
     if (error.response) {
+      // Handle validation errors from Django REST framework
+      if (error.response.status === 400 && error.response.data && typeof error.response.data === 'object') {
+        // Check if it's a validation error with field-specific messages
+        const validationErrors = [];
+        for (const [field, messages] of Object.entries(error.response.data)) {
+          if (Array.isArray(messages)) {
+            validationErrors.push(`${field}: ${messages.join(', ')}`);
+          } else if (field === 'error') {
+            // Direct error message
+            validationErrors.push(messages);
+          }
+        }
+
+        if (validationErrors.length > 0) {
+          return {
+            error: validationErrors.join('; '),
+            details: error.response.data,
+            status: error.response.status
+          };
+        }
+      }
+
       return {
         error: error.response.data?.error || defaultMessage,
         details: error.response.data?.details,

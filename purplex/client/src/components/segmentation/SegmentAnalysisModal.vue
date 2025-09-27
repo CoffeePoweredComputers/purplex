@@ -24,7 +24,10 @@
               🔍 Understanding Analysis
             </h3>
             <div class="header-badges">
-              <span class="badge-level" :class="levelBadgeClass">
+              <span
+                class="badge-level"
+                :class="levelBadgeClass"
+              >
                 {{ formatLevel(segmentation.comprehension_level) }} Understanding
               </span>
             </div>
@@ -69,8 +72,12 @@
             <div class="feedback-content">
               <span class="feedback-icon">{{ getFeedbackIcon() }}</span>
               <div class="feedback-text">
-                <p class="feedback-message">{{ segmentation.feedback }}</p>
-                <p class="feedback-explanation">{{ getExplanation() }}</p>
+                <p class="feedback-message">
+                  {{ segmentation.feedback }}
+                </p>
+                <p class="feedback-explanation">
+                  {{ getExplanation() }}
+                </p>
               </div>
             </div>
           </div>
@@ -93,7 +100,7 @@
 import { defineComponent, type PropType } from 'vue'
 import SegmentMapping from './SegmentMapping.vue'
 
-type ComprehensionLevel = 'relational' | 'transitional' | 'multi_structural'
+type ComprehensionLevel = 'relational' | 'multi_structural'
 type SizePreset = 'small' | 'medium' | 'large' | 'fullscreen'
 
 interface Segment {
@@ -166,7 +173,7 @@ export default defineComponent({
   computed: {
     modalStyle(): Record<string, string> {
       const preset = this.sizePresets.find(s => s.name === this.currentSize)
-      if (!preset) return {}
+      if (!preset) {return {}}
       
       return {
         '--modal-width': preset.width,
@@ -288,7 +295,7 @@ export default defineComponent({
 
     focusFirstElement(): void {
       const modalContent = this.$refs.modalContent as HTMLElement
-      if (!modalContent) return
+      if (!modalContent) {return}
       
       // Find first focusable element
       const focusableElements = modalContent.querySelectorAll(
@@ -302,7 +309,7 @@ export default defineComponent({
 
     trapFocus(): void {
       const modalContent = this.$refs.modalContent as HTMLElement
-      if (!modalContent) return
+      if (!modalContent) {return}
       
       const handleTabKey = (e: KeyboardEvent): void => {
         const focusableElements = modalContent.querySelectorAll(
@@ -351,8 +358,6 @@ export default defineComponent({
       switch (this.segmentation.comprehension_level) {
         case 'relational':
           return '🎯'
-        case 'transitional':
-          return '👍'
         case 'multi_structural':
           return '🔍'
         default:
@@ -364,8 +369,6 @@ export default defineComponent({
       switch (level) {
         case 'relational':
           return 'Excellent'
-        case 'transitional':
-          return 'Good'
         case 'multi_structural':
           return 'Detailed'
         default:
@@ -377,8 +380,6 @@ export default defineComponent({
       switch (this.segmentation.comprehension_level) {
         case 'relational':
           return `You focused on the overall purpose. This shows strong conceptual understanding.`
-        case 'transitional':
-          return `You identified key steps. Good balance between detail and big picture.`
         case 'multi_structural':
           return `You provided line-by-line detail. Try focusing on the main goal instead.`
         default:
@@ -494,11 +495,6 @@ export default defineComponent({
 .badge-level.badge-relational {
   background: var(--color-success-bg);
   color: var(--color-success-text);
-}
-
-.badge-level.badge-transitional {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
 }
 
 .badge-level.badge-multi-structural {

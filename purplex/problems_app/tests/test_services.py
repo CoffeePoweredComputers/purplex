@@ -80,9 +80,7 @@ class TestServiceIntegration(TestCase):
         # Verify results
         self.assertTrue(result['success'])
         self.assertEqual(len(result['segments']), 2)
-        self.assertIn('groups', result)  # EiPL format
-        self.assertEqual(len(result['groups']), 2)
-        
+
         # Note: With pure segmentation, segments may or may not be verbatim
         # We just verify structure, not content filtering
             
@@ -153,11 +151,11 @@ class TestResponseFormatCompatibility(TestCase):
     def setUp(self):
         self.service = SegmentationService()
         
-    def test_parse_segments_returns_both_formats(self):
-        """Test that parsing returns both segments and groups formats"""
+    def test_parse_segments_returns_correct_format(self):
+        """Test that parsing returns segments in correct format"""
         user_prompt = "iterate through array and find sum"
         reference_code = "for i in arr:\n    total += i"
-        
+
         ai_response = '''
         {
             "segments": [
@@ -166,25 +164,20 @@ class TestResponseFormatCompatibility(TestCase):
             ]
         }
         '''
-        
+
         result = self.service._parse_segments(ai_response, reference_code, user_prompt)
-        
-        # Check both formats present
+
+        # Check segments format
+        self.assertTrue(result['success'])
         self.assertIn('segments', result)
-        self.assertIn('groups', result)
-        
-        # Verify segments format (backward compatibility)
         self.assertEqual(len(result['segments']), 2)
+
+        # Verify segment structure
         for segment in result['segments']:
             self.assertIn('id', segment)
             self.assertIn('text', segment)
             self.assertIn('code_lines', segment)
-            
-        # Verify groups format (EiPL Grader)
-        self.assertEqual(len(result['groups']), 2)
-        for group in result['groups']:
-            self.assertIn('explanation_portion', group)
-            self.assertIn('code', group)
+            self.assertIsInstance(segment['code_lines'], list)
             
             
 if __name__ == '__main__':

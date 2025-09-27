@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 client = openai.OpenAI(
     api_key=os.environ.get('OPENAI_API_KEY', '')
 )
-GPT_MODEL = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
+GPT_MODEL = getattr(settings, 'GPT_MODEL', 'gpt-5')
 
 class AIGenerateView(APIView):
     permission_classes = [IsAuthenticated]

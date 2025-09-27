@@ -1,14 +1,14 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest'
+import { beforeEach, describe, expect, it, Mock, vi } from 'vitest'
 import axios from 'axios'
 import { problemService } from '../problemService'
 import type { 
+  HintConfig, 
   ProblemCategory, 
-  ProblemDetailed, 
   ProblemCreateRequest,
+  ProblemDetailed,
   ProblemUpdateRequest,
-  TestExecutionResult,
-  HintConfig,
-  TestCaseDisplay
+  TestCaseDisplay,
+  TestExecutionResult
 } from '../../types'
 
 // Mock axios

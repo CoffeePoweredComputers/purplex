@@ -75,10 +75,31 @@ class SubmissionService:
 
         # Track hint activations
         if activated_hints:
+            from purplex.problems_app.models import ProblemHint
+
             for order, hint_data in enumerate(activated_hints):
+                # Support both hint_id and hint_type
+                if 'hint_id' in hint_data:
+                    # Direct hint ID provided
+                    hint_id = hint_data['hint_id']
+                elif 'hint_type' in hint_data:
+                    # Look up hint by type for this problem
+                    try:
+                        hint = ProblemHint.objects.get(
+                            problem=problem,
+                            hint_type=hint_data['hint_type']
+                        )
+                        hint_id = hint.id
+                    except ProblemHint.DoesNotExist:
+                        logger.warning(f"Hint type {hint_data['hint_type']} not found for problem {problem.slug}")
+                        continue
+                else:
+                    logger.warning("Hint data missing both hint_id and hint_type")
+                    continue
+
                 HintActivation.objects.create(
                     submission=submission,
-                    hint_id=hint_data['hint_id'],
+                    hint_id=hint_id,
                     activation_order=order,
                     trigger_type=hint_data.get('trigger_type', 'manual'),
                     viewed_duration_seconds=hint_data.get('duration_seconds')
@@ -189,7 +210,7 @@ class SubmissionService:
                 tests_passed=var_data.get('tests_passed', 0),
                 tests_total=var_data.get('tests_total', 0),
                 score=var_data.get('score', 0),
-                model_used=var_data.get('model', 'gpt-4o-mini'),
+                model_used=var_data.get('model', 'gpt-5'),
                 prompt_tokens=var_data.get('prompt_tokens'),
                 completion_tokens=var_data.get('completion_tokens'),
                 generation_time_ms=var_data.get('generation_time_ms')
@@ -310,7 +331,7 @@ class SubmissionService:
             code_mappings=segmentation_data.get('code_mappings', {}),
             confidence_score=segmentation_data.get('confidence', 0.0),
             processing_time_ms=segmentation_data.get('processing_time_ms', 0),
-            model_used=segmentation_data.get('model', 'gpt-4o-mini'),
+            model_used=segmentation_data.get('model', 'gpt-5'),
             feedback_message=segmentation_data.get('feedback', ''),
             suggested_improvements=segmentation_data.get('improvements', [])
         )

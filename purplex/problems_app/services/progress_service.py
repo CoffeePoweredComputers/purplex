@@ -778,7 +778,7 @@ class ProgressService:
                                 problem.function_name, test_exec.input_values
                             ),
                             'expected_output': test_exec.expected_output,
-                            'actual_output': test_exec.actual_output if test_exec.actual_output is not None else 'No output',
+                            'actual_output': test_exec.actual_output,  # Let frontend handle null values
                             'error': test_exec.error_message
                         })
                 # Fallback: If no TestExecution records exist but we have summary data
@@ -814,7 +814,7 @@ class ProgressService:
                         problem.function_name, test_exec.input_values
                     ),
                     'expected_output': test_exec.expected_output,
-                    'actual_output': test_exec.actual_output if test_exec.actual_output is not None else 'No output',
+                    'actual_output': test_exec.actual_output,  # Let frontend handle null values
                     'error': test_exec.error_message
                 })
 
@@ -834,10 +834,13 @@ class ProgressService:
     @staticmethod
     def _format_function_call(function_name, input_values):
         """Format a function call string from function name and input values."""
+        import json
         if isinstance(input_values, list):
-            args = ', '.join(str(v) for v in input_values)
+            # Use json.dumps for strings to ensure proper quoting, repr for others
+            args = ', '.join(json.dumps(v) if isinstance(v, str) else repr(v) for v in input_values)
         else:
-            args = str(input_values)
+            # Single value case
+            args = json.dumps(input_values) if isinstance(input_values, str) else repr(input_values)
         return f"{function_name}({args})"
 
     @staticmethod

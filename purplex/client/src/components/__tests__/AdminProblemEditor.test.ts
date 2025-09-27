@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, VueWrapper } from '@vue/test-utils'
 import { createRouter, createWebHistory } from 'vue-router'
 import AdminProblemEditor from '../AdminProblemEditor.vue'

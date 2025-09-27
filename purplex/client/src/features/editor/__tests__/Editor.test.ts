@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest'
 import { mount, VueWrapper } from '@vue/test-utils'
 import Editor from '../Editor.vue'
 import { nextTick } from 'vue'

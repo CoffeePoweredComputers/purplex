@@ -225,6 +225,20 @@ def save_submission_helper(
     successful_variations = sum(1 for r in test_results if r.get('success', False))
     total_variations = len(test_results)
 
+    # Retrieve hint data from Redis context if available
+    activated_hints = None
+    try:
+        redis_client = redis.Redis(host='localhost', port=6379, db=7, decode_responses=True)
+        context_data = redis_client.get(f"eipl:context:{task_id}")
+        if context_data:
+            context = json.loads(context_data)
+            activated_hints = context.get('activated_hints', [])
+            if activated_hints:
+                logger.info(f"Retrieved {len(activated_hints)} activated hints from context")
+    except Exception as e:
+        logger.warning(f"Failed to retrieve hint context: {e}")
+        activated_hints = None
+
     with transaction.atomic():
         # Create submission using new service
         submission = SubmissionService.create_submission(
@@ -235,7 +249,7 @@ def save_submission_helper(
             problem_set=problem_set,
             course=course,
             time_spent=None,  # Could be passed from frontend in future
-            activated_hints=None  # Could track hints in future
+            activated_hints=activated_hints  # Now tracking hints from frontend
         )
 
         # Set the celery task ID
@@ -250,7 +264,7 @@ def save_submission_helper(
                 'tests_passed': result.get('testsPassed', 0),
                 'tests_total': result.get('totalTests', 0),
                 'score': int((result.get('testsPassed', 0) / result.get('totalTests', 1) * 100)),
-                'model': 'gpt-4o-mini'
+                'model': 'gpt-5'
             })
 
         # Create variations first
@@ -263,7 +277,7 @@ def save_submission_helper(
                 tests_passed=var_data.get('tests_passed', 0),
                 tests_total=var_data.get('tests_total', 0),
                 score=var_data.get('score', 0),
-                model_used=var_data.get('model', 'gpt-4o-mini')
+                model_used=var_data.get('model', 'gpt-5')
             )
             created_variations.append(variation)
 
@@ -280,14 +294,21 @@ def save_submission_helper(
             for test_result in result.get('test_results', []):
                 test_case_id = test_result.get('test_case_id')
                 if test_case_id:
+                    # Get actual output - handle False and other falsy values correctly
+                    actual_output = test_result.get('actual_output')
+                    if actual_output is None:
+                        actual_output = test_result.get('output')
+                    if actual_output is None:
+                        actual_output = ''
+
                     test_execution_data.append({
                         'test_case_id': test_case_id,
                         'passed': test_result.get('pass', False) or test_result.get('isSuccessful', False),
                         'inputs': test_result.get('inputs', {}),
                         'expected': test_result.get('expected_output', ''),
-                        'actual': test_result.get('actual_output', '') or test_result.get('output', ''),
+                        'actual': actual_output,  # Preserve False, 0, and other falsy values
                         'error_type': 'none' if (test_result.get('pass', False) or test_result.get('isSuccessful', False)) else 'wrong_output',
-                        'error_message': test_result.get('error', '') or ''
+                        'error_message': test_result.get('error', '')
                     })
                 else:
                     logger.warning(f"Skipping test result without test_case_id")
@@ -315,7 +336,7 @@ def save_submission_helper(
                 'code_mappings': segmentation.get('code_mappings', {}),
                 'confidence': segmentation.get('confidence', 0.8),
                 'processing_time_ms': int(segmentation.get('processing_time', 0) * 1000),
-                'model': 'gpt-4o-mini',
+                'model': 'gpt-5',
                 'feedback': segmentation.get('feedback', ''),
                 'improvements': segmentation.get('suggestions', [])
             }

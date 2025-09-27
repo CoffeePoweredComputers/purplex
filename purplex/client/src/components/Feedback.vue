@@ -6,8 +6,12 @@
       class="generating-feedback-panel"
     >
       <div class="generating-content">
-        <div class="generating-icon">🤖</div>
-        <div class="generating-message">Generating feedback...</div>
+        <div class="generating-icon">
+          🤖
+        </div>
+        <div class="generating-message">
+          Generating feedback...
+        </div>
       </div>
     </div>
 
@@ -18,6 +22,63 @@
     >
       <div class="section-label">
         {{ title }}
+      </div>
+      <!-- Attempt Selector Dropdown -->
+      <div
+        v-if="submissionHistory && submissionHistory.length > 0"
+        class="attempt-selector"
+      >
+        <span class="attempt-header-label">Previous Submissions:</span>
+        <button
+          class="attempt-dropdown-trigger"
+          :class="{ 'is-active': showAttemptDropdown }"
+          @click="showAttemptDropdown = !showAttemptDropdown"
+        >
+          <span class="attempt-text">
+            {{ currentAttemptNumber }}/{{ totalAttempts }}
+          </span>
+          <span
+            class="attempt-score-badge"
+            :class="getScoreClass(currentAttemptScore)"
+          >
+            {{ currentAttemptScore }}%
+          </span>
+          <span class="dropdown-arrow">{{ showAttemptDropdown ? '▾' : '▾' }}</span>
+        </button>
+
+        <!-- Dropdown Panel -->
+        <div
+          v-if="showAttemptDropdown"
+          ref="dropdownPanel"
+          class="attempt-dropdown-panel"
+        >
+          <div class="attempt-list-minimal">
+            <div
+              v-for="attempt in submissionHistory"
+              :key="attempt.id"
+              class="attempt-item-minimal"
+              :class="{
+                'is-current': attempt.id === currentSubmissionId,
+                'is-best': attempt.is_best,
+                'is-passing': attempt.score >= 100
+              }"
+              @click="loadAttempt(attempt)"
+            >
+              <span class="attempt-indicator" />
+              <span class="attempt-num">{{ attempt.attempt_number }}</span>
+              <span
+                class="attempt-score-minimal"
+                :class="getScoreClass(attempt.score)"
+              >{{ attempt.score }}%</span>
+              <span class="attempt-tests">{{ attempt.tests_passed }}/{{ attempt.total_tests }}</span>
+              <span class="attempt-time">{{ formatTime(attempt.submitted_at) }}</span>
+              <span
+                v-if="attempt.is_best"
+                class="best-mark"
+              >★</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -107,8 +168,14 @@
               <div class="test-content">
                 <code class="test-call">{{ test.function_call }}</code>
                 <div class="test-diff">
-                  <div>Expected: <code class="expected">{{ test.expected_output }}</code></div>
-                  <div>Got: <code class="actual">{{ test.actual_output !== null && test.actual_output !== undefined ? test.actual_output : (test.error || 'No output') }}</code></div>
+                  <div>Expected: <code class="expected">{{ formatTestValue(test.expected_output) }}</code></div>
+                  <div>
+                    Got: <code
+                      class="actual"
+                      :class="getValueDisplayClass(test.actual_output)"
+                    >{{
+                      formatTestValue(test.actual_output) }}</code>
+                  </div>
                 </div>
               </div>
               <button
@@ -137,7 +204,7 @@
               class="test-item passing"
             >
               <div class="test-content">
-                <code class="test-call">{{ test.function_call }} → {{ test.expected_output !== undefined && test.expected_output !== null && test.expected_output !== '' ? test.expected_output : 'None' }}</code>
+                <code class="test-call">{{ test.function_call }} → {{ formatTestValue(test.expected_output) }}</code>
               </div>
             </article>
           </div>
@@ -181,6 +248,7 @@ import ComprehensionBanner from './segmentation/ComprehensionBanner.vue';
 import SegmentAnalysisModal from './segmentation/SegmentAnalysisModal.vue';
 import { PythonTutorService } from '@/services/pythonTutor.service';
 import { log } from '@/utils/logger';
+import { formatTestValue, getValueDisplayClass, isMissingValue } from '@/utils/testValueFormatter';
 
 interface TestCase {
   function_call: string;
@@ -211,6 +279,12 @@ interface ComponentData {
   currentSlideContents: string;
   currentComprehensionResults: any[];
   showSegmentAnalysisModal: boolean;
+  showAttemptDropdown: boolean;
+  currentSubmissionId: string | null;
+  currentAttemptNumber: number;
+  currentAttemptScore: number;
+  totalAttempts: number;
+  bestAttemptId: string | null;
 }
 
 export default defineComponent({
@@ -277,6 +351,10 @@ export default defineComponent({
       type: Boolean as PropType<boolean>,
       default: false,
     },
+    submissionHistory: {
+      type: Array as PropType<any[]>,
+      default: () => [],
+    },
   },
   data(): ComponentData {
     return {
@@ -286,6 +364,12 @@ export default defineComponent({
       currentSlideContents: "",
       currentComprehensionResults: [],
       showSegmentAnalysisModal: false,
+      showAttemptDropdown: false,
+      currentSubmissionId: null,
+      currentAttemptNumber: 1,
+      currentAttemptScore: 0,
+      totalAttempts: 0,
+      bestAttemptId: null,
     };
   },
   computed: {
@@ -316,7 +400,7 @@ export default defineComponent({
         if (testResult) {
           // Backend returns either { success, passed, total, test_results: [...] }
           // or { success, passed, total, results: [...] }
-          let testArray = testResult.test_results || testResult.results || [];
+          const testArray = testResult.test_results || testResult.results || [];
           
           if (Array.isArray(testArray) && testArray.length > 0) {
             // Map backend test format to component format
@@ -325,12 +409,12 @@ export default defineComponent({
               ...test,
               isSuccessful: test.isSuccessful !== undefined ? test.isSuccessful : (test.pass || false),
               function_call: test.function_call || '',
-              expected_output: test.expected_output !== undefined && test.expected_output !== null 
-                ? String(test.expected_output)
+              expected_output: test.expected_output !== undefined && test.expected_output !== null
+                ? test.expected_output  // Preserve original type (don't convert to string)
                 : 'None',
-              actual_output: test.actual_output !== undefined && test.actual_output !== null 
-                ? test.actual_output 
-                : (test.error ? `Error: ${test.error}` : 'No output'),
+              actual_output: test.actual_output !== undefined && test.actual_output !== null
+                ? test.actual_output  // Preserve original type (don't convert to string)
+                : null,  // Keep null to let template handle it
               error: test.error || null
             }));
             // Variation is correct if all tests passed (using backend field names)
@@ -388,6 +472,11 @@ export default defineComponent({
     },
   },
   watch: {
+    showAttemptDropdown(newVal) {
+      if (newVal) {
+        this.positionDropdown();
+      }
+    },
     segmentation: {
       handler(newVal, oldVal) {
         console.log('Feedback: segmentation prop changed', {
@@ -414,17 +503,67 @@ export default defineComponent({
       },
       deep: true,
     },
+    submissionHistory: {
+      handler(newHistory) {
+        console.log('Feedback: submissionHistory changed', {
+          length: newHistory?.length,
+          history: newHistory
+        });
+        this.initializeSubmissionHistory();
+      },
+      deep: true,
+      immediate: true
+    }
   },
   mounted() {
     console.log('Feedback component mounted with props:', {
       problemType: this.problemType,
       segmentationEnabled: this.segmentationEnabled,
       segmentation: this.segmentation,
-      shouldShowSegmentation: this.shouldShowSegmentation
+      shouldShowSegmentation: this.shouldShowSegmentation,
+      submissionHistory: this.submissionHistory
     });
+    this.initializeSubmissionHistory();
     this.updateSolutionCode();
+
+    // Add click outside listener
+    document.addEventListener('click', this.handleClickOutside);
+  },
+
+  beforeUnmount() {
+    // Clean up event listener
+    document.removeEventListener('click', this.handleClickOutside);
   },
   methods: {
+    // Export utility functions to template
+    formatTestValue,
+    isMissingValue,
+    getValueDisplayClass,
+
+    // Initialize submission history data
+    initializeSubmissionHistory(): void {
+      console.log('Initializing submission history', {
+        history: this.submissionHistory,
+        length: this.submissionHistory?.length
+      });
+
+      if (this.submissionHistory && this.submissionHistory.length > 0) {
+        this.totalAttempts = this.submissionHistory.length;
+        // Find current attempt (most recent by default)
+        const currentAttempt = this.submissionHistory[0];
+        if (currentAttempt) {
+          this.currentSubmissionId = currentAttempt.id;
+          this.currentAttemptNumber = currentAttempt.attempt_number;
+          this.currentAttemptScore = currentAttempt.score;
+        }
+        // Find best attempt
+        const bestAttempt = this.submissionHistory.find(a => a.is_best);
+        if (bestAttempt) {
+          this.bestAttemptId = bestAttempt.id;
+        }
+      }
+    },
+
     // Core navigation methods
     updateSolutionCode(): void {
       if (this.slides.length === 0) {
@@ -462,6 +601,91 @@ export default defineComponent({
       this.pythonTutorUrl = PythonTutorService.generateEmbedUrl(formattedCode);
       this.showModal = true;
     },
+
+    // Attempt selector methods
+    loadAttempt(attempt: any): void {
+      this.showAttemptDropdown = false;
+      this.currentSubmissionId = attempt.id;
+      this.currentAttemptNumber = attempt.attempt_number;
+      this.currentAttemptScore = attempt.score;
+
+      // Emit event to parent to load this attempt's data
+      this.$emit('load-attempt', attempt);
+    },
+
+    positionDropdown(): void {
+      this.$nextTick(() => {
+        const dropdown = this.$refs.dropdownPanel as HTMLElement;
+        if (!dropdown) {return;}
+
+        const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement;
+        if (!trigger) {return;}
+
+        const rect = trigger.getBoundingClientRect();
+        dropdown.style.top = `${rect.bottom + 4}px`;
+        dropdown.style.left = `${rect.right - dropdown.offsetWidth}px`;
+      });
+    },
+
+    handleClickOutside(event: MouseEvent): void {
+      if (!this.showAttemptDropdown) {return;}
+
+      const dropdown = this.$refs.dropdownPanel as HTMLElement;
+      const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement;
+
+      // Check if click was outside both dropdown and trigger
+      if (dropdown && trigger &&
+          !dropdown.contains(event.target as Node) &&
+          !trigger.contains(event.target as Node)) {
+        this.showAttemptDropdown = false;
+      }
+    },
+
+    jumpToBestAttempt(): void {
+      const bestAttempt = this.submissionHistory.find(a => a.is_best);
+      if (bestAttempt) {
+        this.loadAttempt(bestAttempt);
+      }
+    },
+
+    getScoreClass(score: number): string {
+      if (score >= 100) {return 'score-perfect';}
+      if (score >= 80) {return 'score-good';}
+      if (score >= 60) {return 'score-partial';}
+      return 'score-low';
+    },
+
+    formatTime(timestamp: string): string {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+
+      if (hours < 1) {
+        const minutes = Math.floor(diff / (1000 * 60));
+        return `${minutes}m ago`;
+      }
+      if (hours < 24) {
+        return `${hours}h ago`;
+      }
+      const days = Math.floor(hours / 24);
+      if (days < 7) {
+        return `${days}d ago`;
+      }
+
+      // Format as date for older attempts
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      });
+    },
+
+    formatComprehensionLevel(level: string): string {
+      if (level === 'high-level') {return '🎯 High';}
+      if (level === 'low-level') {return '📚 Low';}
+      return level;
+    },
   },
 });
 </script>
@@ -473,6 +697,7 @@ export default defineComponent({
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   overflow: hidden;
+  position: relative;
 }
 
 /* Generating Feedback Panel */
@@ -575,19 +800,219 @@ export default defineComponent({
   opacity: 1;
 }
 
-/* Header */
+/* Header - Seamless Integration */
 .feedback-header {
-  background: var(--color-bg-panel);
+  background: var(--color-bg-hover);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  height: 36px; /* Slightly increased height */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .section-label {
-  text-align: center;
-  padding: var(--spacing-sm) var(--spacing-lg);
+  padding: 0 var(--spacing-lg);
   font-size: var(--font-size-sm);
   font-weight: 600;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex: 1;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+
+/* Attempt Selector - Ultra-Minimal */
+.attempt-selector {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  height: 100%;
+  margin-right: var(--spacing-md);
+}
+
+.attempt-header-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  padding: 0 var(--spacing-xs);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+
+.attempt-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--spacing-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-  background: var(--color-bg-hover);
-  border-bottom: 1px solid var(--color-bg-input);
+  transition: var(--transition-fast);
+  font-weight: 400;
+  height: 100%;
+}
+
+.attempt-dropdown-trigger:hover {
+  color: var(--color-text-secondary);
+  background: transparent;
+}
+
+.attempt-dropdown-trigger.is-active {
+  color: var(--color-text-primary);
+  background: transparent;
+}
+
+.attempt-text {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.attempt-score-badge {
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.attempt-score-badge.score-perfect {
+  background: rgba(76, 175, 80, 0.15);
+  color: var(--color-success);
+}
+
+.attempt-score-badge.score-good {
+  background: rgba(76, 175, 80, 0.1);
+  color: rgb(76, 175, 80);
+}
+
+.attempt-score-badge.score-partial {
+  background: rgba(255, 193, 7, 0.1);
+  color: rgb(255, 193, 7);
+}
+
+.attempt-score-badge.score-low {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--color-error);
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  opacity: 0.4;
+  transition: transform 0.2s;
+}
+
+.attempt-dropdown-trigger.is-active .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Panel - Ultra-Thin */
+.attempt-dropdown-panel {
+  position: fixed; /* Fixed positioning to escape overflow:hidden */
+  width: 240px;
+  max-height: 200px;
+  background: var(--color-bg-panel);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 99999; /* Very high z-index */
+  overflow: hidden;
+}
+
+.attempt-list-minimal {
+  overflow-y: auto;
+  max-height: 200px;
+  padding: 4px;
+}
+
+/* Ultra-Thin Attempt Items */
+.attempt-item-minimal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  height: 24px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  border-radius: 3px;
+  position: relative;
+}
+
+.attempt-item-minimal:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-text-secondary);
+}
+
+.attempt-item-minimal.is-current {
+  background: rgba(102, 126, 234, 0.08);
+  color: var(--color-text-primary);
+}
+
+.attempt-indicator {
+  width: 2px;
+  height: 12px;
+  background: var(--color-bg-border);
+  border-radius: 1px;
+  position: absolute;
+  left: 2px;
+}
+
+.attempt-item-minimal.is-passing .attempt-indicator {
+  background: var(--color-success);
+}
+
+.attempt-item-minimal.is-best .attempt-indicator {
+  background: var(--color-warning);
+}
+
+.attempt-num {
+  min-width: 20px;
+  font-weight: 500;
+  margin-left: 6px;
+}
+
+.attempt-score-minimal {
+  min-width: 35px;
+  text-align: right;
+  font-weight: 500;
+}
+
+.attempt-score-minimal.score-perfect {
+  color: var(--color-success);
+}
+
+.attempt-score-minimal.score-good {
+  color: rgb(76, 175, 80);
+}
+
+.attempt-score-minimal.score-partial {
+  color: var(--color-warning);
+}
+
+.attempt-score-minimal.score-low {
+  color: var(--color-error);
+}
+
+.attempt-tests {
+  font-size: 10px;
+  opacity: 0.6;
+  min-width: 30px;
+}
+
+.attempt-time {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.5;
+}
+
+.best-mark {
+  color: var(--color-warning);
+  font-size: 10px;
+  margin-left: 4px;
 }
 
 /* Content Grid */
@@ -595,6 +1020,8 @@ export default defineComponent({
   display: grid;
   grid-template-columns: 1fr;
   gap: 0;
+  position: relative; /* Create stacking context */
+  z-index: 1; /* Below dropdown */
 }
 
 /* Solution Timeline */
@@ -676,6 +1103,7 @@ export default defineComponent({
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   font-weight: 600;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
 }
 
 /* Test Summary Bar */

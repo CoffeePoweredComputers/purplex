@@ -18,7 +18,7 @@ from ..services.course_service import CourseService
 from ..services.student_service import StudentService
 from ..services.problem_service import ProblemService
 from ..services.progress_service import ProgressService
-from ..repositories import TestCaseRepository
+from ..repositories import TestCaseRepository, ProblemRepository
 from purplex.users_app.permissions import IsAuthenticated
 from celery.result import AsyncResult
 from ..tasks.pipeline import execute_eipl_pipeline
@@ -150,6 +150,7 @@ class SubmitSolutionView(APIView):
         prompt = request.data.get('prompt', '')  # For EiPL problems
         time_spent = request.data.get('time_spent')  # Optional, in seconds
         course_id = request.data.get('course_id')  # Optional course context
+        activated_hints = request.data.get('activated_hints', [])  # Optional hint tracking
         
         # Validate optional prompt for EiPL problems
         if prompt and len(prompt) > 2000:
@@ -237,20 +238,31 @@ class SubmitSolutionView(APIView):
             submission_type='direct_code',
             problem_set=problem_set,
             course=course,
-            time_spent=time_spent_delta
+            time_spent=time_spent_delta,
+            activated_hints=activated_hints
         )
 
         # Record test results
         test_execution_data = []
         if 'results' in result:
             for i, (test_result, test_case) in enumerate(zip(result['results'], all_test_cases)):
+                # Get actual output - check both 'actual_output' and 'output' keys
+                actual_output = test_result.get('actual_output')
+                if actual_output is None:
+                    actual_output = test_result.get('output')
+                if actual_output is None:
+                    actual_output = ''
+
+                # Check for success - Docker service uses 'isSuccessful', others use 'pass'
+                test_passed = test_result.get('isSuccessful', False) or test_result.get('pass', False)
+
                 test_execution_data.append({
                     'test_case_id': test_case.id,
-                    'passed': test_result.get('pass', False),
+                    'passed': test_passed,
                     'inputs': test_case.inputs,
                     'expected': test_case.expected_output,
-                    'actual': test_result.get('output', ''),
-                    'error_type': 'none' if test_result.get('pass') else 'wrong_output',
+                    'actual': actual_output,
+                    'error_type': 'none' if test_passed else 'wrong_output',
                     'error_message': test_result.get('error', '')
                 })
 
@@ -323,6 +335,7 @@ class EiPLSubmissionView(APIView):
         problem_set = validated_data.get('problem_set')
         course = validated_data.get('course')
         user_prompt = validated_data['user_prompt']
+        activated_hints = request.data.get('activated_hints', [])  # Extract hint tracking data
         
         # Additional validation for problem set membership
         if problem_set and not problem_set.problems.filter(id=problem.id).exists():
@@ -361,6 +374,7 @@ class EiPLSubmissionView(APIView):
             'course_id': course.id if course else None,
             'course_name': course.name if course else None,
             'user_prompt': user_prompt,
+            'activated_hints': activated_hints,  # Store hints for pipeline
             'request_id': request_id,
             'submitted_at': timezone.now().isoformat()
         }
@@ -408,3 +422,187 @@ class EiPLSubmissionView(APIView):
                 'error': 'Failed to start AI task. Please try again.',
                 'request_id': None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SubmissionHistoryView(APIView):
+    """Get submission history for a specific problem and user."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, problem_slug):
+        """
+        Fetch all submission attempts for the current user and specified problem.
+        Returns submissions with metadata for the attempt selector dropdown.
+        """
+        # Validate problem exists
+        try:
+            problem = ProblemRepository.get_problem_by_slug(problem_slug)
+            if not problem:
+                return Response({
+                    'error': 'Problem not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error fetching problem {problem_slug}: {str(e)}")
+            return Response({
+                'error': 'Failed to fetch problem'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Get optional filters
+        problem_set_slug = request.query_params.get('problem_set_slug')
+        course_id = request.query_params.get('course_id')
+        limit = request.query_params.get('limit', 50)  # Default to last 50 attempts
+
+        try:
+            limit = int(limit)
+            limit = min(limit, 100)  # Cap at 100 for performance
+        except (ValueError, TypeError):
+            limit = 50
+
+        # Build query filters
+        filters = {
+            'user': request.user,
+            'problem': problem
+        }
+
+        # Add optional filters
+        if problem_set_slug:
+            problem_set = ProblemService.get_problem_set_by_slug(problem_set_slug)
+            if problem_set:
+                filters['problem_set'] = problem_set
+
+        if course_id:
+            # Validate course enrollment
+            validation_result = CourseService.validate_course_enrollment(request.user, course_id)
+            if validation_result['success']:
+                filters['course'] = validation_result['course']
+
+        # Fetch submissions from the new Submission model
+        from purplex.submissions.models import Submission, CodeVariation, TestExecution, SegmentationAnalysis
+
+        submissions = Submission.objects.filter(
+            **filters
+        ).select_related(
+            'problem', 'problem_set', 'course', 'segmentation'
+        ).prefetch_related(
+            'code_variations',
+            'test_executions'
+        ).order_by('-submitted_at')[:limit]
+
+        # Find the best attempt
+        best_score = 0
+        best_attempt_id = None
+
+        # Format submission data for frontend
+        submission_history = []
+        for index, submission in enumerate(submissions):
+            # Get test execution summary
+            test_executions = submission.test_executions.all()
+            total_tests = test_executions.count()
+            passed_tests = test_executions.filter(passed=True).count()
+
+            # Get code variations
+            variations = submission.code_variations.all()
+
+            # Track best score
+            if submission.score > best_score:
+                best_score = submission.score
+                best_attempt_id = str(submission.submission_id)
+
+            # Get segmentation data if it exists
+            segmentation_data = None
+            if hasattr(submission, 'segmentation') and submission.segmentation:
+                seg = submission.segmentation
+                segmentation_data = {
+                    'segment_count': seg.segment_count,
+                    'comprehension_level': seg.comprehension_level,
+                    'confidence_score': seg.confidence_score,
+                    'feedback_message': seg.feedback_message,
+                    'suggested_improvements': seg.suggested_improvements,
+                    'segments': seg.segments,
+                    'code_mappings': seg.code_mappings,
+                }
+
+            submission_data = {
+                'id': str(submission.submission_id),
+                'attempt_number': len(submissions) - index,  # Reverse numbering (oldest = 1)
+                'submitted_at': submission.submitted_at.isoformat(),
+                'score': submission.score,
+                'passed_all_tests': submission.passed_all_tests,
+                'completion_status': submission.completion_status,
+                'execution_status': submission.execution_status,
+                'submission_type': submission.submission_type,
+                'tests_passed': passed_tests,
+                'total_tests': total_tests,
+                'execution_time_ms': submission.execution_time_ms,
+                'is_best': False,  # Will be set later
+                'variations_count': variations.count(),
+                'comprehension_level': submission.comprehension_level if submission.submission_type == 'eipl' else None,
+                'segmentation': segmentation_data,  # Include segmentation data
+
+                # Include the actual submission data for switching
+                'data': {
+                    'raw_input': submission.raw_input,
+                    'processed_code': submission.processed_code,
+                    'variations': [
+                        {
+                            'code': var.generated_code,
+                            'variation_number': var.variation_index,
+                            'passed_all_tests': var.score >= 100,
+                            'tests_passed': var.tests_passed,
+                            'total_tests': var.tests_total,
+                            # Include test results for this specific variation
+                            'test_results': [
+                                {
+                                    'test_case_id': te.test_case_id,
+                                    'passed': te.passed,
+                                    'expected': te.expected_output,
+                                    'actual': te.actual_output,
+                                    'error_message': te.error_message if hasattr(te, 'error_message') else '',
+                                    'inputs': te.input_values
+                                }
+                                for te in test_executions.filter(code_variation=var)
+                            ]
+                        }
+                        for var in variations
+                    ],
+                    # Keep test_results at top level for non-variation submissions
+                    'test_results': [
+                        {
+                            'test_case_id': te.test_case_id,
+                            'passed': te.passed,
+                            'expected': te.expected_output,
+                            'actual': te.actual_output,
+                            'error_message': te.error_message if hasattr(te, 'error_message') else '',
+                            'inputs': te.input_values
+                        }
+                        for te in test_executions if not variations.exists()
+                    ] if not variations.exists() else []
+                }
+            }
+
+            submission_history.append(submission_data)
+
+        # Mark the best attempt
+        for submission in submission_history:
+            if submission['id'] == best_attempt_id:
+                submission['is_best'] = True
+
+        # Get current progress
+        progress = ProgressService.get_user_progress(
+            user_id=request.user.id,
+            problem_id=problem.id,
+            course_id=filters.get('course').id if filters.get('course') else None
+        )
+
+        return Response({
+            'problem_slug': problem_slug,
+            'total_attempts': len(submission_history),
+            'best_score': best_score,
+            'best_attempt_id': best_attempt_id,
+            'current_progress': {
+                'status': progress.status if progress else 'not_started',
+                'best_score': progress.best_score if progress else 0,
+                'attempts': progress.attempts if progress else 0,
+                'is_completed': progress.is_completed if progress else False,
+            } if progress else None,
+            'submissions': submission_history
+        })

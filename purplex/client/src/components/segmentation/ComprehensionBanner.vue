@@ -9,7 +9,10 @@
         <div class="progress-section">
           <div class="segments-container">
             <!-- Goal label positioned above -->
-            <span class="goal-label" :style="{ left: goalLabelPosition }">goal</span>
+            <span
+              class="goal-label"
+              :style="{ left: goalLabelPosition }"
+            >goal</span>
             
             <!-- All segments and brackets on same level -->
             <div class="segments-row">
@@ -53,9 +56,9 @@
       </div>
       <button 
         class="analyze-button"
-        @click="$emit('show-details')"
         aria-label="View detailed analysis"
         title="View details"
+        @click="$emit('show-details')"
       >
         <span class="button-icon">›</span>
       </button>
@@ -69,7 +72,7 @@ import { defineComponent, type PropType } from 'vue';
 // Define the segmentation type based on existing types
 interface Segmentation {
   segment_count: number;
-  comprehension_level: 'relational' | 'transitional' | 'multi_structural';
+  comprehension_level: 'relational' | 'multi_structural';
   segments?: Array<{
     id: number;
     text: string;
@@ -103,7 +106,7 @@ export default defineComponent({
     
     // Calculate line count from the actual code
     codeLineCount(): number {
-      if (!this.referenceCode) return 10;
+      if (!this.referenceCode) {return 10;}
       return this.referenceCode.split('\n').filter(line => line.trim()).length;
     },
     
@@ -112,10 +115,10 @@ export default defineComponent({
       const lines = this.codeLineCount;
       
       // For small code, each line could be a segment
-      if (lines <= 8) return lines;
+      if (lines <= 8) {return lines;}
       
       // For medium code, slight compression
-      if (lines <= 15) return Math.min(10, lines);
+      if (lines <= 15) {return Math.min(10, lines);}
       
       // For larger code, compress more but cap at 12 for visual clarity
       return Math.min(12, Math.ceil(lines / 2));
@@ -126,8 +129,8 @@ export default defineComponent({
       const max = this.maxSegments;
       
       // Good comprehension is roughly 20-30% of possible segments
-      if (max <= 5) return 2;
-      if (max <= 8) return Math.ceil(max * 0.3);
+      if (max <= 5) {return 2;}
+      if (max <= 8) {return Math.ceil(max * 0.3);}
       return Math.ceil(max * 0.25);
     },
     
@@ -163,8 +166,6 @@ export default defineComponent({
       switch (this.segmentation.comprehension_level) {
         case 'relational':
           return 'Excellent';
-        case 'transitional':
-          return 'Good';
         case 'multi_structural':
           return 'Detailed';
         default:
@@ -176,8 +177,6 @@ export default defineComponent({
       switch (this.segmentation.comprehension_level) {
         case 'relational':
           return 'High-level focus';
-        case 'transitional':
-          return 'Key steps identified';
         case 'multi_structural':
           return 'Detail-oriented';
         default:
@@ -238,29 +237,7 @@ export default defineComponent({
   color: var(--color-text-muted);
   transition: color 0.3s ease;
   position: relative;
-  animation: fadeInSegment 0.3s ease-out;
-  animation-fill-mode: both;
   vertical-align: middle;
-}
-
-.segment:nth-child(1) { animation-delay: 0.05s; }
-.segment:nth-child(2) { animation-delay: 0.1s; }
-.segment:nth-child(3) { animation-delay: 0.15s; }
-.segment:nth-child(4) { animation-delay: 0.2s; }
-.segment:nth-child(5) { animation-delay: 0.25s; }
-.segment:nth-child(6) { animation-delay: 0.3s; }
-.segment:nth-child(7) { animation-delay: 0.35s; }
-.segment:nth-child(8) { animation-delay: 0.4s; }
-
-@keyframes fadeInSegment {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 
 .segment.filled {
@@ -294,7 +271,6 @@ export default defineComponent({
   font-size: 15px;
   font-weight: 500;
   color: var(--color-primary-gradient-start, #4f46e5);
-  animation: bracketPulse 3s ease-in-out infinite;
   vertical-align: middle;
   line-height: 1;
 }
@@ -322,22 +298,10 @@ export default defineComponent({
   opacity: 0.8;
 }
 
-@keyframes bracketPulse {
-  0%, 100% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-  }
-}
 
 /* Level-specific segment colors */
 .banner-relational .segment.filled {
   color: var(--color-success);
-}
-
-.banner-transitional .segment.filled {
-  color: var(--color-warning);
 }
 
 .banner-multi-structural .segment.filled {
@@ -408,10 +372,6 @@ export default defineComponent({
   border-left: 3px solid var(--color-success);
 }
 
-.banner-transitional {
-  border-left: 3px solid var(--color-warning);
-}
-
 .banner-multi-structural {
   border-left: 3px solid var(--color-error);
 }
@@ -450,19 +410,4 @@ export default defineComponent({
   }
 }
 
-/* Animation on mount */
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.comprehension-banner {
-  animation: slideDown 0.3s ease-out;
-}
 </style>

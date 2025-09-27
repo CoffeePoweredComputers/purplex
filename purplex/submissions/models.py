@@ -220,7 +220,7 @@ class CodeVariation(models.Model):
     score = models.IntegerField(default=0)
 
     # Generation metadata
-    model_used = models.CharField(max_length=50, default='gpt-4o-mini')
+    model_used = models.CharField(max_length=50, default='gpt-5')
     prompt_tokens = models.IntegerField(null=True, blank=True)
     completion_tokens = models.IntegerField(null=True, blank=True)
     generation_time_ms = models.IntegerField(null=True, blank=True)
@@ -257,7 +257,7 @@ class SegmentationAnalysis(models.Model):
     # Analysis metadata
     confidence_score = models.FloatField(help_text="Model confidence in segmentation (0-1)")
     processing_time_ms = models.IntegerField()
-    model_used = models.CharField(max_length=50, default='gpt-4o-mini')
+    model_used = models.CharField(max_length=50, default='gpt-5')
 
     # Educational feedback
     feedback_message = models.TextField(help_text="Constructive feedback for the student")

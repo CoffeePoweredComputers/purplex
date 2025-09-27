@@ -11,7 +11,7 @@ class AITestGenerationService:
     
     def __init__(self):
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
-        self.model_name = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
+        self.model_name = getattr(settings, 'GPT_MODEL', 'gpt-5')
         if self.openai_api_key:
             import openai
             self.client = openai.OpenAI(api_key=self.openai_api_key)
@@ -62,15 +62,36 @@ def {problem.function_name}(...):
 ```
 """
             
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[
+            # Build parameters dict to handle different API versions
+            api_params = {
+                "model": self.model_name,
+                "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.7,
-                max_tokens=2000
-            )
+                ]
+            }
+
+            # Only add temperature if not using GPT-5 (which only supports default)
+            if self.model_name != "gpt-5":
+                api_params["temperature"] = 0
+
+            # Handle both old and new OpenAI API parameter names
+            try:
+                # Try with the traditional parameter first
+                response = self.client.chat.completions.create(
+                    **api_params,
+                    max_tokens=2000
+                )
+            except Exception as e:
+                error_str = str(e)
+                # If OpenAI says to use max_completion_tokens, use it
+                if "max_completion_tokens" in error_str or "'max_tokens' is not supported" in error_str:
+                    response = self.client.chat.completions.create(
+                        **api_params,
+                        max_completion_tokens=2000
+                    )
+                else:
+                    raise
             
             content = response.choices[0].message.content
             

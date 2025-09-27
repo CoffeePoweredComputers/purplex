@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { log } from '../utils/logger';
-import type { BaseSubmission, CodeVariation, SubmissionDetailed, SubmissionTestResult } from '../types';
+import type { BaseSubmission, CodeVariation, SubmissionDetailed, SubmissionHistoryResponse, SubmissionTestResult } from '../types';
 
 // ===== SUBMISSION TYPES =====
 
@@ -33,6 +33,12 @@ export interface SubmissionRequest {
   user_code: string;
   prompt: string;
   time_spent?: number;
+  activated_hints?: Array<{
+    hint_id: number;
+    hint_type: string;
+    trigger_type?: string;
+    duration_seconds?: number;
+  }>;
 }
 
 export interface SubmissionResponse {
@@ -48,6 +54,12 @@ export interface SubmissionResponse {
 export interface EiPLSubmissionRequest {
   problem_slug: string;
   problem_set_slug?: string;
+  activated_hints?: Array<{
+    hint_id: number;
+    hint_type: string;
+    trigger_type?: string;
+    duration_seconds?: number;
+  }>;
   user_prompt: string;
   course_id?: string;
 }
@@ -214,6 +226,53 @@ class SubmissionService {
       last_activity: submission.last_attempt ? new Date(submission.last_attempt).toLocaleDateString() : null,
       progress_text: `${submission.best_score}% (${submission.total_attempts} attempts)`
     };
+  }
+
+  /**
+   * Get submission history for a specific problem
+   * Fetches all attempts for the current user
+   */
+  async getSubmissionHistory(
+    problemSlug: string,
+    problemSetSlug?: string,
+    courseId?: string,
+    limit?: number
+  ): Promise<SubmissionHistoryResponse> {
+    try {
+      const params: any = {};
+
+      if (problemSetSlug) {
+        params.problem_set_slug = problemSetSlug;
+      }
+      if (courseId) {
+        params.course_id = courseId;
+      }
+      if (limit) {
+        params.limit = limit;
+      }
+
+      const url = `${this.baseURL}/submissions/history/${problemSlug}/`;
+      console.log('Fetching submission history from:', url, 'with params:', params);
+
+      const response = await axios.get(url, { params });
+
+      console.log('Submission history response:', response.data);
+      log.info('Fetched submission history', {
+        problemSlug,
+        totalAttempts: response.data.total_attempts
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to fetch submission history:', error.response || error);
+      log.error('Failed to fetch submission history', {
+        problemSlug,
+        error,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      throw error;
+    }
   }
 
   /**

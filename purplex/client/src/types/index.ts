@@ -443,6 +443,57 @@ export interface SubmissionStats {
   completion_rate: number;
 }
 
+// ===== SUBMISSION HISTORY TYPES =====
+export interface SubmissionHistoryItem {
+  id: string;
+  attempt_number: number;
+  submitted_at: string;
+  score: number;
+  passed_all_tests: boolean;
+  completion_status: 'incomplete' | 'partial' | 'complete';
+  execution_status: string;
+  submission_type: 'direct_code' | 'eipl' | 'function_redef';
+  tests_passed: number;
+  total_tests: number;
+  execution_time_ms: number | null;
+  is_best: boolean;
+  variations_count: number;
+  comprehension_level: string | null;
+  data: {
+    raw_input: string;
+    processed_code: string;
+    variations: Array<{
+      code: string;
+      variation_number: number;
+      passed_all_tests: boolean;
+      tests_passed: number;
+      total_tests: number;
+    }>;
+    test_results: Array<{
+      test_case_id: number;
+      passed: boolean;
+      expected: string;
+      actual: string;
+      error_message: string;
+      inputs: string;
+    }>;
+  };
+}
+
+export interface SubmissionHistoryResponse {
+  problem_slug: string;
+  total_attempts: number;
+  best_score: number;
+  best_attempt_id: string;
+  current_progress: {
+    status: ProgressStatus;
+    best_score: number;
+    attempts: number;
+    is_completed: boolean;
+  } | null;
+  submissions: SubmissionHistoryItem[];
+}
+
 // ===== COURSE TYPES =====
 export interface Course {
   course_id: string;

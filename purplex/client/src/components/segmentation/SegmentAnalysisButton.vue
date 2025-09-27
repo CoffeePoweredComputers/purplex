@@ -13,7 +13,10 @@
         <span class="badge-count">
           {{ segmentCount }} segment{{ segmentCount !== 1 ? 's' : '' }}
         </span>
-        <span class="badge-level" :class="levelBadgeClass">
+        <span
+          class="badge-level"
+          :class="levelBadgeClass"
+        >
           {{ formattedLevel }}
         </span>
       </div>
@@ -30,7 +33,9 @@
         <span class="preview-title">{{ formattedLevel }} Analysis</span>
       </div>
       <div class="preview-content">
-        <p class="preview-feedback">{{ feedback }}</p>
+        <p class="preview-feedback">
+          {{ feedback }}
+        </p>
         <div class="preview-segments">
           <div 
             v-for="segment in previewSegments" 
@@ -52,7 +57,7 @@
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
 
-type ComprehensionLevel = 'relational' | 'transitional' | 'multi_structural'
+type ComprehensionLevel = 'relational' | 'multi_structural'
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
 
 interface Segment {
@@ -107,8 +112,6 @@ export default defineComponent({
       switch (this.comprehensionLevel) {
         case 'relational':
           return 'Excellent'
-        case 'transitional':
-          return 'Good'
         case 'multi_structural':
           return 'Detailed'
         default:
@@ -119,6 +122,12 @@ export default defineComponent({
     previewSegments(): Segment[] {
       // Show first 3 segments for preview
       return this.segments.slice(0, 3)
+    }
+  },
+  
+  beforeUnmount() {
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout)
     }
   },
   methods: {
@@ -143,19 +152,11 @@ export default defineComponent({
       switch (this.comprehensionLevel) {
         case 'relational':
           return '🎯'
-        case 'transitional':
-          return '👍'
         case 'multi_structural':
           return '🔍'
         default:
           return '📝'
       }
-    }
-  },
-  
-  beforeUnmount() {
-    if (this.hoverTimeout) {
-      clearTimeout(this.hoverTimeout)
     }
   }
 })
@@ -228,11 +229,6 @@ export default defineComponent({
 .badge-level.badge-relational {
   background: var(--color-success-bg);
   color: var(--color-success-text);
-}
-
-.badge-level.badge-transitional {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
 }
 
 .badge-level.badge-multi-structural {

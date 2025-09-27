@@ -161,7 +161,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watchEffect, type PropType } from 'vue'
+import { defineComponent, type PropType, ref, watchEffect } from 'vue'
 import axios, { type AxiosError } from 'axios'
 import { useNotification } from '@/composables/useNotification'
 import { log } from '@/utils/logger'

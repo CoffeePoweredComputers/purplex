@@ -391,7 +391,7 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
     await removeAllHints()
     
     // If no state to restore, we're done (hints are cleared)
-    if (!state || !state.activeHints || state.activeHints.length === 0) return
+    if (!state || !state.activeHints || state.activeHints.length === 0) {return}
     
     // Reapply each saved hint
     for (const savedHint of state.activeHints) {

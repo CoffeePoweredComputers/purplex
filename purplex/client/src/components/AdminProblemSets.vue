@@ -117,7 +117,7 @@ import axios, { AxiosError } from 'axios';
 import AdminNavBar from './AdminNavBar.vue';
 import AddEditProblemSetModal from '../modals/AddEditProblemSetModal.vue';
 import { log } from '@/utils/logger';
-import type { ProblemSet, ProblemDetailed } from '@/types';
+import type { ProblemDetailed, ProblemSet } from '@/types';
 
 interface ComponentData {
   problemSets: ProblemSet[];

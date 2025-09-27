@@ -121,7 +121,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, onMounted, ref, Ref } from 'vue'
+import { computed, defineComponent, onMounted, Ref, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import axios, { AxiosError } from 'axios'

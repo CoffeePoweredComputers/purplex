@@ -114,15 +114,15 @@ export default defineComponent({
       
       // Try to reconstruct the prompt with segments inline
       const result: ParsedResponsePart[] = [];
-      let workingPrompt = this.userPrompt;
+      const workingPrompt = this.userPrompt;
       let currentPosition = 0;
       
       // Sort segments by their order of appearance (if they appear in the prompt)
       const sortedSegments = [...this.segments].sort((a, b) => {
         const indexA = workingPrompt.indexOf(a.text);
         const indexB = workingPrompt.indexOf(b.text);
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
+        if (indexA === -1) {return 1;}
+        if (indexB === -1) {return -1;}
         return indexA - indexB;
       });
       

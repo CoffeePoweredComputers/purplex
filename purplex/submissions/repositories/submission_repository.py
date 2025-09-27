@@ -178,6 +178,8 @@ class SubmissionRepository(BaseRepository[Submission]):
         """
         queryset = Submission.objects.select_related(
             'user', 'problem', 'problem_set', 'course'
+        ).prefetch_related(
+            'hint_activations__hint'
         )
 
         # Apply filters

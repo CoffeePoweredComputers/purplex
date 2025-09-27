@@ -175,7 +175,7 @@ CELERY_TASK_ROUTES = {
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-GPT_MODEL = os.environ.get('GPT_MODEL', 'gpt-4o-mini')
+GPT_MODEL = os.environ.get('GPT_MODEL', 'gpt-5')
 
 # Firebase Configuration (handled by environment config)
 # Firebase configuration is handled directly via environment variables
