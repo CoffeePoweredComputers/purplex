@@ -344,7 +344,8 @@ def save_submission_helper(
                 'processing_time_ms': int(segmentation.get('processing_time', 0) * 1000),
                 'model': 'gpt-5',
                 'feedback': segmentation.get('feedback', ''),
-                'improvements': segmentation.get('suggestions', [])
+                'improvements': segmentation.get('suggestions', []),
+                'passed': segmentation.get('passed', False)  # Include the passed field
             }
 
             SubmissionService.record_segmentation(submission, segmentation_data)

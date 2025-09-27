@@ -1993,9 +1993,10 @@ export default defineComponent({
           reference_solution: this.getApiSafeString(this.form.reference_solution),
           tags: Array.isArray(this.form.tags) ? this.form.tags : [],
           test_cases: convertedTestCases,
-          // Add segmentation config for EiPL problems
+          // Add segmentation config and requires_highlevel_comprehension for EiPL problems
           ...(this.form.problem_type === 'eipl' && {
-            segmentation_config: this.formatSegmentationConfig()
+            segmentation_config: this.formatSegmentationConfig(),
+            requires_highlevel_comprehension: this.segmentation.enabled === true
           })
         };
         

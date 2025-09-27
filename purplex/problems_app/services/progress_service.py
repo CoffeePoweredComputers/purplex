@@ -56,17 +56,27 @@ class ProgressService:
             # Update score if better
             if submission.score > progress.best_score:
                 progress.best_score = submission.score
-                
-            # Update status based on score
-            if submission.score >= 100:
-                progress.status = 'completed'
+
+            # Use CompletionEvaluator to determine the actual status
+            from purplex.submissions.completion_evaluator import CompletionEvaluator
+            status = CompletionEvaluator.compute_user_progress_status(progress)
+
+            # Update progress status based on evaluator
+            progress.status = status
+
+            # Update completion fields based on status
+            if status == 'completed':
                 progress.is_completed = True
                 progress.completion_percentage = 100
                 if not progress.completed_at:
                     progress.completed_at = datetime.now()
-            elif submission.score > 0:
-                progress.status = 'in_progress'
-                progress.completion_percentage = submission.score
+            elif status == 'in_progress':
+                progress.is_completed = False
+                # Use submission score for completion percentage if not completed
+                progress.completion_percentage = min(submission.score, 99)  # Cap at 99 if not fully complete
+            else:
+                progress.is_completed = False
+                progress.completion_percentage = 0
             
             progress.save()
             

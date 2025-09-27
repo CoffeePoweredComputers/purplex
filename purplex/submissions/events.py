@@ -171,24 +171,22 @@ class SubmissionEvents:
         old_grade = progress.grade if hasattr(progress, 'grade') else None
         progress.grade = grade
 
-        # Update status for backward compatibility
+        # Use CompletionEvaluator to determine the actual status
+        from .completion_evaluator import CompletionEvaluator
         old_status = progress.status
-        if grade == 'complete':
-            progress.status = 'completed'
-        elif grade == 'partial':
-            progress.status = 'in_progress'
+        progress.status = CompletionEvaluator.compute_user_progress_status(progress)
+
+        # Update completion percentage based on status and score
+        if progress.status == 'completed':
+            progress.completion_percentage = 100
+            progress.is_completed = True
+        elif progress.status == 'in_progress':
+            # Use best score for percentage, but cap at 99 if not fully complete
+            progress.completion_percentage = min(progress.best_score, 99)
+            progress.is_completed = False
         else:
-            # Check if user has attempts to determine status
-            if progress.attempts > 0:
-                progress.status = 'in_progress'
-            else:
-                progress.status = 'not_started'
-
-        # Update completion percentage based on score
-        progress.completion_percentage = progress.best_score
-
-        # Update is_completed flag
-        progress.is_completed = (grade == 'complete')
+            progress.completion_percentage = 0
+            progress.is_completed = False
 
         # Update completion timestamp if newly completed
         if grade == 'complete' and not progress.completed_at:

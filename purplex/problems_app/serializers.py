@@ -42,6 +42,7 @@ class ProblemSerializer(serializers.ModelSerializer):
             'slug', 'title', 'description', 'difficulty', 'problem_type', 'categories', 'category_ids',
             'function_name', 'function_signature', 'reference_solution',
             'memory_limit', 'tags', 'is_active', 'segmentation_enabled', 'segmentation_config',
+            'requires_highlevel_comprehension', 'segmentation_threshold',
             'problem_sets', 'test_cases', 'test_cases_count', 'visible_test_cases_count',
             'created_by', 'created_by_name', 'created_at', 'updated_at', 'version'
         ]
@@ -186,6 +187,15 @@ class AdminProblemSerializer(ProblemSerializer):
         if 'description' not in validated_data or not validated_data['description']:
             validated_data['description'] = ''
 
+        # Automatically set requires_highlevel_comprehension for EiPL problems with segmentation
+        if validated_data.get('problem_type') == 'eipl':
+            segmentation_config = validated_data.get('segmentation_config', {})
+            # If segmentation is enabled (or not explicitly disabled), require high-level comprehension
+            if segmentation_config.get('enabled', True):
+                validated_data['requires_highlevel_comprehension'] = True
+            else:
+                validated_data['requires_highlevel_comprehension'] = False
+
         with transaction.atomic():
             # Create the problem using service
             problem = AdminProblemService.create_problem(validated_data)
@@ -219,6 +229,16 @@ class AdminProblemSerializer(ProblemSerializer):
                 func_name_match = re.match(r'def\s+(\w+)\s*\(', reference_solution)
                 if func_name_match:
                     validated_data['function_name'] = func_name_match.group(1)
+
+        # Automatically set requires_highlevel_comprehension for EiPL problems with segmentation
+        problem_type = validated_data.get('problem_type', instance.problem_type)
+        if problem_type == 'eipl':
+            segmentation_config = validated_data.get('segmentation_config', instance.segmentation_config)
+            # If segmentation is enabled (or not explicitly disabled), require high-level comprehension
+            if segmentation_config.get('enabled', True):
+                validated_data['requires_highlevel_comprehension'] = True
+            else:
+                validated_data['requires_highlevel_comprehension'] = False
 
         with transaction.atomic():
             # Update problem fields

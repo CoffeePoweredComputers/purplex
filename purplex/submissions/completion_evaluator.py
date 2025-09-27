@@ -35,19 +35,21 @@ class CompletionEvaluator:
         if not submission.passed_all_tests:
             return CompletionStatus.INCOMPLETE
 
-        # Rule 2: For EiPL problems, must achieve relational understanding
+        # Rule 2: For EiPL problems, check segmentation if available
         if problem.problem_type == 'eipl' and problem.segmentation_enabled:
             # Check if segmentation analysis exists
-            if hasattr(submission, 'segmentation'):
+            if hasattr(submission, 'segmentation') and submission.segmentation:
                 segmentation = submission.segmentation
-                if segmentation.comprehension_level == 'relational':
+                # Use the 'passed' field which checks if segment_count <= threshold
+                if segmentation.passed:
                     return CompletionStatus.COMPLETE
                 else:
                     # Tests pass but comprehension insufficient
                     return CompletionStatus.PARTIAL
             else:
-                # Awaiting segmentation analysis
-                return CompletionStatus.PENDING
+                # No segmentation data available - fall through to complete based on tests
+                # This handles cases where segmentation fails or is not configured properly
+                pass
 
         # Rule 3: Non-EiPL problems just need to pass tests
         return CompletionStatus.COMPLETE
