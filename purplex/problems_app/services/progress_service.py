@@ -655,10 +655,9 @@ class ProgressService:
             problems_with_progress = []
             for membership in ProblemSetMembershipRepository.get_problem_set_memberships(problem_set):
                 problem = membership.problem
-                # Query for user progress without problem_set constraint to find progress
-                # from any context (problem might have been submitted from different problem sets)
+                # Get user progress for this specific context
                 user_progress = ProgressRepository.get_user_progress(
-                    user, problem, course, None  # Don't filter by problem_set
+                    user, problem, course, problem_set
                 )
 
                 # Get last submission to include segmentation_passed

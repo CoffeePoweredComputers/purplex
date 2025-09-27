@@ -96,45 +96,15 @@
             >
           </div>
 
-          <div class="form-group">
-            <label for="problemDescription">Description</label>
-            <textarea 
-              id="problemDescription" 
-              :value="problem.description"
-              class="form-textarea"
-              :class="{ error: errors.description && touched.description }"
-              rows="4"
-              placeholder="Provide a clear description of what the problem asks students to do"
-              required
-              @input="onFieldInput('description', $event.target.value)"
-              @blur="onFieldBlur('description')"
-            />
-            <span
-              v-if="errors.description && touched.description"
-              class="error-message"
-            >{{ errors.description }}</span>
-          </div>
 
           <!-- Fields specific to Function Redefinition -->
           <div v-if="problem.problem_type === 'function_redefinition'">
             <div class="form-group">
-              <label for="functionName">Function Name</label>
-              <input 
-                id="functionName" 
-                v-model="problem.function_name" 
-                type="text" 
-                class="form-input"
-                placeholder="e.g., calculate_sum"
-                required
-              >
-            </div>
-
-            <div class="form-group">
-              <label for="functionSignature">Function Signature</label>
-              <input 
-                id="functionSignature" 
-                v-model="problem.function_signature" 
-                type="text" 
+              <label for="functionSignature">Function Signature (with type hints)</label>
+              <input
+                id="functionSignature"
+                v-model="problem.function_signature"
+                type="text"
                 class="form-input"
                 placeholder="e.g., def calculate_sum(a: int, b: int) -> int:"
                 required
@@ -385,11 +355,10 @@
       },
 
       isFormValid() {
-        return Object.keys(this.errors).length === 0 && 
-               this.problem.title.trim() && 
-               this.problem.problem_type && 
-               this.problem.difficulty && 
-               this.problem.description.trim();
+        return Object.keys(this.errors).length === 0 &&
+               this.problem.title.trim() &&
+               this.problem.problem_type &&
+               this.problem.difficulty;
       }
     },
     watch: {
@@ -421,10 +390,8 @@
             category: this.problemData.categories && this.problemData.categories.length > 0 
               ? this.problemData.categories[0].name 
               : '',
-            description: this.problemData.description || '',
             problemSets: problemSets.map(ps => ps.slug || ps.id),
             // Function Redefinition fields
-            function_name: this.problemData.function_name || '',
             function_signature: this.problemData.function_signature || '',
             reference_solution: this.problemData.reference_solution || '',
             // EiPL fields - if problem_type is eipl, reference_solution contains the code snippet
@@ -441,9 +408,7 @@
           problem_type: '',
           difficulty: '',
           category: '',
-          description: '',
           problemSets: [],
-          function_name: '',
           function_signature: '',
           reference_solution: '',
           code_snippet: '',
@@ -462,9 +427,7 @@
           problem_type: '',
           difficulty: '',
           category: '',
-          description: '',
           problemSets: [],
-          function_name: '',
           function_signature: '',
           reference_solution: '',
           code_snippet: '',
@@ -476,7 +439,6 @@
       handleProblemTypeChange() {
         // Clear type-specific fields when switching problem types
         if (this.problem.problem_type === 'eipl') {
-          this.problem.function_name = '';
           this.problem.function_signature = '';
           this.problem.reference_solution = '';
         } else if (this.problem.problem_type === 'function_redefinition') {
@@ -539,24 +501,6 @@
             }
             break;
             
-          case 'description':
-            if (!value.trim()) {
-              errors.description = 'Description is required';
-            } else if (value.trim().length < 10) {
-              errors.description = 'Description must be at least 10 characters';
-            } else {
-              delete errors.description;
-            }
-            break;
-            
-          case 'function_name':
-            if (this.problem.problem_type === 'function_redefinition' && !value.trim()) {
-              errors.function_name = 'Function name is required';
-            } else {
-              delete errors.function_name;
-            }
-            break;
-            
           case 'reference_solution':
             if (this.problem.problem_type === 'function_redefinition' && !value.trim()) {
               errors.reference_solution = 'Reference solution is required';
@@ -601,13 +545,11 @@
             problem_type: this.problem.problem_type,
             difficulty: this.problem.difficulty,
             category: this.problem.category,
-            description: this.problem.description,
             problem_sets: this.problem.problemSets
           };
 
           // Add type-specific fields
           if (this.problem.problem_type === 'function_redefinition') {
-            problemData.function_name = this.problem.function_name;
             problemData.function_signature = this.problem.function_signature;
             problemData.reference_solution = this.problem.reference_solution;
           } else if (this.problem.problem_type === 'eipl') {

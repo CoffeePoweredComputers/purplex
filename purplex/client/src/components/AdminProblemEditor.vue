@@ -165,81 +165,19 @@
         </div>
       </div>
 
-      <!-- Problem Description -->
+      <!-- Code Solution -->
       <div class="form-section rounded-lg border-default transition-fast">
-        <h3>Problem Description</h3>
-        <div class="form-group">
-          <!-- Tab Navigation -->
-          <div class="markdown-tabs">
-            <button 
-              type="button"
-              class="tab-button"
-              :class="{ active: descriptionTab === 'edit' }"
-              @click="descriptionTab = 'edit'"
-            >
-              Edit
-            </button>
-            <button 
-              type="button"
-              class="tab-button"
-              :class="{ active: descriptionTab === 'preview' }"
-              @click="descriptionTab = 'preview'"
-            >
-              Preview
-            </button>
-          </div>
-          
-          <!-- Edit Tab -->
-          <div
-            v-if="descriptionTab === 'edit'"
-            class="markdown-content"
-          >
-            <textarea
-              id="description"
-              v-model="form.description"
-              placeholder="Write your problem description here using Markdown..."
-              rows="10"
-              class="markdown-textarea"
-            />
-          </div>
-          
-          <!-- Preview Tab -->
-          <div
-            v-if="descriptionTab === 'preview'"
-            class="markdown-content"
-          >
-            <div 
-              class="markdown-preview"
-              v-html="renderedDescription"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Function Details -->
-      <div class="form-section rounded-lg border-default transition-fast">
-        <h3>Function Details</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="function_name">Function Name *</label>
-            <input
-              id="function_name"
-              v-model="form.function_name"
-              type="text"
-              required
-              pattern="[a-zA-Z_][a-zA-Z0-9_]*"
-              placeholder="e.g., is_anagram"
-            >
-          </div>
-        </div>
+        <h3>Code Solution</h3>
 
         <div class="form-group">
-          <label for="function_signature">Function Signature</label>
+          <label for="function_signature">Function Signature (with type hints) *</label>
           <input
             id="function_signature"
             v-model="form.function_signature"
             type="text"
+            required
             placeholder="e.g., def is_anagram(str1: str, str2: str) -> bool:"
+            @input="parseFunctionSignature"
           >
         </div>
 
@@ -1132,11 +1070,9 @@ interface SegmentationConfig {
 
 interface FormState {
   title: string
-  description: string
   difficulty: DifficultyLevel
   problem_type: ProblemType
   category_ids: number[]
-  function_name: string
   function_signature: string
   reference_solution: string
   tags: string[]
@@ -1200,7 +1136,6 @@ export default defineComponent({
     clickOutsideHandler: ((event: MouseEvent) => void) | null
     editorFontSize: number
     editorTheme: string
-    descriptionTab: string
     hintsTab: string
     hints: HintsState
     newVariableMapping: { from: string; to: string }
@@ -1215,11 +1150,9 @@ export default defineComponent({
       // Single form state
       form: {
         title: '',
-        description: '',
         difficulty: 'beginner',
         problem_type: 'eipl',
         category_ids: [],
-        function_name: '',
         function_signature: '',
         reference_solution: '',
         tags: [],
@@ -1266,9 +1199,6 @@ export default defineComponent({
       // Editor settings
       editorFontSize: 14,
       editorTheme: 'monokai',
-      
-      // Markdown description tab
-      descriptionTab: 'edit',
       
       // Hints configuration
       hintsTab: 'variable_fade',
@@ -1337,32 +1267,32 @@ export default defineComponent({
       if (this.ui.loading) {return false;}
       
       const title = (this.form.title || '').toString().trim();
-      const functionName = (this.form.function_name || '').toString().trim();
+      const functionSignature = (this.form.function_signature || '').toString().trim();
       const referenceSolution = (this.form.reference_solution || '').toString().trim();
-      
+
       // Check for validation errors
-      if (!title || !functionName || !referenceSolution) {return false;}
+      if (!title || !functionSignature || !referenceSolution) {return false;}
       if (this.form.test_cases.length === 0) {return false;}
       if (this.form.test_cases.some(tc => tc.error)) {return false;}
       
       return true;
     },
     canTest() {
-      const functionName = (this.form.function_name || '').toString().trim();
+      const functionSignature = (this.form.function_signature || '').toString().trim();
       const referenceSolution = (this.form.reference_solution || '').toString().trim();
-      
+
       return !this.ui.loading &&
-             functionName.length > 0 &&
+             functionSignature.length > 0 &&
              referenceSolution.length > 0 &&
              this.form.test_cases.length > 0 &&
              this.form.test_cases.every(tc => !tc.error);
     },
     canTestReason() {
-      const functionName = (this.form.function_name || '').toString().trim();
+      const functionSignature = (this.form.function_signature || '').toString().trim();
       const referenceSolution = (this.form.reference_solution || '').toString().trim();
-      
+
       if (this.ui.loading) {return "Currently loading...";}
-      if (!functionName) {return "Function name required";}
+      if (!functionSignature) {return "Function signature required";}
       if (!referenceSolution) {return "Reference solution required";}
       if (this.form.test_cases.length === 0) {return "Add at least one test case";}
       if (this.form.test_cases.some(tc => tc.error)) {return "Fix test case errors first";}
@@ -1378,17 +1308,6 @@ export default defineComponent({
         left: this.popupPosition.left,
         zIndex: 1001
       };
-    },
-    renderedDescription() {
-      if (!this.form.description || !this.form.description.trim()) {
-        return '<p class="no-content">No description provided. Switch to the Edit tab to add content.</p>';
-      }
-      try {
-        return marked(this.form.description);
-      } catch (error) {
-        log.error('Error rendering markdown', error);
-        return '<p class="error">Error rendering markdown. Please check your syntax.</p>';
-      }
     },
     
     // Computed properties for segmentation segments
@@ -1516,6 +1435,29 @@ export default defineComponent({
     }
   },
   methods: {
+    /**
+     * Extract function name from reference solution
+     */
+    extractFunctionName() {
+      if (!this.form.reference_solution) {return '';}
+
+      const functionNameRegex = /def\s+(\w+)\s*\(/;
+      const match = this.form.reference_solution.match(functionNameRegex);
+      return match ? match[1] : '';
+    },
+
+    /**
+     * Extract function signature from reference solution
+     */
+    extractFunctionSignature() {
+      if (!this.form.reference_solution) {return '';}
+
+      // Match the full function definition line including type hints
+      const signatureRegex = /def\s+\w+\s*\([^)]*\)(?:\s*->\s*[^:]+)?:/;
+      const match = this.form.reference_solution.match(signatureRegex);
+      return match ? match[0] : '';
+    },
+
     async executeAction(actionName: string, actionFn: () => Promise<any>, successMsg: string | null = null): Promise<void> {
       log.debug('Execute action started', {
         actionName,
@@ -1937,8 +1879,8 @@ export default defineComponent({
         
         const testData = {
           title: this.form.title,
-          description: this.form.description,
-          function_name: this.form.function_name,
+          function_name: this.extractFunctionName(),
+          function_signature: this.form.function_signature,
           reference_solution: this.getApiSafeString(this.form.reference_solution),
           test_cases: convertedTestCases
         };
@@ -1978,16 +1920,13 @@ export default defineComponent({
           if ((!this.ui.testResults.results || this.ui.testResults.results.length === 0) && this.ui.testResults.total > 0) {
             log.warn('Backend returned empty results array, creating placeholders');
             
-            // Check for function name mismatch
-            const functionNameInProblem = this.form.function_name;
-            const functionNameRegex = /def\s+(\w+)\s*\(/;
-            const match = this.form.reference_solution.match(functionNameRegex);
-            const functionNameInSolution = match ? match[1] : null;
-            
+            // Extract function name from solution
+            const functionNameInSolution = this.extractFunctionName();
+
             let errorMessage = 'Test execution failed - no detailed results from backend';
-            
-            if (functionNameInSolution && functionNameInProblem !== functionNameInSolution) {
-              errorMessage = `Function name mismatch: Problem expects '${functionNameInProblem}' but solution defines '${functionNameInSolution}'`;
+
+            if (!functionNameInSolution) {
+              errorMessage = 'No function found in reference solution';
               log.error(errorMessage);
             }
             
@@ -2046,12 +1985,11 @@ export default defineComponent({
         
         const problemData = {
           title: this.getApiSafeString(this.form.title),
-          description: this.getApiSafeString(this.form.description),
           difficulty: this.form.difficulty,
           problem_type: this.form.problem_type,
           category_ids: Array.isArray(this.form.category_ids) ? this.form.category_ids : [],
-          function_name: this.getApiSafeString(this.form.function_name),
-          function_signature: this.getApiSafeString(this.form.function_signature),
+          function_name: this.extractFunctionName() || '',
+          function_signature: this.form.function_signature || '',
           reference_solution: this.getApiSafeString(this.form.reference_solution),
           tags: Array.isArray(this.form.tags) ? this.form.tags : [],
           test_cases: convertedTestCases,
@@ -2282,11 +2220,12 @@ export default defineComponent({
         return;
       }
       
-      // Validate it matches the problem's function name if available
-      if (this.form.function_name) {
+      // Validate it matches the function name from reference solution
+      const expectedFunctionName = this.extractFunctionName();
+      if (expectedFunctionName) {
         const functionName = call.trim().split('(')[0].trim();
-        if (functionName !== this.form.function_name) {
-          this.functionCallError = `Function name doesn't match problem function: ${this.form.function_name}`;
+        if (functionName !== expectedFunctionName) {
+          this.functionCallError = `Function name doesn't match problem function: ${expectedFunctionName}`;
           return;
         }
       }
@@ -2554,14 +2493,13 @@ export default defineComponent({
      * Parse function signature to extract parameters and return type
      */
     parseFunctionSignature() {
-      if (!this.form.function_signature) {
+      const signature = this.form.function_signature;
+      if (!signature) {
         this.functionParameters = [];
         this.returnType = 'Any';
         this.returnTypeSpec = { type: 'Any' };
         return;
       }
-      
-      const signature = this.form.function_signature.trim();
       
       // Parse function signature pattern: def func_name(param1: type1, param2: type2) -> return_type:
       const regex = /def\s+(\w+)\s*\((.*?)\)\s*(?:->\s*(.+?))?:/;

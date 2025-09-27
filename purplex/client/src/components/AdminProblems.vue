@@ -185,7 +185,7 @@ export default defineComponent({
         const response = await axios.get('/api/admin/problem-sets/');
         this.problemSets = response.data;
       } catch (error) {
-        console.error('Error fetching problem sets:', error);
+        log.error('Error fetching problem sets', { error });
         // Don't set error state here as it's not critical for the page to load
       }
     },
@@ -266,7 +266,7 @@ export default defineComponent({
         this.problems = this.problems.filter(p => p.slug !== problem.slug);
       } catch (error) {
         this.error = 'Failed to delete problem. Please try again.';
-        console.error('Error deleting problem:', error);
+        log.error('Error deleting problem', { error });
       }
     },
 

@@ -331,6 +331,7 @@
 <script>
 import Editor from '@/features/editor/Editor.vue';
 import { formatTestValue, getValueDisplayClass, isMissingValue } from '@/utils/testValueFormatter';
+import { log } from '@/utils/logger';
 
 export default {
   name: 'ViewSubmissionModal',
@@ -624,7 +625,7 @@ export default {
         await navigator.clipboard.writeText(code);
         // Could show a toast notification here
       } catch (err) {
-        console.error('Failed to copy:', err);
+        log.error('Failed to copy to clipboard', { error: err });
       }
     }
   }

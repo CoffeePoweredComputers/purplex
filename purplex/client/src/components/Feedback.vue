@@ -379,14 +379,6 @@ export default defineComponent({
     shouldShowSegmentation(): boolean {
       // Show segmentation section if it's an EiPL problem and segmentation is enabled
       const result = this.isEiPLProblem && this.segmentationEnabled;
-      console.log('Feedback.shouldShowSegmentation:', {
-        isEiPLProblem: this.isEiPLProblem,
-        problemType: this.problemType,
-        segmentationEnabled: this.segmentationEnabled,
-        hasSegmentation: !!this.segmentation,
-        segmentation: this.segmentation,
-        result
-      });
       return result;
     },
     slides(): Slide[] {
@@ -479,23 +471,12 @@ export default defineComponent({
     },
     segmentation: {
       handler(newVal, oldVal) {
-        console.log('Feedback: segmentation prop changed', {
-          oldVal,
-          newVal,
-          problemType: this.problemType,
-          segmentationEnabled: this.segmentationEnabled,
-          shouldShowSegmentation: this.shouldShowSegmentation
-        });
+        // Segmentation prop changed
       },
       deep: true
     },
     segmentationEnabled(newVal, oldVal) {
-      console.log('Feedback: segmentationEnabled prop changed', {
-        oldVal,
-        newVal,
-        problemType: this.problemType,
-        shouldShowSegmentation: this.shouldShowSegmentation
-      });
+      // Segmentation enabled prop changed
     },
     slides: {
       handler() {
@@ -505,10 +486,6 @@ export default defineComponent({
     },
     submissionHistory: {
       handler(newHistory) {
-        console.log('Feedback: submissionHistory changed', {
-          length: newHistory?.length,
-          history: newHistory
-        });
         this.initializeSubmissionHistory();
       },
       deep: true,
@@ -516,13 +493,6 @@ export default defineComponent({
     }
   },
   mounted() {
-    console.log('Feedback component mounted with props:', {
-      problemType: this.problemType,
-      segmentationEnabled: this.segmentationEnabled,
-      segmentation: this.segmentation,
-      shouldShowSegmentation: this.shouldShowSegmentation,
-      submissionHistory: this.submissionHistory
-    });
     this.initializeSubmissionHistory();
     this.updateSolutionCode();
 
@@ -542,10 +512,6 @@ export default defineComponent({
 
     // Initialize submission history data
     initializeSubmissionHistory(): void {
-      console.log('Initializing submission history', {
-        history: this.submissionHistory,
-        length: this.submissionHistory?.length
-      });
 
       if (this.submissionHistory && this.submissionHistory.length > 0) {
         this.totalAttempts = this.submissionHistory.length;

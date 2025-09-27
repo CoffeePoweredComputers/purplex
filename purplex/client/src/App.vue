@@ -95,7 +95,7 @@ export default defineComponent({
             // Now check authentication state
             await this.$store.dispatch('auth/checkAuthState');
         } catch (error) {
-            console.error('Error initializing auth:', error);
+            // Auth initialization error handled silently
         } finally {
             this.authInitialized = true;
         }

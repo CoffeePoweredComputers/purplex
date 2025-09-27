@@ -76,11 +76,29 @@ WSGI_APPLICATION = 'purplex.wsgi.application'
 # Database configuration from environment
 import dj_database_url
 
+# Parse base database configuration
+db_config = dj_database_url.parse(
+    config.database_url,
+    conn_max_age=600 if config.is_production else 60  # Increased connection lifetime
+)
+
+# Add enhanced connection pool settings for high concurrency
+db_config.update({
+    'OPTIONS': {
+        'connect_timeout': 10,
+        'options': '-c statement_timeout=30000',  # 30 second statement timeout
+        # Note: psycopg2 doesn't support built-in pooling, but these help with connection management
+        'keepalives': 1,
+        'keepalives_idle': 30,
+        'keepalives_interval': 10,
+        'keepalives_count': 5,
+    },
+    # Increase max connections Django will use
+    'CONN_MAX_AGE': 600 if config.is_production else 60,
+})
+
 DATABASES = {
-    'default': dj_database_url.parse(
-        config.database_url,
-        conn_max_age=60 if config.is_production else 0
-    )
+    'default': db_config
 }
 
 # Password validation

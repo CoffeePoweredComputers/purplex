@@ -48,11 +48,13 @@ class Problem(models.Model):
     slug = models.SlugField(max_length=100, unique=True, blank=True)
     problem_type = models.CharField(max_length=30, choices=PROBLEM_TYPE_CHOICES, default='eipl')
     title = models.CharField(max_length=200)
-    description = models.TextField(help_text='Problem description in markdown format')
+    # NOTE: Description field is deprecated - students never see it, only the code
+    description = models.TextField(blank=True, null=True, default='', help_text='DEPRECATED - Not shown to students')
     difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='beginner')
     categories = models.ManyToManyField(ProblemCategory, related_name='problems', blank=True)
-    function_name = models.CharField(max_length=50, help_text='Name of the function students implement')
-    function_signature = models.TextField(help_text='Function signature with parameter names and types')
+    # NOTE: function_name is auto-extracted from reference_solution, function_signature is required for test case parsing
+    function_name = models.CharField(max_length=50, blank=True, default='', help_text='Auto-extracted from reference solution')
+    function_signature = models.TextField(help_text='Function signature with type hints for test case parsing')
     reference_solution = models.TextField(help_text='Reference implementation')
     memory_limit = models.PositiveIntegerField(default=128, help_text='Memory limit in MB')
     tags = models.JSONField(default=list, blank=True, help_text='Array of tag strings')
@@ -108,9 +110,10 @@ class Problem(models.Model):
         super().save(*args, **kwargs)
 
     def clean(self):
-        if self.function_name and not self.function_name.isidentifier():
+        # Only validate function_name if it's provided (it's now auto-extracted)
+        if self.function_name and self.function_name.strip() and not self.function_name.isidentifier():
             raise ValidationError('Function name must be a valid Python identifier')
-        
+
         if self.tags and not isinstance(self.tags, list):
             raise ValidationError('Tags must be a list of strings')
 

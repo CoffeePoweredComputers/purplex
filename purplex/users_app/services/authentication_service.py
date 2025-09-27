@@ -5,6 +5,8 @@ This is the ONLY place that handles Firebase authentication.
 from typing import Optional, Tuple, Dict, Any, TYPE_CHECKING
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.core.cache import cache
+import hashlib
 import logging
 
 # Import models only for type hints
@@ -94,51 +96,88 @@ class AuthenticationService:
     @classmethod
     def authenticate_token(cls, token: str) -> Tuple[User, Dict[str, Any]]:
         """
-        Authenticate a Firebase token and return user.
-        
+        Authenticate a Firebase token and return user with caching.
+
         This is the ONLY method that verifies Firebase tokens.
         Handles both mock (dev) and real (prod) Firebase.
-        
+        Caches verified tokens for 5 minutes to reduce Firebase API calls.
+
         Args:
             token: Firebase ID token
-            
+
         Returns:
             Tuple of (User instance, decoded token data)
-            
+
         Raises:
             ValueError: If token is invalid or expired
         """
         if not token:
             raise ValueError("No token provided")
-        
+
+        # Generate secure cache key from token hash
+        token_hash = hashlib.sha256(token.encode()).hexdigest()[:16]
+        cache_key = f"firebase:token:{token_hash}"
+
+        # Try to get from cache
+        try:
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                # Validate token hasn't expired
+                # Firebase tokens have an 'exp' field with Unix timestamp
+                if cached_data.get('exp', 0) > time.time():
+                    # Get user from cache or database
+                    firebase_uid = cached_data['uid']
+                    user = cls.get_cached_user(firebase_uid)
+
+                    # Log cache hit for monitoring
+                    logger.debug(f"Token cache hit for user {firebase_uid}")
+
+                    return (user, cached_data)
+                else:
+                    # Token expired, clear from cache
+                    cache.delete(cache_key)
+                    logger.debug(f"Cached token expired for hash {token_hash}")
+        except Exception as e:
+            # Cache read failed, fall back to Firebase verification
+            logger.warning(f"Cache read failed, falling back to Firebase: {e}")
+
+        # Cache miss or error - verify with Firebase
         # Get Firebase auth module (mock or real)
         auth_module = cls._initialize_firebase()
-        
+
         try:
             # Verify the token (same interface for mock and real)
             decoded_token = auth_module.verify_id_token(token)
-            
+
             # Extract user information
             firebase_uid = decoded_token['uid']
             email = decoded_token.get('email', '')
             display_name = decoded_token.get('name', '')
-            
+
             # Get or create the user
             user = cls.get_or_create_user(firebase_uid, email, display_name)
-            
+
+            # Cache the successful result for 5 minutes
+            try:
+                cache.set(cache_key, decoded_token, 300)  # 5 minutes
+                logger.debug(f"Cached token for user {firebase_uid}")
+            except Exception as e:
+                # Cache write failed, continue without caching
+                logger.warning(f"Cache write failed: {e}")
+
             # Log authentication in development
             if config.is_development:
                 logger.debug(f"Authenticated user: {user.username} (email: {email})")
-            
+
             return (user, decoded_token)
-            
+
         except Exception as e:
             # Handle different exception types - sanitize error messages
             error_name = e.__class__.__name__
-            
+
             # Log detailed error for debugging
             logger.error(f"Authentication error - Type: {error_name}, Details: {e}")
-            
+
             # Return generic error messages to client
             if 'InvalidIdTokenError' in error_name:
                 raise ValueError("Invalid authentication credentials")
@@ -147,51 +186,129 @@ class AuthenticationService:
             else:
                 # Never expose internal error details to client
                 raise ValueError("Authentication failed")
-    
+
+    @classmethod
+    def get_cached_user(cls, firebase_uid: str) -> User:
+        """
+        Get a user from cache or database.
+
+        Caches User objects for 10 minutes to reduce database queries.
+
+        Args:
+            firebase_uid: Firebase user ID
+
+        Returns:
+            Django User instance
+
+        Raises:
+            ValueError: If user not found
+        """
+        # User cache key (10 minute TTL)
+        user_cache_key = f"firebase:user:{firebase_uid}"
+
+        # Try to get from cache
+        try:
+            cached_user_id = cache.get(user_cache_key)
+            if cached_user_id:
+                # Try to get user from database by cached ID
+                user = UserRepository.get_by_id(cached_user_id)
+                if user:
+                    logger.debug(f"User cache hit for Firebase UID {firebase_uid}")
+                    return user
+                else:
+                    # User deleted, clear cache
+                    cache.delete(user_cache_key)
+                    logger.debug(f"Cached user no longer exists, cleared cache for {firebase_uid}")
+        except Exception as e:
+            logger.warning(f"User cache read failed: {e}")
+
+        # Cache miss - get from database
+        user_profile = UserProfileRepository.get_by_firebase_uid(firebase_uid)
+        if not user_profile:
+            raise ValueError(f"User not found for Firebase UID: {firebase_uid}")
+
+        user = user_profile.user
+
+        # Cache the user ID for 10 minutes
+        try:
+            cache.set(user_cache_key, user.id, 600)  # 10 minutes
+            logger.debug(f"Cached user {user.username} for Firebase UID {firebase_uid}")
+        except Exception as e:
+            logger.warning(f"User cache write failed: {e}")
+
+        return user
+
+    @classmethod
+    def clear_user_cache(cls, firebase_uid: str) -> None:
+        """
+        Clear cached user data when user info is updated.
+
+        Args:
+            firebase_uid: Firebase user ID to clear from cache
+        """
+        user_cache_key = f"firebase:user:{firebase_uid}"
+        try:
+            cache.delete(user_cache_key)
+            logger.debug(f"Cleared user cache for Firebase UID {firebase_uid}")
+        except Exception as e:
+            logger.warning(f"Failed to clear user cache: {e}")
+
     @classmethod
     def get_or_create_user(cls, firebase_uid: str, email: str, display_name: str) -> User:
         """
-        Get existing user or create new one.
-        
-        Uses database transaction to prevent race conditions.
-        
+        Get existing user or create new one using Django's race-condition-safe get_or_create.
+
+        This method avoids database locking bottlenecks by using Django's built-in
+        get_or_create pattern which handles race conditions through database constraints.
+        Includes retry logic for handling connection pool exhaustion.
+
         Args:
             firebase_uid: Firebase user ID
             email: User's email address
             display_name: User's display name
-            
+
         Returns:
             Django User instance
         """
-        from django.db import transaction
-        
-        with transaction.atomic():
-            # Try to get existing user profile with lock for update
-            user_profile = UserProfileRepository.get_by_firebase_uid_for_update(firebase_uid)
-            if user_profile:
-                user = user_profile.user
-                
-                # Update user info if changed
-                cls._update_user_if_needed(user, email, display_name)
-                
-                return user
-            else:
-                # Create new user
-                user = cls._create_django_user(firebase_uid, email, display_name)
-                
-                # Create user profile using repository
-                user_profile = UserProfileRepository.create(
-                    user=user,
-                    firebase_uid=firebase_uid,
-                    role='user'
-                )
-                
-                # Apply test user permissions in development
-                if config.is_development and email:
-                    cls._apply_test_user_permissions(user, user_profile, email)
-                
-                logger.info(f"Created new user: {user.username} (Firebase UID: {firebase_uid})")
-                return user
+        import time
+        from purplex.users_app.utils.retry_utils import retry_with_backoff
+
+        start_time = time.time()
+
+        # Wrap the repository call with retry logic for connection pool issues
+        @retry_with_backoff(
+            max_retries=3,
+            initial_delay=0.05,
+            max_delay=2.0,
+            backoff_factor=2.0
+        )
+        def get_or_create_with_retry():
+            return UserProfileRepository.get_or_create_with_user(
+                firebase_uid=firebase_uid,
+                email=email,
+                display_name=display_name
+            )
+
+        # Get or create the user profile and associated user with retry logic
+        user_profile, user = get_or_create_with_retry()
+
+        # Update user info if profile existed but info changed
+        if not user_profile.was_created:
+            cls._update_user_if_needed(user, email, display_name)
+
+        # Apply test user permissions in development for new users
+        if user_profile.was_created and config.is_development and email:
+            cls._apply_test_user_permissions(user, user_profile, email)
+
+        # Log slow operations for monitoring
+        duration = time.time() - start_time
+        if duration > 0.1:  # Log operations taking more than 100ms
+            logger.warning(f"Slow user creation/lookup: {duration:.3f}s for {firebase_uid}")
+
+        if user_profile.was_created:
+            logger.info(f"Created new user: {user.username} (Firebase UID: {firebase_uid})")
+
+        return user
     
     @classmethod
     def _create_django_user(cls, firebase_uid: str, email: str, display_name: str) -> User:
@@ -232,25 +349,30 @@ class AuthenticationService:
     def _update_user_if_needed(cls, user: User, email: str, display_name: str) -> None:
         """
         Update Django user if Firebase data has changed.
-        
+
         Args:
             user: Django User instance
             email: Current email from Firebase
             display_name: Current display name from Firebase
         """
         updated = False
-        
+
         if email and user.email != email:
             user.email = email
             updated = True
-        
+
         if display_name and user.first_name != display_name:
             user.first_name = display_name
             updated = True
-        
+
         if updated:
             user.save()
             logger.debug(f"Updated user {user.username}: email={email}, name={display_name}")
+
+            # Clear user cache when user info is updated
+            user_profile = UserProfileRepository.get_by_user_id(user.id)
+            if user_profile and user_profile.firebase_uid:
+                cls.clear_user_cache(user_profile.firebase_uid)
     
     @classmethod
     def _apply_test_user_permissions(cls, user: User, user_profile: UserProfile, email: str) -> None:

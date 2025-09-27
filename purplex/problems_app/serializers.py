@@ -158,8 +158,7 @@ class AdminProblemSerializer(ProblemSerializer):
             # Perform basic validation instead
             if not attrs.get('title', '').strip():
                 raise serializers.ValidationError({'title': ['Title is required']})
-            if not attrs.get('function_name', '').strip():
-                raise serializers.ValidationError({'function_name': ['Function name is required']})
+            # function_name and function_signature are now auto-extracted from reference_solution
             if not attrs.get('reference_solution', '').strip():
                 raise serializers.ValidationError({'reference_solution': ['Reference solution is required']})
             
@@ -168,10 +167,25 @@ class AdminProblemSerializer(ProblemSerializer):
     def create(self, validated_data):
         """Create problem with test cases in a transaction"""
         from django.db import transaction
-        
+        import re
+
         test_cases_data = validated_data.pop('test_cases', [])
         category_ids = validated_data.pop('category_ids', [])
-        
+
+        # Auto-extract function_name from reference_solution if not provided
+        # function_signature is now required and must be provided explicitly for test case parsing
+        reference_solution = validated_data.get('reference_solution', '')
+        if reference_solution:
+            # Extract function_name if not provided
+            if not validated_data.get('function_name'):
+                func_name_match = re.match(r'def\s+(\w+)\s*\(', reference_solution)
+                if func_name_match:
+                    validated_data['function_name'] = func_name_match.group(1)
+
+        # Ensure description has a default value if not provided (field is deprecated)
+        if 'description' not in validated_data or not validated_data['description']:
+            validated_data['description'] = ''
+
         with transaction.atomic():
             # Create the problem using service
             problem = AdminProblemService.create_problem(validated_data)
@@ -191,10 +205,21 @@ class AdminProblemSerializer(ProblemSerializer):
     def update(self, instance, validated_data):
         """Update problem with test cases in a transaction"""
         from django.db import transaction
-        
+        import re
+
         test_cases_data = validated_data.pop('test_cases', None)
         category_ids = validated_data.pop('category_ids', None)
-        
+
+        # Auto-extract function_name from reference_solution if not provided
+        # function_signature is now required and must be provided explicitly for test case parsing
+        reference_solution = validated_data.get('reference_solution', instance.reference_solution)
+        if reference_solution:
+            # Extract function_name if not provided
+            if 'function_name' not in validated_data or not validated_data.get('function_name'):
+                func_name_match = re.match(r'def\s+(\w+)\s*\(', reference_solution)
+                if func_name_match:
+                    validated_data['function_name'] = func_name_match.group(1)
+
         with transaction.atomic():
             # Update problem fields
             for attr, value in validated_data.items():

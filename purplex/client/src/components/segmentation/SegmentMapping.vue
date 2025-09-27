@@ -107,11 +107,6 @@ export default defineComponent({
       if (!this.segments || this.segments.length === 0) {
         return [{ text: this.userPrompt, isSegment: false }];
       }
-      
-      // Debug logging
-      console.log('Parsing response with segments:', this.segments);
-      console.log('User prompt:', this.userPrompt);
-      
       // Try to reconstruct the prompt with segments inline
       const result: ParsedResponsePart[] = [];
       const workingPrompt = this.userPrompt;
@@ -195,19 +190,6 @@ export default defineComponent({
     
     setActiveSegment(segmentId: number): void {
       this.activeSegment = segmentId;
-      // Debug the segment data
-      const segment = this.segments.find(s => s.id === segmentId);
-      if (segment) {
-        console.log('Active segment:', segmentId, segment);
-        console.log('Code lines type:', typeof segment.code_lines);
-        console.log('Code lines value:', segment.code_lines);
-        // Try to expand proxy if it's a proxy
-        try {
-          console.log('Code lines array:', Array.from(segment.code_lines));
-        } catch (e) {
-          console.log('Could not convert to array:', e);
-        }
-      }
     },
     
     clearActiveSegment(): void {

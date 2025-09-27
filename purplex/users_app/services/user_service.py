@@ -58,17 +58,15 @@ class UserService:
     def get_user_profile(cls, user: User) -> Optional[UserProfile]:
         """
         Get user profile for a user.
-        
+
         Args:
             user: User instance
-            
+
         Returns:
             UserProfile instance or None
         """
-        try:
-            return user.userprofile
-        except UserProfile.DoesNotExist:
-            return None
+        # Use repository to get profile instead of direct attribute access
+        return UserProfileRepository.get_by_user(user)
     
     @classmethod
     def update_user_role(cls, user: User, role: str) -> UserProfile:

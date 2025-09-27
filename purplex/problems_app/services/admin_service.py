@@ -574,14 +574,25 @@ class AdminProblemService:
     
     @staticmethod
     def update_problem_set_relations(
-        problem: 'Problem', 
+        problem: 'Problem',
         problem_sets: List['ProblemSet']
     ) -> None:
         """
         Update problem set relationships for a problem.
-        
+
         Args:
             problem: Problem instance
             problem_sets: List of ProblemSet instances to associate
         """
-        ProblemRepository.set_problem_sets(problem, problem_sets)
+        # Clear existing memberships for this problem
+        ProblemSetMembershipRepository.delete_problem_memberships(problem)
+
+        # Create new memberships with proper ordering
+        for problem_set in problem_sets:
+            # Get the current count of problems in the set for ordering
+            order = ProblemSetMembershipRepository.count_problem_set_memberships(problem_set)
+            ProblemSetMembershipRepository.create_membership(
+                problem_set=problem_set,
+                problem=problem,
+                order=order
+            )

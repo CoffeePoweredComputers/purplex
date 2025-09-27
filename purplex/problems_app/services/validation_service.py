@@ -33,8 +33,8 @@ class ProblemValidationService:
         Returns:
             (is_valid, error_message)
         """
-        # Required fields
-        required_fields = ['title', 'description', 'function_name', 'function_signature']
+        # Required fields (function_signature is required for test case parsing)
+        required_fields = ['title', 'reference_solution', 'function_signature']
         for field in required_fields:
             if not data.get(field):
                 return False, f"{field} is required"
@@ -46,27 +46,42 @@ class ProblemValidationService:
         if len(title) > ProblemValidationService.MAX_TITLE_LENGTH:
             return False, f"Title must not exceed {ProblemValidationService.MAX_TITLE_LENGTH} characters"
         
-        # Description validation
-        description = data['description'].strip()
-        if len(description) < ProblemValidationService.MIN_DESCRIPTION_LENGTH:
-            return False, f"Description must be at least {ProblemValidationService.MIN_DESCRIPTION_LENGTH} characters long"
-        
-        # Function name validation
-        function_name = data['function_name']
-        is_valid, error = ProblemValidationService.validate_function_name(function_name)
-        if not is_valid:
-            return False, error
-        
-        # Function signature validation
-        function_signature = data['function_signature']
-        if not function_signature.strip().startswith('def'):
+        # Description validation (now optional - field is deprecated)
+        if data.get('description'):
+            description = data['description'].strip()
+            # Only validate if provided (for backwards compatibility)
+            if description and len(description) < ProblemValidationService.MIN_DESCRIPTION_LENGTH:
+                return False, f"Description must be at least {ProblemValidationService.MIN_DESCRIPTION_LENGTH} characters long"
+
+        # Function name validation (now optional - auto-extracted from reference solution)
+        if data.get('function_name'):
+            function_name = data['function_name']
+            is_valid, error = ProblemValidationService.validate_function_name(function_name)
+            if not is_valid:
+                return False, error
+
+        # Function signature validation (required for test case parsing)
+        function_signature = data['function_signature'].strip()
+        if not function_signature.startswith('def'):
             return False, "Function signature must start with 'def'"
-        
-        # Reference solution validation (if provided)
-        if data.get('reference_solution'):
-            ref_solution = data['reference_solution'].strip()
-            if ref_solution and not ref_solution.startswith('def'):
-                return False, "Reference solution must be a valid function definition"
+        if ':' not in function_signature:
+            return False, "Function signature must include type hints (e.g., def func(x: int) -> int:)"
+
+        # Reference solution validation (now required)
+        ref_solution = data['reference_solution'].strip()
+        if not ref_solution.startswith('def'):
+            return False, "Reference solution must be a valid function definition"
+
+        # Extract and validate function name from reference solution if not provided
+        if not data.get('function_name'):
+            function_name_match = re.match(r'def\s+(\w+)\s*\(', ref_solution)
+            if not function_name_match:
+                return False, "Reference solution must contain a valid function definition with a function name"
+            # Optionally validate the extracted function name
+            extracted_name = function_name_match.group(1)
+            is_valid, error = ProblemValidationService.validate_function_name(extracted_name)
+            if not is_valid:
+                return False, f"Function name in reference solution is invalid: {error}"
         
         return True, None
     

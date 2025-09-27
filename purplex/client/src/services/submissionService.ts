@@ -252,11 +252,9 @@ class SubmissionService {
       }
 
       const url = `${this.baseURL}/submissions/history/${problemSlug}/`;
-      console.log('Fetching submission history from:', url, 'with params:', params);
 
       const response = await axios.get(url, { params });
 
-      console.log('Submission history response:', response.data);
       log.info('Fetched submission history', {
         problemSlug,
         totalAttempts: response.data.total_attempts
@@ -264,7 +262,6 @@ class SubmissionService {
 
       return response.data;
     } catch (error: any) {
-      console.error('Failed to fetch submission history:', error.response || error);
       log.error('Failed to fetch submission history', {
         problemSlug,
         error,
