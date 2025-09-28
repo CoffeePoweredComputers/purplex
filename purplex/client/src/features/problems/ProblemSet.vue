@@ -239,7 +239,7 @@
           :segmentation="segmentationData"
           :reference-code="getCurrentProblem()?.reference_solution || ''"
           :problem-type="getCurrentProblem()?.problem_type || ''"
-          :segmentation-enabled="getCurrentProblem()?.segmentation_enabled || false"
+          :segmentation-enabled="getCurrentProblem()?.segmentation_enabled === true"
           :is-loading="loading"
           :submission-history="submissionHistory"
           title="Feedback"
@@ -566,7 +566,13 @@ export default {
                     this.promptCorrectness = submissionData.passing_variations || 0;
                     this.comprehensionResults = submissionData.feedback || '';
                     this.userPrompt = submissionData.user_prompt || '';
-                    this.segmentationData = submissionData.segmentation || null;
+                    // Only set segmentation data if the problem has segmentation enabled
+                    const currentProblem = this.getCurrentProblem();
+                    if (currentProblem?.segmentation_enabled && submissionData.segmentation) {
+                        this.segmentationData = submissionData.segmentation;
+                    } else {
+                        this.segmentationData = null;
+                    }
 
                     this.logger.info('Navigation: Applied submission data', {
                         problemSlug: problem.slug,
@@ -725,6 +731,7 @@ export default {
                 this.submissionHistory = historyResponse.submissions || [];
                 this.logger.info('Loaded submission history', {
                     problemSlug,
+                    problemSetSlug: this.$route.params.slug,
                     totalAttempts: historyResponse.total_attempts,
                     bestScore: historyResponse.best_score,
                     submissions: this.submissionHistory
@@ -801,8 +808,13 @@ export default {
                 this.promptCorrectness = attempt.score;
                 this.userPrompt = data.raw_input;
                 this.comprehensionResults = '';
-                // Apply segmentation data if present
-                this.segmentationData = attempt.segmentation || null;
+                // Apply segmentation data only if the problem has segmentation enabled
+                const currentProblem = this.getCurrentProblem();
+                if (currentProblem?.segmentation_enabled && attempt.segmentation) {
+                    this.segmentationData = attempt.segmentation;
+                } else {
+                    this.segmentationData = null;
+                }
 
                 // Update UI to reflect loaded attempt
                 this.logger.info('Applied attempt data to feedback', {
@@ -854,7 +866,8 @@ export default {
             if (!this.problems || this.problems.length === 0) {
                 return { solution: '', slug: '', name: 'Loading...' };
             }
-            return this.problems[this.currentProblem] || this.problems[0];
+            const problem = this.problems[this.currentProblem] || this.problems[0];
+            return problem;
         },
         
         getProblem() {
@@ -1054,7 +1067,14 @@ export default {
                             this.promptEditorValue = trimmedPrompt;
 
                             // Handle segmentation data from SSE response
-                            this.segmentationData = segmentation || null;
+                            // Only set segmentation data if the problem has segmentation enabled
+                            const currentProblem = this.getCurrentProblem();
+
+                            if (currentProblem?.segmentation_enabled && segmentation) {
+                                this.segmentationData = segmentation;
+                            } else {
+                                this.segmentationData = null;
+                            }
                         } else {
                             this.logger.info('SSE results received for different problem, not updating display', {
                                 submittedProblem: currentProblemSlug,

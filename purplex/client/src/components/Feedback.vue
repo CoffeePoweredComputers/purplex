@@ -103,7 +103,7 @@
 
       <!-- Comprehension Banner -->
       <ComprehensionBanner
-        v-if="shouldShowSegmentation && segmentation"
+        v-if="shouldShowSegmentation && segmentation && Object.keys(segmentation).length > 0"
         :segmentation="segmentation"
         :reference-code="referenceCode"
         @show-details="showSegmentAnalysisModal = true"
@@ -377,9 +377,11 @@ export default defineComponent({
       return this.problemType === 'eipl';
     },
     shouldShowSegmentation(): boolean {
-      // Show segmentation section if it's an EiPL problem and segmentation is enabled
-      const result = this.isEiPLProblem && this.segmentationEnabled;
-      return result;
+      return this.isEiPLProblem &&
+             this.segmentationEnabled === true &&
+             this.segmentation != null &&
+             typeof this.segmentation === 'object' &&
+             Object.keys(this.segmentation).length > 0;
     },
     slides(): Slide[] {
       const slideResults = this.codeResults.map((code, index) => {
@@ -468,15 +470,6 @@ export default defineComponent({
       if (newVal) {
         this.positionDropdown();
       }
-    },
-    segmentation: {
-      handler(newVal, oldVal) {
-        // Segmentation prop changed
-      },
-      deep: true
-    },
-    segmentationEnabled(newVal, oldVal) {
-      // Segmentation enabled prop changed
     },
     slides: {
       handler() {

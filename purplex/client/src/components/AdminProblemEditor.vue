@@ -1575,7 +1575,7 @@ export default defineComponent({
         // Load segmentation config if it exists
         if (loadedProblem.segmentation_config && Object.keys(loadedProblem.segmentation_config).length > 0) {
           const config = loadedProblem.segmentation_config;
-          this.segmentation.enabled = config.enabled || true;
+          this.segmentation.enabled = config.enabled !== undefined ? config.enabled : true;
           this.segmentation.threshold = config.threshold || 2;
           
           // Load examples with proper format

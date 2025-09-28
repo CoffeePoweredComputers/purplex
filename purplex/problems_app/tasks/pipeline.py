@@ -350,7 +350,8 @@ def save_submission_helper(
 
             SubmissionService.record_segmentation(submission, segmentation_data)
 
-    return {
+    # Only include segmentation data if it's enabled for the problem
+    result_data = {
         'submission_id': str(submission.submission_id),  # Use UUID
         'variations': variations,
         'test_results': test_results,
@@ -361,8 +362,15 @@ def save_submission_helper(
         'user_prompt': user_prompt,
         'problem_slug': problem.slug,
         'user': user.username,
-        'segmentation': segmentation  # Include segmentation data
     }
+
+    # Only include segmentation if enabled for this problem
+    if problem.segmentation_enabled:
+        result_data['segmentation'] = segmentation
+    else:
+        result_data['segmentation'] = None
+
+    return result_data
 
 
 @shared_task(bind=True, name='pipeline.execute_eipl')

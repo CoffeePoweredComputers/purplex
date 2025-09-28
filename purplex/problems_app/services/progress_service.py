@@ -746,10 +746,23 @@ class ProgressService:
 
         # Get last submission using new model
         from purplex.submissions.models import Submission
+
+        # Build filter with proper context - MUST include problem_set to prevent cross-set leakage
+        filters = {
+            'user': user,
+            'problem': problem,
+        }
+
+        # Add problem_set filter if provided - this is critical to prevent seeing submissions from other sets
+        if problem_set:
+            filters['problem_set'] = problem_set
+
+        # Add course filter if provided
+        if course:
+            filters['course'] = course
+
         submission = Submission.objects.filter(
-            user=user,
-            problem=problem,
-            course=course
+            **filters
         ).order_by('-submitted_at').first()
 
         return {
@@ -858,8 +871,9 @@ class ProgressService:
 
     @staticmethod
     def _extract_segmentation(submission):
-        """Extract segmentation data if exists."""
-        if hasattr(submission, 'segmentation'):
+        """Extract segmentation data only if segmentation is enabled for the problem."""
+        if (hasattr(submission, 'segmentation') and submission.segmentation and
+            submission.problem.segmentation_enabled):
             seg = submission.segmentation
             return {
                 'segments': seg.segments,

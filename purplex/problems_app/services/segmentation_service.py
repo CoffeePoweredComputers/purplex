@@ -23,12 +23,12 @@ class SegmentationService:
     def segment_prompt(self, user_prompt: str, reference_code: str, problem_config: dict = None) -> dict:
         """
         Segment user prompt and map to code lines using GPT-4
-        
+
         Args:
             user_prompt: User's explanation of the code
             reference_code: Reference solution code
             problem_config: Problem-specific segmentation configuration
-            
+
         Returns:
             {
                 'success': bool,
@@ -41,7 +41,7 @@ class SegmentationService:
             }
         """
         start_time = time.time()
-        
+
         if not self.client:
             return {
                 'success': False,
@@ -53,16 +53,16 @@ class SegmentationService:
                 'feedback': '',
                 'processing_time': 0.0
             }
-        
+
         try:
             # Get configuration values
             config = problem_config or {}
             threshold = config.get('threshold', 2)
             custom_examples = config.get('examples', {})
-            
+
             # Create segmentation prompt with few-shot examples
             system_prompt = self._create_segmentation_prompt(reference_code, custom_examples)
-            
+
             # Make API call to GPT-4
             response = self.client.chat.completions.create(
                 model=self.model_name,  # Using configured model
@@ -73,8 +73,11 @@ class SegmentationService:
                 temperature=0.3,  # Lower temperature for more consistent analysis
                 max_tokens=1500
             )
-            
+
             content = response.choices[0].message.content
+
+            # Log raw AI response for debugging
+            self._log_segmentation_debug(user_prompt, reference_code, content)
             
             # Parse the response into structured segments
             segments_data = self._parse_segments(content, reference_code, user_prompt)
@@ -97,8 +100,8 @@ class SegmentationService:
             
             # Determine comprehension level and feedback
             level, feedback = self._determine_comprehension_level(segment_count, threshold, config)
-            
-            return {
+
+            result = {
                 'success': True,
                 'segments': segments,
                 'groups': groups,  # Include EiPL Grader format
@@ -108,6 +111,11 @@ class SegmentationService:
                 'processing_time': time.time() - start_time,
                 'error': None
             }
+
+            # Log the final result for debugging
+            self._log_segmentation_result(result, user_prompt)
+
+            return result
             
         except Exception as e:
             return {
@@ -122,30 +130,30 @@ class SegmentationService:
             }
     
     def _create_segmentation_prompt(self, reference_code: str, custom_examples: dict = None) -> str:
-        """Build few-shot prompt with examples for consistent segmentation using verbatim text extraction"""
-        
-        # Start with base prompt
-        prompt_parts = ["""# Task: 
-Map EXACT portions of the student's explanation to corresponding code sections.
+        """Build few-shot prompt with examples for consistent one-to-one segmentation"""
 
-# CRITICAL RULES:
-1. You MUST use ONLY the EXACT text from the student's explanation
-2. Each segment text MUST be a character-for-character substring from the student's response
-3. DO NOT paraphrase, summarize, or create ANY new text
-4. DO NOT add words, remove words, or change punctuation
-5. Copy text VERBATIM - exactly as written by the student
+        # Start with base prompt
+        prompt_parts = ["""# Task:
+Analyze the student's explanation and map conceptual segments to corresponding code sections with STRICT one-to-one correspondence.
+
+# CRITICAL ONE-TO-ONE MAPPING RULES:
+1. Each segment of the explanation maps to EXACTLY ONE distinct code section
+2. Each code line can belong to ONLY ONE segment (no overlapping)
+3. Once a line is assigned to a segment, it CANNOT be reused
+4. Focus on conceptual units, not word-for-word extraction
+5. Segments should represent complete thoughts or logical steps
 
 # How to Segment:
-1. Identify distinct concepts/steps in the student's explanation
-2. Extract the EXACT text for each concept (copy-paste from their response)
-3. Match each exact text portion to its corresponding code lines
-4. One explanation portion can map to multiple code lines
-5. Not all explanation text needs to be used
+1. Identify distinct conceptual units in the student's explanation
+2. For each concept, find its corresponding code section
+3. Assign line numbers ensuring NO OVERLAPS between segments
+4. Each line of code belongs to at most one segment
+5. Not all explanation needs to be segmented
 6. Not all code needs to be mapped
 
-# Two Approaches:
-1. Multistructural: If explanation describes steps/implementation details, split into smallest meaningful exact phrases
-2. Relational: If explanation describes overall functionality, use the complete exact description
+# Two Comprehension Levels:
+1. Relational (Good): 1-2 segments showing high-level understanding of overall purpose
+2. Multi-structural (Needs Work): 3+ segments showing line-by-line procedural thinking
 
 REFERENCE CODE:
 ```python
@@ -174,24 +182,27 @@ REFERENCE CODE:
         
         # Add instructions
         prompt_parts.append("""
-# WARNING:
-Every segment "text" field must be an EXACT substring of the student's response.
-If you create new text, the segmentation is invalid.
+# ONE-TO-ONE MAPPING VALIDATION:
+Before returning your response, verify:
+- No line number appears in multiple segments
+- Each segment has unique, non-overlapping line numbers
+- Line assignments make logical sense
 
 INSTRUCTIONS:
-- Extract EXACT text portions from the student's explanation (no paraphrasing!)
-- Each segment text MUST appear verbatim in the student's response
-- Map segments to code lines (1-indexed)
+- Identify conceptual segments in the student's explanation
+- Use the student's actual words for the "text" field (prefer verbatim when possible)
+- Map each segment to its UNIQUE code lines (1-indexed)
+- ENSURE NO LINE NUMBER APPEARS IN MULTIPLE SEGMENTS
 - Return your analysis as JSON in this exact format:
 
 {
     "segments": [
-        {"id": 1, "text": "EXACT text from student response", "code_lines": [1, 2, 3]},
-        {"id": 2, "text": "another EXACT text portion", "code_lines": [4, 5]}
+        {"id": 1, "text": "description of first concept", "code_lines": [1, 2]},
+        {"id": 2, "text": "description of second concept", "code_lines": [3]}
     ]
 }
 
-REMEMBER: Copy-paste precision required - every character in "text" must be found in the student's original response.""")
+CRITICAL: Each line number must appear in at most ONE segment. Overlapping line numbers will invalidate the segmentation.""")
         
         return '\n'.join(prompt_parts)
     
@@ -227,72 +238,90 @@ REMEMBER: Copy-paste precision required - every character in "text" must be foun
         return segment_text in user_prompt
     
     def _parse_segments(self, ai_response: str, reference_code: str, user_prompt: str) -> dict:
-        """Parse AI response into structured segments with verbatim validation"""
+        """Parse AI response into structured segments with one-to-one validation"""
         try:
             # Extract JSON from response
             json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
             if not json_match:
                 return {'success': False, 'error': 'No JSON found in response', 'segments': [], 'groups': []}
-            
+
             json_str = json_match.group(0)
             parsed_data = json.loads(json_str)
-            
+
             segments = parsed_data.get('segments', [])
             if not segments:
                 return {'success': False, 'error': 'No segments found in response', 'segments': [], 'groups': []}
-            
-            # Process segments without filtering
+
+            # Process segments and enforce one-to-one mapping
             valid_segments = []
             valid_groups = []  # EiPL Grader format
             code_lines_list = reference_code.split('\n')
             max_line = len(code_lines_list)
-            
+            used_lines = set()  # Track which lines have been assigned
+
             for segment in segments:
                 if not isinstance(segment, dict):
                     continue
-                    
+
                 text = segment.get('text', '').strip()
                 lines = segment.get('code_lines', [])
-                
+
                 if not text or not lines:
                     continue
-                
-                # Log warning if segment text is not verbatim from user prompt (but keep it)
-                if not self._validate_segment_is_verbatim(text, user_prompt):
-                    logger.warning(f"Segment not verbatim from user prompt: '{text[:50]}...'")
-                    # Note: We still keep the segment for pure segmentation
-                
-                # Validate and clamp code lines
-                valid_lines = [line for line in lines if isinstance(line, int) and 1 <= line <= max_line]
+
+                # Validate and filter code lines
+                valid_lines = []
+                for line in lines:
+                    if not isinstance(line, int) or line < 1 or line > max_line:
+                        continue
+
+                    # CRITICAL: Check for one-to-one mapping violation
+                    if line in used_lines:
+                        logger.warning(f"Line {line} already assigned to another segment - skipping to maintain one-to-one mapping")
+                        continue
+
+                    valid_lines.append(line)
+                    used_lines.add(line)
+
+                # Skip segment if no valid unique lines
                 if not valid_lines:
-                    valid_lines = [1]  # Default to first line if no valid lines
-                
+                    logger.warning(f"Segment '{text[:50]}...' has no valid unique lines - skipping")
+                    continue
+
+                # Log if segment text is not verbatim (but still use it for conceptual segmentation)
+                if not self._validate_segment_is_verbatim(text, user_prompt):
+                    logger.info(f"Segment using conceptual text: '{text[:50]}...'")
+
                 # Extract the corresponding code for EiPL format
                 code_snippet = '\n'.join(
-                    code_lines_list[line-1] for line in sorted(valid_lines) 
+                    code_lines_list[line-1] for line in sorted(valid_lines)
                     if line-1 < len(code_lines_list)
                 )
-                
+
                 # Add to both formats for backward compatibility
                 valid_segments.append({
                     'id': len(valid_segments) + 1,
                     'text': text,
                     'code_lines': sorted(valid_lines)
                 })
-                
+
                 # EiPL Grader format
                 valid_groups.append({
                     'explanation_portion': text,
                     'code': code_snippet
                 })
-            
+
+            # Log one-to-one mapping statistics
+            total_lines_mapped = len(used_lines)
+            logger.info(f"Segmentation complete: {len(valid_segments)} segments mapping {total_lines_mapped} unique lines")
+
             return {
-                'success': True, 
+                'success': True,
                 'segments': valid_segments,  # Backward compatibility
                 'groups': valid_groups,       # EiPL Grader format
                 'error': None
             }
-            
+
         except json.JSONDecodeError as e:
             return {'success': False, 'error': f'JSON parsing error: {str(e)}', 'segments': [], 'groups': []}
         except Exception as e:
@@ -323,3 +352,63 @@ REMEMBER: Copy-paste precision required - every character in "text" must be foun
                 f'Your {segment_count} segments are too detailed. Try to describe the overall purpose in {threshold} or fewer segments.')
         
         return level, feedback
+
+    def _log_segmentation_debug(self, user_prompt: str, reference_code: str, ai_response: str) -> None:
+        """Log raw segmentation data for debugging"""
+        import os
+        from datetime import datetime
+
+        # Create logs directory if it doesn't exist
+        log_dir = os.path.join(settings.BASE_DIR, 'logs', 'segmentation')
+        os.makedirs(log_dir, exist_ok=True)
+
+        # Create filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'segmentation_raw_{timestamp}.json'
+        filepath = os.path.join(log_dir, filename)
+
+        # Prepare debug data
+        debug_data = {
+            'timestamp': timestamp,
+            'user_prompt': user_prompt,
+            'reference_code': reference_code,
+            'ai_raw_response': ai_response,
+            'model': self.model_name
+        }
+
+        # Write to file
+        try:
+            with open(filepath, 'w') as f:
+                json.dump(debug_data, f, indent=2)
+            logger.info(f"Segmentation raw response logged to: {filepath}")
+        except Exception as e:
+            logger.error(f"Failed to log segmentation debug data: {e}")
+
+    def _log_segmentation_result(self, result: dict, user_prompt: str) -> None:
+        """Log final segmentation result for debugging"""
+        import os
+        from datetime import datetime
+
+        # Create logs directory if it doesn't exist
+        log_dir = os.path.join(settings.BASE_DIR, 'logs', 'segmentation')
+        os.makedirs(log_dir, exist_ok=True)
+
+        # Create filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'segmentation_result_{timestamp}.json'
+        filepath = os.path.join(log_dir, filename)
+
+        # Add user prompt to result for context
+        result_with_context = {
+            'timestamp': timestamp,
+            'user_prompt': user_prompt,
+            'result': result
+        }
+
+        # Write to file
+        try:
+            with open(filepath, 'w') as f:
+                json.dump(result_with_context, f, indent=2)
+            logger.info(f"Segmentation result logged to: {filepath}")
+        except Exception as e:
+            logger.error(f"Failed to log segmentation result: {e}")

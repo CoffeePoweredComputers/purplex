@@ -24,8 +24,8 @@ class TestCaseSerializer(serializers.ModelSerializer):
 class ProblemSerializer(serializers.ModelSerializer):
     categories = ProblemCategorySerializer(many=True, read_only=True)
     category_ids = serializers.PrimaryKeyRelatedField(
-        many=True, 
-        queryset=ProblemCategoryRepository.get_all(),
+        many=True,
+        queryset=ProblemCategory.objects.all(),
         source='categories',
         write_only=True,
         required=False

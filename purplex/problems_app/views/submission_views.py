@@ -446,7 +446,7 @@ class SubmissionHistoryView(APIView):
                 'error': 'Failed to fetch problem'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Get optional filters
+        # Get filters
         problem_set_slug = request.query_params.get('problem_set_slug')
         course_id = request.query_params.get('course_id')
         limit = request.query_params.get('limit', 50)  # Default to last 50 attempts
@@ -463,17 +463,35 @@ class SubmissionHistoryView(APIView):
             'problem': problem
         }
 
-        # Add optional filters
+        # Add problem_set filter if provided - important to prevent cross-set leakage
         if problem_set_slug:
             problem_set = ProblemService.get_problem_set_by_slug(problem_set_slug)
-            if problem_set:
-                filters['problem_set'] = problem_set
+            if not problem_set:
+                return Response({
+                    'error': 'Problem set not found'
+                }, status=status.HTTP_404_NOT_FOUND)
 
+            # Verify problem belongs to this problem set
+            if not problem_set.problems.filter(id=problem.id).exists():
+                return Response({
+                    'error': 'Problem does not belong to the specified problem set'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            filters['problem_set'] = problem_set
+
+        # Add course filter if provided
         if course_id:
             # Validate course enrollment
             validation_result = CourseService.validate_course_enrollment(request.user, course_id)
             if validation_result['success']:
                 filters['course'] = validation_result['course']
+                # Also verify problem set belongs to course if both are provided
+                if problem_set_slug:
+                    from ..repositories import CourseRepository
+                    if problem_set.id not in CourseRepository.get_course_problem_set_ids(validation_result['course']):
+                        return Response({
+                            'error': 'Problem set does not belong to this course'
+                        }, status=status.HTTP_400_BAD_REQUEST)
 
         # Fetch submissions from the new Submission model
         from purplex.submissions.models import Submission, CodeVariation, TestExecution, SegmentationAnalysis
@@ -507,9 +525,10 @@ class SubmissionHistoryView(APIView):
                 best_score = submission.score
                 best_attempt_id = str(submission.submission_id)
 
-            # Get segmentation data if it exists
+            # Get segmentation data only if segmentation is enabled for this problem
             segmentation_data = None
-            if hasattr(submission, 'segmentation') and submission.segmentation:
+            if (hasattr(submission, 'segmentation') and submission.segmentation and
+                submission.problem.segmentation_enabled):
                 seg = submission.segmentation
                 segmentation_data = {
                     'segment_count': seg.segment_count,
