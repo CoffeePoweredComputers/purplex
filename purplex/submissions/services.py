@@ -304,6 +304,9 @@ class SubmissionService:
 
         submission.save()
 
+        # Trigger tests completed event to update progress
+        SubmissionEvents.on_tests_completed(submission)
+
         logger.info(f"Recorded {total_tests} test results across {len(variations_with_tests)} variations for submission {submission.submission_id}")
 
     @classmethod

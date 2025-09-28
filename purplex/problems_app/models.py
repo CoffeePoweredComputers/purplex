@@ -283,30 +283,40 @@ class UserProgress(models.Model):
     
     def update_from_submission(self, submission, time_spent=None):
         """Update progress based on new submission with intelligent status calculation"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"[DEBUG-PROGRESS] update_from_submission START - User: {self.user.username}, Problem: {self.problem.slug}")
+        logger.info(f"[DEBUG-PROGRESS] Before update - is_completed: {self.is_completed}, status: {self.status}, best_score: {self.best_score}")
+        logger.info(f"[DEBUG-PROGRESS] Submission - ID: {submission.id}, Score: {submission.score}")
+
         self.attempts += 1
         self.last_attempt = submission.submitted_at
-        
+
         if not self.first_attempt:
             self.first_attempt = submission.submitted_at
-        
+
         # Update scores
         if submission.score > self.best_score:
             self.best_score = submission.score
-        
+
         # Update average score
         self.average_score = (
             (self.average_score * (self.attempts - 1) + submission.score) / self.attempts
         )
-        
+
         # Update time tracking
         if time_spent:
             self.total_time_spent += time_spent
-        
+
         # Intelligent status calculation
         self._update_status(submission)
-        
+
         # Update completion
-        if self._check_completion(submission):
+        completion_result = self._check_completion(submission)
+        logger.info(f"[DEBUG-PROGRESS] _check_completion returned: {completion_result}")
+
+        if completion_result:
             if not self.completed_at:
                 self.completed_at = submission.submitted_at
                 self.days_to_complete = (submission.submitted_at - self.first_attempt).days
@@ -314,9 +324,15 @@ class UserProgress(models.Model):
             self.consecutive_successes += 1
         else:
             self.consecutive_successes = 0
-        
+
         self.completion_percentage = self.best_score
+
+        logger.info(f"[DEBUG-PROGRESS] After update - is_completed: {self.is_completed}, status: {self.status}, best_score: {self.best_score}")
+        logger.info(f"[DEBUG-PROGRESS] About to save UserProgress...")
+
         self.save()
+
+        logger.info(f"[DEBUG-PROGRESS] update_from_submission END - Progress saved with ID: {self.id}")
     
     def _update_status(self, submission):
         """Simple status determination: completed or in progress"""
@@ -331,29 +347,55 @@ class UserProgress(models.Model):
     
     def _check_completion(self, submission):
         """Flexible completion checking supporting multiple criteria"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"[DEBUG-CHECK] _check_completion START")
+        logger.info(f"[DEBUG-CHECK] Problem: {self.problem.slug}, Type: {self.problem.problem_type}")
+        logger.info(f"[DEBUG-CHECK] Segmentation enabled: {self.problem.segmentation_enabled}")
+        logger.info(f"[DEBUG-CHECK] Submission score: {submission.score}")
+        logger.info(f"[DEBUG-CHECK] Has segmentation relation: {hasattr(submission, 'segmentation')}")
+
         completion_criteria = self.problem.completion_criteria or {}
 
         # For EiPL problems with segmentation enabled, require both test passing AND segmentation passing
         if self.problem.problem_type == 'eipl' and self.problem.segmentation_enabled:
+            logger.info(f"[DEBUG-CHECK] This is an EiPL problem with segmentation enabled")
             # Require ALL of the following:
             # 1. Score must be 100% (all variations passed all tests)
             if submission.score < 100:
+                logger.info(f"[DEBUG-CHECK] Score {submission.score} < 100, returning False")
                 return False
 
             # 2. Segmentation must have passed (low-level description threshold met)
-            # If segmentation_passed is None, segmentation was not performed or failed
-            # If segmentation_passed is False, it didn't meet the threshold
-            # Only True means it passed the threshold
-            if submission.segmentation_passed != True:
+            # Check if segmentation analysis exists and passed
+            if hasattr(submission, 'segmentation') and submission.segmentation:
+                logger.info(f"[DEBUG-CHECK] Segmentation exists, passed={submission.segmentation.passed}")
+                if not submission.segmentation.passed:
+                    logger.info(f"[DEBUG-CHECK] Segmentation did not pass, returning False")
+                    return False
+            else:
+                # No segmentation analysis exists for this submission
+                # This shouldn't happen for segmentation-enabled problems
+                # Log this unexpected state for debugging
+                logger.warning(
+                    f"[DEBUG-CHECK] Segmentation-enabled problem '{self.problem.slug}' has submission {submission.id} "
+                    f"without segmentation analysis. This shouldn't happen. "
+                    f"User: {self.user.username}, Problem type: {self.problem.problem_type}"
+                )
                 return False
 
             # Both conditions met for EiPL with segmentation
+            logger.info(f"[DEBUG-CHECK] All conditions met for EiPL with segmentation, returning True")
             return True
 
         # For non-EiPL or EiPL without segmentation, use standard completion criteria
         # Default to threshold-based completion
         if not completion_criteria:
-            return submission.score >= (self.problem.completion_threshold or 100)
+            threshold = self.problem.completion_threshold or 100
+            result = submission.score >= threshold
+            logger.info(f"[DEBUG-CHECK] No completion criteria, using threshold {threshold}. Score {submission.score} >= {threshold}? {result}")
+            return result
 
         if 'min_score' in completion_criteria:
             if submission.score < completion_criteria['min_score']:

@@ -287,11 +287,12 @@ def save_submission_helper(
             )
             created_variations.append(variation)
 
-        # Mark best variation
-        best_idx = max(range(len(test_results)), key=lambda i: test_results[i].get('testsPassed', 0))
-        best_variation = created_variations[best_idx]
-        best_variation.is_selected = True
-        best_variation.save()
+        # Mark best variation only if we have results
+        if test_results and created_variations:
+            best_idx = max(range(len(test_results)), key=lambda i: test_results[i].get('testsPassed', 0))
+            best_variation = created_variations[best_idx]
+            best_variation.is_selected = True
+            best_variation.save()
 
         # Record test results for ALL variations
         variations_with_tests = []
@@ -328,8 +329,15 @@ def save_submission_helper(
             variations_with_tests=variations_with_tests
         )
 
-        # Store the best code for reference
-        submission.processed_code = best_variation.generated_code
+        # Store the best code for reference (if we have variations)
+        if created_variations:
+            # If we marked a best variation, use it; otherwise use the first one
+            best_variation = next((v for v in created_variations if v.is_selected), created_variations[0])
+            submission.processed_code = best_variation.generated_code
+        else:
+            # No variations generated - store empty code
+            submission.processed_code = ""
+
         submission.is_correct = submission.passed_all_tests
         submission.save()
 
@@ -418,12 +426,12 @@ def execute_eipl_pipeline(
         variation_count = len(variations)
         logger.info(f"Generated {variation_count} variations")
         publish_progress(task_id, 20, f"Generated {variation_count} code variations")
-        
+
         # Step 2: Test each variation (20-70% progress)
         test_results = []
         for i, code in enumerate(variations):
-            # Calculate progress within testing phase
-            test_progress = 20 + (50 * i / variation_count)
+            # Calculate progress within testing phase (avoid division by zero)
+            test_progress = 20 + (50 * i / max(variation_count, 1))
             publish_progress(
                 task_id, 
                 test_progress,

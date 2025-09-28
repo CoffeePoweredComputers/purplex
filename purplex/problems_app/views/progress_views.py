@@ -17,8 +17,12 @@ class UserProgressView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request, problem_slug=None):
+        import logging
+        logger = logging.getLogger(__name__)
+
         user = request.user
-        
+        logger.info(f"[DEBUG-VIEW] UserProgressView.get - User: {user.username}, Problem slug: {problem_slug}")
+
         if problem_slug:
             # Get optional context parameters from query params
             query_params = getattr(request, 'query_params', request.GET)
@@ -52,6 +56,7 @@ class UserProgressView(APIView):
                             'completed_at': progress.completed_at,
                             'grade': getattr(progress, 'grade', None),  # New grade field
                         }
+                        logger.info(f"[DEBUG-VIEW] Returning progress data: is_completed={progress_data['is_completed']}, status={progress_data['status']}, best_score={progress_data['best_score']}")
                     else:
                         # Return default values for this context
                         progress_data = {

@@ -73,6 +73,8 @@ class SubmissionEvents:
     def on_tests_completed(submission):
         """Handle test completion event."""
         logger.info(f"Processing tests completed event for {submission.submission_id}")
+        logger.info(f"  Submission score: {submission.score}, passed_all_tests: {submission.passed_all_tests}")
+        logger.info(f"  Problem: {submission.problem.slug}, Problem Set: {submission.problem_set.slug if submission.problem_set else 'None'}")
         SubmissionEvents._update_progress_from_submission(submission)
 
     @staticmethod
@@ -92,6 +94,11 @@ class SubmissionEvents:
         from .grading_service import GradingService
         from django.db import transaction
 
+        logger.info(f"[UPDATE_PROGRESS] Starting progress update for submission {submission.submission_id}")
+        logger.info(f"[UPDATE_PROGRESS] User: {submission.user.username}, Problem: {submission.problem.slug}")
+        logger.info(f"[UPDATE_PROGRESS] Problem Set: {submission.problem_set.slug if submission.problem_set else 'None'}")
+        logger.info(f"[UPDATE_PROGRESS] Course: {submission.course.name if submission.course else 'None'}")
+
         with transaction.atomic():
             # First, try to get progress with full context
             progress, created = UserProgress.objects.get_or_create(
@@ -101,6 +108,9 @@ class SubmissionEvents:
                 course=submission.course,
                 defaults={'problem_version': submission.problem.version}
             )
+
+            logger.info(f"[UPDATE_PROGRESS] Progress record {'CREATED' if created else 'FOUND'}")
+            logger.info(f"[UPDATE_PROGRESS] Progress ID: {progress.id}, attempts: {progress.attempts}, best_score: {progress.best_score}")
 
             # If we just created a new progress record with problem_set context,
             # check if there's an existing one without problem_set that we should migrate
@@ -195,7 +205,12 @@ class SubmissionEvents:
                 progress.days_to_complete = (progress.completed_at - progress.first_attempt).days
             logger.info(f"Problem completed for user {submission.user.username} with grade: {grade}")
 
+        logger.info(f"[UPDATE_PROGRESS] BEFORE SAVE - is_completed: {progress.is_completed}, status: {progress.status}, best_score: {progress.best_score}")
+        logger.info(f"[UPDATE_PROGRESS] BEFORE SAVE - grade: {grade}, completion_percentage: {progress.completion_percentage}")
+
         progress.save()
+
+        logger.info(f"[UPDATE_PROGRESS] AFTER SAVE - Progress saved with ID {progress.id}")
 
         if old_status != progress.status:
             logger.info(f"Progress status changed from {old_status} to {progress.status}")
