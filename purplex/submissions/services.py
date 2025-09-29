@@ -17,8 +17,7 @@ from .models import (
     SegmentationAnalysis,
     SubmissionFeedback
 )
-from .events import SubmissionEvents
-from .completion_evaluator import CompletionEvaluator, CompletionStatus
+from purplex.progress.engine import ProgressEngine
 from .grading_service import GradingService
 
 logger = logging.getLogger(__name__)
@@ -107,8 +106,8 @@ class SubmissionService:
 
         logger.info(f"Created submission {submission.submission_id} for user {user.username}")
 
-        # Trigger submission created event
-        SubmissionEvents.on_submission_created(submission)
+        # Increment attempt counter using ProgressEngine
+        ProgressEngine().on_submission_created(submission)
 
         return submission
 
@@ -168,17 +167,12 @@ class SubmissionService:
         grade = GradingService.calculate_grade(submission)
 
         # Map grade to legacy completion_status for backward compatibility
-        if grade == 'complete':
-            submission.completion_status = 'complete'
-        elif grade == 'partial':
-            submission.completion_status = 'partial'
-        else:
-            submission.completion_status = 'incomplete'
+        submission.completion_status = cls._map_grade_to_completion_status(grade)
 
         submission.save()
 
-        # Trigger tests completed event to update progress
-        SubmissionEvents.on_tests_completed(submission)
+        # Update progress using unified ProgressEngine
+        ProgressEngine().process_submission(submission)
 
         logger.info(f"Recorded {total_count} test results for submission {submission.submission_id}, score: {submission.score}%")
 
@@ -295,17 +289,12 @@ class SubmissionService:
         grade = GradingService.calculate_grade(submission)
 
         # Map grade to legacy completion_status for backward compatibility
-        if grade == 'complete':
-            submission.completion_status = 'complete'
-        elif grade == 'partial':
-            submission.completion_status = 'partial'
-        else:
-            submission.completion_status = 'incomplete'
+        submission.completion_status = cls._map_grade_to_completion_status(grade)
 
         submission.save()
 
-        # Trigger tests completed event to update progress
-        SubmissionEvents.on_tests_completed(submission)
+        # Update progress using unified ProgressEngine
+        ProgressEngine().process_submission(submission)
 
         logger.info(f"Recorded {total_tests} test results across {len(variations_with_tests)} variations for submission {submission.submission_id}")
 
@@ -359,17 +348,12 @@ class SubmissionService:
         grade = GradingService.calculate_grade(submission)
 
         # Map grade to legacy completion_status for backward compatibility
-        if grade == 'complete':
-            submission.completion_status = 'complete'
-        elif grade == 'partial':
-            submission.completion_status = 'partial'
-        else:
-            submission.completion_status = 'incomplete'
+        submission.completion_status = cls._map_grade_to_completion_status(grade)
 
         submission.save()
 
-        # Trigger segmentation completed event to update progress
-        SubmissionEvents.on_segmentation_completed(submission)
+        # Update progress using unified ProgressEngine
+        ProgressEngine().process_submission(submission)
 
         logger.info(f"Recorded segmentation analysis for submission {submission.submission_id}: {analysis.comprehension_level}")
 
@@ -386,46 +370,53 @@ class SubmissionService:
         Returns:
             Dictionary with complete submission details
         """
-        submission = Submission.objects.select_related(
-            'user', 'problem', 'problem_set', 'course'
-        ).prefetch_related(
-            'test_executions__test_case',
-            'hint_activations__hint',
-            'code_variations__test_executions__test_case',  # Prefetch per-variation test results
-            'feedback',
-            'segmentation'
-        ).get(submission_id=submission_id)
+        from django.db.models import Prefetch
+        from purplex.utils.query_monitor import query_counter
 
-        details = {
-            'submission_id': str(submission.submission_id),
-            'user': submission.user.username,
-            'problem': {
-                'slug': submission.problem.slug,
-                'title': submission.problem.title
-            },
-            'problem_set': {
-                'slug': submission.problem_set.slug,
-                'title': submission.problem_set.title
-            } if submission.problem_set else None,
-            'course': {
-                'id': submission.course.course_id,
-                'name': submission.course.name
-            } if submission.course else None,
-            'submitted_at': submission.submitted_at.isoformat(),
-            'submission_type': submission.submission_type,
-            'score': submission.score,
-            'passed_all_tests': submission.passed_all_tests,
-            'completion_status': submission.completion_status,
-            'execution_status': submission.execution_status,
-            'execution_time_ms': submission.execution_time_ms,
-            'memory_used_mb': submission.memory_used_mb,
-            'time_spent': submission.time_spent.total_seconds() if submission.time_spent else None,
-            'raw_input': submission.raw_input,
-            'processed_code': submission.processed_code,
-        }
+        with query_counter("get_submission_details", warning_threshold=5):
+            # Optimized prefetch strategy to eliminate N+1 queries
+            submission = Submission.objects.select_related(
+                'user', 'problem', 'problem_set', 'course', 'segmentation'
+            ).prefetch_related(
+                'test_executions__test_case',
+                'hint_activations__hint',
+                # Use Prefetch for better control over nested prefetching
+                Prefetch('code_variations',
+                         queryset=CodeVariation.objects.prefetch_related('test_executions__test_case')),
+                Prefetch('feedback',
+                         queryset=SubmissionFeedback.objects.select_related('provided_by').filter(is_visible_to_student=True))
+            ).get(submission_id=submission_id)
 
-        # Add test results
-        details['test_results'] = [
+            details = {
+                'submission_id': str(submission.submission_id),
+                'user': submission.user.username,
+                'problem': {
+                    'slug': submission.problem.slug,
+                    'title': submission.problem.title
+                },
+                'problem_set': {
+                    'slug': submission.problem_set.slug,
+                    'title': submission.problem_set.title
+                } if submission.problem_set else None,
+                'course': {
+                    'id': submission.course.course_id,
+                    'name': submission.course.name
+                } if submission.course else None,
+                'submitted_at': submission.submitted_at.isoformat(),
+                'submission_type': submission.submission_type,
+                'score': submission.score,
+                'passed_all_tests': submission.passed_all_tests,
+                'completion_status': submission.completion_status,
+                'execution_status': submission.execution_status,
+                'execution_time_ms': submission.execution_time_ms,
+                'memory_used_mb': submission.memory_used_mb,
+                'time_spent': submission.time_spent.total_seconds() if submission.time_spent else None,
+                'raw_input': submission.raw_input,
+                'processed_code': submission.processed_code,
+            }
+
+            # Add test results
+            details['test_results'] = [
             {
                 'test_case_id': te.test_case.id,
                 'description': te.test_case.description,
@@ -438,11 +429,11 @@ class SubmissionService:
                 'execution_time_ms': te.execution_time_ms,
                 'is_hidden': te.test_case.is_hidden
             }
-            for te in submission.test_executions.all()
-        ]
+                for te in submission.test_executions.all()
+            ]
 
-        # Add hints used
-        details['hints_activated'] = [
+            # Add hints used
+            details['hints_activated'] = [
             {
                 'hint_id': ha.hint.id,
                 'hint_type': ha.hint.hint_type,
@@ -450,13 +441,13 @@ class SubmissionService:
                 'trigger_type': ha.trigger_type,
                 'viewed_duration_seconds': ha.viewed_duration_seconds
             }
-            for ha in submission.hint_activations.all()
-        ]
+                for ha in submission.hint_activations.all()
+            ]
 
-        # Add segmentation if exists
-        if hasattr(submission, 'segmentation'):
-            seg = submission.segmentation
-            details['segmentation'] = {
+            # Add segmentation if exists
+            if hasattr(submission, 'segmentation'):
+                seg = submission.segmentation
+                details['segmentation'] = {
                 'comprehension_level': seg.comprehension_level,
                 'segment_count': seg.segment_count,
                 'segments': seg.segments,
@@ -465,12 +456,12 @@ class SubmissionService:
                 'confidence_score': seg.confidence_score
             }
 
-        # Add code variations for EiPL
-        if submission.submission_type == 'eipl':
-            details['code_variations'] = []
-            for cv in submission.code_variations.all():
-                # Get test results for this specific variation
-                variation_test_results = [
+            # Add code variations for EiPL
+            if submission.submission_type == 'eipl':
+                details['code_variations'] = []
+                for cv in submission.code_variations.all():
+                    # Get test results for this specific variation
+                    variation_test_results = [
                     {
                         'test_case_id': te.test_case.id,
                         'description': te.test_case.description,
@@ -487,10 +478,10 @@ class SubmissionService:
                         'execution_time_ms': te.execution_time_ms,
                         'is_hidden': te.test_case.is_hidden
                     }
-                    for te in cv.test_executions.all()
-                ]
+                        for te in cv.test_executions.all()
+                    ]
 
-                details['code_variations'].append({
+                    details['code_variations'].append({
                     'index': cv.variation_index,
                     'score': cv.score,
                     'tests_passed': cv.tests_passed,
@@ -500,8 +491,8 @@ class SubmissionService:
                     'test_results': variation_test_results  # Add per-variation test results
                 })
 
-        # Add feedback
-        details['feedback'] = [
+            # Add feedback
+            details['feedback'] = [
             {
                 'type': fb.feedback_type,
                 'message': fb.message,
@@ -509,8 +500,8 @@ class SubmissionService:
                 'is_automated': fb.is_automated,
                 'created_at': fb.created_at.isoformat()
             }
-            for fb in submission.feedback.filter(is_visible_to_student=True)
-        ]
+                for fb in submission.feedback.all()  # Already filtered in Prefetch
+            ]
 
         return details
 
@@ -584,68 +575,20 @@ class SubmissionService:
 
         return stats
 
-    # NOTE: This method has been replaced by event-driven updates in events.py
-    # Keeping for reference and potential rollback
-    """
-    @classmethod
-    def _update_user_progress(cls, submission: Submission) -> None:
-        # DEPRECATED: Replaced by SubmissionEvents handlers
-        # This method was causing synchronization issues because it was called
-        # before test results and segmentation were complete.
-        # See events.py for the new implementation.
+    @staticmethod
+    def _map_grade_to_completion_status(grade: str) -> str:
+        """
+        Map grade to legacy completion_status for backward compatibility.
 
-        # Import here to avoid circular imports
-        from purplex.problems_app.models import UserProgress
+        Args:
+            grade: Grade string from GradingService ('complete', 'partial', 'incomplete')
 
-        progress, created = UserProgress.objects.get_or_create(
-            user=submission.user,
-            problem=submission.problem,
-            problem_set=submission.problem_set,
-            course=submission.course,
-            defaults={'problem_version': submission.problem.version}
-        )
-
-        # Update progress metrics
-        progress.attempts += 1
-        progress.last_attempt = submission.submitted_at
-
-        if not progress.first_attempt:
-            progress.first_attempt = submission.submitted_at
-
-        # Update scores
-        if submission.score > progress.best_score:
-            progress.best_score = submission.score
-
-        # Update average score
-        progress.average_score = (
-            (progress.average_score * (progress.attempts - 1) + submission.score) / progress.attempts
-        )
-
-        # Update hints used count
-        progress.hints_used += submission.hint_activations.count()
-
-        # Update time tracking
-        if submission.time_spent:
-            progress.total_time_spent += submission.time_spent
-
-        # Update status
-        if submission.completion_status == 'complete':
-            progress.status = 'completed'
-            progress.is_completed = True
-            if not progress.completed_at:
-                progress.completed_at = submission.submitted_at
-                if progress.first_attempt:
-                    progress.days_to_complete = (submission.submitted_at - progress.first_attempt).days
-        elif submission.completion_status == 'partial':
-            if progress.status != 'completed':
-                progress.status = 'in_progress'
-        elif progress.attempts > 0:
-            progress.status = 'in_progress'
-
-        progress.completion_percentage = progress.best_score
-        progress.save()
-
-        # Update problem set progress
-        from purplex.problems_app.models import UserProblemSetProgress
-        UserProblemSetProgress.update_from_progress(progress)
-    """
+        Returns:
+            Completion status string for the submission model
+        """
+        if grade == 'complete':
+            return 'complete'
+        elif grade == 'partial':
+            return 'partial'
+        else:
+            return 'incomplete'

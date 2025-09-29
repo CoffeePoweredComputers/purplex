@@ -344,10 +344,12 @@ export default defineComponent({
     bottom: 0;
     left: 0;
     right: 0;
+    width: 100%;
     background-color: var(--color-bg-header);
     border-top: 1px solid var(--color-bg-border);
     padding: var(--spacing-md) var(--spacing-xl);
-    z-index: 100;
+    z-index: 1000;
+    box-sizing: border-box;
 }
 
 .footer-content {
@@ -395,7 +397,8 @@ export default defineComponent({
 
 /* Add padding to body to account for fixed footer */
 body {
-    padding-bottom: 60px;
+    margin: 0;
+    padding-bottom: 60px; /* Space for fixed footer */
 }
 
 /* Mobile responsive */

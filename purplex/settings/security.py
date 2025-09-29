@@ -25,7 +25,7 @@ CODE_EXECUTION = {
     
     # Container pooling configuration
     'POOL_ENABLED': config.get_bool('DOCKER_POOL_ENABLED', True),  # Enable container pooling for better performance
-    'POOL_SIZE': config.get_int('DOCKER_POOL_SIZE', 5),  # Number of warm containers to maintain
+    'POOL_SIZE': config.get_int('DOCKER_POOL_SIZE', 50),  # Increased for production load (200 concurrent users)
     
     # Security restrictions
     'ENABLE_NETWORK': False,

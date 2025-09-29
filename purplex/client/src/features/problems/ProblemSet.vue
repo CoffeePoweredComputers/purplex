@@ -1185,6 +1185,16 @@ export default {
                             connection.disconnect();
                             this.submissionConnections.delete(currentProblemSlug);
                         }
+
+                        // Refresh submission history to include the new submission
+                        this.loadSubmissionHistory(currentProblemSlug).then(() => {
+                            // If this submission was for the currently viewed problem, also update the displayed history
+                            if (currentProblemSlug === this.getCurrentProblem().slug) {
+                                this.logger.info('Submission history refreshed for current problem');
+                            }
+                        }).catch(error => {
+                            this.logger.error('Failed to refresh submission history', error);
+                        });
                     },
                     {
                         // SSE options

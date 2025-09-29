@@ -35,8 +35,11 @@ class ProgressService:
         course_id: Optional[int] = None
     ) -> 'UserProgress':
         """
+        DEPRECATED: This method is no longer used.
+        Progress updates are now handled by ProgressEngine.process_submission()
+
         Update user progress for a problem with row-level locking.
-        
+
         This method uses select_for_update to prevent race conditions when multiple
         submissions are processed concurrently.
         """
@@ -57,11 +60,18 @@ class ProgressService:
             if submission.score > progress.best_score:
                 progress.best_score = submission.score
 
-            # Use CompletionEvaluator to determine the actual status
-            from purplex.submissions.completion_evaluator import CompletionEvaluator
-            status = CompletionEvaluator.compute_user_progress_status(progress)
+            # Use GradingService to determine status (deprecated method - use ProgressEngine instead)
+            from purplex.submissions.grading_service import GradingService
+            grade = GradingService.calculate_grade(submission)
 
-            # Update progress status based on evaluator
+            # Map grade to status
+            if grade == 'complete':
+                status = 'completed'
+            elif grade == 'partial' or grade == 'incomplete':
+                status = 'in_progress' if submission.score > 0 else 'not_started'
+            else:
+                status = 'not_started'
+
             progress.status = status
 
             # Update completion fields based on status

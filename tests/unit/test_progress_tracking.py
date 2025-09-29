@@ -16,7 +16,7 @@ from tests.factories import (
 from tests.helpers import ProgressAssertions
 from tests.mocks import MockCodeExecutionService
 from purplex.problems_app.models import UserProgress
-from purplex.submissions_app.models import PromptSubmission
+from purplex.submissions.models import Submission
 
 
 @pytest.mark.django_db

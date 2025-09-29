@@ -1,11 +1,13 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import store from "./store"; // Import the Vuex store
 
-// Import components from their feature folders
-import Home from "./components/Home.vue"; // Courses-only home component
+// Eagerly load only critical components
 import Login from "./features/auth/Login.vue";
-import ProblemSet from "./features/problems/ProblemSet.vue";
-import AdminUsers from "./components/AdminUsers.vue";
+
+// Lazy load all other components to reduce initial bundle size
+const Home = () => import(/* webpackChunkName: "home" */ "./components/Home.vue");
+const ProblemSet = () => import(/* webpackChunkName: "problems" */ "./features/problems/ProblemSet.vue");
+const AdminUsers = () => import(/* webpackChunkName: "admin" */ "./components/AdminUsers.vue");
 
 const routes: RouteRecordRaw[] = [
     {

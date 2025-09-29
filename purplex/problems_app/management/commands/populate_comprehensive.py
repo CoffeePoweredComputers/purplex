@@ -7,7 +7,8 @@ from purplex.problems_app.models import (
     ProblemHint, UserProgress
 )
 from purplex.users_app.models import UserProfile
-from purplex.submissions_app.models import PromptSubmission
+from purplex.submissions.models import Submission
+from purplex.progress.engine import ProgressEngine
 from datetime import datetime, timedelta
 from django.utils import timezone
 import random
@@ -63,7 +64,7 @@ class Command(BaseCommand):
     
     def clear_data(self):
         """Clear all existing data"""
-        PromptSubmission.objects.all().delete()
+        Submission.objects.all().delete()
         UserProgress.objects.all().delete()
         CourseEnrollment.objects.all().delete()
         Course.objects.all().delete()
@@ -993,26 +994,26 @@ Multiply two 2x2 matrices.
                 problem = membership.problem
                 
                 # Create a high-scoring submission
-                submission = PromptSubmission.objects.create(
+                score = random.randint(85, 100)
+                submission = Submission.objects.create(
                     user=student1,
                     problem=problem,
                     problem_set=ps,
                     course=cs101,
-                    prompt='I need to solve this problem step by step...',
-                    score=random.randint(85, 100),
-                    execution_time=random.uniform(0.1, 2.0),
+                    raw_input='I need to solve this problem step by step...',
+                    processed_code='# Solution code',
+                    submission_type='eipl',
+                    score=score,
+                    passed_all_tests=(score == 100),
+                    is_correct=(score == 100),
+                    completion_status='complete' if score == 100 else 'partial',
+                    execution_status='completed',
+                    execution_time_ms=int(random.uniform(100, 2000)),
                     time_spent=timedelta(minutes=random.randint(5, 30))
                 )
-                
-                # Create/update progress
-                progress, _ = UserProgress.objects.get_or_create(
-                    user=student1,
-                    problem=problem,
-                    problem_set=ps,
-                    course=cs101,
-                    defaults={'problem_version': problem.version}
-                )
-                progress.update_from_submission(submission, time_spent=submission.time_spent)
+
+                # Use ProgressEngine to update progress
+                ProgressEngine().process_submission(submission)
         
         # Student 2: Partial progress in CS101
         student2 = students[1]
@@ -1022,25 +1023,25 @@ Multiply two 2x2 matrices.
             if i < 2:  # Only complete first 2 problems
                 problem = membership.problem
                 
-                submission = PromptSubmission.objects.create(
+                submission = Submission.objects.create(
                     user=student2,
                     problem=problem,
                     problem_set=ps,
                     course=cs101,
-                    prompt='Trying to understand the problem...',
+                    raw_input='Trying to understand the problem...',
+                    processed_code='# Partial solution',
+                    submission_type='eipl',
                     score=random.randint(60, 80),
-                    execution_time=random.uniform(0.1, 2.0),
+                    passed_all_tests=False,
+                    is_correct=False,
+                    completion_status='partial',
+                    execution_status='completed',
+                    execution_time_ms=int(random.uniform(100, 2000)),
                     time_spent=timedelta(minutes=random.randint(10, 45))
                 )
-                
-                progress, _ = UserProgress.objects.get_or_create(
-                    user=student2,
-                    problem=problem,
-                    problem_set=ps,
-                    course=cs101,
-                    defaults={'problem_version': problem.version}
-                )
-                progress.update_from_submission(submission, time_spent=submission.time_spent)
+
+                # Use ProgressEngine to update progress
+                ProgressEngine().process_submission(submission)
         
         # Student 3-5: Various progress in CS201
         cs201 = Course.objects.get(course_id='CS201-FALL2024')
@@ -1056,22 +1057,23 @@ Multiply two 2x2 matrices.
                     # Multiple attempts for some problems
                     num_attempts = random.randint(1, 3)
                     for attempt in range(num_attempts):
-                        submission = PromptSubmission.objects.create(
+                        score = random.randint(40, 100)
+                        submission = Submission.objects.create(
                             user=student,
                             problem=problem,
                             problem_set=ps,
                             course=cs201,
-                            prompt=f'Attempt {attempt + 1}: Working on the solution...',
-                            score=random.randint(40, 100),
-                            execution_time=random.uniform(0.1, 3.0),
+                            raw_input=f'Attempt {attempt + 1}: Working on the solution...',
+                            processed_code='# Solution attempt',
+                            submission_type='eipl',
+                            score=score,
+                            passed_all_tests=(score == 100),
+                            is_correct=(score == 100),
+                            completion_status='complete' if score == 100 else ('partial' if score >= 60 else 'incomplete'),
+                            execution_status='completed',
+                            execution_time_ms=int(random.uniform(100, 3000)),
                             time_spent=timedelta(minutes=random.randint(5, 60))
                         )
-                    
-                    progress, _ = UserProgress.objects.get_or_create(
-                        user=student,
-                        problem=problem,
-                        problem_set=ps,
-                        course=cs201,
-                        defaults={'problem_version': problem.version}
-                    )
-                    progress.update_from_submission(submission, time_spent=submission.time_spent)
+
+                    # Use ProgressEngine to update progress after final attempt
+                    ProgressEngine().process_submission(submission)

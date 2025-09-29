@@ -19,7 +19,7 @@ from tests.helpers import (
     TestDataHelpers
 )
 from purplex.problems_app.models import UserProgress, ProblemHint
-from purplex.submissions_app.models import PromptSubmission
+from purplex.submissions.models import Submission
 
 
 @pytest.mark.django_db
@@ -82,7 +82,7 @@ class TestCompleteSubmissionFlow(TransactionTestCase):
         
         # Verify submission created
         self.assertIsNotNone(data['submission_id'])
-        submission = PromptSubmission.objects.get(id=data['submission_id'])
+        submission = Submission.objects.get(submission_id=data['submission_id'])
         self.assertEqual(submission.user, self.user)
         self.assertEqual(submission.problem, self.problem)
         self.assertEqual(submission.course, self.course)
@@ -217,7 +217,7 @@ class TestEiPLWorkflow(TransactionTestCase):
         self.assertGreater(data['passing_variations'], 0)
         
         # Verify submission created with variations
-        submission = PromptSubmission.objects.get(id=data['submission_id'])
+        submission = Submission.objects.get(submission_id=data['submission_id'])
         self.assertEqual(submission.user, self.user)
         self.assertEqual(submission.prompt, payload['user_prompt'])
         self.assertIn('variations', submission.test_results)
@@ -345,7 +345,7 @@ class TestErrorScenarios(TransactionTestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         
         # Verify no submission or progress created
-        self.assertEqual(PromptSubmission.objects.count(), 0)
+        self.assertEqual(Submission.objects.count(), 0)
         self.assertEqual(UserProgress.objects.count(), 0)
         
     @patch('purplex.problems_app.services.CodeExecutionService')
@@ -369,7 +369,7 @@ class TestErrorScenarios(TransactionTestCase):
         SubmissionAssertions.assert_error_response_format(data, response.status_code)
         
         # Submission should be created with error
-        submission = PromptSubmission.objects.get(id=data['submission_id'])
+        submission = Submission.objects.get(submission_id=data['submission_id'])
         self.assertEqual(submission.score, 0)
         self.assertIn('error', submission.test_results)
         
@@ -398,5 +398,5 @@ class TestErrorScenarios(TransactionTestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         
         # No submission or progress should be created
-        self.assertEqual(PromptSubmission.objects.count(), 0)
+        self.assertEqual(Submission.objects.count(), 0)
         self.assertEqual(UserProgress.objects.count(), 0)

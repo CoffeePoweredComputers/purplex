@@ -471,53 +471,64 @@ class AdminSubmissionListView(APIView):
 
     def post(self, request):
         """Export submissions data."""
+        from purplex.utils.query_monitor import query_counter
+
         # Get filter parameters
         filters = request.data.get('filters', {})
         format_type = request.data.get('format', 'json')
 
-        # Get submissions using repository
-        submissions = SubmissionRepository.export_submissions(filters)
+        with query_counter("CSV Export", warning_threshold=10):
+            # Get submissions with proper prefetching - THIS IS THE FIX!
+            submissions = SubmissionRepository.export_submissions(filters)
+            # Note: The repository already has prefetch_related for hint_activations__hint
+            # But we need to ensure we don't trigger new queries in our loops
 
-        # Prepare export data
-        export_data = []
-        for submission in submissions:
-            # Get hint activation data
-            hint_activations = submission.hint_activations.all()
-            hints_count = hint_activations.count()
-            hint_types = list(set([ha.hint.hint_type for ha in hint_activations])) if hints_count > 0 else []
-            first_hint_time = min([ha.activated_at for ha in hint_activations]).isoformat() if hints_count > 0 else ''
-            last_hint_time = max([ha.activated_at for ha in hint_activations]).isoformat() if hints_count > 0 else ''
+            # Prepare export data - now uses prefetched data
+            export_data = []
+            for submission in submissions:
+                # Convert to list once to avoid multiple iterations triggering queries
+                hint_activations = list(submission.hint_activations.all())  # NO EXTRA QUERIES!
+                hints_count = len(hint_activations)
 
-            # Format hint details for export
-            hint_details = []
-            for ha in hint_activations:
-                hint_details.append({
-                    'type': ha.hint.hint_type,
-                    'trigger': ha.trigger_type,
-                    'time': ha.activated_at.isoformat(),
-                    'duration_seconds': ha.viewed_duration_seconds
+                if hints_count > 0:
+                    hint_types = list(set([ha.hint.hint_type for ha in hint_activations]))
+                    first_hint_time = min([ha.activated_at for ha in hint_activations]).isoformat()
+                    last_hint_time = max([ha.activated_at for ha in hint_activations]).isoformat()
+                else:
+                    hint_types = []
+                    first_hint_time = ''
+                    last_hint_time = ''
+
+                # Format hint details using already-loaded data
+                hint_details = []
+                for ha in hint_activations:
+                    hint_details.append({
+                        'type': ha.hint.hint_type,  # No extra query - hint is prefetched!
+                        'trigger': ha.trigger_type,
+                        'time': ha.activated_at.isoformat(),
+                        'duration_seconds': ha.viewed_duration_seconds
+                    })
+
+                export_data.append({
+                    'submission_id': str(submission.submission_id),
+                    'user': submission.user.username,
+                    'problem': submission.problem.title,
+                    'problem_set': submission.problem_set.title if submission.problem_set else '',
+                    'course': submission.course.name if submission.course else '',
+                    'submission_type': submission.submission_type,
+                    'score': submission.score,
+                    'comprehension_level': submission.comprehension_level,
+                    'is_correct': submission.is_correct,
+                    'status': submission.completion_status,
+                    'submitted_at': submission.submitted_at.isoformat(),
+                    'execution_time_ms': submission.execution_time_ms,
+                    'memory_used_mb': submission.memory_used_mb,
+                    'hints_activated_count': hints_count,
+                    'hint_types_used': ','.join(hint_types) if hint_types else '',
+                    'first_hint_time': first_hint_time,
+                    'last_hint_time': last_hint_time,
+                    'hint_details': json.dumps(hint_details) if hint_details else ''
                 })
-
-            export_data.append({
-                'submission_id': str(submission.submission_id),
-                'user': submission.user.username,
-                'problem': submission.problem.title,
-                'problem_set': submission.problem_set.title if submission.problem_set else '',
-                'course': submission.course.name if submission.course else '',
-                'submission_type': submission.submission_type,
-                'score': submission.score,
-                'comprehension_level': submission.comprehension_level,
-                'is_correct': submission.is_correct,
-                'status': submission.completion_status,
-                'submitted_at': submission.submitted_at.isoformat(),
-                'execution_time_ms': submission.execution_time_ms,
-                'memory_used_mb': submission.memory_used_mb,
-                'hints_activated_count': hints_count,
-                'hint_types_used': ','.join(hint_types) if hint_types else '',
-                'first_hint_time': first_hint_time,
-                'last_hint_time': last_hint_time,
-                'hint_details': json.dumps(hint_details) if hint_details else ''
-            })
 
         if format_type == 'csv':
             # Return CSV response

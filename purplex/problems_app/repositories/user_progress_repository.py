@@ -251,7 +251,20 @@ class UserProgressRepository(BaseRepository):
     @classmethod
     def update_progress_from_submission(cls, progress: UserProgress, submission,
                                       time_spent: Optional[timedelta] = None) -> UserProgress:
-        """Update progress based on a new submission."""
+        """
+        DEPRECATED: Use ProgressEngine.process_submission() instead.
+        This method relies on the deprecated update_from_submission() method.
+
+        Update progress based on a new submission.
+        """
+        # TODO: Remove this method once all callers have been updated to use ProgressEngine
+        import warnings
+        warnings.warn(
+            "UserProgressRepository.update_progress_from_submission is deprecated. "
+            "Use ProgressEngine.process_submission() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         progress.update_from_submission(submission, time_spent)
         return progress
     

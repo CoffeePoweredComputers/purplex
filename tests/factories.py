@@ -7,7 +7,7 @@ from purplex.problems_app.models import (
     Problem, ProblemSet, TestCase, Course, CourseEnrollment, 
     UserProgress, ProblemHint
 )
-from purplex.submissions_app.models import PromptSubmission
+from purplex.submissions.models import Submission
 
 
 class ProblemFactory:
@@ -172,7 +172,7 @@ class UserProgressFactory:
 
 class SubmissionFactory:
     """Factory for creating test submissions."""
-    
+
     @staticmethod
     def create(
         user,
@@ -180,36 +180,31 @@ class SubmissionFactory:
         problem_set,
         course=None,
         score=100,
-        prompt="Test submission",
-        test_results=None,
+        raw_input="Test submission",
+        submission_type="direct_code",
+        passed_all_tests=True,
         time_spent=None
     ):
-        """Create a test submission."""
-        if not test_results:
-            test_results = {
-                'passed': 3,
-                'total': 3,
-                'results': [
-                    {'test_number': 1, 'pass': True},
-                    {'test_number': 2, 'pass': True},
-                    {'test_number': 3, 'pass': True}
-                ]
-            }
-            
+        """Create a test submission using the new Submission model."""
         if time_spent is None:
             time_spent = timedelta(minutes=5)
-            
-        submission = PromptSubmission.objects.create(
+
+        submission = Submission.objects.create(
             user=user,
             problem=problem,
             problem_set=problem_set,
             course=course,
             score=score,
-            prompt=prompt,
-            test_results=test_results,
+            raw_input=raw_input,
+            submission_type=submission_type,
+            processed_code=raw_input if submission_type == "direct_code" else "",
+            execution_status='completed',
+            passed_all_tests=passed_all_tests,
+            is_correct=passed_all_tests,
+            completion_status='complete' if passed_all_tests else 'incomplete',
             time_spent=time_spent
         )
-        
+
         return submission
 
 

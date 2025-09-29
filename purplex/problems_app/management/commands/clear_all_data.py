@@ -93,14 +93,8 @@ class Command(BaseCommand):
 
     def _get_data_counts(self):
         """Get counts of all data that will be affected"""
-        # Get PromptSubmission count via raw SQL since model may not exist
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM submissions_app_promptsubmission")
-            prompt_submission_count = cursor.fetchone()[0]
-
         return {
             # Submission related
-            'prompt_submissions': prompt_submission_count,
             'submissions': Submission.objects.count(),
             'test_executions': TestExecution.objects.count(),
             'hint_activations': HintActivation.objects.count(),
@@ -137,7 +131,6 @@ class Command(BaseCommand):
         self.stdout.write('\n📊 Data that will be DELETED:')
 
         self.stdout.write('\n🔸 Submission Data:')
-        self.stdout.write(f'  • Prompt Submissions: {counts["prompt_submissions"]}')
         self.stdout.write(f'  • Submissions: {counts["submissions"]}')
         self.stdout.write(f'  • Test Executions: {counts["test_executions"]}')
         self.stdout.write(f'  • Hint Activations: {counts["hint_activations"]}')
@@ -222,34 +215,6 @@ class Command(BaseCommand):
             count, _ = Submission.objects.all().delete()
         deleted_counts['submissions'] = count
         self.stdout.write(f'  • Submissions: {count}')
-
-        # Delete SegmentationResult before PromptSubmission (foreign key dependency)
-        with connection.cursor() as cursor:
-            try:
-                if dry_run:
-                    cursor.execute("SELECT COUNT(*) FROM submissions_app_segmentationresult")
-                    result = cursor.fetchone()
-                    count = result[0] if result else 0
-                else:
-                    cursor.execute("DELETE FROM submissions_app_segmentationresult")
-                    count = cursor.rowcount
-                deleted_counts['segmentation_results'] = count
-                self.stdout.write(f'  • Segmentation Results: {count}')
-            except:
-                # Table might not exist
-                deleted_counts['segmentation_results'] = 0
-
-        # Important: PromptSubmission references Course, so delete it before courses
-        # Use raw SQL since the model may not be properly imported
-        with connection.cursor() as cursor:
-            if dry_run:
-                cursor.execute("SELECT COUNT(*) FROM submissions_app_promptsubmission")
-                count = cursor.fetchone()[0]
-            else:
-                cursor.execute("DELETE FROM submissions_app_promptsubmission")
-                count = cursor.rowcount
-        deleted_counts['prompt_submissions'] = count
-        self.stdout.write(f'  • Prompt Submissions (EiPL): {count}')
 
         # 2. Progress data
         self.stdout.write(self.style.NOTICE('\n📊 Clearing progress data...'))

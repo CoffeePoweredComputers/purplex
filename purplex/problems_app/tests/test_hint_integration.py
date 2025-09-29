@@ -6,10 +6,9 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from django.db import transaction
 from ..models import (
-    Problem, ProblemHint, ProblemSet, ProblemSetMembership, 
+    Problem, ProblemHint, ProblemSet, ProblemSetMembership,
     UserProgress, Course, CourseEnrollment
 )
-from purplex.submissions_app.models import PromptSubmission
 
 
 class HintWorkflowIntegrationTests(TransactionTestCase):

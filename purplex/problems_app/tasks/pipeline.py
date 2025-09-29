@@ -425,7 +425,14 @@ def execute_eipl_pipeline(
         variations = generate_variations_helper(problem_id, user_prompt)
         variation_count = len(variations)
         logger.info(f"Generated {variation_count} variations")
-        publish_progress(task_id, 20, f"Generated {variation_count} code variations")
+
+        # Check if we got any variations
+        if variation_count == 0:
+            logger.warning(f"No variations generated for problem {problem_id}")
+            # Continue anyway to save the submission with 0 score
+            publish_progress(task_id, 20, "No code variations could be generated")
+        else:
+            publish_progress(task_id, 20, f"Generated {variation_count} code variations")
 
         # Step 2: Test each variation (20-70% progress)
         test_results = []
@@ -445,13 +452,13 @@ def execute_eipl_pipeline(
             if result['success']:
                 publish_progress(
                     task_id,
-                    20 + (50 * (i+1) / variation_count),
+                    20 + (50 * (i+1) / max(variation_count, 1)),
                     f"Variation {i+1}: ✓ Passed all tests"
                 )
             else:
                 publish_progress(
                     task_id,
-                    20 + (50 * (i+1) / variation_count),
+                    20 + (50 * (i+1) / max(variation_count, 1)),
                     f"Variation {i+1}: {result['testsPassed']}/{result['totalTests']} tests passed"
                 )
         
