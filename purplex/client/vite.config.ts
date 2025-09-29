@@ -43,13 +43,8 @@ export default defineConfig({
             './src/components/AdminProblemEditor.vue',
             './src/components/AdminSubmissions.vue',
             './src/components/AdminCourses.vue',
-            './src/components/AdminDashboard.vue'
-          ],
-
-          // Instructor components - lazy loaded for instructors
-          'instructor': [
-            './src/components/InstructorDashboard.vue',
-            './src/components/InstructorCourses.vue',
+            './src/components/AdminUsers.vue',
+            './src/components/AdminProblemSets.vue'
           ],
         },
 
