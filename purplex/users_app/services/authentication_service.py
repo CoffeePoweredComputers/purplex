@@ -52,7 +52,7 @@ class AuthenticationService:
         """Get or create Redis client for SSE sessions."""
         if cls._redis_client is None:
             cls._redis_client = redis.Redis(
-                host=getattr(settings, 'REDIS_HOST', 'localhost'),
+                host=getattr(settings, 'REDIS_HOST', 'redis'),
                 port=getattr(settings, 'REDIS_PORT', 6379),
                 db=1,  # Use db=1 for SSE sessions
                 decode_responses=True
