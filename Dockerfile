@@ -71,7 +71,9 @@ RUN groupadd -r purplex && useradd -r -g purplex purplex
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /app /app/staticfiles /app/media /app/logs \
-    && chown -R purplex:purplex /app
+    && touch /app/logs/django.log /app/logs/errors.log /app/logs/access.log \
+    && chown -R purplex:purplex /app \
+    && chmod -R 755 /app/logs
 
 WORKDIR /app
 

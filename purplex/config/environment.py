@@ -495,9 +495,9 @@ class Config:
                 'access': self.get('ACCESS_LOG_FILE', 'logs/access.log'),
             }
         return {
-            'django': self.get('DJANGO_LOG_FILE', '/var/log/purplex/django.log'),
-            'error': self.get('ERROR_LOG_FILE', '/var/log/purplex/errors.log'),
-            'access': self.get('ACCESS_LOG_FILE', '/var/log/purplex/access.log'),
+            'django': self.get('DJANGO_LOG_FILE', '/app/logs/django.log'),
+            'error': self.get('ERROR_LOG_FILE', '/app/logs/errors.log'),
+            'access': self.get('ACCESS_LOG_FILE', '/app/logs/access.log'),
         }
     
     # =====================================================================
