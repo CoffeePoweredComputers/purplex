@@ -54,8 +54,16 @@ if settings.DEBUG is False:  # Only in production
         except FileNotFoundError:
             return HttpResponse('Frontend not built. Please build the Vue app.', status=404)
 
+    # Serve Vue app's static assets (js, css, assets folders)
+    urlpatterns += [
+        re_path(r'^(js|css|assets|img)/(.*)$', serve,
+                {'document_root': os.path.join(settings.BASE_DIR, 'purplex/client/dist')}),
+        re_path(r'^.*\.(jpg|jpeg|png|gif|ico|svg)$', serve,
+                {'document_root': os.path.join(settings.BASE_DIR, 'purplex/client/dist')}),
+    ]
+
     # Catch all routes except api/admin/static/media
     urlpatterns += [
         re_path(r'^$', serve_vue_app),  # Root URL
-        re_path(r'^(?!api|admin|static|media).*$', serve_vue_app),  # All other non-API routes
+        re_path(r'^(?!api|admin|static|media|js|css|assets).*$', serve_vue_app),  # All other non-API routes
     ]
