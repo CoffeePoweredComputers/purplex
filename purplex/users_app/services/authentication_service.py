@@ -78,9 +78,12 @@ class AuthenticationService:
                 # Initialize Firebase Admin SDK
                 if not hasattr(settings, '_firebase_initialized'):
                     try:
-                        cred = credentials.Certificate(config.get_firebase_config()['credentials_path'])
+                        # Get Firebase credentials path from config or environment
+                        firebase_path = config.firebase_credentials_path or os.environ.get('FIREBASE_CREDENTIALS_PATH', '/app/firebase-credentials.json')
+                        cred = credentials.Certificate(firebase_path)
                         firebase_admin_app = initialize_app(cred)
                         settings._firebase_initialized = True
+                        logger.info(f"Firebase initialized with credentials from {firebase_path}")
                     except Exception as e:
                         logger.error(f"Firebase initialization error: {e}")
                         raise
