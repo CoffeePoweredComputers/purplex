@@ -54,12 +54,33 @@ if settings.DEBUG is False:  # Only in production
         except FileNotFoundError:
             return HttpResponse('Frontend not built. Please build the Vue app.', status=404)
 
+    # Custom view to serve Vue static assets with correct MIME types
+    def serve_vue_assets(request, path):
+        """Serve Vue.js static assets with correct MIME types"""
+        file_path = os.path.join(settings.BASE_DIR, 'purplex/client/dist', path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            content_type = 'text/html'
+            if path.endswith('.js'):
+                content_type = 'application/javascript'
+            elif path.endswith('.css'):
+                content_type = 'text/css'
+            elif path.endswith('.json'):
+                content_type = 'application/json'
+            elif path.endswith('.png'):
+                content_type = 'image/png'
+            elif path.endswith('.jpg') or path.endswith('.jpeg'):
+                content_type = 'image/jpeg'
+            elif path.endswith('.svg'):
+                content_type = 'image/svg+xml'
+
+            with open(file_path, 'rb') as f:
+                return HttpResponse(f.read(), content_type=content_type)
+        return HttpResponse('File not found', status=404)
+
     # Serve Vue app's static assets (js, css, assets folders)
     urlpatterns += [
-        re_path(r'^(js|css|assets|img)/(.*)$', serve,
-                {'document_root': os.path.join(settings.BASE_DIR, 'purplex/client/dist')}),
-        re_path(r'^.*\.(jpg|jpeg|png|gif|ico|svg)$', serve,
-                {'document_root': os.path.join(settings.BASE_DIR, 'purplex/client/dist')}),
+        re_path(r'^(js|css|assets)/(.*)$', lambda r, folder, filename: serve_vue_assets(r, f'{folder}/{filename}')),
+        re_path(r'^.*\.(jpg|jpeg|png|gif|ico|svg)$', lambda r: serve_vue_assets(r, r.path.lstrip('/'))),
     ]
 
     # Catch all routes except api/admin/static/media
