@@ -1,78 +1,96 @@
 """
-Settings router for Purplex.
+Settings initialization for Purplex.
 Automatically selects the appropriate settings module based on PURPLEX_ENV.
 """
 import os
 import sys
+from pathlib import Path
 
-# Add parent directory to path for config import
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Import configuration manager first
+from purplex.config.environment import config
 
-# Import environment configuration
-from config.environment import config
+# Determine which settings module to use based on environment
+environment = config.env.value
 
-# Select and import the appropriate settings module
-if config.is_production:
+# Import the appropriate settings module
+if environment == 'production':
     from .production import *
-elif config.is_staging:
-    # Create staging settings if needed, for now use production
-    from .production import *
-else:
+elif environment == 'development':
     from .development import *
+elif environment == 'test':
+    from .test import *
+else:
+    raise ValueError(f"Unknown environment: {environment}")
 
-# Validate critical settings
 def validate_settings():
-    """
-    Ensure all required settings are properly configured.
-    This runs after the environment-specific settings are loaded.
-    """
+    """Validate critical settings for the current environment"""
     errors = []
-    
+
+    # Get settings from globals
+    settings = globals()
+
+    # Helper function to safely get settings
+    def get_setting(name, default=None):
+        return settings.get(name, default)
+
     # Check SECRET_KEY
-    if not SECRET_KEY or SECRET_KEY == 'development-key-change-in-production':
+    secret_key = get_setting('SECRET_KEY', '')
+    if not secret_key or secret_key == 'development-key-change-in-production':
         if not config.is_development:
             errors.append("DJANGO_SECRET_KEY must be set to a secure value")
-    
+
     # Check DEBUG setting matches environment
-    if config.is_production and DEBUG:
+    debug_mode = get_setting('DEBUG', False)
+    if config.is_production and debug_mode:
         errors.append("DEBUG must be False in production")
-    elif config.is_development and not DEBUG:
+    elif config.is_development and not debug_mode:
         print("Warning: DEBUG is False in development environment")
-    
+
     # Check database configuration
-    if not DATABASES.get('default'):
+    databases = get_setting('DATABASES', {})
+    if not databases.get('default'):
         errors.append("Database is not configured")
-    
+
     # Check authentication classes
-    auth_classes = REST_FRAMEWORK.get('DEFAULT_AUTHENTICATION_CLASSES', [])
+    rest_framework = get_setting('REST_FRAMEWORK', {})
+    auth_classes = rest_framework.get('DEFAULT_AUTHENTICATION_CLASSES', [])
     if not auth_classes:
         errors.append("No authentication classes configured")
-    
+
     # Check Firebase configuration if not using mock
     if not config.use_mock_firebase:
         # Check if Firebase is properly configured
         firebase_path = config.firebase_credentials_path
-        if not firebase_path or not os.path.exists(firebase_path):
-            errors.append("Firebase credentials not configured for production")
-    
+        if not firebase_path:
+            errors.append("Firebase credentials path not configured for production")
+        elif not os.path.exists(firebase_path):
+            errors.append(f"Firebase credentials file not found at {firebase_path}")
+
     # Check OpenAI configuration if not using mock
     if not config.use_mock_openai:
-        if not OPENAI_API_KEY:
+        openai_key = get_setting('OPENAI_API_KEY', '')
+        if not openai_key:
             errors.append("OPENAI_API_KEY not configured")
-    
+
     # Check allowed hosts in production
     if config.is_production:
-        if '*' in ALLOWED_HOSTS:
+        allowed_hosts = get_setting('ALLOWED_HOSTS', [])
+        if '*' in allowed_hosts:
             errors.append("ALLOWED_HOSTS cannot contain '*' in production")
-    
-    # Check CORS configuration
+        if not allowed_hosts:
+            errors.append("ALLOWED_HOSTS must be configured in production")
+
+    # Check CORS configuration in production
     if config.is_production:
-        if 'corsheaders' in INSTALLED_APPS:
-            # Check if CORS_ALLOW_ALL_ORIGINS exists and is True
-            cors_allow_all = globals().get('CORS_ALLOW_ALL_ORIGINS', False)
-            if not CORS_ALLOWED_ORIGINS and cors_allow_all:
+        installed_apps = get_setting('INSTALLED_APPS', [])
+        if 'corsheaders' in installed_apps:
+            cors_allowed_origins = get_setting('CORS_ALLOWED_ORIGINS', [])
+            cors_allow_all = get_setting('CORS_ALLOW_ALL_ORIGINS', False)
+            if cors_allow_all:
                 errors.append("CORS_ALLOW_ALL_ORIGINS should not be True in production")
-    
+            elif not cors_allowed_origins:
+                print("Warning: No CORS_ALLOWED_ORIGINS configured in production")
+
     # Raise error if any critical issues found
     if errors:
         error_msg = "Settings validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
@@ -88,3 +106,9 @@ except ValueError as e:
     print(f"ERROR: {e}")
     if config.is_production:
         sys.exit(1)
+
+# Print environment info
+print(f"✓ Loaded {environment} settings")
+print(f"✓ Database: {config.database_url.split('@')[-1] if config.database_url else 'Not configured'}")
+print(f"✓ Firebase: {'Mock' if config.use_mock_firebase else 'Real'}")
+print(f"✓ Debug: {DEBUG}")
