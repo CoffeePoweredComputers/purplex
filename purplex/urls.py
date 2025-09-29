@@ -41,11 +41,21 @@ urlpatterns += static(
         document_root=settings.STATIC_ROOT
     )
 
-# Serve Vue frontend for all non-API and non-admin routes
+# Serve Vue frontend at root
 if settings.DEBUG is False:  # Only in production
-    # Serve the Vue app's static files
+    from django.http import HttpResponse
+
+    def serve_vue_app(request, path=''):
+        """Serve the Vue.js frontend application"""
+        index_path = os.path.join(settings.BASE_DIR, 'purplex/client/dist/index.html')
+        try:
+            with open(index_path, 'r') as f:
+                return HttpResponse(f.read(), content_type='text/html')
+        except FileNotFoundError:
+            return HttpResponse('Frontend not built. Please build the Vue app.', status=404)
+
+    # Catch all routes except api/admin/static/media
     urlpatterns += [
-        re_path(r'^(?!api|admin|static|media).*$',
-                serve,
-                {'document_root': os.path.join(settings.BASE_DIR, 'purplex/client/dist'), 'path': 'index.html'}),
+        re_path(r'^$', serve_vue_app),  # Root URL
+        re_path(r'^(?!api|admin|static|media).*$', serve_vue_app),  # All other non-API routes
     ]
