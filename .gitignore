@@ -166,3 +166,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+# Package manager lock files (using Yarn only)
+package-lock.json
+purplex/client/package-lock.json

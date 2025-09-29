@@ -38,7 +38,7 @@ FROM node:20-alpine as frontend-builder
 WORKDIR /app
 
 # Copy package files
-COPY purplex/client/package*.json ./
+COPY purplex/client/package.json ./
 COPY purplex/client/yarn.lock ./
 
 # Install dependencies
