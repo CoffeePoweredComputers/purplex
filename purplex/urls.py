@@ -101,7 +101,7 @@ if settings.DEBUG is False:  # Only in production
         """Wrapper for folder/filename pattern"""
         return serve_vue_assets(request, folder=folder, filename=filename)
 
-    def serve_by_path(request):
+    def serve_by_path(request, *args, **kwargs):
         """Wrapper for direct path pattern"""
         return serve_vue_assets(request, path=request.path.lstrip('/'))
 
