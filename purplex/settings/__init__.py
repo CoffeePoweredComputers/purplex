@@ -68,7 +68,9 @@ def validate_settings():
     # Check CORS configuration
     if config.is_production:
         if 'corsheaders' in INSTALLED_APPS:
-            if not CORS_ALLOWED_ORIGINS and CORS_ALLOW_ALL_ORIGINS:
+            # Check if CORS_ALLOW_ALL_ORIGINS exists and is True
+            cors_allow_all = globals().get('CORS_ALLOW_ALL_ORIGINS', False)
+            if not CORS_ALLOWED_ORIGINS and cors_allow_all:
                 errors.append("CORS_ALLOW_ALL_ORIGINS should not be True in production")
     
     # Raise error if any critical issues found
