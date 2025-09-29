@@ -59,13 +59,10 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': config.redis_url,
         'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'CONNECTION_POOL_KWARGS': {
                 'max_connections': 50,
                 'retry_on_timeout': True,
             },
-            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
-            'IGNORE_EXCEPTIONS': True,
         },
         'KEY_PREFIX': 'purplex:cache:',
         'TIMEOUT': 300,  # 5 minutes default

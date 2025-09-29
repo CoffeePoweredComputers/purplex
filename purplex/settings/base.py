@@ -173,6 +173,10 @@ CORS_ALLOW_HEADERS = [
     'x-service-key',  # For service account authentication
 ]
 
+# Redis Configuration
+REDIS_HOST = os.environ.get('REDIS_HOST', 'redis' if 'docker' in os.environ.get('HOSTNAME', '') else 'localhost')
+REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
+
 # Celery Configuration
 CELERY_BROKER_URL = config.redis_url
 CELERY_RESULT_BACKEND = config.redis_url

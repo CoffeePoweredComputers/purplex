@@ -29,7 +29,7 @@ class RateLimitService:
         """Get or create Redis client for rate limiting."""
         if cls._redis_client is None:
             cls._redis_client = redis.Redis(
-                host=getattr(settings, 'REDIS_HOST', 'localhost'),
+                host=getattr(settings, 'REDIS_HOST', 'redis'),
                 port=getattr(settings, 'REDIS_PORT', 6379),
                 db=2,  # Use db=2 for rate limiting
                 decode_responses=True
