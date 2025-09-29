@@ -17,8 +17,11 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
+from django.views.generic import TemplateView
+from django.views.static import serve
 from .views import csrf_token
+import os
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,10 +33,19 @@ urlpatterns = [
 ]
 
 urlpatterns += static(
-        settings.MEDIA_URL, 
+        settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT
     )
 urlpatterns += static(
-        settings.STATIC_URL, 
+        settings.STATIC_URL,
         document_root=settings.STATIC_ROOT
     )
+
+# Serve Vue frontend for all non-API and non-admin routes
+if settings.DEBUG is False:  # Only in production
+    # Serve the Vue app's static files
+    urlpatterns += [
+        re_path(r'^(?!api|admin|static|media).*$',
+                serve,
+                {'document_root': os.path.join(settings.BASE_DIR, 'purplex/client/dist'), 'path': 'index.html'}),
+    ]
