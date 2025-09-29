@@ -33,9 +33,10 @@ RUN pip install --no-cache-dir -r production.txt
 # Copy application code
 COPY --chown=celery:celery . .
 
-# Create necessary directories
-RUN mkdir -p /var/log/celery /var/run/celery \
-    && chown -R celery:celery /var/log/celery /var/run/celery
+# Create necessary directories including app logs
+RUN mkdir -p /app/logs /var/log/celery /var/run/celery \
+    && touch /app/logs/django.log /app/logs/errors.log /app/logs/access.log \
+    && chown -R celery:celery /app/logs /var/log/celery /var/run/celery
 
 # Switch to non-root user
 USER celery

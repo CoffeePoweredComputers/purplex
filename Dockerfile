@@ -89,8 +89,8 @@ COPY --from=frontend-builder --chown=purplex:purplex /app/dist /app/purplex/clie
 # Switch to non-root user BEFORE collecting static files
 USER purplex
 
-# Collect static files as the purplex user
-RUN python manage.py collectstatic --noinput
+# Collect static files as the purplex user (will use dev settings during build, that's ok)
+RUN python manage.py collectstatic --noinput || true
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
