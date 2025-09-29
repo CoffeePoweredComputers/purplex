@@ -79,7 +79,10 @@ export default defineComponent({
             // Wait for Firebase to be initialized
             const { ensureFirebaseInitialized, firebaseAuth } = await import('./firebaseConfig');
             await ensureFirebaseInitialized();
-            
+
+            // Check for redirect result first (in case coming back from Google login)
+            await this.$store.dispatch('auth/checkRedirectResult');
+
             // Only set up auth listener if firebaseAuth is available
             if (firebaseAuth && firebaseAuth.onAuthStateChanged) {
                 // Create a promise that resolves when auth state is determined
@@ -91,7 +94,7 @@ export default defineComponent({
                     });
                 });
             }
-            
+
             // Now check authentication state
             await this.$store.dispatch('auth/checkAuthState');
         } catch (error) {

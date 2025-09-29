@@ -20,11 +20,11 @@ async function initializeAuthFunctions() {
   
   // For mock Firebase, functions are on the auth object
   if (environment.useMockFirebase && firebaseAuth) {
-    signInWithEmailAndPassword = (auth: any, email: string, password: string) => 
+    signInWithEmailAndPassword = (auth: any, email: string, password: string) =>
       firebaseAuth.signInWithEmailAndPassword(email, password);
-    signInWithPopup = (auth: any, prov: any) => 
+    signInWithPopup = (auth: any, prov: any) =>
       firebaseAuth.signInWithPopup(prov);
-    createUserWithEmailAndPassword = (auth: any, email: string, password: string) => 
+    createUserWithEmailAndPassword = (auth: any, email: string, password: string) =>
       firebaseAuth.createUserWithEmailAndPassword(email, password);
   } else {
     // For real Firebase, import the functions
@@ -222,7 +222,7 @@ export const auth: Module<AuthState, any> = {
     async loginWithGoogle({ commit }: AuthActionContext): Promise<void> {
       // Ensure Firebase is initialized
       await initializeAuthFunctions();
-      
+
       // In debug mode with mock Firebase, use mock Google login
       if (DEBUG && environment.useMockFirebase) {
         try {

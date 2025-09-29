@@ -1,11 +1,73 @@
-# =====================================================================================
-# MAIN REQUIREMENTS FILE
-# =====================================================================================
-#
-# This file includes production requirements by default.
-# For development, use: pip install -r requirements/development.txt
-# For testing only, use: pip install -r requirements/base.txt
-#
+# Purplex Requirements - Single file for all environments
 # =====================================================================================
 
--r requirements/production.txt
+# Django Framework
+django==5.0.7
+djangorestframework==3.15.2
+django-cors-headers==4.4.0
+django-redis==5.4.0
+django-ratelimit==4.1.0
+
+# Database
+psycopg2-binary==2.9.9
+dj-database-url==2.1.0
+
+# Redis & Caching
+redis==4.5.4
+hiredis==2.3.2
+
+# Celery - Async Task Processing
+celery[redis]==5.3.4
+kombu==5.3.4
+django-celery-beat==2.7.0
+
+# External Services
+openai==1.40.6
+firebase-admin==6.5.0
+
+# HTTP & Networking
+requests==2.32.3
+httpx==0.27.0
+httpcore==1.0.5
+urllib3==2.2.2
+
+# Data Validation & Serialization
+pydantic==2.8.2
+pydantic_core==2.20.1
+
+# Utilities
+python-dotenv==1.1.1
+python-json-logger==2.0.7
+PyJWT==2.8.0
+pillow==10.4.0
+tqdm==4.66.5
+whitenoise==6.6.0
+
+# Type Hints & Annotations
+typing_extensions==4.12.2
+annotated-types==0.7.0
+
+# Docker SDK for code execution
+docker==7.1.0
+
+# Production Server
+gunicorn==21.2.0
+
+# API Authentication
+djangorestframework-simplejwt==5.3.1
+
+# Core HTTP & Async
+asgiref==3.8.1
+anyio==4.4.0
+h11==0.14.0
+sniffio==1.3.1
+
+# Django Utilities
+sqlparse==0.5.1
+
+# Parsing & Processing
+jiter==0.5.0
+charset-normalizer==3.3.2
+certifi==2024.7.4
+idna==3.7
+distro==1.9.0

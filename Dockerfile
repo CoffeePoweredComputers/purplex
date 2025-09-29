@@ -1,125 +1,47 @@
-# =====================================================================================
-# PURPLEX DJANGO APPLICATION DOCKERFILE
-# =====================================================================================
-# Multi-stage build for optimized production image
-# =====================================================================================
-
-# Stage 1: Python dependencies builder
-FROM python:3.11-slim as builder
+# Simple Dockerfile for Purplex with Frontend Build
+FROM python:3.11-slim as backend
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PYTHONUNBUFFERED=1
 
-# Install system dependencies for building Python packages
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    g++ \
     libpq-dev \
-    python3-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Copy and install Python dependencies
-COPY requirements/base.txt /tmp/base.txt
-COPY requirements/production.txt /tmp/requirements.txt
-RUN pip install --upgrade pip && \
-    pip install -r /tmp/requirements.txt
-
-# =====================================================================================
-# Stage 2: Frontend builder
-FROM node:20-alpine as frontend-builder
-
+# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY purplex/client/package.json ./
-COPY purplex/client/yarn.lock ./
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install dependencies
-RUN yarn install --frozen-lockfile
-
-# Copy frontend source
-COPY purplex/client/ ./
+# Copy project
+COPY . .
 
 # Build frontend
+FROM node:20-alpine as frontend
+WORKDIR /app
+COPY purplex/client/package.json purplex/client/yarn.lock ./
+RUN yarn install --frozen-lockfile
+COPY purplex/client/ ./
 RUN yarn build
 
-# =====================================================================================
-# Stage 3: Final production image
-FROM python:3.11-slim
+# Final image
+FROM backend
+COPY --from=frontend /app/dist /app/purplex/client/dist
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    DJANGO_SETTINGS_MODULE=purplex.settings \
-    PATH="/opt/venv/bin:$PATH"
+# Create necessary directories
+RUN mkdir -p staticfiles media logs
 
-# Install runtime dependencies including Docker client
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    curl \
-    ca-certificates \
-    gnupg \
-    lsb-release \
-    && mkdir -p /etc/apt/keyrings \
-    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
-    && echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
-      $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
-    && apt-get update \
-    && apt-get install -y docker-ce-cli \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user and add to docker group for socket access
-# Use GID 961 to match Arch Linux's docker group
-RUN groupadd -r purplex && useradd -r -g purplex purplex \
-    && (groupadd -g 961 docker 2>/dev/null || groupmod -g 961 docker || true) \
-    && usermod -aG docker purplex
-
-# Create necessary directories with proper permissions
-RUN mkdir -p /app /app/staticfiles /app/media /app/logs \
-    && touch /app/logs/django.log /app/logs/errors.log /app/logs/access.log \
-    && chown -R purplex:purplex /app \
-    && chmod -R 755 /app/logs
-
-WORKDIR /app
-
-# Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
-
-# Copy application code
-COPY --chown=purplex:purplex . .
-
-# Copy frontend build
-COPY --from=frontend-builder /app/dist /app/purplex/client/dist
-
-# Keep running as root for Docker socket access
-# USER purplex (commented out - need root for Docker socket)
-
-# Collect static files as root
+# Collect static files
 RUN python manage.py collectstatic --noinput || true
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ || exit 1
 
 # Expose port
 EXPOSE 8000
 
-# Default command using gunicorn
-CMD ["gunicorn", \
-     "--config", "config/gunicorn/gunicorn.py", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "4", \
-     "--threads", "4", \
-     "--worker-class", "sync", \
-     "--worker-tmp-dir", "/dev/shm", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "purplex.wsgi:application"]
+# Run the application (command can be overridden in docker-compose)
+CMD ["gunicorn", "purplex.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4"]

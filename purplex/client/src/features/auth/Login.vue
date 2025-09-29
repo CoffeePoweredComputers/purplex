@@ -90,7 +90,7 @@ export default {
           })
           .catch((error) => {
             const message = this.mapFirebaseErrorToMessage(error);
-            this.displayErrorMessage(message); 
+            this.displayErrorMessage(message);
           });
       },
       loginWithGoogle: async function () {
@@ -101,7 +101,7 @@ export default {
           })
           .catch((error) => {
             const message = this.mapFirebaseErrorToMessage(error);
-            this.displayErrorMessage(message); 
+            this.displayErrorMessage(message);
           });
       },
       createAccount: async function () {
