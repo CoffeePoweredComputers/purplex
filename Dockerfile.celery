@@ -26,6 +26,7 @@ RUN groupadd -r celery && useradd -r -g celery celery
 WORKDIR /app
 
 # Install Python dependencies
+COPY requirements/base.txt .
 COPY requirements/production.txt .
 RUN pip install --no-cache-dir -r production.txt
 
