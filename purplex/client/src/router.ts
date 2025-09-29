@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import store from "./store"; // Import the Vuex store
+import { ensureFirebaseInitialized } from "./firebaseConfig";
 
 // Eagerly load only critical components
 import Login from "./features/auth/Login.vue";
@@ -101,9 +102,11 @@ router.beforeEach(async (to, _from, next) => {
     
     // Use the debug mode from the Vuex store for consistency
     const debugBypassAuth = store.state.auth.debug;
-    
+
     // If not in debug mode, check auth state
     if (!debugBypassAuth && (requiresAuth || requiresAdmin)) {
+        // Ensure Firebase is initialized first
+        await ensureFirebaseInitialized();
         // Make sure we have the latest auth state
         await store.dispatch('auth/checkAuthState');
     }
