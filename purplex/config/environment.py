@@ -271,7 +271,7 @@ class Config:
         
         hosts = self.get_list('DJANGO_ALLOWED_HOSTS')
         if not hosts or hosts == ['*']:
-            raise ConfigurationError("Production must have specific ALLOWED_HOSTS")
+            raise ConfigurationError("Production requires DJANGO_ALLOWED_HOSTS environment variable with specific IPs/domains (not wildcard '*'). Example: DJANGO_ALLOWED_HOSTS=54.123.45.67,mydomain.com,localhost,127.0.0.1")
         return hosts
     
     @property
@@ -586,7 +586,7 @@ class Config:
             try:
                 hosts = self.allowed_hosts
                 if not hosts or hosts == ['*']:
-                    errors.append("Production must have specific ALLOWED_HOSTS")
+                    errors.append("Production requires DJANGO_ALLOWED_HOSTS (not ALLOWED_HOSTS) with specific IPs/domains")
             except ConfigurationError as e:
                 errors.append(str(e))
             

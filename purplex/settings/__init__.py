@@ -50,7 +50,9 @@ def validate_settings():
     
     # Check Firebase configuration if not using mock
     if not config.use_mock_firebase:
-        if not FIREBASE_CONFIG or not FIREBASE_CONFIG.get('credentials_path'):
+        # Check if Firebase is properly configured
+        firebase_path = config.firebase_credentials_path
+        if not firebase_path or not os.path.exists(firebase_path):
             errors.append("Firebase credentials not configured for production")
     
     # Check OpenAI configuration if not using mock
