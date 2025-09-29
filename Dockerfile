@@ -69,9 +69,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create non-root user
 RUN groupadd -r purplex && useradd -r -g purplex purplex
 
-# Create necessary directories
-RUN mkdir -p /app /var/log/purplex /var/www/purplex/staticfiles /var/www/purplex/media \
-    && chown -R purplex:purplex /app /var/log/purplex /var/www/purplex
+# Create necessary directories with proper permissions
+RUN mkdir -p /app /app/staticfiles /app/media /app/logs \
+    && chown -R purplex:purplex /app
 
 WORKDIR /app
 
@@ -82,13 +82,13 @@ COPY --from=builder /opt/venv /opt/venv
 COPY --chown=purplex:purplex . .
 
 # Copy frontend build
-COPY --from=frontend-builder --chown=purplex:purplex /app/dist /var/www/purplex/client/dist
+COPY --from=frontend-builder --chown=purplex:purplex /app/dist /app/purplex/client/dist
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
-# Switch to non-root user
+# Switch to non-root user BEFORE collecting static files
 USER purplex
+
+# Collect static files as the purplex user
+RUN python manage.py collectstatic --noinput
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

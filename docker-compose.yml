@@ -37,13 +37,12 @@ services:
     command: >
       sh -c "
         python manage.py migrate &&
-        python manage.py collectstatic --noinput &&
         gunicorn purplex.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2
       "
     volumes:
-      - ./staticfiles:/app/staticfiles
-      - ./media:/app/media
-      - ./logs:/app/logs
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - logs_volume:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
     ports:
       - "8000:8000"
@@ -70,8 +69,8 @@ services:
     container_name: purplex_celery
     command: celery -A purplex.celery_simple worker -l info
     volumes:
-      - ./media:/app/media
-      - ./logs:/app/logs
+      - media_volume:/app/media
+      - logs_volume:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
     env_file:
       - .env
@@ -107,3 +106,4 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
+  logs_volume:
