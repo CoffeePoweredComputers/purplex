@@ -56,13 +56,16 @@ DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 # Cache configuration for production (use Redis)
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'BACKEND': 'django_redis.cache.RedisCache',
         'LOCATION': config.redis_url,
         'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'CONNECTION_POOL_KWARGS': {
                 'max_connections': 50,
                 'retry_on_timeout': True,
             },
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
         },
         'KEY_PREFIX': 'purplex:cache:',
         'TIMEOUT': 300,  # 5 minutes default

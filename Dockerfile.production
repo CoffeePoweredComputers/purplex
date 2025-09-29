@@ -1,7 +1,7 @@
 # =====================================================================================
-# PURPLEX DJANGO APPLICATION DOCKERFILE
+# PURPLEX PRODUCTION DOCKERFILE - OPTIMIZED FOR AWS
 # =====================================================================================
-# Multi-stage build for optimized production image
+# Multi-stage build for secure, optimized production image
 # =====================================================================================
 
 # Stage 1: Python dependencies builder
@@ -58,63 +58,55 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=purplex.settings \
-    PATH="/opt/venv/bin:$PATH"
+    PATH="/opt/venv/bin:$PATH" \
+    TINI_VERSION=v0.19.0
 
-# Install runtime dependencies including Docker client
+# Install runtime dependencies and tini for proper signal handling
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
     ca-certificates \
-    gnupg \
-    lsb-release \
-    && mkdir -p /etc/apt/keyrings \
-    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
-    && echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
-      $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
-    && apt-get update \
-    && apt-get install -y docker-ce-cli \
+    wget \
+    && wget -O /tini https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini \
+    && chmod +x /tini \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user and add to docker group for socket access
-# Use GID 961 to match Arch Linux's docker group
-RUN groupadd -r purplex && useradd -r -g purplex purplex \
-    && (groupadd -g 961 docker 2>/dev/null || groupmod -g 961 docker || true) \
-    && usermod -aG docker purplex
+# Create non-root user
+RUN groupadd -r purplex && useradd -r -g purplex -u 1000 purplex
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /app /app/staticfiles /app/media /app/logs \
-    && touch /app/logs/django.log /app/logs/errors.log /app/logs/access.log \
-    && chown -R purplex:purplex /app \
-    && chmod -R 755 /app/logs
+    && chown -R purplex:purplex /app
 
 WORKDIR /app
 
 # Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder --chown=purplex:purplex /opt/venv /opt/venv
 
 # Copy application code
 COPY --chown=purplex:purplex . .
 
 # Copy frontend build
-COPY --from=frontend-builder /app/dist /app/purplex/client/dist
+COPY --from=frontend-builder --chown=purplex:purplex /app/dist /app/purplex/client/dist
 
-# Keep running as root for Docker socket access
-# USER purplex (commented out - need root for Docker socket)
+# Switch to non-root user
+USER purplex
 
-# Collect static files as root
+# Collect static files
 RUN python manage.py collectstatic --noinput || true
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8000/api/health/')" || exit 1
 
 # Expose port
 EXPOSE 8000
 
+# Use tini as entrypoint for proper signal handling
+ENTRYPOINT ["/tini", "--"]
+
 # Default command using gunicorn
 CMD ["gunicorn", \
-     "--config", "config/gunicorn/gunicorn.py", \
      "--bind", "0.0.0.0:8000", \
      "--workers", "4", \
      "--threads", "4", \
@@ -122,4 +114,6 @@ CMD ["gunicorn", \
      "--worker-tmp-dir", "/dev/shm", \
      "--access-logfile", "-", \
      "--error-logfile", "-", \
+     "--timeout", "120", \
+     "--graceful-timeout", "30", \
      "purplex.wsgi:application"]

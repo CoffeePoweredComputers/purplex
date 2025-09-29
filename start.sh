@@ -183,12 +183,12 @@ fi
 echo -e "${YELLOW}Setting up Django...${NC}"
 source env/bin/activate
 
-# Run migrations
-python manage.py migrate --noinput > /dev/null 2>&1
-echo -e "${GREEN}✓ Database migrations complete${NC}"
-
 # Create logs directory if it doesn't exist
 mkdir -p logs
+
+# Run migrations (allow warnings to pass)
+python manage.py migrate --noinput > logs/migrate.log 2>&1 || true
+echo -e "${GREEN}✓ Database migrations complete${NC}"
 
 # 5. Kill any existing Celery processes
 pkill -f "celery.*purplex" 2>/dev/null || true

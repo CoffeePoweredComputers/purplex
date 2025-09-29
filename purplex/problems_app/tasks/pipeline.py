@@ -234,11 +234,11 @@ def save_submission_helper(
     # Retrieve hint data from Redis context if available
     activated_hints = None
     try:
-        redis_client = redis.Redis(host='localhost', port=6379, db=7, decode_responses=True)
-        context_data = redis_client.get(f"eipl:context:{task_id}")
+        from django.core.cache import cache
+        context_data = cache.get(f"eipl:context:{task_id}")
         if context_data:
-            context = json.loads(context_data)
-            activated_hints = context.get('activated_hints', [])
+            # Django cache already deserializes the data
+            activated_hints = context_data.get('activated_hints', [])
             if activated_hints:
                 logger.info(f"Retrieved {len(activated_hints)} activated hints from context")
     except Exception as e:

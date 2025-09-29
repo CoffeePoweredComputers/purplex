@@ -12,7 +12,7 @@ psycopg2-binary==2.9.9
 dj-database-url==2.1.0
 
 # Redis & Caching
-redis==4.6.0
+redis==4.5.4
 hiredis==2.3.2
 django-redis==5.4.0
 
@@ -44,6 +44,9 @@ tqdm==4.66.5
 # Type Hints & Annotations
 typing_extensions==4.12.2
 annotated-types==0.7.0
+
+# Docker SDK for code execution
+docker==7.1.0
 
 # Core HTTP & Async
 asgiref==3.8.1

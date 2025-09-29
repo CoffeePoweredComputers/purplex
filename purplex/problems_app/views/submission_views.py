@@ -360,9 +360,8 @@ class EiPLSubmissionView(APIView):
         # Generate request ID for tracking
         request_id = str(uuid.uuid4())
         
-        # Store submission context in Redis for later retrieval
-        import redis
-        redis_client = redis.Redis(host='localhost', port=6379, db=7, decode_responses=True)
+        # Store submission context in cache for later retrieval
+        from django.core.cache import cache
         
         submission_context = {
             'user_id': request.user.id,
@@ -380,10 +379,10 @@ class EiPLSubmissionView(APIView):
         }
         
         # Store context with 2 hour TTL
-        redis_client.setex(
+        cache.set(
             f"eipl:context:{request_id}",
-            7200,
-            json.dumps(submission_context)
+            submission_context,  # Django cache handles serialization
+            timeout=7200
         )
         
         logger.debug(f"Stored submission context for request {request_id}")

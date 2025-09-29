@@ -21,11 +21,13 @@ from django.urls import path, include, re_path
 from django.views.generic import TemplateView
 from django.views.static import serve
 from .views import csrf_token
+from purplex.problems_app.views.health_views import HealthCheckView
 import os
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include([
+        path('health/', HealthCheckView.as_view(), name='health_check'),
         path('csrf/', csrf_token, name='csrf_token'),
         path('', include('purplex.problems_app.urls')),
         path('', include('purplex.users_app.urls')),

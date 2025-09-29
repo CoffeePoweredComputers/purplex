@@ -34,16 +34,19 @@ services:
   web:
     build: .
     container_name: purplex_web
+    group_add:
+      - "961"  # Docker group GID on Arch Linux
     command: >
       sh -c "
         python manage.py migrate &&
-        gunicorn purplex.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2
+        gunicorn purplex.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --user root --group root
       "
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
       - logs_volume:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "8000:8000"
     env_file:
@@ -67,11 +70,14 @@ services:
       context: .
       dockerfile: Dockerfile.celery
     container_name: purplex_celery
+    group_add:
+      - "961"  # Docker group GID on Arch Linux
     command: celery -A purplex.celery_simple worker -l info
     volumes:
       - media_volume:/app/media
       - logs_volume:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .env
     depends_on:

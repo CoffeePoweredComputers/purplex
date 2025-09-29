@@ -9,7 +9,7 @@ from ..repositories.problem_repository import ProblemRepository
 from ..repositories.progress_repository import ProgressRepository
 from ..repositories.course_problem_set_repository import CourseProblemSetRepository
 from ..repositories.problem_set_repository import ProblemSetRepository
-from ...users_app.repositories import UserRepository
+from users_app.repositories import UserRepository
 
 if TYPE_CHECKING:
     from ..models import CourseProblemSet

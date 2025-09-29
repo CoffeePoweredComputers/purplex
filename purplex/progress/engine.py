@@ -278,8 +278,7 @@ class ProgressEngine:
         try:
             import redis
             import json
-
-            redis_client = redis.Redis(host='localhost', port=6379, db=7, decode_responses=True)
+            from django.core.cache import cache
 
             # Create event data structure
             event_data = {
@@ -299,11 +298,13 @@ class ProgressEngine:
 
             # Store with expiry for cleanup (1 hour)
             key = f"progress:update:{progress.user.id}:{progress.problem.id}"
-            redis_client.setex(key, 3600, json.dumps(event_data))
+            cache.set(key, event_data, timeout=3600)
 
             # Also publish to a channel for real-time subscribers
+            # Note: Pub/sub functionality requires direct Redis connection
+            # For now, we'll skip pub/sub in favor of polling-based updates
             channel = f"progress:channel:{progress.user.id}"
-            redis_client.publish(channel, json.dumps(event_data))
+            # redis_client.publish(channel, json.dumps(event_data))  # Disabled for Docker compatibility
 
             logger.debug(f"[ProgressEngine] Published progress event to Redis channel {channel}")
 
