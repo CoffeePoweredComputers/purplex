@@ -7,27 +7,21 @@
 
 # Production Server
 gunicorn==21.2.0     # WSGI HTTP Server
-whitenoise==6.7.0    # Static file serving
+# whitenoise is already in base.txt
 
-# Performance & Caching
-django-redis==5.4.0  # Redis cache backend
-
-# Security
-django-cors-headers==4.4.0  # CORS headers
-
-# Database
-psycopg2-binary==2.9.9  # PostgreSQL adapter
-
-# Task Queue
-celery[redis]==5.3.4  # Celery with Redis
+# Task Queue Extensions (base has celery[redis]==5.3.4)
 django-celery-beat==2.7.0  # Database-backed periodic tasks
 
 # Monitoring (Optional - comment out if not needed)
 # sentry-sdk==1.39.2   # Error tracking
 
-# API & Authentication
-djangorestframework==3.15.2  # REST API
+# API Authentication Extensions
 djangorestframework-simplejwt==5.3.1  # JWT authentication
 
-# Production Utilities
-python-dotenv==1.0.1  # Environment variable management
+# Note: These are already in base.txt:
+# - django-redis==5.4.0
+# - django-cors-headers==4.4.0
+# - psycopg2-binary==2.9.9
+# - celery[redis]==5.3.4
+# - djangorestframework==3.15.2
+# - python-dotenv==1.1.1
