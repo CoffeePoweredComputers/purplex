@@ -598,13 +598,15 @@ class Config:
             if not self.use_mock_openai and not self.openai_api_key:
                 errors.append("OpenAI API key required in production")
             
-            # Security checks
-            if not self.secure_ssl_redirect:
-                errors.append("SSL redirect must be enabled in production")
-            if not self.session_cookie_secure:
-                errors.append("Secure session cookies must be enabled in production")
-            if not self.csrf_cookie_secure:
-                errors.append("Secure CSRF cookies must be enabled in production")
+            # Security checks - only enforce if HTTPS is being used
+            # Allow disabling SSL for HTTP deployments
+            if self.get_bool('ENFORCE_SSL_IN_PRODUCTION', False):
+                if not self.secure_ssl_redirect:
+                    errors.append("SSL redirect must be enabled in production")
+                if not self.session_cookie_secure:
+                    errors.append("Secure session cookies must be enabled in production")
+                if not self.csrf_cookie_secure:
+                    errors.append("Secure CSRF cookies must be enabled in production")
             if self.debug:
                 errors.append("DEBUG must be False in production")
             
