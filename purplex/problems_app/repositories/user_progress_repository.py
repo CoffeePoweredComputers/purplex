@@ -249,52 +249,40 @@ class UserProgressRepository(BaseRepository):
         return stats
     
     @classmethod
-    def update_progress_from_submission(cls, progress: UserProgress, submission,
-                                      time_spent: Optional[timedelta] = None) -> UserProgress:
-        """
-        DEPRECATED: Use ProgressEngine.process_submission() instead.
-        This method relies on the deprecated update_from_submission() method.
-
-        Update progress based on a new submission.
-        """
-        # TODO: Remove this method once all callers have been updated to use ProgressEngine
-        import warnings
-        warnings.warn(
-            "UserProgressRepository.update_progress_from_submission is deprecated. "
-            "Use ProgressEngine.process_submission() instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        progress.update_from_submission(submission, time_spent)
-        return progress
-    
-    @classmethod
     def bulk_update_completion_status(cls, user: User, problem_set: ProblemSet,
                                      course: Optional[Course] = None) -> int:
-        """Bulk update completion status for all problems in a set."""
+        """
+        Bulk update completion status for all problems in a set with proper locking.
+
+        FIXED: Now uses transaction.atomic and select_for_update to prevent race conditions.
+        """
+        from django.db import transaction
+
         filters = {
             'user': user,
             'problem_set': problem_set
         }
         if course:
             filters['course'] = course
-        
-        # Update completion flags based on current scores and thresholds
-        progress_records = UserProgress.objects.filter(**filters)
-        updated_count = 0
-        
-        for progress in progress_records:
-            old_completed = progress.is_completed
-            threshold = progress.problem.completion_threshold or 100
-            progress.is_completed = progress.best_score >= threshold
-            progress.completion_percentage = progress.best_score
-            
-            if progress.is_completed != old_completed:
-                if progress.is_completed and not progress.completed_at:
-                    progress.completed_at = timezone.now()
-                progress.save()
-                updated_count += 1
-        
+
+        # FIXED: Wrap in atomic transaction with locking
+        with transaction.atomic():
+            # Lock all relevant records upfront
+            progress_records = UserProgress.objects.select_for_update().filter(**filters)
+            updated_count = 0
+
+            for progress in progress_records:
+                old_completed = progress.is_completed
+                threshold = progress.problem.completion_threshold or 100
+                progress.is_completed = progress.best_score >= threshold
+                progress.completion_percentage = progress.best_score
+
+                if progress.is_completed != old_completed:
+                    if progress.is_completed and not progress.completed_at:
+                        progress.completed_at = timezone.now()
+                    progress.save()
+                    updated_count += 1
+
         return updated_count
     
     @classmethod
@@ -326,27 +314,38 @@ class UserProgressRepository(BaseRepository):
     def reset_user_progress(cls, user: User, problem: Problem,
                            problem_set: Optional[ProblemSet] = None,
                            course: Optional[Course] = None) -> bool:
-        """Reset progress for a specific user-problem combination."""
+        """
+        Reset progress for a specific user-problem combination with proper locking.
+
+        FIXED: Now uses select_for_update() within atomic transaction to prevent race conditions.
+        """
+        from django.db import transaction
+
         try:
-            progress = cls.get_user_problem_progress(user, problem, problem_set, course)
-            if progress:
-                # Reset to initial state
-                progress.status = 'not_started'
-                progress.best_score = 0
-                progress.average_score = 0
-                progress.attempts = 0
-                progress.successful_attempts = 0
-                progress.first_attempt = None
-                progress.last_attempt = None
-                progress.completed_at = None
-                progress.total_time_spent = timedelta(0)
-                progress.hints_used = 0
-                progress.consecutive_successes = 0
-                progress.days_to_complete = None
-                progress.is_completed = False
-                progress.completion_percentage = 0
-                progress.save()
-                return True
+            with transaction.atomic():
+                # FIXED: Lock the record before modifying
+                progress = cls.get_user_problem_progress(user, problem, problem_set, course)
+                if progress:
+                    # Re-fetch with lock to ensure exclusive access
+                    progress = UserProgress.objects.select_for_update().get(pk=progress.pk)
+
+                    # Reset to initial state
+                    progress.status = 'not_started'
+                    progress.best_score = 0
+                    progress.average_score = 0
+                    progress.attempts = 0
+                    progress.successful_attempts = 0
+                    progress.first_attempt = None
+                    progress.last_attempt = None
+                    progress.completed_at = None
+                    progress.total_time_spent = timedelta(0)
+                    progress.hints_used = 0
+                    progress.consecutive_successes = 0
+                    progress.days_to_complete = None
+                    progress.is_completed = False
+                    progress.completion_percentage = 0
+                    progress.save()
+                    return True
         except Exception:
             pass
         return False

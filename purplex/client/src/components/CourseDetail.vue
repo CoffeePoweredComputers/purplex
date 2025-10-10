@@ -127,6 +127,7 @@ import { useStore } from 'vuex'
 import axios, { AxiosError } from 'axios'
 import { log } from '@/utils/logger'
 import type { Course } from '@/types'
+import { waitForAuthState } from '@/utils/auth-state'
 
 export default defineComponent({
   name: 'CourseDetail',
@@ -166,7 +167,9 @@ export default defineComponent({
       })
     }
     
-    onMounted(() => {
+    onMounted(async () => {
+      // Wait for auth state to be determined first
+      await waitForAuthState()
       fetchCourseDetails()
     })
     

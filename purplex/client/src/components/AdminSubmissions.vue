@@ -521,104 +521,38 @@ export default defineComponent({
     
     async exportToCSV(): Promise<void> {
       try {
-        // Fetch detailed submission data for CSV export
-        // Build export URL with current filters
-        const params = new URLSearchParams();
-        if (this.searchQuery.trim()) {
-          params.append('search', this.searchQuery.trim());
-        }
-        if (this.statusFilter) {
-          params.append('status', this.statusFilter);
-        }
-        if (this.problemSetFilter) {
-          params.append('problem_set', this.problemSetFilter);
-        }
-        
-        const response = await axios.post('/api/admin/submissions/export/', {
+        const response = await axios.post('/api/admin/submissions/', {
           filters: {
-            search: this.searchQuery,
-            status: this.statusFilter,
-            problem_set: this.problemSetFilter
-          }
+            search: this.searchQuery.trim() || undefined,
+            status: this.statusFilter || undefined,
+            problem_set: this.problemSetFilter || undefined
+          },
+          format: 'csv'  // Request CSV format
+        }, {
+          responseType: 'blob'  // Important: tell axios to expect binary data
         });
-        
-        const submissions = response.data;
-        
-        // Create CSV content with new field structure
-        const headers = [
-          'User',
-          'Problem',
-          'Problem Set',
-          'Course',
-          'Score (%)',
-          'Comprehension Level',
-          'Is Correct',
-          'Status',
-          'Submitted At',
-          'Total Variations',
-          'Passing Variations',
-          'Success Rate (%)',
-          'Hints Activated Count',
-          'Hint Types Used',
-          'First Hint Time',
-          'Last Hint Time',
-          'Code Variations',
-          'Test Results',
-          'Execution Time (s)',
-          'Time Spent',
-          'Prompt',
-          'Hint Details'
-        ];
-        
-        const csvContent = [
-          headers.join(','),
-          ...submissions.map(submission => [
-            `"${submission.user}"`,
-            `"${submission.problem}"`,
-            `"${submission.problem_set || 'Unknown'}"`,
-            `"${submission.course || 'N/A'}"`,
-            submission.score,
-            `"${this.formatComprehensionLevel(submission.comprehension_level)}"`,
-            submission.is_correct || false,
-            `"${submission.status}"`,
-            `"${new Date(submission.submitted_at).toLocaleString()}"`,
-            submission.total_variations || 0,
-            submission.passing_variations || 0,
-            submission.total_variations ? Math.round((submission.passing_variations || 0) / submission.total_variations * 100) : 0,
-            submission.hints_activated_count || 0,
-            `"${submission.hint_types_used || ''}"`,
-            submission.first_hint_time ? `"${new Date(submission.first_hint_time).toLocaleString()}"` : '',
-            submission.last_hint_time ? `"${new Date(submission.last_hint_time).toLocaleString()}"` : '',
-            `"${this.formatCodeVariationsForCSV(submission.code_variations)}"`,
-            `"${this.formatTestResultsForCSV(submission.test_results)}"`,
-            submission.execution_time || 0,
-            submission.memory_used_mb || 'N/A',
-            `"${(submission.raw_input || submission.prompt || '').replace(/"/g, '""')}"`,
-            `"${(submission.hint_details || '').replace(/"/g, '""')}"`
-          ].join(','))
-        ].join('\n');
-        
-        // Create and download file
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        
+        link.href = url;
+
         // Generate filename with timestamp and filters
         let filename = 'submissions_export';
         if (this.searchQuery) {filename += `_search-${this.searchQuery.replace(/[^a-zA-Z0-9]/g, '_')}`;}
         if (this.statusFilter) {filename += `_status-${this.statusFilter}`;}
         if (this.problemSetFilter) {filename += `_set-${this.problemSetFilter.replace(/[^a-zA-Z0-9]/g, '_')}`;}
         filename += `_${new Date().toISOString().split('T')[0]}.csv`;
-        
+
         link.setAttribute('download', filename);
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        log.info('✅ Export successful');
       } catch (error) {
-        log.error('Error exporting CSV', { error });
+        log.error('❌ Export failed', { error });
         this.notify.error('Failed to export CSV. Please try again.');
       }
     },

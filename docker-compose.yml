@@ -1,25 +1,98 @@
 services:
-  # PostgreSQL Database
-  postgres:
+  # PostgreSQL Database - Production
+  postgres-prod:
     image: postgres:15-alpine
+    profiles:
+      - production
     container_name: purplex_postgres
+    env_file:
+      - .env.production
     environment:
-      POSTGRES_DB: purplex_prod
-      POSTGRES_USER: purplex_user
-      POSTGRES_PASSWORD: devpass123
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - database
+      - backend
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U purplex_user"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    restart: unless-stopped
+
+  # PostgreSQL Database - Development
+  postgres:
+    image: postgres:15-alpine
+    profiles:
+      - development
+    container_name: purplex_postgres
+    env_file:
+      - .env.docker.development
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
-  # Redis Cache & Message Broker
+  # Redis Cache & Message Broker - Production
+  redis-prod:
+    image: redis:7-alpine
+    profiles:
+      - production
+    container_name: purplex_redis
+    command: redis-server --maxmemory 1gb --maxmemory-policy allkeys-lru
+    env_file:
+      - .env.production
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    restart: unless-stopped
+
+  # Redis Cache & Message Broker - Development
   redis:
     image: redis:7-alpine
+    profiles:
+      - development
     container_name: purplex_redis
+    command: redis-server
+    env_file:
+      - .env.docker.development
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -27,28 +100,65 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Django Web Application
+  # Django Web Application - Production
   web:
     build: .
-    container_name: purplex_web
-    command: >
-      sh -c "
-        python manage.py migrate &&
-        gunicorn purplex.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-4}
-      "
+    profiles:
+      - production
+    command: gunicorn purplex.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-4}
     volumes:
       - ./staticfiles:/app/staticfiles
       - ./media:/app/media
       - ./logs:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
       - /var/run/docker.sock:/var/run/docker.sock
-    ports:
-      - "${WEB_PORT:-8000}:8000"
+    expose:
+      - "8000"
+    networks:
+      - frontend
+      - backend
+      - database
     env_file:
-      - .env
+      - .env.production
     environment:
-      - DATABASE_URL=postgresql://purplex_user:devpass123@postgres:5432/purplex_prod
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-prod:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis-prod:6379/0
+    depends_on:
+      postgres-prod:
+        condition: service_healthy
+      redis-prod:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    restart: unless-stopped
+
+  # Django Web Application - Development
+  web-dev:
+    build: .
+    profiles:
+      - development
+    container_name: purplex_web_dev
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.docker.development
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,10 +166,79 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Celery Worker
+  # Vue.js Frontend - Development
+  frontend-dev:
+    image: node:20-alpine
+    profiles:
+      - development
+    container_name: purplex_frontend_dev
+    working_dir: /app/purplex/client
+    command: sh -c "yarn install && yarn vite --mode development --host 0.0.0.0"
+    volumes:
+      - .:/app
+      - /app/purplex/client/node_modules  # Prevent node_modules from being overwritten
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - DOCKER_CONTAINER=true
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy - Production only
+  nginx:
+    image: nginx:1.25-alpine
+    profiles:
+      - production
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - frontend
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/sites-available:/etc/nginx/sites-available:ro
+      - ./staticfiles:/usr/share/nginx/html/static:ro
+      - ./media:/usr/share/nginx/html/media:ro
+      - ./logs/nginx:/var/log/nginx
+      - certbot-etc:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost/nginx-health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # Certbot - SSL Certificate Management - Production only
+  certbot:
+    image: certbot/certbot:latest
+    profiles:
+      - production
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+      - ./logs/certbot:/var/log/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet --webroot --webroot-path=/var/www/certbot; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+    depends_on:
+      - nginx
+
+  # Celery Worker - Production
   celery:
     build: .
-    container_name: purplex_celery
+    profiles:
+      - production
     command: celery -A purplex.celery_simple worker -l info --concurrency=${CELERY_WORKERS:-4}
     volumes:
       - ./media:/app/media
@@ -67,10 +246,65 @@ services:
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
       - /var/run/docker.sock:/var/run/docker.sock
     env_file:
-      - .env
+      - .env.production
     environment:
-      - DATABASE_URL=postgresql://purplex_user:devpass123@postgres:5432/purplex_prod
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-prod:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis-prod:6379/0
+    depends_on:
+      postgres-prod:
+        condition: service_healthy
+      redis-prod:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A purplex.celery_simple inspect ping -d celery@$$HOSTNAME"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    restart: unless-stopped
+
+  # Celery Beat - Production (Periodic Tasks)
+  celery-beat:
+    build: .
+    profiles:
+      - production
+    command: celery -A purplex.celery_simple beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - ./logs:/app/logs
+      - ./firebase-credentials.json:/app/firebase-credentials.json:ro
+    env_file:
+      - .env.production
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-prod:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis-prod:6379/0
+    depends_on:
+      postgres-prod:
+        condition: service_healthy
+      redis-prod:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Celery Worker - Development
+  celery-dev:
+    build: .
+    profiles:
+      - development
+    container_name: purplex_celery_dev
+    command: celery -A purplex.celery_simple worker -l info --concurrency=${CELERY_WORKERS:-2}
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .env.docker.development
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,5 +312,53 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Celery Beat - Development (Periodic Tasks)
+  celery-beat-dev:
+    build: .
+    profiles:
+      - development
+    container_name: purplex_celery_beat_dev
+    command: celery -A purplex.celery_simple beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    env_file:
+      - .env.docker.development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  # Frontend network - public-facing services
+  frontend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+  # Backend network - internal services
+  backend:
+    driver: bridge
+    internal: false  # Allow outbound connections for external APIs
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+
+  # Database network - isolated database access
+  database:
+    driver: bridge
+    internal: true  # No external access
+    ipam:
+      config:
+        - subnet: 172.22.0.0/24
+
 volumes:
   postgres_data:
+  # SSL certificate volumes
+  certbot-etc:
+    driver: local
+  certbot-www:
+    driver: local

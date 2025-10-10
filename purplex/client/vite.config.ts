@@ -103,8 +103,13 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        // Use Docker service name when running in container, localhost otherwise
+        target: process.env.DOCKER_CONTAINER ? 'http://purplex_web_dev:8000' : 'http://localhost:8000',
         changeOrigin: true,
+        // Rewrite the Host header to use localhost (Django allows this)
+        headers: {
+          'Host': 'localhost:8000'
+        }
       },
     },
   },

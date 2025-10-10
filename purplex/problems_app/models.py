@@ -224,10 +224,12 @@ class ProblemSetMembership(models.Model):
 
 class UserProgress(models.Model):
     """Tracks user progress on individual problems within a specific problem set and course context"""
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    problem = models.ForeignKey(Problem, on_delete=models.CASCADE)
-    problem_set = models.ForeignKey(ProblemSet, on_delete=models.CASCADE, null=True)
-    course = models.ForeignKey('Course', on_delete=models.CASCADE, null=True, blank=True)
+    # CRITICAL: Use SET_NULL for user to preserve analytics data even if account deleted
+    # Use PROTECT for problem/set/course to prevent deletion of content with progress data
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    problem = models.ForeignKey(Problem, on_delete=models.PROTECT)
+    problem_set = models.ForeignKey(ProblemSet, on_delete=models.PROTECT, null=True)
+    course = models.ForeignKey('Course', on_delete=models.PROTECT, null=True, blank=True)
     problem_version = models.PositiveIntegerField(default=1)
     
     # Simplified status: just completed or not completed
@@ -311,13 +313,41 @@ class UserProblemSetProgress(models.Model):
     
     @classmethod
     def update_from_progress(cls, user_progress):
-        """Update problem set progress when individual problem progress changes"""
-        # Update the specific problem set progress with course context
-        set_progress, created = cls.objects.get_or_create(
-            user=user_progress.user,
-            problem_set=user_progress.problem_set,
-            course=user_progress.course
-        )
+        """Update problem set progress when individual problem progress changes with locking"""
+        from django.db import IntegrityError
+
+        # CRITICAL: Use row-level locking to prevent race conditions
+        # Multiple concurrent submissions to different problems in same set need coordination
+        try:
+            # Try to get existing progress with lock
+            set_progress = cls.objects.select_for_update().filter(
+                user=user_progress.user,
+                problem_set=user_progress.problem_set,
+                course=user_progress.course
+            ).first()
+
+            if not set_progress:
+                # Create new record if doesn't exist
+                try:
+                    set_progress = cls.objects.create(
+                        user=user_progress.user,
+                        problem_set=user_progress.problem_set,
+                        course=user_progress.course
+                    )
+                except IntegrityError:
+                    # Race condition: retry with lock
+                    set_progress = cls.objects.select_for_update().get(
+                        user=user_progress.user,
+                        problem_set=user_progress.problem_set,
+                        course=user_progress.course
+                    )
+        except Exception:
+            # Fallback to non-locking get_or_create if locking fails
+            set_progress, _ = cls.objects.get_or_create(
+                user=user_progress.user,
+                problem_set=user_progress.problem_set,
+                course=user_progress.course
+            )
         
         # Recalculate aggregates for this specific problem set and course
         problem_progresses = UserProgress.objects.filter(
@@ -389,7 +419,9 @@ class Course(models.Model):
     slug = models.SlugField(max_length=100, unique=True, blank=True)
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    instructor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='instructed_courses')
+    # CRITICAL: Changed from CASCADE to PROTECT to prevent accidental data loss
+    # Deleting an instructor should not cascade-delete all their courses and student data
+    instructor = models.ForeignKey(User, on_delete=models.PROTECT, related_name='instructed_courses')
     problem_sets = models.ManyToManyField(ProblemSet, through='CourseProblemSet', related_name='courses')
     is_active = models.BooleanField(default=True)
     enrollment_open = models.BooleanField(default=True)

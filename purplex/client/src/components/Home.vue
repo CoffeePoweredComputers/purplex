@@ -138,6 +138,7 @@ import { computed, defineComponent, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import CourseEnrollmentModal from '../modals/CourseEnrollmentModal.vue'
+import { waitForAuthState } from '../utils/auth-state'
 
 export default defineComponent({
   name: 'Home',
@@ -165,6 +166,8 @@ export default defineComponent({
     
     // Lifecycle
     onMounted(async () => {
+      // Wait for auth state to be determined first
+      await waitForAuthState()
       // Initialize courses data
       await store.dispatch('courses/initializeCourses')
     })

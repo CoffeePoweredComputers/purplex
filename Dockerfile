@@ -38,7 +38,9 @@ COPY --from=frontend /app/dist /app/purplex/client/dist
 RUN mkdir -p staticfiles media logs
 
 # Collect static files
-RUN python manage.py collectstatic --noinput || true
+# Note: This may fail during build if Django needs database connection
+# In production, run collectstatic after deployment with: python manage.py collectstatic --noinput
+RUN python manage.py collectstatic --noinput --clear 2>/dev/null || echo "⚠️  Static files collection skipped (run manually after deployment)"
 
 # Expose port
 EXPOSE 8000

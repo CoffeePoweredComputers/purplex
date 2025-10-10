@@ -98,8 +98,74 @@ class HintService:
         
         # Sort by hint type
         availability['hints'].sort(key=lambda x: x['type'])
-        
+
         return availability
+
+    @staticmethod
+    def get_used_hints(
+        user,
+        problem_slug: str,
+        course_id: Optional[str] = None,
+        problem_set_slug: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get list of hints the user has already activated for this problem.
+
+        Args:
+            user: User instance
+            problem_slug: Problem slug
+            course_id: Optional course ID for context
+            problem_set_slug: Optional problem set slug for context
+
+        Returns:
+            List of dictionaries with hint usage information
+        """
+        from purplex.submissions.models import HintActivation, Submission
+
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if not problem:
+            return []
+
+        # Get optional context
+        problem_set = None
+        course = None
+
+        if problem_set_slug:
+            problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
+
+        if course_id:
+            course = CourseRepository.get_active_course(course_id)
+
+        # Query hint activations for this user/problem/context
+        activations_query = HintActivation.objects.filter(
+            submission__user=user,
+            submission__problem=problem
+        )
+
+        # Add context filters if provided
+        if problem_set:
+            activations_query = activations_query.filter(submission__problem_set=problem_set)
+        if course:
+            activations_query = activations_query.filter(submission__course=course)
+
+        # Get distinct hint IDs that were activated
+        activations_query = activations_query.select_related('hint').order_by('activated_at')
+
+        # Build list of used hints with details
+        used_hints = []
+        seen_hint_ids = set()
+
+        for activation in activations_query:
+            if activation.hint.id not in seen_hint_ids:
+                seen_hint_ids.add(activation.hint.id)
+                used_hints.append({
+                    'hint_id': activation.hint.id,
+                    'hint_type': activation.hint.hint_type,
+                    'first_activated_at': activation.activated_at.isoformat(),
+                    'trigger_type': activation.trigger_type
+                })
+
+        return used_hints
     
     @staticmethod
     def get_hint_content(

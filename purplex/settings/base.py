@@ -82,7 +82,7 @@ db_config = dj_database_url.parse(
     conn_max_age=600 if config.is_production else 60  # Increased connection lifetime
 )
 
-# Add enhanced connection pool settings for high concurrency
+# Add enhanced connection pool settings for high concurrency (1000+ users)
 db_config.update({
     'OPTIONS': {
         'connect_timeout': 10,
@@ -93,8 +93,13 @@ db_config.update({
         'keepalives_interval': 10,
         'keepalives_count': 5,
     },
-    # Increase max connections Django will use
+    # CRITICAL: Connection lifetime and health checks for production scale
+    # Reuse connections for 10 min in prod, 1 min in dev (prevents connection leaks)
     'CONN_MAX_AGE': 600 if config.is_production else 60,
+
+    # CRITICAL: Enable connection health checks (Django 4.1+)
+    # Validates connections before use to prevent stale connection errors at scale
+    'CONN_HEALTH_CHECKS': True,
 })
 
 DATABASES = {
@@ -197,11 +202,21 @@ CELERY_TASK_ROUTES = {
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-GPT_MODEL = os.environ.get('GPT_MODEL', 'gpt-5')
+GPT_MODEL = os.environ.get('GPT_MODEL', 'gpt-4o-mini')
 
 # Firebase Configuration (handled by environment config)
 # Firebase configuration is handled directly via environment variables
 FIREBASE_CREDENTIALS_PATH = config.firebase_credentials_path
+
+# Firebase Token Settings
+# Cache TTL: How long to cache verified Firebase tokens (55 minutes)
+# Aligns with frontend refresh schedule (frontend refreshes at T=55min before 1-hour expiry)
+FIREBASE_TOKEN_CACHE_TTL = 3300  # 55 minutes in seconds
+
+# Grace Period: Accept recently expired tokens during Firebase API outages (10 minutes)
+# Enables graceful degradation when Firebase is temporarily unavailable
+# Must match frontend grace period in useTokenRefresh.ts
+FIREBASE_GRACE_PERIOD_SECONDS = 600  # 10 minutes in seconds
 
 # Feature Flags
 ENABLE_EIPL = config.enable_eipl

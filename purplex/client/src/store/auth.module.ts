@@ -68,6 +68,7 @@ export interface AuthState {
   status: AuthStatus;
   user: User | null;
   debug: boolean;
+  authReady: boolean;
 }
 
 export interface LoginCredentials {
@@ -101,8 +102,8 @@ const user = JSON.parse(localStorage.getItem('user') || 'null') as User | null;
 log.debug('User from localStorage', user);
 
 const initialState: AuthState = user
-  ? { status: { loggedIn: true }, user, debug: DEBUG }
-  : { status: { loggedIn: false }, user: null, debug: DEBUG };
+  ? { status: { loggedIn: true }, user, debug: DEBUG, authReady: false }
+  : { status: { loggedIn: false }, user: null, debug: DEBUG, authReady: false };
 
 log.debug('Auth initial state', initialState);
 
@@ -115,17 +116,20 @@ export const auth: Module<AuthState, any> = {
     // Check auth state and get user data on app init
     async checkAuthState({ commit, state }: AuthActionContext): Promise<void> {
       // Skip if we're already authenticated or in debug mode
-      if (state.debug) {return;}
-      
+      if (state.debug) {
+        commit('setAuthReady', true);
+        return;
+      }
+
       // Ensure Firebase is initialized
       await initializeAuthFunctions();
-      
+
       if (firebaseAuth && firebaseAuth.currentUser) {
         try {
           // Get user role from backend
           const response = await axios.get<UserMeResponse>('/api/user/me/');
           log.info('User data refreshed', response.data);
-          
+
           const userData: User = {
             uid: firebaseAuth.currentUser.uid,
             email: firebaseAuth.currentUser.email!,
@@ -138,6 +142,9 @@ export const auth: Module<AuthState, any> = {
           log.error('Error refreshing user data', error);
         }
       }
+
+      // Mark auth as ready after checking state
+      commit('setAuthReady', true);
     },
 
     async login({ commit }: AuthActionContext, user: LoginCredentials): Promise<void> {
@@ -335,8 +342,18 @@ export const auth: Module<AuthState, any> = {
     loginSuccess(state: AuthState, user: User): void {
       state.status.loggedIn = true;
       state.user = user;
-      // Save to localStorage for persistence
-      localStorage.setItem('user', JSON.stringify(user));
+
+      // ✅ ONLY store non-sensitive user data
+      // ❌ NEVER store tokens, passwords, or credentials
+      const safeUserData = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        role: user.role,
+        isAdmin: user.isAdmin
+      };
+
+      localStorage.setItem('user', JSON.stringify(safeUserData));
     },
 
     logout(state: AuthState): void {
@@ -356,6 +373,10 @@ export const auth: Module<AuthState, any> = {
       state.user = userData;
       // Update localStorage
       localStorage.setItem('user', JSON.stringify(userData));
+    },
+
+    setAuthReady(state: AuthState, ready: boolean): void {
+      state.authReady = ready;
     }
   },
 
@@ -363,6 +384,7 @@ export const auth: Module<AuthState, any> = {
     isLoggedIn: (state: AuthState): boolean => state.status.loggedIn,
     isAdmin: (state: AuthState): boolean => state.user?.isAdmin || false,
     getUser: (state: AuthState): User | null => state.user,
-    getUserRole: (state: AuthState): string | null => state.user ? state.user.role : null
+    getUserRole: (state: AuthState): string | null => state.user ? state.user.role : null,
+    isAuthReady: (state: AuthState): boolean => state.authReady
   }
 };

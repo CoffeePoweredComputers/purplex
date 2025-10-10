@@ -72,10 +72,11 @@ class AuthenticationCacheTest(TestCase):
 
     @patch('purplex.users_app.services.authentication_service.AuthenticationService._initialize_firebase')
     def test_expired_token_removed_from_cache(self, mock_firebase):
-        """Test that expired tokens are removed from cache."""
+        """Test that tokens expired beyond grace period are removed from cache."""
         # Setup mock Firebase with expired token
         expired_token_data = self.mock_decoded_token.copy()
-        expired_token_data['exp'] = int(time.time()) - 100  # Expired 100 seconds ago
+        # Expired 15 minutes ago (beyond 10-minute grace period)
+        expired_token_data['exp'] = int(time.time()) - 900
 
         mock_auth_module = MagicMock()
         mock_auth_module.verify_id_token.return_value = self.mock_decoded_token
@@ -90,9 +91,39 @@ class AuthenticationCacheTest(TestCase):
         # Try to authenticate - should detect expired cached token and re-verify
         user, token_data = AuthenticationService.authenticate_token(self.mock_token)
 
-        # Verify Firebase was called (expired cache was ignored)
+        # Verify Firebase was called (expired cache beyond grace period was deleted)
         mock_auth_module.verify_id_token.assert_called_once_with(self.mock_token)
         self.assertEqual(user.username, self.test_user.username)
+
+    @patch('purplex.users_app.services.authentication_service.AuthenticationService._initialize_firebase')
+    def test_expired_token_within_grace_period_accepted(self, mock_firebase):
+        """Test that tokens expired within grace period are accepted."""
+        # Setup token expired 5 minutes ago (within 10-minute grace period)
+        expired_token_data = self.mock_decoded_token.copy()
+        expired_token_data['exp'] = int(time.time()) - 300  # Expired 5 minutes ago
+
+        mock_auth_module = MagicMock()
+        mock_firebase.return_value = mock_auth_module
+
+        # Manually add expired token to cache
+        import hashlib
+        token_hash = hashlib.sha256(self.mock_token.encode()).hexdigest()[:16]
+        cache_key = f"firebase:token:{token_hash}"
+        cache.set(cache_key, expired_token_data, 300)
+
+        # Try to authenticate - should accept expired token within grace period
+        user, token_data = AuthenticationService.authenticate_token(self.mock_token)
+
+        # Verify Firebase was NOT called (grace period used)
+        mock_auth_module.verify_id_token.assert_not_called()
+
+        # Verify user authenticated successfully
+        self.assertEqual(user.username, self.test_user.username)
+
+        # Verify grace period metadata is present
+        self.assertTrue(token_data.get('in_grace_period'))
+        self.assertIn('grace_period_remaining', token_data)
+        self.assertIn('expired_since', token_data)
 
     @patch('purplex.users_app.services.authentication_service.AuthenticationService._initialize_firebase')
     def test_invalid_token_not_cached(self, mock_firebase):

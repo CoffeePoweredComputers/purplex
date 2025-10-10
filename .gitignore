@@ -35,11 +35,18 @@ staticfiles/
 .env.*
 !.env.example
 !.env.test
+!.env.development
+!.env.production.template
 firebase-credentials.json
 *.pem
 *.key
 *.crt
 *.cert
+.aws/
+aws-credentials.json
+*.secret
+secrets/
+docker-compose.override.yml
 
 # Frontend/Node
 node_modules/

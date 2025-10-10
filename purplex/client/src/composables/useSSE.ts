@@ -9,7 +9,6 @@
 import { onUnmounted, Ref, ref } from 'vue';
 import { log } from '../utils/logger';
 import { firebaseAuth } from '../firebaseConfig';
-import { getIdToken } from 'firebase/auth';
 
 export interface SSEOptions {
   onProgress?: (progress: { current: number; total: number; description: string }) => void;
@@ -71,9 +70,10 @@ export function useSSE() {
       let url = `/api/tasks/${taskId}/stream/`;
       if (firebaseAuth.currentUser) {
         try {
-          // First get Firebase token
-          const firebaseToken = await getIdToken(firebaseAuth.currentUser);
-          
+          // First get Firebase token (call getIdToken on the user object, not imported function)
+          // This works with both real Firebase and mock Firebase
+          const firebaseToken = await firebaseAuth.currentUser.getIdToken();
+
           // Exchange for SSE session token
           const response = await fetch('/api/auth/sse-token/', {
             method: 'POST',
@@ -261,9 +261,9 @@ export function useSSE() {
     let url = `/api/tasks/batch/stream/?task_ids=${taskIds.join(',')}`;
     if (firebaseAuth.currentUser) {
       try {
-        // Get Firebase token
-        const firebaseToken = await getIdToken(firebaseAuth.currentUser);
-        
+        // Get Firebase token (call on user object to work with both real and mock Firebase)
+        const firebaseToken = await firebaseAuth.currentUser.getIdToken();
+
         // Exchange for SSE session token
         const response = await fetch('/api/auth/sse-token/', {
           method: 'POST',

@@ -168,7 +168,7 @@ class SubmissionRepository(BaseRepository[Submission]):
         filters: Dict[str, Any]
     ) -> List[Submission]:
         """
-        Export submissions based on filters.
+        Export submissions based on filters with optimized queries.
 
         Args:
             filters: Dictionary of filter criteria
@@ -176,10 +176,26 @@ class SubmissionRepository(BaseRepository[Submission]):
         Returns:
             List of Submission objects for export
         """
+        from django.db.models import Prefetch, Q
+        from purplex.problems_app.models import UserProgress
+
+        # CRITICAL FIX: Prefetch all related data to prevent N+1 queries
+        # Note: OuterRef doesn't work in Prefetch - we prefetch all user progress
+        # and filter in Python if needed, which is still faster than N+1 queries
         queryset = Submission.objects.select_related(
             'user', 'problem', 'problem_set', 'course'
         ).prefetch_related(
-            'hint_activations__hint'
+            'hint_activations__hint',
+            'test_executions__test_case',
+            'code_variations__test_executions__test_case',
+            'segmentation',
+            # Prefetch all user progress with related objects
+            Prefetch(
+                'user__userprogress_set',
+                queryset=UserProgress.objects.select_related(
+                    'problem', 'problem_set', 'course'
+                )
+            )
         )
 
         # Apply filters

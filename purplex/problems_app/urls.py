@@ -30,6 +30,20 @@ from .views.admin_views import (
 from .views.hint_views import (
     ProblemHintAvailabilityView, ProblemHintDetailView, AdminProblemHintView
 )
+
+# Research export views
+from .views.research_views import (
+    ResearchDataExportView, ProgressHistoryExportView
+)
+
+# Instructor analytics views
+from .views.instructor_analytics_views import (
+    InstructorCourseAnalyticsView,
+    InstructorStudentListView,
+    InstructorStudentDetailView,
+    InstructorProblemAnalyticsView,
+    InstructorCourseExportView
+)
 from .course_views import (
     # Admin course views
     AdminCourseListCreateView, AdminCourseDetailView, AdminCourseProblemSetView,
@@ -94,6 +108,10 @@ urlpatterns = [
     path('admin/submissions/export/', AdminSubmissionListView.as_view(), name='admin_submission_export'),
     path('admin/submissions/<str:submission_id>/', AdminSubmissionDetailView.as_view(), name='admin_submission_detail'),
 
+    # Research data export endpoints
+    path('admin/research/export/', ResearchDataExportView.as_view(), name='research_export'),
+    path('admin/research/progress-history/', ProgressHistoryExportView.as_view(), name='progress_history_export'),
+
     # Admin Course Management
     path('admin/courses/', AdminCourseListCreateView.as_view(), name='admin_course_list'),
     path('admin/courses/<str:course_id>/', AdminCourseDetailView.as_view(), name='admin_course_detail'),
@@ -108,6 +126,13 @@ urlpatterns = [
     path('instructor/courses/<str:course_id>/students/', InstructorCourseStudentsView.as_view(), name='instructor_course_students'),
     path('instructor/courses/<str:course_id>/progress/', InstructorCourseProgressView.as_view(), name='instructor_course_progress'),
     path('instructor/courses/<str:course_id>/problem-sets/order/', InstructorCourseProblemSetOrderView.as_view(), name='instructor_course_reorder'),
+
+    # Instructor Analytics Views
+    path('instructor/courses/<str:course_id>/analytics/', InstructorCourseAnalyticsView.as_view(), name='instructor_course_analytics'),
+    path('instructor/courses/<str:course_id>/analytics/students/', InstructorStudentListView.as_view(), name='instructor_student_list'),
+    path('instructor/courses/<str:course_id>/analytics/students/<int:user_id>/', InstructorStudentDetailView.as_view(), name='instructor_student_detail'),
+    path('instructor/courses/<str:course_id>/analytics/problems/<slug:problem_slug>/', InstructorProblemAnalyticsView.as_view(), name='instructor_problem_analytics'),
+    path('instructor/courses/<str:course_id>/export/', InstructorCourseExportView.as_view(), name='instructor_course_export'),
     
     # Student Course Views
     path('courses/enrolled/', StudentEnrolledCoursesView.as_view(), name='student_enrolled_courses'),

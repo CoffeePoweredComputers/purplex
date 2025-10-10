@@ -178,19 +178,161 @@ if os.environ.get('SENTRY_DSN'):
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
-    
+    from sentry_sdk.integrations.logging import LoggingIntegration
+
+    def sentry_traces_sampler(sampling_context):
+        """
+        Custom sampling logic to prioritize critical paths within free tier limits.
+
+        Strategy:
+        - 100% sampling for critical user-facing operations (EiPL submissions, code execution)
+        - 50% sampling for API endpoints
+        - 10% sampling for admin pages
+        - 5% sampling for static assets and health checks
+        """
+        try:
+            # Get transaction context
+            transaction_context = sampling_context.get('transaction_context', {})
+            parent_sampled = sampling_context.get('parent_sampled')
+
+            # Respect parent sampling decision for distributed traces
+            if parent_sampled is not None:
+                return parent_sampled
+
+            # Extract transaction name and operation
+            transaction_name = transaction_context.get('name', '')
+            op = transaction_context.get('op', '')
+
+            # Critical user operations - always sample
+            critical_patterns = [
+                '/api/submit-eipl',
+                '/api/submit-solution',
+                '/api/test-solution',
+            ]
+            if any(pattern in transaction_name for pattern in critical_patterns):
+                return 1.0  # 100%
+
+            # Health checks and static assets - minimal sampling
+            if '/health' in transaction_name or '/static' in transaction_name:
+                return 0.05  # 5%
+
+            # Admin endpoints - low sampling
+            if '/admin' in transaction_name or '/api/admin' in transaction_name:
+                return 0.1  # 10%
+
+            # API endpoints - moderate sampling
+            if '/api/' in transaction_name:
+                return 0.5  # 50%
+
+            # Celery tasks - sample based on task name
+            if op == 'celery.task':
+                if 'execute_eipl_pipeline' in transaction_name:
+                    return 1.0  # Critical pipeline
+                return 0.3  # Other tasks
+
+            # Default fallback
+            return 0.1  # 10%
+
+        except Exception as e:
+            # If sampling logic fails, use conservative default
+            logger.warning(f"Sentry sampling error: {e}")
+            return 0.1
+
+    def sentry_before_send(event, hint):
+        """
+        Filter and enrich events before sending to Sentry.
+        Prevents noisy/expected errors from consuming quota.
+        """
+        try:
+            # Filter out expected exceptions
+            if 'exc_info' in hint:
+                exc_type, exc_value, tb = hint['exc_info']
+
+                # Don't send validation errors (user mistakes, not bugs)
+                if exc_type.__name__ in ['ValidationError', 'PermissionDenied', 'Http404']:
+                    return None
+
+                # Don't send client-side errors
+                if 'SuspiciousOperation' in exc_type.__name__:
+                    return None
+
+                # Don't send expected timeouts during high load
+                if 'TimeoutError' in exc_type.__name__ and 'redis' in str(exc_value).lower():
+                    # Log but don't send to Sentry
+                    logger.warning(f"Redis timeout (expected during load): {exc_value}")
+                    return None
+
+            # Enrich event with custom context
+            if 'request' in event:
+                request_data = event['request']
+
+                # Add custom tags for better grouping
+                event['tags'] = event.get('tags', {})
+                event['tags']['request_method'] = request_data.get('method', 'unknown')
+
+                # Add user context if available (without PII)
+                if 'user' in event and event['user']:
+                    user = event['user']
+                    # Remove PII, keep only aggregate info
+                    if 'email' in user:
+                        del user['email']
+                    if 'username' in user:
+                        user['username'] = 'redacted'
+
+            return event
+
+        except Exception as e:
+            # If filtering fails, send the event anyway
+            logger.error(f"Sentry before_send error: {e}")
+            return event
+
+    # Configure logging integration to capture logs as breadcrumbs
+    logging_integration = LoggingIntegration(
+        level=logging.INFO,  # Capture info and above as breadcrumbs
+        event_level=logging.ERROR  # Send errors as events
+    )
+
     sentry_sdk.init(
         dsn=os.environ.get('SENTRY_DSN'),
         integrations=[
-            DjangoIntegration(),
-            CeleryIntegration(),
+            DjangoIntegration(
+                transaction_style='url',  # Group by URL pattern, not individual URLs
+                middleware_spans=True,    # Track middleware execution
+                signals_spans=False,      # Disable signal tracing (too noisy)
+            ),
+            CeleryIntegration(
+                monitor_beat_tasks=True,  # Monitor scheduled tasks
+                propagate_traces=True,    # Connect web requests to Celery tasks
+            ),
             RedisIntegration(),
+            logging_integration,
         ],
+
+        # Environment and release tracking
         environment=os.environ.get('SENTRY_ENVIRONMENT', 'production'),
-        release=os.environ.get('SENTRY_RELEASE', 'purplex@1.0.0'),
-        traces_sample_rate=0.1,  # 10% of transactions
-        profiles_sample_rate=0.1,  # 10% profiling
-        send_default_pii=False,  # Don't send personally identifiable information
+        release=os.environ.get('SENTRY_RELEASE', None),  # Set via CI/CD
+
+        # Performance monitoring - Conservative sampling for free tier
+        traces_sample_rate=float(os.environ.get('SENTRY_TRACES_SAMPLE_RATE', '0.1')),
+
+        # Profiling - Disabled by default to conserve quota
+        profiles_sample_rate=float(os.environ.get('SENTRY_PROFILES_SAMPLE_RATE', '0.0')),
+
+        # Privacy and security
+        send_default_pii=False,
+        attach_stacktrace=True,  # Include stack traces in messages
+
+        # Custom trace sampling for critical paths
+        traces_sampler=sentry_traces_sampler,
+
+        # Custom error filtering
+        before_send=sentry_before_send,
+
+        # Request body handling
+        max_request_body_size='medium',  # Capture limited request bodies
+
+        # Breadcrumbs configuration
+        max_breadcrumbs=50,
     )
 
 # Performance optimizations

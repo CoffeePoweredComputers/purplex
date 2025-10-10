@@ -468,6 +468,14 @@ class Config:
         """Max CPU percentage for code execution"""
         default = 100 if self.is_development else 50
         return self.get_int('CODE_EXEC_MAX_CPU', default)
+
+    @property
+    def docker_pool_size(self) -> int:
+        """Docker container pool size - environment specific"""
+        # Development: Small pool (3) - faster startup, less memory
+        # Production: Larger pool (15) - handles concurrent users
+        default = 3 if self.is_development else 15
+        return self.get_int('DOCKER_POOL_SIZE', default)
     
     # =====================================================================
     # Logging Configuration

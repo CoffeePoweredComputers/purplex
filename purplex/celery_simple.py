@@ -51,3 +51,15 @@ app.conf.update(
     task_default_retry_delay=30,
     task_max_retries=3,
 )
+
+# Periodic tasks schedule
+app.conf.beat_schedule = {
+    'prune-orphaned-containers': {
+        'task': 'cleanup.prune_orphaned_containers',
+        'schedule': 3600.0,  # Every hour
+    },
+    'log-pool-metrics': {
+        'task': 'cleanup.log_pool_metrics',
+        'schedule': 900.0,  # Every 15 minutes
+    },
+}

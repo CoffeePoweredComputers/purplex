@@ -20,10 +20,13 @@ class Submission(models.Model):
     submission_id = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
 
     # Core relationships
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='new_submissions')
-    problem = models.ForeignKey('problems_app.Problem', on_delete=models.CASCADE, related_name='new_submissions')
-    problem_set = models.ForeignKey('problems_app.ProblemSet', on_delete=models.CASCADE, related_name='new_submissions')
-    course = models.ForeignKey('problems_app.Course', on_delete=models.CASCADE, null=True, blank=True, related_name='new_submissions')
+    # CRITICAL: Use SET_NULL for user to preserve submission data for research/analytics
+    # even if user account is deleted. Use PROTECT for problem/set/course to prevent
+    # accidental deletion of educational content that has submissions.
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='new_submissions')
+    problem = models.ForeignKey('problems_app.Problem', on_delete=models.PROTECT, related_name='new_submissions')
+    problem_set = models.ForeignKey('problems_app.ProblemSet', on_delete=models.PROTECT, related_name='new_submissions')
+    course = models.ForeignKey('problems_app.Course', on_delete=models.PROTECT, null=True, blank=True, related_name='new_submissions')
 
     # Submission metadata
     submitted_at = models.DateTimeField(auto_now_add=True, db_index=True)
@@ -220,7 +223,7 @@ class CodeVariation(models.Model):
     score = models.IntegerField(default=0)
 
     # Generation metadata
-    model_used = models.CharField(max_length=50, default='gpt-5')
+    model_used = models.CharField(max_length=50, default='gpt-4o-mini')
     prompt_tokens = models.IntegerField(null=True, blank=True)
     completion_tokens = models.IntegerField(null=True, blank=True)
     generation_time_ms = models.IntegerField(null=True, blank=True)
@@ -257,7 +260,7 @@ class SegmentationAnalysis(models.Model):
     # Analysis metadata
     confidence_score = models.FloatField(help_text="Model confidence in segmentation (0-1)")
     processing_time_ms = models.IntegerField()
-    model_used = models.CharField(max_length=50, default='gpt-5')
+    model_used = models.CharField(max_length=50, default='gpt-4o-mini')
 
     # Educational feedback
     feedback_message = models.TextField(help_text="Constructive feedback for the student")

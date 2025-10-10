@@ -22,11 +22,11 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="codevariation",
             name="model_used",
-            field=models.CharField(default="gpt-5", max_length=50),
+            field=models.CharField(default="gpt-4o-mini", max_length=50),
         ),
         migrations.AlterField(
             model_name="segmentationanalysis",
             name="model_used",
-            field=models.CharField(default="gpt-5", max_length=50),
+            field=models.CharField(default="gpt-4o-mini", max_length=50),
         ),
     ]

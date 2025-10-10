@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import store from "./store"; // Import the Vuex store
 import { ensureFirebaseInitialized } from "./firebaseConfig";
+import { waitForAuthState } from "./utils/auth-state";
 
 // Eagerly load only critical components
 import Login from "./features/auth/Login.vue";
@@ -99,24 +100,24 @@ const router = createRouter({
 router.beforeEach(async (to, _from, next) => {
     const requiresAuth = to.matched.some(record => record.meta?.requiresAuth);
     const requiresAdmin = to.matched.some(record => record.meta?.requiresAdmin);
-    
+
     // Use the debug mode from the Vuex store for consistency
     const debugBypassAuth = store.state.auth.debug;
 
     // If not in debug mode, check auth state
     if (!debugBypassAuth && (requiresAuth || requiresAdmin)) {
-        // Ensure Firebase is initialized first
-        await ensureFirebaseInitialized();
-        // Make sure we have the latest auth state
+        // Wait for auth state to be determined first
+        await waitForAuthState();
+        // Then check the latest auth state
         await store.dispatch('auth/checkAuthState');
     }
-    
+
     // Use persistent state from Vuex store
     const isAuthenticated = store.getters['auth/isLoggedIn'];
     const isAdmin = store.getters['auth/isAdmin'];
-    
+
     if (requiresAuth && !isAuthenticated && !debugBypassAuth) {
-        next("/login");
+        next("/");
     } else if (requiresAdmin && !isAdmin && !debugBypassAuth) {
         // Redirect non-admin users trying to access admin routes
         next("/");

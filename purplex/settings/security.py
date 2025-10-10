@@ -25,8 +25,13 @@ CODE_EXECUTION = {
     
     # Container pooling configuration
     'POOL_ENABLED': config.get_bool('DOCKER_POOL_ENABLED', True),  # Enable container pooling for better performance
-    'POOL_SIZE': config.get_int('DOCKER_POOL_SIZE', 50),  # Increased for production load (200 concurrent users)
-    
+    'POOL_SIZE': config.docker_pool_size,  # Environment-specific: 3 (dev) / 15 (prod)
+
+    # Container pool health monitoring
+    'POOL_HEALTH_CHECK_INTERVAL': config.get_int('DOCKER_POOL_HEALTH_CHECK_INTERVAL', 60),  # Check every 60 seconds
+    'POOL_CONTAINER_MAX_AGE': config.get_int('DOCKER_POOL_CONTAINER_MAX_AGE', 3600),  # Rotate containers after 1 hour
+    'POOL_MAX_RESTART_ATTEMPTS': config.get_int('DOCKER_POOL_MAX_RESTART_ATTEMPTS', 3),  # Max restarts before removal
+
     # Security restrictions
     'ENABLE_NETWORK': False,
     'RUN_AS_ROOT': False,

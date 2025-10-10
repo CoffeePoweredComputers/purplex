@@ -230,49 +230,62 @@ class SubmitSolutionView(APIView):
         if time_spent:
             time_spent_delta = timedelta(seconds=int(time_spent))
 
-        # Create submission record using new service
-        submission = SubmissionService.create_submission(
-            user=request.user,
-            problem=problem,
-            raw_input=prompt or user_code,  # Store code if no prompt provided
-            submission_type='direct_code',
-            problem_set=problem_set,
-            course=course,
-            time_spent=time_spent_delta,
-            activated_hints=activated_hints
-        )
+        # Create submission and record test results with lock timeout handling
+        try:
+            # Create submission record using new service
+            submission = SubmissionService.create_submission(
+                user=request.user,
+                problem=problem,
+                raw_input=prompt or user_code,  # Store code if no prompt provided
+                submission_type='direct_code',
+                problem_set=problem_set,
+                course=course,
+                time_spent=time_spent_delta,
+                activated_hints=activated_hints
+            )
 
-        # Record test results
-        test_execution_data = []
-        if 'results' in result:
-            for i, (test_result, test_case) in enumerate(zip(result['results'], all_test_cases)):
-                # Get actual output - check both 'actual_output' and 'output' keys
-                actual_output = test_result.get('actual_output')
-                if actual_output is None:
-                    actual_output = test_result.get('output')
-                if actual_output is None:
-                    actual_output = ''
+            # Record test results
+            test_execution_data = []
+            if 'results' in result:
+                for i, (test_result, test_case) in enumerate(zip(result['results'], all_test_cases)):
+                    # Get actual output - check both 'actual_output' and 'output' keys
+                    actual_output = test_result.get('actual_output')
+                    if actual_output is None:
+                        actual_output = test_result.get('output')
+                    if actual_output is None:
+                        actual_output = ''
 
-                # Check for success - Docker service uses 'isSuccessful', others use 'pass'
-                test_passed = test_result.get('isSuccessful', False) or test_result.get('pass', False)
+                    # Check for success - Docker service uses 'isSuccessful', others use 'pass'
+                    test_passed = test_result.get('isSuccessful', False) or test_result.get('pass', False)
 
-                test_execution_data.append({
-                    'test_case_id': test_case.id,
-                    'passed': test_passed,
-                    'inputs': test_case.inputs,
-                    'expected': test_case.expected_output,
-                    'actual': actual_output,
-                    'error_type': 'none' if test_passed else 'wrong_output',
-                    'error_message': test_result.get('error', '')
-                })
+                    test_execution_data.append({
+                        'test_case_id': test_case.id,
+                        'passed': test_passed,
+                        'inputs': test_case.inputs,
+                        'expected': test_case.expected_output,
+                        'actual': actual_output,
+                        'error_type': 'none' if test_passed else 'wrong_output',
+                        'error_message': test_result.get('error', '')
+                    })
 
-        SubmissionService.record_test_results(
-            submission=submission,
-            test_results=test_execution_data,
-            processed_code=user_code,
-            execution_time_ms=None,
-            memory_used_mb=None
-        )
+            SubmissionService.record_test_results(
+                submission=submission,
+                test_results=test_execution_data,
+                processed_code=user_code,
+                execution_time_ms=None,
+                memory_used_mb=None
+            )
+        except ValueError as e:
+            # Handle progress lock timeout - return user-friendly retry message
+            logger.warning(f"Progress lock timeout for user {request.user.username}: {str(e)}")
+            return Response({
+                'error': str(e),
+                'submission_id': None,
+                'score': 0,
+                'testsPassed': 0,
+                'totalTests': len(test_data),
+                'results': []
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         # Get the updated progress for response
         progress = ProgressService.get_user_progress(

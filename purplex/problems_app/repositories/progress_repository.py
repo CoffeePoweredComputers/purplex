@@ -75,51 +75,6 @@ class ProgressRepository(BaseRepository):
         )
     
     @classmethod
-    def update_user_progress(cls, user: User, problem: Problem,
-                           updates: Dict[str, Any],
-                           course: Optional[Course] = None) -> bool:
-        """
-        Update user progress for a problem.
-        
-        Args:
-            user: The user
-            problem: The problem
-            updates: Dictionary of fields to update
-            course: Optional course context
-            
-        Returns:
-            True if updated, False if not found
-        """
-        filters = {
-            'user': user,
-            'problem': problem
-        }
-        if course:
-            filters['course'] = course
-            
-        updated = UserProgress.objects.filter(**filters).update(**updates)
-        return updated > 0
-    
-    @classmethod
-    def increment_attempts(cls, user: User, problem: Problem,
-                         course: Optional[Course] = None) -> bool:
-        """Increment the attempts count for a user's problem progress."""
-        progress, _ = cls.get_or_create_user_progress(user, problem, course)
-        progress.attempts += 1
-        progress.last_attempt = timezone.now()
-        progress.save(update_fields=['attempts', 'last_attempt'])
-        return True
-    
-    @classmethod
-    def increment_hints_used(cls, user: User, problem: Problem,
-                           course: Optional[Course] = None) -> bool:
-        """Increment the hints used count for a user's problem progress."""
-        progress, _ = cls.get_or_create_user_progress(user, problem, course)
-        progress.hints_used += 1
-        progress.save(update_fields=['hints_used'])
-        return True
-    
-    @classmethod
     def get_user_attempts(cls, user: User, problem: Problem,
                         course: Optional[Course] = None,
                         problem_set: Optional[ProblemSet] = None) -> int:

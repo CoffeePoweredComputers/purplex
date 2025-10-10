@@ -4,6 +4,7 @@
  * without requiring Firebase infrastructure.
  */
 import { environment } from './environment';
+import { log } from '../utils/logger';
 
 // Types to match Firebase Auth
 export interface MockUser {
@@ -240,6 +241,10 @@ class MockFirebaseAuth {
       },
       refreshToken: 'mock-refresh-token',
       getIdToken: async (forceRefresh?: boolean) => {
+        if (forceRefresh) {
+          log.debug('[MockFirebase] Force refresh requested, generating new token');
+        }
+        // Always generate a fresh token (mock doesn't cache)
         return this.createMockToken(userData);
       },
       reload: async () => {
@@ -281,10 +286,13 @@ class MockFirebaseAuth {
    */
   private persistAuthState(): void {
     if (this.currentUser) {
+      // ✅ ONLY store non-sensitive user data
+      // ❌ DO NOT store tokens, passwords, or refresh tokens
       const authData = {
         uid: this.currentUser.uid,
         email: this.currentUser.email,
         displayName: this.currentUser.displayName
+        // ❌ DO NOT store tokens here
       };
       localStorage.setItem('mockFirebaseAuth', JSON.stringify(authData));
     }

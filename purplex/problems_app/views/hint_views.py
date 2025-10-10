@@ -43,10 +43,18 @@ class ProblemHintAvailabilityView(APIView):
         
         # Use HintDisplayService to format hints for display
         available_hints = HintDisplayService.format_available_hints(availability_data.get('hints', []))
-        
+
+        # Get hints the user has already used
+        hints_used = HintService.get_used_hints(
+            user=user,
+            problem_slug=slug,
+            course_id=course_id,
+            problem_set_slug=problem_set_slug
+        )
+
         return Response({
             'available_hints': available_hints,
-            'hints_used': [],  # TODO: Track which hints the user has used
+            'hints_used': hints_used,
             'current_attempts': availability_data.get('user_attempts', 0)
         })
 

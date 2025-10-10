@@ -95,7 +95,35 @@ class AuthenticationService:
         
         cls._firebase_initialized = True
         return cls._firebase_auth
-    
+
+    @classmethod
+    def check_token_expiry(cls, decoded_token: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Check if token needs refresh based on expiration time.
+
+        Args:
+            decoded_token: Decoded Firebase token with 'exp' field
+
+        Returns:
+            Dict with: {
+                'needs_refresh': bool,
+                'expires_in': int (seconds),
+                'expires_at': int (unix timestamp)
+            }
+        """
+        exp = decoded_token.get('exp', 0)
+        now = int(time.time())
+        expires_in = exp - now
+
+        # Recommend refresh if less than 5 minutes remaining
+        needs_refresh = expires_in < 300
+
+        return {
+            'needs_refresh': needs_refresh,
+            'expires_in': expires_in,
+            'expires_at': exp
+        }
+
     @classmethod
     def authenticate_token(cls, token: str) -> Tuple[User, Dict[str, Any]]:
         """
@@ -125,21 +153,58 @@ class AuthenticationService:
         try:
             cached_data = cache.get(cache_key)
             if cached_data:
-                # Validate token hasn't expired
+                # Validate token expiry with grace period support
                 # Firebase tokens have an 'exp' field with Unix timestamp
-                if cached_data.get('exp', 0) > time.time():
-                    # Get user from cache or database
-                    firebase_uid = cached_data['uid']
+                token_exp = cached_data.get('exp', 0)
+                current_time = time.time()
+                firebase_uid = cached_data.get('uid')
+
+                if token_exp > current_time:
+                    # Token is valid - normal path
                     user = cls.get_cached_user(firebase_uid)
+
+                    # Add expiry metadata to cached token
+                    expiry_info = cls.check_token_expiry(cached_data)
+                    cached_data_with_expiry = {**cached_data, **expiry_info}
 
                     # Log cache hit for monitoring
                     logger.debug(f"Token cache hit for user {firebase_uid}")
 
-                    return (user, cached_data)
+                    return (user, cached_data_with_expiry)
                 else:
-                    # Token expired, clear from cache
-                    cache.delete(cache_key)
-                    logger.debug(f"Cached token expired for hash {token_hash}")
+                    # Token expired - check grace period
+                    time_since_expiry = current_time - token_exp
+                    grace_period_seconds = getattr(settings, 'FIREBASE_GRACE_PERIOD_SECONDS', 600)
+
+                    if time_since_expiry < grace_period_seconds:
+                        # Within grace period - accept with warning
+                        # This enables graceful degradation during Firebase API outages
+                        logger.warning(
+                            f"Accepting expired token for user {firebase_uid} "
+                            f"within grace period (expired {int(time_since_expiry)}s ago, "
+                            f"{int(grace_period_seconds - time_since_expiry)}s remaining)"
+                        )
+
+                        user = cls.get_cached_user(firebase_uid)
+
+                        # Add grace period metadata
+                        expiry_info = cls.check_token_expiry(cached_data)
+                        cached_data_with_expiry = {
+                            **cached_data,
+                            **expiry_info,
+                            'in_grace_period': True,
+                            'grace_period_remaining': int(grace_period_seconds - time_since_expiry),
+                            'expired_since': int(time_since_expiry)
+                        }
+
+                        return (user, cached_data_with_expiry)
+                    else:
+                        # Expired beyond grace period - delete and re-verify
+                        cache.delete(cache_key)
+                        logger.debug(
+                            f"Cached token expired beyond grace period for hash {token_hash} "
+                            f"(expired {int(time_since_expiry)}s ago)"
+                        )
         except Exception as e:
             # Cache read failed, fall back to Firebase verification
             logger.warning(f"Cache read failed, falling back to Firebase: {e}")
@@ -160,19 +225,29 @@ class AuthenticationService:
             # Get or create the user
             user = cls.get_or_create_user(firebase_uid, email, display_name)
 
-            # Cache the successful result for 5 minutes
+            # Cache the successful result to align with frontend refresh schedule
+            # Frontend refreshes 5 min before 1-hour expiry (at T=55min)
+            # This ensures backend cache is valid when frontend uses new token
             try:
-                cache.set(cache_key, decoded_token, 300)  # 5 minutes
-                logger.debug(f"Cached token for user {firebase_uid}")
+                cache_ttl = getattr(settings, 'FIREBASE_TOKEN_CACHE_TTL', 3300)
+                cache.set(cache_key, decoded_token, cache_ttl)
+                logger.debug(f"Cached token for user {firebase_uid} (TTL: {cache_ttl // 60} min)")
             except Exception as e:
                 # Cache write failed, continue without caching
                 logger.warning(f"Cache write failed: {e}")
 
+            # Check token expiry and add metadata
+            expiry_info = cls.check_token_expiry(decoded_token)
+
             # Log authentication in development
             if config.is_development:
                 logger.debug(f"Authenticated user: {user.username} (email: {email})")
+                if expiry_info['needs_refresh']:
+                    logger.debug(f"Token expiring soon: {expiry_info['expires_in']}s remaining")
 
-            return (user, decoded_token)
+            # Return user and token with expiry metadata
+            token_with_expiry = {**decoded_token, **expiry_info}
+            return (user, token_with_expiry)
 
         except Exception as e:
             # Handle different exception types - sanitize error messages

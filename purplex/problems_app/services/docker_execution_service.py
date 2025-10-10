@@ -46,6 +46,28 @@ class DockerExecutionService:
         self._pool_initialized = False
         self._closed = False
 
+        # Health monitoring settings
+        self.health_check_interval = security_config.get('POOL_HEALTH_CHECK_INTERVAL', 60)  # Check every 60s
+        self.container_max_age = security_config.get('POOL_CONTAINER_MAX_AGE', 3600)  # Rotate after 1 hour
+        self.max_restart_attempts = security_config.get('POOL_MAX_RESTART_ATTEMPTS', 3)
+
+        # Container metadata tracking: {container_id: {'created_at': timestamp, 'restart_count': int, 'last_health_check': timestamp}}
+        self.container_metadata = {}
+        self.pool_metrics = {
+            'total_created': 0,
+            'total_removed': 0,
+            'health_checks_performed': 0,
+            'unhealthy_containers_removed': 0,
+            'age_rotations': 0,
+            'docker_errors': 0,
+            'last_health_check': None
+        }
+
+        # Health monitor thread
+        self._health_monitor_thread = None
+        self._stop_health_monitor = threading.Event()
+        self._docker_available = True  # Track Docker daemon availability
+
         # Initialize Docker client
         try:
             self.docker_client = docker.from_env()
@@ -54,6 +76,8 @@ class DockerExecutionService:
             # Initialize container pool if enabled
             if self.pool_enabled:
                 self._init_pool()
+                # Start health monitoring
+                self._start_health_monitor()
                 # Register cleanup on exit
                 atexit.register(self._cleanup_and_close)
         except Exception as e:
@@ -162,6 +186,15 @@ while True:
             # Verify container is running
             container.reload()
             if container.status == 'running':
+                # Track container metadata
+                container_id = container.id
+                self.container_metadata[container_id] = {
+                    'created_at': time.time(),
+                    'restart_count': 0,
+                    'last_health_check': time.time(),
+                    'execution_count': 0
+                }
+                self.pool_metrics['total_created'] += 1
                 return container
             else:
                 logger.warning(f"Container {container.id[:12]} not running, status: {container.status}")
@@ -171,7 +204,226 @@ while True:
         except Exception as e:
             logger.error(f"Failed to create pool container: {e}")
             return None
-    
+
+    def _start_health_monitor(self):
+        """Start the background health monitoring thread."""
+        if self._health_monitor_thread is not None:
+            logger.warning("Health monitor already running")
+            return
+
+        self._stop_health_monitor.clear()
+        self._health_monitor_thread = threading.Thread(
+            target=self._health_monitor_loop,
+            daemon=True,
+            name='DockerPoolHealthMonitor'
+        )
+        self._health_monitor_thread.start()
+        logger.info(f"Started container pool health monitor (interval: {self.health_check_interval}s)")
+
+    def _stop_health_monitor_thread(self):
+        """Stop the background health monitoring thread."""
+        if self._health_monitor_thread is None:
+            return
+
+        logger.info("Stopping health monitor thread")
+        self._stop_health_monitor.set()
+
+        # Wait for thread to finish (with timeout)
+        self._health_monitor_thread.join(timeout=5.0)
+        if self._health_monitor_thread.is_alive():
+            logger.warning("Health monitor thread did not stop gracefully")
+        else:
+            logger.info("Health monitor thread stopped")
+
+        self._health_monitor_thread = None
+
+    def _health_monitor_loop(self):
+        """Main loop for health monitoring - runs in background thread."""
+        logger.info("Health monitor thread started")
+
+        while not self._stop_health_monitor.is_set():
+            try:
+                # Wait for interval or stop signal
+                if self._stop_health_monitor.wait(timeout=self.health_check_interval):
+                    break  # Stop signal received
+
+                # Perform health check
+                self._perform_health_check()
+
+            except Exception as e:
+                logger.error(f"Error in health monitor loop: {e}", exc_info=True)
+                # Continue monitoring despite errors
+
+        logger.info("Health monitor thread exiting")
+
+    def _perform_health_check(self):
+        """Perform health check on all pool containers."""
+        if not self.pool_enabled or not self._docker_available:
+            return
+
+        start_time = time.time()
+        checked_count = 0
+        removed_count = 0
+        rotated_count = 0
+
+        try:
+            # Check Docker daemon availability first
+            try:
+                self.docker_client.ping()
+            except Exception as e:
+                logger.error(f"Docker daemon unavailable: {e}")
+                self._handle_docker_unavailable()
+                return
+
+            # If we reach here, Docker is available again
+            if not self._docker_available:
+                logger.info("Docker daemon available again, re-enabling pool")
+                self._docker_available = True
+
+            with self.pool_lock:
+                current_time = time.time()
+                containers_to_check = list(self.container_pool)
+
+                for container in containers_to_check:
+                    checked_count += 1
+                    container_id = container.id
+
+                    try:
+                        # Reload container state
+                        container.reload()
+
+                        # Get metadata
+                        metadata = self.container_metadata.get(container_id, {})
+                        created_at = metadata.get('created_at', current_time)
+                        restart_count = metadata.get('restart_count', 0)
+                        container_age = current_time - created_at
+
+                        # Health check criteria
+                        is_running = container.status == 'running'
+                        is_too_old = container_age > self.container_max_age
+                        is_restarted_too_much = restart_count > self.max_restart_attempts
+
+                        # Remove unhealthy containers
+                        if not is_running:
+                            logger.warning(
+                                f"Container {container_id[:12]} unhealthy (status: {container.status}), removing"
+                            )
+                            self.container_pool.remove(container)
+                            container.remove(force=True)
+                            removed_count += 1
+                            self.pool_metrics['unhealthy_containers_removed'] += 1
+
+                            # Clean up metadata
+                            self.container_metadata.pop(container_id, None)
+
+                        elif is_too_old:
+                            logger.info(
+                                f"Container {container_id[:12]} exceeded max age "
+                                f"({container_age:.0f}s > {self.container_max_age}s), rotating"
+                            )
+                            self.container_pool.remove(container)
+                            container.remove(force=True)
+                            rotated_count += 1
+                            self.pool_metrics['age_rotations'] += 1
+
+                            # Clean up metadata
+                            self.container_metadata.pop(container_id, None)
+
+                            # Create replacement
+                            try:
+                                new_container = self._create_pool_container()
+                                if new_container:
+                                    self.container_pool.append(new_container)
+                                    logger.debug(f"Created replacement container {new_container.id[:12]}")
+                            except Exception as e:
+                                logger.error(f"Failed to create replacement container: {e}")
+
+                        elif is_restarted_too_much:
+                            logger.warning(
+                                f"Container {container_id[:12]} restarted too many times ({restart_count}), removing"
+                            )
+                            self.container_pool.remove(container)
+                            container.remove(force=True)
+                            removed_count += 1
+                            self.pool_metrics['unhealthy_containers_removed'] += 1
+
+                            # Clean up metadata
+                            self.container_metadata.pop(container_id, None)
+
+                        else:
+                            # Container is healthy, update last check time
+                            if container_id in self.container_metadata:
+                                self.container_metadata[container_id]['last_health_check'] = current_time
+
+                    except Exception as e:
+                        logger.warning(f"Error checking container {container_id[:12]}: {e}")
+                        # Try to remove problematic container
+                        try:
+                            self.container_pool.remove(container)
+                            container.remove(force=True)
+                            removed_count += 1
+                            self.container_metadata.pop(container_id, None)
+                        except:
+                            pass
+
+                # Replenish pool if needed
+                current_pool_size = len(self.container_pool)
+                if current_pool_size < self.pool_size:
+                    needed = self.pool_size - current_pool_size
+                    logger.info(f"Replenishing pool: creating {needed} containers")
+
+                    for i in range(needed):
+                        try:
+                            container = self._create_pool_container()
+                            if container:
+                                self.container_pool.append(container)
+                        except Exception as e:
+                            logger.error(f"Failed to replenish container {i+1}/{needed}: {e}")
+                            break  # Don't overwhelm on repeated failures
+
+            # Update metrics
+            self.pool_metrics['health_checks_performed'] += 1
+            self.pool_metrics['last_health_check'] = current_time
+
+            duration = time.time() - start_time
+
+            if removed_count > 0 or rotated_count > 0:
+                logger.info(
+                    f"Health check complete: checked={checked_count}, removed={removed_count}, "
+                    f"rotated={rotated_count}, pool_size={len(self.container_pool)}, duration={duration:.2f}s"
+                )
+            else:
+                logger.debug(
+                    f"Health check complete: pool_size={len(self.container_pool)}, duration={duration:.2f}s"
+                )
+
+        except Exception as e:
+            logger.error(f"Critical error in health check: {e}", exc_info=True)
+            self.pool_metrics['docker_errors'] += 1
+
+    def _handle_docker_unavailable(self):
+        """Handle Docker daemon being unavailable."""
+        if self._docker_available:
+            logger.critical("Docker daemon unavailable - disabling container pool")
+            self._docker_available = False
+            self.pool_metrics['docker_errors'] += 1
+
+        # Clear pool since containers are likely invalid
+        with self.pool_lock:
+            self.container_pool.clear()
+            self.container_metadata.clear()
+
+    def get_pool_metrics(self):
+        """Get current pool metrics for monitoring/debugging."""
+        with self.pool_lock:
+            return {
+                'pool_size': len(self.container_pool),
+                'pool_max_size': self.pool_size,
+                'docker_available': self._docker_available,
+                'containers_tracked': len(self.container_metadata),
+                **self.pool_metrics
+            }
+
     def _get_container_from_pool(self):
         """Get a container from the pool or create a new one."""
         with self.pool_lock:
@@ -208,7 +460,7 @@ while True:
             except:
                 pass
             return
-        
+
         try:
             # Check if container is still healthy
             container.reload()
@@ -216,29 +468,72 @@ while True:
                 logger.warning(f"Container {container.id[:12]} not running, removing")
                 container.remove(force=True)
                 return
-            
-            # Restart container to clean state
-            logger.debug(f"Restarting container {container.id[:12]} to clean state")
-            container.restart(timeout=2)
-            
-            # Give it a moment to restart
-            time.sleep(0.2)
-            
-            # Verify it's running again
-            container.reload()
-            if container.status == 'running':
-                with self.pool_lock:
-                    if len(self.container_pool) < self.pool_size:
-                        self.container_pool.append(container)
-                        logger.debug(f"Returned container {container.id[:12]} to pool")
-                    else:
-                        # Pool is full, remove container
-                        logger.debug(f"Pool full, removing container {container.id[:12]}")
-                        container.remove(force=True)
-            else:
-                logger.warning(f"Container {container.id[:12]} failed to restart, removing")
+
+            # Track execution count
+            container_id = container.id
+            if container_id in self.container_metadata:
+                self.container_metadata[container_id]['execution_count'] = \
+                    self.container_metadata[container_id].get('execution_count', 0) + 1
+
+            # PERFORMANCE FIX: Clean tmpfs directories between executions
+            # Previously: No cleanup led to stale state accumulation
+            # Now: Explicit cleanup ensures isolation while maintaining pool performance
+            try:
+                # Clean /tmp and /sandbox tmpfs mounts
+                cleanup_script = '''
+import os
+import shutil
+
+# Clean /tmp (keeping directory structure)
+for item in os.listdir('/tmp'):
+    item_path = os.path.join('/tmp', item)
+    try:
+        if os.path.isfile(item_path) or os.path.islink(item_path):
+            os.unlink(item_path)
+        elif os.path.isdir(item_path):
+            shutil.rmtree(item_path)
+    except Exception:
+        pass
+
+# Clean /sandbox (keeping directory structure)
+for item in os.listdir('/sandbox'):
+    if item != '__pycache__':  # Keep cache dir
+        item_path = os.path.join('/sandbox', item)
+        try:
+            if os.path.isfile(item_path) or os.path.islink(item_path):
+                os.unlink(item_path)
+            elif os.path.isdir(item_path):
+                shutil.rmtree(item_path)
+        except Exception:
+            pass
+'''
+                # Execute cleanup in container (fast, ~50ms)
+                cleanup_result = container.exec_run(
+                    cmd=['python', '-c', cleanup_script],
+                    user='sandbox',
+                    workdir='/sandbox'
+                )
+
+                if cleanup_result.exit_code != 0:
+                    logger.warning(f"Container {container.id[:12]} cleanup failed, removing from pool")
+                    container.remove(force=True)
+                    return
+
+            except Exception as cleanup_error:
+                logger.warning(f"Container {container.id[:12]} cleanup error: {cleanup_error}, removing")
                 container.remove(force=True)
-                
+                return
+
+            # Return directly to pool after cleanup
+            with self.pool_lock:
+                if len(self.container_pool) < self.pool_size:
+                    self.container_pool.append(container)
+                    logger.debug(f"Returned container {container.id[:12]} to pool (cleaned)")
+                else:
+                    # Pool is full, remove container
+                    logger.debug(f"Pool full, removing container {container.id[:12]}")
+                    container.remove(force=True)
+
         except Exception as e:
             logger.error(f"Error returning container to pool: {e}")
             try:
@@ -287,8 +582,21 @@ while True:
 
         logger.info("Closing Docker execution service")
 
-        # Clean up container pool first
+        # Stop health monitor first
+        if self._health_monitor_thread:
+            self._stop_health_monitor_thread()
+
+        # BUGFIX: Always enable orphan cleanup on shutdown
+        # Previously: orphan cleanup was conditional and rarely ran
+        # Now: ensures all pool containers are cleaned up
+        self._do_orphan_cleanup = True
+
+        # Clean up container pool
         self._cleanup_pool()
+
+        # Log final metrics
+        if self.pool_metrics['health_checks_performed'] > 0:
+            logger.info(f"Final pool metrics: {self.get_pool_metrics()}")
 
         # Close Docker client connection
         if hasattr(self, 'docker_client') and self.docker_client:
@@ -557,8 +865,13 @@ print(json.dumps(output))
     
     def _execute_in_pooled_container(self, code: str) -> Dict:
         """Execute code in a pooled container."""
+        # Check if Docker is available
+        if not self._docker_available:
+            logger.warning("Docker unavailable, attempting fallback to new container")
+            return self._execute_in_new_container(code)
+
         container = None
-        
+
         try:
             # Get container from pool
             container = self._get_container_from_pool()

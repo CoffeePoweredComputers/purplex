@@ -672,27 +672,44 @@ class ProgressService:
                     progress.save()
             
             # Get all problems in the set with user progress
+            # CRITICAL FIX: Use prefetch_related to avoid N+1 queries
+            from django.db.models import Prefetch
+            from purplex.submissions.models import Submission
+
+            # Prefetch user progress for all problems in this set (single query)
+            progress_qs = ProgressRepository.filter_by_ids(
+                user_id=user.id
+            ).filter(
+                problem_set=problem_set,
+                course=course
+            ).select_related('problem')
+
+            # Prefetch latest submissions with segmentation (single query)
+            latest_submissions_qs = Submission.objects.filter(
+                user=user,
+                problem_set=problem_set,
+                course=course
+            ).select_related('problem').prefetch_related('segmentation').order_by(
+                'problem', '-submitted_at'
+            ).distinct('problem')
+
+            # Build lookup dictionaries for O(1) access
+            progress_by_problem = {p.problem_id: p for p in progress_qs}
+            submissions_by_problem = {s.problem_id: s for s in latest_submissions_qs}
+
+            # Now iterate with O(1) lookups instead of N queries
             problems_with_progress = []
             for membership in ProblemSetMembershipRepository.get_problem_set_memberships(problem_set):
                 problem = membership.problem
-                # Get user progress for this specific context
-                user_progress = ProgressRepository.get_user_progress(
-                    user, problem, course, problem_set
-                )
 
-                # Get last submission to include segmentation_passed
-                last_submission = None
+                # O(1) dictionary lookup instead of database query
+                user_progress = progress_by_problem.get(problem.id)
+                last_submission = submissions_by_problem.get(problem.id)
+
+                # Extract segmentation data if available
                 segmentation_passed = None
-                if user_progress:
-                    # Import new submission model for querying
-                    from purplex.submissions.models import Submission
-                    last_submission = Submission.objects.filter(
-                        user=user,
-                        problem=problem,
-                        course=course
-                    ).order_by('-submitted_at').first()
-                    if last_submission and hasattr(last_submission, 'segmentation'):
-                        segmentation_passed = last_submission.segmentation.passed if last_submission.segmentation else None
+                if last_submission and hasattr(last_submission, 'segmentation'):
+                    segmentation_passed = last_submission.segmentation.passed if last_submission.segmentation else None
 
                 problems_with_progress.append({
                     'problem': problem,
@@ -771,8 +788,13 @@ class ProgressService:
         if course:
             filters['course'] = course
 
+        # CRITICAL FIX: Prefetch related data to prevent N+1 queries when accessing variations
         submission = Submission.objects.filter(
             **filters
+        ).prefetch_related(
+            'test_executions__test_case',
+            'code_variations__test_executions__test_case',
+            'segmentation'
         ).order_by('-submitted_at').first()
 
         return {

@@ -20,19 +20,59 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.views.generic import TemplateView
 from django.views.static import serve
+from django.http import HttpResponse
 from .views import csrf_token
-from purplex.problems_app.views.health_views import HealthCheckView
+from purplex.problems_app.views.health_views import (
+    HealthCheckView,
+    ReadinessCheckView,
+    LivenessCheckView
+)
 import os
 
+# Simple health check endpoints without authentication (for Docker/Nginx health checks)
+def simple_health_check(request):
+    """Simple health check endpoint - no authentication required"""
+    return HttpResponse('ok', content_type='text/plain')
+
+def development_root(request):
+    """Development root endpoint"""
+    return HttpResponse("""
+        <html>
+        <head><title>Purplex Development</title></head>
+        <body style="font-family: sans-serif; max-width: 800px; margin: 50px auto; padding: 20px;">
+            <h1>🟣 Purplex Development Server</h1>
+            <p>The API is running. Available endpoints:</p>
+            <ul>
+                <li><a href="/api/health/">/api/health/</a> - Health check</li>
+                <li><a href="/admin/">/admin/</a> - Django admin</li>
+                <li><strong>/api/</strong> - REST API endpoints</li>
+            </ul>
+            <p><em>Frontend: Run <code>yarn dev</code> in purplex/client directory</em></p>
+        </body>
+        </html>
+    """, content_type='text/html')
+
 urlpatterns = [
+    # Health check endpoints (NO authentication required)
+    path('nginx-health', simple_health_check, name='nginx_health_check'),
+    path('health/', simple_health_check, name='simple_health_check'),
+
     path('admin/', admin.site.urls),
     path('api/', include([
+        # Comprehensive health checks for monitoring
         path('health/', HealthCheckView.as_view(), name='health_check'),
+        path('health/ready/', ReadinessCheckView.as_view(), name='readiness_check'),
+        path('health/live/', LivenessCheckView.as_view(), name='liveness_check'),
+        # Other API endpoints
         path('csrf/', csrf_token, name='csrf_token'),
         path('', include('purplex.problems_app.urls')),
         path('', include('purplex.users_app.urls')),
     ])),
 ]
+
+# Development root endpoint
+if settings.DEBUG:
+    urlpatterns = [path('', development_root, name='development_root')] + urlpatterns
 
 urlpatterns += static(
         settings.MEDIA_URL,

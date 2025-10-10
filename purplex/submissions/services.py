@@ -29,8 +29,7 @@ class SubmissionService:
     """
 
     @classmethod
-    @transaction.atomic
-    def create_submission(
+    def _create_submission_no_transaction(
         cls,
         user: User,
         problem: 'Problem',
@@ -42,20 +41,17 @@ class SubmissionService:
         activated_hints: Optional[List[Dict]] = None,
     ) -> Submission:
         """
-        Create a new submission with all related data.
+        Create submission WITHOUT @transaction.atomic decorator.
 
-        Args:
-            user: The user making the submission
-            problem: The problem being submitted for
-            raw_input: The user's input (code or natural language)
-            submission_type: Type of submission ('direct_code', 'eipl', 'function_redef')
-            problem_set: Optional problem set context
-            course: Optional course context
-            time_spent: Time spent on this attempt
-            activated_hints: List of dicts with hint_id and trigger_type
+        This method is designed for use within larger atomic blocks (e.g., pipeline tasks)
+        where the caller manages the transaction boundary. Using this prevents nested
+        transactions which can cause performance issues and savepoint overhead.
 
-        Returns:
-            Created Submission instance
+        For standalone submission creation, use create_submission() instead.
+
+        Transaction Management Pattern:
+        - create_submission() = Wraps this method with @transaction.atomic
+        - _create_submission_no_transaction() = Raw operation, caller manages transaction
         """
         # Create main submission
         submission = Submission.objects.create(
@@ -106,10 +102,52 @@ class SubmissionService:
 
         logger.info(f"Created submission {submission.submission_id} for user {user.username}")
 
-        # Increment attempt counter using ProgressEngine
+        # Call on_submission_created to increment attempt counter
+        # Note: If process_submission() is called immediately after in the same
+        # transaction, it will set _skip_initial_increment to prevent double-counting
         ProgressEngine().on_submission_created(submission)
 
         return submission
+
+    @classmethod
+    @transaction.atomic
+    def create_submission(
+        cls,
+        user: User,
+        problem: 'Problem',
+        raw_input: str,
+        submission_type: str,
+        problem_set: Optional['ProblemSet'] = None,
+        course: Optional['Course'] = None,
+        time_spent: Optional[timedelta] = None,
+        activated_hints: Optional[List[Dict]] = None,
+    ) -> Submission:
+        """
+        Create a new submission with all related data.
+
+        Args:
+            user: The user making the submission
+            problem: The problem being submitted for
+            raw_input: The user's input (code or natural language)
+            submission_type: Type of submission ('direct_code', 'eipl', 'function_redef')
+            problem_set: Optional problem set context
+            course: Optional course context
+            time_spent: Time spent on this attempt
+            activated_hints: List of dicts with hint_id and trigger_type
+
+        Returns:
+            Created Submission instance
+        """
+        return cls._create_submission_no_transaction(
+            user=user,
+            problem=problem,
+            raw_input=raw_input,
+            submission_type=submission_type,
+            problem_set=problem_set,
+            course=course,
+            time_spent=time_spent,
+            activated_hints=activated_hints
+        )
 
     @classmethod
     @transaction.atomic
@@ -204,7 +242,7 @@ class SubmissionService:
                 tests_passed=var_data.get('tests_passed', 0),
                 tests_total=var_data.get('tests_total', 0),
                 score=var_data.get('score', 0),
-                model_used=var_data.get('model', 'gpt-5'),
+                model_used=var_data.get('model', 'gpt-4o-mini'),
                 prompt_tokens=var_data.get('prompt_tokens'),
                 completion_tokens=var_data.get('completion_tokens'),
                 generation_time_ms=var_data.get('generation_time_ms')
@@ -224,22 +262,31 @@ class SubmissionService:
         return best_variation
 
     @classmethod
-    @transaction.atomic
-    def record_eipl_test_results(
+    def _record_eipl_test_results_no_transaction(
         cls,
         submission: Submission,
         variations_with_tests: List[Dict]
     ) -> None:
         """
-        Record test results for all EiPL variations.
+        Record EiPL test results WITHOUT @transaction.atomic decorator.
 
-        Args:
-            submission: The submission to update
-            variations_with_tests: List of dicts with 'variation' (CodeVariation) and 'test_results' (list of test data)
+        PERFORMANCE OPTIMIZED: Uses bulk_create to reduce ~90% of INSERT operations.
+        Instead of ~30 individual test execution inserts, performs 1 bulk operation.
+
+        This method is designed for use within larger atomic blocks (e.g., pipeline tasks).
+        For standalone usage, use record_eipl_test_results() instead.
+
+        Transaction Management Pattern:
+        - record_eipl_test_results() = Wraps this method with @transaction.atomic
+        - _record_eipl_test_results_no_transaction() = Raw operation, caller manages transaction
         """
         total_passed = 0
         total_tests = 0
         execution_order = 0
+
+        # PERFORMANCE: Collect all test executions for bulk create
+        all_test_executions = []
+        variation_updates = []
 
         for var_data in variations_with_tests:
             variation = var_data['variation']
@@ -249,12 +296,15 @@ class SubmissionService:
             var_total = len(test_results)
 
             for test_result in test_results:
-                test_execution = TestExecution.objects.create(
+                is_passed = test_result['passed']
+
+                # Create test execution object (not saved yet)
+                test_execution = TestExecution(
                     submission=submission,
                     test_case_id=test_result['test_case_id'],
                     code_variation=variation,  # Link to specific variation
                     execution_order=execution_order,
-                    passed=test_result['passed'],
+                    passed=is_passed,
                     input_values=test_result['inputs'],
                     expected_output=test_result['expected'],
                     actual_output=test_result.get('actual'),
@@ -264,19 +314,34 @@ class SubmissionService:
                     execution_time_ms=test_result.get('execution_time_ms'),
                     memory_used_kb=test_result.get('memory_used_kb')
                 )
+                all_test_executions.append(test_execution)
                 execution_order += 1
 
-                if test_execution.passed:
+                if is_passed:
                     var_passed += 1
                     total_passed += 1
 
-            # Update variation with accurate test counts
-            variation.tests_passed = var_passed
-            variation.tests_total = var_total
-            variation.score = int((var_passed / var_total * 100) if var_total > 0 else 0)
-            variation.save()
+            # Store variation update data
+            variation_updates.append({
+                'variation': variation,
+                'passed': var_passed,
+                'total': var_total
+            })
 
             total_tests += var_total
+
+        # PERFORMANCE: Bulk create all test executions in ONE query
+        # This replaces ~30 individual INSERT statements with 1
+        if all_test_executions:
+            TestExecution.objects.bulk_create(all_test_executions)
+
+        # Update all variations with test counts
+        for var_update in variation_updates:
+            variation = var_update['variation']
+            variation.tests_passed = var_update['passed']
+            variation.tests_total = var_update['total']
+            variation.score = int((var_update['passed'] / var_update['total'] * 100) if var_update['total'] > 0 else 0)
+            variation.save()
 
         # Update submission with overall results
         submission.score = int((total_passed / total_tests * 100) if total_tests > 0 else 0)
@@ -293,27 +358,43 @@ class SubmissionService:
 
         submission.save()
 
-        # Update progress using unified ProgressEngine
-        ProgressEngine().process_submission(submission)
+        # PERFORMANCE: Skip initial attempt increment since we're in a larger transaction
+        # The pipeline will call process_submission() which handles the full update
+        ProgressEngine().process_submission(submission, skip_initial_attempt_increment=True)
 
         logger.info(f"Recorded {total_tests} test results across {len(variations_with_tests)} variations for submission {submission.submission_id}")
 
     @classmethod
     @transaction.atomic
-    def record_segmentation(
+    def record_eipl_test_results(
+        cls,
+        submission: Submission,
+        variations_with_tests: List[Dict]
+    ) -> None:
+        """
+        Record test results for all EiPL variations.
+
+        Args:
+            submission: The submission to update
+            variations_with_tests: List of dicts with 'variation' (CodeVariation) and 'test_results' (list of test data)
+        """
+        cls._record_eipl_test_results_no_transaction(submission, variations_with_tests)
+
+    @classmethod
+    def _record_segmentation_no_transaction(
         cls,
         submission: Submission,
         segmentation_data: Dict
     ) -> SegmentationAnalysis:
         """
-        Record segmentation analysis for EiPL submissions.
+        Record segmentation analysis WITHOUT @transaction.atomic decorator.
 
-        Args:
-            submission: The submission to update
-            segmentation_data: Segmentation analysis data
+        This method is designed for use within larger atomic blocks (e.g., pipeline tasks).
+        For standalone usage, use record_segmentation() instead.
 
-        Returns:
-            Created SegmentationAnalysis instance
+        Transaction Management Pattern:
+        - record_segmentation() = Wraps this method with @transaction.atomic
+        - _record_segmentation_no_transaction() = Raw operation, caller manages transaction
         """
         # Calculate passed status based on threshold
         # Get threshold from submission's problem config or use default
@@ -332,7 +413,7 @@ class SubmissionService:
             code_mappings=segmentation_data.get('code_mappings', {}),
             confidence_score=segmentation_data.get('confidence', 0.0),
             processing_time_ms=segmentation_data.get('processing_time_ms', 0),
-            model_used=segmentation_data.get('model', 'gpt-5'),
+            model_used=segmentation_data.get('model', 'gpt-4o-mini'),
             feedback_message=segmentation_data.get('feedback', ''),
             suggested_improvements=segmentation_data.get('improvements', []),
             passed=passed
@@ -352,12 +433,32 @@ class SubmissionService:
 
         submission.save()
 
-        # Update progress using unified ProgressEngine
-        ProgressEngine().process_submission(submission)
+        # PERFORMANCE: Final progress update - this is the last step in the pipeline
+        # Update progress using unified ProgressEngine (full update with all dimensions)
+        ProgressEngine().process_submission(submission, skip_initial_attempt_increment=False)
 
         logger.info(f"Recorded segmentation analysis for submission {submission.submission_id}: {analysis.comprehension_level}")
 
         return analysis
+
+    @classmethod
+    @transaction.atomic
+    def record_segmentation(
+        cls,
+        submission: Submission,
+        segmentation_data: Dict
+    ) -> SegmentationAnalysis:
+        """
+        Record segmentation analysis for EiPL submissions.
+
+        Args:
+            submission: The submission to update
+            segmentation_data: Segmentation analysis data
+
+        Returns:
+            Created SegmentationAnalysis instance
+        """
+        return cls._record_segmentation_no_transaction(submission, segmentation_data)
 
     @classmethod
     def get_submission_details(cls, submission_id: str) -> Dict:

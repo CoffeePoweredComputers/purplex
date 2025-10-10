@@ -6,7 +6,7 @@ from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.conf import settings
-from django.db.models import Q, Count, Avg
+from django.db.models import Q, Count, Avg, OuterRef, Prefetch
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -509,6 +509,54 @@ class AdminSubmissionListView(APIView):
                         'duration_seconds': ha.viewed_duration_seconds
                     })
 
+                # Get user progress for this problem/problem_set/course context
+                user_progress = None
+                if hasattr(submission.user, 'all_progress'):
+                    # Find matching progress from prefetched data
+                    for prog in submission.user.all_progress:
+                        if (prog.problem_id == submission.problem_id and
+                            prog.problem_set_id == submission.problem_set_id and
+                            prog.course_id == submission.course_id):
+                            user_progress = prog
+                            break
+
+                # Add progress fields
+                if user_progress:
+                    # Calculate days since first attempt
+                    days_since_first = None
+                    if user_progress.first_attempt:
+                        days_since_first = (submission.submitted_at - user_progress.first_attempt).days
+
+                    # Convert time spent to minutes
+                    total_time_minutes = None
+                    if user_progress.total_time_spent:
+                        total_time_minutes = int(user_progress.total_time_spent.total_seconds() / 60)
+
+                    progress_fields = {
+                        'user_total_attempts': user_progress.attempts,
+                        'user_best_score': user_progress.best_score,
+                        'user_average_score': round(user_progress.average_score, 2),
+                        'user_grade': user_progress.grade,
+                        'user_completion_status': user_progress.status,
+                        'user_hints_used_total': user_progress.hints_used,
+                        'days_since_first_attempt': days_since_first,
+                        'total_time_spent_minutes': total_time_minutes,
+                        'consecutive_successes': user_progress.consecutive_successes
+                    }
+                else:
+                    # No progress found - fill with defaults
+                    progress_fields = {
+                        'user_total_attempts': 0,
+                        'user_best_score': 0,
+                        'user_average_score': 0.0,
+                        'user_grade': 'incomplete',
+                        'user_completion_status': 'not_started',
+                        'user_hints_used_total': 0,
+                        'days_since_first_attempt': None,
+                        'total_time_spent_minutes': None,
+                        'consecutive_successes': 0
+                    }
+
                 export_data.append({
                     'submission_id': str(submission.submission_id),
                     'user': submission.user.username,
@@ -527,7 +575,8 @@ class AdminSubmissionListView(APIView):
                     'hint_types_used': ','.join(hint_types) if hint_types else '',
                     'first_hint_time': first_hint_time,
                     'last_hint_time': last_hint_time,
-                    'hint_details': json.dumps(hint_details) if hint_details else ''
+                    'hint_details': json.dumps(hint_details) if hint_details else '',
+                    **progress_fields  # Add all progress fields
                 })
 
         if format_type == 'csv':

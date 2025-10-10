@@ -43,8 +43,9 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent } from 'vue';
+import { computed, defineComponent, getCurrentInstance } from 'vue';
 import { useStore } from 'vuex';
+import { useTokenRefresh } from './composables/useTokenRefresh';
 
 /* Components */
 import Login from './features/auth/Login.vue';
@@ -60,13 +61,24 @@ export default defineComponent({
     },
     setup() {
         const store = useStore();
-        
+        const tokenRefresh = useTokenRefresh();
+
+        // Make available globally for axios interceptors
+        const instance = getCurrentInstance();
+        if (instance) {
+            instance.appContext.app.config.globalProperties.$tokenRefresh = tokenRefresh;
+        }
+
+        // Initialize token refresh (lifecycle hooks will now fire properly)
+        tokenRefresh.initialize();
+
         const loggedIn = computed(() => store.state.auth.status.loggedIn);
         const user = computed(() => store.state.auth.user);
-        
+
         return {
             loggedIn,
-            user
+            user,
+            tokenRefresh
         };
     },
     data() {
