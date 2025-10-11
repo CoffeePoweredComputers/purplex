@@ -1,12 +1,4 @@
 <template>
-  <h1 style="display: inline-flex; text-align: center; gap: 10px; margin: 5px; font-size: 80px;">
-    <img
-      src="/vite.png"
-      alt="Purplex Logo"
-      style="width: 100px; height: 100px; margin-right: 10px;"
-    >
-    Purplex
-  </h1>
   <div
     v-if="!authInitialized"
     style="visibility: hidden;"
@@ -15,13 +7,17 @@
     <Login v-if="!loggedIn" />
     <div v-else>
       <NavBar />
-      <router-view />
+      <div class="main-content">
+        <router-view />
+      </div>
     </div>
   </div>
   <Login v-else-if="!loggedIn" />
   <div v-else>
     <NavBar />
-    <router-view />
+    <div class="main-content">
+      <router-view />
+    </div>
   </div>
   <NotificationToast />
   <footer class="app-footer">
@@ -208,6 +204,12 @@ export default defineComponent({
 }
 
 /* Global Styles */
+.main-content {
+    max-width: var(--max-width-app);
+    margin: 0 auto;
+    padding: 0 2rem 80px 2rem; /* No top padding to eliminate gap below navbar */
+}
+
 .terms li {
     list-style: none;
     margin-bottom: var(--spacing-lg);

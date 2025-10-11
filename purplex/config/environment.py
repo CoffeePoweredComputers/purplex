@@ -367,11 +367,36 @@ class Config:
         return self.get_bool('USE_MOCK_OPENAI', False)
     
     @property
+    def ai_provider(self) -> str:
+        """Primary AI provider: 'openai' or 'llama'"""
+        return self.get('AI_PROVIDER', 'openai').lower()
+
+    @property
     def openai_api_key(self) -> Optional[str]:
         """OpenAI API key"""
         if self.use_mock_openai:
             return None
-        return self.get('OPENAI_API_KEY', required=not self.is_development)
+
+        # In production, require OpenAI key if it's the configured provider
+        if not self.is_development and self.ai_provider == 'openai':
+            return self.get('OPENAI_API_KEY', required=True)
+
+        return self.get('OPENAI_API_KEY')
+
+    @property
+    def llama_api_key(self) -> Optional[str]:
+        """Llama API key"""
+        # In production, require Llama key if it's the configured provider
+        if not self.is_development and self.ai_provider == 'llama':
+            return self.get('LLAMA_API_KEY', required=True)
+
+        return self.get('LLAMA_API_KEY')
+
+    @property
+    def llama_model(self) -> str:
+        """Llama model name"""
+        default = 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'
+        return self.get('LLAMA_MODEL', default)
     
     @property
     def firebase_credentials_path(self) -> Optional[str]:

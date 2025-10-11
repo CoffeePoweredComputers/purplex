@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from purplex.problems_app.models import (
-    Course, Problem, ProblemSet, ProblemCategory, TestCase, 
-    ProblemSetMembership, CourseProblemSet
+    Course, Problem, ProblemSet, ProblemCategory, TestCase,
+    ProblemSetMembership, CourseProblemSet, ProblemHint
 )
 from purplex.users_app.models import UserProfile
 
@@ -110,37 +110,122 @@ class Command(BaseCommand):
 
 Write a function that determines if two strings are anagrams of each other.
 
-Two strings are anagrams if they contain the same characters with the same frequency, 
+Two strings are anagrams if they contain the same characters with the same frequency,
 but possibly in a different order.
 
 ## Examples
-- `is_anagram("listen", "silent")` → `True`
-- `is_anagram("hello", "world")` → `False`
-- `is_anagram("A", "a")` → `True` (case insensitive)
+- `foo("listen", "silent")` → `True`
+- `foo("hello", "world")` → `False`
+- `foo("A", "a")` → `True` (case insensitive)
 
 ## Constraints
 - The comparison should be case-insensitive
 - Ignore spaces and punctuation
 - String length: 1 ≤ len(str) ≤ 1000''',
                 'difficulty': 'beginner',
-                'function_name': 'is_anagram',
-                'function_signature': 'def is_anagram(str1: str, str2: str) -> bool:',
-                'reference_solution': '''def is_anagram(str1, str2):
+                'function_name': 'foo',
+                'function_signature': 'def foo(a: str, b: str) -> bool:',
+                'reference_solution': '''def foo(a, b):
     # Remove spaces and convert to lowercase
-    str1 = ''.join(str1.split()).lower()
-    str2 = ''.join(str2.split()).lower()
-    
+    x = ''.join(a.split()).lower()
+    y = ''.join(b.split()).lower()
+
     # Check if sorted characters are equal
-    return sorted(str1) == sorted(str2)''',
+    return sorted(x) == sorted(y)''',
                 'memory_limit': 128,
                 'tags': ['strings', 'sorting', 'hash-map'],
                 'is_active': True,
-                'created_by': instructor1
+                'created_by': instructor1,
+                'segmentation_config': {
+                    'enabled': True,
+                    'threshold': 2,
+                    'examples': {
+                        'relational': {
+                            'prompt': 'checks if two strings have the same letters by sorting them',
+                            'segments': [
+                                'checks if two strings have the same letters by sorting them'
+                            ],
+                            'code_lines': [[3, 4, 7]]
+                        },
+                        'multi_structural': {
+                            'prompt': 'first it takes a and removes spaces and makes it lowercase and stores in x then it takes b and removes spaces and makes it lowercase and stores in y then it sorts x and sorts y and checks if theyre equal',
+                            'segments': [
+                                'takes a and removes spaces and makes it lowercase and stores in x',
+                                'takes b and removes spaces and makes it lowercase and stores in y',
+                                'sorts x and sorts y and checks if theyre equal'
+                            ],
+                            'code_lines': [[3], [4], [7]]
+                        }
+                    }
+                }
             }
         )[0]
         anagram_problem.categories.add(strings_cat)
 
-        # Problem 2: Palindrome Checker 
+        # Add hints for Anagram problem
+        ProblemHint.objects.get_or_create(
+            problem=anagram_problem,
+            hint_type='variable_fade',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'mappings': [
+                        {'from': 'a', 'to': 'first_string'},
+                        {'from': 'b', 'to': 'second_string'},
+                        {'from': 'x', 'to': 'cleaned_first'},
+                        {'from': 'y', 'to': 'cleaned_second'}
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=anagram_problem,
+            hint_type='subgoal_highlight',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'subgoals': [
+                        {
+                            'line_start': 3,
+                            'line_end': 4,
+                            'title': 'Prepare: Normalize for Fair Comparison',
+                            'explanation': 'Remove formatting differences (spaces, case) so comparison focuses only on letter content. Anagrams differ in arrangement, not characters.'
+                        },
+                        {
+                            'line_start': 7,
+                            'line_end': 7,
+                            'title': 'Decide: Compare Character Content',
+                            'explanation': 'Sorting reveals if strings contain same letters. If sorted versions match, they have identical characters—the definition of anagrams.'
+                        }
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=anagram_problem,
+            hint_type='suggested_trace',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'suggested_call': 'foo("Listen", "Silent")',
+                    'trace_steps': [
+                        'a = "Listen", b = "Silent" — Different case and order',
+                        'x = "listen" — WHY: normalize to focus on letters, not format',
+                        'y = "silent" — WHY: apply same normalization for fair comparison',
+                        'sorted(x) = ["e","i","l","n","s","t"] — WHY: reveal character content',
+                        'sorted(y) = ["e","i","l","n","s","t"] — WHY: reveal character content',
+                        'Equal! → True — AHA: same characters = anagrams ✓'
+                    ]
+                }
+            }
+        )
+
+        # Problem 2: Palindrome Checker
         palindrome_problem = Problem.objects.get_or_create(
             slug='palindrome-checker',
             defaults={
@@ -149,34 +234,115 @@ but possibly in a different order.
 
 Write a function that determines if a given string is a palindrome.
 
-A palindrome is a word, phrase, number, or other sequence of characters that reads 
+A palindrome is a word, phrase, number, or other sequence of characters that reads
 the same forward and backward.
 
 ## Examples
-- `is_palindrome("racecar")` → `True`
-- `is_palindrome("hello")` → `False`
-- `is_palindrome("A man a plan a canal Panama")` → `True`
+- `foo("racecar")` → `True`
+- `foo("hello")` → `False`
+- `foo("A man a plan a canal Panama")` → `True`
 
 ## Constraints
 - The comparison should be case-insensitive
 - Ignore spaces and punctuation
 - String length: 1 ≤ len(str) ≤ 1000''',
                 'difficulty': 'beginner',
-                'function_name': 'is_palindrome',
-                'function_signature': 'def is_palindrome(s: str) -> bool:',
-                'reference_solution': '''def is_palindrome(s):
+                'function_name': 'foo',
+                'function_signature': 'def foo(x: str) -> bool:',
+                'reference_solution': '''def foo(x):
     # Clean the string: remove spaces and convert to lowercase
-    cleaned = ''.join(char.lower() for char in s if char.isalnum())
-    
+    y = ''.join(c.lower() for c in x if c.isalnum())
+
     # Check if it reads the same forwards and backwards
-    return cleaned == cleaned[::-1]''',
+    return y == y[::-1]''',
                 'memory_limit': 128,
                 'tags': ['strings', 'two-pointers'],
                 'is_active': True,
-                'created_by': instructor1
+                'created_by': instructor1,
+                'segmentation_config': {
+                    'enabled': True,
+                    'threshold': 2,
+                    'examples': {
+                        'relational': {
+                            'prompt': 'checks if string reads same forwards and backwards by cleaning it and reversing',
+                            'segments': [
+                                'checks if string reads same forwards and backwards by cleaning it and reversing'
+                            ],
+                            'code_lines': [[3, 6]]
+                        },
+                        'multi_structural': {
+                            'prompt': 'first it goes through each character in x and keeps only letters and numbers and makes them lowercase and stores in y then it reverses y and checks if its equal to y',
+                            'segments': [
+                                'goes through each character in x and keeps only letters and numbers and makes them lowercase and stores in y',
+                                'reverses y and checks if its equal to y'
+                            ],
+                            'code_lines': [[3], [6]]
+                        }
+                    }
+                }
             }
         )[0]
         palindrome_problem.categories.add(strings_cat)
+
+        # Add hints for Palindrome problem
+        ProblemHint.objects.get_or_create(
+            problem=palindrome_problem,
+            hint_type='variable_fade',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'mappings': [
+                        {'from': 'x', 'to': 'input_string'},
+                        {'from': 'y', 'to': 'cleaned_string'},
+                        {'from': 'c', 'to': 'char'}
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=palindrome_problem,
+            hint_type='subgoal_highlight',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'subgoals': [
+                        {
+                            'line_start': 3,
+                            'line_end': 3,
+                            'title': 'Prepare: Extract Core Content',
+                            'explanation': 'Remove formatting (spaces, punctuation, case) to focus on character sequence. Palindromes are about letter patterns, not formatting.'
+                        },
+                        {
+                            'line_start': 6,
+                            'line_end': 6,
+                            'title': 'Decide: Test Symmetry',
+                            'explanation': 'Compare string to its reverse. If identical, the sequence is symmetric—the definition of a palindrome.'
+                        }
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=palindrome_problem,
+            hint_type='suggested_trace',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'suggested_call': 'foo("Race car")',
+                    'trace_steps': [
+                        'x = "Race car" — Has spaces and mixed case',
+                        'y = "racecar" — WHY: normalize to focus on letter sequence',
+                        'y[::-1] = "racecar" — WHY: test if sequence is symmetric',
+                        'Equal! → True — AHA: same forwards/backwards = palindrome ✓'
+                    ]
+                }
+            }
+        )
 
         # Problem 3: Two Sum (shared problem)
         two_sum_problem = Problem.objects.get_or_create(
@@ -185,39 +351,135 @@ the same forward and backward.
                 'title': 'Two Sum',
                 'description': '''# Two Sum
 
-Given an array of integers `nums` and an integer `target`, return indices of the 
-two numbers such that they add up to target.
+Given an array of integers `x` and an integer `y`, return indices of the
+two numbers such that they add up to y.
 
-You may assume that each input would have exactly one solution, and you may not 
+You may assume that each input would have exactly one solution, and you may not
 use the same element twice.
 
 ## Examples
-- `two_sum([2,7,11,15], 9)` → `[0,1]` (because 2 + 7 = 9)
-- `two_sum([3,2,4], 6)` → `[1,2]` (because 2 + 4 = 6)
+- `foo([2,7,11,15], 9)` → `[0,1]` (because 2 + 7 = 9)
+- `foo([3,2,4], 6)` → `[1,2]` (because 2 + 4 = 6)
 
 ## Constraints
-- 2 ≤ nums.length ≤ 10⁴
-- -10⁹ ≤ nums[i] ≤ 10⁹
-- -10⁹ ≤ target ≤ 10⁹
+- 2 ≤ x.length ≤ 10⁴
+- -10⁹ ≤ x[i] ≤ 10⁹
+- -10⁹ ≤ y ≤ 10⁹
 - Only one valid answer exists.''',
                 'difficulty': 'beginner',
-                'function_name': 'two_sum',
-                'function_signature': 'def two_sum(nums: list, target: int) -> list:',
-                'reference_solution': '''def two_sum(nums, target):
-    num_map = {}
-    for i, num in enumerate(nums):
-        complement = target - num
-        if complement in num_map:
-            return [num_map[complement], i]
-        num_map[num] = i
+                'function_name': 'foo',
+                'function_signature': 'def foo(x: list, y: int) -> list:',
+                'reference_solution': '''def foo(x, y):
+    m = {}
+    for i, v in enumerate(x):
+        c = y - v
+        if c in m:
+            return [m[c], i]
+        m[v] = i
     return []''',
                 'memory_limit': 128,
                 'tags': ['arrays', 'hash-map', 'algorithms'],
                 'is_active': True,
-                'created_by': instructor1
+                'created_by': instructor1,
+                'segmentation_config': {
+                    'enabled': True,
+                    'threshold': 2,
+                    'examples': {
+                        'relational': {
+                            'prompt': 'iterates through array storing values in dictionary and checking if complement exists to find two numbers that sum to target',
+                            'segments': [
+                                'iterates through array storing values in dictionary and checking if complement exists to find two numbers that sum to target'
+                            ],
+                            'code_lines': [[2, 3, 4, 5, 6, 7]]
+                        },
+                        'multi_structural': {
+                            'prompt': 'creates empty dictionary m then loops through each index i and value v in x then calculates c as y minus v then checks if c is in m and returns indices if found then stores v with index i in m then returns empty list',
+                            'segments': [
+                                'creates empty dictionary m',
+                                'loops through each index i and value v in x',
+                                'calculates c as y minus v',
+                                'checks if c is in m and returns indices if found',
+                                'stores v with index i in m',
+                                'returns empty list'
+                            ],
+                            'code_lines': [[2], [3], [4], [5, 6], [7], [8]]
+                        }
+                    }
+                }
             }
         )[0]
         two_sum_problem.categories.add(arrays_cat, algorithms_cat)
+
+        # Add hints for Two Sum problem
+        ProblemHint.objects.get_or_create(
+            problem=two_sum_problem,
+            hint_type='variable_fade',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'mappings': [
+                        {'from': 'x', 'to': 'numbers_array'},
+                        {'from': 'y', 'to': 'target_sum'},
+                        {'from': 'm', 'to': 'seen_values'},
+                        {'from': 'i', 'to': 'index'},
+                        {'from': 'v', 'to': 'value'},
+                        {'from': 'c', 'to': 'complement'}
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=two_sum_problem,
+            hint_type='subgoal_highlight',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'subgoals': [
+                        {
+                            'line_start': 2,
+                            'line_end': 2,
+                            'title': 'Setup: Track What We\'ve Seen',
+                            'explanation': 'Dictionary remembers values and their positions. Enables instant lookup to find if complement exists.'
+                        },
+                        {
+                            'line_start': 3,
+                            'line_end': 4,
+                            'title': 'Process: Check Each Value',
+                            'explanation': 'For each number, calculate what value would complete the sum. This complement is the "missing piece" we\'re looking for.'
+                        },
+                        {
+                            'line_start': 5,
+                            'line_end': 7,
+                            'title': 'Decide: Found or Remember',
+                            'explanation': 'If complement exists in memory, we found our pair! Otherwise, remember current value for future checks.'
+                        }
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=two_sum_problem,
+            hint_type='suggested_trace',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'suggested_call': 'foo([2,7,11,15], 9)',
+                    'trace_steps': [
+                        'x = [2,7,11,15], y = 9 — Need two numbers that sum to 9',
+                        'm = {} — WHY: track values we\'ve seen for instant lookup',
+                        'i=0, v=2: c = 9-2 = 7 — WHY: 7 would complete the sum',
+                        'c(7) not in m → m[2]=0 — WHY: remember 2 at index 0 for later',
+                        'i=1, v=7: c = 9-7 = 2 — WHY: 2 would complete the sum',
+                        'c(2) in m! → [0,1] — AHA: found 2 earlier at index 0, pair found ✓'
+                    ]
+                }
+            }
+        )
 
         # Problem 4: Valid Parentheses
         parentheses_problem = Problem.objects.get_or_create(
@@ -226,7 +488,7 @@ use the same element twice.
                 'title': 'Valid Parentheses',
                 'description': '''# Valid Parentheses
 
-Given a string containing just the characters '(', ')', '{', '}', '[' and ']', 
+Given a string containing just the characters '(', ')', '{', '}', '[' and ']',
 determine if the input string is valid.
 
 An input string is valid if:
@@ -234,38 +496,132 @@ An input string is valid if:
 2. Open brackets must be closed in the correct order
 
 ## Examples
-- `is_valid("()")` → `True`
-- `is_valid("()[]{}")` → `True`
-- `is_valid("(]")` → `False`
-- `is_valid("([)]")` → `False`
+- `foo("()")` → `True`
+- `foo("()[]{}")` → `True`
+- `foo("(]")` → `False`
+- `foo("([)]")` → `False`
 
 ## Constraints
 - String length: 0 ≤ len(s) ≤ 10000
 - String consists of parentheses only''',
                 'difficulty': 'intermediate',
-                'function_name': 'is_valid',
-                'function_signature': 'def is_valid(s: str) -> bool:',
-                'reference_solution': '''def is_valid(s):
-    stack = []
-    mapping = {')': '(', '}': '{', ']': '['}
-    
-    for char in s:
-        if char in mapping:
+                'function_name': 'foo',
+                'function_signature': 'def foo(s: str) -> bool:',
+                'reference_solution': '''def foo(s):
+    x = []
+    m = {')': '(', '}': '{', ']': '['}
+
+    for c in s:
+        if c in m:
             # Closing bracket
-            if not stack or stack.pop() != mapping[char]:
+            if not x or x.pop() != m[c]:
                 return False
         else:
             # Opening bracket
-            stack.append(char)
-    
-    return len(stack) == 0''',
+            x.append(c)
+
+    return len(x) == 0''',
                 'memory_limit': 128,
                 'tags': ['strings', 'stack', 'algorithms'],
                 'is_active': True,
-                'created_by': instructor2
+                'created_by': instructor2,
+                'segmentation_config': {
+                    'enabled': True,
+                    'threshold': 2,
+                    'examples': {
+                        'relational': {
+                            'prompt': 'uses stack to match opening and closing brackets ensuring they are properly paired and ordered',
+                            'segments': [
+                                'uses stack to match opening and closing brackets ensuring they are properly paired and ordered'
+                            ],
+                            'code_lines': [[2, 3, 5, 6, 8, 9, 10, 12, 14]]
+                        },
+                        'multi_structural': {
+                            'prompt': 'creates empty list x and mapping m then loops through each character c in s then checks if c is closing bracket then validates stack has match and pops it or returns false then appends opening brackets to x then checks if stack is empty',
+                            'segments': [
+                                'creates empty list x and mapping m',
+                                'loops through each character c in s',
+                                'checks if c is closing bracket',
+                                'validates stack has match and pops it or returns false',
+                                'appends opening brackets to x',
+                                'checks if stack is empty'
+                            ],
+                            'code_lines': [[2, 3], [5], [6], [8, 9], [12], [14]]
+                        }
+                    }
+                }
             }
         )[0]
         parentheses_problem.categories.add(strings_cat, algorithms_cat)
+
+        # Add hints for Valid Parentheses problem
+        ProblemHint.objects.get_or_create(
+            problem=parentheses_problem,
+            hint_type='variable_fade',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'mappings': [
+                        {'from': 's', 'to': 'input_string'},
+                        {'from': 'x', 'to': 'stack'},
+                        {'from': 'm', 'to': 'bracket_pairs'},
+                        {'from': 'c', 'to': 'char'}
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=parentheses_problem,
+            hint_type='subgoal_highlight',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'subgoals': [
+                        {
+                            'line_start': 2,
+                            'line_end': 3,
+                            'title': 'Setup: Prepare Matching Tools',
+                            'explanation': 'Stack tracks opening brackets in order. Dictionary maps each closing bracket to its matching opening bracket for validation.'
+                        },
+                        {
+                            'line_start': 5,
+                            'line_end': 12,
+                            'title': 'Process: Match or Stack',
+                            'explanation': 'Closing brackets must match the most recent opening bracket (stack top). Opening brackets are saved for future matching.'
+                        },
+                        {
+                            'line_start': 14,
+                            'line_end': 14,
+                            'title': 'Validate: All Paired?',
+                            'explanation': 'Empty stack means every opening bracket found its closing pair. Non-empty means unpaired brackets remain.'
+                        }
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=parentheses_problem,
+            hint_type='suggested_trace',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'suggested_call': 'foo("([)]")',
+                    'trace_steps': [
+                        's = "([)]" — Mixed bracket types, potentially invalid',
+                        'x = [], m = {")":"(", "}":"{", "]":"["} — WHY: track opens, know pairs',
+                        'c="(": opening → x = ["("] — WHY: save for future match',
+                        'c="[": opening → x = ["(","["] — WHY: stack maintains order',
+                        'c=")": closing, m[")"]="(" — WHY: check if matches stack top',
+                        'x.pop()="[" ≠ "(" → False — AHA: wrong bracket type, order violated ✗'
+                    ]
+                }
+            }
+        )
 
         # Problem 5: Fibonacci Sequence
         fibonacci_problem = Problem.objects.get_or_create(
@@ -274,7 +630,7 @@ An input string is valid if:
                 'title': 'Fibonacci Number',
                 'description': '''# Fibonacci Number
 
-The Fibonacci numbers, commonly denoted F(n) form a sequence, called the Fibonacci sequence, 
+The Fibonacci numbers, commonly denoted F(n) form a sequence, called the Fibonacci sequence,
 such that each number is the sum of the two preceding ones, starting from 0 and 1.
 
 F(0) = 0, F(1) = 1
@@ -283,31 +639,125 @@ F(n) = F(n - 1) + F(n - 2), for n > 1.
 Given n, calculate F(n).
 
 ## Examples
-- `fibonacci(2)` → `1` (F(2) = F(1) + F(0) = 1 + 0 = 1)
-- `fibonacci(3)` → `2` (F(3) = F(2) + F(1) = 1 + 1 = 2)
-- `fibonacci(4)` → `3` (F(4) = F(3) + F(2) = 2 + 1 = 3)
+- `foo(2)` → `1` (F(2) = F(1) + F(0) = 1 + 0 = 1)
+- `foo(3)` → `2` (F(3) = F(2) + F(1) = 1 + 1 = 2)
+- `foo(4)` → `3` (F(4) = F(3) + F(2) = 2 + 1 = 3)
 
 ## Constraints
 - 0 ≤ n ≤ 30''',
                 'difficulty': 'beginner',
-                'function_name': 'fibonacci',
-                'function_signature': 'def fibonacci(n: int) -> int:',
-                'reference_solution': '''def fibonacci(n):
+                'function_name': 'foo',
+                'function_signature': 'def foo(n: int) -> int:',
+                'reference_solution': '''def foo(n):
     if n <= 1:
         return n
-    
-    a, b = 0, 1
+
+    x, y = 0, 1
     for _ in range(2, n + 1):
-        a, b = b, a + b
-    
-    return b''',
+        x, y = y, x + y
+
+    return y''',
                 'memory_limit': 128,
                 'tags': ['mathematics', 'dynamic-programming', 'algorithms'],
                 'is_active': True,
-                'created_by': instructor2
+                'created_by': instructor2,
+                'segmentation_config': {
+                    'enabled': True,
+                    'threshold': 2,
+                    'examples': {
+                        'relational': {
+                            'prompt': 'calculates fibonacci number using iteration with two variables tracking previous values',
+                            'segments': [
+                                'calculates fibonacci number using iteration with two variables tracking previous values'
+                            ],
+                            'code_lines': [[2, 3, 5, 6, 7, 9]]
+                        },
+                        'multi_structural': {
+                            'prompt': 'checks if n is 0 or 1 and returns n then initializes x to 0 and y to 1 then loops from 2 to n plus 1 then swaps x and y where x becomes y and y becomes x plus y then returns y',
+                            'segments': [
+                                'checks if n is 0 or 1 and returns n',
+                                'initializes x to 0 and y to 1',
+                                'loops from 2 to n plus 1',
+                                'swaps x and y where x becomes y and y becomes x plus y',
+                                'returns y'
+                            ],
+                            'code_lines': [[2, 3], [5], [6], [7], [9]]
+                        }
+                    }
+                }
             }
         )[0]
         fibonacci_problem.categories.add(math_cat, algorithms_cat)
+
+        # Add hints for Fibonacci problem
+        ProblemHint.objects.get_or_create(
+            problem=fibonacci_problem,
+            hint_type='variable_fade',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'mappings': [
+                        {'from': 'n', 'to': 'target_position'},
+                        {'from': 'x', 'to': 'previous'},
+                        {'from': 'y', 'to': 'current'}
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=fibonacci_problem,
+            hint_type='subgoal_highlight',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'subgoals': [
+                        {
+                            'line_start': 2,
+                            'line_end': 3,
+                            'title': 'Base Cases: Handle Simple Inputs',
+                            'explanation': 'F(0)=0 and F(1)=1 by definition. These require no calculation, just direct return.'
+                        },
+                        {
+                            'line_start': 5,
+                            'line_end': 7,
+                            'title': 'Build Up: Generate Sequence',
+                            'explanation': 'Start from F(0) and F(1), then iteratively compute each next number as sum of previous two. Variables slide forward through sequence.'
+                        },
+                        {
+                            'line_start': 9,
+                            'line_end': 9,
+                            'title': 'Result: Return Current Value',
+                            'explanation': 'After n-1 iterations, current variable holds F(n)—the exact position requested.'
+                        }
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=fibonacci_problem,
+            hint_type='suggested_trace',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'suggested_call': 'foo(4)',
+                    'trace_steps': [
+                        'n = 4 — Want F(4)',
+                        'n > 1, so compute iteratively',
+                        'x=0, y=1 — WHY: start with F(0)=0, F(1)=1',
+                        'Loop 2→4: — WHY: build sequence step by step',
+                        '  i=2: x,y = 1,1 — WHY: F(2) = F(1)+F(0) = 1+0 = 1',
+                        '  i=3: x,y = 1,2 — WHY: F(3) = F(2)+F(1) = 1+1 = 2',
+                        '  i=4: x,y = 2,3 — WHY: F(4) = F(3)+F(2) = 2+1 = 3',
+                        'return y=3 — AHA: built up to exact position requested ✓'
+                    ]
+                }
+            }
+        )
 
         # Problem 6: Reverse Array
         reverse_array_problem = Problem.objects.get_or_create(
@@ -319,25 +769,97 @@ Given n, calculate F(n).
 Given an array of integers, return a new array with elements in reverse order.
 
 ## Examples
-- `reverse_array([1, 2, 3, 4, 5])` → `[5, 4, 3, 2, 1]`
-- `reverse_array([10])` → `[10]`
-- `reverse_array([])` → `[]`
+- `foo([1, 2, 3, 4, 5])` → `[5, 4, 3, 2, 1]`
+- `foo([10])` → `[10]`
+- `foo([])` → `[]`
 
 ## Constraints
 - 0 ≤ array length ≤ 1000
 - -10⁹ ≤ array[i] ≤ 10⁹''',
                 'difficulty': 'easy',
-                'function_name': 'reverse_array',
-                'function_signature': 'def reverse_array(arr: list) -> list:',
-                'reference_solution': '''def reverse_array(arr):
-    return arr[::-1]''',
+                'function_name': 'foo',
+                'function_signature': 'def foo(x: list) -> list:',
+                'reference_solution': '''def foo(x):
+    return x[::-1]''',
                 'memory_limit': 128,
                 'tags': ['arrays', 'basic'],
                 'is_active': True,
-                'created_by': instructor1
+                'created_by': instructor1,
+                'segmentation_config': {
+                    'enabled': True,
+                    'threshold': 2,
+                    'examples': {
+                        'relational': {
+                            'prompt': 'reverses the array using slice notation',
+                            'segments': [
+                                'reverses the array using slice notation'
+                            ],
+                            'code_lines': [[2]]
+                        },
+                        'multi_structural': {
+                            'prompt': 'returns x with slice notation that goes backwards',
+                            'segments': [
+                                'returns x with slice notation that goes backwards'
+                            ],
+                            'code_lines': [[2]]
+                        }
+                    }
+                }
             }
         )[0]
         reverse_array_problem.categories.add(arrays_cat)
+
+        # Add hints for Reverse Array problem
+        ProblemHint.objects.get_or_create(
+            problem=reverse_array_problem,
+            hint_type='variable_fade',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'mappings': [
+                        {'from': 'x', 'to': 'input_array'}
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=reverse_array_problem,
+            hint_type='subgoal_highlight',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'subgoals': [
+                        {
+                            'line_start': 2,
+                            'line_end': 2,
+                            'title': 'Reverse: Use Slice Notation',
+                            'explanation': 'Python slice [::-1] creates new list traversing from end to start with step -1. Single operation reverses entire sequence.'
+                        }
+                    ]
+                }
+            }
+        )
+
+        ProblemHint.objects.get_or_create(
+            problem=reverse_array_problem,
+            hint_type='suggested_trace',
+            defaults={
+                'is_enabled': True,
+                'min_attempts': 3,
+                'content': {
+                    'suggested_call': 'foo([1,2,3,4,5])',
+                    'trace_steps': [
+                        'x = [1,2,3,4,5] — Array in original order',
+                        'x[::-1] — WHY: slice with step -1 traverses backwards',
+                        'Start at end (5), step backward → [5,4,3,2,1]',
+                        'return [5,4,3,2,1] — AHA: reversed order in one operation ✓'
+                    ]
+                }
+            }
+        )
 
         # Add test cases for all problems
         self.create_test_cases(anagram_problem, palindrome_problem, two_sum_problem, 

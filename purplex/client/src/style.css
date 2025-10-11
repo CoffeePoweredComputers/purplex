@@ -123,13 +123,11 @@ select:-webkit-autofill {
 }
 
 #app {
-  max-width: var(--max-width-app);
-  margin: 0 auto;
-  padding: 2rem;
-  padding-bottom: 80px; /* Space for fixed footer */
-  text-align: center;
+  margin: 0;
+  padding: 0;
   width: 100%;
   min-height: 100vh;
+  text-align: center;
 }
 
 /* Scrollbar styling */

@@ -358,12 +358,12 @@ class ProgressRepository(BaseRepository):
     @classmethod
     def filter_by_ids(cls, user_id: int, problem_id: Optional[int] = None,
                      problem_set_id: Optional[int] = None,
-                     course_id: Optional[int] = None) -> List:
+                     course_id: Optional[int] = None):
         """
         Filter progress records by IDs.
-        
+
         Returns:
-            QuerySet of UserProgress
+            QuerySet of UserProgress (not evaluated - allows chaining)
         """
         filters = {'user_id': user_id}
         if problem_id:
@@ -372,8 +372,8 @@ class ProgressRepository(BaseRepository):
             filters['problem_set_id'] = problem_set_id
         if course_id:
             filters['course_id'] = course_id
-            
-        return list(UserProgress.objects.filter(**filters))
+
+        return UserProgress.objects.filter(**filters)
     
     @classmethod
     def get_or_create_problem_set_with_lock(cls, user_id: int, problem_set_id: int,

@@ -200,9 +200,16 @@ CELERY_TASK_ROUTES = {
     'purplex.problems_app.tasks.analytics.*': {'queue': 'analytics'},
 }
 
+# AI Provider Configuration
+AI_PROVIDER = config.ai_provider
+
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 GPT_MODEL = os.environ.get('GPT_MODEL', 'gpt-4o-mini')
+
+# Llama Configuration
+LLAMA_API_KEY = config.llama_api_key
+LLAMA_MODEL = config.llama_model
 
 # Firebase Configuration (handled by environment config)
 # Firebase configuration is handled directly via environment variables

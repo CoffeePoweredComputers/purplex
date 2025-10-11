@@ -632,12 +632,12 @@ class ProgressService:
                                             course_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Get problem set progress with full context validation.
-        
+
         Args:
             user: Django User instance
             problem_set_slug: Problem set slug
             course_id: Optional course ID
-            
+
         Returns:
             Dict with progress data and context
         """
@@ -646,7 +646,7 @@ class ProgressService:
             problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
             if not problem_set:
                 raise ValueError(f'Problem set {problem_set_slug} not found')
-            
+
             # Get course if provided
             course = None
             if course_id:
@@ -654,7 +654,7 @@ class ProgressService:
                     course = CourseRepository.get_course_by_id(course_id)
                 except Exception:
                     pass
-            
+
             # Get or create problem set progress
             if course:
                 progress, _ = ProgressRepository.get_or_create_problem_set_progress(
@@ -670,7 +670,7 @@ class ProgressService:
                 if progress.total_problems == 0:
                     progress.total_problems = ProblemRepository.count_problems_in_set(problem_set)
                     progress.save()
-            
+
             # Get all problems in the set with user progress
             # CRITICAL FIX: Use prefetch_related to avoid N+1 queries
             from django.db.models import Prefetch
@@ -690,8 +690,8 @@ class ProgressService:
                 problem_set=problem_set,
                 course=course
             ).select_related('problem').prefetch_related('segmentation').order_by(
-                'problem', '-submitted_at'
-            ).distinct('problem')
+                'problem__id', '-submitted_at'
+            ).distinct('problem__id')
 
             # Build lookup dictionaries for O(1) access
             progress_by_problem = {p.problem_id: p for p in progress_qs}

@@ -24,6 +24,7 @@ django-celery-beat==2.7.0
 # External Services
 openai==1.40.6
 firebase-admin==6.5.0
+llama-api-client==0.1.0
 
 # HTTP & Networking
 requests==2.32.3

@@ -9,20 +9,123 @@ logger = logging.getLogger(__name__)
 
 
 class SegmentationService:
-    """Service for prompt segmentation analysis using GPT-4"""
-    
+    """
+    Service for prompt segmentation analysis using AI.
+
+    Supports both Llama and OpenAI providers via configuration.
+    Provider is selected via AI_PROVIDER setting ('llama' or 'openai').
+    Fails immediately if the configured provider is unavailable - no fallback.
+    """
+
     def __init__(self):
+        # Determine which provider to use
+        self.provider = getattr(settings, 'AI_PROVIDER', 'openai').lower()
+
+        # Initialize OpenAI
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
-        self.model_name = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
+        self.openai_model = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
         if self.openai_api_key:
             import openai
-            self.client = openai.OpenAI(api_key=self.openai_api_key)
+            self.openai_client = openai.OpenAI(api_key=self.openai_api_key)
+        else:
+            self.openai_client = None
+
+        # Initialize Llama
+        self.llama_api_key = getattr(settings, 'LLAMA_API_KEY', None)
+        self.llama_model = getattr(settings, 'LLAMA_MODEL', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8')
+        if self.llama_api_key:
+            try:
+                from llama_api_client import LlamaAPIClient
+                self.llama_client = LlamaAPIClient(api_key=self.llama_api_key)
+            except ImportError:
+                logger.warning("llama-api-client not installed, Llama provider unavailable")
+                self.llama_client = None
+        else:
+            self.llama_client = None
+
+        # Select active client based on provider setting
+        self._select_client()
+
+    def _select_client(self):
+        """Select which client to use based on configuration"""
+        if self.provider == 'llama' and self.llama_client:
+            self.client = self.llama_client
+            self.model_name = self.llama_model
+            logger.info(f"✅ Using Llama API provider for segmentation (model: {self.llama_model})")
+        elif self.provider == 'openai' and self.openai_client:
+            self.client = self.openai_client
+            self.model_name = self.openai_model
+            logger.info(f"✅ Using OpenAI API provider for segmentation (model: {self.openai_model})")
         else:
             self.client = None
+            self.model_name = None
+            logger.warning(f"⚠️  No valid AI provider configured for segmentation (provider={self.provider})")
+
+    def _call_ai(self, messages, max_tokens=1500, temperature=0.3):
+        """
+        Unified AI call that handles both Llama and OpenAI APIs.
+        Raises exception immediately on failure - no fallback.
+        Uses JSON mode/schema to enforce structured output.
+        """
+        try:
+            if self.provider == 'llama':
+                # Llama API call with JSON Schema for strict validation
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    temperature=temperature,
+                    response_format={
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "SegmentationResponse",
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "segments": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {"type": "integer"},
+                                                "text": {"type": "string"},
+                                                "code_lines": {
+                                                    "type": "array",
+                                                    "items": {"type": "integer"}
+                                                }
+                                            },
+                                            "required": ["id", "text", "code_lines"]
+                                        }
+                                    }
+                                },
+                                "required": ["segments"]
+                            }
+                        }
+                    }
+                )
+                content = response.completion_message.content.text
+                logger.info(f"🦙 Llama API call successful with JSON schema (segmentation, model: {self.model_name})")
+
+            else:  # openai
+                # OpenAI API call with JSON mode
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    response_format={"type": "json_object"}  # Enforce JSON output
+                )
+                content = response.choices[0].message.content
+                logger.info(f"🤖 OpenAI API call successful with JSON mode (segmentation, model: {self.model_name})")
+
+            return content
+
+        except Exception as e:
+            logger.error(f"❌ {self.provider.upper()} API call failed (segmentation): {str(e)}")
+            raise  # Fail immediately - no fallback
     
     def segment_prompt(self, user_prompt: str, reference_code: str, problem_config: dict = None) -> dict:
         """
-        Segment user prompt and map to code lines using GPT-4
+        Segment user prompt and map to code lines using AI (Llama or OpenAI)
 
         Args:
             user_prompt: User's explanation of the code
@@ -45,7 +148,7 @@ class SegmentationService:
         if not self.client:
             return {
                 'success': False,
-                'error': 'OpenAI API key not configured',
+                'error': f'No AI provider configured for segmentation (provider={self.provider})',
                 'segments': [],
                 'groups': [],
                 'segment_count': 0,
@@ -63,18 +166,17 @@ class SegmentationService:
             # Create segmentation prompt with few-shot examples
             system_prompt = self._create_segmentation_prompt(reference_code, custom_examples)
 
-            # Make API call to GPT-4
-            response = self.client.chat.completions.create(
-                model=self.model_name,  # Using configured model
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Please analyze this prompt: {user_prompt}"}
-                ],
-                temperature=0.3,  # Lower temperature for more consistent analysis
-                max_tokens=1500
-            )
+            # Make API call using unified wrapper (handles both Llama and OpenAI)
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Please analyze this prompt: {user_prompt}"}
+            ]
 
-            content = response.choices[0].message.content
+            content = self._call_ai(
+                messages=messages,
+                max_tokens=1500,
+                temperature=0.0
+            )
 
             # Log raw AI response for debugging
             self._log_segmentation_debug(user_prompt, reference_code, content)
@@ -240,13 +342,8 @@ CRITICAL: Each line number must appear in at most ONE segment. Overlapping line 
     def _parse_segments(self, ai_response: str, reference_code: str, user_prompt: str) -> dict:
         """Parse AI response into structured segments with one-to-one validation"""
         try:
-            # Extract JSON from response
-            json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
-            if not json_match:
-                return {'success': False, 'error': 'No JSON found in response', 'segments': [], 'groups': []}
-
-            json_str = json_match.group(0)
-            parsed_data = json.loads(json_str)
+            # JSON schema guarantees valid, clean JSON
+            parsed_data = json.loads(ai_response)
 
             segments = parsed_data.get('segments', [])
             if not segments:

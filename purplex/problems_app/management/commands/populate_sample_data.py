@@ -95,23 +95,20 @@ but possibly in a different order.
                     'threshold': 2,
                     'examples': {
                         'relational': {
-                            'prompt': 'The function checks if two strings are anagrams by comparing their sorted characters after normalization',
+                            'prompt': 'checks if two strings have the same letters by sorting them',
                             'segments': [
-                                'Normalize both strings by removing spaces and converting to lowercase',
-                                'Compare the sorted characters to determine if they are anagrams'
+                                'checks if two strings have the same letters by sorting them'
                             ],
-                            'code_lines': [[2, 3], [5]]
+                            'code_lines': [[2, 3, 5]]
                         },
                         'multi_structural': {
-                            'prompt': 'Line 1 removes spaces from first string, line 2 converts it to lowercase, line 3 removes spaces from second string, line 4 converts it to lowercase, line 5 sorts both and compares',
+                            'prompt': 'first it takes a and removes spaces and makes it lowercase and stores in x then it takes b and removes spaces and makes it lowercase and stores in y then it sorts x and sorts y and checks if theyre equal',
                             'segments': [
-                                'Remove spaces from the first input string',
-                                'Convert first string to lowercase',
-                                'Remove spaces from the second input string', 
-                                'Convert second string to lowercase',
-                                'Sort characters of both strings and compare for equality'
+                                'takes a and removes spaces and makes it lowercase and stores in x',
+                                'takes b and removes spaces and makes it lowercase and stores in y',
+                                'sorts x and sorts y and checks if theyre equal'
                             ],
-                            'code_lines': [[2], [2], [3], [3], [5]]
+                            'code_lines': [[2], [3], [5]]
                         }
                     }
                 }
@@ -129,13 +126,10 @@ but possibly in a different order.
                 'min_attempts': 3,
                 'content': {
                     'mappings': [
-                        {'from': 'first string', 'to': 'a'},
-                        {'from': 'second string', 'to': 'b'},
-                        {'from': 'normalized first', 'to': 'x'},
-                        {'from': 'normalized second', 'to': 'y'},
-                        {'from': 'spaces removed', 'to': 'replace(" ", "")'},
-                        {'from': 'lowercase', 'to': 'lower()'},
-                        {'from': 'sorted characters', 'to': 'sorted()'}
+                        {'from': 'a', 'to': 'first_string'},
+                        {'from': 'b', 'to': 'second_string'},
+                        {'from': 'x', 'to': 'cleaned_first'},
+                        {'from': 'y', 'to': 'cleaned_second'}
                     ]
                 }
             }
@@ -152,14 +146,14 @@ but possibly in a different order.
                         {
                             'line_start': 2,
                             'line_end': 3,
-                            'title': 'String Normalization',
-                            'explanation': 'Remove spaces and convert both strings to lowercase for case-insensitive comparison'
+                            'title': 'Prepare: Normalize for Fair Comparison',
+                            'explanation': 'Remove formatting differences (spaces, case) so comparison focuses only on letter content. Anagrams differ in arrangement, not characters.'
                         },
                         {
                             'line_start': 5,
                             'line_end': 5,
-                            'title': 'Anagram Check',
-                            'explanation': 'Sort the characters of both normalized strings and compare them for equality'
+                            'title': 'Decide: Compare Character Content',
+                            'explanation': 'Sorting reveals if strings contain same letters. If sorted versions match, they have identical characters—the definition of anagrams.'
                         }
                     ]
                 }
@@ -175,12 +169,12 @@ but possibly in a different order.
                 'content': {
                     'suggested_call': 'foo("Listen", "Silent")',
                     'trace_steps': [
-                        'a = "Listen", b = "Silent"',
-                        'x = "listen" (after removing spaces and lowercasing)',
-                        'y = "silent" (after removing spaces and lowercasing)',
-                        'sorted(x) = ["e", "i", "l", "n", "s", "t"]',
-                        'sorted(y) = ["e", "i", "l", "n", "s", "t"]',
-                        'Return: True (sorted lists are equal)'
+                        'a = "Listen", b = "Silent" — Different case and order',
+                        'x = "listen" — WHY: normalize to focus on letters, not format',
+                        'y = "silent" — WHY: apply same normalization for fair comparison',
+                        'sorted(x) = ["e","i","l","n","s","t"] — WHY: reveal character content',
+                        'sorted(y) = ["e","i","l","n","s","t"] — WHY: reveal character content',
+                        'Equal! → True — AHA: same characters = anagrams ✓'
                     ]
                 }
             }
@@ -250,18 +244,17 @@ the same forward and backward.
                     'threshold': 2,
                     'examples': {
                         'relational': {
-                            'prompt': 'The function checks if a string is a palindrome by cleaning it and comparing with its reverse',
+                            'prompt': 'checks if a string reads the same forwards and backwards',
                             'segments': [
-                                'Clean the string by keeping only alphanumeric characters in lowercase',
-                                'Check if the cleaned string equals its reverse'
+                                'checks if a string reads the same forwards and backwards'
                             ],
-                            'code_lines': [[2], [4]]
+                            'code_lines': [[2, 4]]
                         },
                         'multi_structural': {
-                            'prompt': 'Line 1 filters alphanumeric characters and converts to lowercase, line 2 compares the cleaned string with its reverse',
+                            'prompt': 'first it goes through x and filters only letters and numbers and lowercases them and stores in c then it reverses c and checks if c equals the reversed version',
                             'segments': [
-                                'Join filtered alphanumeric characters converted to lowercase',
-                                'Compare cleaned string with its reverse using slicing'
+                                'goes through x and filters only letters and numbers and lowercases them and stores in c',
+                                'reverses c and checks if c equals the reversed version'
                             ],
                             'code_lines': [[2], [4]]
                         }
@@ -281,13 +274,9 @@ the same forward and backward.
                 'min_attempts': 3,
                 'content': {
                     'mappings': [
-                        {'from': 'input string', 'to': 'x'},
-                        {'from': 'cleaned string', 'to': 'c'},
-                        {'from': 'character', 'to': 'i'},
-                        {'from': 'alphanumeric check', 'to': 'isalnum()'},
-                        {'from': 'lowercase conversion', 'to': 'lower()'},
-                        {'from': 'reverse', 'to': '[::-1]'},
-                        {'from': 'join characters', 'to': "join()"}
+                        {'from': 'x', 'to': 'input_string'},
+                        {'from': 'c', 'to': 'cleaned_string'},
+                        {'from': 'i', 'to': 'char'}
                     ]
                 }
             }
@@ -304,20 +293,20 @@ the same forward and backward.
                         {
                             'line_start': 2,
                             'line_end': 2,
-                            'title': 'String Cleaning',
-                            'explanation': 'Filter out non-alphanumeric characters and convert to lowercase'
+                            'title': 'Prepare: Extract Core Letters',
+                            'explanation': 'Remove non-letters to focus on the actual word content. Palindromes ignore spaces and punctuation, comparing only letter sequences.'
                         },
                         {
                             'line_start': 4,
                             'line_end': 4,
-                            'title': 'Palindrome Check',
-                            'explanation': 'Compare the cleaned string with its reverse'
+                            'title': 'Decide: Test Symmetry',
+                            'explanation': 'Compare string with its reverse. If they match, the string reads the same forwards and backwards—the definition of a palindrome.'
                         }
                     ]
                 }
             }
         )
-        
+
         ProblemHint.objects.get_or_create(
             problem=palindrome_problem,
             hint_type='suggested_trace',
@@ -327,12 +316,12 @@ the same forward and backward.
                 'content': {
                     'suggested_call': 'foo("A man a plan a canal Panama")',
                     'trace_steps': [
-                        'x = "A man a plan a canal Panama"',
-                        'Filtering: keep only alphanumeric characters',
-                        'c = "amanaplanacanalpanama" (after cleaning)',
-                        'c[::-1] = "amanaplanacanalpanama"',
-                        'c == c[::-1] evaluates to True',
-                        'Return: True (string is a palindrome)'
+                        'x = "A man a plan a canal Panama" — Has spaces and mixed case',
+                        'Iterate and filter: keep only letters/numbers, convert to lowercase',
+                        'c = "amanaplanacanalpanama" — WHY: isolated the letter sequence',
+                        'c[::-1] = "amanaplanacanalpanama" — WHY: reverse to test symmetry',
+                        'c == c[::-1] is True — AHA: reads same both directions ✓',
+                        'Return: True'
                     ]
                 }
             }
@@ -411,26 +400,23 @@ An input string is valid if:
                     'threshold': 2,
                     'examples': {
                         'relational': {
-                            'prompt': 'The function validates parentheses by using a stack to match opening and closing brackets',
+                            'prompt': 'uses a stack to match opening and closing brackets',
                             'segments': [
-                                'Initialize stack and bracket mapping',
-                                'Process each character by pushing opens to stack or matching closes',
-                                'Check if stack is empty to confirm all brackets matched'
+                                'uses a stack to match opening and closing brackets'
                             ],
-                            'code_lines': [[2, 3], [5, 11], [13]]
+                            'code_lines': [[2, 3, 5, 6, 7, 8, 9, 10, 11, 13]]
                         },
                         'multi_structural': {
-                            'prompt': 'Line 1 creates stack, line 2 defines mapping, line 3 starts loop, lines 4-8 handle closing brackets, lines 9-10 handle opening brackets, line 11 checks if stack is empty',
+                            'prompt': 'first it makes an empty list k for the stack then it makes a dictionary m that maps closing brackets to opening brackets then it loops through each character c in s then if c is in m it checks if k is empty or if popping from k doesnt equal the opening bracket for c and returns false if so otherwise it pushes c to k then after the loop it checks if k is empty',
                             'segments': [
-                                'Create empty stack for tracking open brackets',
-                                'Define mapping of closing to opening brackets',
-                                'Iterate through each character in string',
-                                'Check if character is a closing bracket',
-                                'Pop from stack and verify matching bracket or return False',
-                                'Add opening bracket to stack',
-                                'Return True if stack is empty, False otherwise'
+                                'makes an empty list k for the stack',
+                                'makes a dictionary m that maps closing brackets to opening brackets',
+                                'loops through each character c in s',
+                                'if c is in m it checks if k is empty or if popping from k doesnt equal the opening bracket for c and returns false if so',
+                                'otherwise it pushes c to k',
+                                'after the loop it checks if k is empty'
                             ],
-                            'code_lines': [[2], [3], [5], [6], [8], [11], [13]]
+                            'code_lines': [[2], [3], [5], [6, 7, 8], [10, 11], [13]]
                         }
                     }
                 }
@@ -448,19 +434,15 @@ An input string is valid if:
                 'min_attempts': 3,
                 'content': {
                     'mappings': [
-                        {'from': 'input string', 'to': 's'},
-                        {'from': 'stack', 'to': 'k'},
-                        {'from': 'mapping dictionary', 'to': 'm'},
-                        {'from': 'current character', 'to': 'c'},
-                        {'from': 'closing bracket check', 'to': 'c in m'},
-                        {'from': 'stack push', 'to': 'k.append()'},
-                        {'from': 'stack pop', 'to': 'k.pop()'},
-                        {'from': 'empty stack', 'to': 'len(k) == 0'}
+                        {'from': 's', 'to': 'input_string'},
+                        {'from': 'k', 'to': 'stack'},
+                        {'from': 'm', 'to': 'bracket_pairs'},
+                        {'from': 'c', 'to': 'current_char'}
                     ]
                 }
             }
         )
-        
+
         ProblemHint.objects.get_or_create(
             problem=parentheses_problem,
             hint_type='subgoal_highlight',
@@ -472,26 +454,26 @@ An input string is valid if:
                         {
                             'line_start': 2,
                             'line_end': 3,
-                            'title': 'Initialize Data Structures',
-                            'explanation': 'Create an empty stack and define mapping of closing to opening brackets'
+                            'title': 'Setup: Prepare Matching System',
+                            'explanation': 'Initialize stack to track unmatched opening brackets, and create mapping to identify which opener matches each closer. Stack enables last-in-first-out matching.'
                         },
                         {
                             'line_start': 5,
                             'line_end': 11,
-                            'title': 'Process Brackets',
-                            'explanation': 'Iterate through string, push opening brackets to stack, match closing brackets'
+                            'title': 'Process: Match Brackets as Encountered',
+                            'explanation': 'For each bracket: if closing, verify it matches the most recent opener (pop and compare). If opening, save it for later matching (push). This enforces correct nesting order.'
                         },
                         {
                             'line_start': 13,
                             'line_end': 13,
-                            'title': 'Validate Result',
-                            'explanation': 'Check if all brackets were properly matched by verifying stack is empty'
+                            'title': 'Validate: Check Complete Pairing',
+                            'explanation': 'Empty stack means all openers found their closers. Non-empty means some brackets were never matched—invalid.'
                         }
                     ]
                 }
             }
         )
-        
+
         ProblemHint.objects.get_or_create(
             problem=parentheses_problem,
             hint_type='suggested_trace',
@@ -501,16 +483,15 @@ An input string is valid if:
                 'content': {
                     'suggested_call': 'foo("([{}])")',
                     'trace_steps': [
-                        's = "([{}])"',
-                        'k = [], m = {")": "(", "}": "{", "]": "["}',
-                        'c = "(": not in m, push to stack → k = ["("]',
-                        'c = "[": not in m, push to stack → k = ["(", "["]',
-                        'c = "{": not in m, push to stack → k = ["(", "[", "{"]',
-                        'c = "}": in m, pop "{" and check → matches, continue',
-                        'c = "]": in m, pop "[" and check → matches, continue',
-                        'c = ")": in m, pop "(" and check → matches, continue',
-                        'len(k) == 0 → True',
-                        'Return: True (all brackets matched correctly)'
+                        's = "([{}])" — Nested brackets, need to match in order',
+                        'k = [], m = {")":"(", "}":"{", "]":"["} — WHY: stack tracks opens, map identifies pairs',
+                        'c = "(": opening → push to k → k = ["("]',
+                        'c = "[": opening → push to k → k = ["(", "["]',
+                        'c = "{": opening → push to k → k = ["(", "[", "{"]',
+                        'c = "}": closing → pop "{", matches m["}"] ✓ → k = ["(", "["]',
+                        'c = "]": closing → pop "[", matches m["]"] ✓ → k = ["("]',
+                        'c = ")": closing → pop "(", matches m[")"] ✓ → k = []',
+                        'len(k) == 0 → True — AHA: all openers matched in correct order ✓'
                     ]
                 }
             }

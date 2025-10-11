@@ -309,7 +309,7 @@
               class="analysis-section"
             >
               <h4 class="section-title">
-                Code Segments ({{ submission.segmentation.segment_count || submission.segmentation.segments.length }})
+                Code Segments (<span class="segment-count-highlight">{{ submission.segmentation.segment_count || submission.segmentation.segments.length }}</span>)
               </h4>
               <div class="segments-list">
                 <div
@@ -1162,6 +1162,32 @@ details[open] .group-icon {
   border-radius: 4px;
   font-size: 13px;
   color: var(--color-text-primary);
+}
+
+.segment-count-highlight {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  background: linear-gradient(135deg, #9f7aea 0%, #667eea 100%);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(159, 122, 234, 0.3);
+  animation: pulse-glow 2s ease-in-out infinite;
+  margin: 0 2px;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(159, 122, 234, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(159, 122, 234, 0.5);
+  }
 }
 
 /* Empty State */

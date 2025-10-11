@@ -1315,6 +1315,17 @@ export default {
                 // Create new object for Vue reactivity
                 const newStatuses = {};
 
+                // FIRST: Initialize ALL problems with default 'not_started' status
+                this.problems.forEach(problem => {
+                    newStatuses[problem.slug] = {
+                        status: 'not_started',
+                        score: 0,
+                        attempts: 0,
+                        segmentationPassed: null
+                    };
+                });
+
+                // THEN: Overlay actual progress data from API
                 progressData.forEach(progress => {
                     const mappedStatus = this.mapStatusFromAPI(progress.status, progress.best_score);
 

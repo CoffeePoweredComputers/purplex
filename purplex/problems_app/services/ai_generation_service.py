@@ -8,30 +8,126 @@ logger = logging.getLogger(__name__)
 
 
 class AITestGenerationService:
-    """Service for generating test cases using AI with async support."""
+    """
+    Service for generating test cases using AI with async support.
+
+    Supports both Llama and OpenAI providers via configuration.
+    Provider is selected via AI_PROVIDER setting ('llama' or 'openai').
+    Fails immediately if the configured provider is unavailable - no fallback.
+    """
 
     def __init__(self):
+        # Determine which provider to use
+        self.provider = getattr(settings, 'AI_PROVIDER', 'openai').lower()
+
+        # Initialize OpenAI
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
-        self.model_name = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
+        self.openai_model = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
         if self.openai_api_key:
             import openai
-            # Initialize both sync and async clients
-            self.client = openai.OpenAI(api_key=self.openai_api_key)
-            self.async_client = openai.AsyncOpenAI(api_key=self.openai_api_key)
+            self.openai_client = openai.OpenAI(api_key=self.openai_api_key)
+            self.openai_async_client = openai.AsyncOpenAI(api_key=self.openai_api_key)
         else:
+            self.openai_client = None
+            self.openai_async_client = None
+
+        # Initialize Llama
+        self.llama_api_key = getattr(settings, 'LLAMA_API_KEY', None)
+        self.llama_model = getattr(settings, 'LLAMA_MODEL', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8')
+        if self.llama_api_key:
+            try:
+                from llama_api_client import LlamaAPIClient, AsyncLlamaAPIClient
+                self.llama_client = LlamaAPIClient(api_key=self.llama_api_key)
+                self.llama_async_client = AsyncLlamaAPIClient(api_key=self.llama_api_key)
+            except ImportError:
+                logger.warning("llama-api-client not installed, Llama provider unavailable")
+                self.llama_client = None
+                self.llama_async_client = None
+        else:
+            self.llama_client = None
+            self.llama_async_client = None
+
+        # Select active clients based on provider setting
+        self._select_clients()
+
+    def _select_clients(self):
+        """Select which client to use based on configuration"""
+        if self.provider == 'llama' and self.llama_client:
+            self.client = self.llama_client
+            self.async_client = self.llama_async_client
+            self.model_name = self.llama_model
+            logger.info(f"✅ Using Llama API provider (model: {self.llama_model})")
+        elif self.provider == 'openai' and self.openai_client:
+            self.client = self.openai_client
+            self.async_client = self.openai_async_client
+            self.model_name = self.openai_model
+            logger.info(f"✅ Using OpenAI API provider (model: {self.openai_model})")
+        else:
+            # Fallback or no provider available
             self.client = None
             self.async_client = None
-            
+            self.model_name = None
+            logger.warning(f"⚠️  No valid AI provider configured (provider={self.provider})")
+
+    async def _call_ai_async(self, messages, max_tokens=2000, temperature=0):
+        """
+        Unified async AI call that handles both Llama and OpenAI APIs.
+        Raises exception immediately on failure - no fallback.
+        """
+        try:
+            if self.provider == 'llama':
+                # Llama API call (max_tokens not supported in llama-api-client 0.1.0)
+                response = await self.async_client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    temperature=temperature
+                )
+                content = response.completion_message.content.text
+                logger.info(f"🦙 Llama API call successful (model: {self.model_name})")
+
+            else:  # openai
+                # OpenAI API call with fallback for max_tokens parameter
+                try:
+                    response = await self.async_client.chat.completions.create(
+                        model=self.model_name,
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        temperature=temperature
+                    )
+                except TypeError as e:
+                    # If max_tokens is not accepted, try max_completion_tokens
+                    if "max_tokens" in str(e):
+                        response = await self.async_client.chat.completions.create(
+                            model=self.model_name,
+                            messages=messages,
+                            max_completion_tokens=max_tokens,
+                            temperature=temperature
+                        )
+                    else:
+                        raise
+
+                content = response.choices[0].message.content
+                logger.info(f"🤖 OpenAI API call successful (model: {self.model_name})")
+
+            return content
+
+        except Exception as e:
+            logger.error(f"❌ {self.provider.upper()} API call failed: {str(e)}")
+            raise  # Fail immediately - no fallback
+
     async def _generate_eipl_variations_async(self, problem, user_prompt: str) -> Dict[str, Any]:
         """
         ASYNC version: Generate code variations for EiPL problems.
-        PERFORMANCE: Async I/O allows other tasks to run during OpenAI API wait.
+        PERFORMANCE: Async I/O allows other tasks to run during AI API wait.
+        Supports both Llama and OpenAI providers.
         """
         if not self.async_client:
             return {
                 'success': False,
-                'error': 'OpenAI API key not configured',
-                'variations': []
+                'error': f'No AI provider configured (provider={self.provider})',
+                'variations': [],
+                'model': None,
+                'provider': self.provider
             }
 
         try:
@@ -69,35 +165,19 @@ def {problem.function_name}(...):
 ```
 """
 
-            # Build parameters dict to handle different API versions
-            api_params = {
-                "model": self.model_name,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                "temperature": 0  # All modern models support temperature parameter
-            }
+            # Build messages for AI API call
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
 
             # PERFORMANCE: Async API call allows Celery to handle other tasks while waiting
-            try:
-                # Try with the traditional parameter first
-                response = await self.async_client.chat.completions.create(
-                    **api_params,
-                    max_tokens=2000
-                )
-            except Exception as e:
-                error_str = str(e)
-                # If OpenAI says to use max_completion_tokens, use it
-                if "max_completion_tokens" in error_str or "'max_tokens' is not supported" in error_str:
-                    response = await self.async_client.chat.completions.create(
-                        **api_params,
-                        max_completion_tokens=2000
-                    )
-                else:
-                    raise
-
-            content = response.choices[0].message.content
+            # Uses unified wrapper that handles both Llama and OpenAI
+            content = await self._call_ai_async(
+                messages=messages,
+                max_tokens=2000,
+                temperature=0
+            )
 
             # Extract code blocks
             import re
@@ -120,7 +200,9 @@ def {problem.function_name}(...):
             return {
                 'success': True,
                 'variations': valid_variations[:5],  # Return up to 5 variations
-                'error': None
+                'error': None,
+                'model': self.model_name,
+                'provider': self.provider
             }
 
         except Exception as e:
@@ -128,7 +210,9 @@ def {problem.function_name}(...):
             return {
                 'success': False,
                 'error': str(e),
-                'variations': []
+                'variations': [],
+                'model': self.model_name,
+                'provider': self.provider
             }
 
     def generate_eipl_variations(self, problem, user_prompt: str) -> Dict[str, Any]:
@@ -144,5 +228,7 @@ def {problem.function_name}(...):
             return {
                 'success': False,
                 'error': str(e),
-                'variations': []
+                'variations': [],
+                'model': self.model_name,
+                'provider': self.provider
             }

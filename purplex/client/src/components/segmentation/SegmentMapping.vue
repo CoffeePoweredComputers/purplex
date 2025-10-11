@@ -8,17 +8,35 @@
           Your Explanation
         </h4>
         <div class="response-text">
-          <span 
-            v-for="(part, index) in parsedResponse" 
+          <span
+            v-for="(part, index) in parsedResponse"
             :key="`part-${index}`"
-            :class="{ 
+            :class="{
               'segment-span': part.isSegment,
-              'active': part.isSegment && activeSegment === part.segmentId 
+              'active': part.isSegment && activeSegment === part.segmentId
             }"
             @mouseenter="part.isSegment && setActiveSegment(part.segmentId)"
             @mouseleave="part.isSegment && clearActiveSegment()"
           >
-            <template v-if="part.isSegment">[{{ part.text }}]</template>
+            <template v-if="part.isSegment">
+              <span
+                class="segment-marker"
+                :style="{
+                  borderColor: getSegmentColor(part.segmentId),
+                  color: getSegmentColor(part.segmentId),
+                  '--segment-bg-color': getSegmentColor(part.segmentId)
+                }"
+              >
+                {{ getSegmentNumber(part.segmentId) }}
+              </span>
+              <span
+                class="segment-text"
+                :style="{
+                  color: getSegmentColor(part.segmentId),
+                  borderBottomColor: getSegmentColor(part.segmentId)
+                }"
+              >{{ part.text }}</span>
+            </template>
             <template v-else>{{ part.text }}</template>
           </span>
         </div>
@@ -31,13 +49,22 @@
           Reference Code
         </h4>
         <div class="code-display">
-          <div 
+          <div
             v-for="(line, index) in codeLines"
             :key="index"
             class="code-line"
             :class="getLineClass(index + 1)"
           >
-            <span class="line-number">{{ index + 1 }}</span>
+            <span
+              class="line-number"
+              :style="getLineSegmentId(index + 1) ? {
+                borderLeftColor: getSegmentColor(getLineSegmentId(index + 1)),
+                borderLeftWidth: activeSegment === getLineSegmentId(index + 1) ? '6px' : '3px'
+              } : {}"
+              :data-segment-id="getLineSegmentId(index + 1)"
+            >
+              {{ index + 1 }}
+            </span>
             <code class="line-content">{{ line }}</code>
           </div>
         </div>
@@ -87,7 +114,16 @@ export default defineComponent({
       selectedSegment: null as number | null,
       canvasWidth: 200 as number,
       canvasHeight: 400 as number,
-      connectionColor: '#667eea' as string
+      connectionColor: '#667eea' as string,
+      // Subway Map color palette - soft, distinct colors
+      segmentColors: [
+        '#9f7aea', // Purple
+        '#4299e1', // Blue
+        '#4fd1c5', // Teal
+        '#68d391', // Green
+        '#f6ad55', // Orange
+        '#fc8181'  // Coral
+      ]
     };
   },
   computed: {
@@ -97,21 +133,20 @@ export default defineComponent({
     },
     
     parsedResponse(): ParsedResponsePart[] {
-      
+
       if (!this.userPrompt) {
         return [{ text: '', isSegment: false }];
       }
-      
-      // Simple approach: Just display the whole prompt as one piece for now
-      // to verify the component is receiving data
+
       if (!this.segments || this.segments.length === 0) {
         return [{ text: this.userPrompt, isSegment: false }];
       }
+
       // Try to reconstruct the prompt with segments inline
       const result: ParsedResponsePart[] = [];
       const workingPrompt = this.userPrompt;
       let currentPosition = 0;
-      
+
       // Sort segments by their order of appearance (if they appear in the prompt)
       const sortedSegments = [...this.segments].sort((a, b) => {
         const indexA = workingPrompt.indexOf(a.text);
@@ -120,12 +155,16 @@ export default defineComponent({
         if (indexB === -1) {return -1;}
         return indexA - indexB;
       });
-      
+
+      // Track how many segments we successfully matched
+      let matchedSegments = 0;
+
       // Try to find each segment in the prompt and wrap it
       for (const segment of sortedSegments) {
         const segmentIndex = workingPrompt.indexOf(segment.text, currentPosition);
-        
+
         if (segmentIndex !== -1) {
+          matchedSegments++;
           // Add text before the segment
           if (segmentIndex > currentPosition) {
             result.push({
@@ -133,18 +172,18 @@ export default defineComponent({
               isSegment: false
             });
           }
-          
+
           // Add the segment itself as a bracketed item
           result.push({
             text: segment.text,
             isSegment: true,
             segmentId: segment.id
           });
-          
+
           currentPosition = segmentIndex + segment.text.length;
         }
       }
-      
+
       // Add any remaining text
       if (currentPosition < workingPrompt.length) {
         result.push({
@@ -152,16 +191,18 @@ export default defineComponent({
           isSegment: false
         });
       }
-      
-      // If no segments were found in the text, we need a different approach
-      // The segments ARE the text, just broken into pieces
-      if (result.length === 1 && !result[0].isSegment) {
-        // Clear the result and rebuild using just the segments
+
+      // If we matched fewer segments than we have, use fallback approach
+      // This handles cases where AI returns conceptual summaries instead of verbatim text
+      if (matchedSegments < this.segments.length) {
+        console.warn(`Only matched ${matchedSegments}/${this.segments.length} segments in userPrompt. Using fallback display.`);
+
+        // Clear the result and rebuild showing all segments with their conceptual text
         result.length = 0;
-        
+
+        // Show all segments as hoverable conceptual descriptions
         this.segments.forEach((segment, index) => {
           if (index > 0) {
-            // Add a space between segments
             result.push({ text: ' ', isSegment: false });
           }
           result.push({
@@ -171,7 +212,7 @@ export default defineComponent({
           });
         });
       }
-      
+
       return result;
     }
   },
@@ -196,9 +237,29 @@ export default defineComponent({
       this.activeSegment = null;
     },
     
+    getSegmentColor(segmentId: number): string {
+      // Get color for segment (cycling through palette)
+      const index = (segmentId - 1) % this.segmentColors.length;
+      return this.segmentColors[index];
+    },
+
+    getSegmentNumber(segmentId: number): number {
+      // Find the segment's display number (1-indexed)
+      const index = this.segments.findIndex(s => s.id === segmentId);
+      return index + 1;
+    },
+
+    getLineSegmentId(lineNumber: number): number | null {
+      // Find which segment this line belongs to
+      const segment = this.segments.find(s =>
+        s.code_lines && s.code_lines.includes(lineNumber)
+      );
+      return segment ? segment.id : null;
+    },
+
     getLineClass(lineNumber: number): string[] {
       const classes: string[] = ['code-line'];
-      
+
       if (this.activeSegment) {
         const activeSegmentData = this.segments.find(s => s.id === this.activeSegment);
         if (activeSegmentData && activeSegmentData.code_lines && activeSegmentData.code_lines.includes(lineNumber)) {
@@ -207,10 +268,10 @@ export default defineComponent({
           classes.push('dimmed');
         }
       }
-      
+
       return classes;
     }
-    
+
   }
 });
 </script>
@@ -268,7 +329,7 @@ export default defineComponent({
 /* Response Text Styling */
 .response-text {
   font-size: var(--font-size-sm);
-  line-height: 1.8;
+  line-height: 2;
   color: var(--color-text-primary);
   padding: var(--spacing-md);
   background: var(--color-bg-panel);
@@ -278,23 +339,48 @@ export default defineComponent({
 }
 
 .segment-span {
-  color: var(--color-primary-gradient-start);
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 0.2s ease;
   position: relative;
-  padding: 2px 4px;
+  display: inline;
   margin: 0 2px;
-  border-radius: var(--radius-xs);
 }
 
-.segment-span:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: var(--color-primary);
+/* Subway Map: Circular outlined marker */
+.segment-marker {
+  display: inline-block;
+  text-align: center;
+  line-height: 20px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  vertical-align: middle;
+  margin-right: 4px;
 }
 
-.segment-span.active {
-  background: rgba(102, 126, 234, 0.2);
-  color: var(--color-primary);
+.segment-text {
+  transition: all 0.2s ease;
+  display: inline;
+  font-size: var(--font-size-base);
+  border-bottom: 2px solid;
+  padding-bottom: 1px;
+}
+
+/* Hover: invert circle, number turns black */
+.segment-span:hover .segment-marker {
+  background: var(--segment-bg-color) !important;
+  color: #000000 !important;
+}
+
+/* Active state */
+.segment-span.active .segment-marker {
+  background: var(--segment-bg-color) !important;
+  color: #000000 !important;
 }
 
 
@@ -327,22 +413,26 @@ export default defineComponent({
 }
 
 .code-line.highlighted {
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(102, 126, 234, 0.05);
 }
 
 .code-line.highlighted .line-number {
-  background: rgba(102, 126, 234, 0.2);
-  border-left: 3px solid var(--color-primary-gradient-start);
+  background: rgba(102, 126, 234, 0.1);
 }
 
 .code-line.highlighted .line-content {
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(102, 126, 234, 0.05);
 }
 
 .code-line.dimmed {
   opacity: 0.4;
 }
 
+.code-line.dimmed .line-number[data-segment-id] {
+  opacity: 0.5;
+}
+
+/* Subway Map: Line number with colored stripe */
 .line-number {
   display: inline-block;
   width: 40px;
@@ -354,8 +444,21 @@ export default defineComponent({
   background: var(--color-bg-hover);
   padding: 2px 8px 2px 4px;
   border-right: 1px solid var(--color-bg-border);
+  border-left: 3px solid transparent;
   margin-right: 12px;
   font-weight: normal;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Subway Map: Colored lane stripe on segments */
+.line-number[data-segment-id] {
+  border-left-style: solid;
+}
+
+/* Active state: wider stripe and subtle background tint */
+.code-line.highlighted .line-number[data-segment-id] {
+  border-left-width: 6px;
+  background: rgba(102, 126, 234, 0.15);
 }
 
 .line-content {

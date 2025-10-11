@@ -63,17 +63,6 @@ export default defineComponent({
     padding: var(--spacing-lg) 0;
     margin-bottom: var(--spacing-xl);
     box-shadow: var(--shadow-md);
-    position: relative;
-}
-
-.admin-nav::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
 }
 
 .admin-nav-container {
@@ -81,40 +70,6 @@ export default defineComponent({
     margin: 0 auto;
     padding: 0 var(--spacing-xl);
     position: relative;
-}
-
-.back-button {
-    position: absolute;
-    left: var(--spacing-xl);
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    color: var(--color-text-primary);
-    text-decoration: none;
-    padding: var(--spacing-sm) var(--spacing-lg);
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: var(--radius-base);
-    font-weight: 600;
-    font-size: var(--font-size-sm);
-    transition: var(--transition-base);
-}
-
-.back-arrow {
-    font-size: 18px;
-    transition: var(--transition-base);
-}
-
-.back-button:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: translateY(-50%) translateX(-2px);
-}
-
-.back-button:hover .back-arrow {
-    transform: translateX(-3px);
 }
 
 .admin-nav-list {
@@ -164,6 +119,11 @@ export default defineComponent({
     border-color: rgba(255, 255, 255, 0.3);
 }
 
+.admin-link:focus-visible {
+    outline: 2px solid var(--color-text-primary);
+    outline-offset: 2px;
+}
+
 .admin-link.router-link-active {
     background: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.4);
@@ -186,28 +146,15 @@ export default defineComponent({
     .admin-nav-container {
         padding: 0 var(--spacing-md);
     }
-    
-    .back-button {
-        position: static;
-        margin-bottom: var(--spacing-md);
-        transform: none;
-    }
-    
-    .admin-nav-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    
+
     .admin-nav-list {
         gap: var(--spacing-sm);
     }
-    
+
     .admin-link {
         padding: var(--spacing-sm) var(--spacing-md);
         font-size: var(--font-size-sm);
     }
-    
 }
 
 @media (max-width: 480px) {
@@ -215,7 +162,7 @@ export default defineComponent({
         flex-direction: column;
         width: 100%;
     }
-    
+
     .admin-link {
         width: 100%;
         justify-content: center;

@@ -193,7 +193,9 @@ def segment_prompt_helper(user_prompt: str, problem_id: int) -> Optional[Dict[st
 
     # Add the 'passed' field based on segment count <= threshold
     if segmentation_result:
-        threshold = problem.segmentation_config.get('threshold', 2)
+        # Defensive: handle None segmentation_config
+        config = problem.segmentation_config or {}
+        threshold = config.get('threshold', 2)
         segment_count = segmentation_result.get('segment_count', 0)
         segmentation_result['passed'] = segment_count <= threshold
 

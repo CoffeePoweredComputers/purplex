@@ -21,7 +21,7 @@
               id="modal-title"
               class="modal-title"
             >
-              🔍 Understanding Analysis
+              Comprehension Level Analysis
             </h3>
             <div class="header-badges">
               <span
@@ -73,7 +73,15 @@
               <span class="feedback-icon">{{ getFeedbackIcon() }}</span>
               <div class="feedback-text">
                 <p class="feedback-message">
-                  {{ segmentation.feedback }}
+                  <template v-if="segmentation.comprehension_level === 'relational'">
+                    Excellent! Your <span class="segment-badge segment-badge-success">{{ segmentation.segment_count }} segment{{ segmentation.segment_count > 1 ? 's' : '' }}</span> show{{ segmentation.segment_count === 1 ? 's' : '' }} high-level understanding.
+                  </template>
+                  <template v-else-if="segmentation.comprehension_level === 'multi_structural'">
+                    Your <span class="segment-badge segment-badge-warning">{{ segmentation.segment_count }} segments</span> are too detailed. Try to describe the overall purpose in <span class="segment-badge segment-badge-goal">2 or fewer segments</span>.
+                  </template>
+                  <template v-else>
+                    {{ segmentation.feedback }}
+                  </template>
                 </p>
                 <p class="feedback-explanation">
                   {{ getExplanation() }}
@@ -488,9 +496,10 @@ export default defineComponent({
 }
 
 .badge-count {
-  background: var(--color-bg-input);
-  color: var(--color-text-muted);
+  background: #404040;
+  color: #b0b0b0;
 }
+
 
 .badge-level.badge-relational {
   background: var(--color-success-bg);
@@ -498,8 +507,8 @@ export default defineComponent({
 }
 
 .badge-level.badge-multi-structural {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
+  background: #6b2d2d;
+  color: #ffc5c5;
 }
 
 .modal-actions {
@@ -522,12 +531,11 @@ export default defineComponent({
 
 .size-label {
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: #b0b0b0;
   font-weight: 500;
   user-select: none;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  opacity: 0.8;
 }
 
 .size-controls {
@@ -541,7 +549,7 @@ export default defineComponent({
 .size-btn {
   background: transparent;
   border: none;
-  color: var(--color-text-muted);
+  color: #b0b0b0;
   width: 28px;
   height: 28px;
   border-radius: var(--radius-xs);
@@ -642,6 +650,36 @@ export default defineComponent({
   color: var(--color-text-primary);
   margin: 0 0 var(--spacing-xs) 0;
   line-height: 1.5;
+}
+
+/* Segment count badge - wraps entire phrase */
+.segment-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 8px;
+  margin: 0 4px;
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+
+.segment-badge-success {
+  background: #1e6f3f;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.segment-badge-warning {
+  background: #9a4419;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.segment-badge-goal {
+  background: #5a3a9d;
+  color: #ffffff;
+  box-shadow: none;
 }
 
 .feedback-explanation {

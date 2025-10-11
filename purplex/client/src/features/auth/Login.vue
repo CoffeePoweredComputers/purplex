@@ -1,6 +1,19 @@
 <template>
-  <div id="login-form">
-    <form>
+  <div class="login-page">
+    <div class="login-header">
+      <div class="title-with-logo">
+        <img
+          src="/plx-logo.png"
+          alt="Purplex Logo"
+          class="login-logo"
+        >
+        <h1 class="login-title">Purplex</h1>
+      </div>
+      <p class="login-subtitle">Code Reading and Prompting Problems for the Age of GenAI</p>
+    </div>
+
+    <div id="login-form">
+      <form>
       <div class="form-field">
         <label
           for="email"
@@ -65,6 +78,7 @@
         {{ errorMessage }}
       </div>
     </form>
+    </div>
   </div>
 </template>
 
@@ -152,8 +166,60 @@ export default {
 </script>
 
 <style scoped>
+.login-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--spacing-xl);
+  padding-bottom: calc(var(--spacing-xxl) * 5);
+}
+
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-xxl);
+  text-align: center;
+}
+
+.title-with-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xxl);
+}
+
+.login-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  object-position: center center;
+  transform: scale(3.8);
+}
+
+.login-title {
+  font-family: 'Exo 2', sans-serif;
+  font-size: var(--font-size-title);
+  margin: 0;
+  background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 50%, #8b7ec8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.login-subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 500px;
+}
+
 #login-form {
-  margin: 60px auto;
+  width: 100%;
   max-width: 400px;
   padding: calc(var(--spacing-xl) + 10px) calc(var(--spacing-xxl) + 10px);
   background: var(--color-bg-panel);
@@ -308,13 +374,35 @@ input::placeholder {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .login-title {
+    font-size: calc(var(--font-size-title) * 0.75);
+  }
+
+  .login-subtitle {
+    font-size: var(--font-size-base);
+  }
+
+  .login-logo {
+    width: 80px;
+    height: 80px;
+  }
+
   #login-form {
-    margin: 20px;
     padding: var(--spacing-xl);
   }
-  
+
   .login-btns button {
     font-size: var(--font-size-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .login-title {
+    font-size: calc(var(--font-size-title) * 0.6);
+  }
+
+  .login-header {
+    margin-bottom: var(--spacing-xl);
   }
 }
 </style>
