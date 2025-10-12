@@ -257,16 +257,41 @@
 
         <!-- Analysis Section - Always Visible Below -->
         <div
-          v-if="submission?.segmentation"
+          v-if="submission?.segmentation || hasHintsActivated"
           class="analysis-section-static"
         >
           <div class="section-header">
             <h3 class="section-title">
-              Analysis
+              Analysis & Hints
             </h3>
           </div>
 
           <div class="analysis-content">
+            <!-- Hints Activated Section -->
+            <div
+              v-if="hasHintsActivated"
+              class="analysis-section hints-section"
+            >
+              <h4 class="section-title">
+                Hints Used ({{ hintsActivatedCount }})
+              </h4>
+              <div class="hints-list">
+                <div
+                  v-for="(hint, idx) in submission.hints_activated"
+                  :key="idx"
+                  class="hint-item"
+                >
+                  <span class="hint-icon">{{ getHintIcon(hint.hint_type) }}</span>
+                  <div class="hint-details">
+                    <div class="hint-type-name">{{ formatHintType(hint.hint_type) }}</div>
+                    <div class="hint-meta">
+                      <span class="hint-trigger">{{ formatTriggerType(hint.trigger_type) }}</span>
+                      <span class="hint-time">{{ formatHintTime(hint.activated_at) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div
               v-if="submission.segmentation.confidence_score"
               class="info-item"

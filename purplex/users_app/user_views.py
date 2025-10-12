@@ -87,16 +87,33 @@ class AIGenerateView(APIView):
         return JsonResponse({"code": generated_code}, safe=False)
 
 class UserRoleView(APIView):
-    """View for getting current user's role"""
-    permission_classes = [IsAuthenticated]
-    
+    """
+    Get current authenticated user's information.
+
+    This endpoint allows checking authentication status without requiring
+    the user to already be authenticated (returns 401 instead of 403).
+    """
+    authentication_classes = [PurplexAuthentication]
+    permission_classes = []  # Allow unauthenticated requests to check status
+
     def get(self, request):
+        """Get current user info or return 401 if not authenticated"""
+        if not request.user or not request.user.is_authenticated:
+            return Response(
+                {"authenticated": False, "detail": "Not authenticated"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
         # Use UserService to get profile
         profile = UserService.get_user_profile(request.user)
         if not profile:
-            return Response({'error': 'User profile not found'}, status=404)
-        
+            return Response(
+                {'error': 'User profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
         return Response({
+            'authenticated': True,
             'username': request.user.username,
             'email': request.user.email,
             'role': profile.role,

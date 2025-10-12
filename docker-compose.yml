@@ -250,6 +250,9 @@ services:
       - ./logs:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - backend
+      - database
     env_file:
       - .env.production
     environment:
@@ -285,6 +288,9 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
+    networks:
+      - backend
+      - database
     env_file:
       - .env.production
     environment:
@@ -355,7 +361,7 @@ networks:
   # Database network - isolated database access
   database:
     driver: bridge
-    internal: true  # No external access
+    internal: false  # Allow web/celery containers to connect to postgres/redis
     ipam:
       config:
         - subnet: 172.22.0.0/24
