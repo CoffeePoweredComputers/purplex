@@ -50,11 +50,16 @@ async function initializeFirebase() {
     try {
       // Import real Firebase dynamically
       const { initializeApp } = await import('firebase/app');
-      const { getAuth, GoogleAuthProvider } = await import('firebase/auth');
-      
+      const {
+        getAuth,
+        GoogleAuthProvider,
+        setPersistence,
+        browserLocalPersistence
+      } = await import('firebase/auth');
+
       // Get config from environment or use fallback
       const envConfig = environment.getFirebaseConfig();
-      
+
       const firebaseConfig: FirebaseConfig = envConfig || {
         // Fallback config - should be replaced with environment variables
         apiKey: "AIzaSyCsyYati6ns2CCWgxIuHlHly_VOhXD2sS4",
@@ -64,11 +69,16 @@ async function initializeFirebase() {
         messagingSenderId: "863513714403",
         appId: "1:863513714403:web:7207f4a20890ca236d2fd6"
       };
-      
+
       // Initialize real Firebase
       firebaseApp = initializeApp(firebaseConfig);
       firebaseAuth = getAuth(firebaseApp);
       provider = new GoogleAuthProvider();
+
+      // ⚠️ CRITICAL: Enable persistence for production
+      // This keeps users logged in across page refreshes
+      await setPersistence(firebaseAuth, browserLocalPersistence);
+      console.log('✅ Firebase persistence enabled (browserLocalPersistence)');
     } catch (error) {
       console.error('Failed to initialize Firebase:', error);
       // Fall back to mock in case of error during development

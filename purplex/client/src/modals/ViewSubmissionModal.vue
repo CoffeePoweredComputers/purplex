@@ -555,6 +555,14 @@ export default {
       return this.currentTestResults.filter(t => !(t.passed || t.isSuccessful));
     },
 
+    hasHintsActivated() {
+      return this.submission?.hints_activated?.length > 0;
+    },
+
+    hintsActivatedCount() {
+      return this.submission?.hints_activated?.length || 0;
+    },
+
   },
   watch: {
     submission(newVal) {
@@ -652,6 +660,39 @@ export default {
       } catch (err) {
         log.error('Failed to copy to clipboard', { error: err });
       }
+    },
+
+    formatHintType(hintType) {
+      const typeMap = {
+        'variable_fade': 'Variable Fade',
+        'subgoal_highlight': 'Subgoal Highlighting',
+        'suggested_trace': 'Suggested Trace'
+      };
+      return typeMap[hintType] || hintType;
+    },
+
+    formatTriggerType(triggerType) {
+      const triggerMap = {
+        'manual': 'Manually activated',
+        'auto_attempts': 'Auto (attempts)',
+        'auto_time': 'Auto (time)',
+        'instructor': 'Instructor provided'
+      };
+      return triggerMap[triggerType] || triggerType;
+    },
+
+    getHintIcon(hintType) {
+      const iconMap = {
+        'variable_fade': '🔤',
+        'subgoal_highlight': '🎯',
+        'suggested_trace': '🔍'
+      };
+      return iconMap[hintType] || '💡';
+    },
+
+    formatHintTime(timestamp) {
+      if (!timestamp) {return 'Unknown';}
+      return this.formatDate(timestamp);
     }
   }
 };
