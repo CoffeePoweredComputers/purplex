@@ -35,7 +35,8 @@ INSTALLED_APPS = [
     # Third party apps
     'rest_framework',
     'corsheaders',
-    
+    'django_celery_beat',  # Celery periodic tasks
+
     # Our apps
     'purplex.problems_app',
     'purplex.users_app',
