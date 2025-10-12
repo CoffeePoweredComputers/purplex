@@ -66,6 +66,10 @@
         type: Boolean,
         default: false,
       },
+      tabTargetId: {
+        type: String,
+        default: null,
+      },
     },
     emits: ['update:value'],
     setup(props, { emit, expose }) {
@@ -84,7 +88,10 @@
           wrap: true,
           indentedSoftWrap: false
         });
-        
+
+        // Make editor container tabbable
+        editorInstance.container.setAttribute('tabindex', '0');
+
         // Disable cursor visibility when read-only
         if (props.readOnly) {
           editorInstance.renderer.$cursorLayer.element.style.display = 'none';
@@ -92,6 +99,124 @@
           editorInstance.renderer.container.style.pointerEvents = 'none';
           editorInstance.renderer.container.style.userSelect = 'text';
         }
+
+        // CRITICAL ACCESSIBILITY FIX: Override Tab key behavior to allow tabbing out
+        // By default, ACE captures Tab for indentation, creating a keyboard trap
+
+        // Helper function to get all focusable elements (excluding ACE editor internals)
+        const getFocusableElements = () => {
+          return Array.from(document.querySelectorAll(
+            'button:not([disabled]):not([tabindex="-1"]), ' +
+            '[href]:not([tabindex="-1"]), ' +
+            'input:not([disabled]):not([tabindex="-1"]), ' +
+            'select:not([disabled]):not([tabindex="-1"]), ' +
+            'textarea:not([disabled]):not([tabindex="-1"]), ' +
+            '[tabindex]:not([tabindex="-1"])'
+          )).filter((el: any) => {
+            // Filter out hidden elements and ACE editor internal elements
+            const isVisible = el.offsetParent !== null &&
+                   getComputedStyle(el).visibility !== 'hidden' &&
+                   getComputedStyle(el).display !== 'none';
+
+            // Exclude elements inside ACE editor (except the container itself)
+            const isAceInternal = el.classList.contains('ace_text-input') ||
+                                 el.classList.contains('ace_content');
+
+            return isVisible && !isAceInternal;
+          });
+        };
+
+        editorInstance.commands.addCommand({
+          name: 'overrideTab',
+          bindKey: { win: 'Tab', mac: 'Tab' },
+          exec: function(editor: any) {
+            // Temporarily remove tabindex to prevent re-focusing
+            const container = editor.container;
+            const originalTabIndex = container.getAttribute('tabindex');
+            container.setAttribute('tabindex', '-1');
+
+            editor.blur();
+
+            setTimeout(() => {
+              // Restore tabindex
+              container.setAttribute('tabindex', originalTabIndex);
+
+              const focusableElements = getFocusableElements();
+              const currentIndex = focusableElements.indexOf(container);
+
+              console.log('Tab pressed - Current index:', currentIndex, 'Total focusable:', focusableElements.length);
+
+              if (currentIndex !== -1 && currentIndex < focusableElements.length - 1) {
+                const nextElement = focusableElements[currentIndex + 1] as HTMLElement;
+                console.log('Focusing next element:', nextElement);
+                nextElement.focus();
+              } else {
+                // Use custom tab target if provided, otherwise fall back to submit button
+                const targetId = props.tabTargetId || 'submitButton';
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                  console.log(`Fallback: focusing ${targetId}`);
+                  // If target is a wrapper with an editor inside, focus the editor
+                  const innerEditor = targetElement.querySelector('.ace_text-input');
+                  if (innerEditor) {
+                    (innerEditor as HTMLElement).focus();
+                  } else {
+                    targetElement.focus();
+                  }
+                }
+              }
+            }, 10);
+          }
+        });
+
+        // Shift+Tab to move focus backward
+        editorInstance.commands.addCommand({
+          name: 'overrideShiftTab',
+          bindKey: { win: 'Shift-Tab', mac: 'Shift-Tab' },
+          exec: function(editor: any) {
+            // Temporarily remove tabindex to prevent re-focusing
+            const container = editor.container;
+            const originalTabIndex = container.getAttribute('tabindex');
+            container.setAttribute('tabindex', '-1');
+
+            editor.blur();
+
+            setTimeout(() => {
+              // Restore tabindex
+              container.setAttribute('tabindex', originalTabIndex);
+
+              const focusableElements = getFocusableElements();
+              const currentIndex = focusableElements.indexOf(container);
+
+              console.log('Shift+Tab pressed - Current index:', currentIndex, 'Total focusable:', focusableElements.length);
+
+              if (currentIndex > 0) {
+                const prevElement = focusableElements[currentIndex - 1] as HTMLElement;
+                console.log('Focusing previous element:', prevElement);
+                prevElement.focus();
+              } else {
+                console.log('Already at first element');
+              }
+            }, 10);
+          }
+        });
+
+        // Keep Escape key handler as alternative exit method
+        editorInstance.commands.addCommand({
+          name: 'exitEditor',
+          bindKey: { win: 'Esc', mac: 'Esc' },
+          exec: function(editor: any) {
+            editor.blur();
+
+            // Try to focus submit button after escaping
+            setTimeout(() => {
+              const submitBtn = document.getElementById('submitButton');
+              if (submitBtn) {
+                submitBtn.focus();
+              }
+            }, 10);
+          }
+        });
       };
       
       /* Handle input changes */

@@ -1,24 +1,23 @@
 <template>
-  <div
-    v-if="!authInitialized"
-    style="visibility: hidden;"
-  >
-    <!-- Keep content hidden but rendered to prevent layout shift -->
-    <Login v-if="!loggedIn" />
-    <div v-else>
-      <NavBar />
-      <div class="main-content">
-        <router-view />
-      </div>
-    </div>
+  <!-- Skip to main content link - MUST be first for keyboard users -->
+  <a :href="skipLinkTarget" class="skip-link" @click.prevent="handleSkipLink">Skip to main content</a>
+
+  <!-- Loading state while determining auth -->
+  <div v-if="!authReady" class="auth-loading">
+    <div class="loading-spinner"></div>
   </div>
+
+  <!-- Login page when not authenticated -->
   <Login v-else-if="!loggedIn" />
+
+  <!-- Main app when authenticated -->
   <div v-else>
     <NavBar />
-    <div class="main-content">
+    <div id="main-content" class="main-content" tabindex="-1" aria-label="Main content">
       <router-view />
     </div>
   </div>
+
   <NotificationToast />
   <footer class="app-footer">
     <div class="footer-content">
@@ -26,11 +25,12 @@
         <span class="copyright">© 2025 Purplex. All rights reserved.</span>
       </div>
       <div class="footer-right">
-        <span class="sponsor">Sponsored by</span>
+        <span class="sponsor">Sponsored by Meta</span>
         <img
           class="meta-logo"
           src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/2560px-Meta_Platforms_Inc._logo.svg.png"
-          alt="Meta"
+          alt=""
+          aria-hidden="true"
           height="20"
         >
       </div>
@@ -41,6 +41,7 @@
 <script lang="ts">
 import { computed, defineComponent, getCurrentInstance } from 'vue';
 import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
 import { useTokenRefresh } from './composables/useTokenRefresh';
 
 /* Components */
@@ -57,6 +58,7 @@ export default defineComponent({
     },
     setup() {
         const store = useStore();
+        const router = useRouter();
         const tokenRefresh = useTokenRefresh();
 
         // Make available globally for axios interceptors
@@ -70,16 +72,44 @@ export default defineComponent({
 
         const loggedIn = computed(() => store.state.auth.status.loggedIn);
         const user = computed(() => store.state.auth.user);
+        const authReady = computed(() => store.getters['auth/isAuthReady']);
+
+        // Dynamic skip link target based on current route
+        const skipLinkTarget = computed(() => {
+            const currentRoute = router.currentRoute.value;
+            // Check if we're on a problem set page (matches /courses/:courseId/problem-set/:slug or /problem-set/:slug)
+            if (currentRoute.path.includes('/problem-set/')) {
+                return '#code-editor';
+            }
+            return '#main-content';
+        });
+
+        const handleSkipLink = () => {
+            // Get target element ID from href (e.g., "#main-content" -> "main-content")
+            const targetId = skipLinkTarget.value.substring(1);
+            const targetElement = document.getElementById(targetId);
+
+            if (targetElement) {
+                // Make element focusable if it isn't already
+                if (!targetElement.hasAttribute('tabindex')) {
+                    targetElement.setAttribute('tabindex', '-1');
+                }
+
+                // Scroll to element
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                // Focus the element programmatically
+                targetElement.focus();
+            }
+        };
 
         return {
             loggedIn,
             user,
-            tokenRefresh
-        };
-    },
-    data() {
-        return {
-            authInitialized: false
+            authReady,
+            tokenRefresh,
+            skipLinkTarget,
+            handleSkipLink
         };
     },
     async mounted() {
@@ -100,12 +130,11 @@ export default defineComponent({
                 });
             }
 
-            // Now check authentication state
+            // Now check authentication state (this sets authReady in the store)
             await this.$store.dispatch('auth/checkAuthState');
         } catch (error) {
-            // Auth initialization error handled silently
-        } finally {
-            this.authInitialized = true;
+            // Auth initialization error handled silently - ensure authReady is set
+            await this.$store.dispatch('auth/checkAuthState');
         }
     }
 });
@@ -203,11 +232,34 @@ export default defineComponent({
     --font-size-title: 5rem;
 }
 
+/* Skip to main content link - WCAG 2.1 compliant */
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 0;
+  background: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-decoration: none;
+  font-weight: 600;
+  z-index: 10000;
+  border-radius: 0 0 var(--radius-base) 0;
+  transition: top 0.2s ease-in-out;
+  box-shadow: var(--shadow-lg);
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
 /* Global Styles */
 .main-content {
     max-width: var(--max-width-app);
     margin: 0 auto;
     padding: 0 2rem 80px 2rem; /* No top padding to eliminate gap below navbar */
+    scroll-margin-top: 120px; /* Account for sticky navbar height */
 }
 
 .terms li {
@@ -413,6 +465,30 @@ export default defineComponent({
 body {
     margin: 0;
     padding-bottom: 60px; /* Space for fixed footer */
+}
+
+/* Auth Loading State */
+.auth-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: var(--color-bg-main);
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--color-bg-input);
+  border-top-color: var(--color-primary-gradient-start);
+  border-radius: var(--radius-circle);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Mobile responsive */

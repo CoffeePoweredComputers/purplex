@@ -2,37 +2,52 @@
   <div class="home-container">
     <!-- Course Enrollment Modal -->
     <CourseEnrollmentModal />
-    
-    <!-- Enrolled Courses Section -->
-    <div
-      v-if="enrolledCourses.length > 0"
-      class="courses-section"
-    >
-      <div 
-        v-for="enrollment in enrolledCourses" 
+
+    <!-- Main Content Area -->
+    <main>
+      <!-- Enrolled Courses Section -->
+      <div
+        v-if="enrolledCourses.length > 0"
+        class="courses-section"
+      >
+      <section
+        v-for="enrollment in enrolledCourses"
         :key="enrollment.course.course_id"
         class="course-section"
+        :aria-labelledby="`course-title-${enrollment.course.course_id}`"
+        :aria-describedby="`course-progress-${enrollment.course.course_id}`"
       >
         <div class="course-header">
-          <h2 class="course-title">
+          <h2
+            class="course-title"
+            :id="`course-title-${enrollment.course.course_id}`"
+          >
             {{ enrollment.course.name }}
           </h2>
-          <span class="progress-indicator">
+          <span
+            class="progress-indicator"
+            :id="`course-progress-${enrollment.course.course_id}`"
+            role="status"
+            :aria-label="`Course progress: ${enrollment.progress.completed_sets} of ${enrollment.progress.total_sets} problem sets completed`"
+          >
             {{ enrollment.progress.completed_sets }} / {{ enrollment.progress.total_sets }} completed
           </span>
         </div>
-        <hr class="course-divider">
+        <hr class="course-divider" aria-hidden="true">
         
         <!-- Reuse existing gallery grid for problem sets -->
         <div
           v-if="loading.courses"
           class="gallery-grid"
+          role="status"
+          aria-label="Loading problem sets"
         >
           <!-- Skeleton cards -->
           <div
             v-for="n in 3"
             :key="`skeleton-${n}`"
             class="problem-set-card skeleton"
+            aria-hidden="true"
           >
             <div class="card-content">
               <div class="card-header">
@@ -45,15 +60,17 @@
             </div>
           </div>
         </div>
-        
-        <div
+
+        <nav
           v-else-if="enrollment.course.problem_sets && enrollment.course.problem_sets.length > 0"
           class="gallery-grid"
+          :aria-label="`${enrollment.course.name} problem sets`"
         >
-          <div 
-            v-for="psData in enrollment.course.problem_sets" 
-            :key="psData.problem_set.slug" 
+          <button
+            v-for="psData in enrollment.course.problem_sets"
+            :key="psData.problem_set.slug"
             class="problem-set-card"
+            :aria-label="`${psData.problem_set.title}: ${psData.progress.completed_problems} of ${psData.progress.total_problems} completed`"
             @click="navigateToProblemSet(enrollment.course.course_id, psData.problem_set.slug)"
           >
             <div class="card-content">
@@ -65,70 +82,80 @@
 
               <div class="progress-section">
                 <div class="progress-bar-container">
-                  <div class="progress-bar-background">
-                    <div 
-                      class="progress-bar-fill" 
+                  <div
+                    class="progress-bar-background"
+                    role="progressbar"
+                    :aria-valuenow="psData.progress.percentage"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    :aria-label="`Progress: ${psData.progress.percentage}%`"
+                    aria-live="polite"
+                  >
+                    <div
+                      class="progress-bar-fill"
                       :style="{ width: psData.progress.percentage + '%' }"
                     />
                   </div>
-                  <span class="progress-text">
+                  <span class="progress-text" aria-live="polite">
                     <template v-if="psData.progress.total_problems === 0">
                       No problems yet
                     </template>
                     <template v-else>
-                      {{ psData.progress.completed_problems }} / 
+                      {{ psData.progress.completed_problems }} /
                       {{ psData.progress.total_problems }} completed
                     </template>
                   </span>
                 </div>
               </div>
             </div>
-            <div class="card-hover-text">
-              {{ psData.progress.percentage === 100 ? 'Review →' : 
+            <span class="card-hover-text" aria-hidden="true">
+              {{ psData.progress.percentage === 100 ? 'Review →' :
                 psData.progress.completed_problems > 0 ? 'Continue →' : 'Start →' }}
-            </div>
-          </div>
-        </div>
+            </span>
+          </button>
+        </nav>
         
         <div
           v-else
           class="empty-state"
+          role="status"
         >
           <p>No problem sets available in this course yet.</p>
         </div>
+      </section>
       </div>
-    </div>
-    
-    
-    <!-- Empty State -->
-    <div
-      v-if="!loading.courses && enrolledCourses.length === 0"
-      class="empty-state-container"
-    >
-      <div class="empty-state-content">
-        <div class="empty-icon">
-          🎓
+
+      <!-- Empty State -->
+      <div
+        v-if="!loading.courses && enrolledCourses.length === 0"
+        class="empty-state-container"
+      >
+        <div class="empty-state-content">
+          <div class="empty-icon" aria-hidden="true">
+            🎓
+          </div>
+          <h1>Welcome to Purplex!</h1>
+          <p>Get started by joining a course to access problem sets.</p>
+          <button
+            class="add-course-btn"
+            aria-label="Join a new course to access problem sets"
+            @click="showEnrollmentModal"
+          >
+            <span class="btn-icon" aria-hidden="true">+</span>
+            Join a Course
+          </button>
         </div>
-        <h3>Welcome to Purplex!</h3>
-        <p>Get started by joining a course to access problem sets.</p>
-        <button
-          class="add-course-btn"
-          @click="showEnrollmentModal"
-        >
-          <span class="btn-icon">+</span>
-          Join a Course
-        </button>
       </div>
-    </div>
-    
+    </main>
+
     <!-- Add Course Button (floating) -->
-    <button 
+    <button
       v-if="enrolledCourses.length > 0"
-      class="add-course-btn floating" 
-      title="Join a Course"
+      class="add-course-btn floating"
+      aria-label="Join a Course"
       @click="showEnrollmentModal"
     >
-      <span class="btn-icon">+</span>
+      <span class="btn-icon" aria-hidden="true">+</span>
     </button>
   </div>
 </template>
@@ -190,6 +217,11 @@ export default defineComponent({
   padding-bottom: 100px; /* Space for floating button */
 }
 
+main {
+  /* Remove any default main element styling */
+  display: block;
+}
+
 .courses-section {
   margin-bottom: var(--spacing-xxl);
 }
@@ -241,12 +273,29 @@ export default defineComponent({
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-base);
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
 }
 
 .problem-set-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
   border-color: var(--color-primary-gradient-start);
+}
+
+.problem-set-card:focus {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
+.problem-set-card:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.problem-set-card:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
 }
 
 .card-content {
@@ -376,7 +425,7 @@ export default defineComponent({
   margin-bottom: var(--spacing-lg);
 }
 
-.empty-state-content h3 {
+.empty-state-content h1 {
   font-size: var(--font-size-xl);
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-sm);
@@ -407,6 +456,20 @@ export default defineComponent({
 .add-course-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.add-course-btn:focus {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.add-course-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.add-course-btn:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
 }
 
 .add-course-btn.floating {

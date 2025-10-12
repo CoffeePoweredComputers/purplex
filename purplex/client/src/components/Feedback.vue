@@ -32,7 +32,11 @@
         <button
           class="attempt-dropdown-trigger"
           :class="{ 'is-active': showAttemptDropdown }"
+          :aria-label="`View previous submissions. Current: attempt ${currentAttemptNumber} of ${totalAttempts}, score ${currentAttemptScore}%`"
+          :aria-expanded="showAttemptDropdown"
+          :aria-haspopup="true"
           @click="showAttemptDropdown = !showAttemptDropdown"
+          @keydown.escape="showAttemptDropdown = false"
         >
           <span class="attempt-text">
             {{ currentAttemptNumber }}/{{ totalAttempts }}
@@ -40,43 +44,57 @@
           <span
             class="attempt-score-badge"
             :class="getScoreClass(currentAttemptScore)"
+            :aria-label="`Score: ${currentAttemptScore} percent`"
           >
+            <span aria-hidden="true">{{ getScoreIcon(currentAttemptScore) }}</span>
             {{ currentAttemptScore }}%
           </span>
-          <span class="dropdown-arrow">{{ showAttemptDropdown ? '▾' : '▾' }}</span>
+          <span class="dropdown-arrow" aria-hidden="true">{{ showAttemptDropdown ? '▾' : '▾' }}</span>
         </button>
 
         <!-- Dropdown Panel -->
         <div
-          v-if="showAttemptDropdown"
+          v-show="showAttemptDropdown"
           ref="dropdownPanel"
           class="attempt-dropdown-panel"
+          role="menu"
+          :aria-hidden="!showAttemptDropdown"
         >
           <div class="attempt-list-minimal">
-            <div
-              v-for="attempt in submissionHistory"
+            <button
+              v-for="(attempt, index) in submissionHistory"
               :key="attempt.id"
+              :ref="index === 0 ? 'firstMenuItem' : undefined"
               class="attempt-item-minimal"
               :class="{
                 'is-current': attempt.id === currentSubmissionId,
                 'is-best': attempt.is_best,
                 'is-passing': attempt.score >= 100
               }"
+              role="menuitem"
+              :tabindex="showAttemptDropdown ? 0 : -1"
+              :aria-label="`Attempt ${attempt.attempt_number}: ${attempt.score}%, ${attempt.tests_passed} of ${attempt.total_tests} tests passed${attempt.is_best ? ', best attempt' : ''}`"
               @click="loadAttempt(attempt)"
+              @keydown.escape="closeDropdownAndFocusTrigger"
+              @keydown.arrow-down.prevent="focusNextItem"
+              @keydown.arrow-up.prevent="focusPreviousItem"
+              @keydown.home="handleHomeKey"
+              @keydown.end="handleEndKey"
             >
-              <span class="attempt-indicator" />
+              <span class="attempt-indicator" aria-hidden="true" />
               <span class="attempt-num">{{ attempt.attempt_number }}</span>
               <span
                 class="attempt-score-minimal"
                 :class="getScoreClass(attempt.score)"
               >{{ attempt.score }}%</span>
               <span class="attempt-tests">{{ attempt.tests_passed }}/{{ attempt.total_tests }}</span>
-              <span class="attempt-time">{{ formatTime(attempt.submitted_at) }}</span>
+              <time class="attempt-time" :datetime="attempt.submitted_at">{{ formatTime(attempt.submitted_at) }}</time>
               <span
                 v-if="attempt.is_best"
                 class="best-mark"
+                aria-hidden="true"
               >★</span>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -101,7 +119,32 @@
         </div>
       </div>
 
-      <!-- Comprehension Banner -->
+      <!-- Comprehension Level Section Divider -->
+      <div v-if="shouldShowComprehensionSection" class="section-divider">
+        <span class="divider-label">
+          <span class="divider-icon">🧠</span>
+          <span class="divider-title">Comprehension Level</span>
+          <span class="divider-separator">•</span>
+          <span class="divider-description">Shows how high-level vs. line-by-line your explanation is</span>
+        </span>
+        <span
+          class="info-icon"
+          title="Evaluates the abstraction level of your explanation by analyzing how you describe the code's purpose. HIGH-LEVEL (✓): Describes overall goals, algorithm choices, and problem-solving approach without step-by-step details (e.g., 'uses binary search to efficiently find the target'). LINE-BY-LINE (✗): Describes implementation details, variable operations, and control flow step-by-step (e.g., 'sets left to 0, right to length, calculates mid'). This measures understanding depth - can you explain the 'why' and 'what' without the 'how'? Only available after all code variations pass their tests."
+          aria-label="Info about comprehension level"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="7" cy="7" r="6.5" stroke="currentColor" />
+            <path d="M7 10.5V6.5M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </span>
+      </div>
+
+      <!-- Locked Segmentation Banner (when not all variations pass) -->
+      <LockedSegmentationBanner
+        v-if="showLockedSegmentation"
+      />
+
+      <!-- Comprehension Banner (when segmentation data exists) -->
       <ComprehensionBanner
         v-if="shouldShowSegmentation && segmentation && Object.keys(segmentation).length > 0"
         :segmentation="segmentation"
@@ -109,20 +152,41 @@
         @show-details="showSegmentAnalysisModal = true"
       />
 
+      <!-- Correctness Section Divider -->
+      <div class="section-divider">
+        <span class="divider-label">
+          <span class="divider-icon">🔄</span>
+          <span class="divider-title">Correctness</span>
+          <span class="divider-separator">•</span>
+          <span class="divider-description">Multiple AI interpretations of your description tested against unit tests</span>
+        </span>
+        <span
+          class="info-icon"
+          title="Tests the clarity and completeness of your explanation by generating multiple independent code implementations from your description using AI, then running each against the problem's unit tests. Each variation represents a different interpretation of your words - if all variations pass, your explanation was unambiguous and captured all necessary logic. Failing variations reveal gaps, ambiguities, or missing details in how you described the solution. This evaluates whether someone could correctly implement the code from your explanation alone, without seeing the original."
+          aria-label="Info about correctness"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="7" cy="7" r="6.5" stroke="currentColor" />
+            <path d="M7 10.5V6.5M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </span>
+      </div>
+
       <!-- Solution Timeline -->
-      <nav class="solution-timeline">
-        <div 
-          v-for="(slide, index) in slides" 
+      <nav class="solution-timeline" aria-label="Solution variations">
+        <button
+          v-for="(slide, index) in slides"
           :key="index"
           class="timeline-node"
           :data-status="getSlideStatus(slide)"
           :data-current="currentSlide === index"
-          :title="`Solution ${index + 1}: ${slide.tests.filter(t => t.isSuccessful).length}/${slide.tests.length} tests`"
+          :aria-label="`Solution ${index + 1}: ${slide.tests.filter(t => t.isSuccessful).length} of ${slide.tests.length} tests passing`"
+          :aria-current="currentSlide === index ? 'true' : 'false'"
           @click="goToSlide(index)"
         >
-          <span class="node-number">{{ index + 1 }}</span>
-          <span class="node-icon">{{ getSlideIcon(slide) }}</span>
-        </div>
+          <span class="node-number" aria-hidden="true">{{ index + 1 }}</span>
+          <span class="node-icon" aria-hidden="true">{{ getSlideIcon(slide) }}</span>
+        </button>
       </nav>
 
       <!-- Code Editor -->
@@ -130,12 +194,13 @@
         <div class="code-header">
           <span>Solution {{ currentSlide + 1 }} of {{ slides.length }}</span>
         </div>
-        <Editor 
-          :value="currentSlideContents" 
-          height="300px" 
-          width="100%" 
+        <Editor
+          :value="currentSlideContents"
+          height="300px"
+          width="100%"
           :highlight-markers="currentComprehensionResults"
-          @update:value="updateSolutionCode" 
+          tab-target-id="promptEditor"
+          @update:value="updateSolutionCode"
         />
       </section>
 
@@ -180,9 +245,10 @@
               </div>
               <button
                 class="debug-btn"
+                :aria-label="`Debug test case: ${test.function_call}`"
                 @click="openPyTutor(test)"
               >
-                🔍
+                <span aria-hidden="true">🔍</span>
               </button>
             </article>
           </div>
@@ -193,7 +259,12 @@
           v-if="passingTestsForCurrentSlide.length > 0"
           class="test-group"
         >
-          <summary class="test-group-header passing">
+          <summary
+            class="test-group-header passing"
+            tabindex="0"
+            role="button"
+            :aria-expanded="$el.querySelector('.test-group[open]') ? 'true' : 'false'"
+          >
             <span class="group-icon">▶</span>
             Passing Tests ({{ passingTestsForCurrentSlide.length }})
           </summary>
@@ -245,6 +316,7 @@ import { defineComponent, PropType } from 'vue'
 import Editor from '@/features/editor/Editor.vue';
 import PyTutorModal from '../modals/PyTutorModal.vue';
 import ComprehensionBanner from './segmentation/ComprehensionBanner.vue';
+import LockedSegmentationBanner from './segmentation/LockedSegmentationBanner.vue';
 import SegmentAnalysisModal from './segmentation/SegmentAnalysisModal.vue';
 import { PythonTutorService } from '@/services/pythonTutor.service';
 import { log } from '@/utils/logger';
@@ -288,10 +360,11 @@ interface ComponentData {
 }
 
 export default defineComponent({
-  components: { 
+  components: {
     Editor,
     PyTutorModal,
     ComprehensionBanner,
+    LockedSegmentationBanner,
     SegmentAnalysisModal
   },
   props: {
@@ -383,6 +456,25 @@ export default defineComponent({
              typeof this.segmentation === 'object' &&
              Object.keys(this.segmentation).length > 0;
     },
+    allVariationsPass(): boolean {
+      // Check if ALL variations passed ALL test cases
+      return this.slides.length > 0 && this.slides.every(slide => slide.correct);
+    },
+    showLockedSegmentation(): boolean {
+      // Show locked banner when:
+      // 1. Problem is EiPL type
+      // 2. Segmentation is enabled for this problem
+      // 3. Not all variations have passed yet
+      // 4. We don't have segmentation data yet (because backend gates it on correctness)
+      return this.isEiPLProblem &&
+             this.segmentationEnabled === true &&
+             !this.allVariationsPass &&
+             (this.segmentation == null || Object.keys(this.segmentation).length === 0);
+    },
+    shouldShowComprehensionSection(): boolean {
+      // Show comprehension section divider when problem has segmentation enabled
+      return this.isEiPLProblem && this.segmentationEnabled === true;
+    },
     slides(): Slide[] {
       const slideResults = this.codeResults.map((code, index) => {
         const testResult = this.testResults[index];
@@ -469,6 +561,14 @@ export default defineComponent({
     showAttemptDropdown(newVal) {
       if (newVal) {
         this.positionDropdown();
+        // Focus first menu item when dropdown opens
+        this.$nextTick(() => {
+          const firstMenuItem = this.$refs.firstMenuItem as HTMLElement | HTMLElement[] | undefined;
+          if (firstMenuItem) {
+            const element = Array.isArray(firstMenuItem) ? firstMenuItem[0] : firstMenuItem;
+            element?.focus();
+          }
+        });
       }
     },
     slides: {
@@ -645,6 +745,54 @@ export default defineComponent({
       if (level === 'low-level') {return '📚 Low';}
       return level;
     },
+
+    getScoreIcon(score: number): string {
+      if (score >= 100) {return '✓';}
+      if (score >= 80) {return '✓';}
+      if (score >= 60) {return '~';}
+      return '✗';
+    },
+
+    // Keyboard navigation for dropdown
+    closeDropdownAndFocusTrigger(): void {
+      this.showAttemptDropdown = false;
+      this.$nextTick(() => {
+        const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement;
+        trigger?.focus();
+      });
+    },
+
+    focusNextItem(event: KeyboardEvent): void {
+      const currentElement = event.target as HTMLElement;
+      const nextElement = currentElement.nextElementSibling as HTMLElement;
+      if (nextElement && nextElement.classList.contains('attempt-item-minimal')) {
+        nextElement.focus();
+      }
+    },
+
+    focusPreviousItem(event: KeyboardEvent): void {
+      const currentElement = event.target as HTMLElement;
+      const previousElement = currentElement.previousElementSibling as HTMLElement;
+      if (previousElement && previousElement.classList.contains('attempt-item-minimal')) {
+        previousElement.focus();
+      }
+    },
+
+    handleHomeKey(event: KeyboardEvent): void {
+      event.preventDefault();
+      const attemptList = this.$el.querySelectorAll('.attempt-item-minimal');
+      if (attemptList.length > 0) {
+        (attemptList[0] as HTMLElement).focus();
+      }
+    },
+
+    handleEndKey(event: KeyboardEvent): void {
+      event.preventDefault();
+      const attemptList = this.$el.querySelectorAll('.attempt-item-minimal');
+      if (attemptList.length > 0) {
+        (attemptList[attemptList.length - 1] as HTMLElement).focus();
+      }
+    },
   },
 });
 </script>
@@ -701,30 +849,100 @@ export default defineComponent({
 
 /* User Prompt Section */
 .user-prompt-section {
-  padding: var(--spacing-md) var(--spacing-lg);
   background: var(--color-bg-panel);
-  border-bottom: 1px solid var(--color-bg-input);
-  border-left: 3px solid var(--color-bg-border);
-  transition: border-color var(--transition-fast);
+  padding-top: var(--spacing-md);
+}
+
+/* Section Dividers - Clean Header Bar Style */
+.section-divider {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: var(--color-bg-hover);
+  font-size: var(--font-size-sm);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  gap: var(--spacing-md);
+}
+
+.divider-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex: 0 1 auto;
+}
+
+.divider-icon {
+  font-size: var(--font-size-sm);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.divider-title {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.divider-separator {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.divider-description {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.info-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-circle);
+  background: rgba(102, 126, 234, 0.15);
+  color: var(--color-text-primary);
+  cursor: help;
+  transition: var(--transition-fast);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.info-icon:hover {
+  background: rgba(102, 126, 234, 0.25);
+  transform: scale(1.1);
+}
+
+.info-icon svg {
+  display: block;
+  stroke-width: 2;
 }
 
 
 .submission-header {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: var(--color-bg-hover);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  margin-bottom: var(--spacing-sm);
 }
 
 .submission-icon {
-  font-size: var(--font-size-md);
-  opacity: 0.8;
+  font-size: var(--font-size-sm);
+  opacity: 0.7;
 }
 
 .submission-label {
   font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-text-muted);
+  font-weight: 600;
+  color: var(--color-text-secondary);
 }
 
 .prompt-content {
@@ -733,7 +951,9 @@ export default defineComponent({
   line-height: 1.6;
   background: var(--color-bg-input);
   padding: var(--spacing-sm) var(--spacing-md);
+  margin: var(--spacing-sm) var(--spacing-lg) var(--spacing-md) var(--spacing-lg);
   border-radius: var(--radius-xs);
+  border-left: 3px solid var(--color-bg-border);
   max-height: 80px;
   overflow-y: auto;
   white-space: pre-wrap;
@@ -766,18 +986,16 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   position: relative;
-  height: 36px; /* Slightly increased height */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-bg-input);
 }
 
 .section-label {
-  padding: 0 var(--spacing-lg);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text-secondary);
   display: flex;
   align-items: center;
-  height: 100%;
   flex: 1;
   font-family: Inter, system-ui, -apple-system, sans-serif;
 }
@@ -788,8 +1006,6 @@ export default defineComponent({
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
-  height: 100%;
-  margin-right: var(--spacing-md);
 }
 
 .attempt-header-label {
@@ -812,7 +1028,6 @@ export default defineComponent({
   color: var(--color-text-muted);
   transition: var(--transition-fast);
   font-weight: 400;
-  height: 100%;
 }
 
 .attempt-dropdown-trigger:hover {
@@ -823,6 +1038,20 @@ export default defineComponent({
 .attempt-dropdown-trigger.is-active {
   color: var(--color-text-primary);
   background: transparent;
+}
+
+.attempt-dropdown-trigger:focus {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
+.attempt-dropdown-trigger:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.attempt-dropdown-trigger:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
 }
 
 .attempt-text {
@@ -878,6 +1107,13 @@ export default defineComponent({
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 99999; /* Very high z-index */
   overflow: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.attempt-dropdown-panel[aria-hidden="true"] {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .attempt-list-minimal {
@@ -899,6 +1135,25 @@ export default defineComponent({
   color: var(--color-text-muted);
   border-radius: 3px;
   position: relative;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  width: 100%;
+  text-align: left;
+}
+
+.attempt-item-minimal:focus {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
+.attempt-item-minimal:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.attempt-item-minimal:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
 }
 
 .attempt-item-minimal:hover {
@@ -1005,6 +1260,23 @@ export default defineComponent({
   min-width: 50px;
   cursor: pointer;
   transition: var(--transition-fast);
+  background: transparent;
+  border: none;
+  font-family: inherit;
+}
+
+.timeline-node:focus {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
+.timeline-node:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.timeline-node:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
 }
 
 
@@ -1126,6 +1398,20 @@ export default defineComponent({
   background: var(--color-bg-input);
 }
 
+.test-group-header:focus {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
+.test-group-header:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.test-group-header:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
 .test-group-header.failing {
   border-left: 4px solid var(--color-error);
 }
@@ -1237,6 +1523,20 @@ details:not([open]) .group-icon {
 .debug-btn:hover {
   background: #1976d2;
   transform: translateY(-1px);
+}
+
+.debug-btn:focus {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
+.debug-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.debug-btn:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
 }
 
 /* Empty State */

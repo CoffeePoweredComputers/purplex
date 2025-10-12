@@ -141,6 +141,11 @@ export const auth: Module<AuthState, any> = {
         } catch (error) {
           log.error('Error refreshing user data', error);
         }
+      } else if (state.status.loggedIn) {
+        // Firebase has no current user, but localStorage thinks we're logged in
+        // Clear the stale data to maintain consistency
+        log.info('Clearing stale auth data - Firebase session expired or invalid');
+        commit('logout');
       }
 
       // Mark auth as ready after checking state

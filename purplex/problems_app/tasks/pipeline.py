@@ -562,33 +562,49 @@ def execute_eipl_pipeline(
         publish_progress(task_id, 80, f"Score calculated: {score}%")
 
         # Step 4: Segment prompt if enabled (80-90% progress)
+        # TWO-STAGE LEARNING: Only analyze comprehension AFTER correctness is achieved
         segmentation = None
-        try:
-            publish_progress(task_id, 85, "Analyzing comprehension level...")
 
-            if SENTRY_AVAILABLE and transaction:
-                seg_span = transaction.start_child(
-                    op="ai.analyze",
-                    description="Segment and analyze prompt"
-                )
-            else:
-                seg_span = None
+        # Check if ALL variations passed ALL tests (100% correctness gate)
+        all_variations_passed = all(r.get('success', False) for r in test_results)
 
-            segmentation = segment_prompt_helper(user_prompt, problem_id)
+        if all_variations_passed:
+            # Stage 2: Comprehension Analysis - student has achieved correctness
+            try:
+                publish_progress(task_id, 85, "✓ All variations correct! Now analyzing comprehension level...")
 
-            if SENTRY_AVAILABLE and seg_span:
+                if SENTRY_AVAILABLE and transaction:
+                    seg_span = transaction.start_child(
+                        op="ai.analyze",
+                        description="Segment and analyze prompt"
+                    )
+                else:
+                    seg_span = None
+
+                segmentation = segment_prompt_helper(user_prompt, problem_id)
+
+                if SENTRY_AVAILABLE and seg_span:
+                    if segmentation:
+                        seg_span.set_data("segment_count", segmentation.get('segment_count', 0))
+                    seg_span.finish()
+
                 if segmentation:
-                    seg_span.set_data("segment_count", segmentation.get('segment_count', 0))
-                seg_span.finish()
-
-            if segmentation:
-                logger.info(f"Segmentation complete: {segmentation.get('segment_count', 0)} segments")
-                publish_progress(task_id, 90, "Comprehension analysis complete")
-            else:
-                publish_progress(task_id, 90, "Segmentation skipped (not enabled)")
-        except Exception as e:
-            logger.warning(f"Segmentation failed (non-critical): {e}")
-            publish_progress(task_id, 90, "Segmentation skipped")
+                    logger.info(f"Segmentation complete: {segmentation.get('segment_count', 0)} segments")
+                    publish_progress(task_id, 90, "Comprehension analysis complete")
+                else:
+                    publish_progress(task_id, 90, "Segmentation skipped (not enabled)")
+            except Exception as e:
+                logger.warning(f"Segmentation failed (non-critical): {e}")
+                publish_progress(task_id, 90, "Segmentation skipped")
+        else:
+            # Stage 1: Correctness Gate - student should focus on getting it right first
+            publish_progress(
+                task_id,
+                90,
+                f"Focus on getting a correct solution first! {successful_variations}/{variation_count} variations passed all tests."
+            )
+            logger.info(f"Skipping segmentation - correctness gate not met: {successful_variations}/{variation_count} variations passed")
+            # segmentation remains None - comprehension not analyzed until correctness achieved
 
         # Step 5: Save submission (90-100% progress)
         publish_progress(task_id, 95, "Saving submission...")

@@ -2,6 +2,9 @@
   <div
     v-if="isLoading"
     class="loading-container"
+    role="alert"
+    aria-live="polite"
+    aria-busy="true"
   >
     <div class="loading-message">
       Loading problem set...
@@ -10,6 +13,7 @@
   <div
     v-else-if="!problems || problems.length === 0"
     class="loading-container"
+    role="status"
   >
     <div class="loading-message">
       No problems found in this set.
@@ -19,16 +23,20 @@
     v-else
     class="problem-set-container"
   >
+    <!-- Skip Link for Accessibility -->
+    <a href="#code-editor" class="skip-link">Skip to code editor</a>
+
     <!-- Navigation Loading Overlay - Removed to prevent flashing -->
     <!-- Consider using a less intrusive loading indicator instead -->
 
     <div class="problem-navigation">
       <div class="problem-selector">
-        <button 
-          class="nav-button" 
+        <button
+          class="nav-button"
+          aria-label="Previous problem"
           @click="prevProblem"
         >
-          <span class="arrow-left">‹</span>
+          <span class="arrow-left" aria-hidden="true">‹</span>
         </button>
         <div class="problem-info">
           <div class="progress-summary">
@@ -36,8 +44,8 @@
             <span class="progress-stat in_progress">{{ inProgressCount }} in progress</span>
             <span class="progress-stat remaining">{{ remainingCount }} remaining</span>
           </div>
-          <div class="problem-progress">
-            <div
+          <nav class="problem-progress" aria-label="Problem navigation">
+            <button
               v-for="(problem, index) in problems"
               :key="`${problem.slug}-${getProblemStatus(problem.slug)}-${index}`"
               :class="['progress-bar',
@@ -47,26 +55,28 @@
                        { 'in_progress': !isCurrentProblemSubmitting(problem.slug) && getProblemStatus(problem.slug) === 'in_progress' },
                        { 'not_started': !isCurrentProblemSubmitting(problem.slug) && getProblemStatus(problem.slug) === 'not_started' }
               ]"
-              :title="getProblemTooltip(problem, index)"
+              :aria-current="index === currentProblem ? 'true' : 'false'"
+              :aria-label="getProblemTooltip(problem, index)"
               @click="setProblem(index)"
             />
-          </div>
+          </nav>
         </div>
-        <button 
-          class="nav-button" 
+        <button
+          class="nav-button"
+          aria-label="Next problem"
           @click="nextProblem"
         >
-          <span class="arrow-right">›</span>
+          <span class="arrow-right" aria-hidden="true">›</span>
         </button>
       </div>
     </div>
 
     <!-- Main workspace -->
-    <div class="workspace">
+    <div id="main-workspace" class="workspace">
       <!-- Left panel: Code editor and submission -->
       <div class="left-panel">
         <!-- Code editor section -->
-        <div class="editor-section">
+        <div id="code-editor" class="editor-section">
           <div class="section-header">
             <div class="section-label">
               Code Editor
@@ -100,24 +110,27 @@
             <div class="toolbar-options">
               <button
                 class="toolbar-btn"
-                title="Copy code"
+                :aria-label="codeCopied ? 'Code copied to clipboard' : 'Copy code to clipboard'"
                 @click="copyCode"
               >
-                <span v-if="!codeCopied">📋</span>
-                <span v-else>✓</span>
+                <span aria-hidden="true">{{ codeCopied ? '✓' : '📋' }}</span>
+                <span class="btn-text">{{ codeCopied ? 'Copied' : 'Copy' }}</span>
               </button>
               <button
                 class="toolbar-btn"
-                :title="showLineNumbers ? 'Hide line numbers' : 'Show line numbers'"
+                :aria-label="showLineNumbers ? 'Hide line numbers' : 'Show line numbers'"
                 @click="toggleLineNumbers"
               >
-                <span v-if="showLineNumbers">🔢</span>
-                <span v-else>➖</span>
+                <span aria-hidden="true">{{ showLineNumbers ? '🔢' : '➖' }}</span>
+                <span class="btn-text">{{ showLineNumbers ? 'Lines' : 'No Lines' }}</span>
               </button>
               <div class="theme-selector">
+                <label for="editor-theme" class="visually-hidden">Editor theme</label>
                 <select
+                  id="editor-theme"
                   v-model="editorTheme"
                   class="theme-dropdown"
+                  aria-label="Select editor theme"
                   @change="updateTheme"
                 >
                   <option value="dark">
@@ -151,19 +164,19 @@
               <button
                 class="zoom-btn"
                 :disabled="editorFontSize <= 12"
-                title="Zoom out"
+                aria-label="Decrease font size"
                 @click="decreaseFontSize"
               >
-                <span class="zoom-icon">−</span>
+                <span class="zoom-icon" aria-hidden="true">−</span>
               </button>
-              <span class="zoom-level">{{ Math.round((editorFontSize / 14) * 100) }}%</span>
+              <span class="zoom-level" aria-live="polite">{{ Math.round((editorFontSize / 14) * 100) }}%</span>
               <button
                 class="zoom-btn"
                 :disabled="editorFontSize >= 35"
-                title="Zoom in"
+                aria-label="Increase font size"
                 @click="increaseFontSize"
               >
-                <span class="zoom-icon">+</span>
+                <span class="zoom-icon" aria-hidden="true">+</span>
               </button>
             </div>
           </div>
@@ -189,8 +202,10 @@
           <span
             v-if="draftSaved"
             class="draft-indicator"
+            role="status"
+            aria-live="polite"
           >✓ Draft saved</span>
-          <div class="prompt-editor-wrapper">
+          <div id="promptEditor" class="prompt-editor-wrapper" tabindex="-1">
             <Editor
               ref="prompt_entry"
               v-model:value="promptEditorValue"
@@ -207,6 +222,8 @@
             id="submitButton"
             class="submit-button"
             :disabled="isCurrentProblemSubmitting(getCurrentProblem().slug)"
+            :aria-busy="isCurrentProblemSubmitting(getCurrentProblem().slug)"
+            :aria-label="isCurrentProblemSubmitting(getCurrentProblem().slug) ? 'Submitting solution, please wait' : 'Submit Solution'"
             @click="submit"
           >
             <span
@@ -216,12 +233,15 @@
             <div
               v-if="isCurrentProblemSubmitting(getCurrentProblem().slug)"
               class="loading-content"
+              role="status"
+              aria-live="polite"
             >
-              <div class="bouncing-dots">
+              <div class="bouncing-dots" aria-hidden="true">
                 <span class="dot" />
                 <span class="dot" />
                 <span class="dot" />
               </div>
+              <span class="visually-hidden">Submitting solution, please wait</span>
             </div>
           </button>
         </div>
@@ -242,7 +262,7 @@
           :segmentation-enabled="getCurrentProblem()?.segmentation_enabled === true"
           :is-loading="loading"
           :submission-history="submissionHistory"
-          title="Feedback"
+          title="Submission & Results"
           @load-attempt="loadSpecificAttempt"
         />
       </div>
@@ -1718,6 +1738,12 @@ export default {
     cursor: pointer;
     transition: background 0.2s ease, box-shadow 0.2s ease;
     position: relative;
+    /* Button resets */
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+    flex-shrink: 0;
 }
 
 /* Status styles */
@@ -1854,16 +1880,16 @@ export default {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-sm) var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
     background: var(--color-bg-hover);
     border-bottom: 1px solid var(--color-bg-input);
     margin-bottom: var(--spacing-sm);
 }
 
 .section-label {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-base);
     font-weight: 600;
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
 }
 
 /* Editor Section */
@@ -1878,6 +1904,7 @@ export default {
     flex-direction: column;
     flex: 0 0 auto;
     min-height: 0;
+    scroll-margin-top: 120px; /* Account for sticky navbar height */
 }
 
 .editor-section:hover {
@@ -2279,6 +2306,132 @@ export default {
         margin-bottom: var(--spacing-md);
         z-index: 5;
         box-shadow: var(--shadow-lg);
+    }
+}
+
+/* Focus styles for keyboard navigation */
+.nav-button:focus {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.nav-button:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.nav-button:focus-visible {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.progress-bar:focus {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.progress-bar:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.progress-bar:focus-visible {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.toolbar-btn:focus {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.toolbar-btn:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.toolbar-btn:focus-visible {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.zoom-btn:focus {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.zoom-btn:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.zoom-btn:focus-visible {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.submit-button:focus {
+    outline: 2px solid var(--color-text-primary);
+    outline-offset: 2px;
+}
+
+.submit-button:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.submit-button:focus-visible {
+    outline: 2px solid var(--color-text-primary);
+    outline-offset: 2px;
+}
+
+/* Visually hidden class for screen reader-only content */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Skip Link for Keyboard Navigation */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--color-primary);
+    color: var(--color-text-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-decoration: none;
+    border-radius: var(--radius-xs);
+    z-index: 1000;
+    font-weight: 600;
+}
+
+.skip-link:focus {
+    top: var(--spacing-sm);
+    left: var(--spacing-sm);
+}
+
+/* Button Text Labels */
+.toolbar-btn {
+    width: auto;
+    padding: 0 var(--spacing-sm);
+    gap: var(--spacing-xs);
+}
+
+.toolbar-btn .btn-text {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .toolbar-btn .btn-text {
+        display: none;
+    }
+
+    .toolbar-btn {
+        width: 32px;
+        padding: 0;
     }
 }
 </style>

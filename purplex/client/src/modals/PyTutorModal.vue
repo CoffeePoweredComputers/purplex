@@ -89,6 +89,7 @@
               :title="iframeTitle"
               width="100%"
               height="100%"
+              tabindex="0"
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
               referrerpolicy="no-referrer"
               class="debugger-iframe"
@@ -361,15 +362,15 @@ export default {
     trapFocus() {
       const modalContent = this.$refs.modalContent;
       if (!modalContent) {return;}
-      
+
       const handleTabKey = (e) => {
         const focusableElements = modalContent.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button, [href], input, select, textarea, iframe[tabindex], [tabindex]:not([tabindex="-1"])'
         );
-        
+
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
-        
+
         if (e.key === 'Tab') {
           if (e.shiftKey && document.activeElement === firstElement) {
             e.preventDefault();
@@ -380,9 +381,9 @@ export default {
           }
         }
       };
-      
+
       modalContent.addEventListener('keydown', handleTabKey);
-      
+
       // Store the handler for cleanup
       this._focusTrapHandler = handleTabKey;
     },

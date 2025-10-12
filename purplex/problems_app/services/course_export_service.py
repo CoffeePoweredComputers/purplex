@@ -3,10 +3,13 @@ Service for exporting course progress data to CSV.
 """
 
 import csv
+import json
 from io import StringIO
 from typing import Optional
+from collections import defaultdict
 
 from purplex.problems_app.models import Course, UserProgress, CourseEnrollment
+from purplex.submissions.models import Submission, HintActivation
 
 
 class CourseExportService:
@@ -50,7 +53,11 @@ class CourseExportService:
             'average_score',
             'attempts',
             'successful_attempts',
-            'hints_used',
+            'hints_used_count',
+            'hints_variable_fade_count',
+            'hints_subgoal_highlight_count',
+            'hints_suggested_trace_count',
+            'hints_details',
             'total_time_spent_seconds',
             'first_attempt',
             'last_attempt',
@@ -76,7 +83,31 @@ class CourseExportService:
             user_id__in=[e.user_id for e in enrollments]
         ).select_related(
             'user', 'problem', 'problem_set'
+        ).prefetch_related(
+            'problem__hints'
         ).order_by('user__username', 'problem__slug')
+
+        # Fetch ALL hint activations for this course in a single query
+        # Build a mapping: (user_id, problem_id) -> list of hint activations
+        hint_activations = HintActivation.objects.filter(
+            submission__course=course,
+            submission__user_id__in=[e.user_id for e in enrollments]
+        ).select_related(
+            'hint', 'submission'
+        ).order_by('submission__user_id', 'submission__problem_id', 'activated_at')
+
+        # Build lookup dict for efficient access
+        hint_lookup = defaultdict(list)
+        for activation in hint_activations:
+            key = (activation.submission.user_id, activation.submission.problem_id)
+            hint_lookup[key].append({
+                'type': activation.hint.hint_type,
+                'activated_at': activation.activated_at.isoformat(),
+                'trigger': activation.trigger_type,
+                'order': activation.activation_order,
+                'viewed_duration': activation.viewed_duration_seconds,
+                'helpful': activation.was_helpful
+            })
 
         # Write rows - NO additional queries
         for progress in all_progress:
@@ -90,6 +121,18 @@ class CourseExportService:
 
             if not enrollment:
                 continue
+
+            # Get hint activations for this user/problem
+            hint_key = (user.id, progress.problem.id)
+            user_hints = hint_lookup.get(hint_key, [])
+
+            # Count by hint type
+            hint_type_counts = defaultdict(int)
+            for hint in user_hints:
+                hint_type_counts[hint['type']] += 1
+
+            # Format detailed hints as JSON string for CSV
+            hints_details_json = json.dumps(user_hints) if user_hints else ''
 
             writer.writerow([
                 user.username,
@@ -107,7 +150,11 @@ class CourseExportService:
                 progress.average_score,
                 progress.attempts,
                 progress.successful_attempts,
-                progress.hints_used,
+                progress.hints_used,  # Total count from UserProgress
+                hint_type_counts.get('variable_fade', 0),
+                hint_type_counts.get('subgoal_highlight', 0),
+                hint_type_counts.get('suggested_trace', 0),
+                hints_details_json,
                 progress.total_time_spent.total_seconds() if progress.total_time_spent else 0,
                 progress.first_attempt.isoformat() if progress.first_attempt else '',
                 progress.last_attempt.isoformat() if progress.last_attempt else '',

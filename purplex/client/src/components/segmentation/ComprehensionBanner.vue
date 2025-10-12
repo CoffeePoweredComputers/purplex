@@ -7,46 +7,9 @@
     <div class="banner-content">
       <div class="banner-main">
         <div class="progress-section">
-          <div class="segments-container">
-            <!-- Goal label positioned above -->
-            <span
-              class="goal-label"
-              :style="{ left: goalLabelPosition }"
-            >goal</span>
-            
-            <!-- All segments and brackets on same level -->
-            <div class="segments-row">
-              <!-- Opening bracket -->
-              <span class="threshold-bracket opening-bracket">[</span>
-              
-              <!-- Segments within threshold (goal zone) -->
-              <span 
-                v-for="index in segmentsInGoal" 
-                :key="`goal-${index}`"
-                class="segment goal-segment"
-                :class="{
-                  'filled': index < filledSegments
-                }"
-              >
-                {{ index < filledSegments ? '■' : '□' }}
-              </span>
-              
-              <!-- Closing bracket -->
-              <span class="threshold-bracket closing-bracket">]</span>
-              
-              <!-- Segments beyond threshold -->
-              <span 
-                v-for="index in segmentsBeyondGoal" 
-                :key="`extra-${index}`"
-                class="segment extra-segment"
-                :class="{
-                  'filled': index < filledSegments
-                }"
-              >
-                {{ index < filledSegments ? '■' : '□' }}
-              </span>
-            </div>
-          </div>
+          <span class="feedback-icon" :class="iconClass">
+            {{ getIcon() }}
+          </span>
         </div>
         <div class="banner-message">
           <span class="level-text">{{ getLevelText() }}</span>
@@ -54,8 +17,9 @@
           <span class="description-text">{{ getShortDescription() }}</span>
         </div>
       </div>
-      <button 
+      <button
         class="analyze-button"
+        :class="{ 'pulse-glow': shouldGlow }"
         aria-label="View detailed analysis"
         title="View details"
         @click="$emit('show-details')"
@@ -103,82 +67,37 @@ export default defineComponent({
     bannerClass(): string {
       return `banner-${this.segmentation.comprehension_level.replace('_', '-')}`;
     },
-    
-    // Calculate line count from the actual code
-    codeLineCount(): number {
-      if (!this.referenceCode) {return 10;}
-      return this.referenceCode.split('\n').filter(line => line.trim()).length;
+
+    iconClass(): string {
+      return this.segmentation.comprehension_level === 'relational' ? 'icon-success' : 'icon-warning';
     },
-    
-    // Intelligently scale max segments based on code size
-    maxSegments(): number {
-      const lines = this.codeLineCount;
-      
-      // For small code, each line could be a segment
-      if (lines <= 8) {return lines;}
-      
-      // For medium code, slight compression
-      if (lines <= 15) {return Math.min(10, lines);}
-      
-      // For larger code, compress more but cap at 12 for visual clarity
-      return Math.min(12, Math.ceil(lines / 2));
-    },
-    
-    // Dynamic threshold based on code complexity
-    dynamicThreshold(): number {
-      const max = this.maxSegments;
-      
-      // Good comprehension is roughly 20-30% of possible segments
-      if (max <= 5) {return 2;}
-      if (max <= 8) {return Math.ceil(max * 0.3);}
-      return Math.ceil(max * 0.25);
-    },
-    
-    // Actual filled segments, capped by max
-    filledSegments(): number {
-      const actual = this.segmentation.segment_count || 0;
-      return Math.min(actual, this.maxSegments);
-    },
-    
-    // Segments array for v-for rendering
-    segmentsInGoal(): number[] {
-      return Array.from({ length: this.dynamicThreshold }, (_, i) => i);
-    },
-    
-    segmentsBeyondGoal(): number[] {
-      const start = this.dynamicThreshold;
-      const count = this.maxSegments - this.dynamicThreshold;
-      return Array.from({ length: count }, (_, i) => start + i);
-    },
-    
-    // Position goal label centered over the bracketed area
-    goalLabelPosition(): string {
-      // Estimate: bracket(15px) + segments(13px each + 3px gap) + bracket(15px)
-      const segmentWidth = 13;
-      const gap = 3;
-      const bracketWidth = 15;
-      const totalWidth = (bracketWidth * 2) + (this.dynamicThreshold * segmentWidth) + ((this.dynamicThreshold - 1) * gap);
-      return `${totalWidth / 2}px`;
+
+    shouldGlow(): boolean {
+      return this.segmentation.comprehension_level === 'multi_structural';
     }
   },
   methods: {
+    getIcon(): string {
+      return this.segmentation.comprehension_level === 'relational' ? '✓' : '✗';
+    },
+
     getLevelText(): string {
       switch (this.segmentation.comprehension_level) {
         case 'relational':
-          return 'Excellent';
+          return 'Great!';
         case 'multi_structural':
-          return 'Detailed';
+          return 'Too detailed';
         default:
           return 'Analyzed';
       }
     },
-    
+
     getShortDescription(): string {
       switch (this.segmentation.comprehension_level) {
         case 'relational':
-          return 'High-level focus';
+          return 'High-level understanding';
         case 'multi_structural':
-          return 'Detail-oriented';
+          return 'Review suggested improvements';
         default:
           return 'View analysis';
       }
@@ -221,91 +140,30 @@ export default defineComponent({
 .progress-section {
   flex-shrink: 0;
   display: flex;
-  align-items: center; /* Center the progress section */
-}
-
-.segments-container {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  position: relative;
 }
 
-.segment {
-  font-size: 13px;
+.feedback-icon {
+  font-size: 24px;
+  font-weight: bold;
   line-height: 1;
-  color: var(--color-text-muted);
-  transition: color 0.3s ease;
-  position: relative;
-  vertical-align: middle;
-}
-
-.segment.filled {
-  color: var(--color-primary);
-}
-
-/* Segments row - all on same baseline */
-.segments-row {
   display: flex;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-circle);
+  transition: var(--transition-fast);
 }
 
-.goal-label {
-  font-size: 7px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-primary-gradient-start, #4f46e5);
-  opacity: 0.6;
-  line-height: 1;
-  white-space: nowrap;
-  position: absolute;
-  top: -10px;
-  transform: translateX(-50%); /* Center on calculated position */
-  transition: left 0.3s ease; /* Smooth transition when threshold changes */
-}
-
-/* Threshold bracket indicators */
-.threshold-bracket {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--color-primary-gradient-start, #4f46e5);
-  vertical-align: middle;
-  line-height: 1;
-}
-
-.opening-bracket {
-  margin-right: 1px;
-}
-
-.closing-bracket {
-  margin-left: 1px;
-}
-
-/* Segment styling within and beyond threshold */
-.segment.goal-segment {
-  /* Segments within the goal zone */
-}
-
-.segment.extra-segment {
-  /* Segments beyond the threshold */
-  opacity: 0.7;
-}
-
-.segment.extra-segment.filled {
-  /* Filled segments beyond threshold - more muted */
-  opacity: 0.8;
-}
-
-
-/* Level-specific segment colors */
-.banner-relational .segment.filled {
+.icon-success {
   color: var(--color-success);
+  background: var(--color-success-bg);
 }
 
-.banner-multi-structural .segment.filled {
+.icon-warning {
   color: var(--color-error);
+  background: var(--color-error-bg);
 }
 
 .banner-message {
@@ -337,34 +195,49 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: transparent;
-  border: 1px solid var(--color-bg-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
+  width: 36px;
+  height: 36px;
+  background: var(--color-bg-input);
+  border: 2px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: var(--transition-fast);
-  margin-left: var(--spacing-xs); /* Add some breathing room */
+  margin-left: var(--spacing-sm);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .analyze-button:hover {
-  background: var(--color-bg-input);
+  background: var(--color-primary);
   border-color: var(--color-primary);
-  color: var(--color-primary);
-  transform: translateX(2px); /* Subtle movement on hover */
+  color: white;
+  transform: translateX(3px) scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Enhanced styling for multi-structural (low-level) */
+.banner-multi-structural .analyze-button {
+  background: rgba(220, 53, 69, 0.1);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.banner-multi-structural .analyze-button:hover {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: white;
 }
 
 .button-icon {
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-lg);
   line-height: 1;
-  font-weight: 400;
+  font-weight: 700;
   transform: rotate(0deg);
   transition: transform 0.2s ease;
 }
 
 .analyze-button:hover .button-icon {
-  transform: rotate(90deg); /* Rotate arrow on hover */
+  transform: rotate(90deg);
 }
 
 /* Subtle level indicators */
@@ -376,6 +249,23 @@ export default defineComponent({
   border-left: 3px solid var(--color-error);
 }
 
+/* Pulse glow animation for attention */
+.analyze-button.pulse-glow {
+  animation: pulseGlow 2s infinite;
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .banner-content {
@@ -383,30 +273,28 @@ export default defineComponent({
     gap: var(--spacing-sm);
     padding: var(--spacing-md);
   }
-  
+
   .banner-main {
     width: 100%;
     flex-wrap: wrap;
   }
-  
-  .segments-container {
-    gap: 2px;
+
+  .feedback-icon {
+    font-size: 20px;
+    width: 28px;
+    height: 28px;
   }
-  
-  .segment {
-    font-size: 10px;
-  }
-  
+
   .banner-message {
     width: 100%;
     order: 2;
     flex-direction: column;
     gap: var(--spacing-xs);
   }
-  
+
   .analyze-button {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
   }
 }
 

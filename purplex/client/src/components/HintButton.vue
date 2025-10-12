@@ -3,17 +3,22 @@
     v-if="hasAnyHints"
     class="hint-button-container"
   >
-    <button 
+    <button
       class="hint-button"
       :disabled="loading || !hasUnlockedHints"
       :class="{ 'pulse': hasNewUnlockedHints }"
+      :aria-label="`Hints menu, ${availableHintsCount} available`"
+      :aria-expanded="showMenu"
+      :aria-haspopup="true"
       @click="toggleHintMenu"
+      @keydown.escape="showMenu = false"
     >
-      <span class="hint-icon">💡</span>
+      <span class="hint-icon" aria-hidden="true">💡</span>
       <span class="hint-text">Hints</span>
       <span
         v-if="availableHintsCount > 0"
         class="hint-badge"
+        aria-hidden="true"
       >{{ availableHintsCount }}</span>
     </button>
     
@@ -27,9 +32,10 @@
           <h4>Available Hints</h4>
           <button
             class="close-btn"
+            aria-label="Close hints menu"
             @click="showMenu = false"
           >
-            ×
+            <span aria-hidden="true">×</span>
           </button>
         </div>
         
@@ -70,18 +76,24 @@
                 <label
                   v-if="hint.unlocked"
                   class="hint-toggle"
+                  :for="`hint-toggle-${hint.type}`"
                 >
-                  <input 
-                    type="checkbox" 
+                  <input
+                    :id="`hint-toggle-${hint.type}`"
+                    type="checkbox"
                     :checked="isHintActive(hint.type)"
+                    :aria-label="`Toggle ${hint.title}`"
                     class="hint-checkbox"
                     @change="toggleHint(hint.type)"
+                    @keydown.enter.prevent="toggleHint(hint.type)"
+                    @keydown.space.prevent="toggleHint(hint.type)"
                   >
                   <span class="toggle-slider" />
                 </label>
                 <span
                   v-else
                   class="status-icon locked"
+                  aria-label="Locked"
                 >🔒</span>
               </div>
             </div>
@@ -618,6 +630,20 @@ export default {
   cursor: not-allowed;
 }
 
+.hint-button:focus {
+  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline-offset: 2px;
+}
+
+.hint-button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.hint-button:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline-offset: 2px;
+}
+
 .hint-button.pulse {
   animation: pulse 2s infinite;
 }
@@ -689,6 +715,20 @@ export default {
 
 .close-btn:hover {
   background: #f3f4f6;
+}
+
+.close-btn:focus {
+  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline-offset: 2px;
+}
+
+.close-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.close-btn:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline-offset: 2px;
 }
 
 .hint-list {
@@ -865,6 +905,20 @@ export default {
   cursor: not-allowed;
 }
 
+.action-btn:focus {
+  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline-offset: 2px;
+}
+
+.action-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.action-btn:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline-offset: 2px;
+}
+
 /* Toggle Switch Styles */
 .hint-controls {
   display: flex;
@@ -920,6 +974,23 @@ export default {
 
 .hint-toggle:hover .toggle-slider {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.hint-checkbox:focus + .toggle-slider {
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline-offset: 2px;
+}
+
+.hint-checkbox:focus:not(:focus-visible) + .toggle-slider {
+  outline: none;
+  box-shadow: none;
+}
+
+.hint-checkbox:focus-visible + .toggle-slider {
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline-offset: 2px;
 }
 
 .hint-attempts {

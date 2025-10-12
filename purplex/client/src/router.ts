@@ -104,17 +104,19 @@ router.beforeEach(async (to, _from, next) => {
     // Use the debug mode from the Vuex store for consistency
     const debugBypassAuth = store.state.auth.debug;
 
-    // If not in debug mode, check auth state
-    if (!debugBypassAuth && (requiresAuth || requiresAdmin)) {
-        // Wait for auth state to be determined first
-        await waitForAuthState();
-        // Then check the latest auth state
-        await store.dispatch('auth/checkAuthState');
-    }
+    // Wait for auth state to be determined
+    await waitForAuthState();
+    await store.dispatch('auth/checkAuthState');
 
     // Use persistent state from Vuex store
     const isAuthenticated = store.getters['auth/isLoggedIn'];
     const isAdmin = store.getters['auth/isAdmin'];
+
+    // If user is logged in and trying to access login page, redirect to home
+    if (to.path === "/" && isAuthenticated) {
+        next("/home");
+        return;
+    }
 
     if (requiresAuth && !isAuthenticated && !debugBypassAuth) {
         next("/");

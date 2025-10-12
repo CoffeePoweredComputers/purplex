@@ -9,7 +9,7 @@
         >
         <h1 class="login-title">Purplex</h1>
       </div>
-      <p class="login-subtitle">Code Reading and Prompting Problems for the Age of GenAI</p>
+      <p class="login-subtitle">Natural Language Programming Problems for the Age of GenAI</p>
     </div>
 
     <div id="login-form">
