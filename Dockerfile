@@ -22,12 +22,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . .
 
-# Build frontend
+  # Build frontend
 FROM node:20-alpine as frontend
 WORKDIR /app
 COPY purplex/client/package.json purplex/client/yarn.lock ./
 RUN yarn install --frozen-lockfile
 COPY purplex/client/ ./
+# Production build uses relative URLs via nginx proxy
+ENV VITE_PURPLEX_ENV=production
 RUN yarn build
 
 # Final image

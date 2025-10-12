@@ -74,9 +74,17 @@ class EnvironmentService {
   
   /**
    * Get the API base URL
+   * Returns empty string in production (use relative URLs via nginx proxy)
+   * Returns localhost:8000 in development
    */
   get apiUrl(): string {
-    return import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const envUrl = import.meta.env.VITE_API_URL;
+    // In production, use empty string for relative URLs (nginx proxy)
+    if (this.isProduction && !envUrl) {
+      return '';
+    }
+    // In development, default to localhost
+    return envUrl || 'http://localhost:8000';
   }
   
   /**
