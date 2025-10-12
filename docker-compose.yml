@@ -67,6 +67,8 @@ services:
       - .env.production
     ports:
       - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - backend
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -112,6 +114,7 @@ services:
       - ./logs:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      - frontend_dist:/app/purplex/client/dist
     expose:
       - "8000"
     networks:
@@ -137,8 +140,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '4.0'
-          memory: 4G
+          cpus: '1.5'
+          memory: 2G
         reservations:
           cpus: '1.0'
           memory: 1G
@@ -202,6 +205,7 @@ services:
       - ./logs/nginx:/var/log/nginx
       - certbot-etc:/etc/letsencrypt:ro
       - certbot-www:/var/www/certbot:ro
+      - frontend_dist:/usr/share/nginx/html:ro
     depends_on:
       web:
         condition: service_healthy
@@ -264,8 +268,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '4.0'
-          memory: 4G
+          cpus: '1.5'
+          memory: 2G
         reservations:
           cpus: '1.0'
           memory: 1G
@@ -357,6 +361,7 @@ networks:
 
 volumes:
   postgres_data:
+  frontend_dist:
   # SSL certificate volumes
   certbot-etc:
     driver: local
