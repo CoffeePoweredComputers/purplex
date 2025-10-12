@@ -7,7 +7,6 @@ import store from "./store";
 import { log } from './utils/logger';
 import { environment } from './services/environment';
 import { ensureFirebaseInitialized, firebaseAuth } from './firebaseConfig';
-import { waitForAuthState } from './utils/auth-state';
 
 // Configure axios with environment-aware settings
 axios.defaults.withCredentials = true;
@@ -32,40 +31,37 @@ let consecutiveAuthFailures = 0;
 const MAX_AUTH_FAILURES = 3;
 
 // Add axios interceptor to include authentication token
-// Note: app is now defined, so we can safely reference app.config.globalProperties
+// Simple direct Firebase token fetching (no timing dependencies on composables)
 axios.interceptors.request.use(async (config) => {
   // Skip token for auth status requests to avoid infinite loop
   if (config.url?.includes('/api/auth/status/')) {
     return config;
   }
 
-  // Wait for auth state to be determined first
-  await waitForAuthState();
+  // Wait for Firebase to initialize
+  await ensureFirebaseInitialized();
 
-  // Get token refresh composable from app instance (set in App.vue setup)
-  const tokenRefresh = app.config.globalProperties.$tokenRefresh;
-
-  if (tokenRefresh) {
-    // Get valid token (will auto-refresh if needed)
-    const token = await tokenRefresh.getValidToken(false);
-
-    if (token) {
+  // Get token directly from Firebase currentUser (no composable timing dependencies)
+  if (firebaseAuth && firebaseAuth.currentUser) {
+    try {
+      const token = await firebaseAuth.currentUser.getIdToken();
       config.headers.Authorization = `Bearer ${token}`;
 
       if (environment.isDevelopment) {
         log.debug('Added auth token to request', {
           url: config.url,
-          hasToken: !!token,
-          expiresIn: tokenRefresh.tokenState.value.expiresAt
-            ? Math.floor(tokenRefresh.tokenState.value.expiresAt - Date.now() / 1000)
-            : null
+          hasToken: !!token
         });
       }
-    } else if (environment.isDevelopment) {
-      log.debug('No auth token available for request', {
-        url: config.url
-      });
+    } catch (error) {
+      if (environment.isDevelopment) {
+        log.error('Failed to get Firebase token', error);
+      }
     }
+  } else if (environment.isDevelopment) {
+    log.debug('No auth token available for request', {
+      url: config.url
+    });
   }
 
   return config;
@@ -111,12 +107,12 @@ axios.interceptors.response.use(
         try {
           log.info(`Received 401 (attempt ${consecutiveAuthFailures}/${MAX_AUTH_FAILURES}), refreshing token...`);
 
-          // Get token refresh composable from app instance
-          const tokenRefresh = app.config.globalProperties.$tokenRefresh;
+          // Wait for Firebase to initialize
+          await ensureFirebaseInitialized();
 
-          if (tokenRefresh) {
-            // Force refresh token
-            const newToken = await tokenRefresh.getValidToken(true);
+          // Get fresh token directly from Firebase
+          if (firebaseAuth && firebaseAuth.currentUser) {
+            const newToken = await firebaseAuth.currentUser.getIdToken(true); // Force refresh
 
             if (newToken) {
               // Update header and retry

@@ -1256,6 +1256,70 @@ details[open] .group-icon {
   }
 }
 
+/* Hints Section */
+.hints-section {
+  background: var(--color-bg-hover);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.hints-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.hint-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-bg-input);
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.hint-item:hover {
+  border-color: var(--color-primary-gradient-start);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.hint-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.hint-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hint-type-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.hint-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.hint-trigger {
+  font-style: italic;
+}
+
+.hint-time {
+  opacity: 0.8;
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;
