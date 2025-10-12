@@ -104,7 +104,10 @@ services:
 
   # Django Web Application - Production
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: purplex_web:latest
     profiles:
       - production
     command: gunicorn purplex.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-4}
@@ -114,7 +117,6 @@ services:
       - ./logs:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
       - /var/run/docker.sock:/var/run/docker.sock
-      - frontend_dist:/app/purplex/client/dist
     expose:
       - "8000"
     networks:
@@ -189,7 +191,9 @@ services:
 
   # Nginx Reverse Proxy - Production only
   nginx:
-    image: nginx:1.25-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
     profiles:
       - production
     ports:
@@ -198,14 +202,11 @@ services:
     networks:
       - frontend
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/sites-available:/etc/nginx/sites-available:ro
       - ./staticfiles:/usr/share/nginx/html/static:ro
       - ./media:/usr/share/nginx/html/media:ro
       - ./logs/nginx:/var/log/nginx
       - certbot-etc:/etc/letsencrypt:ro
       - certbot-www:/var/www/certbot:ro
-      - frontend_dist:/usr/share/nginx/html:ro
     depends_on:
       web:
         condition: service_healthy
@@ -361,7 +362,6 @@ networks:
 
 volumes:
   postgres_data:
-  frontend_dist:
   # SSL certificate volumes
   certbot-etc:
     driver: local
