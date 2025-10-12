@@ -205,6 +205,7 @@ services:
       - ./staticfiles:/usr/share/nginx/html/static:ro
       - ./media:/usr/share/nginx/html/media:ro
       - ./logs/nginx:/var/log/nginx
+      - ./ssl:/etc/nginx/ssl:ro
       - certbot-etc:/etc/letsencrypt:ro
       - certbot-www:/var/www/certbot:ro
     depends_on:

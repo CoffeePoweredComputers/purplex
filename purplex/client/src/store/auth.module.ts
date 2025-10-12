@@ -10,6 +10,8 @@ let firebaseAuth: any = null;
 let provider: any = null;
 let signInWithEmailAndPassword: any = null;
 let signInWithPopup: any = null;
+let signInWithRedirect: any = null;
+let getRedirectResult: any = null;
 let createUserWithEmailAndPassword: any = null;
 
 // Initialize Firebase auth functions
@@ -17,13 +19,17 @@ async function initializeAuthFunctions() {
   const firebase = await ensureFirebaseInitialized();
   firebaseAuth = firebase.firebaseAuth;
   provider = firebase.provider;
-  
+
   // For mock Firebase, functions are on the auth object
   if (environment.useMockFirebase && firebaseAuth) {
     signInWithEmailAndPassword = (auth: any, email: string, password: string) =>
       firebaseAuth.signInWithEmailAndPassword(email, password);
     signInWithPopup = (auth: any, prov: any) =>
       firebaseAuth.signInWithPopup(prov);
+    signInWithRedirect = (auth: any, prov: any) =>
+      firebaseAuth.signInWithPopup(prov); // Mock uses popup
+    getRedirectResult = (auth: any) =>
+      Promise.resolve({ user: firebaseAuth.currentUser });
     createUserWithEmailAndPassword = (auth: any, email: string, password: string) =>
       firebaseAuth.createUserWithEmailAndPassword(email, password);
   } else {
@@ -31,6 +37,8 @@ async function initializeAuthFunctions() {
     const authModule = await import('firebase/auth');
     signInWithEmailAndPassword = authModule.signInWithEmailAndPassword;
     signInWithPopup = authModule.signInWithPopup;
+    signInWithRedirect = authModule.signInWithRedirect;
+    getRedirectResult = authModule.getRedirectResult;
     createUserWithEmailAndPassword = authModule.createUserWithEmailAndPassword;
     if (!provider) {
       provider = new authModule.GoogleAuthProvider();
@@ -124,6 +132,7 @@ export const auth: Module<AuthState, any> = {
       // Ensure Firebase is initialized
       await initializeAuthFunctions();
 
+      // Check existing auth state (popup-based auth doesn't need redirect result checking)
       if (firebaseAuth && firebaseAuth.currentUser) {
         try {
           // Get user role from backend
@@ -235,46 +244,48 @@ export const auth: Module<AuthState, any> = {
       // Ensure Firebase is initialized
       await initializeAuthFunctions();
 
-      // In debug mode with mock Firebase, use mock Google login
-      if (DEBUG && environment.useMockFirebase) {
-        try {
-          const result = await signInWithPopup(firebaseAuth, provider);
-          if (result && result.user) {
+      try {
+        // Use popup for Google sign-in
+        log.info('Initiating Google sign-in popup...');
+        const result = await signInWithPopup(firebaseAuth, provider);
+
+        if (result && result.user) {
+          log.info('Google sign-in successful', { email: result.user.email });
+
+          // Get user role from backend
+          try {
+            const response = await axios.get<UserMeResponse>('/api/user/me/');
             const userData: User = {
+              uid: result.user.uid,
               email: result.user.email!,
+              displayName: result.user.displayName || undefined,
+              role: response.data.role as User['role'],
+              isAdmin: response.data.is_admin
+            };
+            commit('loginSuccess', userData);
+          } catch (error) {
+            // If role fetch fails, set as regular user
+            log.warn('Failed to fetch user role, using defaults', error);
+            const userData: User = {
+              uid: result.user.uid,
+              email: result.user.email!,
+              displayName: result.user.displayName || undefined,
               role: 'user',
               isAdmin: false
             };
             commit('loginSuccess', userData);
-            return;
           }
-        } catch (error) {
-          log.error('Mock Google login failed', error);
-          throw { code: 'auth/google-login-failed', message: 'Unable to login with Google', num: 401 } as AuthError;
         }
-      }
+      } catch (error: any) {
+        log.error('Google sign-in popup failed', error);
 
-      try {
-        await signInWithPopup(firebaseAuth, provider);
-        // Get user role from backend
-        try {
-          const response = await axios.get<UserMeResponse>('/api/user/me/');
-          const userData: User = {
-            email: firebaseAuth.currentUser!.email!,
-            role: response.data.role as User['role'],
-            isAdmin: response.data.is_admin
-          };
-          commit('loginSuccess', userData);
-        } catch (error) {
-          // If role fetch fails, set as regular user
-          const userData: User = {
-            email: firebaseAuth.currentUser!.email!,
-            role: 'user',
-            isAdmin: false
-          };
-          commit('loginSuccess', userData);
+        // Handle popup blocked or closed
+        if (error.code === 'auth/popup-closed-by-user') {
+          throw { code: 'auth/popup-closed', message: 'Sign-in popup was closed', num: 401 } as AuthError;
+        } else if (error.code === 'auth/popup-blocked') {
+          throw { code: 'auth/popup-blocked', message: 'Sign-in popup was blocked by browser', num: 401 } as AuthError;
         }
-      } catch (error) {
+
         throw { code: 'auth/google-login-failed', message: 'Unable to login with Google', num: 401 } as AuthError;
       }
     },
