@@ -1,0 +1,12 @@
+FROM purplex_web:latest as web
+
+FROM nginx:1.25-alpine
+
+# Copy frontend dist files from web image
+COPY --from=web /app/purplex/client/dist /usr/share/nginx/html
+
+# Copy nginx configs
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
+COPY nginx/sites-available /etc/nginx/sites-available
+
+EXPOSE 80 443
