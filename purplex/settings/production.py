@@ -357,12 +357,42 @@ PERMISSIONS_POLICY = {
 
 # Content Security Policy (CSP)
 CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "'unsafe-eval'")  # unsafe-eval needed for Ace Editor
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")  # unsafe-inline needed for Vue dynamic styles
+CSP_SCRIPT_SRC = (
+    "'self'",
+    "'unsafe-eval'",  # Needed for Ace Editor and Vue
+    "'unsafe-inline'",  # Needed for Firebase SDK inline scripts
+    "https://apis.google.com",  # Firebase/Google APIs
+    "https://accounts.google.com",  # Google Sign-In
+    "https://*.googleapis.com",  # Google services
+    "https://www.gstatic.com",  # Google static resources
+    "https://static.cloudflareinsights.com",  # Cloudflare monitoring
+)
+CSP_STYLE_SRC = (
+    "'self'",
+    "'unsafe-inline'",  # Needed for Vue dynamic styles
+    "https://fonts.googleapis.com",  # Google Fonts
+)
 CSP_IMG_SRC = ("'self'", "data:", "https:")
-CSP_CONNECT_SRC = ("'self'",)
-CSP_FONT_SRC = ("'self'",)
-CSP_FRAME_SRC = ("'none'",)
+CSP_CONNECT_SRC = (
+    "'self'",
+    "https://apis.google.com",  # Firebase API calls
+    "https://accounts.google.com",  # Google Auth
+    "https://*.googleapis.com",  # Google services
+    "https://identitytoolkit.googleapis.com",  # Firebase Auth
+    "https://securetoken.googleapis.com",  # Firebase tokens
+    "https://www.google.com",  # Google tracking/analytics
+    "https://*.purplex.org",  # Firebase auth subdomain
+)
+CSP_FONT_SRC = (
+    "'self'",
+    "https://fonts.gstatic.com",  # Google Fonts
+)
+CSP_FRAME_SRC = (
+    "'self'",
+    "https://accounts.google.com",  # Google Sign-In iframe
+    "https://*.purplex.org",  # Firebase auth subdomain (auth.purplex.org)
+    "https://pythontutor.com",  # Python Tutor debugger for hint visualization
+)
 CSP_OBJECT_SRC = ("'none'",)
 CSP_BASE_URI = ("'self'",)
 CSP_FORM_ACTION = ("'self'",)

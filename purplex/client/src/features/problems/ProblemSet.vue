@@ -26,13 +26,23 @@
     <!-- Skip Link for Accessibility -->
     <a href="#code-editor" class="skip-link">Skip to code editor</a>
 
-    <!-- Navigation Loading Overlay - Removed to prevent flashing -->
-    <!-- Consider using a less intrusive loading indicator instead -->
+    <!-- Navigation Progress Bar - Thin top indicator -->
+    <div
+      v-if="isNavigating"
+      class="navigation-progress-bar"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div class="progress-bar-fill" />
+    </div>
 
     <div class="problem-navigation">
       <div class="problem-selector">
         <button
           class="nav-button"
+          :disabled="isNavigating"
+          :class="{ 'is-loading': isNavigating }"
           aria-label="Previous problem"
           @click="prevProblem"
         >
@@ -63,6 +73,8 @@
         </div>
         <button
           class="nav-button"
+          :disabled="isNavigating"
+          :class="{ 'is-loading': isNavigating }"
           aria-label="Next problem"
           @click="nextProblem"
         >
@@ -72,9 +84,9 @@
     </div>
 
     <!-- Main workspace -->
-    <div id="main-workspace" class="workspace">
+    <div id="main-workspace" class="workspace" :class="{ 'is-navigating': isNavigating }">
       <!-- Left panel: Code editor and submission -->
-      <div class="left-panel">
+      <div class="left-panel" :class="{ 'is-navigating': isNavigating }">
         <!-- Code editor section -->
         <div id="code-editor" class="editor-section">
           <div class="section-header">
@@ -261,6 +273,7 @@
           :problem-type="getCurrentProblem()?.problem_type || ''"
           :segmentation-enabled="getCurrentProblem()?.segmentation_enabled === true"
           :is-loading="loading"
+          :is-navigating="isNavigating"
           :submission-history="submissionHistory"
           title="Submission & Results"
           @load-attempt="loadSpecificAttempt"
@@ -368,6 +381,8 @@ export default {
 
             /* Navigation State */
             currentProblem: 0,
+            isNavigating: false,  // Track navigation transitions
+            navigationDebounceTimer: null,  // Debounce rapid navigation clicks
 
             /* Editor State */
             editorRenderKey: 0,
@@ -545,47 +560,67 @@ export default {
         
         async navigateToProblem(newIndex) {
             if (newIndex === this.currentProblem) {return;}
-            
+
+            // Debounce rapid navigation clicks (200ms)
+            if (this.navigationDebounceTimer) {
+                clearTimeout(this.navigationDebounceTimer);
+            }
+
+            // Wait briefly to see if user is still clicking
+            await new Promise(resolve => {
+                this.navigationDebounceTimer = setTimeout(resolve, 50);
+            });
+
             try {
-                // Save current draft and hint state before switching
-                this.saveDraft();
+                // Set navigating state to show loading indicator
+                this.isNavigating = true;
+
+                // Batch synchronous operations - no await needed
                 const currentProblemSlug = this.getCurrentProblem().slug;
+
+                // Save draft and hint state synchronously (local operations)
+                this.saveDraft();
                 if (currentProblemSlug) {
                     this.problemHintStates[currentProblemSlug] = this.saveHintState();
                 }
-                
-                // Clear all hints and overlays before switching
-                await this.removeAllHints();
-                
-                // Pre-fetch data to reduce loading time
+
+                // Clear hints synchronously
+                this.removeAllHints();
+
+                // Get the problem we're navigating to
                 const problem = this.problems[newIndex];
 
-                // Update current problem index
-                this.currentProblem = newIndex;
-
-                // Update loading state for the new current problem
-                this.loading = this.submittingProblems.has(this.getCurrentProblem().slug);
-
-                // Load submission history for attempt selector
-                await this.loadSubmissionHistory(problem.slug);
-
                 // Check if this problem is currently submitting
-                if (this.submittingProblems.has(problem.slug)) {
-                    // Clear the feedback data to show loading state
+                const isSubmitting = this.submittingProblems.has(problem.slug);
+
+                let batchData = null;
+                if (!isSubmitting) {
+                    // Load ALL data in parallel for atomic update
+                    batchData = await this.loadProblemDataBatch(problem.slug);
+                }
+
+                // ATOMIC STATE UPDATE - Everything changes at once
+                // This prevents multiple re-renders with partial data
+                this.currentProblem = newIndex;
+                this.loading = isSubmitting;
+
+                if (isSubmitting) {
+                    // Clear feedback to show loading state
                     this.clearFeedbackData();
                     this.logger.info('Navigation: Problem is submitting, showing loading state', {
                         problemSlug: problem.slug
                     });
-                } else {
-                    // Only load last submission if NOT actively submitting
-                    const submissionData = await this.loadSubmissionData(problem.slug);
+                } else if (batchData) {
+                    // Apply all loaded data atomically
+                    const { submissionHistory, submissionData, draftText } = batchData;
 
-                    // Apply submission data without clearing first
+                    this.submissionHistory = submissionHistory;
                     this.codeResults = submissionData.variations || [];
                     this.testResults = submissionData.results || [];
                     this.promptCorrectness = submissionData.passing_variations || 0;
                     this.comprehensionResults = submissionData.feedback || '';
                     this.userPrompt = submissionData.user_prompt || '';
+
                     // Only set segmentation data if the problem has segmentation enabled
                     const currentProblem = this.getCurrentProblem();
                     if (currentProblem?.segmentation_enabled && submissionData.segmentation) {
@@ -594,30 +629,120 @@ export default {
                         this.segmentationData = null;
                     }
 
-                    this.logger.info('Navigation: Applied submission data', {
+                    // Update problem status with segmentation_passed if available
+                    if (submissionData.has_submission && this.problemStatuses[problem.slug]) {
+                        this.problemStatuses = {
+                            ...this.problemStatuses,
+                            [problem.slug]: {
+                                ...this.problemStatuses[problem.slug],
+                                segmentationPassed: submissionData.segmentation_passed
+                            }
+                        };
+                    }
+
+                    // Set prompt editor value (prioritize last submission over draft)
+                    if (this.userPrompt) {
+                        this.promptEditorValue = this.userPrompt;
+                    } else if (draftText) {
+                        this.promptEditorValue = draftText;
+                    } else {
+                        this.promptEditorValue = '';
+                    }
+
+                    this.logger.info('Navigation: Applied batched data atomically', {
                         problemSlug: problem.slug,
                         hasSubmission: submissionData.has_submission,
                         codeResults: this.codeResults.length,
                         testResults: this.testResults.length,
-                        userPrompt: this.userPrompt?.substring(0, 50)
+                        hasHistory: submissionHistory.length > 0
                     });
                 }
 
-                // Load draft after data is ready (this will update promptEditorValue)
-                await this.$nextTick();
-                this.loadDraft();
-                
-                // Restore hint state for the new problem (this will clear if no state exists)
-                const newProblemSlug = this.getCurrentProblem().slug;
-                const savedState = newProblemSlug ? this.problemHintStates[newProblemSlug] : null;
-                await this.restoreHintState(savedState);
-                
+                // Restore hints in next tick (batched with DOM updates)
+                this.$nextTick(() => {
+                    const newProblemSlug = this.getCurrentProblem().slug;
+                    const savedState = newProblemSlug ? this.problemHintStates[newProblemSlug] : null;
+                    this.restoreHintState(savedState);
+
+                    // Clear navigating state after hints restored
+                    this.isNavigating = false;
+                });
+
             } catch (error) {
                 this.logger.error('Navigation failed', error);
                 this.notify.error('Navigation Error', 'Failed to load problem data');
+                this.isNavigating = false; // Always clear loading state on error
             }
         },
         
+        async loadProblemDataBatch(problemSlug) {
+            /**
+             * Batch load all problem data in parallel for atomic updates.
+             * Optimized with early draft loading and true parallelism.
+             */
+            this.logger.debug('Batch loading problem data', { problemSlug });
+
+            try {
+                // Load draft immediately (synchronous - no await)
+                const draftKey = `draft_${this.$route.params.slug}_${problemSlug}`;
+                const draft = localStorage.getItem(draftKey);
+                const timestamp = localStorage.getItem(`${draftKey}_timestamp`);
+
+                let draftText = '';
+                if (draft && timestamp) {
+                    const age = Date.now() - parseInt(timestamp);
+                    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+                    if (age < maxAge) {
+                        draftText = draft;
+                    }
+                }
+
+                // Load network data in parallel (only async operations)
+                const [historyResponse, submissionData] = await Promise.all([
+                    // Load submission history
+                    submissionService.getSubmissionHistory(
+                        problemSlug,
+                        this.$route.params.slug,
+                        this.courseId,
+                        50
+                    ).catch(error => {
+                        this.logger.error('Failed to load history in batch', error);
+                        return { submissions: [], total_attempts: 0, best_score: 0 };
+                    }),
+
+                    // Load last submission data
+                    this.loadSubmissionData(problemSlug).catch(error => {
+                        this.logger.error('Failed to load submission in batch', error);
+                        return {
+                            has_submission: false,
+                            variations: [],
+                            results: [],
+                            passing_variations: 0,
+                            feedback: '',
+                            user_prompt: '',
+                            segmentation: null
+                        };
+                    })
+                ]);
+
+                this.logger.debug('Batch load complete', {
+                    problemSlug,
+                    hasHistory: historyResponse.submissions.length > 0,
+                    hasSubmission: submissionData.has_submission,
+                    hasDraft: !!draftText
+                });
+
+                return {
+                    submissionHistory: historyResponse.submissions || [],
+                    submissionData,
+                    draftText
+                };
+            } catch (error) {
+                this.logger.error('Batch load failed', error);
+                throw error;
+            }
+        },
+
         async loadProblemData() {
             const problem = this.getCurrentProblem();
             if (!problem.slug) {return;}
@@ -633,21 +758,12 @@ export default {
             }
 
             try {
-                // Load submission history for attempt selector
-                await this.loadSubmissionHistory(problem.slug);
+                // Use batch loading for better performance
+                const { submissionHistory, submissionData, draftText } =
+                    await this.loadProblemDataBatch(problem.slug);
 
-                // Only load last submission if NOT actively submitting
-                const submissionData = await this.loadSubmissionData(problem.slug);
-
-                this.logger.info('Loaded submission data', {
-                    problemSlug: problem.slug,
-                    hasSubmission: submissionData.has_submission,
-                    variations: submissionData.variations?.length || 0,
-                    userPrompt: submissionData.user_prompt?.substring(0, 50),
-                    segmentationPassed: submissionData.segmentation_passed
-                });
-
-                // Apply submission data
+                // Apply all data atomically
+                this.submissionHistory = submissionHistory;
                 this.codeResults = submissionData.variations || [];
                 this.testResults = submissionData.results || [];
                 this.promptCorrectness = submissionData.passing_variations || 0;
@@ -655,17 +771,8 @@ export default {
                 this.userPrompt = submissionData.user_prompt || '';
                 this.segmentationData = submissionData.segmentation || null;
 
-                this.logger.info('Applied submission data to component', {
-                    codeResults: this.codeResults.length,
-                    testResults: this.testResults.length,
-                    promptCorrectness: this.promptCorrectness,
-                    userPrompt: this.userPrompt?.substring(0, 50),
-                    hasSegmentation: !!this.segmentationData
-                });
-
                 // Update problem status with segmentation_passed if available
                 if (submissionData.has_submission && this.problemStatuses[problem.slug]) {
-                    // Use Vue 3 reactive update by replacing entire object
                     this.problemStatuses = {
                         ...this.problemStatuses,
                         [problem.slug]: {
@@ -675,10 +782,23 @@ export default {
                     };
                 }
 
-                // Load draft for this problem (this will update promptEditorValue)
+                // Set draft text (prioritize last submission over draft)
                 await this.$nextTick();
-                this.loadDraft();
-                
+                if (this.userPrompt) {
+                    this.promptEditorValue = this.userPrompt;
+                } else if (draftText) {
+                    this.promptEditorValue = draftText;
+                } else {
+                    this.promptEditorValue = '';
+                }
+
+                this.logger.info('Applied batched data to component', {
+                    codeResults: this.codeResults.length,
+                    testResults: this.testResults.length,
+                    promptCorrectness: this.promptCorrectness,
+                    hasSegmentation: !!this.segmentationData
+                });
+
             } catch (error) {
                 this.logger.error('Error loading problem data', error);
                 // Clear on error
@@ -1616,15 +1736,64 @@ export default {
 </script>
 
 <style scoped>
-/* Smooth transitions for content changes */
-.editor-section,
-.submission-section {
-    transition: opacity 0.2s ease;
+/* Navigation Progress Bar - Thin top indicator */
+.navigation-progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    z-index: 1000;
+    overflow: hidden;
 }
 
-/* Optional: Add a subtle loading indicator on buttons during navigation */
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg,
+        var(--color-primary-gradient-start) 0%,
+        var(--color-primary-gradient-end) 100%);
+    animation: progressSlide 1.5s ease-in-out infinite;
+    transform-origin: left;
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+}
+
+@keyframes progressSlide {
+    0% {
+        transform: translateX(-100%) scaleX(0.3);
+    }
+    50% {
+        transform: translateX(0%) scaleX(1);
+    }
+    100% {
+        transform: translateX(100%) scaleX(0.3);
+    }
+}
+
+/* No transitions - keep content completely static during navigation */
+.editor-section,
+.submission-section,
+.right-panel,
+.left-panel {
+    /* All transitions removed for instant, stable navigation */
+}
+
+/* Workspace navigation transitions - removed all animations for static, stable UX */
+
+/* Navigation button loading state */
 .nav-button:active {
     transform: scale(0.95);
+}
+
+.nav-button.is-loading {
+    opacity: 0.5;
+    cursor: wait;
+    pointer-events: none;
+}
+
+.nav-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .loading-container {

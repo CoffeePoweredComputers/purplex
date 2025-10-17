@@ -1,5 +1,5 @@
 <template>
-  <div class="feedback-container">
+  <div class="feedback-container" :class="{ 'is-navigating': isNavigating }">
     <!-- Static Loading Message -->
     <div
       v-if="isLoading && slides.length === 0"
@@ -11,6 +11,33 @@
         </div>
         <div class="generating-message">
           Generating feedback...
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Skeleton - Shows during problem switching -->
+    <div
+      v-else-if="isNavigating && slides.length === 0"
+      class="navigation-skeleton-panel"
+    >
+      <div class="skeleton-header">
+        <div class="skeleton-bar skeleton-title" />
+        <div class="skeleton-bar skeleton-button" />
+      </div>
+      <div class="skeleton-content">
+        <div class="skeleton-section">
+          <div class="skeleton-bar skeleton-label" />
+          <div class="skeleton-bar skeleton-text" />
+          <div class="skeleton-bar skeleton-text short" />
+        </div>
+        <div class="skeleton-section">
+          <div class="skeleton-bar skeleton-label" />
+          <div class="skeleton-code-block" />
+        </div>
+        <div class="skeleton-section">
+          <div class="skeleton-bar skeleton-label" />
+          <div class="skeleton-test-item" />
+          <div class="skeleton-test-item" />
         </div>
       </div>
     </div>
@@ -424,6 +451,10 @@ export default defineComponent({
       type: Boolean as PropType<boolean>,
       default: false,
     },
+    isNavigating: {
+      type: Boolean as PropType<boolean>,
+      default: false,
+    },
     submissionHistory: {
       type: Array as PropType<any[]>,
       default: () => [],
@@ -805,6 +836,7 @@ export default defineComponent({
   box-shadow: var(--shadow-md);
   overflow: hidden;
   position: relative;
+  min-height: 600px; /* Prevent layout shifts during navigation */
 }
 
 /* Generating Feedback Panel */
@@ -1626,5 +1658,116 @@ details:not([open]) .group-icon {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   margin: 0;
+}
+
+/* Navigation Skeleton Styles - match actual content dimensions to prevent shifts */
+.navigation-skeleton-panel {
+  padding: var(--spacing-lg);
+  background: var(--color-bg-panel);
+  min-height: 600px; /* Match feedback-container min-height */
+}
+
+.skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-base);
+  margin-bottom: var(--spacing-lg);
+}
+
+.skeleton-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.skeleton-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Skeleton elements with shimmer animation */
+.skeleton-bar {
+  height: 20px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-xs);
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+
+.skeleton-title {
+  width: 40%;
+  height: 24px;
+}
+
+.skeleton-button {
+  width: 100px;
+  height: 32px;
+}
+
+.skeleton-label {
+  width: 30%;
+  height: 16px;
+}
+
+.skeleton-text {
+  width: 90%;
+  height: 16px;
+}
+
+.skeleton-text.short {
+  width: 60%;
+}
+
+.skeleton-code-block {
+  height: 300px; /* Match actual Editor height */
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-base);
+  animation: shimmer 2.5s ease-in-out infinite;
+  border: 1px solid var(--color-bg-border);
+}
+
+.skeleton-test-item {
+  height: 60px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-xs);
+  animation: shimmer 2.5s ease-in-out infinite;
+  border: 1px solid var(--color-bg-border);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Slower shimmer animation for subtlety */
+
+/* Navigation transition - removed opacity dimming for smoother UX */
+.feedback-container.is-navigating {
+  /* Opacity removed - rely on skeleton/progress bar for loading indication */
 }
 </style>
