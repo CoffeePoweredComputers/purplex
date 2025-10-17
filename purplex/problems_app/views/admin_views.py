@@ -557,10 +557,35 @@ class AdminSubmissionListView(APIView):
                         'consecutive_successes': 0
                     }
 
+                # Extract segmentation data if available (for EiPL submissions)
+                segmentation_fields = {}
+                if hasattr(submission, 'segmentation') and submission.segmentation:
+                    seg = submission.segmentation
+                    segmentation_fields = {
+                        'segment_count': seg.segment_count,
+                        'segments': json.dumps(seg.segments),  # JSON array of segment descriptions
+                        'segmentation_comprehension_level': seg.comprehension_level,
+                        'segmentation_confidence': seg.confidence_score,
+                        'segmentation_feedback': seg.feedback_message,
+                        'segmentation_passed': seg.passed,
+                    }
+                else:
+                    # Default values when no segmentation exists (direct code submissions)
+                    segmentation_fields = {
+                        'segment_count': None,
+                        'segments': '',
+                        'segmentation_comprehension_level': '',
+                        'segmentation_confidence': None,
+                        'segmentation_feedback': '',
+                        'segmentation_passed': None,
+                    }
+
                 export_data.append({
                     'submission_id': str(submission.submission_id),
                     'user': submission.user.username,
-                    'problem': submission.problem.title,
+                    'problem_id': submission.problem.id,  # ADD: Numeric problem ID
+                    'problem_slug': submission.problem.slug,  # ADD: Problem slug for reference
+                    'problem_title': submission.problem.title,  # Renamed from 'problem'
                     'problem_set': submission.problem_set.title if submission.problem_set else '',
                     'course': submission.course.name if submission.course else '',
                     'submission_type': submission.submission_type,
@@ -576,6 +601,7 @@ class AdminSubmissionListView(APIView):
                     'first_hint_time': first_hint_time,
                     'last_hint_time': last_hint_time,
                     'hint_details': json.dumps(hint_details) if hint_details else '',
+                    **segmentation_fields,  # ADD: All segmentation fields
                     **progress_fields  # Add all progress fields
                 })
 

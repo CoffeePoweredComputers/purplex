@@ -49,7 +49,10 @@ CODE_EXECUTION = {
     'FORBIDDEN_BUILTINS': [
         'eval', 'exec', 'compile', '__import__',
         'open', 'file', 'input', 'raw_input',
-        'globals', 'locals', 'vars', 'dir'
+        'globals', 'locals', 'vars', 'dir',
+        'getattr', 'setattr', 'delattr', 'hasattr',  # Prevent attribute access bypasses
+        'chr', 'ord', 'hex', 'oct', 'bin',  # Prevent character encoding bypasses
+        'bytes', 'bytearray', 'memoryview',  # Prevent byte manipulation
     ],
     
     # Logging

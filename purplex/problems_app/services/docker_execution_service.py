@@ -5,6 +5,7 @@ import hashlib
 import time
 import threading
 import atexit
+import concurrent.futures
 from typing import List, Dict, Any, Optional
 from django.conf import settings
 from django.core.cache import cache
@@ -643,7 +644,18 @@ for item in os.listdir('/sandbox'):
             Dict with test results matching the original service format
         """
         user_id = getattr(self, '_current_user_id', 'anonymous')
-        
+
+        # Validate function name first (prevent code injection)
+        import re
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', function_name):
+            return {
+                'error': f'Invalid function name: {function_name}',
+                'testsPassed': 0,
+                'totalTests': len(test_cases),
+                'results': [],
+                'success': False
+            }
+
         # Check rate limiting
         if not self._check_rate_limit(user_id):
             return {
@@ -653,7 +665,7 @@ for item in os.listdir('/sandbox'):
                 'results': [],
                 'success': False
             }
-        
+
         # Validate and sanitize code
         try:
             self._validate_code(user_code)
@@ -737,9 +749,15 @@ for item in os.listdir('/sandbox'):
             'exec(', 'eval(', 'compile(',
             'globals(', 'locals(', 'vars(',
             '__dict__', '__class__', '__bases__',
-            '__subclasses__', '__code__', '__builtins__'
+            '__subclasses__', '__code__', '__builtins__',
+            '__globals__',  # Prevent __globals__ attribute access
+            '__import__',   # Catch __import__ calls
+            'getattr(',     # Already in forbidden_builtins, double-check here
+            'chr(', 'ord(',  # Character encoding bypasses
+            'base64',       # Base64 encoding bypass attempts
+            '.decode(', '.encode(',  # String encoding methods
         ]
-        
+
         for pattern in suspicious_patterns:
             if pattern in user_code:
                 logger.warning(f"Suspicious pattern detected: {pattern}")
@@ -880,44 +898,59 @@ print(json.dumps(output))
                 logger.warning("Failed to get pooled container, falling back to new container")
                 return self._execute_in_new_container(code)
             
-            # Execute code in the container
-            start_time = time.time()
-            
+            # Execute code in the container with enforced timeout
             try:
-                # Use exec_run to execute code in existing container
-                exec_result = container.exec_run(
-                    cmd=['python', '-c', code],
-                    stdout=True,
-                    stderr=True,
-                    user='sandbox',
-                    workdir='/sandbox',
-                    environment={
-                        'PYTHONDONTWRITEBYTECODE': '1',
-                        'PYTHONUNBUFFERED': '1',
-                        'PYTHONNOUSERSITE': '1'
-                    },
-                    demux=False  # Return combined stdout/stderr
-                )
-                
-                # Check if execution took too long
-                execution_time = time.time() - start_time
-                if execution_time > self.max_execution_time:
-                    logger.warning(f"Execution took {execution_time:.2f}s, exceeding timeout")
-                    # Container might be compromised, don't return it to pool
+                # Use ThreadPoolExecutor to enforce timeout
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    # Submit exec_run as a future
+                    future = executor.submit(
+                        container.exec_run,
+                        cmd=['python', '-c', code],
+                        stdout=True,
+                        stderr=True,
+                        user='sandbox',
+                        workdir='/sandbox',
+                        environment={
+                            'PYTHONDONTWRITEBYTECODE': '1',
+                            'PYTHONUNBUFFERED': '1',
+                            'PYTHONNOUSERSITE': '1'
+                        },
+                        demux=False
+                    )
+
                     try:
-                        container.remove(force=True)
-                    except:
-                        pass
-                    return {
-                        'success': False,
-                        'output': '',
-                        'error': f'Code execution timed out after {self.max_execution_time} seconds'
-                    }
-                
-                # Parse result
+                        # Wait for result with timeout
+                        exec_result = future.result(timeout=self.max_execution_time)
+                    except concurrent.futures.TimeoutError:
+                        # Timeout exceeded - kill the container
+                        logger.warning(f"Execution exceeded {self.max_execution_time}s timeout")
+                        try:
+                            container.kill()
+                            container.remove(force=True)
+                        except:
+                            pass
+                        return {
+                            'success': False,
+                            'output': '',
+                            'error': f'Code execution timed out after {self.max_execution_time} seconds'
+                        }
+
+                # Parse result with output size limit
+                MAX_OUTPUT_SIZE = 1024 * 1024  # 1MB
                 exit_code = exec_result.exit_code
-                output = exec_result.output.decode('utf-8') if exec_result.output else ''
-                
+
+                if exec_result.output:
+                    output_bytes = exec_result.output
+                    if len(output_bytes) > MAX_OUTPUT_SIZE:
+                        # Truncate output
+                        output = output_bytes[:MAX_OUTPUT_SIZE].decode('utf-8', errors='ignore')
+                        output += f"\n\n... (output truncated at {MAX_OUTPUT_SIZE} bytes)"
+                        logger.warning(f"Output truncated: {len(output_bytes)} bytes > {MAX_OUTPUT_SIZE} bytes")
+                    else:
+                        output = output_bytes.decode('utf-8', errors='ignore')
+                else:
+                    output = ''
+
                 if exit_code == 0:
                     result = {
                         'success': True,
@@ -930,7 +963,7 @@ print(json.dumps(output))
                         'output': '',
                         'error': output if output else 'Code execution failed'
                     }
-                
+
                 # Return container to pool
                 self._return_container_to_pool(container)
                 return result
@@ -999,10 +1032,19 @@ print(json.dumps(output))
             
             # Wait for completion with timeout
             exit_code = container.wait(timeout=self.max_execution_time)
-            
-            # Get output
-            logs = container.logs(stdout=True, stderr=True).decode('utf-8')
-            
+
+            # Get output with size limit
+            MAX_OUTPUT_SIZE = 1024 * 1024  # 1MB
+            logs_bytes = container.logs(stdout=True, stderr=True)
+
+            if len(logs_bytes) > MAX_OUTPUT_SIZE:
+                # Truncate output
+                logs = logs_bytes[:MAX_OUTPUT_SIZE].decode('utf-8', errors='ignore')
+                logs += f"\n\n... (output truncated at {MAX_OUTPUT_SIZE} bytes)"
+                logger.warning(f"Output truncated: {len(logs_bytes)} bytes > {MAX_OUTPUT_SIZE} bytes")
+            else:
+                logs = logs_bytes.decode('utf-8', errors='ignore')
+
             # Check exit code
             if exit_code['StatusCode'] == 0:
                 return {

@@ -354,3 +354,15 @@ PERMISSIONS_POLICY = {
     'geolocation': [],
     'microphone': [],
 }
+
+# Content Security Policy (CSP)
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-eval'")  # unsafe-eval needed for Ace Editor
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")  # unsafe-inline needed for Vue dynamic styles
+CSP_IMG_SRC = ("'self'", "data:", "https:")
+CSP_CONNECT_SRC = ("'self'",)
+CSP_FONT_SRC = ("'self'",)
+CSP_FRAME_SRC = ("'none'",)
+CSP_OBJECT_SRC = ("'none'",)
+CSP_BASE_URI = ("'self'",)
+CSP_FORM_ACTION = ("'self'",)

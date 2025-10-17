@@ -7,6 +7,7 @@ djangorestframework==3.15.2
 django-cors-headers==4.4.0
 django-redis==5.4.0
 django-ratelimit==4.1.0
+django-csp==3.8  # Content Security Policy headers
 
 # Database
 psycopg2-binary==2.9.9

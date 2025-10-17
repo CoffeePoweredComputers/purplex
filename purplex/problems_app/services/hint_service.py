@@ -107,9 +107,9 @@ class HintService:
         problem_slug: str,
         course_id: Optional[str] = None,
         problem_set_slug: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> List[str]:
         """
-        Get list of hints the user has already activated for this problem.
+        Get list of hint types the user has already activated for this problem.
 
         Args:
             user: User instance
@@ -118,7 +118,7 @@ class HintService:
             problem_set_slug: Optional problem set slug for context
 
         Returns:
-            List of dictionaries with hint usage information
+            List of hint type strings (e.g., ['variable_fade', 'subgoal_highlight'])
         """
         from purplex.submissions.models import HintActivation, Submission
 
@@ -151,21 +151,17 @@ class HintService:
         # Get distinct hint IDs that were activated
         activations_query = activations_query.select_related('hint').order_by('activated_at')
 
-        # Build list of used hints with details
-        used_hints = []
-        seen_hint_ids = set()
+        # Build list of unique hint types that were used
+        used_hint_types = []
+        seen_hint_types = set()
 
         for activation in activations_query:
-            if activation.hint.id not in seen_hint_ids:
-                seen_hint_ids.add(activation.hint.id)
-                used_hints.append({
-                    'hint_id': activation.hint.id,
-                    'hint_type': activation.hint.hint_type,
-                    'first_activated_at': activation.activated_at.isoformat(),
-                    'trigger_type': activation.trigger_type
-                })
+            hint_type = activation.hint.hint_type
+            if hint_type not in seen_hint_types:
+                seen_hint_types.add(hint_type)
+                used_hint_types.append(hint_type)
 
-        return used_hints
+        return used_hint_types
     
     @staticmethod
     def get_hint_content(
