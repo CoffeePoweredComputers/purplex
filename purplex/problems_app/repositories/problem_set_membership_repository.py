@@ -72,23 +72,46 @@ class ProblemSetMembershipRepository(BaseRepository):
     @classmethod
     def get_problem_set_memberships_with_categories(cls, problem_set: ProblemSet) -> List[Dict[str, Any]]:
         """
-        Get all memberships for a specific problem set with problem categories.
-        
+        Get all memberships for a specific problem set with problem categories and test cases.
+
+        Performance: Optimized with prefetch_related to avoid N+1 queries.
+        Fetches problems, categories, and test cases in a single query.
+
         Args:
             problem_set: The problem set to get memberships for
-            
+
         Returns:
-            List of dicts with membership and problem data including categories
+            List of dicts with membership and problem data including categories and test cases
         """
         memberships = ProblemSetMembership.objects.filter(
             problem_set=problem_set
         ).select_related('problem').prefetch_related(
-            'problem__categories'
+            'problem__categories',
+            'problem__test_cases'  # Prefetch test cases to avoid N+1
         ).order_by('order')
-        
+
         result = []
         for membership in memberships:
             problem = membership.problem
+
+            # Serialize all test cases from prefetched data
+            all_test_cases = problem.test_cases.all()
+            test_cases_data = [
+                {
+                    'id': tc.id,
+                    'inputs': tc.inputs,
+                    'expected_output': tc.expected_output,
+                    'description': tc.description,
+                    'is_hidden': tc.is_hidden,
+                    'is_sample': tc.is_sample,
+                    'order': tc.order
+                }
+                for tc in all_test_cases
+            ]
+
+            # Filter visible test cases from prefetched data (no extra query)
+            visible_test_cases = [tc for tc in test_cases_data if not tc['is_hidden']]
+
             result.append({
                 'order': membership.order,
                 'problem': {
@@ -101,10 +124,13 @@ class ProblemSetMembershipRepository(BaseRepository):
                     'segmentation_enabled': problem.segmentation_enabled,
                     'reference_solution': problem.reference_solution,
                     'is_active': problem.is_active,
-                    'categories': [cat.name for cat in problem.categories.all()]
+                    'categories': [cat.name for cat in problem.categories.all()],
+                    'test_cases': visible_test_cases,  # Include visible test cases
+                    'test_case_count': len(all_test_cases),  # Count from prefetched data
+                    'visible_test_case_count': len(visible_test_cases)  # Count from filtered list
                 }
             })
-        
+
         return result
     
     @classmethod

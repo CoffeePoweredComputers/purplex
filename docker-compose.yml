@@ -26,8 +26,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 2G
+          cpus: '0.8'  # Reduced to fit 2-CPU machine
+          memory: 2G   # Reduced to fit available memory
         reservations:
           cpus: '0.5'
           memory: 512M
@@ -62,7 +62,7 @@ services:
     profiles:
       - production
     container_name: purplex_redis
-    command: redis-server --maxmemory 1gb --maxmemory-policy allkeys-lru
+    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru
     env_file:
       - .env.production
     ports:
@@ -77,11 +77,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 1G
+          cpus: '0.3'  # Reduced to fit 2-CPU machine
+          memory: 512M
         reservations:
-          cpus: '0.25'
-          memory: 256M
+          cpus: '0.1'
+          memory: 128M
     restart: unless-stopped
 
   # Redis Cache & Message Broker - Development
@@ -142,11 +142,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.5'
-          memory: 2G
-        reservations:
-          cpus: '1.0'
+          cpus: '0.6'  # Reduced to fit 2-CPU machine
           memory: 1G
+        reservations:
+          cpus: '0.3'
+          memory: 512M
     restart: unless-stopped
 
   # Django Web Application - Development
@@ -220,11 +220,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '0.2'  # Reduced to fit 2-CPU machine
+          memory: 256M
         reservations:
-          cpus: '0.25'
-          memory: 128M
+          cpus: '0.1'
+          memory: 64M
 
   # Certbot - SSL Certificate Management - Production only
   certbot:
@@ -245,7 +245,7 @@ services:
     build: .
     profiles:
       - production
-    command: celery -A purplex.celery_simple worker -l info --concurrency=${CELERY_WORKERS:-4}
+    command: celery -A purplex.celery_simple worker -l info --concurrency=${CELERY_WORKERS:-12}
     volumes:
       - ./media:/app/media
       - ./logs:/app/logs
@@ -273,11 +273,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.5'
-          memory: 2G
-        reservations:
-          cpus: '1.0'
+          cpus: '0.6'  # Reduced to fit 2-CPU machine
           memory: 1G
+        reservations:
+          cpus: '0.3'
+          memory: 512M
     restart: unless-stopped
 
   # Celery Beat - Production (Periodic Tasks)

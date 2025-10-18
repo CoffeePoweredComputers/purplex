@@ -11,9 +11,11 @@ bind = f"0.0.0.0:{os.environ.get('WEB_PORT', '8000')}"
 backlog = int(os.environ.get('GUNICORN_BACKLOG', '2048'))
 
 # Worker processes
-workers = int(os.environ.get('GUNICORN_WORKERS', multiprocessing.cpu_count() * 2 + 1))
-worker_class = os.environ.get('GUNICORN_WORKER_CLASS', 'sync')  # Use 'gevent' for async support
-worker_connections = int(os.environ.get('GUNICORN_WORKER_CONNECTIONS', '1000'))
+# CRITICAL: Using gevent for async support (SSE + concurrent code execution)
+# With gevent: 4 workers × 500 connections = 2000 concurrent connections
+workers = int(os.environ.get('GUNICORN_WORKERS', '4'))  # Reduced for gevent (more efficient)
+worker_class = os.environ.get('GUNICORN_WORKER_CLASS', 'gevent')  # Changed from 'sync' to 'gevent'
+worker_connections = int(os.environ.get('GUNICORN_WORKER_CONNECTIONS', '500'))  # Increased for concurrency
 max_requests = int(os.environ.get('GUNICORN_MAX_REQUESTS', '1000'))
 max_requests_jitter = int(os.environ.get('GUNICORN_MAX_REQUESTS_JITTER', '50'))
 timeout = int(os.environ.get('GUNICORN_TIMEOUT', '30'))

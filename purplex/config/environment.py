@@ -301,7 +301,9 @@ class Config:
     @property
     def db_pool_size(self) -> int:
         """Database connection pool size"""
-        default = 5 if self.is_development else 20
+        # Increased for beta test: (4 gevent workers × 50 connections) + (12 celery workers × 2) = ~224
+        # Using 75 as safe middle ground with buffer
+        default = 5 if self.is_development else 75
         return self.get_int('DB_POOL_SIZE', default)
     
     # =====================================================================

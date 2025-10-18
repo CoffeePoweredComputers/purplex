@@ -12,9 +12,9 @@ CODE_EXECUTION = {
     'MAX_FILE_DESCRIPTORS': config.get_int('CODE_EXEC_MAX_FILE_DESC', 64),
     'MAX_FILE_SIZE': config.get('CODE_EXEC_MAX_FILE_SIZE', '1m'),
     
-    # Rate limiting
-    'RATE_LIMIT_PER_MINUTE': config.get_int('RATE_LIMIT_SUBMIT_PER_MINUTE', 10),
-    'RATE_LIMIT_PER_HOUR': config.get_int('CODE_EXEC_RATE_LIMIT_PER_HOUR', 100),
+    # Rate limiting (relaxed for beta test - legitimate users won't hit these)
+    'RATE_LIMIT_PER_MINUTE': config.get_int('RATE_LIMIT_SUBMIT_PER_MINUTE', 20),  # Increased from 10
+    'RATE_LIMIT_PER_HOUR': config.get_int('CODE_EXEC_RATE_LIMIT_PER_HOUR', 300),  # Increased from 100
     
     # Docker configuration
     'DOCKER_IMAGE': os.environ.get('DOCKER_SANDBOX_IMAGE', 'purplex/python-sandbox:latest'),
@@ -69,9 +69,9 @@ RATE_LIMITS = {
         'per_day': config.get_int('CODE_EXEC_RATE_LIMIT_PER_DAY', 500),
     },
     'ai_generation': {
-        'per_minute': config.get_int('AI_RATE_LIMIT_PER_MINUTE', 5),
-        'per_hour': config.get_int('AI_RATE_LIMIT_PER_HOUR', 30),
-        'per_day': config.get_int('AI_RATE_LIMIT_PER_DAY', 100),
+        'per_minute': config.get_int('AI_RATE_LIMIT_PER_MINUTE', 10),  # Increased from 5 for beta
+        'per_hour': config.get_int('AI_RATE_LIMIT_PER_HOUR', 50),  # Increased from 30 for beta
+        'per_day': config.get_int('AI_RATE_LIMIT_PER_DAY', 150),  # Increased from 100 for beta
     },
     'authentication': {
         'login_per_hour': config.rate_limit_auth_per_minute * 60,  # Convert from per-minute to per-hour

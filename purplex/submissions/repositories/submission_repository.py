@@ -145,6 +145,11 @@ class SubmissionRepository(BaseRepository[Submission]):
         if status_filter:
             queryset = queryset.filter(completion_status=status_filter)
 
+        # Course filter - by course name
+        course_filter = filter_kwargs.get('course_filter')
+        if course_filter:
+            queryset = queryset.filter(course__name=course_filter)
+
         # Order by most recent
         queryset = queryset.order_by('-submitted_at')
 
@@ -199,6 +204,27 @@ class SubmissionRepository(BaseRepository[Submission]):
         )
 
         # Apply filters
+        # Search filter - matches frontend 'search' parameter
+        if filters.get('search'):
+            queryset = queryset.filter(
+                Q(user__username__icontains=filters['search']) |
+                Q(user__email__icontains=filters['search']) |
+                Q(problem__title__icontains=filters['search']) |
+                Q(submission_id__icontains=filters['search'])
+            )
+
+        # Status filter - matches frontend 'status' parameter
+        if filters.get('status'):
+            queryset = queryset.filter(completion_status=filters['status'])
+
+        # Problem set filter - matches frontend 'problem_set' parameter (by title)
+        if filters.get('problem_set'):
+            queryset = queryset.filter(problem_set__title=filters['problem_set'])
+
+        # Course filter - matches frontend 'course' parameter (by name)
+        if filters.get('course'):
+            queryset = queryset.filter(course__name=filters['course'])
+
         if filters.get('start_date'):
             queryset = queryset.filter(submitted_at__gte=filters['start_date'])
 
@@ -207,9 +233,6 @@ class SubmissionRepository(BaseRepository[Submission]):
 
         if filters.get('course_id'):
             queryset = queryset.filter(course__course_id=filters['course_id'])
-
-        if filters.get('problem_set_slug'):
-            queryset = queryset.filter(problem_set__slug=filters['problem_set_slug'])
 
         if filters.get('user_id'):
             queryset = queryset.filter(user_id=filters['user_id'])

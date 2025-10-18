@@ -43,14 +43,14 @@
           <option value="">
             All Status
           </option>
-          <option value="passed">
-            Passed
+          <option value="incomplete">
+            Incomplete
           </option>
           <option value="partial">
             Partial
           </option>
-          <option value="failed">
-            Failed
+          <option value="complete">
+            Complete
           </option>
         </select>
         <select
@@ -62,16 +62,32 @@
             All Problem Sets
           </option>
           <option
-            v-for="set in uniqueProblemSets"
+            v-for="set in availableProblemSets"
             :key="set"
             :value="set"
           >
             {{ set }}
           </option>
         </select>
-        <button 
-          class="action-button export-button" 
-          :disabled="totalCount === 0" 
+        <select
+          v-model="courseFilter"
+          class="filter-select"
+          @change="onFilterChange"
+        >
+          <option value="">
+            All Courses
+          </option>
+          <option
+            v-for="course in availableCourses"
+            :key="course"
+            :value="course"
+          >
+            {{ course }}
+          </option>
+        </select>
+        <button
+          class="action-button export-button"
+          :disabled="totalCount === 0"
           title="Export filtered submissions to CSV"
           @click="exportToCSV"
         >
@@ -89,6 +105,7 @@
               <th>User</th>
               <th>Problem</th>
               <th>Problem Set</th>
+              <th>Course</th>
               <th>Score</th>
               <th>Comprehension</th>
               <th>Status</th>
@@ -112,6 +129,9 @@
               <td>{{ submission.problem }}</td>
               <td>
                 <span class="problem-set-tag">{{ submission.problem_set }}</span>
+              </td>
+              <td>
+                <span class="course-tag">{{ submission.course || 'No Course' }}</span>
               </td>
               <td>
                 <div
@@ -282,6 +302,9 @@ interface ComponentData {
   searchQuery: string;
   statusFilter: string;
   problemSetFilter: string;
+  courseFilter: string;
+  availableProblemSets: string[];
+  availableCourses: string[];
   showViewModal: boolean;
   selectedSubmission: SubmissionDetailed | null;
   currentPage: number;
@@ -308,6 +331,9 @@ export default defineComponent({
       searchQuery: '',
       statusFilter: '',
       problemSetFilter: '',
+      courseFilter: '',
+      availableProblemSets: [],
+      availableCourses: [],
       showViewModal: false,
       selectedSubmission: null,
       // Pagination data
@@ -323,17 +349,7 @@ export default defineComponent({
   },
   computed: {
     ...mapGetters('auth', ['isAdmin']),
-    
-    uniqueProblemSets(): string[] {
-      const sets = new Set<string>();
-      this.submissions.forEach(submission => {
-        if (submission.problem_set && submission.problem_set !== 'Unknown') {
-          sets.add(submission.problem_set);
-        }
-      });
-      return Array.from(sets).sort();
-    },
-    
+
     paginationInfo(): { start: number; end: number; total: number } {
       const start = (this.currentPage - 1) * this.pageSize + 1;
       const end = Math.min(this.currentPage * this.pageSize, this.totalCount);
@@ -378,12 +394,12 @@ export default defineComponent({
     async fetchSubmissions(): Promise<void> {
       try {
         this.loading = true;
-        
+
         // Build query parameters
         const params = new URLSearchParams();
         params.append('page', this.currentPage);
         params.append('page_size', this.pageSize);
-        
+
         if (this.searchQuery.trim()) {
           params.append('search', this.searchQuery.trim());
         }
@@ -393,16 +409,25 @@ export default defineComponent({
         if (this.problemSetFilter) {
           params.append('problem_set', this.problemSetFilter);
         }
-        
+        if (this.courseFilter) {
+          params.append('course', this.courseFilter);
+        }
+
         const response = await axios.get(`/api/admin/submissions/?${params.toString()}`);
-        
+
         // Handle paginated response
         this.submissions = response.data.results;
         this.totalCount = response.data.count;
         this.totalPages = Math.ceil(this.totalCount / this.pageSize);
         this.hasNext = !!response.data.next;
         this.hasPrevious = !!response.data.previous;
-        
+
+        // Extract filter metadata from backend
+        if (response.data.filters) {
+          this.availableProblemSets = response.data.filters.problem_sets || [];
+          this.availableCourses = response.data.filters.courses || [];
+        }
+
         this.loading = false;
       } catch (error) {
         this.error = 'Failed to load submissions. Please try again.';
@@ -525,7 +550,8 @@ export default defineComponent({
           filters: {
             search: this.searchQuery.trim() || undefined,
             status: this.statusFilter || undefined,
-            problem_set: this.problemSetFilter || undefined
+            problem_set: this.problemSetFilter || undefined,
+            course: this.courseFilter || undefined
           },
           format: 'csv'  // Request CSV format
         }, {
@@ -542,6 +568,7 @@ export default defineComponent({
         if (this.searchQuery) {filename += `_search-${this.searchQuery.replace(/[^a-zA-Z0-9]/g, '_')}`;}
         if (this.statusFilter) {filename += `_status-${this.statusFilter}`;}
         if (this.problemSetFilter) {filename += `_set-${this.problemSetFilter.replace(/[^a-zA-Z0-9]/g, '_')}`;}
+        if (this.courseFilter) {filename += `_course-${this.courseFilter.replace(/[^a-zA-Z0-9]/g, '_')}`;}
         filename += `_${new Date().toISOString().split('T')[0]}.csv`;
 
         link.setAttribute('download', filename);
@@ -938,6 +965,20 @@ export default defineComponent({
   padding: 2px var(--spacing-xs);
   background: var(--color-info-bg);
   color: var(--color-info);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.course-tag {
+  display: inline-block;
+  padding: 2px var(--spacing-xs);
+  background: var(--color-success-bg);
+  color: var(--color-success);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
   font-weight: 500;

@@ -423,6 +423,9 @@ export default {
             /* Hint State Storage per Problem */
             problemHintStates: {},
 
+            /* Current Attempt Hint Tracking - NEW: Two-level tracking system */
+            currentAttemptHints: new Set(),  // Tracks hints used in current attempt only
+
             /* Submission History */
             submissionHistory: []
         };
@@ -583,6 +586,9 @@ export default {
                 if (currentProblemSlug) {
                     this.problemHintStates[currentProblemSlug] = this.saveHintState();
                 }
+
+                // Clear current attempt hints when navigating away
+                this.currentAttemptHints = new Set();
 
                 // Clear hints synchronously
                 this.removeAllHints();
@@ -1125,12 +1131,8 @@ export default {
                     attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
                 });
 
-                // Get hints that were used for this problem
-                const hintsUsed = this.getHintsUsed(
-                    currentProblemSlug,
-                    this.courseId,
-                    this.$route.params.slug
-                );
+                // Get hints that were used for THIS ATTEMPT only (not cumulative)
+                const hintsUsed = Array.from(this.currentAttemptHints);
 
                 // Transform hint tracking data to match backend expectations
                 // Backend will look up hints by type, not ID
@@ -1335,6 +1337,9 @@ export default {
                         }).catch(error => {
                             this.logger.error('Failed to refresh submission history', error);
                         });
+
+                        // Clear current attempt hints after successful submission
+                        this.currentAttemptHints = new Set();
                     },
                     {
                         // SSE options
@@ -1351,6 +1356,9 @@ export default {
                                 connection.disconnect();
                                 this.submissionConnections.delete(currentProblemSlug);
                             }
+
+                            // Clear current attempt hints after error
+                            this.currentAttemptHints = new Set();
                         },
                         onTimeout: () => {
                             this.logger.warn('SSE connection timeout');
@@ -1365,6 +1373,9 @@ export default {
                                 connection.disconnect();
                                 this.submissionConnections.delete(currentProblemSlug);
                             }
+
+                            // Clear current attempt hints after timeout
+                            this.currentAttemptHints = new Set();
                         },
                         reconnectAttempts: 3,
                         reconnectDelay: 2000
@@ -1405,6 +1416,9 @@ export default {
                     connection.disconnect();
                     this.submissionConnections.delete(currentProblemSlug);
                 }
+
+                // Clear current attempt hints after error
+                this.currentAttemptHints = new Set();
             } finally {
                 // Loading state is managed in SSE callbacks
                 // Don't reset it here as SSE is still processing
@@ -1633,10 +1647,15 @@ export default {
         onHintUsed(hintData) {
             // Log hint usage for research data
             this.logger.info('Hint used', hintData);
-            
-            // Track hint usage with the composable
+
+            // Track for current attempt (submission) - Vue 3 reactive Set update
+            const newSet = new Set(this.currentAttemptHints);
+            newSet.add(hintData.hintType);
+            this.currentAttemptHints = newSet;
+
+            // Track hint usage with the composable (research data - cumulative)
             this.trackHintUsage(
-                hintData.problemSlug, 
+                hintData.problemSlug,
                 hintData.hintType,
                 {
                     courseId: this.courseId,
@@ -1645,7 +1664,7 @@ export default {
                     timestamp: hintData.timestamp
                 }
             );
-            
+
             // Emit event for analytics if needed
             this.$emit('hint-used', hintData);
         },

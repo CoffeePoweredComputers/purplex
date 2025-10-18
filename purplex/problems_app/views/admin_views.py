@@ -425,6 +425,7 @@ class AdminSubmissionListView(APIView):
         search = request.query_params.get('search', '')
         submission_type = request.query_params.get('type', '')
         status_filter = request.query_params.get('status', '')
+        course_filter = request.query_params.get('course', '')
 
         # Get paginated submissions using repository
         paginated_data = SubmissionRepository.get_paginated_submissions(
@@ -432,7 +433,8 @@ class AdminSubmissionListView(APIView):
             page_size=page_size,
             search=search,
             submission_type=submission_type if submission_type else None,
-            status_filter=status_filter if status_filter else None
+            status_filter=status_filter if status_filter else None,
+            course_filter=course_filter if course_filter else None
         )
 
         paginated_submissions = paginated_data['submissions']
@@ -459,14 +461,23 @@ class AdminSubmissionListView(APIView):
                 'memory_used_mb': submission.memory_used_mb
             })
 
-        # Build response with pagination metadata
+        # Get filter metadata - all available options for dropdowns
+        from purplex.problems_app.models import ProblemSet, Course
+        filter_metadata = {
+            'problem_sets': list(ProblemSet.objects.values_list('title', flat=True).order_by('title').distinct()),
+            'courses': list(Course.objects.values_list('name', flat=True).order_by('name').distinct()),
+            'statuses': ['incomplete', 'partial', 'complete']  # Valid completion_status values
+        }
+
+        # Build response with pagination metadata and filter options
         return Response({
             'results': submissions_data,
             'count': paginated_data['total_count'],
             'next': f"?page={page + 1}" if paginated_data['has_next'] else None,
             'previous': f"?page={page - 1}" if paginated_data['has_previous'] else None,
             'total_pages': paginated_data['total_pages'],
-            'current_page': paginated_data['current_page']
+            'current_page': paginated_data['current_page'],
+            'filters': filter_metadata
         })
 
     def post(self, request):
@@ -506,14 +517,16 @@ class AdminSubmissionListView(APIView):
                         'type': ha.hint.hint_type,  # No extra query - hint is prefetched!
                         'trigger': ha.trigger_type,
                         'time': ha.activated_at.isoformat(),
-                        'duration_seconds': ha.viewed_duration_seconds
+                        'order': ha.activation_order,
+                        'duration_seconds': ha.viewed_duration_seconds,
+                        'helpful': ha.was_helpful
                     })
 
                 # Get user progress for this problem/problem_set/course context
                 user_progress = None
-                if hasattr(submission.user, 'all_progress'):
+                if hasattr(submission.user, 'userprogress_set'):
                     # Find matching progress from prefetched data
-                    for prog in submission.user.all_progress:
+                    for prog in submission.user.userprogress_set.all():
                         if (prog.problem_id == submission.problem_id and
                             prog.problem_set_id == submission.problem_set_id and
                             prog.course_id == submission.course_id):

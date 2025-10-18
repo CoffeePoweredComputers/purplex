@@ -54,6 +54,7 @@ docker==7.1.0
 
 # Production Server
 gunicorn==21.2.0
+gevent==23.9.1  # Required for gunicorn gevent workers (async support for SSE + code execution)
 
 # API Authentication
 djangorestframework-simplejwt==5.3.1
