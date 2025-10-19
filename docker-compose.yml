@@ -11,6 +11,20 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=1GB
+      -c effective_cache_size=3GB
+      -c maintenance_work_mem=256MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=5242kB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -26,11 +40,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.8'  # Reduced to fit 2-CPU machine
-          memory: 2G   # Reduced to fit available memory
+          cpus: '1.5'  # Optimized for 8-CPU machine, 50 concurrent users
+          memory: 4G   # Increased for better query performance
         reservations:
-          cpus: '0.5'
-          memory: 512M
+          cpus: '0.75'
+          memory: 2G
     restart: unless-stopped
 
   # PostgreSQL Database - Development
@@ -77,11 +91,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.3'  # Reduced to fit 2-CPU machine
-          memory: 512M
+          cpus: '0.3'  # Sufficient for cache/broker operations
+          memory: 2560M  # Match maxmemory setting for better performance
         reservations:
           cpus: '0.1'
-          memory: 128M
+          memory: 512M
     restart: unless-stopped
 
   # Redis Cache & Message Broker - Development
@@ -110,7 +124,7 @@ services:
     image: purplex_web:latest
     profiles:
       - production
-    command: gunicorn purplex.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-4}
+    command: gunicorn purplex.wsgi:application --config /app/config/gunicorn/gunicorn.py
     volumes:
       - ./staticfiles:/app/staticfiles
       - ./media:/app/media
@@ -142,11 +156,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.6'  # Reduced to fit 2-CPU machine
-          memory: 1G
+          cpus: '2.5'  # Optimized for 50 concurrent users with gevent workers
+          memory: 3584M  # ~3.5GB for handling concurrent requests
         reservations:
-          cpus: '0.3'
-          memory: 512M
+          cpus: '1.5'
+          memory: 2G
     restart: unless-stopped
 
   # Django Web Application - Development
@@ -220,11 +234,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.2'  # Reduced to fit 2-CPU machine
-          memory: 256M
+          cpus: '0.2'  # Nginx is lightweight, minimal resources needed
+          memory: 512M  # Increased for connection buffering
         reservations:
           cpus: '0.1'
-          memory: 64M
+          memory: 128M
 
   # Certbot - SSL Certificate Management - Production only
   certbot:
@@ -273,11 +287,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.6'  # Reduced to fit 2-CPU machine
-          memory: 1G
+          cpus: '3.5'  # Optimized for 16 concurrent AI workers (EiPL is CPU-intensive)
+          memory: 4608M  # ~4.5GB for AI operations and code execution
         reservations:
-          cpus: '0.3'
-          memory: 512M
+          cpus: '2.0'
+          memory: 3G
     restart: unless-stopped
 
   # Celery Beat - Production (Periodic Tasks)
@@ -302,6 +316,14 @@ services:
         condition: service_healthy
       redis-prod:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'  # Minimal CPU for scheduler (periodic task management only)
+          memory: 256M  # Small memory footprint for beat scheduler
+        reservations:
+          cpus: '0.05'
+          memory: 128M
     restart: unless-stopped
 
   # Celery Worker - Development
