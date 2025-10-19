@@ -259,7 +259,7 @@ services:
     build: .
     profiles:
       - production
-    command: celery -A purplex.celery_simple worker -l info --concurrency=${CELERY_WORKERS:-12}
+    command: celery -A purplex.celery_simple worker -l info --pool=gevent --concurrency=${CELERY_WORKERS:-100}
     volumes:
       - ./media:/app/media
       - ./logs:/app/logs
@@ -287,7 +287,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '3.5'  # Optimized for 16 concurrent AI workers (EiPL is CPU-intensive)
+          cpus: '3.4'  # Fixed CPU over-allocation (total now 8.0 cores exactly)
           memory: 4608M  # ~4.5GB for AI operations and code execution
         reservations:
           cpus: '2.0'

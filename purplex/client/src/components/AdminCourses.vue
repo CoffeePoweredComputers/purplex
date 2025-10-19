@@ -159,7 +159,31 @@
               required
             >
           </div>
-          
+
+          <div class="form-group">
+            <label for="instructor">Instructor *</label>
+            <select
+              id="instructor"
+              v-model="courseForm.instructor_id"
+              required
+            >
+              <option
+                :value="null"
+                disabled
+              >
+                Select an instructor...
+              </option>
+              <option
+                v-for="instructor in instructors"
+                :key="instructor.id"
+                :value="instructor.id"
+              >
+                {{ instructor.full_name }} ({{ instructor.username }})
+              </option>
+            </select>
+            <small>Select the primary instructor for this course</small>
+          </div>
+
           <div class="form-group">
             <label for="course-description">Description</label>
             <textarea
@@ -241,8 +265,17 @@ interface CourseForm {
   course_id: string;
   name: string;
   description: string;
+  instructor_id: number | null;
   is_active: boolean;
   enrollment_open: boolean;
+}
+
+interface Instructor {
+  id: number;
+  username: string;
+  email: string;
+  full_name: string;
+  is_staff: boolean;
 }
 
 export default defineComponent({
@@ -257,6 +290,7 @@ export default defineComponent({
     
     // Data
     const courses: Ref<Course[]> = ref([])
+    const instructors: Ref<Instructor[]> = ref([])
     const loading = ref(true)
     const saving = ref(false)
     const showCreateModal = ref(false)
@@ -264,11 +298,12 @@ export default defineComponent({
     const showProblemSetsModal = ref(false)
     const showStudentsModal = ref(false)
     const selectedCourse: Ref<Course | null> = ref(null)
-    
+
     const courseForm: Ref<CourseForm> = ref({
       course_id: '',
       name: '',
       description: '',
+      instructor_id: null,
       is_active: true,
       enrollment_open: true
     })
@@ -285,6 +320,17 @@ export default defineComponent({
         log.error('Error fetching courses', { error: axiosError })
       } finally {
         loading.value = false
+      }
+    }
+
+    const fetchInstructors = async (): Promise<void> => {
+      try {
+        const response = await axios.get('/api/admin/instructors/')
+        instructors.value = response.data
+      } catch (error) {
+        const axiosError = error as AxiosError
+        notify.error('Error', 'Failed to load instructors')
+        log.error('Error fetching instructors', { error: axiosError })
       }
     }
     
@@ -317,6 +363,7 @@ export default defineComponent({
         course_id: course.course_id,
         name: course.name,
         description: course.description || '',
+        instructor_id: course.instructor_id,
         is_active: course.is_active,
         enrollment_open: course.enrollment_open
       }
@@ -359,6 +406,7 @@ export default defineComponent({
         course_id: '',
         name: '',
         description: '',
+        instructor_id: null,
         is_active: true,
         enrollment_open: true
       }
@@ -367,10 +415,12 @@ export default defineComponent({
     // Lifecycle
     onMounted(() => {
       fetchCourses()
+      fetchInstructors()
     })
-    
+
     return {
       courses,
+      instructors,
       loading,
       saving,
       showCreateModal,
@@ -380,6 +430,7 @@ export default defineComponent({
       selectedCourse,
       courseForm,
       fetchCourses,
+      fetchInstructors,
       saveCourse,
       editCourse,
       deleteCourse,
@@ -678,7 +729,8 @@ export default defineComponent({
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
@@ -690,7 +742,8 @@ export default defineComponent({
 }
 
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);

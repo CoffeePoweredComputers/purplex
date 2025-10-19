@@ -313,50 +313,19 @@ class UserProblemSetProgress(models.Model):
     
     @classmethod
     def update_from_progress(cls, user_progress):
-        """Update problem set progress when individual problem progress changes with locking"""
-        from django.db import IntegrityError
+        """
+        Update problem set progress when individual problem progress changes.
 
-        # CRITICAL: Use row-level locking to prevent race conditions
-        # Multiple concurrent submissions to different problems in same set need coordination
-        try:
-            # Try to get existing progress with lock
-            set_progress = cls.objects.select_for_update().filter(
-                user=user_progress.user,
-                problem_set=user_progress.problem_set,
-                course=user_progress.course
-            ).first()
-
-            if not set_progress:
-                # Create new record if doesn't exist
-                try:
-                    set_progress = cls.objects.create(
-                        user=user_progress.user,
-                        problem_set=user_progress.problem_set,
-                        course=user_progress.course
-                    )
-                except IntegrityError:
-                    # Race condition: retry with lock
-                    set_progress = cls.objects.select_for_update().get(
-                        user=user_progress.user,
-                        problem_set=user_progress.problem_set,
-                        course=user_progress.course
-                    )
-        except Exception:
-            # Fallback to non-locking get_or_create if locking fails
-            set_progress, _ = cls.objects.get_or_create(
-                user=user_progress.user,
-                problem_set=user_progress.problem_set,
-                course=user_progress.course
-            )
-        
-        # Recalculate aggregates for this specific problem set and course
-        problem_progresses = UserProgress.objects.filter(
+        LOCK-FREE: Uses atomic update_or_create() to avoid blocking greenlets.
+        Independent grading operations don't need coordination - each recalculates
+        from source of truth (UserProgress table).
+        """
+        # Recalculate aggregates from UserProgress (source of truth)
+        stats = UserProgress.objects.filter(
             user=user_progress.user,
             problem_set=user_progress.problem_set,
             course=user_progress.course
-        )
-        
-        stats = problem_progresses.aggregate(
+        ).aggregate(
             total=Count('id'),
             completed=Count('id', filter=Q(is_completed=True)),
             in_progress=Count('id', filter=Q(status='in_progress')),
@@ -364,26 +333,37 @@ class UserProblemSetProgress(models.Model):
             first_attempt=Min('first_attempt'),
             last_activity=Max('last_attempt')
         )
-        
-        set_progress.total_problems = user_progress.problem_set.problems.count()
-        set_progress.completed_problems = stats['completed'] or 0
-        set_progress.in_progress_problems = stats['in_progress'] or 0
-        set_progress.average_score = stats['avg_score'] or 0
-        set_progress.first_attempt = stats['first_attempt']
-        set_progress.last_activity = stats['last_activity']
-        
-        set_progress.completion_percentage = int(
-            (set_progress.completed_problems / set_progress.total_problems * 100)
-            if set_progress.total_problems > 0 else 0
+
+        # Calculate completion metrics
+        total_problems = user_progress.problem_set.problems.count()
+        completed = stats['completed'] or 0
+        completion_pct = int((completed / total_problems * 100) if total_problems > 0 else 0)
+        is_completed = (completed == total_problems) if total_problems > 0 else False
+
+        # Atomic update_or_create with all fields in defaults
+        # This is a single atomic operation - no locks needed
+        set_progress, created = cls.objects.update_or_create(
+            user=user_progress.user,
+            problem_set=user_progress.problem_set,
+            course=user_progress.course,
+            defaults={
+                'total_problems': total_problems,
+                'completed_problems': completed,
+                'in_progress_problems': stats['in_progress'] or 0,
+                'average_score': stats['avg_score'] or 0,
+                'first_attempt': stats['first_attempt'],
+                'last_activity': stats['last_activity'],
+                'completion_percentage': completion_pct,
+                'is_completed': is_completed,
+                # Preserve existing completed_at value - will be set below if needed
+                'completed_at': models.F('completed_at')
+            }
         )
-        set_progress.is_completed = (
-            set_progress.completed_problems == set_progress.total_problems
-        )
-        
-        if set_progress.is_completed and not set_progress.completed_at:
+
+        # If just became completed and completed_at wasn't set, update it
+        if is_completed and not created and not set_progress.completed_at:
             set_progress.completed_at = timezone.now()
-        
-        set_progress.save()
+            set_progress.save(update_fields=['completed_at'])
     
     def __str__(self):
         return f"{self.user.username} - {self.problem_set.title} ({self.completion_percentage}%)"

@@ -51,8 +51,8 @@ CODE_EXECUTION = {
         'open', 'file', 'input', 'raw_input',
         'globals', 'locals', 'vars', 'dir',
         'getattr', 'setattr', 'delattr', 'hasattr',  # Prevent attribute access bypasses
-        'chr', 'ord', 'hex', 'oct', 'bin',  # Prevent character encoding bypasses
-        'bytes', 'bytearray', 'memoryview',  # Prevent byte manipulation
+        # Removed: chr, ord, hex, oct, bin - these are legitimate for string/number conversion problems
+        # Removed: bytes, bytearray, memoryview - legitimate for byte manipulation problems
     ],
     
     # Logging

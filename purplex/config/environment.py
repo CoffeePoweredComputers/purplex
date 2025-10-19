@@ -500,8 +500,9 @@ class Config:
     def docker_pool_size(self) -> int:
         """Docker container pool size - environment specific"""
         # Development: Small pool (3) - faster startup, less memory
-        # Production: Larger pool (15) - handles concurrent users
-        default = 3 if self.is_development else 15
+        # Production: Larger pool (30) - handles 50+ concurrent users during beta
+        # Each EiPL submission tests 5 variations, so 30 containers = 6 concurrent EiPL submissions
+        default = 3 if self.is_development else 30
         return self.get_int('DOCKER_POOL_SIZE', default)
     
     # =====================================================================

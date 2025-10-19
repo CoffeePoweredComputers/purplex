@@ -42,6 +42,11 @@ async function initializeAuthFunctions() {
     createUserWithEmailAndPassword = authModule.createUserWithEmailAndPassword;
     if (!provider) {
       provider = new authModule.GoogleAuthProvider();
+      // Configure for third-party cookie blocking compatibility
+      provider.setCustomParameters({
+        prompt: 'select_account',
+        access_type: 'online',
+      });
     }
   }
 }
@@ -132,7 +137,55 @@ export const auth: Module<AuthState, any> = {
       // Ensure Firebase is initialized
       await initializeAuthFunctions();
 
-      // Check existing auth state (popup-based auth doesn't need redirect result checking)
+      // Check for pending redirect result (from Google redirect sign-in)
+      const pendingRedirect = sessionStorage.getItem('pendingGoogleRedirect');
+      if (pendingRedirect === 'true' && getRedirectResult) {
+        try {
+          log.info('Checking for redirect authentication result...');
+          const result = await getRedirectResult(firebaseAuth);
+
+          if (result && result.user) {
+            log.info('Redirect authentication successful', { email: result.user.email });
+            sessionStorage.removeItem('pendingGoogleRedirect');
+
+            // Get user role from backend
+            try {
+              const response = await axios.get<UserMeResponse>('/api/user/me/');
+              const userData: User = {
+                uid: result.user.uid,
+                email: result.user.email!,
+                displayName: result.user.displayName || undefined,
+                role: response.data.role as User['role'],
+                isAdmin: response.data.is_admin
+              };
+              commit('loginSuccess', userData);
+            } catch (error) {
+              log.warn('Failed to fetch user role after redirect, using defaults', error);
+              const userData: User = {
+                uid: result.user.uid,
+                email: result.user.email!,
+                displayName: result.user.displayName || undefined,
+                role: 'user',
+                isAdmin: false
+              };
+              commit('loginSuccess', userData);
+            }
+
+            commit('setAuthReady', true);
+            return;
+          } else {
+            // No redirect result found
+            log.info('No redirect result found');
+            sessionStorage.removeItem('pendingGoogleRedirect');
+          }
+        } catch (error: any) {
+          log.error('Error processing redirect result', error);
+          sessionStorage.removeItem('pendingGoogleRedirect');
+          // Redirect errors will be shown on the login page if user is not authenticated
+        }
+      }
+
+      // Check existing auth state
       if (firebaseAuth && firebaseAuth.currentUser) {
         try {
           // Get user role from backend
@@ -240,14 +293,36 @@ export const auth: Module<AuthState, any> = {
       }
     },
 
-    async loginWithGoogle({ commit }: AuthActionContext): Promise<void> {
+    async loginWithGoogle({ commit, dispatch }: AuthActionContext, options: { useRedirect?: boolean, timeoutMs?: number } = {}): Promise<void> {
       // Ensure Firebase is initialized
       await initializeAuthFunctions();
 
+      const useRedirect = options.useRedirect || false;
+      const timeoutMs = options.timeoutMs || 15000; // 15 second timeout (reduced from 30s)
+
+      // If redirect mode explicitly requested, use it directly
+      if (useRedirect) {
+        log.info('Using redirect-based Google sign-in (explicit)');
+        return dispatch('loginWithGoogleRedirect');
+      }
+
+      // Track when popup auth started
+      const startTime = Date.now();
+
       try {
-        // Use popup for Google sign-in
-        log.info('Initiating Google sign-in popup...');
-        const result = await signInWithPopup(firebaseAuth, provider);
+        // Use popup for Google sign-in with timeout
+        log.info('Initiating Google sign-in popup with timeout...', { timeoutMs });
+
+        // Create a timeout promise that rejects after timeoutMs
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject({ code: 'auth/popup-timeout', message: 'Sign-in popup timed out' }), timeoutMs);
+        });
+
+        // Race between the popup and timeout
+        const result = await Promise.race([
+          signInWithPopup(firebaseAuth, provider),
+          timeoutPromise
+        ]) as any;
 
         if (result && result.user) {
           log.info('Google sign-in successful', { email: result.user.email });
@@ -279,14 +354,76 @@ export const auth: Module<AuthState, any> = {
       } catch (error: any) {
         log.error('Google sign-in popup failed', error);
 
+        // Calculate how long the popup was open
+        const elapsedTime = Date.now() - startTime;
+
+        // Handle popup timeout - automatically fallback to redirect
+        if (error.code === 'auth/popup-timeout') {
+          log.warn('Popup timed out, falling back to redirect mode');
+          throw {
+            code: 'auth/popup-timeout-redirect',
+            message: 'Connection slow - please try again with redirect mode',
+            num: 408,
+            shouldUseRedirect: true
+          } as AuthError & { shouldUseRedirect: boolean };
+        }
+
         // Handle popup blocked or closed
         if (error.code === 'auth/popup-closed-by-user') {
+          // If popup "closed" in less than 2 seconds, it's likely a third-party cookie issue
+          // NOT the user actually closing it
+          if (elapsedTime < 2000) {
+            log.warn('Popup closed instantly - likely third-party cookie blocking', { elapsedTime });
+            throw {
+              code: 'auth/cookies-blocked',
+              message: 'Browser is blocking authentication cookies. Please try redirect mode or check your browser privacy settings.',
+              num: 403,
+              shouldUseRedirect: true
+            } as AuthError & { shouldUseRedirect: boolean };
+          }
+          // User actually closed the popup
           throw { code: 'auth/popup-closed', message: 'Sign-in popup was closed', num: 401 } as AuthError;
         } else if (error.code === 'auth/popup-blocked') {
-          throw { code: 'auth/popup-blocked', message: 'Sign-in popup was blocked by browser', num: 401 } as AuthError;
+          throw {
+            code: 'auth/popup-blocked',
+            message: 'Sign-in popup was blocked - please allow popups or try redirect mode',
+            num: 401,
+            shouldUseRedirect: true
+          } as AuthError & { shouldUseRedirect: boolean };
+        }
+
+        // Handle network errors - suggest redirect
+        if (error.code === 'auth/network-request-failed') {
+          throw {
+            code: 'auth/network-error',
+            message: 'Network error - please check your connection or try redirect mode',
+            num: 503,
+            shouldUseRedirect: true
+          } as AuthError & { shouldUseRedirect: boolean };
         }
 
         throw { code: 'auth/google-login-failed', message: 'Unable to login with Google', num: 401 } as AuthError;
+      }
+    },
+
+    async loginWithGoogleRedirect({ commit }: AuthActionContext): Promise<void> {
+      // Ensure Firebase is initialized
+      await initializeAuthFunctions();
+
+      try {
+        log.info('Initiating Google sign-in redirect...');
+
+        // Store a flag so we know we're expecting a redirect result
+        sessionStorage.setItem('pendingGoogleRedirect', 'true');
+
+        // This will redirect away from the page
+        await signInWithRedirect(firebaseAuth, provider);
+
+        // Code after this won't execute because we've redirected
+      } catch (error: any) {
+        log.error('Google sign-in redirect failed', error);
+        sessionStorage.removeItem('pendingGoogleRedirect');
+        throw { code: 'auth/redirect-failed', message: 'Unable to initiate redirect login', num: 500 } as AuthError;
       }
     },
 

@@ -1,6 +1,5 @@
-"""AI-powered code generation service with async support."""
+"""AI-powered code generation service."""
 import logging
-import asyncio
 from typing import Dict, Any
 from django.conf import settings
 
@@ -9,75 +8,73 @@ logger = logging.getLogger(__name__)
 
 class AITestGenerationService:
     """
-    Service for generating test cases using AI with async support.
+    Service for generating test cases using AI.
 
     Supports both Llama and OpenAI providers via configuration.
     Provider is selected via AI_PROVIDER setting ('llama' or 'openai').
     Fails immediately if the configured provider is unavailable - no fallback.
+
+    Uses synchronous clients for compatibility with gevent workers in production.
+    Gevent handles I/O concurrency naturally without requiring async/await.
     """
 
     def __init__(self):
         # Determine which provider to use
         self.provider = getattr(settings, 'AI_PROVIDER', 'openai').lower()
 
-        # Initialize OpenAI
+        # Initialize OpenAI (sync client only)
         self.openai_api_key = getattr(settings, 'OPENAI_API_KEY', None)
         self.openai_model = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
         if self.openai_api_key:
             import openai
             self.openai_client = openai.OpenAI(api_key=self.openai_api_key)
-            self.openai_async_client = openai.AsyncOpenAI(api_key=self.openai_api_key)
         else:
             self.openai_client = None
-            self.openai_async_client = None
 
-        # Initialize Llama
+        # Initialize Llama (sync client only)
         self.llama_api_key = getattr(settings, 'LLAMA_API_KEY', None)
         self.llama_model = getattr(settings, 'LLAMA_MODEL', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8')
         if self.llama_api_key:
             try:
-                from llama_api_client import LlamaAPIClient, AsyncLlamaAPIClient
+                from llama_api_client import LlamaAPIClient
                 self.llama_client = LlamaAPIClient(api_key=self.llama_api_key)
-                self.llama_async_client = AsyncLlamaAPIClient(api_key=self.llama_api_key)
             except ImportError:
                 logger.warning("llama-api-client not installed, Llama provider unavailable")
                 self.llama_client = None
-                self.llama_async_client = None
         else:
             self.llama_client = None
-            self.llama_async_client = None
 
-        # Select active clients based on provider setting
+        # Select active client based on provider setting
         self._select_clients()
 
     def _select_clients(self):
         """Select which client to use based on configuration"""
         if self.provider == 'llama' and self.llama_client:
             self.client = self.llama_client
-            self.async_client = self.llama_async_client
             self.model_name = self.llama_model
             logger.info(f"✅ Using Llama API provider (model: {self.llama_model})")
         elif self.provider == 'openai' and self.openai_client:
             self.client = self.openai_client
-            self.async_client = self.openai_async_client
             self.model_name = self.openai_model
             logger.info(f"✅ Using OpenAI API provider (model: {self.openai_model})")
         else:
             # Fallback or no provider available
             self.client = None
-            self.async_client = None
             self.model_name = None
             logger.warning(f"⚠️  No valid AI provider configured (provider={self.provider})")
 
-    async def _call_ai_async(self, messages, max_tokens=2000, temperature=0):
+    def _call_ai(self, messages, max_tokens=2000, temperature=0):
         """
-        Unified async AI call that handles both Llama and OpenAI APIs.
+        Unified synchronous AI call that handles both Llama and OpenAI APIs.
         Raises exception immediately on failure - no fallback.
+
+        Uses sync clients for compatibility with gevent workers.
+        Gevent automatically handles I/O concurrency via monkey patching.
         """
         try:
             if self.provider == 'llama':
                 # Llama API call (max_tokens not supported in llama-api-client 0.1.0)
-                response = await self.async_client.chat.completions.create(
+                response = self.client.chat.completions.create(
                     model=self.model_name,
                     messages=messages,
                     temperature=temperature
@@ -88,7 +85,7 @@ class AITestGenerationService:
             else:  # openai
                 # OpenAI API call with fallback for max_tokens parameter
                 try:
-                    response = await self.async_client.chat.completions.create(
+                    response = self.client.chat.completions.create(
                         model=self.model_name,
                         messages=messages,
                         max_tokens=max_tokens,
@@ -97,7 +94,7 @@ class AITestGenerationService:
                 except TypeError as e:
                     # If max_tokens is not accepted, try max_completion_tokens
                     if "max_tokens" in str(e):
-                        response = await self.async_client.chat.completions.create(
+                        response = self.client.chat.completions.create(
                             model=self.model_name,
                             messages=messages,
                             max_completion_tokens=max_tokens,
@@ -115,13 +112,13 @@ class AITestGenerationService:
             logger.error(f"❌ {self.provider.upper()} API call failed: {str(e)}")
             raise  # Fail immediately - no fallback
 
-    async def _generate_eipl_variations_async(self, problem, user_prompt: str) -> Dict[str, Any]:
+    def _generate_eipl_variations(self, problem, user_prompt: str) -> Dict[str, Any]:
         """
-        ASYNC version: Generate code variations for EiPL problems.
-        PERFORMANCE: Async I/O allows other tasks to run during AI API wait.
+        Generate code variations for EiPL problems.
+        Uses synchronous client - gevent handles I/O concurrency automatically.
         Supports both Llama and OpenAI providers.
         """
-        if not self.async_client:
+        if not self.client:
             return {
                 'success': False,
                 'error': f'No AI provider configured (provider={self.provider})',
@@ -171,9 +168,8 @@ def {problem.function_name}(...):
                 {"role": "user", "content": user_prompt}
             ]
 
-            # PERFORMANCE: Async API call allows Celery to handle other tasks while waiting
-            # Uses unified wrapper that handles both Llama and OpenAI
-            content = await self._call_ai_async(
+            # Make synchronous API call - gevent yields during I/O automatically
+            content = self._call_ai(
                 messages=messages,
                 max_tokens=2000,
                 temperature=0
@@ -217,18 +213,10 @@ def {problem.function_name}(...):
 
     def generate_eipl_variations(self, problem, user_prompt: str) -> Dict[str, Any]:
         """
-        Synchronous wrapper around async generation for backward compatibility.
-        PERFORMANCE: Uses asyncio.run() to execute async code in sync context.
+        Public entry point for EiPL variation generation.
+
+        Directly calls the synchronous implementation - no event loop complexity needed.
+        Works seamlessly with both gevent (production) and prefork (development) workers.
+        Gevent automatically handles I/O concurrency via monkey patching.
         """
-        try:
-            # Run the async function in a new event loop
-            return asyncio.run(self._generate_eipl_variations_async(problem, user_prompt))
-        except Exception as e:
-            logger.error(f"Failed to run async EIPL generation: {str(e)}")
-            return {
-                'success': False,
-                'error': str(e),
-                'variations': [],
-                'model': self.model_name,
-                'provider': self.provider
-            }
+        return self._generate_eipl_variations(problem, user_prompt)

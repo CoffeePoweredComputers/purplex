@@ -293,10 +293,10 @@ class CourseProblemSetSerializer(serializers.ModelSerializer):
 
 class CourseListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for listing courses"""
-    instructor_name = serializers.CharField(source='instructor.get_full_name', read_only=True)
-    problem_sets_count = serializers.IntegerField(source='problem_sets.count', read_only=True)
-    enrolled_students_count = serializers.IntegerField(source='enrollments.filter(is_active=True).count', read_only=True)
-    
+    instructor_name = serializers.SerializerMethodField()
+    problem_sets_count = serializers.IntegerField(read_only=True)
+    enrolled_students_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Course
         fields = [
@@ -304,6 +304,10 @@ class CourseListSerializer(serializers.ModelSerializer):
             'instructor_name', 'problem_sets_count', 'enrolled_students_count',
             'is_active', 'enrollment_open', 'created_at'
         ]
+
+    def get_instructor_name(self, obj):
+        """Get instructor's full name or username"""
+        return obj.instructor.get_full_name() or obj.instructor.username
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):
@@ -341,16 +345,17 @@ class CourseDetailSerializer(serializers.ModelSerializer):
 
 class CourseCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating courses"""
+    instructor_id = serializers.IntegerField(write_only=True, required=False)
     problem_set_ids = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
         required=False
     )
-    
+
     class Meta:
         model = Course
         fields = [
-            'course_id', 'name', 'description',
+            'course_id', 'name', 'description', 'instructor_id',
             'is_active', 'enrollment_open', 'problem_set_ids'
         ]
     

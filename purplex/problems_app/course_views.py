@@ -19,19 +19,45 @@ logger = logging.getLogger(__name__)
 
 
 # Admin-Only Course Management
+class AdminInstructorsListView(APIView):
+    """Admin endpoint for listing users who can be instructors"""
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        """List all users who can be assigned as instructors"""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        # Get all active users (admins and instructors)
+        users = User.objects.filter(is_active=True).order_by('username')
+
+        user_list = [
+            {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'full_name': user.get_full_name() or user.username,
+                'is_staff': user.is_staff,
+            }
+            for user in users
+        ]
+
+        return Response(user_list)
+
+
 class AdminCourseListCreateView(APIView):
     """Admin endpoint for listing and creating courses"""
     permission_classes = [IsAdmin]
-    
+
     def get(self, request):
         """List all courses (including deleted for admins)"""
         active_only = request.query_params.get('active_only') == 'true'
-        
+
         if active_only:
             courses = CourseService.get_active_courses_with_stats()
         else:
             courses = CourseService.get_all_courses_with_stats()
-        
+
         serializer = CourseListSerializer(courses, many=True)
         return Response(serializer.data)
     
@@ -39,9 +65,24 @@ class AdminCourseListCreateView(APIView):
         """Create a new course"""
         serializer = CourseCreateUpdateSerializer(data=request.data)
         if serializer.is_valid():
+            # Get instructor from instructor_id or default to current user
+            instructor_id = serializer.validated_data.pop('instructor_id', None)
+            if instructor_id:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                try:
+                    instructor = User.objects.get(id=instructor_id)
+                except User.DoesNotExist:
+                    return Response(
+                        {'error': 'Instructor not found'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                instructor = request.user
+
             # Use service layer to create course
             course = CourseService.create_course(
-                instructor=request.user,
+                instructor=instructor,
                 **serializer.validated_data
             )
             return Response(
@@ -72,12 +113,26 @@ class AdminCourseDetailView(APIView):
         course = CourseService.get_course_by_id(course_id, require_active=False)
         if not course:
             return Response(
-                {'error': 'Course not found'}, 
+                {'error': 'Course not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         serializer = CourseCreateUpdateSerializer(course, data=request.data, partial=True)
         if serializer.is_valid():
+            # Handle instructor update if provided
+            instructor_id = serializer.validated_data.pop('instructor_id', None)
+            if instructor_id:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                try:
+                    instructor = User.objects.get(id=instructor_id)
+                    serializer.validated_data['instructor'] = instructor
+                except User.DoesNotExist:
+                    return Response(
+                        {'error': 'Instructor not found'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
             updated_course = CourseService.update_course(course, **serializer.validated_data)
             return Response(CourseDetailSerializer(updated_course).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

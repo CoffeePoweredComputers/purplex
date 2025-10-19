@@ -161,6 +161,9 @@ class ProgressEngine:
         from django.db import IntegrityError, DatabaseError
         import time
 
+        # Initialize created flag to prevent UnboundLocalError
+        created = False
+
         # CRITICAL: Use row-level locking to prevent race conditions at scale
         # This prevents lost updates when multiple concurrent submissions occur
         try:

@@ -459,6 +459,15 @@ export interface SubmissionHistoryItem {
   is_best: boolean;
   variations_count: number;
   comprehension_level: string | null;
+  segmentation?: {
+    segment_count: number;
+    comprehension_level: string;
+    confidence_score: number;
+    feedback_message: string;
+    suggested_improvements: string[];
+    segments: unknown;
+    code_mappings: unknown;
+  };
   data: {
     raw_input: string;
     processed_code: string;
@@ -468,6 +477,14 @@ export interface SubmissionHistoryItem {
       passed_all_tests: boolean;
       tests_passed: number;
       total_tests: number;
+      test_results: Array<{
+        test_case_id: number;
+        passed: boolean;
+        expected: string;
+        actual: string;
+        error_message: string;
+        inputs: string;
+      }>;
     }>;
     test_results: Array<{
       test_case_id: number;
@@ -496,12 +513,19 @@ export interface SubmissionHistoryResponse {
 
 // ===== COURSE TYPES =====
 export interface Course {
+  id: number;
   course_id: string;
   name: string;
   description: string;
-  instructor_name?: string;
+  instructor_id: number;
+  instructor_name: string;
+  is_active: boolean;
+  enrollment_open: boolean;
+  problem_sets_count: number;
+  enrolled_students_count: number;
+  enrollment_code?: string;
   problem_sets?: CourseProblemSet[];
-  created_at?: string;
+  created_at: string;
   updated_at?: string;
 }
 

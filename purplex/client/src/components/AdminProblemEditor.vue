@@ -274,8 +274,8 @@
           v-if="ui.loading"
           class="test-loading-overlay"
         >
-          <div class="loading-spinner">
-            <div class="spinner" />
+          <div class="loading-spinner-container">
+            <div class="spinner"></div>
             <div class="loading-text">
               Running tests...
             </div>
@@ -3906,27 +3906,34 @@ export default defineComponent({
   border-radius: var(--radius-lg);
 }
 
-.loading-spinner {
-  text-align: center;
+.test-loading-overlay .loading-spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
 }
 
-.spinner {
+.test-loading-overlay .spinner {
   width: 50px;
   height: 50px;
   border: 4px solid rgba(255, 255, 255, 0.2);
   border-top-color: var(--color-primary-gradient-start);
   border-radius: 50%;
-  animation: spin 1s ease-in-out infinite;
-  margin: 0 auto var(--spacing-md);
+  animation: admin-test-spinner-rotate 1s linear infinite;
+  flex-shrink: 0;
 }
 
-@keyframes spin {
-  to {
+@keyframes admin-test-spinner-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
     transform: rotate(360deg);
   }
 }
 
-.loading-text {
+.test-loading-overlay .loading-text {
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
   font-weight: 600;

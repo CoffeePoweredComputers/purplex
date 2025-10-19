@@ -37,7 +37,7 @@ FROM backend
 COPY --from=frontend /app/dist /app/purplex/client/dist
 
 # Create necessary directories
-RUN mkdir -p staticfiles media logs
+RUN mkdir -p staticfiles media logs /var/run/gunicorn
 
 # Collect static files
 # Note: This may fail during build if Django needs database connection

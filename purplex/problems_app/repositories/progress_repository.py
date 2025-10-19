@@ -294,47 +294,6 @@ class ProgressRepository(BaseRepository):
         return deleted > 0
     
     @classmethod
-    def get_or_create_with_lock(cls, user_id: int, problem_id: int,
-                               problem_set_id: Optional[int] = None,
-                               course_id: Optional[int] = None) -> tuple:
-        """
-        Get or create user progress with row-level locking.
-        
-        This method uses select_for_update to prevent race conditions.
-        
-        Returns:
-            Tuple of (UserProgress, created)
-        """
-        return UserProgress.objects.select_for_update().get_or_create(
-            user_id=user_id,
-            problem_id=problem_id,
-            problem_set_id=problem_set_id,
-            course_id=course_id,
-            defaults={
-                'attempts': 0,
-                'best_score': 0,
-                'status': 'not_started'
-            }
-        )
-    
-    @classmethod
-    def get_with_lock(cls, user_id: int, problem_id: int,
-                     problem_set_id: Optional[int] = None,
-                     course_id: Optional[int] = None) -> Optional[UserProgress]:
-        """
-        Get user progress with row-level locking.
-        
-        Returns:
-            UserProgress instance or None
-        """
-        return UserProgress.objects.select_for_update().filter(
-            user_id=user_id,
-            problem_id=problem_id,
-            problem_set_id=problem_set_id,
-            course_id=course_id
-        ).first()
-    
-    @classmethod
     def get_by_ids(cls, user_id: int, problem_id: int,
                    problem_set_id: Optional[int] = None,
                    course_id: Optional[int] = None) -> Optional[UserProgress]:
@@ -374,25 +333,6 @@ class ProgressRepository(BaseRepository):
             filters['course_id'] = course_id
 
         return UserProgress.objects.filter(**filters)
-    
-    @classmethod
-    def get_or_create_problem_set_with_lock(cls, user_id: int, problem_set_id: int,
-                                           course_id: Optional[int] = None) -> tuple:
-        """
-        Get or create problem set progress with row-level locking.
-        
-        Returns:
-            Tuple of (UserProblemSetProgress, created)
-        """
-        return UserProblemSetProgress.objects.select_for_update().get_or_create(
-            user_id=user_id,
-            problem_set_id=problem_set_id,
-            course_id=course_id,
-            defaults={
-                'completed_problems': 0,
-                'average_score': 0.0
-            }
-        )
     
     @classmethod
     def filter_problem_set_by_ids(cls, user_id: int, problem_set_id: Optional[int] = None,

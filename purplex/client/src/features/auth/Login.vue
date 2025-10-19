@@ -54,20 +54,34 @@
         <button
           type="button"
           @click="login"
+          :disabled="isLoading"
         >
-          Login
+          <span v-if="isLoading">Logging in...</span>
+          <span v-else>Login</span>
         </button>
         <button
           type="button"
           @click="createAccount"
+          :disabled="isLoading"
         >
           New Account
         </button>
         <button
           type="button"
           @click="loginWithGoogle"
+          :disabled="isLoading"
         >
-          Login with Google
+          <span v-if="isLoading">Signing in...</span>
+          <span v-else>Login with Google</span>
+        </button>
+        <button
+          v-if="showRedirectOption"
+          type="button"
+          @click="loginWithGoogleRedirect"
+          :disabled="isLoading"
+          class="redirect-mode-btn"
+        >
+          Use Redirect Mode (Slower Connection)
         </button>
       </div>
 
@@ -76,6 +90,13 @@
         class="error-message"
       >
         {{ errorMessage }}
+      </div>
+
+      <div
+        v-if="showRedirectOption"
+        class="info-message"
+      >
+        Having trouble? Redirect mode works better with slow connections or strict network policies.
       </div>
     </form>
     </div>
@@ -92,12 +113,17 @@ export default {
     return {
       email: '',
       password: '',
-      errorMessage: ''
+      errorMessage: '',
+      isLoading: false,
+      showRedirectOption: false
     };
   },
   methods: {
       login: async function () {
         const { email, password } = this;
+        this.isLoading = true;
+        this.errorMessage = '';
+
         this.$store.dispatch('auth/login', { email, password })
           .then(() => {
             this.$router.push({ name: "Home" });
@@ -105,18 +131,39 @@ export default {
           .catch((error) => {
             const message = this.mapFirebaseErrorToMessage(error);
             this.displayErrorMessage(message);
+          })
+          .finally(() => {
+            this.isLoading = false;
           });
       },
-      loginWithGoogle: async function () {
-        const provider = new GoogleAuthProvider();
-        this.$store.dispatch('auth/loginWithGoogle', provider)
+      loginWithGoogle: async function (useRedirect = false) {
+        this.isLoading = true;
+        this.errorMessage = '';
+
+        this.$store.dispatch('auth/loginWithGoogle', { useRedirect })
           .then(() => {
             this.$router.push({ name: "Home" });
           })
           .catch((error) => {
-            const message = this.mapFirebaseErrorToMessage(error);
-            this.displayErrorMessage(message);
+            // Check if error suggests using redirect mode
+            if (error.shouldUseRedirect) {
+              this.showRedirectOption = true;
+              const message = this.mapFirebaseErrorToMessage(error);
+              this.displayErrorMessage(message);
+            } else {
+              const message = this.mapFirebaseErrorToMessage(error);
+              this.displayErrorMessage(message);
+            }
+          })
+          .finally(() => {
+            this.isLoading = false;
           });
+      },
+      loginWithGoogleRedirect: async function () {
+        // Explicitly use redirect mode
+        this.isLoading = true;
+        this.errorMessage = '';
+        await this.loginWithGoogle(true);
       },
       createAccount: async function () {
         const { email, password } = this;
@@ -146,6 +193,12 @@ export default {
           'auth/missing-fields': 'Please enter an email and password.',
           'auth/no-google-auth-in-debug': 'Google authentication is not available in debug mode.',
           'auth/registration-failed': 'Registration failed. Unable to register the new user.',
+          'auth/cookies-blocked': 'Your browser is blocking authentication cookies. Please use "Redirect Mode" below or adjust your privacy settings.',
+          'auth/popup-timeout-redirect': 'Connection is slow. Please try "Use Redirect Mode" below.',
+          'auth/popup-blocked': 'Popup was blocked. Please allow popups or use "Redirect Mode" below.',
+          'auth/network-error': 'Network connection issue detected. Please try "Use Redirect Mode" below.',
+          'auth/google-login-failed': 'Google login failed. Please try again or use redirect mode.',
+          'auth/redirect-failed': 'Unable to start redirect login. Please check your connection.',
         };
 
 
@@ -355,6 +408,34 @@ input::placeholder {
   content: "🌐";
 }
 
+.login-btns button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.login-btns button:disabled:hover {
+  transform: none !important;
+  box-shadow: var(--shadow-base) !important;
+}
+
+.redirect-mode-btn {
+  background: var(--color-bg-hover) !important;
+  color: var(--color-text-secondary) !important;
+  border: 1px dashed var(--color-bg-border) !important;
+  font-size: var(--font-size-sm) !important;
+}
+
+.redirect-mode-btn::before {
+  content: "🔄";
+}
+
+.redirect-mode-btn:hover {
+  background: var(--color-bg-input) !important;
+  border-color: var(--color-primary-gradient-start) !important;
+  color: var(--color-text-primary) !important;
+}
+
 .error-message {
   background: var(--color-error-bg);
   color: var(--color-error);
@@ -364,6 +445,17 @@ input::placeholder {
   font-size: var(--font-size-sm);
   border: 1px solid var(--color-error);
   animation: shake 0.5s ease-in-out;
+}
+
+.info-message {
+  background: rgba(102, 126, 234, 0.1);
+  color: var(--color-text-secondary);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-base);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  line-height: 1.5;
 }
 
 @keyframes shake {

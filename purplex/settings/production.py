@@ -50,7 +50,9 @@ WHITENOISE_COMPRESS_OFFLINE = True
 WHITENOISE_MANIFEST_STRICT = False
 
 # Database connection pooling
-DATABASES['default']['CONN_MAX_AGE'] = config.db_conn_max_age
+# IMPORTANT: Set to 0 for gevent workers to avoid thread safety issues
+# Gevent uses greenlets which are incompatible with persistent connections
+DATABASES['default']['CONN_MAX_AGE'] = 0  # Disable persistent connections for gevent
 DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 
 # Cache configuration for production (use Redis)
@@ -336,7 +338,7 @@ if os.environ.get('SENTRY_DSN'):
     )
 
 # Performance optimizations
-CONN_MAX_AGE = config.db_conn_max_age  # Database connection pooling
+# Note: CONN_MAX_AGE is set to 0 in DATABASES config for gevent compatibility
 ATOMIC_REQUESTS = True  # Wrap each request in a transaction
 
 # Celery production optimizations

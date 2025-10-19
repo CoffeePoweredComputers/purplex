@@ -26,91 +26,6 @@ class ProgressService:
     """Service for managing user progress with proper locking and caching."""
     
     @staticmethod
-    @transaction.atomic
-    def update_user_progress(
-        user_id: int,
-        problem_id: int,
-        submission: 'Submission',
-        problem_set_id: Optional[int] = None,
-        course_id: Optional[int] = None
-    ) -> 'UserProgress':
-        """
-        DEPRECATED: This method is no longer used.
-        Progress updates are now handled by ProgressEngine.process_submission()
-
-        Update user progress for a problem with row-level locking.
-
-        This method uses select_for_update to prevent race conditions when multiple
-        submissions are processed concurrently.
-        """
-        try:
-            # Get or create progress using repository with locking
-            progress, created = ProgressRepository.get_or_create_with_lock(
-                user_id=user_id,
-                problem_id=problem_id,
-                problem_set_id=problem_set_id,
-                course_id=course_id
-            )
-            
-            # Update progress metrics
-            progress.attempts = progress.attempts + 1
-            progress.last_attempt = datetime.now()
-            
-            # Update score if better
-            if submission.score > progress.best_score:
-                progress.best_score = submission.score
-
-            # Use GradingService to determine status (deprecated method - use ProgressEngine instead)
-            from purplex.submissions.grading_service import GradingService
-            grade = GradingService.calculate_grade(submission)
-
-            # Map grade to status
-            if grade == 'complete':
-                status = 'completed'
-            elif grade == 'partial' or grade == 'incomplete':
-                status = 'in_progress' if submission.score > 0 else 'not_started'
-            else:
-                status = 'not_started'
-
-            progress.status = status
-
-            # Update completion fields based on status
-            if status == 'completed':
-                progress.is_completed = True
-                progress.completion_percentage = 100
-                if not progress.completed_at:
-                    progress.completed_at = datetime.now()
-            elif status == 'in_progress':
-                progress.is_completed = False
-                # Use submission score for completion percentage if not completed
-                progress.completion_percentage = min(submission.score, 99)  # Cap at 99 if not fully complete
-            else:
-                progress.is_completed = False
-                progress.completion_percentage = 0
-            
-            progress.save()
-            
-            # Invalidate relevant caches
-            ProgressService._invalidate_progress_cache(user_id, problem_id, problem_set_id)
-            
-            # Update problem set progress if applicable
-            if problem_set_id:
-                ProgressService._update_problem_set_progress(
-                    user_id, problem_set_id, course_id
-                )
-            
-            logger.info(
-                f"Updated progress for user {user_id} on problem {problem_id}: "
-                f"attempts={progress.attempts}, best_score={progress.best_score}"
-            )
-            
-            return progress
-            
-        except Exception as e:
-            logger.error(f"Error updating user progress: {str(e)}")
-            raise
-    
-    @staticmethod
     def get_user_progress(
         user_id: int,
         problem_id: int,
@@ -135,44 +50,6 @@ class ProgressService:
             problem_set_id=problem_set_id,
             course_id=course_id
         )
-    
-    @staticmethod
-    @transaction.atomic
-    def bulk_update_progress(
-        user_id: int,
-        updates: List[Dict[str, Any]]
-    ) -> List['UserProgress']:
-        """
-        Bulk update multiple progress records with transaction safety.
-        
-        Args:
-            user_id: User ID
-            updates: List of dicts with problem_id, score, status, etc.
-        """
-        updated_progress = []
-        
-        for update in updates:
-            problem_id = update.get('problem_id')
-            if not problem_id:
-                continue
-                
-            progress = ProgressRepository.get_with_lock(
-                user_id=user_id,
-                problem_id=problem_id
-            )
-            
-            if progress:
-                for field, value in update.items():
-                    if field != 'problem_id' and hasattr(progress, field):
-                        setattr(progress, field, value)
-                progress.save()
-                updated_progress.append(progress)
-        
-        # Clear user's progress cache
-        cache_key = f'user_progress_all:{user_id}'
-        cache.delete(cache_key)
-        
-        return updated_progress
     
     @staticmethod
     def get_cached_progress(
@@ -430,53 +307,6 @@ class ProgressService:
                 'last_activity': progress.last_activity,
             })
         return course_data
-    
-    @staticmethod
-    @transaction.atomic
-    def _update_problem_set_progress(
-        user_id: int,
-        problem_set_id: int,
-        course_id: Optional[int] = None
-    ):
-        """Update problem set progress based on individual problem progress."""
-        try:
-            # Get or create problem set progress with locking
-            set_progress, _ = ProgressRepository.get_or_create_problem_set_with_lock(
-                user_id=user_id,
-                problem_set_id=problem_set_id,
-                course_id=course_id
-            )
-            
-            # Calculate aggregate metrics
-            problem_progress = ProgressRepository.get_problem_set_progress_aggregate(
-                user_id=user_id,
-                problem_set_id=problem_set_id,
-                course_id=course_id
-            )
-            
-            # Update set progress
-            set_progress.total_problems = problem_progress['total'] or 0
-            set_progress.completed_problems = problem_progress['completed'] or 0
-            set_progress.in_progress_problems = problem_progress['in_progress'] or 0
-            set_progress.average_score = problem_progress['avg_score'] or 0
-            
-            if set_progress.total_problems > 0:
-                set_progress.completion_percentage = int(
-                    (set_progress.completed_problems / set_progress.total_problems) * 100
-                )
-                set_progress.is_completed = (
-                    set_progress.completed_problems == set_progress.total_problems
-                )
-            
-            set_progress.last_activity = datetime.now()
-            set_progress.save()
-            
-            # Invalidate problem set cache
-            cache_key = f'user_progress:set:{problem_set_id}:{user_id}'
-            cache.delete(cache_key)
-            
-        except Exception as e:
-            logger.error(f"Error updating problem set progress: {str(e)}")
     
     @staticmethod
     def _invalidate_progress_cache(

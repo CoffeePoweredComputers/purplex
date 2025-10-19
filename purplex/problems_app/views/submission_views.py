@@ -10,7 +10,6 @@ from rest_framework.response import Response
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 
-from ..services.docker_execution_service import DockerExecutionService as CodeExecutionService
 from ..services.ai_generation_service import AITestGenerationService
 from ..services.submission_validation_service import SubmissionValidationService
 from purplex.submissions.services import SubmissionService  # Use new submission service
@@ -21,7 +20,7 @@ from ..services.progress_service import ProgressService
 from ..repositories import TestCaseRepository, ProblemRepository
 from purplex.users_app.permissions import IsAuthenticated
 from celery.result import AsyncResult
-from ..tasks.pipeline import execute_eipl_pipeline
+from ..tasks.pipeline import execute_eipl_pipeline, execute_code_test
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -56,62 +55,73 @@ def create_error_response(error_message: str, http_status: int, **kwargs):
     return Response(response_data, status=http_status)
 
 
-@method_decorator(ratelimit(key='user', rate='30/m', method='POST'), name='post')
+@method_decorator(ratelimit(key='user', rate='50/m', method='POST'), name='post')
 class TestSolutionView(APIView):
-    """Test a solution without saving submission."""
+    """Test a solution without saving submission. Uses SSE for real-time results."""
     permission_classes = [IsAuthenticated]
-    
-    @method_decorator(ratelimit(key='user', rate='20/m', method='POST'))  # Higher limit for testing
+
+    @method_decorator(ratelimit(key='user', rate='50/m', method='POST'))  # Lenient for beta test
     def post(self, request):
         # Check if rate limited
         if getattr(request, 'limited', False):
             return Response({
                 'error': 'Rate limit exceeded. Please wait a moment before testing again.'
             }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
         # Use validation service to validate request data
         is_valid, error_message, validated_data = SubmissionValidationService.validate_code_submission(request.data)
         if not is_valid:
             return Response({
                 'error': error_message
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Extract validated data
         problem = validated_data['problem']
         user_code = validated_data['user_code']
-        
+
         # Get test cases (only visible ones for students)
         test_cases = StudentService.get_visible_test_cases(problem)
-        test_data = [
-            {
-                'inputs': tc.inputs,
-                'expected_output': tc.expected_output,
-                'description': tc.description
-            }
-            for tc in test_cases
-        ]
-        
-        # Run tests with error handling and proper resource cleanup
+        test_case_ids = [tc.id for tc in test_cases]
+
+        # Queue task for async execution with SSE
         try:
-            with CodeExecutionService() as code_service:
-                # Set user context for rate limiting
-                code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
-                result = code_service.test_solution(user_code, problem.function_name, test_data)
-                return Response(result)
-        except Exception as e:
-            logger.error(f"Code execution failed for problem {problem.slug}: {str(e)}")
+            # Generate task ID for tracking
+            task_id = str(uuid.uuid4())
+
+            # Queue task (no submission context for test-only)
+            task = execute_code_test.apply_async(
+                args=[user_code, problem.id, test_case_ids, False, None],  # None = no submission
+                task_id=task_id,
+                expires=30
+            )
+
+            # Store task_id in session for SSE authentication
+            if not request.session.get('user_tasks'):
+                request.session['user_tasks'] = []
+            request.session['user_tasks'].append(task_id)
+            request.session.save()
+
+            # Return SSE streaming URL for real-time updates
             return Response({
-                'error': 'Code execution failed. Please check your solution and try again.',
-                'testsPassed': 0,
-                'totalTests': len(test_data),
-                'results': []
+                'task_id': task_id,
+                'status': 'processing',
+                'stream_url': f'/api/tasks/{task_id}/stream/',
+                'message': 'Testing your code. Connect to stream URL for results.'
+            }, status=status.HTTP_202_ACCEPTED)
+
+        except Exception as e:
+            logger.error(f"Failed to queue code test for problem {problem.slug}: {str(e)}", exc_info=True)
+            return Response({
+                'error': 'Failed to start code test. Please try again.',
+                'task_id': None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SubmitSolutionView(APIView):
     """Submit a solution and track progress."""
     permission_classes = [IsAuthenticated]
-    
-    @method_decorator(ratelimit(key='user', rate='10/m', method='POST'))
+
+    @method_decorator(ratelimit(key='user', rate='50/m', method='POST'))  # Lenient for beta test
     def post(self, request):
         # Check if rate limited
         if getattr(request, 'limited', False):
@@ -186,149 +196,81 @@ class SubmitSolutionView(APIView):
         
         # Get all test cases (including hidden ones for grading)
         all_test_cases = TestCaseRepository.get_problem_test_cases(problem, include_hidden=True)
-        test_data = [
-            {
-                'id': tc.id,
-                'inputs': tc.inputs,
-                'expected_output': tc.expected_output,
-                'description': tc.description
-            }
-            for tc in all_test_cases
-        ]
-        
-        # Run tests with error handling and proper resource cleanup
-        try:
-            with CodeExecutionService() as code_service:
-                # Set user context for rate limiting
-                code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
-                result = code_service.test_solution(user_code, problem.function_name, test_data)
+        test_case_ids = [tc.id for tc in all_test_cases]
 
-                # Calculate score based on all tests
-                passed_tests = result.get('passed', 0)
-                total_tests = result.get('total', 0)
-                score = int((passed_tests / total_tests * 100) if total_tests > 0 else 0)
-        except Exception as e:
-            logger.error(f"Code execution failed for problem {problem.slug}: {str(e)}")
-            return Response({
-                'error': 'Code execution failed. Please check your solution and try again.',
-                'submission_id': None,
-                'score': 0,
-                'testsPassed': 0,
-                'totalTests': len(test_data),
-                'results': []
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        # Extract passed test IDs
-        passed_test_ids = []
-        if 'results' in result:
-            for i, test_result in enumerate(result['results']):
-                if test_result.get('pass', False) and i < len(test_data):
-                    passed_test_ids.append(test_data[i]['id'])
-        
-        # Convert time_spent to timedelta if provided
-        time_spent_delta = None
-        if time_spent:
-            time_spent_delta = timedelta(seconds=int(time_spent))
+        # Log submission attempt
+        logger.info(f"Code submission attempt for problem {problem.slug} by user {request.user.username}")
 
-        # Create submission and record test results with lock timeout handling
-        try:
-            # Create submission record using new service
-            submission = SubmissionService.create_submission(
-                user=request.user,
-                problem=problem,
-                raw_input=prompt or user_code,  # Store code if no prompt provided
-                submission_type='direct_code',
-                problem_set=problem_set,
-                course=course,
-                time_spent=time_spent_delta,
-                activated_hints=activated_hints
-            )
+        # Generate task ID for tracking
+        task_id = str(uuid.uuid4())
 
-            # Record test results
-            test_execution_data = []
-            if 'results' in result:
-                for i, (test_result, test_case) in enumerate(zip(result['results'], all_test_cases)):
-                    # Get actual output - check both 'actual_output' and 'output' keys
-                    actual_output = test_result.get('actual_output')
-                    if actual_output is None:
-                        actual_output = test_result.get('output')
-                    if actual_output is None:
-                        actual_output = ''
+        # Store submission context in cache for task to retrieve (like EiPL pattern)
+        from django.core.cache import cache
 
-                    # Check for success - Docker service uses 'isSuccessful', others use 'pass'
-                    test_passed = test_result.get('isSuccessful', False) or test_result.get('pass', False)
+        submission_context = {
+            'user_id': request.user.id,
+            'username': request.user.username,
+            'problem_id': problem.id,
+            'problem_slug': problem.slug,
+            'problem_set_id': problem_set.id,
+            'problem_set_slug': problem_set.slug,
+            'course_id': course.id if course else None,
+            'course_name': course.name if course else None,
+            'user_code': user_code,
+            'prompt': prompt,
+            'time_spent': time_spent,
+            'activated_hints': activated_hints,
+            'task_id': task_id,
+            'submitted_at': timezone.now().isoformat()
+        }
 
-                    test_execution_data.append({
-                        'test_case_id': test_case.id,
-                        'passed': test_passed,
-                        'inputs': test_case.inputs,
-                        'expected': test_case.expected_output,
-                        'actual': actual_output,
-                        'error_type': 'none' if test_passed else 'wrong_output',
-                        'error_message': test_result.get('error', '')
-                    })
-
-            SubmissionService.record_test_results(
-                submission=submission,
-                test_results=test_execution_data,
-                processed_code=user_code,
-                execution_time_ms=None,
-                memory_used_mb=None
-            )
-        except ValueError as e:
-            # Handle progress lock timeout - return user-friendly retry message
-            logger.warning(f"Progress lock timeout for user {request.user.username}: {str(e)}")
-            return Response({
-                'error': str(e),
-                'submission_id': None,
-                'score': 0,
-                'testsPassed': 0,
-                'totalTests': len(test_data),
-                'results': []
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-
-        # Get the updated progress for response
-        progress = ProgressService.get_user_progress(
-            user_id=request.user.id,
-            problem_id=problem.id,
-            course_id=course.id if course else None
+        # Store context with 1 hour TTL
+        cache.set(
+            f"submission:context:{task_id}",
+            submission_context,
+            timeout=3600
         )
-        
-        # Return only visible test results to student
-        visible_results = []
-        if 'results' in result:
-            visible_test_cases = StudentService.get_visible_test_cases(problem)
-            for i, tc in enumerate(all_test_cases):
-                if not tc.is_hidden and i < len(result['results']):
-                    visible_results.append(result['results'][i])
-        
-        # Import GradingService to calculate grade
-        from purplex.submissions.grading_service import GradingService
 
-        return Response({
-            'submission_id': str(submission.submission_id),  # Use UUID
-            'score': submission.score,
-            'testsPassed': result.get('testsPassed', 0),
-            'totalTests': result.get('totalTests', 0),
-            'results': visible_results,  # Only visible test results
-            'grade': GradingService.calculate_grade(submission),  # New grade field
-            'progress': {
-                'status': progress.status if progress else 'not_started',
-                'best_score': progress.best_score if progress else 0,
-                'attempts': progress.attempts if progress else 0,
-                'is_completed': progress.is_completed if progress else False,
-                'grade': getattr(progress, 'grade', None),  # Include grade in progress too
-            }
-        })
+        logger.debug(f"Stored submission context for task {task_id}")
+
+        # Queue task with submission context
+        try:
+            task = execute_code_test.apply_async(
+                args=[user_code, problem.id, test_case_ids, True, submission_context],  # include_hidden=True, submission_context
+                task_id=task_id,
+                expires=30
+            )
+
+            # Store task_id in session for SSE authentication
+            if not request.session.get('user_tasks'):
+                request.session['user_tasks'] = []
+            request.session['user_tasks'].append(task_id)
+            request.session.save()
+
+            # Return SSE streaming URL for real-time updates
+            return Response({
+                'task_id': task_id,
+                'status': 'processing',
+                'stream_url': f'/api/tasks/{task_id}/stream/',
+                'message': 'Submitting your code. Connect to stream URL for results.'
+            }, status=status.HTTP_202_ACCEPTED)
+
+        except Exception as e:
+            logger.error(f"Failed to queue submission for problem {problem.slug}: {str(e)}", exc_info=True)
+            return Response({
+                'error': 'Failed to start submission. Please try again.',
+                'task_id': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@method_decorator(ratelimit(key='user', rate='10/m', method='POST'), name='post')
+@method_decorator(ratelimit(key='user', rate='50/m', method='POST'), name='post')
 class EiPLSubmissionView(APIView):
     """Unified endpoint for EiPL (Explain in Plain Language) submissions.
     Generates AI variations, tests them, and saves submission with progress tracking."""
     permission_classes = [IsAuthenticated]
-    
-    @method_decorator(ratelimit(key='user', rate='5/m', method='POST'))
+
+    # Increased rate limit for beta test - users may submit multiple times while testing
+    @method_decorator(ratelimit(key='user', rate='50/m', method='POST'))
     def post(self, request):
         # Check if rate limited
         if getattr(request, 'limited', False):
@@ -581,7 +523,20 @@ class SubmissionHistoryView(APIView):
                             'tests_passed': var.tests_passed,
                             'total_tests': var.tests_total,
                             # Include test results for this specific variation
-                            'test_results': [
+                            # FALLBACK: Create placeholder results if TestExecution records missing
+                            'test_results': (
+                                lambda var_tests: var_tests if var_tests else [
+                                    {
+                                        'test_case_id': None,
+                                        'passed': i < var.tests_passed,
+                                        'expected': 'Test details not available',
+                                        'actual': 'Passed' if i < var.tests_passed else 'Failed',
+                                        'error_message': '' if i < var.tests_passed else 'Test failed (details not available)',
+                                        'inputs': {}
+                                    }
+                                    for i in range(var.tests_total)
+                                ] if var.tests_total > 0 else []
+                            )([
                                 {
                                     'test_case_id': te.test_case_id,
                                     'passed': te.passed,
@@ -591,7 +546,7 @@ class SubmissionHistoryView(APIView):
                                     'inputs': te.input_values
                                 }
                                 for te in test_executions.filter(code_variation=var)
-                            ]
+                            ])
                         }
                         for var in variations
                     ],

@@ -61,7 +61,15 @@ class DockerExecutionService:
             'unhealthy_containers_removed': 0,
             'age_rotations': 0,
             'docker_errors': 0,
-            'last_health_check': None
+            'last_health_check': None,
+            # Enhanced monitoring metrics
+            'pool_requests_total': 0,       # Total _get_container_from_pool calls
+            'pool_hits': 0,                 # Got container from pool
+            'pool_misses': 0,               # Had to create new container
+            'pool_wait_time_total': 0.0,    # Cumulative time spent acquiring containers
+            'containers_active_peak': 0,    # Most containers in use at once
+            'cleanup_failures': 0,          # Failed container cleanup attempts
+            'last_metrics_log': time.time(), # Last time metrics were logged
         }
 
         # Health monitor thread
@@ -417,25 +425,57 @@ while True:
     def get_pool_metrics(self):
         """Get current pool metrics for monitoring/debugging."""
         with self.pool_lock:
+            total_requests = self.pool_metrics['pool_requests_total']
+            hit_rate = (self.pool_metrics['pool_hits'] / total_requests * 100) if total_requests > 0 else 0.0
+            avg_wait_time = (self.pool_metrics['pool_wait_time_total'] / total_requests) if total_requests > 0 else 0.0
+
             return {
                 'pool_size': len(self.container_pool),
                 'pool_max_size': self.pool_size,
+                'pool_hit_rate': round(hit_rate, 2),
+                'pool_avg_wait_time': round(avg_wait_time, 3),
                 'docker_available': self._docker_available,
                 'containers_tracked': len(self.container_metadata),
                 **self.pool_metrics
             }
 
+    def log_metrics_if_needed(self):
+        """Log metrics periodically (every hour)"""
+        current_time = time.time()
+        last_log = self.pool_metrics.get('last_metrics_log', 0)
+
+        # Log every hour (3600 seconds)
+        if current_time - last_log > 3600:
+            metrics = self.get_pool_metrics()
+            logger.info(f"HOURLY_POOL_METRICS: {json.dumps(metrics)}")
+            with self.pool_lock:
+                self.pool_metrics['last_metrics_log'] = current_time
+
     def _get_container_from_pool(self):
         """Get a container from the pool or create a new one."""
+        start_time = time.time()
+
+        # Track request
         with self.pool_lock:
+            self.pool_metrics['pool_requests_total'] += 1
+
             while self.container_pool:
+                self.pool_metrics['pool_hits'] += 1
                 container = self.container_pool.pop()
-                
+
                 # Check if container is healthy
                 try:
                     container.reload()
                     if container.status == 'running':
-                        logger.debug(f"Retrieved container {container.id[:12]} from pool")
+                        # Track wait time
+                        wait_time = time.time() - start_time
+                        self.pool_metrics['pool_wait_time_total'] += wait_time
+
+                        logger.debug(f"Retrieved container {container.id[:12]} from pool (wait: {wait_time:.3f}s)")
+
+                        # Log metrics periodically
+                        self.log_metrics_if_needed()
+
                         return container
                     else:
                         # Container is not healthy, remove it
@@ -443,14 +483,34 @@ while True:
                         try:
                             container.remove(force=True)
                         except:
-                            pass
+                            self.pool_metrics['cleanup_failures'] += 1
                 except Exception as e:
                     logger.warning(f"Error checking container health: {e}")
                     continue
-        
-        # Pool is empty or all containers were unhealthy
-        logger.info("Pool empty, creating new container")
-        return self._create_pool_container()
+
+        # Pool is empty - track miss
+        with self.pool_lock:
+            self.pool_metrics['pool_misses'] += 1
+            total_requests = self.pool_metrics['pool_requests_total']
+            hit_rate = (self.pool_metrics['pool_hits'] / total_requests * 100) if total_requests > 0 else 0
+
+            logger.info(
+                f"Pool miss: creating new container "
+                f"(requests={total_requests}, hit_rate={hit_rate:.1f}%, "
+                f"pool_size={len(self.container_pool)}/{self.pool_size})"
+            )
+
+        container = self._create_pool_container()
+
+        # Track wait time
+        wait_time = time.time() - start_time
+        with self.pool_lock:
+            self.pool_metrics['pool_wait_time_total'] += wait_time
+
+        # Log metrics periodically
+        self.log_metrics_if_needed()
+
+        return container
     
     def _return_container_to_pool(self, container):
         """Return a container to the pool after cleaning it."""
@@ -693,20 +753,58 @@ for item in os.listdir('/sandbox'):
             try:
                 output_data = json.loads(result['output'])
                 return output_data
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                # BUGFIX: When JSON parsing fails, create proper error results
+                # Previously: Returned empty results array with non-zero totalTests
+                # Now: Generate error results for each test case to preserve test execution data
+                logger.error(f"Failed to parse Docker output as JSON: {e}")
+                logger.debug(f"Raw output (first 500 chars): {result['output'][:500]}")
+
+                error_results = [
+                    {
+                        'test_number': i + 1,
+                        'inputs': test_cases[i].get('inputs', []),
+                        'expected_output': test_cases[i].get('expected_output'),
+                        'actual_output': None,
+                        'isSuccessful': False,
+                        'error': 'Failed to parse test results - output may have been truncated or corrupted',
+                        'function_call': f"{function_name}(...)"
+                    }
+                    for i in range(len(test_cases))
+                ]
+
                 return {
-                    'error': 'Failed to parse test results',
+                    'error': f'Failed to parse test results: {str(e)}',
                     'testsPassed': 0,
                     'totalTests': len(test_cases),
-                    'results': [],
+                    'results': error_results,
                     'success': False
                 }
         else:
+            # BUGFIX: When execution fails, create proper error results
+            # Previously: Returned empty results array with non-zero totalTests
+            # Now: Generate error results for each test case to preserve test execution data
+            error_message = result.get('error', 'Code execution failed')
+            logger.warning(f"Docker execution failed: {error_message}")
+
+            error_results = [
+                {
+                    'test_number': i + 1,
+                    'inputs': test_cases[i].get('inputs', []),
+                    'expected_output': test_cases[i].get('expected_output'),
+                    'actual_output': None,
+                    'isSuccessful': False,
+                    'error': error_message,
+                    'function_call': f"{function_name}(...)"
+                }
+                for i in range(len(test_cases))
+            ]
+
             return {
-                'error': result.get('error', 'Code execution failed'),
+                'error': error_message,
                 'testsPassed': 0,
                 'totalTests': len(test_cases),
-                'results': [],
+                'results': error_results,
                 'success': False
             }
     
@@ -753,9 +851,8 @@ for item in os.listdir('/sandbox'):
             '__globals__',  # Prevent __globals__ attribute access
             '__import__',   # Catch __import__ calls
             'getattr(',     # Already in forbidden_builtins, double-check here
-            'chr(', 'ord(',  # Character encoding bypasses
-            'base64',       # Base64 encoding bypass attempts
-            '.decode(', '.encode(',  # String encoding methods
+            # Removed: chr(), ord(), .encode(), .decode() - these are legitimate for string/encoding problems
+            'base64',       # Base64 encoding bypass attempts (keep this - not common in intro problems)
         ]
 
         for pattern in suspicious_patterns:

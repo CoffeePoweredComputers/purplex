@@ -896,9 +896,24 @@ export default {
                 score: attempt.score
             });
 
+            // Validate attempt data exists
+            if (!attempt || !attempt.data) {
+                this.logger.error('Cannot load attempt: missing data', { attempt });
+                this.notify.error('Failed to load attempt', 'Submission data is missing or corrupted');
+                this.clearFeedbackData();
+                return;
+            }
+
             // Apply the attempt data
-            if (attempt.data) {
-                const data = attempt.data;
+            const data = attempt.data;
+
+            // Validate required fields in data
+            if (!data.raw_input && !data.processed_code && (!data.variations || data.variations.length === 0)) {
+                this.logger.error('Cannot load attempt: data is empty', { data });
+                this.notify.error('Failed to load attempt', 'Submission data is incomplete');
+                this.clearFeedbackData();
+                return;
+            }
 
                 // Transform variations into code results
                 if (data.variations && data.variations.length > 0) {
@@ -968,14 +983,12 @@ export default {
                     testResults: this.testResults.length,
                     score: attempt.score
                 });
-            }
         },
 
         reconstructFunctionCall(testResult) {
             // Try to reconstruct function call from test data
-            const problemSlug = this.currentProblemSlug;
-            const problem = this.problems?.find(p => p.slug === problemSlug);
-            const functionName = problem?.function_name || 'foo';
+            const currentProblem = this.getCurrentProblem();
+            const functionName = currentProblem?.function_name || 'foo';
 
             // Format inputs for display
             if (testResult.inputs !== undefined && testResult.inputs !== null) {

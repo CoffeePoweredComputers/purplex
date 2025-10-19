@@ -46,13 +46,13 @@ from .views.instructor_analytics_views import (
 )
 from .course_views import (
     # Admin course views
-    AdminCourseListCreateView, AdminCourseDetailView, AdminCourseProblemSetView,
+    AdminInstructorsListView, AdminCourseListCreateView, AdminCourseDetailView, AdminCourseProblemSetView,
     AdminCourseProblemSetsView, AdminAvailableProblemSetsView, AdminCourseStudentsView,
-    
+
     # Instructor course views
     InstructorCourseListView, InstructorCourseDetailView, InstructorCourseStudentsView,
     InstructorCourseProgressView, InstructorCourseProblemSetOrderView,
-    
+
     # Student course views
     StudentEnrolledCoursesView, CourseLookupView, CourseEnrollView,
     StudentCourseDetailView, StudentCourseProgressView
@@ -113,6 +113,7 @@ urlpatterns = [
     path('admin/research/progress-history/', ProgressHistoryExportView.as_view(), name='progress_history_export'),
 
     # Admin Course Management
+    path('admin/instructors/', AdminInstructorsListView.as_view(), name='admin_instructors_list'),
     path('admin/courses/', AdminCourseListCreateView.as_view(), name='admin_course_list'),
     path('admin/courses/<str:course_id>/', AdminCourseDetailView.as_view(), name='admin_course_detail'),
     path('admin/courses/<str:course_id>/problem-sets/', AdminCourseProblemSetsView.as_view(), name='admin_course_problemsets'),

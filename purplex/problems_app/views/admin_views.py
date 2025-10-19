@@ -16,10 +16,10 @@ from ..serializers import (
     AdminProblemSerializer, ProblemSetSerializer, ProblemCategorySerializer,
     TestCaseSerializer
 )
-from ..services.docker_execution_service import DockerExecutionService as CodeExecutionService
 from ..services.admin_service import AdminProblemService
 from purplex.users_app.permissions import IsAdmin
 from purplex.submissions.repositories import SubmissionRepository
+from ..services.docker_service_factory import SharedDockerServiceContext
 from purplex.submissions.services import SubmissionService
 
 logger = logging.getLogger(__name__)
@@ -164,10 +164,10 @@ class AdminTestProblemView(APIView):
                 'error': 'At least one test case is required for testing',
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Test the reference solution with error handling and proper resource cleanup
+        # Test the reference solution using shared Docker service
+        # Admin tests use inline test data, so we use shared service directly
         try:
-            with CodeExecutionService() as code_service:
-                # Set user context for rate limiting
+            with SharedDockerServiceContext() as code_service:
                 code_service.set_user_context(str(request.user.id) if request.user.is_authenticated else None)
                 result = code_service.test_solution(
                     problem_data['reference_solution'],

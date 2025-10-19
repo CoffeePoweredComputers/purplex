@@ -343,7 +343,7 @@ export function useSSE() {
         if (result.status === 'completed' && result.result) {
           // Check if this is the final submission task with test results
           const { variations, test_results, submission_id, segmentation } = result.result;
-          
+
           // Only call onSuccess when we have the final submission with test results
           if (submission_id && variations && test_results) {
             // This is the final submission result
@@ -358,6 +358,58 @@ export function useSSE() {
             if (options.onError) {
               options.onError({ error: errorMsg });
             }
+          }
+        }
+      },
+      options
+    );
+  };
+
+  /**
+   * Connect to test solution SSE stream
+   */
+  const connectToTestSolution = async (
+    taskId: string,
+    onSuccess: (testResults: any) => void,
+    options: SSEOptions = {}
+  ) => {
+    await connectToTask(
+      taskId,
+      (result) => {
+        if (result.status === 'completed' && result.result) {
+          log.info('Test solution completed', { taskId, result: result.result });
+          onSuccess(result.result);
+        } else if (result.status === 'failed') {
+          const errorMsg = result.error || 'Test failed';
+          log.error('Test solution failed', { taskId, error: errorMsg });
+          if (options.onError) {
+            options.onError({ error: errorMsg });
+          }
+        }
+      },
+      options
+    );
+  };
+
+  /**
+   * Connect to submit solution SSE stream
+   */
+  const connectToSubmitSolution = async (
+    taskId: string,
+    onSuccess: (submissionResult: any) => void,
+    options: SSEOptions = {}
+  ) => {
+    await connectToTask(
+      taskId,
+      (result) => {
+        if (result.status === 'completed' && result.result) {
+          log.info('Submit solution completed', { taskId, result: result.result });
+          onSuccess(result.result);
+        } else if (result.status === 'failed') {
+          const errorMsg = result.error || 'Submission failed';
+          log.error('Submit solution failed', { taskId, error: errorMsg });
+          if (options.onError) {
+            options.onError({ error: errorMsg });
           }
         }
       },
@@ -395,6 +447,8 @@ export function useSSE() {
     connectToTask,
     connectToBatchTasks,
     connectToEiPLSubmission,
+    connectToTestSolution,
+    connectToSubmitSolution,
     disconnect
   };
 }

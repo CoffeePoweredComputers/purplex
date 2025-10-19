@@ -30,9 +30,11 @@ export interface ProblemSetProgress {
 
 export interface SubmissionRequest {
   problem_slug: string;
+  problem_set_slug: string;
   user_code: string;
-  prompt: string;
+  prompt?: string;
   time_spent?: number;
+  course_id?: string;
   activated_hints?: Array<{
     hint_id: number;
     hint_type: string;
@@ -42,12 +44,16 @@ export interface SubmissionRequest {
 }
 
 export interface SubmissionResponse {
-  success: boolean;
-  score: number;
-  total_tests: number;
-  passed_tests: number;
-  execution_time: number;
-  submission_id: number;
+  task_id: string;
+  status: 'processing';
+  stream_url: string;
+  message: string;
+}
+
+export interface TestSolutionResponse {
+  task_id: string;
+  status: 'processing';
+  stream_url: string;
   message: string;
 }
 
@@ -121,31 +127,41 @@ class SubmissionService {
   }
 
   /**
-   * Submit a solution for a problem
+   * Submit a solution for a problem (now uses SSE for real-time results)
    */
   async submitSolution(request: SubmissionRequest): Promise<SubmissionResponse> {
     try {
+      log.info('Submitting solution', { problemSlug: request.problem_slug });
       const response = await axios.post(`${this.baseURL}/submit-solution/`, request);
+      log.info('Submission queued successfully', { taskId: response.data.task_id });
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       log.error('Failed to submit solution', error);
-      throw error;
+      throw {
+        error: error.response?.data?.error || 'Failed to submit solution',
+        status: error.response?.status || 500
+      };
     }
   }
 
   /**
-   * Test a solution without saving (for preview)
+   * Test a solution without saving (now uses SSE for real-time results)
    */
-  async testSolution(problemSlug: string, userCode: string): Promise<any> {
+  async testSolution(problemSlug: string, userCode: string): Promise<TestSolutionResponse> {
     try {
+      log.info('Testing solution', { problemSlug });
       const response = await axios.post(`${this.baseURL}/test-solution/`, {
         problem_slug: problemSlug,
         user_code: userCode
       });
+      log.info('Test queued successfully', { taskId: response.data.task_id });
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       log.error('Failed to test solution', error);
-      throw error;
+      throw {
+        error: error.response?.data?.error || 'Failed to test solution',
+        status: error.response?.status || 500
+      };
     }
   }
 

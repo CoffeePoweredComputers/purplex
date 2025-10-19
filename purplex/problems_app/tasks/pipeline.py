@@ -154,6 +154,9 @@ def test_variation_helper(code: str, problem_id: int, variation_index: int) -> D
         service.set_user_context(f"task_{variation_index}")
         result = service.test_solution(code, problem.function_name, test_cases)
 
+    # DEBUG: Log raw Docker result to capture errors
+    logger.warning(f"🔍 Variation {variation_index} Docker result: testsPassed={result.get('testsPassed')}, totalTests={result.get('totalTests')}, error={result.get('error', 'None')}, success={result.get('success', 'N/A')}")
+
     testsPassed = result.get('testsPassed', 0)
     totalTests = result.get('totalTests', 0)
 
@@ -164,7 +167,16 @@ def test_variation_helper(code: str, problem_id: int, variation_index: int) -> D
             test_result['test_case_id'] = test_case_ids[idx]
         results_with_ids.append(test_result)
 
-    return {
+    # CRITICAL BUG DETECTION: If we have summary counts but empty results, something is wrong
+    if totalTests > 0 and len(results_with_ids) == 0:
+        logger.error(
+            f"🚨 CRITICAL: Docker returned testsPassed={testsPassed}, totalTests={totalTests} "
+            f"but results array is EMPTY! This will cause missing TestExecution records. "
+            f"Docker result keys: {result.keys()}, success={result.get('success')}, error={result.get('error')}"
+        )
+
+    # Build return dict with optional error field
+    ret = {
         'variation_index': variation_index,
         'code': code,
         'testsPassed': testsPassed,
@@ -172,6 +184,12 @@ def test_variation_helper(code: str, problem_id: int, variation_index: int) -> D
         'success': testsPassed == totalTests and totalTests > 0,
         'test_results': results_with_ids
     }
+
+    # Preserve error message if present (critical for debugging!)
+    if 'error' in result:
+        ret['error'] = result['error']
+
+    return ret
 
 
 def segment_prompt_helper(user_prompt: str, problem_id: int) -> Optional[Dict[str, Any]]:
@@ -399,6 +417,191 @@ def save_submission_helper(
     return result_data
 
 
+@shared_task(bind=True, name='pipeline.execute_code_test')
+def execute_code_test(
+    self,
+    code: str,
+    problem_id: int,
+    test_case_ids: List[int],
+    include_hidden: bool = False,
+    submission_context: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Execute code against test cases in Celery worker (uses shared Docker service).
+
+    This task runs code execution in the Celery worker pool, which:
+    - Uses the shared DockerExecutionService (one pool per Celery worker)
+    - Prevents web workers from creating Docker pools
+    - Enables proper resource management
+    - Publishes real-time progress events via SSE
+    - Optionally creates submission records
+
+    Args:
+        code: User's code to test
+        problem_id: Problem ID
+        test_case_ids: List of test case IDs to run
+        include_hidden: Whether to include hidden test cases
+        submission_context: Optional dict with submission metadata for creating records
+
+    Returns:
+        Test results in standard format
+    """
+    task_id = self.request.id
+    logger.info(f"Executing code test {task_id} for problem {problem_id}")
+
+    # CRITICAL: Allow Django ORM calls in gevent context
+    # With gevent workers, Django detects greenlet as async context and blocks ORM
+    # This tells Django it's safe to make synchronous database calls from this task
+    import os
+    os.environ['DJANGO_ALLOW_ASYNC_UNSAFE'] = 'true'
+
+    try:
+        # Publish initial progress
+        publish_progress(task_id, 0, "Starting code execution...")
+
+        # Get problem and test cases through services
+        publish_progress(task_id, 10, "Loading problem and test cases...")
+        problem = ProblemService.get_problem_by_id(problem_id)
+        if not problem:
+            raise Exception(f"Problem {problem_id} not found")
+
+        # Get test cases
+        test_cases = TestCaseService.get_test_cases_for_testing(
+            problem,
+            include_hidden=include_hidden,
+            test_case_ids=test_case_ids if test_case_ids else None
+        )
+
+        # Execute code using shared Docker service
+        publish_progress(task_id, 30, f"Running {len(test_cases)} test cases...")
+        with SharedDockerServiceContext() as service:
+            service.set_user_context(f"task_{task_id}")
+            result = service.test_solution(code, problem.function_name, test_cases)
+
+        tests_passed = result.get('testsPassed', 0)
+        total_tests = result.get('totalTests', 0)
+
+        logger.info(f"Code test {task_id} completed: {tests_passed}/{total_tests} passed")
+        publish_progress(task_id, 70, f"Tests completed: {tests_passed}/{total_tests} passed")
+
+        # If submission context provided, create submission record
+        if submission_context:
+            publish_progress(task_id, 80, "Saving submission...")
+
+            # Get user and other objects
+            user = UserService.get_user_by_id(submission_context['user_id'])
+            problem_set = None
+            if submission_context.get('problem_set_id'):
+                problem_set = ProblemService.get_problem_set_by_id(submission_context['problem_set_id'])
+
+            course = None
+            if submission_context.get('course_id'):
+                course = CourseService.get_course_by_pk(submission_context['course_id'])
+
+            # Get test cases for submission
+            from ..models import TestCase
+            all_test_cases = TestCase.objects.filter(id__in=test_case_ids).order_by('id')
+
+            # Create submission record
+            time_spent_delta = None
+            if submission_context.get('time_spent'):
+                from datetime import timedelta
+                time_spent_delta = timedelta(seconds=int(submission_context['time_spent']))
+
+            submission = SubmissionService.create_submission(
+                user=user,
+                problem=problem,
+                raw_input=submission_context.get('prompt') or code,
+                submission_type='direct_code',
+                problem_set=problem_set,
+                course=course,
+                time_spent=time_spent_delta,
+                activated_hints=submission_context.get('activated_hints', [])
+            )
+
+            # Record test results
+            test_execution_data = []
+            for i, test_result in enumerate(result.get('results', [])):
+                if i < len(all_test_cases):
+                    test_case = all_test_cases[i]
+
+                    # Get actual output
+                    actual_output = test_result.get('actual_output')
+                    if actual_output is None:
+                        actual_output = test_result.get('output')
+                    if actual_output is None:
+                        actual_output = ''
+
+                    # Check for success
+                    test_passed = test_result.get('isSuccessful', False) or test_result.get('pass', False)
+
+                    test_execution_data.append({
+                        'test_case_id': test_case.id,
+                        'passed': test_passed,
+                        'inputs': test_case.inputs,
+                        'expected': test_case.expected_output,
+                        'actual': actual_output,
+                        'error_type': 'none' if test_passed else 'wrong_output',
+                        'error_message': test_result.get('error', '')
+                    })
+
+            SubmissionService.record_test_results(
+                submission=submission,
+                test_results=test_execution_data,
+                processed_code=code,
+                execution_time_ms=None,
+                memory_used_mb=None
+            )
+
+            # Add submission info to result
+            result['submission_id'] = str(submission.submission_id)
+            result['score'] = submission.score
+
+            # Get progress for response
+            from ..services.progress_service import ProgressService
+            progress = ProgressService.get_user_progress(
+                user_id=user.id,
+                problem_id=problem.id,
+                course_id=course.id if course else None
+            )
+
+            result['progress'] = {
+                'status': progress.status if progress else 'not_started',
+                'best_score': progress.best_score if progress else 0,
+                'attempts': progress.attempts if progress else 0,
+                'is_completed': progress.is_completed if progress else False,
+                'grade': getattr(progress, 'grade', None),
+            }
+
+            # Get grade
+            from purplex.submissions.grading_service import GradingService
+            result['grade'] = GradingService.calculate_grade(submission)
+
+            publish_progress(task_id, 100, f"Submission complete! Score: {submission.score}%")
+        else:
+            publish_progress(task_id, 100, f"Tests complete: {tests_passed}/{total_tests} passed")
+
+        # Publish completion event
+        publish_completion(task_id, result)
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Code test {task_id} failed: {e}", exc_info=True)
+        error_result = {
+            'error': str(e),
+            'testsPassed': 0,
+            'totalTests': len(test_case_ids) if test_case_ids else 0,
+            'results': [],
+            'success': False
+        }
+
+        # Publish error event
+        publish_error(task_id, str(e))
+
+        return error_result
+
+
 @shared_task(bind=True, name='pipeline.execute_eipl')
 def execute_eipl_pipeline(
     self,
@@ -426,6 +629,12 @@ def execute_eipl_pipeline(
     """
     task_id = self.request.id
     logger.info(f"Starting EiPL pipeline {task_id} for problem {problem_id}")
+
+    # CRITICAL: Allow Django ORM calls in gevent context
+    # With gevent workers, Django detects greenlet as async context and blocks ORM
+    # This tells Django it's safe to make synchronous database calls from this task
+    import os
+    os.environ['DJANGO_ALLOW_ASYNC_UNSAFE'] = 'true'
 
     # Ensure Django is properly initialized
     import django
@@ -494,7 +703,8 @@ def execute_eipl_pipeline(
         test_results = []
 
         # Use ThreadPoolExecutor for parallel execution (Docker exec_run is I/O bound)
-        max_workers = min(variation_count, 3)  # Limit to 3 concurrent tests to avoid overwhelming Docker
+        # With pool of 15 containers, we can safely run all 5 variations in parallel
+        max_workers = min(variation_count, 6)  # Allow up to 6 concurrent tests (pool has 15 containers)
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all variation tests concurrently
@@ -526,14 +736,41 @@ def execute_eipl_pipeline(
                             f"Variation {i+1}: ✓ Passed all tests ({completed}/{variation_count} complete)"
                         )
                     else:
-                        publish_progress(
-                            task_id,
-                            test_progress,
-                            f"Variation {i+1}: {result['testsPassed']}/{result['totalTests']} tests passed ({completed}/{variation_count} complete)"
-                        )
+                        # Include error message if present
+                        error_msg = result.get('error', '')
+                        if error_msg:
+                            publish_progress(
+                                task_id,
+                                test_progress,
+                                f"Variation {i+1}: ERROR - {error_msg[:80]} ({completed}/{variation_count} complete)"
+                            )
+                            logger.warning(f"Variation {i+1} failed: {error_msg}")
+                        else:
+                            publish_progress(
+                                task_id,
+                                test_progress,
+                                f"Variation {i+1}: {result['testsPassed']}/{result['totalTests']} tests passed ({completed}/{variation_count} complete)"
+                            )
 
                 except Exception as e:
-                    logger.error(f"Variation {i+1} testing failed: {e}")
+                    # Enhanced error logging with full traceback
+                    import traceback
+                    error_details = traceback.format_exc()
+                    logger.error(
+                        f"❌ Variation {i+1} testing FAILED with exception\n"
+                        f"Problem ID: {problem_id}\n"
+                        f"Variation Index: {i}\n"
+                        f"Error: {str(e)}\n"
+                        f"Traceback:\n{error_details}"
+                    )
+
+                    # Publish error to user
+                    publish_progress(
+                        task_id,
+                        20 + (50 * completed / max(variation_count, 1)),
+                        f"⚠️ Variation {i+1}: Testing failed - {str(e)[:100]} ({completed}/{variation_count} complete)"
+                    )
+
                     results_by_index[i] = {
                         'variation_index': i,
                         'code': variations[i],
@@ -541,7 +778,8 @@ def execute_eipl_pipeline(
                         'totalTests': 0,
                         'success': False,
                         'test_results': [],
-                        'error': str(e)
+                        'error': str(e),
+                        'error_traceback': error_details
                     }
 
         # Reconstruct results in original order

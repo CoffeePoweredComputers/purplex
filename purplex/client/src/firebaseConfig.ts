@@ -75,6 +75,17 @@ async function initializeFirebase() {
       firebaseAuth = getAuth(firebaseApp);
       provider = new GoogleAuthProvider();
 
+      // ⚠️ CRITICAL: Configure Google provider for third-party cookie blocking
+      // This helps with international users and browsers with strict privacy settings
+      provider.setCustomParameters({
+        // Force account selection - helps bypass cookie issues
+        prompt: 'select_account',
+        // Additional parameters for better compatibility
+        access_type: 'online',
+      });
+
+      console.log('✅ Google Auth Provider configured with custom parameters');
+
       // ⚠️ CRITICAL: Enable persistence for production
       // This keeps users logged in across page refreshes
       await setPersistence(firebaseAuth, browserLocalPersistence);

@@ -23,16 +23,16 @@ class CourseRepository(BaseRepository):
     @classmethod
     def get_active_course(cls, course_id: str) -> Optional[Course]:
         """
-        Get an active, non-deleted course by course_id.
-        
+        Get an active, non-deleted course by course_id (case-insensitive).
+
         Args:
             course_id: The user-defined course ID (e.g., CS101-FALL2024)
-            
+
         Returns:
             Course instance or None if not found
         """
         return Course.objects.filter(
-            course_id=course_id,
+            course_id__iexact=course_id,
             is_active=True,
             is_deleted=False
         ).first()
@@ -47,8 +47,8 @@ class CourseRepository(BaseRepository):
     
     @classmethod
     def get_course_by_id(cls, course_id: str) -> Optional[Course]:
-        """Get a course by its course_id field."""
-        return Course.objects.filter(course_id=course_id).first()
+        """Get a course by its course_id field (case-insensitive)."""
+        return Course.objects.filter(course_id__iexact=course_id).first()
     
     @classmethod
     def get_course_by_pk(cls, pk: int) -> Optional[Course]:
@@ -66,8 +66,8 @@ class CourseRepository(BaseRepository):
     
     @classmethod
     def course_exists(cls, course_id: str) -> bool:
-        """Check if a course exists by course_id."""
-        return Course.objects.filter(course_id=course_id).exists()
+        """Check if a course exists by course_id (case-insensitive)."""
+        return Course.objects.filter(course_id__iexact=course_id).exists()
     
     @classmethod
     def get_course_problem_set_ids(cls, course: Course) -> List[int]:
@@ -75,74 +75,35 @@ class CourseRepository(BaseRepository):
         return list(course.problem_sets.values_list('id', flat=True))
     
     @classmethod
-    def get_all_courses_with_stats(cls) -> List[Dict[str, Any]]:
+    def get_all_courses_with_stats(cls):
         """Get all courses with statistics for admin view.
-        
+
         Returns:
-            List of dicts with course data and computed statistics:
-            - id, course_id, name, description, instructor info
+            QuerySet of Course objects annotated with:
             - problem_sets_count: number of problem sets
             - enrolled_students_count: active enrollments
         """
-        courses = Course.objects.select_related('instructor').annotate(
+        return Course.objects.select_related('instructor').annotate(
             problem_sets_count=Count('problem_sets'),
             enrolled_students_count=Count('enrollments', filter=Q(enrollments__is_active=True))
         ).order_by('-created_at')
-        
-        return [
-            {
-                'id': c.id,
-                'course_id': c.course_id,
-                'name': c.name,
-                'description': c.description,
-                'instructor': {
-                    'id': c.instructor.id,
-                    'username': c.instructor.username,
-                    'full_name': c.instructor.get_full_name()
-                },
-                'is_active': c.is_active,
-                'is_deleted': c.is_deleted,
-                'enrollment_open': c.enrollment_open,
-                'problem_sets_count': c.problem_sets_count,
-                'enrolled_students_count': c.enrolled_students_count,
-                'created_at': c.created_at,
-                'updated_at': c.updated_at
-            }
-            for c in courses
-        ]
     
     @classmethod
-    def get_active_courses_with_stats(cls) -> List[Dict[str, Any]]:
+    def get_active_courses_with_stats(cls):
         """Get only active courses with statistics.
-        
+
         Returns:
-            List of dicts with active course data and statistics
+            QuerySet of active Course objects annotated with:
+            - problem_sets_count: number of problem sets
+            - enrolled_students_count: active enrollments
         """
-        courses = Course.objects.filter(
+        return Course.objects.filter(
             is_active=True,
             is_deleted=False
         ).select_related('instructor').annotate(
             problem_sets_count=Count('problem_sets'),
             enrolled_students_count=Count('enrollments', filter=Q(enrollments__is_active=True))
         ).order_by('-created_at')
-        
-        return [
-            {
-                'id': c.id,
-                'course_id': c.course_id,
-                'name': c.name,
-                'description': c.description,
-                'instructor': {
-                    'id': c.instructor.id,
-                    'username': c.instructor.username,
-                    'full_name': c.instructor.get_full_name()
-                },
-                'problem_sets_count': c.problem_sets_count,
-                'enrolled_students_count': c.enrolled_students_count,
-                'created_at': c.created_at
-            }
-            for c in courses
-        ]
     
     @classmethod
     def get_instructor_courses_with_stats(cls, instructor_id: int) -> List[Dict[str, Any]]:
@@ -438,18 +399,18 @@ class CourseRepository(BaseRepository):
     @classmethod
     def get_unassigned_problem_sets_for_course(cls, course_id: str) -> List[Dict[str, Any]]:
         """Get problem sets not yet assigned to a course.
-        
+
         Args:
             course_id: Course identifier
-            
+
         Returns:
             List of dicts with available problem set data
         """
         from ..models import ProblemSet
-        
-        # Get assigned problem set IDs
+
+        # Get assigned problem set IDs (case-insensitive course_id match)
         assigned_ids = CourseProblemSet.objects.filter(
-            course__course_id=course_id
+            course__course_id__iexact=course_id
         ).values_list('problem_set_id', flat=True)
         
         # Get available problem sets
