@@ -344,7 +344,9 @@ class EiPLSubmissionView(APIView):
         
         # Start the clean EiPL pipeline task
         try:
-            logger.debug(f"Starting EiPL pipeline for problem {problem.slug} with request ID {request_id}")
+            logger.info(f"🚀 Starting EiPL pipeline for problem {problem.slug} with request ID {request_id}")
+            logger.info(f"📝 Task args: problem_id={problem.id}, user_id={request.user.id}, problem_set_id={problem_set.id if problem_set else None}, course_id={course.id if course else None}")
+
             # Launch the single orchestrator task
             # Use request_id as the task_id so SSE can track it
             pipeline_task = execute_eipl_pipeline.apply_async(
@@ -357,11 +359,18 @@ class EiPLSubmissionView(APIView):
                 ],
                 task_id=request_id  # Use request_id as the Celery task ID
             )
+
+            logger.info(f"✅ Task queued successfully: task_id={pipeline_task.id}, state={pipeline_task.state}")
+
             # Store request_id in session for SSE authentication
             if not request.session.get('user_tasks'):
                 request.session['user_tasks'] = []
             request.session['user_tasks'].append(request_id)
             request.session.save()
+
+            logger.info(f"💾 Stored request_id {request_id} in session for user {request.user.username}")
+            logger.info(f"📋 Session user_tasks: {request.session.get('user_tasks', [])}")
+
             # Return SSE streaming URL for real-time updates
             return Response({
                 'request_id': request_id,
@@ -371,7 +380,7 @@ class EiPLSubmissionView(APIView):
                 'message': 'Your submission is being processed. Connect to the stream URL for real-time updates.'
             }, status=status.HTTP_202_ACCEPTED)
         except Exception as e:
-            logger.error(f"Failed to start AI generation task for problem {problem.slug}: {str(e)}", exc_info=True)
+            logger.error(f"❌ Failed to start AI generation task for problem {problem.slug}: {str(e)}", exc_info=True)
             return Response({
                 'error': 'Failed to start AI task. Please try again.',
                 'request_id': None

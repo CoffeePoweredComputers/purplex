@@ -11,6 +11,7 @@ django-csp==3.8  # Content Security Policy headers
 
 # Database
 psycopg2-binary==2.9.9
+psycogreen==1.0.2  # Makes psycopg2 greenlet-aware for gevent workers
 dj-database-url==2.1.0
 
 # Redis & Caching

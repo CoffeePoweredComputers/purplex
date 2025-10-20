@@ -33,10 +33,31 @@ export function useSSE() {
   const isConnected = ref(false);
   const currentStatus = ref<TaskResult | null>(null);
   const error = ref<string | null>(null);
-  
+
   let eventSource: EventSource | null = null;
   let reconnectCount = 0;
   let reconnectTimer: NodeJS.Timeout | null = null;
+  let activityTimer: NodeJS.Timeout | null = null; // Track SSE activity
+
+  /**
+   * Start or reset the activity timeout timer
+   * If no activity for maxIdleTime, trigger timeout callback
+   */
+  const resetActivityTimer = (maxIdleMs: number, onTimeoutCallback?: () => void) => {
+    // Clear existing timer
+    if (activityTimer) {
+      clearTimeout(activityTimer);
+      activityTimer = null;
+    }
+
+    // Set new timer
+    if (onTimeoutCallback) {
+      activityTimer = setTimeout(() => {
+        log.warn('SSE activity timeout - no updates received', { maxIdleMs });
+        onTimeoutCallback();
+      }, maxIdleMs);
+    }
+  };
 
   /**
    * Connect to SSE endpoint for real-time task updates
@@ -103,6 +124,22 @@ export function useSSE() {
         log.info('SSE connection established', { taskId });
         isConnected.value = true;
         reconnectCount = 0; // Reset reconnect count on successful connection
+
+        // Start activity timeout (2 minutes max with no updates)
+        const MAX_IDLE_TIME_MS = 2 * 60 * 1000; // 2 minutes
+        resetActivityTimer(MAX_IDLE_TIME_MS, () => {
+          const timeoutMsg = 'No response from server after 2 minutes. The task may be stuck.';
+          log.error(timeoutMsg, { taskId });
+          error.value = timeoutMsg;
+
+          if (onTimeout) {
+            onTimeout();
+          } else if (onError) {
+            onError({ error: timeoutMsg, timeout: true });
+          }
+
+          disconnect();
+        });
       };
 
       // Handle messages (default events)
@@ -131,6 +168,22 @@ export function useSSE() {
         try {
           const data = JSON.parse(event.data);
           log.debug('SSE update event', { taskId, data });
+
+          // Reset activity timer - we received an update
+          const MAX_IDLE_TIME_MS = 2 * 60 * 1000; // 2 minutes
+          resetActivityTimer(MAX_IDLE_TIME_MS, () => {
+            const timeoutMsg = 'No response from server after 2 minutes. The task may be stuck.';
+            log.error(timeoutMsg, { taskId });
+            error.value = timeoutMsg;
+
+            if (onTimeout) {
+              onTimeout();
+            } else if (onError) {
+              onError({ error: timeoutMsg, timeout: true });
+            }
+
+            disconnect();
+          });
 
           // Update current status
           currentStatus.value = {
@@ -426,12 +479,17 @@ export function useSSE() {
       eventSource.close();
       eventSource = null;
     }
-    
+
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
     }
-    
+
+    if (activityTimer) {
+      clearTimeout(activityTimer);
+      activityTimer = null;
+    }
+
     isConnected.value = false;
   };
 

@@ -24,26 +24,38 @@ logger = logging.getLogger(__name__)
 class CleanTaskSSEView(View):
     """
     Stream task status updates via Server-Sent Events.
-    
+
     Simple implementation that:
     1. Authenticates using standard authentication
     2. Subscribes to Redis pub/sub for the task
     3. Streams events to the client
     4. Handles reconnection gracefully
     """
-    
+
     def dispatch(self, request, *args, **kwargs):
         """
         Authenticate before dispatching to get/post methods.
         """
+        task_id = kwargs.get('task_id', 'unknown')
+        logger.info(f"🔌 SSE connection attempt for task {task_id}")
+        logger.info(f"📋 Request headers: {dict(request.headers)}")
+        logger.info(f"📋 Request GET params: {dict(request.GET)}")
+        logger.info(f"📋 Request path: {request.path}")
+
         # Use standard PurplexAuthentication
         auth = PurplexAuthentication()
         auth_result = auth.authenticate(request)
-        
+
         if not auth_result:
+            logger.error(f"❌ SSE authentication FAILED for task {task_id}")
+            logger.error(f"   Request path: {request.path}")
+            logger.error(f"   Auth header: {request.headers.get('Authorization', 'MISSING')}")
+            logger.error(f"   SSE token param: {request.GET.get('sse_token', 'MISSING')}")
+            logger.error(f"   All headers: {dict(request.headers)}")
             return HttpResponseForbidden('Authentication required')
-        
+
         request.user, request.auth = auth_result
+        logger.info(f"✅ SSE authentication successful for task {task_id}, user: {request.user.username}")
         return super().dispatch(request, *args, **kwargs)
     
     @method_decorator(never_cache)

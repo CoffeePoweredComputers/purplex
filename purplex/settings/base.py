@@ -81,14 +81,16 @@ import dj_database_url
 # Parse base database configuration
 db_config = dj_database_url.parse(
     config.database_url,
-    conn_max_age=600 if config.is_production else 60  # Increased connection lifetime
+    conn_max_age=600 if config.is_production else 60  # Connection pooling for performance
 )
 
 # Add enhanced connection pool settings for high concurrency (1000+ users)
 db_config.update({
     'OPTIONS': {
         'connect_timeout': 10,
-        'options': '-c statement_timeout=30000',  # 30 second statement timeout
+        # REMOVED: statement_timeout (let PostgreSQL handle it globally)
+        # PostgreSQL now has idle_in_transaction_session_timeout=60s to kill zombie transactions
+        # This prevents gevent greenlet context switching from creating orphaned locks
         # Note: psycopg2 doesn't support built-in pooling, but these help with connection management
         'keepalives': 1,
         'keepalives_idle': 30,
@@ -97,6 +99,7 @@ db_config.update({
     },
     # CRITICAL: Connection lifetime and health checks for production scale
     # Reuse connections for 10 min in prod, 1 min in dev (prevents connection leaks)
+    # With gevent monkey-patching, connection pooling is safe and performant
     'CONN_MAX_AGE': 600 if config.is_production else 60,
 
     # CRITICAL: Enable connection health checks (Django 4.1+)

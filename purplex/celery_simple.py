@@ -5,6 +5,10 @@ This is a clean, minimal configuration that removes all the unnecessary
 complexity from the original implementation.
 """
 
+# CRITICAL: Import gevent_setup FIRST to enable monkey-patching
+# This MUST happen before any other imports
+from purplex.gevent_setup import *  # noqa: F401, F403
+
 import os
 from celery import Celery
 
@@ -26,6 +30,16 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # Auto-discover tasks from all registered Django apps
 app.autodiscover_tasks()
+
+# CRITICAL: Patch psycopg2 for greenlet-aware database connections
+# This makes PostgreSQL connections work properly with gevent greenlets
+try:
+    from psycogreen.gevent import patch_psycopg
+    patch_psycopg()
+    print("✓ psycopg2 patched with psycogreen for greenlet-aware DB connections")
+except ImportError:
+    print("⚠ psycogreen not installed - using gevent monkey-patch only")
+    print("  Install with: pip install psycogreen")
 
 # Minimal configuration - everything else goes in settings.py
 app.conf.update(

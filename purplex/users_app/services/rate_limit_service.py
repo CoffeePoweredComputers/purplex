@@ -23,17 +23,51 @@ class RateLimitService:
     SSE_TOKEN_REQUESTS_PER_MINUTE = 20
     
     _redis_client = None
-    
+
     @classmethod
     def _get_redis_client(cls):
-        """Get or create Redis client for rate limiting."""
+        """
+        Get or create Redis client with health check for stale connections.
+
+        Health check prevents stale connection issues that occur when
+        the server runs for extended periods (hours/days).
+        """
+        # Create client if it doesn't exist
         if cls._redis_client is None:
             cls._redis_client = redis.Redis(
                 host=getattr(settings, 'REDIS_HOST', 'redis'),
                 port=getattr(settings, 'REDIS_PORT', 6379),
                 db=2,  # Use db=2 for rate limiting
-                decode_responses=True
+                decode_responses=True,
+                socket_connect_timeout=5,  # 5 second connection timeout
+                socket_timeout=5,  # 5 second operation timeout
+                retry_on_timeout=True  # Retry once on timeout
             )
+            logger.debug("Created new Redis client for rate limiting")
+
+        # Health check - verify connection is alive
+        try:
+            cls._redis_client.ping()
+        except (redis.ConnectionError, redis.TimeoutError, redis.RedisError) as e:
+            # Connection is stale/dead, recreate it
+            logger.warning(f"🔄 Redis connection stale (rate limiting), reconnecting... (error: {e})")
+            cls._redis_client = redis.Redis(
+                host=getattr(settings, 'REDIS_HOST', 'redis'),
+                port=getattr(settings, 'REDIS_PORT', 6379),
+                db=2,
+                decode_responses=True,
+                socket_connect_timeout=5,
+                socket_timeout=5,
+                retry_on_timeout=True
+            )
+            # Verify new connection works
+            try:
+                cls._redis_client.ping()
+                logger.info("✅ Redis reconnection successful (rate limiting)")
+            except Exception as reconnect_error:
+                logger.error(f"❌ Redis reconnection failed (rate limiting): {reconnect_error}")
+                raise
+
         return cls._redis_client
     
     @classmethod

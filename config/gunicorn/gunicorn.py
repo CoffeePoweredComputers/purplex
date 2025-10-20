@@ -3,6 +3,10 @@ Gunicorn configuration for production deployment
 Optimized for 10k concurrent users
 """
 
+# CRITICAL: Import gevent_setup FIRST to enable monkey-patching
+# This MUST happen before any other imports
+from purplex.gevent_setup import *  # noqa: F401, F403
+
 import multiprocessing
 import os
 

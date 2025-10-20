@@ -50,9 +50,16 @@ WHITENOISE_COMPRESS_OFFLINE = True
 WHITENOISE_MANIFEST_STRICT = False
 
 # Database connection pooling
-# IMPORTANT: Set to 0 for gevent workers to avoid thread safety issues
-# Gevent uses greenlets which are incompatible with persistent connections
-DATABASES['default']['CONN_MAX_AGE'] = 0  # Disable persistent connections for gevent
+# IMPORTANT: For proper gevent support, install psycogreen to make psycopg2 greenlet-aware
+# Without psycogreen: CONN_MAX_AGE must be 0, but this creates zombie transaction risk
+# With psycogreen: Safe to use connection pooling (CONN_MAX_AGE > 0)
+#
+# To install psycogreen: pip install psycogreen
+# Then add to celery_simple.py: from psycogreen.gevent import patch_psycopg; patch_psycopg()
+#
+# Current config: Using base.py settings (CONN_MAX_AGE=600) with CONN_HEALTH_CHECKS
+# This works because PostgreSQL now has idle_in_transaction_session_timeout=60s
+# which automatically kills zombie transactions from gevent context switching
 DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 
 # Cache configuration for production (use Redis)

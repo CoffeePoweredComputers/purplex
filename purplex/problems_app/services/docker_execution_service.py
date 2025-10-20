@@ -5,11 +5,15 @@ import hashlib
 import time
 import threading
 import atexit
-import concurrent.futures
 from typing import List, Dict, Any, Optional
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
+
+# Gevent imports for greenlet-aware timeouts (prevents deadlocks with gevent workers)
+import gevent
+from gevent import Timeout as GeventTimeout
+from gevent import lock as gevent_lock
 
 try:
     import docker
@@ -43,7 +47,10 @@ class DockerExecutionService:
         self.pool_enabled = security_config.get('POOL_ENABLED', True)
         self.pool_size = security_config.get('POOL_SIZE', 5)
         self.container_pool = []
-        self.pool_lock = threading.Lock()
+        # CRITICAL FIX: Use gevent RLock instead of threading.Lock
+        # This lock is accessed by both background health monitor thread AND gevent greenlets
+        # gevent.lock.RLock is both thread-safe AND greenlet-aware (prevents deadlocks)
+        self.pool_lock = gevent_lock.RLock()
         self._pool_initialized = False
         self._closed = False
 
@@ -188,10 +195,13 @@ while True:
                 labels={'purplex-pool': 'true'},  # Mark as pool container
                 auto_remove=False  # Don't auto-remove, we'll manage lifecycle
             )
-            
+
             # Wait a moment for container to stabilize
-            time.sleep(0.1)
-            
+            # CRITICAL FIX: Use gevent.sleep instead of time.sleep
+            # time.sleep() blocks the entire OS thread, freezing all greenlets
+            # gevent.sleep() cooperatively yields to other greenlets
+            gevent.sleep(0.1)
+
             # Verify container is running
             container.reload()
             if container.status == 'running':
@@ -997,40 +1007,37 @@ print(json.dumps(output))
             
             # Execute code in the container with enforced timeout
             try:
-                # Use ThreadPoolExecutor to enforce timeout
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    # Submit exec_run as a future
-                    future = executor.submit(
-                        container.exec_run,
-                        cmd=['python', '-c', code],
-                        stdout=True,
-                        stderr=True,
-                        user='sandbox',
-                        workdir='/sandbox',
-                        environment={
-                            'PYTHONDONTWRITEBYTECODE': '1',
-                            'PYTHONUNBUFFERED': '1',
-                            'PYTHONNOUSERSITE': '1'
-                        },
-                        demux=False
-                    )
-
+                # CRITICAL FIX: Use GeventTimeout instead of ThreadPoolExecutor
+                # Previously: ThreadPoolExecutor caused deadlocks with gevent workers
+                # Now: Gevent-native timeout is cooperative and deadlock-free
+                try:
+                    with GeventTimeout(self.max_execution_time):
+                        exec_result = container.exec_run(
+                            cmd=['python', '-c', code],
+                            stdout=True,
+                            stderr=True,
+                            user='sandbox',
+                            workdir='/sandbox',
+                            environment={
+                                'PYTHONDONTWRITEBYTECODE': '1',
+                                'PYTHONUNBUFFERED': '1',
+                                'PYTHONNOUSERSITE': '1'
+                            },
+                            demux=False
+                        )
+                except GeventTimeout:
+                    # Timeout exceeded - kill the container
+                    logger.warning(f"Execution exceeded {self.max_execution_time}s timeout")
                     try:
-                        # Wait for result with timeout
-                        exec_result = future.result(timeout=self.max_execution_time)
-                    except concurrent.futures.TimeoutError:
-                        # Timeout exceeded - kill the container
-                        logger.warning(f"Execution exceeded {self.max_execution_time}s timeout")
-                        try:
-                            container.kill()
-                            container.remove(force=True)
-                        except:
-                            pass
-                        return {
-                            'success': False,
-                            'output': '',
-                            'error': f'Code execution timed out after {self.max_execution_time} seconds'
-                        }
+                        container.kill()
+                        container.remove(force=True)
+                    except:
+                        pass
+                    return {
+                        'success': False,
+                        'output': '',
+                        'error': f'Code execution timed out after {self.max_execution_time} seconds'
+                    }
 
                 # Parse result with output size limit
                 MAX_OUTPUT_SIZE = 1024 * 1024  # 1MB
