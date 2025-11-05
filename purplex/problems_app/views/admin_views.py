@@ -602,6 +602,8 @@ class AdminSubmissionListView(APIView):
                     'problem_set': submission.problem_set.title if submission.problem_set else '',
                     'course': submission.course.name if submission.course else '',
                     'submission_type': submission.submission_type,
+                    'raw_input': submission.raw_input,  # Original user input (code or natural language)
+                    'processed_code': submission.processed_code,  # Final code that was executed
                     'score': submission.score,
                     'comprehension_level': submission.comprehension_level,
                     'is_correct': submission.is_correct,
