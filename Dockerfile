@@ -40,9 +40,9 @@ COPY --from=frontend /app/dist /app/purplex/client/dist
 RUN mkdir -p staticfiles media logs /var/run/gunicorn
 
 # Collect static files
-# Note: This may fail during build if Django needs database connection
-# In production, run collectstatic after deployment with: python manage.py collectstatic --noinput
-RUN python manage.py collectstatic --noinput --clear 2>/dev/null || echo "⚠️  Static files collection skipped (run manually after deployment)"
+# Note: Skipped during build - will run after deployment when database is available
+# Run manually after deployment: docker-compose exec web python manage.py collectstatic --noinput
+# RUN python manage.py collectstatic --noinput --clear 2>/dev/null || echo "⚠️  Static files collection skipped (run manually after deployment)"
 
 # Expose port
 EXPOSE 8000

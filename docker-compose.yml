@@ -29,8 +29,8 @@ services:
       -c statement_timeout=0
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+    # ports:  # REMOVED: PostgreSQL should not be exposed to internet
+    #   - "${POSTGRES_PORT:-5432}:5432"
     networks:
       - database
       - backend
@@ -78,11 +78,11 @@ services:
     profiles:
       - production
     container_name: purplex_redis
-    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru
+    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
     env_file:
       - .env.production
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    # ports:  # REMOVED: Redis should not be exposed to internet
+    #   - "${REDIS_PORT:-6379}:6379"
     networks:
       - backend
     healthcheck:
@@ -133,8 +133,8 @@ services:
       - ./logs:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
       - /var/run/docker.sock:/var/run/docker.sock
-    expose:
-      - "8000"
+    # ports:  # REMOVED: Access should only be through Nginx (ports 80/443)
+    #   - "8080:8000"
     networks:
       - frontend
       - backend
@@ -163,6 +163,17 @@ services:
         reservations:
           cpus: '1.5'
           memory: 2G
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:docker-default
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
     restart: unless-stopped
 
   # Django Web Application - Development
@@ -294,6 +305,16 @@ services:
         reservations:
           cpus: '2.0'
           memory: 3G
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:docker-default
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
     restart: unless-stopped
 
   # Celery Beat - Production (Periodic Tasks)
@@ -386,7 +407,7 @@ networks:
   # Database network - isolated database access
   database:
     driver: bridge
-    internal: false  # Allow web/celery containers to connect to postgres/redis
+    internal: true  # Database isolated from internet (web/celery can still connect)
     ipam:
       config:
         - subnet: 172.22.0.0/24
