@@ -132,7 +132,7 @@ services:
       - ./media:/app/media
       - ./logs:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
-      - /var/run/docker.sock:/var/run/docker.sock
+      # REMOVED: Docker socket mount for security - use Docker-in-Docker or socket proxy instead
     # ports:  # REMOVED: Access should only be through Nginx (ports 80/443)
     #   - "8080:8000"
     networks:
@@ -143,11 +143,17 @@ services:
       - .env.production
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-prod:5432/${POSTGRES_DB}
-      - REDIS_URL=redis://redis-prod:6379/0
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis-prod:6379/0
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - DOCKER_HOST=tcp://dind:2375
     depends_on:
       postgres-prod:
         condition: service_healthy
       redis-prod:
+        condition: service_healthy
+      dind:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
@@ -169,11 +175,9 @@ services:
     cap_drop:
       - ALL
     cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
-      - SETGID
-      - SETUID
-      - NET_BIND_SERVICE
+      - CHOWN  # Only keep CHOWN for file ownership management
+      # REMOVED for security: DAC_OVERRIDE, SETGID, SETUID, NET_BIND_SERVICE
+      # These are not needed and allow privilege escalation
     restart: unless-stopped
 
   # Django Web Application - Development
@@ -186,7 +190,7 @@ services:
     volumes:
       - .:/app
       - ./logs:/app/logs
-      - /var/run/docker.sock:/var/run/docker.sock
+      # REMOVED: Docker socket mount for security - use Docker-in-Docker or socket proxy instead
     ports:
       - "8000:8000"
     env_file:
@@ -267,6 +271,26 @@ services:
     depends_on:
       - nginx
 
+  # Docker-in-Docker - Secure code execution environment - Production
+  dind:
+    image: docker:24-dind
+    profiles:
+      - production
+    privileged: true  # Required for DinD to manage containers
+    networks:
+      - backend
+    environment:
+      DOCKER_TLS_CERTDIR: ""  # Disable TLS for simplicity (internal network only)
+    volumes:
+      - dind-storage:/var/lib/docker
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "docker info || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   # Celery Worker - Production
   celery:
     build: .
@@ -277,7 +301,7 @@ services:
       - ./media:/app/media
       - ./logs:/app/logs
       - ./firebase-credentials.json:/app/firebase-credentials.json:ro
-      - /var/run/docker.sock:/var/run/docker.sock
+      # REMOVED: Docker socket mount for security - use Docker-in-Docker or socket proxy instead
     networks:
       - backend
       - database
@@ -285,11 +309,17 @@ services:
       - .env.production
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-prod:5432/${POSTGRES_DB}
-      - REDIS_URL=redis://redis-prod:6379/0
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis-prod:6379/0
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - DOCKER_HOST=tcp://dind:2375
     depends_on:
       postgres-prod:
         condition: service_healthy
       redis-prod:
+        condition: service_healthy
+      dind:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "celery -A purplex.celery_simple inspect ping -d celery@$$HOSTNAME"]
@@ -311,10 +341,9 @@ services:
     cap_drop:
       - ALL
     cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
-      - SETGID
-      - SETUID
+      - CHOWN  # Only keep CHOWN for file ownership management
+      # REMOVED for security: DAC_OVERRIDE, SETGID, SETUID
+      # These are not needed and allow privilege escalation
     restart: unless-stopped
 
   # Celery Beat - Production (Periodic Tasks)
@@ -333,7 +362,10 @@ services:
       - .env.production
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-prod:5432/${POSTGRES_DB}
-      - REDIS_URL=redis://redis-prod:6379/0
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis-prod:6379/0
+      - REDIS_HOST=redis-prod
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     depends_on:
       postgres-prod:
         condition: service_healthy
@@ -359,7 +391,7 @@ services:
     volumes:
       - .:/app
       - ./logs:/app/logs
-      - /var/run/docker.sock:/var/run/docker.sock
+      # REMOVED: Docker socket mount for security - use Docker-in-Docker or socket proxy instead
     env_file:
       - .env.docker.development
     depends_on:
@@ -418,4 +450,7 @@ volumes:
   certbot-etc:
     driver: local
   certbot-www:
+    driver: local
+  # Docker-in-Docker storage
+  dind-storage:
     driver: local

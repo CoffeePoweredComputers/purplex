@@ -37,6 +37,7 @@ class RateLimitService:
             cls._redis_client = redis.Redis(
                 host=getattr(settings, 'REDIS_HOST', 'redis'),
                 port=getattr(settings, 'REDIS_PORT', 6379),
+                password=getattr(settings, 'REDIS_PASSWORD', None),
                 db=2,  # Use db=2 for rate limiting
                 decode_responses=True,
                 socket_connect_timeout=5,  # 5 second connection timeout
@@ -54,6 +55,7 @@ class RateLimitService:
             cls._redis_client = redis.Redis(
                 host=getattr(settings, 'REDIS_HOST', 'redis'),
                 port=getattr(settings, 'REDIS_PORT', 6379),
+                password=getattr(settings, 'REDIS_PASSWORD', None),
                 db=2,
                 decode_responses=True,
                 socket_connect_timeout=5,

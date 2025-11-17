@@ -15,8 +15,8 @@ if config.env.value != 'production':
 # Security settings for production
 # SSL settings - only enable if using HTTPS
 SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
-SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
-CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False').lower() == 'true'
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True').lower() == 'true'
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'True').lower() == 'true'
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
@@ -42,6 +42,16 @@ if not os.environ.get('DJANGO_SECRET_KEY'):
 
 if ALLOWED_HOSTS == ['*'] or not ALLOWED_HOSTS:
     raise ValueError("ALLOWED_HOSTS must be properly configured in production")
+
+# Warn if critical security settings are disabled
+if not SESSION_COOKIE_SECURE or not CSRF_COOKIE_SECURE:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(
+        "CRITICAL: SESSION_COOKIE_SECURE or CSRF_COOKIE_SECURE is disabled. "
+        "Cookies will be transmitted over HTTP. Ensure HTTPS is properly configured "
+        "or set SESSION_COOKIE_SECURE=true and CSRF_COOKIE_SECURE=true in environment."
+    )
 
 # Static files - use WhiteNoise for serving
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
