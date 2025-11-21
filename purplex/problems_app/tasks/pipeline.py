@@ -13,6 +13,7 @@ import time
 import redis
 from typing import Dict, List, Any, Optional, TYPE_CHECKING
 from django.conf import settings
+from purplex.utils.redis_client import get_pubsub_client
 from django.db import transaction
 from gevent.pool import Pool as GeventPool
 from gevent import Greenlet
@@ -43,14 +44,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Redis client for publishing events
-redis_client = redis.Redis(
-    host=getattr(settings, 'REDIS_HOST', 'localhost'),
-    port=getattr(settings, 'REDIS_PORT', 6379),
-    db=0,
-    decode_responses=True
-)
-
 
 def publish_progress(task_id: str, progress: float, message: str, extra_data: dict = None):
     """Publish a progress event to the Redis channel."""
@@ -64,9 +57,12 @@ def publish_progress(task_id: str, progress: float, message: str, extra_data: di
     }
     if extra_data:
         event_data.update(extra_data)
-    
+
     try:
-        redis_client.publish(channel, json.dumps(event_data))
+        client = get_pubsub_client()  # Use centralized client
+        client.publish(channel, json.dumps(event_data))
+    except (redis.ConnectionError, redis.TimeoutError) as e:
+        logger.error(f"⚠️ Redis connection failed while publishing progress event: {e}")
     except Exception as e:
         logger.error(f"Failed to publish progress event: {e}")
 
@@ -81,10 +77,13 @@ def publish_completion(task_id: str, result: dict):
         'message': f"Submission complete! Score: {result.get('score', 0)}%",
         'result': result
     }
-    
+
     try:
-        redis_client.publish(channel, json.dumps(event_data))
+        client = get_pubsub_client()  # Use centralized client
+        client.publish(channel, json.dumps(event_data))
         logger.info(f"Published completion event for task {task_id}")
+    except (redis.ConnectionError, redis.TimeoutError) as e:
+        logger.error(f"⚠️ Redis connection failed while publishing completion event: {e}")
     except Exception as e:
         logger.error(f"Failed to publish completion event: {e}")
 
@@ -99,10 +98,13 @@ def publish_error(task_id: str, error_message: str):
         'error': error_message,
         'message': f"Task failed: {error_message}"
     }
-    
+
     try:
-        redis_client.publish(channel, json.dumps(event_data))
+        client = get_pubsub_client()  # Use centralized client
+        client.publish(channel, json.dumps(event_data))
         logger.error(f"Published error event: {error_message}")
+    except (redis.ConnectionError, redis.TimeoutError) as e:
+        logger.error(f"⚠️ Redis connection failed while publishing error event: {e}")
     except Exception as e:
         logger.error(f"Failed to publish error event: {e}")
 

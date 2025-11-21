@@ -43,56 +43,7 @@ class AuthenticationService:
     # Cache for Firebase initialization
     _firebase_initialized = False
     _firebase_auth = None
-    
-    # Redis client for SSE session tokens
-    _redis_client = None
 
-    @classmethod
-    def _get_redis_client(cls):
-        """
-        Get or create Redis client with health check for stale connections.
-
-        Health check prevents stale connection issues that occur when
-        the server runs for extended periods (hours/days).
-        """
-        # Create client if it doesn't exist
-        if cls._redis_client is None:
-            cls._redis_client = redis.Redis(
-                host=getattr(settings, 'REDIS_HOST', 'redis'),
-                port=getattr(settings, 'REDIS_PORT', 6379),
-                db=1,  # Use db=1 for SSE sessions
-                decode_responses=True,
-                socket_connect_timeout=5,  # 5 second connection timeout
-                socket_timeout=5,  # 5 second operation timeout
-                retry_on_timeout=True  # Retry once on timeout
-            )
-            logger.debug("Created new Redis client for SSE sessions")
-
-        # Health check - verify connection is alive
-        try:
-            cls._redis_client.ping()
-        except (redis.ConnectionError, redis.TimeoutError, redis.RedisError) as e:
-            # Connection is stale/dead, recreate it
-            logger.warning(f"🔄 Redis connection stale, reconnecting... (error: {e})")
-            cls._redis_client = redis.Redis(
-                host=getattr(settings, 'REDIS_HOST', 'redis'),
-                port=getattr(settings, 'REDIS_PORT', 6379),
-                db=1,
-                decode_responses=True,
-                socket_connect_timeout=5,
-                socket_timeout=5,
-                retry_on_timeout=True
-            )
-            # Verify new connection works
-            try:
-                cls._redis_client.ping()
-                logger.info("✅ Redis reconnection successful")
-            except Exception as reconnect_error:
-                logger.error(f"❌ Redis reconnection failed: {reconnect_error}")
-                raise
-
-        return cls._redis_client
-    
     @classmethod
     def _initialize_firebase(cls):
         """Initialize Firebase once and cache it."""
@@ -567,6 +518,7 @@ class AuthenticationService:
         Create a short-lived session token for SSE connections.
 
         This prevents token exposure in URLs by using temporary sessions.
+        Uses Django cache (which already has correct Redis authentication).
 
         Args:
             user: Authenticated Django user
@@ -574,14 +526,15 @@ class AuthenticationService:
         Returns:
             Session token for SSE connection
         """
+        from django.core.cache import cache
+
         # Generate secure random token
         session_token = secrets.token_urlsafe(32)
 
         logger.info(f"🔑 Creating SSE session for user {user.username} (ID: {user.id})")
         logger.info(f"   Token preview: {session_token[:10]}...{session_token[-10:]}")
 
-        # Store session data in Redis with 5-minute TTL
-        redis_client = cls._get_redis_client()
+        # Store session data in Django cache with 5-minute TTL
         session_key = f"sse_session:{session_token}"
         session_data = {
             'user_id': user.id,
@@ -589,21 +542,20 @@ class AuthenticationService:
             'created_at': time.time()
         }
 
-        # Set with 5-minute expiration (auto-renewed on activity)
-        redis_client.setex(
-            session_key,
-            300,  # 5 minutes
-            json.dumps(session_data)
-        )
+        # Set with 5-minute expiration (Django cache handles TTL)
+        try:
+            cache.set(session_key, session_data, 300)  # 5 minutes
 
-        # Verify it was stored
-        verify = redis_client.get(session_key)
-        if verify:
-            logger.info(f"✅ SSE session stored successfully in Redis")
-            logger.info(f"   Key: {session_key}")
-            logger.info(f"   TTL: {redis_client.ttl(session_key)} seconds")
-        else:
-            logger.error(f"❌ Failed to store SSE session in Redis!")
+            # Verify it was stored
+            verify = cache.get(session_key)
+            if verify:
+                logger.info(f"✅ SSE session stored successfully in cache")
+                logger.info(f"   Key: {session_key}")
+            else:
+                logger.error(f"❌ Failed to store SSE session in cache!")
+        except Exception as e:
+            logger.error(f"❌ Cache error creating SSE session: {e}")
+            raise
 
         return session_token
     
@@ -611,6 +563,7 @@ class AuthenticationService:
     def validate_sse_session(cls, session_token: str) -> Optional[User]:
         """
         Validate an SSE session token and return the associated user.
+        Uses Django cache (which already has correct Redis authentication).
 
         Args:
             session_token: SSE session token
@@ -618,77 +571,80 @@ class AuthenticationService:
         Returns:
             User instance if valid, None otherwise
         """
+        from django.core.cache import cache
+
         if not session_token:
             logger.warning("🔒 SSE session validation: No token provided")
             return None
 
         logger.info(f"🔍 Validating SSE session token: {session_token[:10]}...{session_token[-10:]}")
 
-        redis_client = cls._get_redis_client()
         session_key = f"sse_session:{session_token}"
 
-        # Get session data
-        session_data_str = redis_client.get(session_key)
-        if not session_data_str:
-            logger.error(f"❌ SSE session NOT FOUND in Redis")
-            logger.error(f"   Token: {session_token[:10]}...{session_token[-10:]}")
-            logger.error(f"   Key: {session_key}")
-
-            # Check if there are ANY SSE sessions in Redis (debugging)
-            all_keys = redis_client.keys("sse_session:*")
-            logger.error(f"   Total SSE sessions in Redis: {len(all_keys)}")
-            if all_keys:
-                logger.error(f"   Sample keys: {all_keys[:3]}")
-
-            return None
-
-        logger.info(f"✅ SSE session found in Redis, parsing data...")
-
+        # Get session data from Django cache
         try:
-            session_data = json.loads(session_data_str)
-            user_id = session_data.get('user_id')
+            session_data = cache.get(session_key)
+            if not session_data:
+                logger.error(f"❌ SSE session NOT FOUND in cache")
+                logger.error(f"   Token: {session_token[:10]}...{session_token[-10:]}")
+                logger.error(f"   Key: {session_key}")
+                return None
 
+            logger.info(f"✅ SSE session found in cache")
+
+            # session_data is already a dict (cache.get deserializes automatically)
+            user_id = session_data.get('user_id')
             logger.info(f"📋 Session data: user_id={user_id}")
 
             # Refresh TTL on activity (sliding expiration)
-            redis_client.expire(session_key, 300)
+            cache.touch(session_key, 300)
             logger.info(f"⏱️ Refreshed TTL for session (300 seconds)")
 
             # Get user from database using repository
             user = UserRepository.get_by_id(user_id)
             if not user:
                 logger.error(f"❌ User {user_id} NOT FOUND in database for valid SSE session")
-                raise ValueError("User not found")
+                cache.delete(session_key)  # Clean up orphaned session
+                return None
 
             logger.info(f"✅ SSE session validated successfully for user: {user.username}")
             return user
 
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.error(f"❌ Invalid SSE session data: {e}")
-            logger.error(f"   Raw data: {session_data_str}")
+        except Exception as e:
+            logger.error(f"❌ Cache error validating SSE session: {e}")
             # Clean up invalid session
-            redis_client.delete(session_key)
+            try:
+                cache.delete(session_key)
+            except:
+                pass
             return None
     
     @classmethod
     def revoke_sse_session(cls, session_token: str) -> bool:
         """
         Revoke an SSE session token.
-        
+        Uses Django cache (which already has correct Redis authentication).
+
         Args:
             session_token: SSE session token to revoke
-            
+
         Returns:
             True if revoked, False if not found
         """
+        from django.core.cache import cache
+
         if not session_token:
             return False
-        
-        redis_client = cls._get_redis_client()
+
         session_key = f"sse_session:{session_token}"
-        
-        result = redis_client.delete(session_key)
-        if result:
-            logger.info(f"Revoked SSE session")
-        
-        return bool(result)
+
+        try:
+            # Django cache.delete returns None, check if key existed first
+            existed = cache.get(session_key) is not None
+            cache.delete(session_key)
+            if existed:
+                logger.info(f"Revoked SSE session")
+            return existed
+        except Exception as e:
+            logger.error(f"❌ Error revoking SSE session: {e}")
+            return False

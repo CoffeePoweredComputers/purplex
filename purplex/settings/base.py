@@ -183,10 +183,49 @@ CORS_ALLOW_HEADERS = [
     'x-service-key',  # For service account authentication
 ]
 
-# Redis Configuration
-REDIS_HOST = os.environ.get('REDIS_HOST', 'redis' if 'docker' in os.environ.get('HOSTNAME', '') else 'localhost')
-REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
-REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
+# ============================================================================
+# REDIS CONFIGURATION
+# ============================================================================
+# Primary: REDIS_URL (preferred for all environments)
+# Fallback: Individual params (REDIS_HOST, REDIS_PORT, REDIS_PASSWORD)
+#
+# The REDIS_URL is parsed to extract individual components, ensuring
+# consistency between URL-based and parameter-based configuration.
+#
+# Example REDIS_URL: redis://:password@hostname:6379/0
+# ============================================================================
+
+from urllib.parse import urlparse
+
+# Check if REDIS_URL is provided
+REDIS_URL_ENV = os.environ.get('REDIS_URL', None)
+
+if REDIS_URL_ENV:
+    # Parse REDIS_URL to extract components
+    _redis_parsed = urlparse(REDIS_URL_ENV)
+    REDIS_HOST = _redis_parsed.hostname or 'localhost'
+    REDIS_PORT = _redis_parsed.port or 6379
+    REDIS_PASSWORD = _redis_parsed.password
+    REDIS_URL = REDIS_URL_ENV
+else:
+    # Fallback: Build REDIS_URL from individual parameters
+    REDIS_HOST = os.environ.get('REDIS_HOST', 'redis' if 'docker' in os.environ.get('HOSTNAME', '') else 'localhost')
+    REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
+    REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
+
+    # Construct REDIS_URL for components that need it
+    if REDIS_PASSWORD:
+        REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
+    else:
+        REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+
+# Log configuration source for debugging
+import logging
+logger = logging.getLogger(__name__)
+if REDIS_URL_ENV:
+    logger.debug(f"Redis configured from REDIS_URL: redis://{REDIS_HOST}:{REDIS_PORT}")
+else:
+    logger.debug(f"Redis configured from individual params: {REDIS_HOST}:{REDIS_PORT}")
 
 # Celery Configuration
 CELERY_BROKER_URL = config.redis_url

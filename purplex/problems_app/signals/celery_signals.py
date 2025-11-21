@@ -17,16 +17,9 @@ from celery.signals import (
     task_success
 )
 from django.conf import settings
+from purplex.utils.redis_client import get_pubsub_client
 
 logger = logging.getLogger(__name__)
-
-# Single Redis client for pub/sub
-redis_client = redis.Redis(
-    host=getattr(settings, 'REDIS_HOST', 'localhost'),
-    port=getattr(settings, 'REDIS_PORT', 6379),
-    db=0,  # Use same DB as Celery
-    decode_responses=True
-)
 
 
 def publish_task_event(task_id: str, event_type: str, data: dict = None):
@@ -64,10 +57,14 @@ def publish_task_event(task_id: str, event_type: str, data: dict = None):
     channel = f'task:{task_id}'
     
     try:
-        redis_client.publish(channel, json.dumps(event))
+        client = get_pubsub_client()  # Use centralized client
+        client.publish(channel, json.dumps(event))
         logger.debug(f"Published {event_type} event for task {task_id}")
+    except (redis.ConnectionError, redis.TimeoutError) as e:
+        # Don't fail tasks if Redis is temporarily unavailable
+        logger.warning(f"⚠️ Redis connection failed while publishing event for task {task_id}: {e}")
     except Exception as e:
-        # Don't fail tasks if publishing fails
+        # Don't fail tasks if publishing fails for other reasons (serialization, etc.)
         logger.warning(f"Failed to publish event for task {task_id}: {e}")
 
 

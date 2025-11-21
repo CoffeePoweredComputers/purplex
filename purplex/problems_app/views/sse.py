@@ -91,12 +91,16 @@ class CleanTaskSSEView(View):
         Yields:
             SSE-formatted event strings
         """
-        # Setup Redis connection
+        # Setup Redis connection (per-request for SSE pub/sub)
+        # Note: Can't use centralized client due to socket_keepalive_options conflicting with gevent
         redis_client = redis.Redis(
             host=getattr(settings, 'REDIS_HOST', 'localhost'),
             port=getattr(settings, 'REDIS_PORT', 6379),
+            password=getattr(settings, 'REDIS_PASSWORD', None),
             db=0,
-            decode_responses=True
+            decode_responses=True,
+            socket_timeout=None,  # SSE needs indefinite timeout
+            socket_connect_timeout=5
         )
         
         # Subscribe to task channel
@@ -252,14 +256,18 @@ class CleanBatchSSEView(View):
         Yields:
             SSE-formatted event strings
         """
-        # Setup Redis connection
+        # Setup Redis connection (per-request for SSE pub/sub)
+        # Note: Can't use centralized client due to socket_keepalive_options conflicting with gevent
         redis_client = redis.Redis(
             host=getattr(settings, 'REDIS_HOST', 'localhost'),
             port=getattr(settings, 'REDIS_PORT', 6379),
+            password=getattr(settings, 'REDIS_PASSWORD', None),
             db=0,
-            decode_responses=True
+            decode_responses=True,
+            socket_timeout=None,  # SSE needs indefinite timeout
+            socket_connect_timeout=5
         )
-        
+
         # Subscribe to all task channels
         pubsub = redis_client.pubsub()
         channels = [f'task:{task_id}' for task_id in task_ids]

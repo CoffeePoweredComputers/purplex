@@ -383,6 +383,27 @@ purplex/
 - Comprehensive error handling and logging implementation
 
 ## Environment Variables
+
+### Redis Configuration
+
+**Primary (Recommended):**
+```bash
+REDIS_URL=redis://:password@hostname:6379/0
+```
+
+**Legacy (Still Supported):**
+```bash
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=mypassword
+```
+
+**Note:** REDIS_URL takes precedence if both are provided. Settings automatically parse REDIS_URL to extract REDIS_HOST, REDIS_PORT, and REDIS_PASSWORD, ensuring consistency.
+
+See [docs/REDIS_CONFIGURATION.md](./docs/REDIS_CONFIGURATION.md) for detailed configuration guide.
+
+### All Environment Variables
+
 ```bash
 # Development (.env.development)
 PURPLEX_ENV=development
@@ -390,8 +411,7 @@ DJANGO_SECRET_KEY=development-key
 DATABASE_URL=postgresql://purplex_user:devpass@localhost:5432/purplex_dev
 OPENAI_API_KEY=<your-key>                  # For AI-powered features
 GPT_MODEL=gpt-4o-mini                      # OpenAI model to use
-REDIS_HOST=localhost
-REDIS_PORT=6379
+REDIS_URL=redis://localhost:6379/0         # Primary Redis configuration
 # Note: No Firebase credentials needed for dev (uses mock)
 
 # Production (.env.production)
@@ -401,8 +421,7 @@ DATABASE_URL=<production-database-url>
 OPENAI_API_KEY=<production-key>
 GPT_MODEL=gpt-4o-mini
 FIREBASE_CREDENTIALS_PATH=/path/to/firebase-credentials.json
-REDIS_HOST=<production-redis-host>
-REDIS_PORT=6379
+REDIS_URL=redis://:password@redis-host:6379/0  # Primary Redis configuration
 ```
 
 ## Docker Development

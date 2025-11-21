@@ -420,13 +420,9 @@ class ProgressEngine:
             key = f"progress:update:{progress.user.id}:{progress.problem.id}"
             cache.set(key, event_data, timeout=3600)
 
-            # Also publish to a channel for real-time subscribers
-            # Note: Pub/sub functionality requires direct Redis connection
-            # For now, we'll skip pub/sub in favor of polling-based updates
-            channel = f"progress:channel:{progress.user.id}"
-            # redis_client.publish(channel, json.dumps(event_data))  # Disabled for Docker compatibility
-
-            logger.debug(f"[ProgressEngine] Published progress event to Redis channel {channel}")
+            # Progress events stored in cache for polling
+            # Real-time pub/sub not currently implemented (see celery_signals.py for task events)
+            logger.debug(f"[ProgressEngine] Cached progress event with key: {key}")
 
         except Exception as e:
             # Don't fail the whole operation if SSE emission fails

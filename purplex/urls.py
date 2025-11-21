@@ -44,7 +44,8 @@ def development_root(request):
             <p>The API is running. Available endpoints:</p>
             <ul>
                 <li><a href="/api/health/">/api/health/</a> - Health check</li>
-                <li><a href="/admin/">/admin/</a> - Django admin</li>
+                <li><a href="/django-admin/">/django-admin/</a> - Django admin</li>
+                <li><a href="/admin/">/admin/</a> - Vue admin (frontend)</li>
                 <li><strong>/api/</strong> - REST API endpoints</li>
             </ul>
             <p><em>Frontend: Run <code>yarn dev</code> in purplex/client directory</em></p>
@@ -57,7 +58,7 @@ urlpatterns = [
     path('nginx-health', simple_health_check, name='nginx_health_check'),
     path('health/', simple_health_check, name='simple_health_check'),
 
-    path('admin/', admin.site.urls),
+    path('django-admin/', admin.site.urls),  # Moved to avoid conflict with Vue admin
     path('api/', include([
         # Comprehensive health checks for monitoring
         path('health/', HealthCheckView.as_view(), name='health_check'),
@@ -154,8 +155,8 @@ if settings.DEBUG is False:  # Only in production
         re_path(r'^.*\.(jpg|jpeg|png|gif|ico|svg)$', serve_by_path),
     ]
 
-    # Catch all routes except api/admin/static/media
+    # Catch all routes except api/django-admin/static/media
     urlpatterns += [
         re_path(r'^$', serve_vue_app),  # Root URL
-        re_path(r'^(?!api|admin|static|media|js|css|assets).*$', serve_vue_app),  # All other non-API routes
+        re_path(r'^(?!api|django-admin|static|media|js|css|assets).*$', serve_vue_app),  # All other non-API routes
     ]
