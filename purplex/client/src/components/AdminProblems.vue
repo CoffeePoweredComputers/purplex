@@ -227,21 +227,17 @@ export default defineComponent({
       switch(type) {
         case 'eipl':
           return 'eipl-badge';
-        case 'function_redefinition':
-          return 'function-badge';
         default:
           return 'default-type-badge';
       }
     },
-    
+
     getProblemTypeLabel(type: string): string {
       switch(type) {
         case 'eipl':
           return 'EiPL';
-        case 'function_redefinition':
-          return 'Function';
         default:
-          return 'Unknown';
+          return type || 'Unknown';
       }
     },
     

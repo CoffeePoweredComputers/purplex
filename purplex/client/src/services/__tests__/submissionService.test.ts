@@ -1,10 +1,8 @@
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest'
 import axios from 'axios'
-import submissionService, { 
-  ProblemSetProgress, 
-  SubmissionRequest, 
-  SubmissionResponse,
-  SubmissionSummary 
+import submissionService, {
+  ProblemSetProgress,
+  SubmissionSummary
 } from '../submissionService'
 import { log } from '../../utils/logger'
 import type { BaseSubmission, SubmissionTestResult } from '../../types'
@@ -37,23 +35,6 @@ const mockProblemSetProgress: ProblemSetProgress = {
   average_score: 75,
   percentage: 50,
   last_activity: '2025-08-05T10:00:00Z'
-}
-
-const mockSubmissionRequest: SubmissionRequest = {
-  problem_slug: 'two-sum',
-  user_code: 'def two_sum(nums, target): return [0, 1]',
-  prompt: 'Find two numbers that add up to target',
-  time_spent: 300
-}
-
-const mockSubmissionResponse: SubmissionResponse = {
-  success: true,
-  score: 100,
-  total_tests: 5,
-  passed_tests: 5,
-  execution_time: 0.05,
-  submission_id: 123,
-  message: 'All tests passed!'
 }
 
 const mockBaseSubmission: BaseSubmission = {
@@ -139,48 +120,6 @@ describe('SubmissionService', () => {
           'Failed to fetch progress for problem set', 
           { problemSetSlug: 'arrays', error: mockError }
         )
-      })
-    })
-
-    describe('submitSolution', () => {
-      it('should submit solution successfully', async () => {
-        (axios.post as Mock).mockResolvedValue({ data: mockSubmissionResponse })
-
-        const result = await submissionService.submitSolution(mockSubmissionRequest)
-
-        expect(axios.post).toHaveBeenCalledWith('/api/submissions/', mockSubmissionRequest)
-        expect(result).toEqual(mockSubmissionResponse)
-      })
-
-      it('should handle submission errors', async () => {
-        const mockError = new Error('Code execution failed');
-        (axios.post as Mock).mockRejectedValue(mockError)
-
-        await expect(submissionService.submitSolution(mockSubmissionRequest)).rejects.toThrow('Code execution failed')
-        expect(log.error).toHaveBeenCalledWith('Failed to submit solution', mockError)
-      })
-    })
-
-    describe('testSolution', () => {
-      it('should test solution without saving', async () => {
-        const mockTestResult = { success: true, output: 'Test passed' };
-        (axios.post as Mock).mockResolvedValue({ data: mockTestResult })
-
-        const result = await submissionService.testSolution('two-sum', 'def two_sum(): pass')
-
-        expect(axios.post).toHaveBeenCalledWith('/api/test-solution/', {
-          problem_slug: 'two-sum',
-          user_code: 'def two_sum(): pass'
-        })
-        expect(result).toEqual(mockTestResult)
-      })
-
-      it('should handle test errors', async () => {
-        const mockError = new Error('Syntax error');
-        (axios.post as Mock).mockRejectedValue(mockError)
-
-        await expect(submissionService.testSolution('two-sum', 'invalid code')).rejects.toThrow('Syntax error')
-        expect(log.error).toHaveBeenCalledWith('Failed to test solution', mockError)
       })
     })
 

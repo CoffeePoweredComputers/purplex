@@ -40,9 +40,10 @@ class Problem(models.Model):
         ('advanced', 'Advanced'),
     ]
     
+    # NOTE: Problem types are now extensible via the activity type system.
+    # Currently only EiPL is implemented. See docs/architecture/ACTIVITY_TYPE_EXTENSIBILITY.md
     PROBLEM_TYPE_CHOICES = [
         ('eipl', 'Explain in Plain Language (EiPL)'),
-        ('function_redefinition', 'Function Redefinition'),
     ]
     
     slug = models.SlugField(max_length=100, unique=True, blank=True)

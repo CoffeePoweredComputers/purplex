@@ -1,14 +1,8 @@
-from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .permissions import IsAdmin, IsAuthenticated
 from django.conf import settings
-
-import json
-import os
-import openai
 
 from django.contrib.auth.models import User
 from .models import UserProfile, UserRole
@@ -21,70 +15,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Get API key and model from settings
-client = openai.OpenAI(
-    api_key=os.environ.get('OPENAI_API_KEY', '')
-)
-GPT_MODEL = getattr(settings, 'GPT_MODEL', 'gpt-4o-mini')
-
-class AIGenerateView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    CODE_SYSTEM_PROMPT = """
-    Create five functions, each called foo, that are different implementation of a user's description.
-    THe function should be interpretable by beginners and should use as few inbuilt function as
-    possible.  For example, rather than using a built-in sum function to calculate the sum of a list,
-    the code produced should write their own function to calculate the sum of a list. The returned code
-    should be in the following format.  Using this format generate five different implementations of
-    the user's input.  Note that the produced function has only as single function, rely on
-    no outside or undefined helper functions, and no additional text, test case, or comments.
-
-    ```
-    def foo(<params here):
-        <code here>
-    ```
-    ```
-    def foo(<params here):
-        <code here>
-    ```
-    ```
-    def foo(<params here):
-        <code here>
-    ```
-    ```
-    def foo(<params here):
-        <code here>
-    ```
-    ```
-    def foo(<params here):
-        <code here>
-    ```
-
-    Be sure to include the ``` and ``` at the beginning and end of the code block and name each
-    function foo. Dont include the language in the markdown formating (e.g., ```python, ```c).
-    The student's response is as follows:
-    """  
-
-    def post(self, request):
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
-        prompt = [
-            {
-                "role": "user", 
-                "content":  self.CODE_SYSTEM_PROMPT + data.get('prompt')
-            }
-        ]
-
-        response = client.chat.completions.create(
-                model=GPT_MODEL,
-                messages=prompt
-        )
-
-        generated_code = list(map(lambda x: x.replace("```", "").strip(), response.choices[0].message.content.split("```")[1::2]))
-        return JsonResponse({"code": generated_code}, safe=False)
 
 class UserRoleView(APIView):
     """

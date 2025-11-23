@@ -1,10 +1,14 @@
 """Service for managing user progress with transaction safety and caching."""
 
 import logging
+import time
 from typing import Dict, Any, Optional, List, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.core.cache import cache
-from django.db import transaction
+from django.db import transaction, IntegrityError, DatabaseError
+from django.utils import timezone
+
+from purplex.submissions.grading_service import GradingService
 
 from ..repositories import (
     ProgressRepository, ProblemRepository, CourseRepository,
@@ -774,3 +778,371 @@ class ProgressService:
         if hasattr(submission, 'segmentation'):
             return submission.segmentation.passed
         return None
+
+    # ==========================================================================
+    # WRITE METHODS (consolidated from ProgressEngine)
+    # ==========================================================================
+
+    @staticmethod
+    def process_submission(submission) -> 'UserProgress':
+        """
+        Main entry point for processing any submission's impact on progress.
+        This is the ONLY method that should update UserProgress records.
+
+        Args:
+            submission: A Submission model instance
+
+        Returns:
+            The updated UserProgress instance
+        """
+        from ..models import UserProgress, UserProblemSetProgress
+
+        logger.info(f"[ProgressService] Processing submission {submission.submission_id}")
+        logger.info(f"[ProgressService] User: {submission.user.username}, Problem: {submission.problem.slug}")
+        logger.info(f"[ProgressService] Score: {submission.score}, Problem Set: {submission.problem_set.slug if submission.problem_set else 'None'}")
+
+        with transaction.atomic():
+            # Get or create progress record with full context
+            progress = ProgressService._get_or_create_progress_for_submission(submission)
+
+            # Calculate all progress metrics
+            old_status = progress.status
+            old_score = progress.best_score
+
+            # Update core metrics
+            ProgressService._update_scores(progress, submission)
+            ProgressService._update_timing(progress, submission)
+            ProgressService._update_attempts(progress, submission)
+
+            # Evaluate completion and grade using GradingService
+            grade = GradingService.calculate_grade(submission)
+            status = ProgressService._evaluate_status(submission, progress)
+
+            # Update progress fields
+            progress.grade = grade
+            progress.status = status
+
+            # Update completion fields based on status
+            if status == 'completed':
+                progress.is_completed = True
+                progress.completion_percentage = 100
+                if not progress.completed_at:
+                    progress.completed_at = timezone.now()
+                    if progress.first_attempt:
+                        progress.days_to_complete = (progress.completed_at - progress.first_attempt).days
+            elif status == 'in_progress':
+                progress.is_completed = False
+                # Use best score for percentage, but cap at 99 if not complete
+                progress.completion_percentage = min(progress.best_score, 99)
+            else:  # not_started
+                progress.is_completed = False
+                progress.completion_percentage = 0
+
+            # Update hints used
+            if hasattr(submission, 'hint_activations'):
+                progress.hints_used = submission.hint_activations.count()
+
+            # Log changes
+            if old_status != status:
+                logger.info(f"[ProgressService] Status changed: {old_status} -> {status}")
+            if old_score != progress.best_score:
+                logger.info(f"[ProgressService] Best score changed: {old_score} -> {progress.best_score}")
+
+            logger.info(f"[ProgressService] Saving progress - is_completed: {progress.is_completed}, status: {status}, grade: {grade}")
+
+            # PERFORMANCE: Single save for all progress updates
+            progress.save()
+
+            # CRITICAL: Invalidate cache after update
+            ProgressService._invalidate_progress_cache(
+                user_id=progress.user.id,
+                problem_id=progress.problem.id,
+                problem_set_id=progress.problem_set.id if progress.problem_set else None
+            )
+
+            # Update problem set progress (single query)
+            if submission.problem_set:
+                UserProblemSetProgress.update_from_progress(progress)
+
+            # CREATE DAILY SNAPSHOT FOR LONGITUDINAL TRACKING
+            ProgressService._create_daily_snapshot(progress, submission)
+
+            # Emit SSE event for real-time updates
+            ProgressService._emit_progress_event(progress, submission)
+
+            logger.info(f"[ProgressService] Completed processing submission {submission.submission_id}")
+
+            return progress
+
+    @staticmethod
+    def _get_or_create_progress_for_submission(submission) -> 'UserProgress':
+        """Get or create UserProgress record with row-level locking, handling migration of old records."""
+        from ..models import UserProgress
+
+        # Initialize created flag to prevent UnboundLocalError
+        created = False
+
+        # CRITICAL: Use row-level locking to prevent race conditions at scale
+        # This prevents lost updates when multiple concurrent submissions occur
+        try:
+            # First, try to get existing progress with SELECT FOR UPDATE lock
+            # Use nowait=True to fail fast instead of blocking indefinitely
+            lock_start = time.time()
+            try:
+                progress = UserProgress.objects.select_for_update(nowait=True).filter(
+                    user=submission.user,
+                    problem=submission.problem,
+                    problem_set=submission.problem_set,
+                    course=submission.course,
+                ).first()
+                lock_duration = time.time() - lock_start
+                if lock_duration > 0.1:  # Log if lock acquisition took >100ms
+                    logger.info(f"[ProgressService] Lock acquired in {lock_duration:.3f}s")
+            except DatabaseError as e:
+                lock_duration = time.time() - lock_start
+                logger.warning(f"[ProgressService] Progress locked by another request after {lock_duration:.3f}s: {e}")
+                # Retry once with a small delay
+                time.sleep(0.1)
+                progress = UserProgress.objects.select_for_update(nowait=True).filter(
+                    user=submission.user,
+                    problem=submission.problem,
+                    problem_set=submission.problem_set,
+                    course=submission.course,
+                ).first()
+
+            if progress:
+                logger.info(f"[ProgressService] Progress record FOUND with ID: {progress.id} (LOCKED)")
+                created = False
+            else:
+                # No existing record, create new one
+                # Note: There's still a small race window here, so we catch IntegrityError
+                try:
+                    progress = UserProgress.objects.create(
+                        user=submission.user,
+                        problem=submission.problem,
+                        problem_set=submission.problem_set,
+                        course=submission.course,
+                        problem_version=submission.problem.version
+                    )
+                    logger.info(f"[ProgressService] Progress record CREATED with ID: {progress.id}")
+                    created = True
+                except IntegrityError:
+                    # Race condition: another request created it between our check and create
+                    # Retry with lock to get the newly created record
+                    progress = UserProgress.objects.select_for_update(nowait=True).get(
+                        user=submission.user,
+                        problem=submission.problem,
+                        problem_set=submission.problem_set,
+                        course=submission.course,
+                    )
+                    logger.info(f"[ProgressService] Progress record FOUND after race condition with ID: {progress.id} (LOCKED)")
+                    created = False
+        except DatabaseError as e:
+            logger.error(f"[ProgressService] Database lock error after retries: {str(e)}")
+            raise ValueError("Your progress is currently being updated by another submission. Please try again in a moment.")
+        except Exception as e:
+            logger.error(f"[ProgressService] Error getting/creating progress: {str(e)}")
+            raise
+
+        # Handle migration of old records without problem_set
+        if created and submission.problem_set:
+            try:
+                # Look for existing progress without problem_set context
+                old_progress = UserProgress.objects.get(
+                    user=submission.user,
+                    problem=submission.problem,
+                    problem_set__isnull=True,
+                    course=submission.course if submission.course else None
+                )
+
+                logger.info(f"[ProgressService] Migrating old progress record without problem_set")
+
+                # Migrate all relevant fields
+                progress.attempts = old_progress.attempts
+                progress.best_score = old_progress.best_score
+                progress.average_score = old_progress.average_score
+                progress.status = old_progress.status
+                progress.is_completed = old_progress.is_completed
+                progress.completion_percentage = old_progress.completion_percentage
+                progress.first_attempt = old_progress.first_attempt
+                progress.last_attempt = old_progress.last_attempt
+                progress.completed_at = old_progress.completed_at
+                progress.total_time_spent = old_progress.total_time_spent
+                progress.hints_used = old_progress.hints_used
+                progress.days_to_complete = old_progress.days_to_complete
+                progress.grade = getattr(old_progress, 'grade', 'incomplete')
+
+                # Save migrated progress and delete old
+                progress.save()
+                old_progress.delete()
+                logger.info(f"[ProgressService] Migration complete, old record deleted")
+
+            except UserProgress.DoesNotExist:
+                pass  # No old progress to migrate
+            except UserProgress.MultipleObjectsReturned:
+                logger.warning(f"[ProgressService] Multiple old progress records found for user {submission.user.username}")
+
+        return progress
+
+    @staticmethod
+    def _update_scores(progress, submission):
+        """Update score-related fields."""
+        # Update best score
+        if submission.score > progress.best_score:
+            progress.best_score = submission.score
+            logger.info(f"[ProgressService] Updated best score to {progress.best_score}")
+
+        # Update average score
+        if progress.attempts > 0:
+            # Account for the new attempt that will be added
+            progress.average_score = (
+                (progress.average_score * progress.attempts + submission.score)
+                / (progress.attempts + 1)
+            )
+
+    @staticmethod
+    def _update_timing(progress, submission):
+        """Update timing-related fields."""
+        # Set timestamps
+        if not progress.first_attempt:
+            progress.first_attempt = submission.submitted_at
+        progress.last_attempt = submission.submitted_at
+
+        # Update time spent if available
+        if hasattr(submission, 'time_spent') and submission.time_spent:
+            progress.total_time_spent += submission.time_spent
+
+    @staticmethod
+    def _update_attempts(progress, submission):
+        """Update attempt counters."""
+        progress.attempts += 1
+
+        # Update successful attempts if this is a perfect score
+        if submission.score == 100:
+            progress.successful_attempts = getattr(progress, 'successful_attempts', 0) + 1
+            progress.consecutive_successes = getattr(progress, 'consecutive_successes', 0) + 1
+        else:
+            progress.consecutive_successes = 0
+
+    @staticmethod
+    def _evaluate_status(submission, progress) -> str:
+        """
+        Evaluate the overall progress status.
+        This is the ONE place where completion is determined.
+
+        Returns:
+            'not_started', 'in_progress', or 'completed'
+        """
+        if progress.attempts == 0:
+            return 'not_started'
+
+        # For completion, we need grade to be 'complete'
+        grade = GradingService.calculate_grade(submission)
+
+        # Check if ANY submission for this problem has achieved 'complete' grade
+        # This prevents regression - once completed, always completed
+        if grade == 'complete' or progress.is_completed:
+            return 'completed'
+
+        # Otherwise, we're in progress
+        return 'in_progress'
+
+    @staticmethod
+    def _evaluate_completion(submission) -> bool:
+        """
+        Simple completion check for a single submission.
+        Used internally and can be called externally if needed.
+
+        Returns:
+            True if submission meets completion criteria, False otherwise
+        """
+        # For EiPL, completion requires:
+        # 1. Perfect test score (100%)
+        if submission.score < 100:
+            return False
+
+        # 2. If segmentation is enabled, must pass segmentation
+        problem = submission.problem
+        if problem.problem_type == 'eipl' and problem.segmentation_enabled:
+            if hasattr(submission, 'segmentation') and submission.segmentation:
+                return submission.segmentation.passed
+            else:
+                # No segmentation data when it's required
+                return False
+
+        # All criteria met
+        return True
+
+    @staticmethod
+    def _create_daily_snapshot(progress, submission):
+        """
+        Create or update daily progress snapshot for longitudinal tracking.
+
+        This enables research on learning curves and student progress over time.
+        Snapshots are unique per (user, problem, problem_set, date).
+        """
+        from ..models import ProgressSnapshot
+
+        today = timezone.now().date()
+
+        # Calculate time spent today (if this is the first submission today, use full time)
+        time_spent_today = submission.time_spent or timedelta(0)
+
+        # Get or update today's snapshot
+        snapshot, created = ProgressSnapshot.objects.update_or_create(
+            user=progress.user,
+            problem=progress.problem,
+            problem_set=progress.problem_set,
+            snapshot_date=today,
+            defaults={
+                'completion_percentage': progress.completion_percentage,
+                'problems_completed': 1 if progress.is_completed else 0,
+                'average_score': progress.best_score,  # Use best score as the average for single problem
+                'time_spent_today': time_spent_today
+            }
+        )
+
+        if created:
+            logger.info(f"[ProgressService] Created snapshot for {progress.user.username} on {progress.problem.slug}")
+        else:
+            logger.info(f"[ProgressService] Updated snapshot for {progress.user.username} on {progress.problem.slug}")
+
+        return snapshot
+
+    @staticmethod
+    def _emit_progress_event(progress, submission):
+        """
+        Emit SSE event for real-time frontend updates.
+        Maintains exact same event format that frontend expects.
+        """
+        logger.info(f"[ProgressService] SSE Event - Progress updated for {progress.user.username} on {progress.problem.slug}")
+
+        # Store progress update in Redis for SSE views to poll
+        # This follows the pattern used by the task SSE system
+        try:
+            # Create event data structure
+            event_data = {
+                'type': 'progress_update',
+                'user_id': progress.user.id,
+                'problem_slug': progress.problem.slug,
+                'problem_set_slug': progress.problem_set.slug if progress.problem_set else None,
+                'course_id': progress.course.id if progress.course else None,
+                'status': progress.status,
+                'best_score': progress.best_score,
+                'attempts': progress.attempts,
+                'is_completed': progress.is_completed,
+                'grade': progress.grade,
+                'submission_id': str(submission.submission_id) if hasattr(submission, 'submission_id') else None,
+                'timestamp': timezone.now().isoformat()
+            }
+
+            # Store with expiry for cleanup (1 hour)
+            key = f"progress:update:{progress.user.id}:{progress.problem.id}"
+            cache.set(key, event_data, timeout=3600)
+
+            # Progress events stored in cache for polling
+            logger.debug(f"[ProgressService] Cached progress event with key: {key}")
+
+        except Exception as e:
+            # Don't fail the whole operation if SSE emission fails
+            logger.error(f"[ProgressService] Failed to emit SSE event: {str(e)}")

@@ -1,7 +1,9 @@
 // ===== CORE DOMAIN TYPES =====
 
 export type DifficultyLevel = 'easy' | 'beginner' | 'intermediate' | 'advanced';
-export type ProblemType = 'eipl' | 'function_redefinition';
+// NOTE: Problem types are now extensible via the activity type system.
+// Currently only EiPL is implemented. See docs/architecture/ACTIVITY_TYPE_EXTENSIBILITY.md
+export type ProblemType = 'eipl';
 
 // ===== PROBLEM CATEGORY TYPES =====
 export interface ProblemCategory {

@@ -34,9 +34,6 @@
               <option value="eipl">
                 Explain in Plain Language (EiPL)
               </option>
-              <option value="function_redefinition">
-                Function Redefinition
-              </option>
             </select>
           </div>
 
@@ -96,33 +93,6 @@
             >
           </div>
 
-
-          <!-- Fields specific to Function Redefinition -->
-          <div v-if="problem.problem_type === 'function_redefinition'">
-            <div class="form-group">
-              <label for="functionSignature">Function Signature (with type hints)</label>
-              <input
-                id="functionSignature"
-                v-model="problem.function_signature"
-                type="text"
-                class="form-input"
-                placeholder="e.g., def calculate_sum(a: int, b: int) -> int:"
-                required
-              >
-            </div>
-
-            <div class="form-group">
-              <label for="referenceSolution">Reference Solution</label>
-              <textarea 
-                id="referenceSolution" 
-                v-model="problem.reference_solution" 
-                class="form-textarea code-font"
-                rows="6"
-                placeholder="def calculate_sum(a, b):&#10;    return a + b"
-                required
-              />
-            </div>
-          </div>
 
           <!-- Fields specific to EiPL -->
           <div v-if="problem.problem_type === 'eipl'">
@@ -438,12 +408,10 @@
 
       handleProblemTypeChange() {
         // Clear type-specific fields when switching problem types
+        // Currently only EiPL is supported - other types can be added here
         if (this.problem.problem_type === 'eipl') {
           this.problem.function_signature = '';
           this.problem.reference_solution = '';
-        } else if (this.problem.problem_type === 'function_redefinition') {
-          this.problem.code_snippet = '';
-          this.problem.expected_explanation = '';
         }
       },
 
@@ -502,11 +470,8 @@
             break;
             
           case 'reference_solution':
-            if (this.problem.problem_type === 'function_redefinition' && !value.trim()) {
-              errors.reference_solution = 'Reference solution is required';
-            } else {
-              delete errors.reference_solution;
-            }
+            // Reference solution validation - currently not required for EiPL
+            delete errors.reference_solution;
             break;
             
           case 'code_snippet':
@@ -548,15 +513,11 @@
             problem_sets: this.problem.problemSets
           };
 
-          // Add type-specific fields
-          if (this.problem.problem_type === 'function_redefinition') {
-            problemData.function_signature = this.problem.function_signature;
-            problemData.reference_solution = this.problem.reference_solution;
-          } else if (this.problem.problem_type === 'eipl') {
-            // For EiPL, we might store the code snippet in the reference_solution field
-            // and the expected explanation in the description or a new field
+          // Add type-specific fields for EiPL
+          if (this.problem.problem_type === 'eipl') {
+            // For EiPL, we store the code snippet in the reference_solution field
+            // and the expected explanation in the hints field
             problemData.reference_solution = this.problem.code_snippet;
-            // You might want to add a new field to the model for expected_explanation
             problemData.hints = this.problem.expected_explanation;
           }
 

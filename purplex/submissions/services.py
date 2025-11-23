@@ -17,7 +17,7 @@ from .models import (
     SegmentationAnalysis,
     SubmissionFeedback
 )
-from purplex.progress.engine import ProgressEngine
+from purplex.problems_app.services import ProgressService
 from .grading_service import GradingService
 
 logger = logging.getLogger(__name__)
@@ -101,11 +101,6 @@ class SubmissionService:
                 )
 
         logger.info(f"Created submission {submission.submission_id} for user {user.username}")
-
-        # Call on_submission_created to increment attempt counter
-        # Note: If process_submission() is called immediately after in the same
-        # transaction, it will set _skip_initial_increment to prevent double-counting
-        ProgressEngine().on_submission_created(submission)
 
         return submission
 
@@ -209,8 +204,8 @@ class SubmissionService:
 
         submission.save()
 
-        # Update progress using unified ProgressEngine
-        ProgressEngine().process_submission(submission)
+        # Update progress using unified ProgressService
+        ProgressService.process_submission(submission)
 
         logger.info(f"Recorded {total_count} test results for submission {submission.submission_id}, score: {submission.score}%")
 
@@ -358,9 +353,8 @@ class SubmissionService:
 
         submission.save()
 
-        # PERFORMANCE: Skip initial attempt increment since we're in a larger transaction
-        # The pipeline will call process_submission() which handles the full update
-        ProgressEngine().process_submission(submission, skip_initial_attempt_increment=True)
+        # Update progress using unified ProgressService
+        ProgressService.process_submission(submission)
 
         logger.info(f"Recorded {total_tests} test results across {len(variations_with_tests)} variations for submission {submission.submission_id}")
 
@@ -434,8 +428,8 @@ class SubmissionService:
         submission.save()
 
         # PERFORMANCE: Final progress update - this is the last step in the pipeline
-        # Update progress using unified ProgressEngine (full update with all dimensions)
-        ProgressEngine().process_submission(submission, skip_initial_attempt_increment=False)
+        # Update progress using unified ProgressService (full update with all dimensions)
+        ProgressService.process_submission(submission)
 
         logger.info(f"Recorded segmentation analysis for submission {submission.submission_id}: {analysis.comprehension_level}")
 

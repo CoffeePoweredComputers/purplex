@@ -173,7 +173,7 @@ export const createMockServices = () => ({
     getProblemHints: vi.fn()
   },
   submissionService: {
-    submitSolution: vi.fn(),
+    submitEiPL: vi.fn(),
     getSubmissionsSummary: vi.fn(),
     getProblemSubmissions: vi.fn(),
     getProblemBestScore: vi.fn()

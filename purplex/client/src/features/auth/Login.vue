@@ -247,6 +247,7 @@ export default {
 .login-logo {
   width: 80px;
   height: 80px;
+  margin: var(--spacing-lg);
   object-fit: cover;
   object-position: center center;
   transform: scale(3.8);

@@ -8,7 +8,7 @@ from purplex.problems_app.models import (
 )
 from purplex.users_app.models import UserProfile
 from purplex.submissions.models import Submission
-from purplex.progress.engine import ProgressEngine
+from purplex.problems_app.services import ProgressService
 from datetime import datetime, timedelta
 from django.utils import timezone
 import random
@@ -775,7 +775,7 @@ Multiply two 2x2 matrices.
                     'function_name': data['function_name'],
                     'function_signature': data['function_signature'],
                     'reference_solution': data['reference_solution'],
-                    'problem_type': 'eipl' if 'eipl' in data.get('title', '').lower() else 'function_redefinition',
+                    'problem_type': 'eipl',
                     'memory_limit': 128,
                     'tags': data.get('tags', []),
                     'is_active': True,
@@ -1012,8 +1012,8 @@ Multiply two 2x2 matrices.
                     time_spent=timedelta(minutes=random.randint(5, 30))
                 )
 
-                # Use ProgressEngine to update progress
-                ProgressEngine().process_submission(submission)
+                # Use ProgressService to update progress
+                ProgressService.process_submission(submission)
         
         # Student 2: Partial progress in CS101
         student2 = students[1]
@@ -1040,8 +1040,8 @@ Multiply two 2x2 matrices.
                     time_spent=timedelta(minutes=random.randint(10, 45))
                 )
 
-                # Use ProgressEngine to update progress
-                ProgressEngine().process_submission(submission)
+                # Use ProgressService to update progress
+                ProgressService.process_submission(submission)
         
         # Student 3-5: Various progress in CS201
         cs201 = Course.objects.get(course_id='CS201-FALL2024')
@@ -1075,5 +1075,5 @@ Multiply two 2x2 matrices.
                             time_spent=timedelta(minutes=random.randint(5, 60))
                         )
 
-                    # Use ProgressEngine to update progress after final attempt
-                    ProgressEngine().process_submission(submission)
+                    # Use ProgressService to update progress after final attempt
+                    ProgressService.process_submission(submission)

@@ -32,9 +32,9 @@ class PerformanceTest:
             ('/api/problems/', 'GET', None),
             ('/api/problem-sets/', 'GET', None),
             ('/api/problems/two-sum/', 'GET', None),
-            ('/api/test-solution/', 'POST', {
+            ('/api/submit-eipl/', 'POST', {
                 'problem_slug': 'two-sum',
-                'user_code': 'def two_sum(nums, target):\n    return [0, 1]'
+                'user_prompt': 'This function finds two numbers that add up to target'
             }),
         ]
         

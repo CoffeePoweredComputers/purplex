@@ -114,9 +114,6 @@
                     <option value="eipl">
                       EiPL
                     </option>
-                    <option value="function_redefinition">
-                      Function
-                    </option>
                   </select>
                 </div>
                 <div class="bulk-actions">
@@ -485,10 +482,8 @@ export default {
       switch(type) {
         case 'eipl':
           return 'EiPL';
-        case 'function_redefinition':
-          return 'Function';
         default:
-          return 'Unknown';
+          return type || 'Unknown';
       }
     };
 

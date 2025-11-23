@@ -127,45 +127,6 @@ class SubmissionService {
   }
 
   /**
-   * Submit a solution for a problem (now uses SSE for real-time results)
-   */
-  async submitSolution(request: SubmissionRequest): Promise<SubmissionResponse> {
-    try {
-      log.info('Submitting solution', { problemSlug: request.problem_slug });
-      const response = await axios.post(`${this.baseURL}/submit-solution/`, request);
-      log.info('Submission queued successfully', { taskId: response.data.task_id });
-      return response.data;
-    } catch (error: any) {
-      log.error('Failed to submit solution', error);
-      throw {
-        error: error.response?.data?.error || 'Failed to submit solution',
-        status: error.response?.status || 500
-      };
-    }
-  }
-
-  /**
-   * Test a solution without saving (now uses SSE for real-time results)
-   */
-  async testSolution(problemSlug: string, userCode: string): Promise<TestSolutionResponse> {
-    try {
-      log.info('Testing solution', { problemSlug });
-      const response = await axios.post(`${this.baseURL}/test-solution/`, {
-        problem_slug: problemSlug,
-        user_code: userCode
-      });
-      log.info('Test queued successfully', { taskId: response.data.task_id });
-      return response.data;
-    } catch (error: any) {
-      log.error('Failed to test solution', error);
-      throw {
-        error: error.response?.data?.error || 'Failed to test solution',
-        status: error.response?.status || 500
-      };
-    }
-  }
-
-  /**
    * Submit an EiPL (Explain in Plain Language) problem solution
    * This triggers async processing with Celery
    */

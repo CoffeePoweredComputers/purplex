@@ -1,8 +1,6 @@
 """Views for handling code submissions and testing."""
 
-import json
 import logging
-from datetime import timedelta
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
@@ -10,17 +8,13 @@ from rest_framework.response import Response
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 
-from ..services.ai_generation_service import AITestGenerationService
 from ..services.submission_validation_service import SubmissionValidationService
-from purplex.submissions.services import SubmissionService  # Use new submission service
 from ..services.course_service import CourseService
-from ..services.student_service import StudentService
 from ..services.problem_service import ProblemService
 from ..services.progress_service import ProgressService
-from ..repositories import TestCaseRepository, ProblemRepository
+from ..repositories import ProblemRepository
 from purplex.users_app.permissions import IsAuthenticated
-from celery.result import AsyncResult
-from ..tasks.pipeline import execute_eipl_pipeline, execute_code_test
+from ..tasks.pipeline import execute_eipl_pipeline
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -53,214 +47,6 @@ def create_error_response(error_message: str, http_status: int, **kwargs):
             response_data[key] = value
             
     return Response(response_data, status=http_status)
-
-
-@method_decorator(ratelimit(key='user', rate='50/m', method='POST'), name='post')
-class TestSolutionView(APIView):
-    """Test a solution without saving submission. Uses SSE for real-time results."""
-    permission_classes = [IsAuthenticated]
-
-    @method_decorator(ratelimit(key='user', rate='50/m', method='POST'))  # Lenient for beta test
-    def post(self, request):
-        # Check if rate limited
-        if getattr(request, 'limited', False):
-            return Response({
-                'error': 'Rate limit exceeded. Please wait a moment before testing again.'
-            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
-
-        # Use validation service to validate request data
-        is_valid, error_message, validated_data = SubmissionValidationService.validate_code_submission(request.data)
-        if not is_valid:
-            return Response({
-                'error': error_message
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Extract validated data
-        problem = validated_data['problem']
-        user_code = validated_data['user_code']
-
-        # Get test cases (only visible ones for students)
-        test_cases = StudentService.get_visible_test_cases(problem)
-        test_case_ids = [tc.id for tc in test_cases]
-
-        # Queue task for async execution with SSE
-        try:
-            # Generate task ID for tracking
-            task_id = str(uuid.uuid4())
-
-            # Queue task (no submission context for test-only)
-            task = execute_code_test.apply_async(
-                args=[user_code, problem.id, test_case_ids, False, None],  # None = no submission
-                task_id=task_id,
-                expires=30
-            )
-
-            # Store task_id in session for SSE authentication
-            if not request.session.get('user_tasks'):
-                request.session['user_tasks'] = []
-            request.session['user_tasks'].append(task_id)
-            request.session.save()
-
-            # Return SSE streaming URL for real-time updates
-            return Response({
-                'task_id': task_id,
-                'status': 'processing',
-                'stream_url': f'/api/tasks/{task_id}/stream/',
-                'message': 'Testing your code. Connect to stream URL for results.'
-            }, status=status.HTTP_202_ACCEPTED)
-
-        except Exception as e:
-            logger.error(f"Failed to queue code test for problem {problem.slug}: {str(e)}", exc_info=True)
-            return Response({
-                'error': 'Failed to start code test. Please try again.',
-                'task_id': None
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class SubmitSolutionView(APIView):
-    """Submit a solution and track progress."""
-    permission_classes = [IsAuthenticated]
-
-    @method_decorator(ratelimit(key='user', rate='50/m', method='POST'))  # Lenient for beta test
-    def post(self, request):
-        # Check if rate limited
-        if getattr(request, 'limited', False):
-            return Response({
-                'error': 'Rate limit exceeded. Please wait a moment before submitting again.'
-            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
-        # Validate required fields manually for SubmitSolutionView
-        problem_slug = request.data.get('problem_slug')
-        problem_set_slug = request.data.get('problem_set_slug')
-        
-        if not problem_slug or not problem_set_slug:
-            return Response({
-                'error': 'problem_slug and problem_set_slug are required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Use validation service to validate code submission data
-        is_valid, error_message, validated_data = SubmissionValidationService.validate_code_submission(request.data)
-        if not is_valid:
-            return Response({
-                'error': error_message
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Extract validated data
-        problem = validated_data['problem']
-        user_code = validated_data['user_code']
-        course = validated_data.get('course')
-        
-        # Get problem set using problem service
-        problem_set = ProblemService.get_problem_set_by_slug(problem_set_slug)
-        if not problem_set:
-            return Response({
-                'error': 'Problem set not found'
-            }, status=status.HTTP_404_NOT_FOUND)
-        
-        # Extract additional optional fields
-        prompt = request.data.get('prompt', '')  # For EiPL problems
-        time_spent = request.data.get('time_spent')  # Optional, in seconds
-        course_id = request.data.get('course_id')  # Optional course context
-        activated_hints = request.data.get('activated_hints', [])  # Optional hint tracking
-        
-        # Validate optional prompt for EiPL problems
-        if prompt and len(prompt) > 2000:
-            return Response({
-                'error': 'prompt must not exceed 2000 characters'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Verify problem belongs to the problem set
-        if not problem_set.problems.filter(id=problem.id).exists():
-            return Response({
-                'error': 'Problem does not belong to the specified problem set'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Validate course context if provided
-        course = None
-        if course_id:
-            # Use CourseService to validate enrollment and get course
-            validation_result = CourseService.validate_course_enrollment(request.user, course_id)
-            if not validation_result['success']:
-                return Response({
-                    'error': validation_result['error']
-                }, status=validation_result['status_code'])
-            
-            course = validation_result['course']
-            
-            # Verify problem set belongs to the course
-            # Using repository pattern to check relationship
-            from ..repositories import CourseRepository
-            if problem_set.id not in CourseRepository.get_course_problem_set_ids(course):
-                return Response({
-                    'error': 'Problem set does not belong to this course'
-                }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Get all test cases (including hidden ones for grading)
-        all_test_cases = TestCaseRepository.get_problem_test_cases(problem, include_hidden=True)
-        test_case_ids = [tc.id for tc in all_test_cases]
-
-        # Log submission attempt
-        logger.info(f"Code submission attempt for problem {problem.slug} by user {request.user.username}")
-
-        # Generate task ID for tracking
-        task_id = str(uuid.uuid4())
-
-        # Store submission context in cache for task to retrieve (like EiPL pattern)
-        from django.core.cache import cache
-
-        submission_context = {
-            'user_id': request.user.id,
-            'username': request.user.username,
-            'problem_id': problem.id,
-            'problem_slug': problem.slug,
-            'problem_set_id': problem_set.id,
-            'problem_set_slug': problem_set.slug,
-            'course_id': course.id if course else None,
-            'course_name': course.name if course else None,
-            'user_code': user_code,
-            'prompt': prompt,
-            'time_spent': time_spent,
-            'activated_hints': activated_hints,
-            'task_id': task_id,
-            'submitted_at': timezone.now().isoformat()
-        }
-
-        # Store context with 1 hour TTL
-        cache.set(
-            f"submission:context:{task_id}",
-            submission_context,
-            timeout=3600
-        )
-
-        logger.debug(f"Stored submission context for task {task_id}")
-
-        # Queue task with submission context
-        try:
-            task = execute_code_test.apply_async(
-                args=[user_code, problem.id, test_case_ids, True, submission_context],  # include_hidden=True, submission_context
-                task_id=task_id,
-                expires=30
-            )
-
-            # Store task_id in session for SSE authentication
-            if not request.session.get('user_tasks'):
-                request.session['user_tasks'] = []
-            request.session['user_tasks'].append(task_id)
-            request.session.save()
-
-            # Return SSE streaming URL for real-time updates
-            return Response({
-                'task_id': task_id,
-                'status': 'processing',
-                'stream_url': f'/api/tasks/{task_id}/stream/',
-                'message': 'Submitting your code. Connect to stream URL for results.'
-            }, status=status.HTTP_202_ACCEPTED)
-
-        except Exception as e:
-            logger.error(f"Failed to queue submission for problem {problem.slug}: {str(e)}", exc_info=True)
-            return Response({
-                'error': 'Failed to start submission. Please try again.',
-                'task_id': None
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @method_decorator(ratelimit(key='user', rate='50/m', method='POST'), name='post')

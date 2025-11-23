@@ -125,7 +125,7 @@ export default {
     width: 80px;
     height: 80px;
     display: block;
-    margin: 0;
+    margin: var(--spacing-sm);
     object-fit: cover;
     object-position: center center;
     transform: scale(2.2);
