@@ -45,6 +45,8 @@
           <span class="info-label">Member Since</span>
           <span class="info-value">{{ getMemberSince() }}</span>
         </div>
+
+        <LanguageSwitcher />
       </div>
             
       <div class="modal-footer">
@@ -77,8 +79,13 @@
 </template>
 
 <script lang="ts">
+import LanguageSwitcher from '../components/LanguageSwitcher.vue';
+
 export default {
     name: 'AccountModal',
+    components: {
+        LanguageSwitcher
+    },
     props: {
         isVisible: {
             type: Boolean,

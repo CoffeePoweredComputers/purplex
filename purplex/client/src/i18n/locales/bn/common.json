@@ -1,0 +1,31 @@
+{
+  "brand": {
+    "name": "পার্পলেক্স",
+    "tagline": "Natural Language Programming Problems for the Age of GenAI"
+  },
+  "nav": {
+    "home": "Home",
+    "admin": "Admin",
+    "account": "Account",
+    "signOut": "Sign Out"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "submit": "Submit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search",
+    "filter": "Filter",
+    "clear": "Clear",
+    "copy": "Copy",
+    "copied": "Copied"
+  }
+}

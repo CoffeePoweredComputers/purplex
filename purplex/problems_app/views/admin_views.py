@@ -6,12 +6,11 @@ from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.conf import settings
-from django.db.models import Q, Count, Avg, OuterRef, Prefetch
+from django.db.models import Q, Count, Avg, Prefetch
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework.pagination import PageNumberPagination
 from ..serializers import (
     AdminProblemSerializer, ProblemSetSerializer, ProblemCategorySerializer,
     TestCaseSerializer

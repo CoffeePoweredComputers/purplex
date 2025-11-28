@@ -5,7 +5,7 @@ from .permissions import IsAdmin, IsAuthenticated
 from django.conf import settings
 
 from django.contrib.auth.models import User
-from .models import UserProfile, UserRole
+from .models import UserProfile, UserRole, LanguageChoice
 from .authentication import PurplexAuthentication
 from .services.authentication_service import AuthenticationService
 from .services.rate_limit_service import RateLimitService
@@ -48,7 +48,8 @@ class UserRoleView(APIView):
             'email': request.user.email,
             'role': profile.role,
             'is_admin': profile.is_admin,
-            'firebase_uid': profile.firebase_uid
+            'firebase_uid': profile.firebase_uid,
+            'language_preference': profile.language_preference
         })
             
 class AuthStatusView(APIView):
@@ -78,7 +79,8 @@ class AuthStatusView(APIView):
                     'email': user.email,
                     'role': profile.role,
                     'is_admin': profile.is_admin,
-                    'firebase_uid': profile.firebase_uid
+                    'firebase_uid': profile.firebase_uid,
+                    'language_preference': profile.language_preference
                 }
             })
                 
@@ -227,3 +229,47 @@ class SSETokenView(APIView):
             return Response({
                 'error': 'Failed to revoke session'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class LanguagePreferenceView(APIView):
+    """
+    View for updating the current user's language preference.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        """Update the current user's language preference"""
+        language = request.data.get('language_preference')
+
+        if not language:
+            return Response(
+                {'error': 'language_preference is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate the language code
+        valid_languages = [choice[0] for choice in LanguageChoice.choices]
+        if language not in valid_languages:
+            return Response(
+                {'error': f'Invalid language. Must be one of: {", ".join(valid_languages)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get user profile
+        profile = UserService.get_user_profile(request.user)
+        if not profile:
+            return Response(
+                {'error': 'User profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Update language preference
+        profile.language_preference = language
+        profile.save(update_fields=['language_preference'])
+
+        logger.info(f"User {request.user.username} updated language preference to {language}")
+
+        return Response({
+            'language_preference': profile.language_preference,
+            'message': 'Language preference updated successfully'
+        })

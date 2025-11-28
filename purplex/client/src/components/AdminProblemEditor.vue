@@ -63,6 +63,23 @@
         </div>
 
         <div class="form-group">
+          <label for="problem_type">Problem Type</label>
+          <select
+            id="problem_type"
+            v-model="form.problem_type"
+            :disabled="loadingTypes"
+          >
+            <option
+              v-for="actType in availableTypes"
+              :key="actType.type"
+              :value="actType.type"
+            >
+              {{ actType.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label for="categories">Categories</label>
           <div class="category-selector">
             <div
@@ -165,8 +182,11 @@
         </div>
       </div>
 
-      <!-- Code Solution -->
-      <div class="form-section rounded-lg border-default transition-fast">
+      <!-- Code Solution - Hidden based on activity type config -->
+      <div
+        v-if="shouldShowSection('code_solution')"
+        class="form-section rounded-lg border-default transition-fast"
+      >
         <h3>Code Solution</h3>
 
         <div class="form-group">
@@ -262,8 +282,9 @@
         </div>
       </div>
 
-      <!-- Test Cases -->
+      <!-- Test Cases - Hidden based on activity type config -->
       <div
+        v-if="shouldShowSection('test_cases')"
         class="form-section rounded-lg border-default transition-fast"
         style="position: relative;"
       >
@@ -781,9 +802,80 @@
         </div>
       </div>
 
-      <!-- Segmentation Configuration (EiPL only) -->
-      <div 
-        v-if="form.problem_type === 'eipl'"
+      <!-- MCQ Options Editor - Shown based on activity type config -->
+      <div
+        v-if="shouldShowSection('mcq_options')"
+        class="form-section rounded-lg border-default transition-fast"
+      >
+        <h3>MCQ Options</h3>
+        <p class="section-description">
+          Add 2-6 answer options. Mark one as correct and optionally add an explanation.
+        </p>
+
+        <div class="mcq-options-list">
+          <div
+            v-for="(option, index) in mcqOptions"
+            :key="option.id"
+            class="mcq-option-item"
+          >
+            <div class="mcq-option-header">
+              <span class="option-number">Option {{ index + 1 }}</span>
+              <label class="correct-label">
+                <input
+                  type="radio"
+                  name="correct_option"
+                  :checked="option.is_correct"
+                  @change="setCorrectMcqOption(index)"
+                >
+                <span>Correct Answer</span>
+              </label>
+              <button
+                type="button"
+                class="btn btn-icon btn-danger"
+                :disabled="mcqOptions.length <= 2"
+                title="Remove option"
+                @click="removeMcqOption(index)"
+              >
+                ×
+              </button>
+            </div>
+            <div class="mcq-option-fields">
+              <input
+                v-model="option.text"
+                type="text"
+                class="form-control"
+                placeholder="Enter option text"
+              >
+              <input
+                v-model="option.explanation"
+                type="text"
+                class="form-control explanation-input"
+                placeholder="Explanation (shown when this option is selected)"
+              >
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-secondary add-option-btn"
+          :disabled="mcqOptions.length >= 6"
+          @click="addMcqOption"
+        >
+          + Add Option
+        </button>
+
+        <div
+          v-if="!mcqOptions.some(o => o.is_correct)"
+          class="validation-warning"
+        >
+          ⚠ Please mark one option as the correct answer
+        </div>
+      </div>
+
+      <!-- Segmentation Configuration - Shown based on activity type config -->
+      <div
+        v-if="shouldShowSection('segmentation')"
         class="form-section rounded-lg border-default transition-fast"
       >
         <h3>Prompt Segmentation Configuration</h3>
@@ -1250,7 +1342,27 @@ export default defineComponent({
           }
         }
       },
-      
+
+      // Activity type selection
+      availableTypes: [] as Array<{
+        type: string;
+        label: string;
+        has_pipeline: boolean;
+        admin_config?: {
+          hidden_sections?: string[];
+          required_fields?: string[];
+          optional_fields?: string[];
+          type_specific_section?: string | null;
+          supports?: Record<string, boolean>;
+        };
+      }>,
+      loadingTypes: false,
+
+      // MCQ options editor
+      mcqOptions: [
+        { id: '1', text: '', is_correct: false, explanation: '' }
+      ] as Array<{ id: string; text: string; is_correct: boolean; explanation: string }>,
+
       // Notification handler (set in created hook)
       notify: null
     }
@@ -1300,6 +1412,12 @@ export default defineComponent({
     },
     tagsDisplay() {
       return this.form.tags.join(', ')
+    },
+
+    // Admin config for current activity type
+    typeConfig() {
+      const currentType = this.availableTypes.find(t => t.type === this.form.problem_type);
+      return currentType?.admin_config || {};
     },
     popupStyle() {
       return {
@@ -1413,7 +1531,8 @@ export default defineComponent({
     
     try {
       await Promise.all([
-        this.loadCategories()
+        this.loadCategories(),
+        this.loadActivityTypes()
         // Don't call loadProblem here as the watcher will handle it
         // Removed automatic test case creation for new problems
       ]);
@@ -1435,6 +1554,15 @@ export default defineComponent({
     }
   },
   methods: {
+    /**
+     * Check if a section should be shown based on current activity type config.
+     * Returns true if section is NOT in hidden_sections.
+     */
+    shouldShowSection(section: string): boolean {
+      const hiddenSections = this.typeConfig?.hidden_sections || [];
+      return !hiddenSections.includes(section);
+    },
+
     /**
      * Extract function name from reference solution
      */
@@ -1556,7 +1684,47 @@ export default defineComponent({
         this.categories = await problemService.loadCategories();
       });
     },
-    
+
+    async loadActivityTypes(): Promise<void> {
+      this.loadingTypes = true;
+      try {
+        const response = await axios.get('/api/activity-types/');
+        this.availableTypes = response.data.types || [];
+      } catch (error) {
+        log.error('Failed to load activity types', error);
+        // Fallback to default types
+        this.availableTypes = [
+          { type: 'eipl', label: 'Explain in Plain Language (EiPL)', has_pipeline: true },
+          { type: 'mcq', label: 'Multiple Choice Question', has_pipeline: true }
+        ];
+      } finally {
+        this.loadingTypes = false;
+      }
+    },
+
+    // MCQ options management
+    addMcqOption(): void {
+      if (this.mcqOptions.length >= 6) return;
+      const maxId = Math.max(...this.mcqOptions.map(o => parseInt(o.id) || 0), 0);
+      this.mcqOptions.push({
+        id: String(maxId + 1),
+        text: '',
+        is_correct: false,
+        explanation: ''
+      });
+    },
+
+    removeMcqOption(index: number): void {
+      if (this.mcqOptions.length <= 2) return;
+      this.mcqOptions.splice(index, 1);
+    },
+
+    setCorrectMcqOption(index: number): void {
+      this.mcqOptions.forEach((opt, i) => {
+        opt.is_correct = i === index;
+      });
+    },
+
     async loadProblem(): Promise<void> {
       if (!this.currentProblemSlug) {
         return;
@@ -1620,9 +1788,33 @@ export default defineComponent({
             }
           }
         }
+
+        // Load MCQ options if this is an MCQ problem
+        if (loadedProblem.problem_type === 'mcq' && loadedProblem.mcq_options) {
+          this.mcqOptions = loadedProblem.mcq_options.map(opt => ({
+            id: String(opt.id || ''),
+            text: opt.text || '',
+            is_correct: Boolean(opt.is_correct),
+            explanation: opt.explanation || ''
+          }));
+          // Ensure at least 2 options
+          while (this.mcqOptions.length < 2) {
+            this.mcqOptions.push({
+              id: String(this.mcqOptions.length + 1),
+              text: '',
+              is_correct: false,
+              explanation: ''
+            });
+          }
+        } else {
+          // Reset to default for non-MCQ problems
+          this.mcqOptions = [
+            { id: '1', text: '', is_correct: false, explanation: '' }
+          ];
+        }
       });
     },
-    
+
     toggleCategory(categoryId: number): void {
       // Ensure category_ids is always an array
       if (!this.form.category_ids) {
@@ -1997,6 +2189,10 @@ export default defineComponent({
           ...(this.form.problem_type === 'eipl' && {
             segmentation_config: this.formatSegmentationConfig(),
             requires_highlevel_comprehension: this.segmentation.enabled === true
+          }),
+          // Add MCQ options for MCQ problems
+          ...(this.form.problem_type === 'mcq' && {
+            mcq_options: this.mcqOptions.filter(opt => opt.text.trim())
           })
         };
         
@@ -4975,5 +5171,86 @@ export default defineComponent({
 .btn-sm {
   padding: var(--spacing-xs) var(--spacing-sm);
   font-size: var(--font-size-sm);
+}
+
+/* MCQ Options Editor */
+.mcq-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.mcq-option-item {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-md);
+}
+
+.mcq-option-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.mcq-option-header .option-number {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  min-width: 80px;
+}
+
+.mcq-option-header .correct-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+
+.mcq-option-header .correct-label input[type="radio"]:checked + span {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.mcq-option-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.mcq-option-fields .form-control {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  color: var(--color-text-primary);
+}
+
+.mcq-option-fields .explanation-input {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.add-option-btn {
+  margin-top: var(--spacing-sm);
+}
+
+.validation-warning {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-warning-bg, rgba(234, 179, 8, 0.1));
+  border: 1px solid var(--color-warning, #eab308);
+  border-radius: var(--radius-base);
+  color: var(--color-warning-text, #eab308);
+  font-size: var(--font-size-sm);
+}
+
+.section-description {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-md);
 }
 </style>

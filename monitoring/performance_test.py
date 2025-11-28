@@ -32,9 +32,9 @@ class PerformanceTest:
             ('/api/problems/', 'GET', None),
             ('/api/problem-sets/', 'GET', None),
             ('/api/problems/two-sum/', 'GET', None),
-            ('/api/submit-eipl/', 'POST', {
+            ('/api/submit/', 'POST', {
                 'problem_slug': 'two-sum',
-                'user_prompt': 'This function finds two numbers that add up to target'
+                'raw_input': 'This function finds two numbers that add up to target'
             }),
         ]
         

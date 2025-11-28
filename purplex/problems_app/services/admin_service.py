@@ -132,27 +132,6 @@ class AdminProblemService:
         return data, problem_set_slugs
     
     @staticmethod
-    def update_problem_sets(
-        problem: 'Problem', 
-        problem_set_slugs: List[str]
-    ) -> Tuple[int, List[str]]:
-        """
-        Update problem set memberships for a problem.
-        
-        Args:
-            problem: Problem instance
-            problem_set_slugs: List of problem set slugs
-            
-        Returns:
-            Tuple of (updated_count, missing_slugs)
-        """
-        # Clear existing memberships
-        ProblemSetMembershipRepository.delete_problem_memberships(problem)
-        
-        # Add new memberships
-        return AdminProblemService.create_problem_with_relations(problem, problem_set_slugs)
-    
-    @staticmethod
     def get_all_problem_sets() -> List:
         """
         Get all problem sets for admin view.
@@ -342,26 +321,6 @@ class AdminProblemService:
             List with select_related and prefetch_related optimizations
         """
         return ProblemRepository.get_all_problems()
-    
-    @staticmethod
-    def get_problem_detail_optimized(slug: str) -> 'Problem':
-        """
-        Get problem detail with all related data for admin.
-        
-        Args:
-            slug: Problem slug
-            
-        Returns:
-            Problem instance with optimized queries
-            
-        Raises:
-            Problem.DoesNotExist: If problem not found
-        """
-        problem = ProblemRepository.get_problem_with_test_cases(slug)
-        if not problem:
-            from django.http import Http404
-            raise Http404(f"Problem with slug '{slug}' not found")
-        return problem
     
     @staticmethod
     def get_problem_by_slug(slug: str) -> Optional['Problem']:

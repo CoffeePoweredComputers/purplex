@@ -58,8 +58,7 @@ class AuthenticationService:
             # Use real Firebase for production
             try:
                 from firebase_admin import auth, credentials, initialize_app
-                import firebase_admin
-                
+
                 # Initialize Firebase Admin SDK
                 if not hasattr(settings, '_firebase_initialized'):
                     try:

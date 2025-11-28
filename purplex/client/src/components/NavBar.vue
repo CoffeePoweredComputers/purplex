@@ -5,10 +5,10 @@
         <router-link to="/home" class="logo-link">
           <img
             src="/plx-logo.png"
-            alt="Purplex"
+            :alt="brandName"
             class="logo-icon"
           >
-          <span class="logo-text">Purplex</span>
+          <span class="logo-text" :class="{ 'non-latin': isNonLatinBrand }">{{ brandName }}</span>
         </router-link>
       </div>
 
@@ -39,26 +39,22 @@
   </nav>
 </template>
 
-<script lang="ts">
-import { mapGetters } from 'vuex';
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { useStore } from 'vuex';
+import { useI18n } from 'vue-i18n';
 import AccountModal from '../modals/AccountModal.vue';
+import { getBrandName, usesNonLatinBrand } from '../i18n/brand';
 
-export default {
-    name: "NavBar",
-    components: {
-        AccountModal
-    },
-    data() {
-        return {
-            showAccountModal: false
-        };
-    },
-    computed: {
-        ...mapGetters('auth', ['isAdmin'])
-    },
-    methods: {
-    }
-};
+const store = useStore();
+const { locale } = useI18n();
+
+const showAccountModal = ref(false);
+
+const isAdmin = computed(() => store.getters['auth/isAdmin']);
+
+const brandName = computed(() => getBrandName(locale.value));
+const isNonLatinBrand = computed(() => usesNonLatinBrand(locale.value));
 </script>
 
 <style scoped>
@@ -95,6 +91,7 @@ export default {
     transition: var(--transition-base);
     border-radius: var(--radius-base);
     position: relative;
+    overflow: visible;
 }
 
 .logo-link::after {
@@ -134,14 +131,25 @@ export default {
 .logo-text {
     font-family: 'Exo 2', sans-serif;
     font-weight: 800;
-    font-size: var(--font-size-xxl);
+    font-size: 3rem;
     background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 50%, #8b7ec8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     letter-spacing: 1px;
     margin: 0;
-    line-height: 1;
+    line-height: 1.4;
+    padding-bottom: 0.15em;
+    overflow: visible;
+}
+
+/* Non-Latin script styling (fallback to system fonts for complex scripts) */
+.logo-text.non-latin {
+    font-family: 'Noto Sans', 'Noto Sans Devanagari', 'Noto Sans Telugu',
+                 'Noto Sans Tamil', 'Noto Sans Kannada', 'Noto Sans Gurmukhi',
+                 'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans SC', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0;
 }
 
 /* Navigation items container */

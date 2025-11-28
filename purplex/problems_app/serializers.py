@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Problem, ProblemSet, ProblemCategory, TestCase, ProblemSetMembership, Course, CourseProblemSet, CourseEnrollment
 from .repositories.problem_category_repository import ProblemCategoryRepository
 from .services.admin_service import AdminProblemService
+from .handlers import get_handler, is_registered
 
 class ProblemCategorySerializer(serializers.ModelSerializer):
     problems_count = serializers.ReadOnlyField()
@@ -44,7 +45,8 @@ class ProblemSerializer(serializers.ModelSerializer):
             'memory_limit', 'tags', 'is_active', 'segmentation_enabled', 'segmentation_config',
             'requires_highlevel_comprehension', 'segmentation_threshold',
             'problem_sets', 'test_cases', 'test_cases_count', 'visible_test_cases_count',
-            'created_by', 'created_by_name', 'created_at', 'updated_at', 'version'
+            'created_by', 'created_by_name', 'created_at', 'updated_at', 'version',
+            'mcq_options'  # MCQ-specific: array of {id, text, is_correct} objects
         ]
         read_only_fields = ['slug', 'created_by', 'created_at', 'updated_at', 'version']
 
@@ -63,19 +65,55 @@ class ProblemListSerializer(serializers.ModelSerializer):
 
 class ProblemForProblemSetSerializer(serializers.ModelSerializer):
     """Serializer for problems when displayed within a problem set context.
-    Includes the reference solution for the code editor."""
+    Includes the reference solution for the code editor and handler-provided config."""
     categories = ProblemCategorySerializer(many=True, read_only=True)
     test_cases_count = serializers.ReadOnlyField()
     visible_test_cases_count = serializers.ReadOnlyField()
-    
+
+    # Handler-provided configuration for frontend rendering
+    display_config = serializers.SerializerMethodField()
+    input_config = serializers.SerializerMethodField()
+    hints_config = serializers.SerializerMethodField()
+    feedback_config = serializers.SerializerMethodField()
+
     class Meta:
         model = Problem
         fields = [
             'slug', 'title', 'description', 'difficulty', 'problem_type', 'categories',
             'function_name', 'function_signature', 'reference_solution',
             'tags', 'is_active', 'segmentation_enabled', 'segmentation_config',
-            'test_cases_count', 'visible_test_cases_count'
+            'test_cases_count', 'visible_test_cases_count',
+            # Handler-provided config fields
+            'display_config', 'input_config', 'hints_config', 'feedback_config'
         ]
+
+    def _get_handler_config(self, problem):
+        """Get full config from handler, cached per serialization."""
+        if not hasattr(self, '_handler_config_cache'):
+            self._handler_config_cache = {}
+        if problem.pk not in self._handler_config_cache:
+            if is_registered(problem.problem_type):
+                handler = get_handler(problem.problem_type)
+                self._handler_config_cache[problem.pk] = handler.get_problem_config(problem)
+            else:
+                self._handler_config_cache[problem.pk] = {}
+        return self._handler_config_cache[problem.pk]
+
+    def get_display_config(self, problem):
+        """Get display configuration from handler."""
+        return self._get_handler_config(problem).get('display', {})
+
+    def get_input_config(self, problem):
+        """Get input configuration from handler."""
+        return self._get_handler_config(problem).get('input', {})
+
+    def get_hints_config(self, problem):
+        """Get hints configuration from handler."""
+        return self._get_handler_config(problem).get('hints', {})
+
+    def get_feedback_config(self, problem):
+        """Get feedback configuration from handler."""
+        return self._get_handler_config(problem).get('feedback', {})
 
 class ProblemSetMembershipSerializer(serializers.ModelSerializer):
     problem = ProblemForProblemSetSerializer(read_only=True)
@@ -134,11 +172,75 @@ class AdminProblemSerializer(ProblemSerializer):
 
     def validate(self, attrs):
         """Comprehensive validation using validation service"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # MCQ-specific validation
+        problem_type = attrs.get('problem_type', getattr(self.instance, 'problem_type', 'eipl') if self.instance else 'eipl')
+        mcq_options = attrs.get('mcq_options', [])
+
+        if problem_type == 'mcq':
+            # Validate MCQ options
+            if not mcq_options:
+                raise serializers.ValidationError({
+                    'mcq_options': ['MCQ problems require at least 2 options']
+                })
+
+            if not isinstance(mcq_options, list):
+                raise serializers.ValidationError({
+                    'mcq_options': ['mcq_options must be a list']
+                })
+
+            # Filter out empty options (no text)
+            valid_options = [opt for opt in mcq_options if opt.get('text', '').strip()]
+
+            if len(valid_options) < 2:
+                raise serializers.ValidationError({
+                    'mcq_options': ['MCQ problems require at least 2 options with text']
+                })
+
+            if len(valid_options) > 6:
+                raise serializers.ValidationError({
+                    'mcq_options': ['MCQ problems can have at most 6 options']
+                })
+
+            # Validate option structure and count correct answers
+            correct_count = 0
+            for i, option in enumerate(valid_options):
+                if not isinstance(option, dict):
+                    raise serializers.ValidationError({
+                        'mcq_options': [f'Option {i+1} must be an object']
+                    })
+
+                if not option.get('id'):
+                    raise serializers.ValidationError({
+                        'mcq_options': [f'Option {i+1} must have an id']
+                    })
+
+                if not option.get('text', '').strip():
+                    raise serializers.ValidationError({
+                        'mcq_options': [f'Option {i+1} must have text']
+                    })
+
+                if option.get('is_correct', False):
+                    correct_count += 1
+
+            if correct_count != 1:
+                raise serializers.ValidationError({
+                    'mcq_options': [f'Exactly one option must be marked as correct (found {correct_count})']
+                })
+
+            # Store only valid options
+            attrs['mcq_options'] = valid_options
+        else:
+            # For non-MCQ problems, clear mcq_options
+            attrs['mcq_options'] = []
+
         try:
             from .services.validation_service import ProblemValidationService
-            
+
             validation_service = ProblemValidationService()
-            
+
             # Validate problem data
             validation_result = validation_service.validate_problem_data(attrs)
             if not validation_result.is_valid:
@@ -148,21 +250,23 @@ class AdminProblemSerializer(ProblemSerializer):
                         error_dict[error.field] = []
                     error_dict[error.field].append(error.message)
                 raise serializers.ValidationError(error_dict)
-            
+
             return attrs
+        except serializers.ValidationError:
+            raise  # Re-raise validation errors
         except Exception as e:
             # Log the error for debugging but don't fail validation
-            import logging
-            logger = logging.getLogger(__name__)
             logger.warning(f"Validation service error: {str(e)}")
-            
+
             # Perform basic validation instead
             if not attrs.get('title', '').strip():
                 raise serializers.ValidationError({'title': ['Title is required']})
-            # function_name and function_signature are now auto-extracted from reference_solution
-            if not attrs.get('reference_solution', '').strip():
-                raise serializers.ValidationError({'reference_solution': ['Reference solution is required']})
-            
+
+            # For MCQ problems, reference_solution is optional
+            if problem_type != 'mcq':
+                if not attrs.get('reference_solution', '').strip():
+                    raise serializers.ValidationError({'reference_solution': ['Reference solution is required']})
+
             return attrs
 
     def create(self, validated_data):

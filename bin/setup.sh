@@ -98,7 +98,7 @@ python manage.py createsuperuser
 
 # Step 8: Load sample data
 echo -e "\n${YELLOW}Step 8: Loading sample data...${NC}"
-python manage.py populate_sample_data
+python manage.py populate_comprehensive
 echo -e "${GREEN}✓ Sample data loaded${NC}"
 
 # Step 9: Run tests

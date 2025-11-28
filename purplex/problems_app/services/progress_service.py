@@ -9,6 +9,7 @@ from django.db import transaction, IntegrityError, DatabaseError
 from django.utils import timezone
 
 from purplex.submissions.grading_service import GradingService
+from problems_app.handlers import get_handler
 
 from ..repositories import (
     ProgressRepository, ProblemRepository, CourseRepository,
@@ -641,87 +642,15 @@ class ProgressService:
 
     @staticmethod
     def _extract_variations(submission):
-        """Extract code variations for EiPL, single code for direct."""
-        if submission.submission_type == 'eipl':
-            variations = submission.code_variations.all().order_by('variation_index')
-            return [v.generated_code for v in variations]
-        elif submission.processed_code:
-            return [submission.processed_code]
-        return []
+        """Extract code variations by delegating to the appropriate handler."""
+        handler = get_handler(submission.submission_type)
+        return handler.extract_variations(submission)
 
     @staticmethod
     def _extract_test_results(submission, problem):
-        """Transform TestExecution objects to frontend format."""
-        results = []
-
-        if submission.submission_type == 'eipl':
-            # Group test results by code variation
-            variations = submission.code_variations.all().order_by('variation_index')
-            for variation in variations:
-                test_execs = variation.test_executions.all().order_by('execution_order')
-                var_results = []
-
-                # If we have TestExecution records, use them
-                if test_execs.exists():
-                    for test_exec in test_execs:
-                        var_results.append({
-                            'isSuccessful': test_exec.passed,
-                            'function_call': ProgressService._format_function_call(
-                                problem.function_name, test_exec.input_values
-                            ),
-                            'expected_output': test_exec.expected_output,
-                            'actual_output': test_exec.actual_output,  # Let frontend handle null values
-                            'error': test_exec.error_message
-                        })
-                # Fallback: If no TestExecution records exist but we have summary data
-                elif variation.tests_total > 0:
-                    # We don't have individual test details, but we can show summary
-                    # Create placeholder results based on the summary
-                    for i in range(variation.tests_total):
-                        is_passed = i < variation.tests_passed
-                        var_results.append({
-                            'isSuccessful': is_passed,
-                            'function_call': f"{problem.function_name}(test_case_{i+1})",
-                            'expected_output': 'Test details not available',
-                            'actual_output': 'Passed' if is_passed else 'Failed',
-                            'error': '' if is_passed else 'Test failed (details not available)'
-                        })
-
-                results.append({
-                    'success': variation.tests_passed == variation.tests_total and variation.tests_total > 0,
-                    'testsPassed': variation.tests_passed,
-                    'totalTests': variation.tests_total,
-                    'test_results': var_results,
-                    'results': var_results  # Duplicate for frontend compatibility
-                })
-        else:
-            # Direct code submission - single result set
-            test_execs = submission.test_executions.all().order_by('execution_order')
-            all_results = []
-
-            for test_exec in test_execs:
-                all_results.append({
-                    'isSuccessful': test_exec.passed,
-                    'function_call': ProgressService._format_function_call(
-                        problem.function_name, test_exec.input_values
-                    ),
-                    'expected_output': test_exec.expected_output,
-                    'actual_output': test_exec.actual_output,  # Let frontend handle null values
-                    'error': test_exec.error_message
-                })
-
-            tests_passed = submission.test_executions.filter(passed=True).count()
-            tests_total = submission.test_executions.count()
-
-            results.append({
-                'success': tests_passed == tests_total and tests_total > 0,
-                'testsPassed': tests_passed,
-                'totalTests': tests_total,
-                'test_results': all_results,
-                'results': all_results  # Duplicate for frontend compatibility
-            })
-
-        return results
+        """Transform TestExecution objects to frontend format by delegating to handler."""
+        handler = get_handler(submission.submission_type)
+        return handler.extract_test_results(submission, problem)
 
     @staticmethod
     def _format_function_call(function_name, input_values):
@@ -752,25 +681,15 @@ class ProgressService:
 
     @staticmethod
     def _calculate_passing_variations(submission):
-        """Calculate number of passing variations."""
-        from django.db import models
-        if submission.submission_type == 'eipl':
-            return submission.code_variations.filter(
-                tests_passed=models.F('tests_total'),
-                tests_total__gt=0
-            ).count()
-        elif submission.passed_all_tests:
-            return 1
-        return 0
+        """Calculate number of passing variations by delegating to handler."""
+        handler = get_handler(submission.submission_type)
+        return handler.count_passing_variations(submission)
 
     @staticmethod
     def _count_variations(submission):
-        """Count total variations."""
-        if submission.submission_type == 'eipl':
-            return submission.code_variations.count()
-        elif submission.processed_code:
-            return 1
-        return 0
+        """Count total variations by delegating to handler."""
+        handler = get_handler(submission.submission_type)
+        return handler.count_variations(submission)
 
     @staticmethod
     def _check_segmentation_passed(submission):
@@ -1056,22 +975,9 @@ class ProgressService:
         Returns:
             True if submission meets completion criteria, False otherwise
         """
-        # For EiPL, completion requires:
-        # 1. Perfect test score (100%)
-        if submission.score < 100:
-            return False
-
-        # 2. If segmentation is enabled, must pass segmentation
-        problem = submission.problem
-        if problem.problem_type == 'eipl' and problem.segmentation_enabled:
-            if hasattr(submission, 'segmentation') and submission.segmentation:
-                return submission.segmentation.passed
-            else:
-                # No segmentation data when it's required
-                return False
-
-        # All criteria met
-        return True
+        handler = get_handler(submission.submission_type)
+        result = handler.evaluate_completion(submission, submission.problem)
+        return result == 'complete'
 
     @staticmethod
     def _create_daily_snapshot(progress, submission):

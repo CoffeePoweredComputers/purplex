@@ -9,7 +9,6 @@ import os
 import secrets
 from typing import Dict, Optional, List
 from django.contrib.auth.models import User
-from django.core.exceptions import ObjectDoesNotExist
 
 
 class MockFirebaseAuth:

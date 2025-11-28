@@ -266,9 +266,6 @@ class CanViewHint(permissions.BasePermission):
         if request.user.is_superuser:
             return True
         
-        # Import here to avoid circular imports
-        from purplex.problems_app.models import UserProgress
-        
         # Get the problem from the hint
         problem = obj.problem if hasattr(obj, 'problem') else None
         if not problem:

@@ -80,7 +80,7 @@ jobs:
           USE_MOCK_OPENAI: true
         run: |
           echo "Creating test data..."
-          python manage.py populate_sample_data || echo "Sample data creation skipped"
+          python manage.py populate_comprehensive || echo "Sample data creation skipped"
       
       - name: Run tests
         env:
@@ -191,8 +191,8 @@ jobs:
         run: |
           python manage.py migrate
           echo "Creating test data..."
-          python manage.py populate_sample_data || true
-      
+          python manage.py populate_comprehensive || true
+
       - name: Test concurrent connections
         env:
           DATABASE_URL: postgresql://purplex_test:testpass@localhost:5432/purplex_test
@@ -346,8 +346,8 @@ jobs:
           CELERY_TASK_ALWAYS_EAGER: true  # Run Celery tasks synchronously for testing
         run: |
           python manage.py migrate
-          python manage.py populate_sample_data || true
-          
+          python manage.py populate_comprehensive || true
+
           # Create test problems expected by load tests
           python manage.py shell << 'EOF'
           from problems_app.models import Problem, TestCase
@@ -468,10 +468,10 @@ jobs:
                       problem_slug = random.choice(["two-sum", "palindrome-check"])
                       eipl_data = {
                           "problem_slug": problem_slug,
-                          "prompt": "find two numbers that add up to the target value"
+                          "raw_input": "find two numbers that add up to the target value"
                       }
-                      
-                      with self.client.post("/api/submit-eipl/",
+
+                      with self.client.post("/api/submit/",
                                             json=eipl_data,
                                             headers=self.headers,
                                             catch_response=True) as response:
@@ -565,8 +565,8 @@ jobs:
                   for i in range(200):
                       future = executor.submit(
                           requests.post,
-                          "http://localhost:8000/api/submit-eipl/",
-                          json={"problem_slug": "two-sum", "prompt": f"test {i}"},
+                          "http://localhost:8000/api/submit/",
+                          json={"problem_slug": "two-sum", "raw_input": f"test {i}"},
                           headers={"Authorization": f"Bearer test_token_{i}"}
                       )
                       futures.append(future)

@@ -143,45 +143,6 @@ class ProblemSetProgressView(APIView):
             )
 
 
-class UserProgressSummaryView(APIView):
-    """Get summary of user's progress across all courses."""
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request):
-        user = request.user
-        
-        # Get all course progress for the user using service
-        # Note: We need all problem set progress across all courses
-        from ..services import CourseService
-        user_courses = CourseService.get_user_courses(user)
-        
-        course_progresses = []
-        for course in user_courses:
-            course_progress = ProgressService.get_course_problem_set_progress(user, course)
-            course_progresses.extend(course_progress)
-        
-        # Use service to format course-based progress
-        course_data = ProgressService.format_course_progress_summary(course_progresses)
-        
-        # Calculate overall stats
-        total_problems = 0
-        total_completed = 0
-        
-        for course_info in course_data.values():
-            for ps in course_info['problem_sets']:
-                total_problems += ps['total_problems']
-                total_completed += ps['completed_problems']
-        
-        return Response({
-            'overall': {
-                'total_problems': total_problems,
-                'completed_problems': total_completed,
-                'completion_percentage': int((total_completed / total_problems * 100) if total_problems > 0 else 0),
-            },
-            'courses': course_data
-        })
-
-
 class LastSubmissionView(APIView):
     """Get user's last submission for a specific problem with problem set context."""
     permission_classes = [IsAuthenticated]

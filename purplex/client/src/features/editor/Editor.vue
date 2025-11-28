@@ -144,18 +144,14 @@
               const focusableElements = getFocusableElements();
               const currentIndex = focusableElements.indexOf(container);
 
-              console.log('Tab pressed - Current index:', currentIndex, 'Total focusable:', focusableElements.length);
-
               if (currentIndex !== -1 && currentIndex < focusableElements.length - 1) {
                 const nextElement = focusableElements[currentIndex + 1] as HTMLElement;
-                console.log('Focusing next element:', nextElement);
                 nextElement.focus();
               } else {
                 // Use custom tab target if provided, otherwise fall back to submit button
                 const targetId = props.tabTargetId || 'submitButton';
                 const targetElement = document.getElementById(targetId);
                 if (targetElement) {
-                  console.log(`Fallback: focusing ${targetId}`);
                   // If target is a wrapper with an editor inside, focus the editor
                   const innerEditor = targetElement.querySelector('.ace_text-input');
                   if (innerEditor) {
@@ -188,14 +184,9 @@
               const focusableElements = getFocusableElements();
               const currentIndex = focusableElements.indexOf(container);
 
-              console.log('Shift+Tab pressed - Current index:', currentIndex, 'Total focusable:', focusableElements.length);
-
               if (currentIndex > 0) {
                 const prevElement = focusableElements[currentIndex - 1] as HTMLElement;
-                console.log('Focusing previous element:', prevElement);
                 prevElement.focus();
-              } else {
-                console.log('Already at first element');
               }
             }, 10);
           }

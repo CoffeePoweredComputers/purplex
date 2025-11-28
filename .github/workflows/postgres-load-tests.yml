@@ -171,12 +171,12 @@ jobs:
               
               @task(10)
               def submit_eipl(self):
-                  """Test EiPL submission endpoint"""
+                  """Test unified submission endpoint"""
                   data = {
                       "problem_slug": "two-sum",
-                      "user_prompt": "This function finds two numbers that add up to target"
+                      "raw_input": "This function finds two numbers that add up to target"
                   }
-                  self.client.post("/api/submit-eipl/",
+                  self.client.post("/api/submit/",
                                   json=data,
                                   headers=self.headers)
           

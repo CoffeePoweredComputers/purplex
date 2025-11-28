@@ -128,10 +128,35 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
+
+# Supported languages for multilingual UI and AI feedback
+LANGUAGES = [
+    ('en', 'English'),
+    ('hi', 'Hindi'),
+    ('bn', 'Bengali'),
+    ('te', 'Telugu'),
+    ('pa', 'Punjabi'),
+    ('mr', 'Marathi'),
+    ('kn', 'Kannada'),
+    ('ta', 'Tamil'),
+    ('ja', 'Japanese'),
+    ('zh', 'Chinese'),
+    ('pt', 'Portuguese'),
+    ('vi', 'Vietnamese'),
+    ('th', 'Thai'),
+    ('es', 'Spanish'),
+    ('fr', 'French'),
+    ('de', 'German'),
+]
+
+# Path to translation files
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'

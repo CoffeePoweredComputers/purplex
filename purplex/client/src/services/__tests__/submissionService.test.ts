@@ -1,301 +1,106 @@
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest'
 import axios from 'axios'
-import submissionService, {
-  ProblemSetProgress,
-  SubmissionSummary
-} from '../submissionService'
+import submissionService from '../submissionService'
 import { log } from '../../utils/logger'
-import type { BaseSubmission, SubmissionTestResult } from '../../types'
 
 // Mock dependencies
 vi.mock('axios')
 vi.mock('../../utils/logger', () => ({
   log: {
+    info: vi.fn(),
     error: vi.fn()
   }
 }))
-
-// Mock data
-const mockSubmissionSummary: SubmissionSummary = {
-  problem_slug: 'two-sum',
-  problem_title: 'Two Sum',
-  problem_set_slug: 'arrays',
-  problem_set_title: 'Array Problems',
-  best_score: 85,
-  total_attempts: 3,
-  last_attempt: '2025-08-05T10:00:00Z',
-  completed: true
-}
-
-const mockProblemSetProgress: ProblemSetProgress = {
-  slug: 'arrays',
-  title: 'Array Problems',
-  completed_problems: 5,
-  total_problems: 10,
-  average_score: 75,
-  percentage: 50,
-  last_activity: '2025-08-05T10:00:00Z'
-}
-
-const mockBaseSubmission: BaseSubmission = {
-  id: 1,
-  problem_id: 1,
-  user_id: 1,
-  code_variations: [
-    { code: 'def two_sum(nums, target): return [0, 1]', variation_id: 1 },
-    { code: 'def two_sum(nums, target): return [1, 2]', variation_id: 2 }
-  ],
-  total_variations: 2,
-  passing_variations: 1,
-  test_results: [
-    { isSuccessful: true, expected: '[0, 1]', actual: '[0, 1]' } as SubmissionTestResult,
-    { isSuccessful: false, expected: '[1, 2]', actual: '[0, 1]' } as SubmissionTestResult
-  ],
-  created_at: '2025-08-05T10:00:00Z',
-  score: 50
-}
 
 describe('SubmissionService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  describe('API Methods', () => {
-    describe('getSubmissionsSummary', () => {
-      it('should fetch submissions summary successfully', async () => {
-        const mockData = [mockSubmissionSummary];
-        (axios.get as Mock).mockResolvedValue({ data: mockData })
+  describe('submitActivity', () => {
+    it('should submit activity successfully', async () => {
+      const mockResponse = {
+        task_id: 'task-123',
+        status: 'processing',
+        stream_url: '/api/tasks/task-123/stream/',
+        message: 'Processing submission'
+      };
+      (axios.post as Mock).mockResolvedValue({ data: mockResponse })
 
-        const result = await submissionService.getSubmissionsSummary()
-
-        expect(axios.get).toHaveBeenCalledWith('/api/submissions/summary/')
-        expect(result).toEqual(mockData)
+      const result = await submissionService.submitActivity({
+        problem_slug: 'two-sum',
+        raw_input: 'def solution(): pass',
+        problem_set_slug: 'arrays'
       })
 
-      it('should handle errors when fetching submissions summary', async () => {
-        const mockError = new Error('Network error');
-        (axios.get as Mock).mockRejectedValue(mockError)
-
-        await expect(submissionService.getSubmissionsSummary()).rejects.toThrow('Network error')
-        expect(log.error).toHaveBeenCalledWith('Failed to fetch submissions summary', mockError)
+      expect(axios.post).toHaveBeenCalledWith('/api/submit/', {
+        problem_slug: 'two-sum',
+        raw_input: 'def solution(): pass',
+        problem_set_slug: 'arrays'
       })
+      expect(result).toEqual(mockResponse)
+      expect(log.info).toHaveBeenCalledWith('Submitting activity solution', { problemSlug: 'two-sum' })
     })
 
-    describe('getProblemSetsProgress', () => {
-      it('should fetch problem sets progress successfully', async () => {
-        const mockData = [mockProblemSetProgress];
-        (axios.get as Mock).mockResolvedValue({ data: mockData })
+    it('should handle errors when submitting activity', async () => {
+      const mockError = {
+        response: {
+          data: { error: 'Validation error' },
+          status: 400
+        }
+      };
+      (axios.post as Mock).mockRejectedValue(mockError)
 
-        const result = await submissionService.getProblemSetsProgress()
-
-        expect(axios.get).toHaveBeenCalledWith('/api/submissions/problem-sets-progress/')
-        expect(result).toEqual(mockData)
+      await expect(submissionService.submitActivity({
+        problem_slug: 'two-sum',
+        raw_input: 'invalid'
+      })).rejects.toEqual({
+        error: 'Validation error',
+        status: 400
       })
-
-      it('should handle errors when fetching problem sets progress', async () => {
-        const mockError = new Error('Server error');
-        (axios.get as Mock).mockRejectedValue(mockError)
-
-        await expect(submissionService.getProblemSetsProgress()).rejects.toThrow('Server error')
-        expect(log.error).toHaveBeenCalledWith('Failed to fetch problem sets progress', mockError)
-      })
-    })
-
-    describe('getProblemSetProgress', () => {
-      it('should fetch specific problem set progress successfully', async () => {
-        (axios.get as Mock).mockResolvedValue({ data: mockProblemSetProgress })
-
-        const result = await submissionService.getProblemSetProgress('arrays')
-
-        expect(axios.get).toHaveBeenCalledWith('/api/submissions/problem-sets/arrays/progress/')
-        expect(result).toEqual(mockProblemSetProgress)
-      })
-
-      it('should handle errors with context', async () => {
-        const mockError = new Error('Not found');
-        (axios.get as Mock).mockRejectedValue(mockError)
-
-        await expect(submissionService.getProblemSetProgress('arrays')).rejects.toThrow('Not found')
-        expect(log.error).toHaveBeenCalledWith(
-          'Failed to fetch progress for problem set', 
-          { problemSetSlug: 'arrays', error: mockError }
-        )
-      })
-    })
-
-    describe('getProblemSubmissions', () => {
-      it('should fetch problem submissions with params', async () => {
-        const mockData = [mockSubmissionSummary];
-        (axios.get as Mock).mockResolvedValue({ data: mockData })
-
-        const result = await submissionService.getProblemSubmissions('two-sum')
-
-        expect(axios.get).toHaveBeenCalledWith('/api/submissions/', {
-          params: { problem_slug: 'two-sum' }
-        })
-        expect(result).toEqual(mockData)
-      })
-    })
-
-    describe('getProblemBestScore', () => {
-      it('should return best score from submissions', async () => {
-        const submissions = [
-          { ...mockSubmissionSummary, best_score: 60 },
-          { ...mockSubmissionSummary, best_score: 85 },
-          { ...mockSubmissionSummary, best_score: 75 }
-        ];
-        (axios.get as Mock).mockResolvedValue({ data: submissions })
-
-        const result = await submissionService.getProblemBestScore('two-sum')
-
-        expect(result).toBe(85)
-      })
-
-      it('should return 0 for no submissions', async () => {
-        (axios.get as Mock).mockResolvedValue({ data: [] })
-
-        const result = await submissionService.getProblemBestScore('two-sum')
-
-        expect(result).toBe(0)
-      })
-
-      it('should return 0 on error', async () => {
-        (axios.get as Mock).mockRejectedValue(new Error('Network error'))
-
-        const result = await submissionService.getProblemBestScore('two-sum')
-
-        expect(result).toBe(0)
-        expect(log.error).toHaveBeenCalled()
-      })
+      expect(log.error).toHaveBeenCalled()
     })
   })
 
-  describe('Utility Methods', () => {
-    describe('calculateProgressPercentage', () => {
-      it('should calculate percentage correctly', () => {
-        expect(submissionService.calculateProgressPercentage(5, 10)).toBe(50)
-        expect(submissionService.calculateProgressPercentage(3, 4)).toBe(75)
-        expect(submissionService.calculateProgressPercentage(10, 10)).toBe(100)
-      })
+  describe('getSubmissionHistory', () => {
+    it('should fetch submission history successfully', async () => {
+      const mockResponse = {
+        problem_slug: 'two-sum',
+        total_attempts: 5,
+        best_score: 100,
+        best_attempt_id: 'attempt-1',
+        submissions: []
+      };
+      (axios.get as Mock).mockResolvedValue({ data: mockResponse })
 
-      it('should handle edge cases', () => {
-        expect(submissionService.calculateProgressPercentage(0, 10)).toBe(0)
-        expect(submissionService.calculateProgressPercentage(0, 0)).toBe(0)
+      const result = await submissionService.getSubmissionHistory('two-sum', 'arrays', 'course-1')
+
+      expect(axios.get).toHaveBeenCalledWith('/api/submissions/history/two-sum/', {
+        params: {
+          problem_set_slug: 'arrays',
+          course_id: 'course-1'
+        }
+      })
+      expect(result).toEqual(mockResponse)
+    })
+
+    it('should handle optional parameters', async () => {
+      const mockResponse = { problem_slug: 'two-sum', total_attempts: 0, submissions: [] };
+      (axios.get as Mock).mockResolvedValue({ data: mockResponse })
+
+      await submissionService.getSubmissionHistory('two-sum')
+
+      expect(axios.get).toHaveBeenCalledWith('/api/submissions/history/two-sum/', {
+        params: {}
       })
     })
 
-    describe('isProblemCompleted', () => {
-      it('should check completion with default threshold', () => {
-        expect(submissionService.isProblemCompleted(100)).toBe(true)
-        expect(submissionService.isProblemCompleted(99)).toBe(false)
-      })
+    it('should handle errors when fetching history', async () => {
+      const mockError = new Error('Network error');
+      (axios.get as Mock).mockRejectedValue(mockError)
 
-      it('should check completion with custom threshold', () => {
-        expect(submissionService.isProblemCompleted(80, 80)).toBe(true)
-        expect(submissionService.isProblemCompleted(79, 80)).toBe(false)
-      })
-    })
-
-    describe('formatSubmissionForDisplay', () => {
-      it('should format submission data correctly', () => {
-        const formatted = submissionService.formatSubmissionForDisplay(mockSubmissionSummary)
-
-        expect(formatted).toMatchObject({
-          ...mockSubmissionSummary,
-          completion_status: 'in_progress', // 85 < 100
-          last_activity: expect.any(String),
-          progress_text: '85% (3 attempts)'
-        })
-      })
-
-      it('should handle completed submissions', () => {
-        const completedSubmission = { ...mockSubmissionSummary, best_score: 100 }
-        const formatted = submissionService.formatSubmissionForDisplay(completedSubmission)
-
-        expect(formatted.completion_status).toBe('completed')
-      })
-
-      it('should handle null last_attempt', () => {
-        const noAttemptSubmission = { ...mockSubmissionSummary, last_attempt: null as any }
-        const formatted = submissionService.formatSubmissionForDisplay(noAttemptSubmission)
-
-        expect(formatted.last_activity).toBeNull()
-      })
-    })
-
-    describe('getPrimaryCode', () => {
-      it('should get code from first variation object', () => {
-        const result = submissionService.getPrimaryCode(mockBaseSubmission)
-        expect(result).toBe('def two_sum(nums, target): return [0, 1]')
-      })
-
-      it('should handle string variations', () => {
-        const submission = {
-          ...mockBaseSubmission,
-          code_variations: ['code string 1', 'code string 2']
-        } as any
-        const result = submissionService.getPrimaryCode(submission)
-        expect(result).toBe('code string 1')
-      })
-
-      it('should return empty string for no variations', () => {
-        const submission = { ...mockBaseSubmission, code_variations: [] } as BaseSubmission
-        expect(submissionService.getPrimaryCode(submission)).toBe('')
-      })
-
-      it('should handle null/undefined variations', () => {
-        const submission = { ...mockBaseSubmission, code_variations: null } as any
-        expect(submissionService.getPrimaryCode(submission)).toBe('')
-      })
-    })
-
-    describe('calculateSuccessRate', () => {
-      it('should calculate success rate correctly', () => {
-        expect(submissionService.calculateSuccessRate(mockBaseSubmission)).toBe(50) // 1/2
-      })
-
-      it('should handle zero total variations', () => {
-        const submission = { 
-          ...mockBaseSubmission, 
-          passing_variations: 0, 
-          total_variations: 0 
-        } as BaseSubmission
-        expect(submissionService.calculateSuccessRate(submission)).toBe(0)
-      })
-
-      it('should handle undefined values', () => {
-        const submission = {} as BaseSubmission
-        expect(submissionService.calculateSuccessRate(submission)).toBe(0)
-      })
-    })
-
-    describe('getTestResultsSummary', () => {
-      it('should summarize test results correctly', () => {
-        const summary = submissionService.getTestResultsSummary(mockBaseSubmission)
-        expect(summary).toBe('1/2 tests passed (50%)')
-      })
-
-      it('should handle all tests passing', () => {
-        const submission = {
-          ...mockBaseSubmission,
-          test_results: [
-            { isSuccessful: true } as SubmissionTestResult,
-            { isSuccessful: true } as SubmissionTestResult
-          ]
-        } as BaseSubmission
-        const summary = submissionService.getTestResultsSummary(submission)
-        expect(summary).toBe('2/2 tests passed (100%)')
-      })
-
-      it('should handle no test results', () => {
-        const submission = { ...mockBaseSubmission, test_results: [] } as BaseSubmission
-        expect(submissionService.getTestResultsSummary(submission)).toBe('0/0 tests passed (0%)')
-      })
-
-      it('should handle missing test results', () => {
-        const submission = {} as BaseSubmission
-        expect(submissionService.getTestResultsSummary(submission)).toBe('No test results available')
-      })
+      await expect(submissionService.getSubmissionHistory('two-sum')).rejects.toThrow('Network error')
+      expect(log.error).toHaveBeenCalled()
     })
   })
 })

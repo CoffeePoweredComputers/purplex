@@ -13,49 +13,33 @@ from ..services.course_service import CourseService
 from ..services.problem_service import ProblemService
 from ..services.progress_service import ProgressService
 from ..repositories import ProblemRepository
+from ..handlers import get_handler, get_registered_types, is_registered
 from purplex.users_app.permissions import IsAuthenticated
-from ..tasks.pipeline import execute_eipl_pipeline
+from ..tasks.pipeline import execute_eipl_pipeline, execute_mcq_pipeline
 import uuid
 
 logger = logging.getLogger(__name__)
 
 
-def create_error_response(error_message: str, http_status: int, **kwargs):
-    """Create a consistent error response structure for EiPL submissions.
-    
-    Args:
-        error_message: The error message to display
-        http_status: HTTP status code
-        **kwargs: Additional fields to include in the response
-        
-    Returns:
-        Response object with consistent structure
-    """
-    response_data = {
-        'error': error_message,
-        'submission_id': kwargs.get('submission_id', None),
-        'score': kwargs.get('score', 0),
-        'variations': kwargs.get('variations', []),
-        'results': kwargs.get('results', []),
-        'passing_variations': kwargs.get('passing_variations', 0),
-        'total_variations': kwargs.get('total_variations', 0)
-    }
-    
-    # Add any additional fields passed in kwargs
-    for key, value in kwargs.items():
-        if key not in response_data:
-            response_data[key] = value
-            
-    return Response(response_data, status=http_status)
+# ─── Pipeline Task Registry ─────────────────────────────────────────────────
+# Maps problem_type to their async Celery pipeline tasks
+# New activity types should register their pipeline here
+PIPELINE_TASKS = {
+    'eipl': execute_eipl_pipeline,
+    'mcq': execute_mcq_pipeline,
+}
 
 
 @method_decorator(ratelimit(key='user', rate='50/m', method='POST'), name='post')
-class EiPLSubmissionView(APIView):
-    """Unified endpoint for EiPL (Explain in Plain Language) submissions.
-    Generates AI variations, tests them, and saves submission with progress tracking."""
+class ActivitySubmissionView(APIView):
+    """
+    Unified submission endpoint for all activity types.
+
+    Dispatches to type-specific pipelines based on problem.problem_type.
+    This is the preferred endpoint for new activity types.
+    """
     permission_classes = [IsAuthenticated]
 
-    # Increased rate limit for beta test - users may submit multiple times while testing
     @method_decorator(ratelimit(key='user', rate='50/m', method='POST'))
     def post(self, request):
         # Check if rate limited
@@ -63,87 +47,105 @@ class EiPLSubmissionView(APIView):
             return Response({
                 'error': 'Rate limit exceeded. Please wait a moment before submitting again.'
             }, status=status.HTTP_429_TOO_MANY_REQUESTS)
-        
-        # Use validation service to validate request data
-        is_valid, error_message, validated_data = SubmissionValidationService.validate_eipl_submission(request.data)
+
+        # Use generic validation service
+        is_valid, error_message, validated_data = SubmissionValidationService.validate_submission(request.data)
         if not is_valid:
-            return Response({
-                'error': error_message
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
+
         # Extract validated data
         problem = validated_data['problem']
         problem_set = validated_data.get('problem_set')
         course = validated_data.get('course')
-        user_prompt = validated_data['user_prompt']
-        activated_hints = request.data.get('activated_hints', [])  # Extract hint tracking data
-        
+        raw_input = validated_data['raw_input']
+        activated_hints = request.data.get('activated_hints', [])
+
         # Additional validation for problem set membership
         if problem_set and not problem_set.problems.filter(id=problem.id).exists():
             return Response({
                 'error': 'Problem does not belong to the specified problem set'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Additional validation for course enrollment using service
+
+        # Additional validation for course enrollment
         if course:
             enrollment_result = CourseService.validate_course_enrollment(
-                request.user, 
+                request.user,
                 course.course_id
             )
             if not enrollment_result['success']:
                 return Response({
                     'error': enrollment_result['error']
                 }, status=enrollment_result['status_code'])
-        
-        # Log submission attempt
-        logger.info(f"EiPL submission attempt for problem {problem.slug} by user {request.user.username}")
-        
+
+        # Check if we have a pipeline for this problem type
+        problem_type = problem.problem_type
+        if problem_type not in PIPELINE_TASKS:
+            return Response({
+                'error': f'Submission pipeline not implemented for activity type: {problem_type}'
+            }, status=status.HTTP_501_NOT_IMPLEMENTED)
+
+        logger.info(f"Activity submission for {problem_type} problem {problem.slug} by user {request.user.username}")
+
         # Generate request ID for tracking
         request_id = str(uuid.uuid4())
-        
-        # Store submission context in cache for later retrieval
+
+        # Store submission context in cache
         from django.core.cache import cache
-        
+
         submission_context = {
             'user_id': request.user.id,
             'username': request.user.username,
             'problem_id': problem.id,
             'problem_slug': problem.slug,
+            'problem_type': problem_type,
             'problem_set_id': problem_set.id if problem_set else None,
             'problem_set_slug': problem_set.slug if problem_set else None,
             'course_id': course.id if course else None,
             'course_name': course.name if course else None,
-            'user_prompt': user_prompt,
-            'activated_hints': activated_hints,  # Store hints for pipeline
+            'raw_input': raw_input,
+            'activated_hints': activated_hints,
             'request_id': request_id,
             'submitted_at': timezone.now().isoformat()
         }
-        
-        # Store context with 2 hour TTL
+
+        # Store context with 2 hour TTL (generic key format)
         cache.set(
-            f"eipl:context:{request_id}",
-            submission_context,  # Django cache handles serialization
+            f"submission:context:{request_id}",
+            submission_context,
             timeout=7200
         )
-        
-        logger.debug(f"Stored submission context for request {request_id}")
-        
-        # Start the clean EiPL pipeline task
-        try:
-            logger.info(f"🚀 Starting EiPL pipeline for problem {problem.slug} with request ID {request_id}")
-            logger.info(f"📝 Task args: problem_id={problem.id}, user_id={request.user.id}, problem_set_id={problem_set.id if problem_set else None}, course_id={course.id if course else None}")
 
-            # Launch the single orchestrator task
-            # Use request_id as the task_id so SSE can track it
-            pipeline_task = execute_eipl_pipeline.apply_async(
-                args=[
+        logger.debug(f"Stored submission context for request {request_id}")
+
+        # Dispatch to type-specific pipeline
+        try:
+            pipeline_task_class = PIPELINE_TASKS[problem_type]
+
+            # Build args based on problem type
+            # EiPL expects: problem_id, user_prompt, user_id, problem_set_id, course_id
+            if problem_type == 'eipl':
+                task_args = [
                     problem.id,
-                    user_prompt,
+                    raw_input,  # user_prompt for EiPL
                     request.user.id,
                     problem_set.id if problem_set else None,
                     course.id if course else None
-                ],
-                task_id=request_id  # Use request_id as the Celery task ID
+                ]
+            else:
+                # Generic args for other types
+                task_args = [
+                    problem.id,
+                    raw_input,
+                    request.user.id,
+                    problem_set.id if problem_set else None,
+                    course.id if course else None
+                ]
+
+            logger.info(f"🚀 Starting {problem_type} pipeline for problem {problem.slug} with request ID {request_id}")
+
+            pipeline_task = pipeline_task_class.apply_async(
+                args=task_args,
+                task_id=request_id
             )
 
             logger.info(f"✅ Task queued successfully: task_id={pipeline_task.id}, state={pipeline_task.state}")
@@ -154,23 +156,48 @@ class EiPLSubmissionView(APIView):
             request.session['user_tasks'].append(request_id)
             request.session.save()
 
-            logger.info(f"💾 Stored request_id {request_id} in session for user {request.user.username}")
-            logger.info(f"📋 Session user_tasks: {request.session.get('user_tasks', [])}")
-
-            # Return SSE streaming URL for real-time updates
             return Response({
                 'request_id': request_id,
-                'task_id': pipeline_task.id,  # This should be same as request_id
+                'task_id': pipeline_task.id,
                 'status': 'processing',
+                'problem_type': problem_type,
                 'stream_url': f'/api/tasks/{request_id}/stream/',
                 'message': 'Your submission is being processed. Connect to the stream URL for real-time updates.'
             }, status=status.HTTP_202_ACCEPTED)
+
         except Exception as e:
-            logger.error(f"❌ Failed to start AI generation task for problem {problem.slug}: {str(e)}", exc_info=True)
+            logger.error(f"❌ Failed to start {problem_type} pipeline for problem {problem.slug}: {str(e)}", exc_info=True)
             return Response({
-                'error': 'Failed to start AI task. Please try again.',
+                'error': 'Failed to start submission task. Please try again.',
                 'request_id': None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ActivityTypesView(APIView):
+    """
+    List all registered activity types with their metadata.
+
+    Used by admin interface to populate type selector dropdowns.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        registered_types = get_registered_types()
+
+        types_data = []
+        for type_name in registered_types:
+            handler = get_handler(type_name)
+            types_data.append({
+                'type': type_name,
+                'label': dict(ProblemRepository.get_problem_type_choices()).get(type_name, type_name),
+                'has_pipeline': type_name in PIPELINE_TASKS,
+                'admin_config': handler.get_admin_config(),
+            })
+
+        return Response({
+            'types': types_data,
+            'default': 'eipl'
+        })
 
 
 class SubmissionHistoryView(APIView):
@@ -357,7 +384,13 @@ class SubmissionHistoryView(APIView):
                         }
                         for te in test_executions if not variations.exists()
                     ] if not variations.exists() else []
-                }
+                },
+
+                # Handler-provided type-specific serialization
+                'type_specific': (
+                    get_handler(submission.submission_type).serialize_result(submission)
+                    if is_registered(submission.submission_type) else {}
+                )
             }
 
             submission_history.append(submission_data)

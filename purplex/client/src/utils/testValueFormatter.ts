@@ -103,31 +103,6 @@ export function getValueTypeLabel(value: any): string {
 }
 
 /**
- * Check if the actual output matches the expected output,
- * handling type conversions appropriately for educational contexts
- */
-export function testValuesMatch(actual: any, expected: any): boolean {
-  // First try strict equality
-  if (actual === expected) {return true;}
-
-  // Handle null/undefined cases
-  if (isMissingValue(actual) && isMissingValue(expected)) {return true;}
-  if (isMissingValue(actual) || isMissingValue(expected)) {return false;}
-
-  // For objects and arrays, use JSON comparison
-  try {
-    if (typeof actual === 'object' && typeof expected === 'object') {
-      return JSON.stringify(actual) === JSON.stringify(expected);
-    }
-  } catch {
-    // If JSON stringify fails, fall back to string comparison
-  }
-
-  // Try string comparison as fallback
-  return String(actual) === String(expected);
-}
-
-/**
  * Get a CSS class for styling based on value type
  */
 export function getValueDisplayClass(value: any): string {

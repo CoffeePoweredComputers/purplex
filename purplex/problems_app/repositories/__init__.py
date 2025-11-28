@@ -19,10 +19,7 @@ from .problem_category_repository import ProblemCategoryRepository
 from .course_problem_set_repository import CourseProblemSetRepository
 from .user_progress_repository import UserProgressRepository
 from .problem_set_repository import ProblemSetRepository
-from .progress_snapshot_repository import ProgressSnapshotRepository
 from .course_enrollment_repository import CourseEnrollmentRepository
-from .problem_hint_repository import ProblemHintRepository
-from .user_problem_set_progress_repository import UserProblemSetProgressRepository
 
 __all__ = [
     'BaseRepository',
@@ -37,8 +34,5 @@ __all__ = [
     'CourseProblemSetRepository',
     'UserProgressRepository',
     'ProblemSetRepository',
-    'ProgressSnapshotRepository',
     'CourseEnrollmentRepository',
-    'ProblemHintRepository',
-    'UserProblemSetProgressRepository',
 ]

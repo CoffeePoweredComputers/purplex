@@ -40,10 +40,12 @@ class Problem(models.Model):
         ('advanced', 'Advanced'),
     ]
     
-    # NOTE: Problem types are now extensible via the activity type system.
-    # Currently only EiPL is implemented. See docs/architecture/ACTIVITY_TYPE_EXTENSIBILITY.md
+    # NOTE: Problem types are extensible via the activity type system.
+    # Each type has a handler in problems_app/handlers/ and frontend components
+    # in client/src/components/activities/
     PROBLEM_TYPE_CHOICES = [
         ('eipl', 'Explain in Plain Language (EiPL)'),
+        ('mcq', 'Multiple Choice Question'),
     ]
     
     slug = models.SlugField(max_length=100, unique=True, blank=True)
@@ -78,6 +80,13 @@ class Problem(models.Model):
         default=dict,
         blank=True,
         help_text="Complete segmentation configuration including threshold, examples, and settings"
+    )
+
+    # MCQ-specific configuration
+    mcq_options = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Array of {id, text, is_correct} objects for MCQ problems"
     )
 
     # Direct grading configuration fields (for GRADING_PIPELINE.md implementation)

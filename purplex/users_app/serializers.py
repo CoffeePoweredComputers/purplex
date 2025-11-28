@@ -8,7 +8,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserProfile
-        fields = ['id', 'username', 'email', 'role', 'firebase_uid']
+        fields = ['id', 'username', 'email', 'role', 'firebase_uid', 'language_preference']
         read_only_fields = ['id', 'firebase_uid']
 
 class UserSerializer(serializers.ModelSerializer):

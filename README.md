@@ -155,7 +155,7 @@ python manage.py migrate
 python manage.py createsuperuser
 
 # Load sample data (optional)
-python manage.py populate_sample_data
+python manage.py populate_comprehensive
 ```
 
 **4. Start Backend Services**

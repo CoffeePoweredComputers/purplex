@@ -26,8 +26,7 @@ User Submits Code
        ▼
 Vue Component (ProblemSet.vue)
        │
-       ├──▶ Regular: /api/submit-solution/
-       └──▶ EiPL: /api/submit-eipl/
+       └──▶ Unified: /api/submit/
               │
               ▼
         Django View (thin)
@@ -285,7 +284,7 @@ User
 - Plural nouns for collections: `/api/problems/`
 - Kebab-case for multi-word: `/api/problem-sets/`
 - Nested for relationships: `/api/courses/{id}/students/`
-- Action endpoints for operations: `/api/submit-solution/`, `/api/submit-eipl/`
+- Action endpoints for operations: `/api/submit/` (unified submission endpoint)
 
 ### Key API Endpoints (Actual Implementation)
 - **Authentication Endpoints**: 

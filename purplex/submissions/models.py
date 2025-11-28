@@ -5,8 +5,6 @@ Central source of truth for all submission data.
 
 from django.db import models
 from django.contrib.auth.models import User
-from django.contrib.postgres.fields import ArrayField
-from datetime import timedelta
 import uuid
 
 
@@ -35,6 +33,7 @@ class Submission(models.Model):
         choices=[
             ('direct_code', 'Direct Code Submission'),
             ('eipl', 'Explain in Plain Language'),
+            ('mcq', 'Multiple Choice Question'),
             ('function_redef', 'Function Redefinition'),
         ],
         db_index=True
@@ -283,12 +282,6 @@ class SegmentationAnalysis(models.Model):
 
     def __str__(self):
         return f"Segmentation for {self.submission.submission_id}: {self.segment_count} segments ({self.comprehension_level})"
-
-    @property
-    def is_good_comprehension(self):
-        """DEPRECATED: Use 'passed' field instead. Kept for backward compatibility."""
-        # Return the actual passed field, not the comprehension_level check
-        return self.passed
 
 
 class SubmissionFeedback(models.Model):

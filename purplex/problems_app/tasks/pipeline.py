@@ -16,7 +16,6 @@ from django.conf import settings
 from purplex.utils.redis_client import get_pubsub_client
 from django.db import transaction
 from gevent.pool import Pool as GeventPool
-from gevent import Greenlet
 
 # Try to import sentry_sdk for monitoring (optional)
 try:
@@ -107,6 +106,48 @@ def publish_error(task_id: str, error_message: str):
         logger.error(f"⚠️ Redis connection failed while publishing error event: {e}")
     except Exception as e:
         logger.error(f"Failed to publish error event: {e}")
+
+
+def build_completion_result(
+    submission: 'Submission',
+    handler: 'ActivityHandler',
+    user_input: str,
+    legacy_fields: Dict[str, Any] = None
+) -> Dict[str, Any]:
+    """
+    Build unified completion result using handler's serialize_result().
+    
+    This ensures all activity types emit the same envelope structure,
+    enabling a single frontend SSE handler.
+    
+    Args:
+        submission: The saved Submission instance
+        handler: The ActivityHandler for this submission type
+        user_input: The original user input/prompt
+        legacy_fields: Optional dict of legacy fields for backward compatibility
+    
+    Returns:
+        Unified envelope with common metadata and type-specific result
+    """
+    envelope = {
+        # Common metadata (all types)
+        'submission_id': str(submission.submission_id),
+        'problem_type': handler.type_name,
+        'score': submission.score,
+        'is_correct': submission.passed_all_tests,
+        'completion_status': submission.completion_status or 'incomplete',
+        'problem_slug': submission.problem.slug,
+        'user_input': user_input,
+        
+        # Type-specific payload from handler
+        'result': handler.serialize_result(submission),
+    }
+    
+    # Merge legacy fields for backward compatibility during migration
+    if legacy_fields:
+        envelope.update(legacy_fields)
+    
+    return envelope
 
 
 def generate_variations_helper(problem_id: int, user_prompt: str) -> List[str]:
@@ -720,8 +761,37 @@ def execute_eipl_pipeline(
 
         publish_progress(task_id, 100, f"Submission complete! Score: {score}%")
 
+        # Build unified completion result using handler
+        from purplex.problems_app.handlers import get_handler
+        from purplex.submissions.models import Submission
+
+        handler = get_handler('eipl')
+        submission = Submission.objects.select_related('problem').prefetch_related(
+            'code_variations', 'code_variations__test_executions'
+        ).get(submission_id=submission_result['submission_id'])
+
+        # Legacy fields for backward compatibility during migration
+        legacy_fields = {
+            'variations': submission_result.get('variations', []),
+            'test_results': submission_result.get('test_results', []),
+            'segmentation': submission_result.get('segmentation'),
+            'successful_variations': submission_result.get('successful_variations', 0),
+            'total_variations': submission_result.get('total_variations', 0),
+            'passing_variations': submission_result.get('passing_variations', 0),
+        }
+
+        unified_result = build_completion_result(
+            submission=submission,
+            handler=handler,
+            user_input=user_prompt,
+            legacy_fields=legacy_fields
+        )
+
         # Publish completion event
-        publish_completion(task_id, submission_result)
+        publish_completion(task_id, unified_result)
+
+        # Return unified result (keep submission_result reference for logging)
+        submission_result = unified_result
 
         # Mark transaction as successful
         if SENTRY_AVAILABLE and transaction:
@@ -757,4 +827,162 @@ def execute_eipl_pipeline(
             })
 
         # Re-raise to mark task as failed in Celery
+        raise
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MCQ Pipeline - Synchronous processing for Multiple Choice Questions
+# ─────────────────────────────────────────────────────────────────────────────
+
+@shared_task(bind=True, max_retries=1)
+def execute_mcq_pipeline(
+    self,
+    problem_id: int,
+    selected_option: str,
+    user_id: int,
+    problem_set_id: Optional[int] = None,
+    course_id: Optional[int] = None
+):
+    """
+    Execute MCQ submission pipeline.
+
+    MCQ processing is synchronous and simple:
+    1. Load problem and user
+    2. Check if selected answer matches correct answer
+    3. Create submission record
+    4. Update progress
+
+    Args:
+        problem_id: The Problem primary key
+        selected_option: The selected option ID
+        user_id: The User primary key
+        problem_set_id: Optional ProblemSet primary key
+        course_id: Optional Course primary key
+    """
+    task_id = self.request.id
+    logger.info(f"🚀 MCQ PIPELINE START: task_id={task_id}, problem_id={problem_id}")
+
+    try:
+        # ─── Phase 1: Load entities ─────────────────────────────────
+        publish_progress(task_id, 10, "Loading problem...")
+
+        problem = ProblemService.get_problem_by_id(problem_id)
+        if not problem:
+            raise ValueError(f"Problem not found: {problem_id}")
+
+        user = UserService.get_user_by_id(user_id)
+        if not user:
+            raise ValueError(f"User not found: {user_id}")
+
+        problem_set = None
+        if problem_set_id:
+            problem_set = ProblemService.get_problem_set_by_id(problem_set_id)
+
+        course = None
+        if course_id:
+            course = CourseService.get_course_by_id(course_id)
+
+        publish_progress(task_id, 30, "Checking answer...")
+
+        # ─── Phase 2: Check answer ──────────────────────────────────
+        mcq_options = getattr(problem, 'mcq_options', None) or []
+
+        if not mcq_options:
+            raise ValueError(f"MCQ problem {problem.slug} has no options configured")
+
+        # Find correct answer
+        correct_option = next(
+            (opt for opt in mcq_options if opt.get('is_correct', False)),
+            None
+        )
+
+        if not correct_option:
+            raise ValueError(f"MCQ problem {problem.slug} has no correct answer defined")
+
+        is_correct = selected_option.strip() == str(correct_option.get('id', ''))
+        score = 100 if is_correct else 0
+
+        publish_progress(task_id, 60, "Saving submission...")
+
+        # ─── Phase 3: Create submission ─────────────────────────────
+        with transaction.atomic():
+            submission = SubmissionService.create_submission(
+                user=user,
+                problem=problem,
+                raw_input=selected_option,
+                processed_code=selected_option,  # For MCQ, same as raw_input
+                submission_type='mcq',
+                problem_set=problem_set,
+                course=course
+            )
+
+            # Update submission with results
+            submission.score = score
+            submission.passed_all_tests = is_correct
+            submission.is_correct = is_correct
+            submission.completion_status = 'completed' if is_correct else 'incomplete'
+            submission.execution_status = 'completed'
+            submission.save()
+
+            # Update progress
+            from purplex.problems_app.services.progress_service import ProgressService
+            ProgressService.update_progress_from_submission(
+                user=user,
+                problem=problem,
+                submission=submission,
+                problem_set=problem_set,
+                course=course
+            )
+
+        publish_progress(task_id, 100, f"Complete! {'Correct!' if is_correct else 'Incorrect.'}")
+
+        # ─── Phase 4: Build result using unified helper ─────────────
+        from purplex.problems_app.handlers import get_handler
+        handler = get_handler('mcq')
+
+        # Legacy fields for backward compatibility during migration
+        selected_opt = next(
+            (opt for opt in mcq_options if str(opt.get('id', '')) == selected_option.strip()),
+            None
+        )
+        legacy_fields = {
+            'selected_option': {
+                'id': selected_option,
+                'text': selected_opt.get('text', '') if selected_opt else '',
+            },
+            'correct_option': {
+                'id': str(correct_option.get('id', '')),
+                'text': correct_option.get('text', ''),
+                'explanation': correct_option.get('explanation', ''),
+            },
+        }
+
+        submission_result = build_completion_result(
+            submission=submission,
+            handler=handler,
+            user_input=selected_option,
+            legacy_fields=legacy_fields
+        )
+
+        # Publish completion
+        publish_completion(task_id, submission_result)
+
+        logger.info(f"🎉 MCQ PIPELINE COMPLETE: task_id={task_id}, score={score}%, correct={is_correct}")
+        return submission_result
+
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(
+            f"💥 MCQ PIPELINE FAILED: task_id={task_id}, error={error_msg}",
+            exc_info=True
+        )
+        publish_error(task_id, error_msg)
+
+        if SENTRY_AVAILABLE:
+            sentry_sdk.capture_exception(e, extras={
+                "task_id": task_id,
+                "problem_id": problem_id,
+                "user_id": user_id,
+            })
+
         raise

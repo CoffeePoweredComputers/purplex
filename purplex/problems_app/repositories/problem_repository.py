@@ -88,30 +88,6 @@ class ProblemRepository(BaseRepository):
             slug=slug
         ).first()
     
-    @classmethod
-    def get_problem_test_cases(cls, problem: Problem, include_hidden: bool = False) -> List[TestCase]:
-        """Get test cases for a problem."""
-        queryset = TestCase.objects.filter(problem=problem)
-        if not include_hidden:
-            queryset = queryset.filter(is_hidden=False)
-        return list(queryset.order_by('id'))
-    
-    @classmethod
-    def create_test_case(cls, problem: Problem, **kwargs) -> TestCase:
-        """Create a test case for a problem."""
-        return TestCase.objects.create(problem=problem, **kwargs)
-    
-    @classmethod
-    def bulk_create_test_cases(cls, test_cases: List[TestCase]) -> List[TestCase]:
-        """Bulk create test cases."""
-        return list(TestCase.objects.bulk_create(test_cases))
-    
-    @classmethod
-    def delete_test_cases(cls, problem: Problem) -> int:
-        """Delete all test cases for a problem."""
-        deleted, _ = TestCase.objects.filter(problem=problem).delete()
-        return deleted
-    
     # ProblemSet methods
     @classmethod
     def get_all_problem_sets(cls) -> List[ProblemSet]:
@@ -153,59 +129,12 @@ class ProblemRepository(BaseRepository):
         )
     
     @classmethod
-    def get_problem_sets_containing_problem(cls, problem: Problem) -> List[ProblemSet]:
-        """Get all problem sets that contain a specific problem."""
-        return list(
-            ProblemSet.objects.filter(
-                memberships__problem=problem
-            ).distinct()
-        )
-    
-    @classmethod
-    def add_problem_to_set(cls, problem: Problem, problem_set: ProblemSet, 
-                          order: int = 0, weight: float = 1.0) -> ProblemSetMembership:
-        """Add a problem to a problem set."""
-        return ProblemSetMembership.objects.create(
-            problem=problem,
-            problem_set=problem_set,
-            order=order,
-            weight=weight
-        )
-    
-    @classmethod
-    def remove_problem_from_set(cls, problem: Problem, problem_set: ProblemSet) -> bool:
-        """Remove a problem from a problem set."""
-        deleted, _ = ProblemSetMembership.objects.filter(
-            problem=problem,
-            problem_set=problem_set
-        ).delete()
-        return deleted > 0
-    
-    @classmethod
-    def update_problem_order_in_set(cls, problem: Problem, problem_set: ProblemSet, 
-                                   new_order: int) -> bool:
-        """Update the order of a problem in a set."""
-        updated = ProblemSetMembership.objects.filter(
-            problem=problem,
-            problem_set=problem_set
-        ).update(order=new_order)
-        return updated > 0
-    
-    @classmethod
     def problem_in_set(cls, problem: Problem, problem_set: ProblemSet) -> bool:
         """Check if a problem is in a problem set."""
         return ProblemSetMembership.objects.filter(
             problem=problem,
             problem_set=problem_set
         ).exists()
-    
-    @classmethod
-    def get_membership(cls, problem: Problem, problem_set: ProblemSet) -> Optional[ProblemSetMembership]:
-        """Get the membership relationship between a problem and set."""
-        return ProblemSetMembership.objects.filter(
-            problem=problem,
-            problem_set=problem_set
-        ).first()
     
     # Category methods
     @classmethod
@@ -218,24 +147,9 @@ class ProblemRepository(BaseRepository):
         )
     
     @classmethod
-    def get_category_by_slug(cls, slug: str) -> Optional[ProblemCategory]:
-        """Get a category by slug."""
-        return ProblemCategory.objects.filter(slug=slug).first()
-    
-    @classmethod
     def create_category(cls, **kwargs) -> ProblemCategory:
         """Create a new category."""
         return ProblemCategory.objects.create(**kwargs)
-    
-    @classmethod
-    def search_categories(cls, query: str) -> List[ProblemCategory]:
-        """Search categories by name or description."""
-        return list(
-            ProblemCategory.objects.filter(
-                Q(name__icontains=query) |
-                Q(description__icontains=query)
-            )
-        )
     
     @classmethod
     def find_category_by_exact_name(cls, name: str) -> Optional[ProblemCategory]:
@@ -249,17 +163,6 @@ class ProblemRepository(BaseRepository):
             Problem.objects.filter(
                 created_by_id=user_id
             ).prefetch_related('categories').order_by('-created_at')
-        )
-    
-    @classmethod
-    def get_user_created_problem_sets(cls, user_id: int) -> List[ProblemSet]:
-        """Get all problem sets created by a specific user."""
-        return list(
-            ProblemSet.objects.filter(
-                created_by_id=user_id
-            ).annotate(
-                problem_count=Count('problemsetmembership')
-            ).order_by('-created_at')
         )
     
     @classmethod
@@ -302,6 +205,6 @@ class ProblemRepository(BaseRepository):
         return problem
     
     @classmethod
-    def set_problem_sets(cls, problem: Problem, problem_sets: List[ProblemSet]) -> None:
-        """Set the problem sets for a problem."""
-        problem.problem_sets.set(problem_sets)
+    def get_problem_type_choices(cls) -> List[tuple]:
+        """Get the available problem type choices from the Problem model."""
+        return Problem.PROBLEM_TYPE_CHOICES

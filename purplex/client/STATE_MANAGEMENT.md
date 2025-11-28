@@ -20,7 +20,7 @@ This document defines when to use Vuex vs Composables in the Purplex frontend ap
 - Component-specific state that doesn't need global access
 - Reusable business logic between components
 - API call abstractions (e.g., `useSubmission`)
-- Real-time connections (e.g., `useSSE`)
+- Real-time connections (e.g., `sseService`)
 - UI state management (e.g., `useNotification`, `useModal`)
 - Form handling and validation
 - Component lifecycle management
@@ -128,11 +128,15 @@ export default {
 - `progress` - User progress tracking
 
 ### Existing Composables
-- `useSSE` - Server-sent events management
+- `useFeedbackState` - Atomic feedback state management
 - `useNotification` - Toast notifications
-- `useSubmission` - Code submission handling
-- `useHints` - Hint system integration
-- `useProblemSet` - Problem set navigation
+- `useSubmissionCache` - Submission caching
+- `useSubmissionTracking` - Submission state tracking
+- `useHintTracking` - Hint usage tracking
+- `useEditorHints` - Editor hint integration
+
+### Services
+- `sseService` - Server-sent events for real-time updates
 
 ## Migration Guidelines
 

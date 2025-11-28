@@ -11,7 +11,6 @@ import redis
 import logging
 from celery.signals import (
     task_prerun,
-    task_postrun,
     task_failure,
     task_retry,
     task_success

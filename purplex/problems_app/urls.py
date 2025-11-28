@@ -8,7 +8,7 @@ from .views.student_views import (
 
 # Submission views
 from .views.submission_views import (
-    EiPLSubmissionView, SubmissionHistoryView
+    ActivitySubmissionView, ActivityTypesView, SubmissionHistoryView
 )
 
 # SSE views for real-time updates
@@ -16,7 +16,7 @@ from .views.sse import CleanTaskSSEView, CleanBatchSSEView
 
 # Progress tracking views
 from .views.progress_views import (
-    UserProgressView, ProblemSetProgressView, UserProgressSummaryView, LastSubmissionView
+    UserProgressView, ProblemSetProgressView, LastSubmissionView
 )
 
 # Admin views
@@ -46,7 +46,7 @@ from .views.instructor_analytics_views import (
 )
 from .course_views import (
     # Admin course views
-    AdminInstructorsListView, AdminCourseListCreateView, AdminCourseDetailView, AdminCourseProblemSetView,
+    AdminInstructorsListView, AdminCourseListCreateView, AdminCourseDetailView,
     AdminCourseProblemSetsView, AdminAvailableProblemSetsView, AdminCourseStudentsView,
 
     # Instructor course views
@@ -65,7 +65,8 @@ urlpatterns = [
     path('problem-sets/', ProblemSetListView.as_view(), name='problem_set_list'),
     path('problem-sets/<slug:slug>/', ProblemSetDetailView.as_view(), name='problem_set_detail'),
     path('categories/', CategoryListView.as_view(), name='category_list'),
-    path('submit-eipl/', EiPLSubmissionView.as_view(), name='submit_eipl'),
+    path('submit/', ActivitySubmissionView.as_view(), name='submit_activity'),  # Unified submission endpoint
+    path('activity-types/', ActivityTypesView.as_view(), name='activity_types'),  # List registered types
     path('submissions/history/<slug:problem_slug>/', SubmissionHistoryView.as_view(), name='submission_history'),
 
     # SSE endpoints for real-time updates

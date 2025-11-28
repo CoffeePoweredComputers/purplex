@@ -1,9 +1,9 @@
 // ===== CORE DOMAIN TYPES =====
 
 export type DifficultyLevel = 'easy' | 'beginner' | 'intermediate' | 'advanced';
-// NOTE: Problem types are now extensible via the activity type system.
-// Currently only EiPL is implemented. See docs/architecture/ACTIVITY_TYPE_EXTENSIBILITY.md
-export type ProblemType = 'eipl';
+// NOTE: Problem types are extensible via the activity type system.
+// See docs/architecture/ACTIVITY_TYPE_EXTENSIBILITY.md
+export type ProblemType = 'eipl' | 'mcq' | string;
 
 // ===== PROBLEM CATEGORY TYPES =====
 export interface ProblemCategory {
@@ -131,43 +131,6 @@ export interface TestExecutionResult {
   memory_used?: number;
 }
 
-// ===== EIPL SUBMISSION TYPES =====
-export interface VariationTestResult {
-  success: boolean;
-  error?: string;
-  results: TestResult[];
-  testsPassed: number;  // Clear count property name - was "passed"
-  totalTests: number;   // Clear count property name - was "total"
-  score: number;
-}
-
-export interface EiPLSubmissionResponse {
-  submission_id: number;
-  score: number;
-  variations: string[];
-  results: VariationTestResult[];
-  passing_variations: number;
-  total_variations: number;
-  progress: {
-    status: ProgressStatus;
-    best_score: number;
-    attempts: number;
-    is_completed: boolean;
-  };
-  segmentation?: {
-    segments: Array<{
-      id: number;
-      text: string;
-      code_lines: number[];
-    }>;
-    segment_count: number;
-    comprehension_level: 'relational' | 'multi_structural';
-    feedback: string;
-    passed?: boolean;  // Whether segmentation passed the threshold
-  };
-}
-
-
 // ===== LOADING STATES =====
 export interface LoadingStates {
   problem: boolean;
@@ -191,17 +154,6 @@ export interface Notification {
   message: string;
   type: NotificationType;
   duration?: number;
-}
-
-// ===== ROUTE PARAMETERS =====
-export interface RouteParams {
-  slug?: string;
-}
-
-export interface RouterMeta {
-  requiresAuth: boolean;
-  requiresAdmin: boolean;
-  title?: string;
 }
 
 // ===== SERVICE TYPES =====
@@ -422,14 +374,6 @@ export interface SubmissionDetailed extends BaseSubmission {
   };
 }
 
-export interface SubmissionCreateRequest {
-  problem_slug: string;
-  prompt: string;
-  code_variations?: CodeVariation[];
-  time_spent?: number;
-  user_code?: string; // For backward compatibility
-}
-
 export interface SubmissionListResponse {
   count: number;
   next?: string;
@@ -443,6 +387,81 @@ export interface SubmissionStats {
   average_score: number;
   problems_attempted: number;
   completion_rate: number;
+}
+
+// ===== UNIFIED SSE SUBMISSION RESULT =====
+// Common envelope for all activity types from SSE completion events
+
+/**
+ * EiPL-specific result data from handler.serialize_result()
+ */
+export interface EiplResultData {
+  variations: Array<{
+    code: string;
+    score: number;
+    tests_passed: number;
+    tests_total: number;
+    is_selected: boolean;
+  }>;
+  test_results: Array<{
+    success: boolean;
+    testsPassed: number;
+    totalTests: number;
+    test_results: Array<{
+      isSuccessful: boolean;
+      function_call: string;
+      expected_output: string;
+      actual_output: string;
+      error: string;
+    }>;
+    results?: unknown[];
+  }>;
+  segmentation: {
+    segment_count: number;
+    comprehension_level: string;
+    passed: boolean;
+    threshold: number;
+    // Full data for SegmentAnalysisModal
+    segments: Array<{ id: number; text: string; code_lines: number[] }>;
+    code_mappings: unknown;
+    feedback_message: string;
+    confidence_score: number;
+    suggested_improvements: string[];
+  } | null;
+}
+
+/**
+ * MCQ-specific result data from handler.serialize_result()
+ */
+export interface McqResultData {
+  selected_option: { id: string; text: string };
+  correct_option: { id: string; text: string; explanation?: string };
+  is_correct: boolean;
+}
+
+/**
+ * Unified submission result envelope from SSE completion events.
+ * All activity types share this structure - type-specific data is in `result`.
+ */
+export interface UnifiedSubmissionResult {
+  // Common metadata (all types)
+  submission_id: string;
+  problem_type: ProblemType;
+  score: number;
+  is_correct: boolean;
+  completion_status: string;
+  problem_slug: string;
+  user_input: string;
+
+  // Type-specific payload from handler.serialize_result()
+  result: EiplResultData | McqResultData;
+
+  // Legacy fields (for backward compatibility during migration)
+  variations?: string[];
+  test_results?: unknown[];
+  segmentation?: unknown;
+  selected_option?: { id: string; text: string };
+  correct_option?: { id: string; text: string; explanation?: string };
 }
 
 // ===== SUBMISSION HISTORY TYPES =====

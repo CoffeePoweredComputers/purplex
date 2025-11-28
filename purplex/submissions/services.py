@@ -3,7 +3,7 @@ Service layer for the new submission system.
 Handles all business logic for submissions.
 """
 
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional
 from datetime import timedelta
 from django.db import transaction
 from django.contrib.auth.models import User
@@ -209,52 +209,6 @@ class SubmissionService:
 
         logger.info(f"Recorded {total_count} test results for submission {submission.submission_id}, score: {submission.score}%")
 
-    @classmethod
-    @transaction.atomic
-    def record_eipl_variations(
-        cls,
-        submission: Submission,
-        variations: List[Dict]
-    ) -> CodeVariation:
-        """
-        Record code variations for EiPL submissions.
-
-        Args:
-            submission: The submission to update
-            variations: List of variation data dictionaries
-
-        Returns:
-            The best CodeVariation instance
-        """
-        best_score = 0
-        best_variation = None
-
-        for idx, var_data in enumerate(variations):
-            variation = CodeVariation.objects.create(
-                submission=submission,
-                variation_index=idx,
-                generated_code=var_data['code'],
-                tests_passed=var_data.get('tests_passed', 0),
-                tests_total=var_data.get('tests_total', 0),
-                score=var_data.get('score', 0),
-                model_used=var_data.get('model', 'gpt-4o-mini'),
-                prompt_tokens=var_data.get('prompt_tokens'),
-                completion_tokens=var_data.get('completion_tokens'),
-                generation_time_ms=var_data.get('generation_time_ms')
-            )
-
-            if variation.score > best_score:
-                best_score = variation.score
-                best_variation = variation
-
-        # Mark best variation
-        if best_variation:
-            best_variation.is_selected = True
-            best_variation.save()
-
-        logger.info(f"Recorded {len(variations)} code variations for submission {submission.submission_id}")
-
-        return best_variation
 
     @classmethod
     def _record_eipl_test_results_no_transaction(
@@ -600,75 +554,6 @@ class SubmissionService:
 
         return details
 
-    @classmethod
-    def get_user_submission_stats(
-        cls,
-        user: User,
-        problem: Optional['Problem'] = None,
-        course: Optional['Course'] = None
-    ) -> Dict:
-        """
-        Get aggregated submission statistics for a user.
-
-        Args:
-            user: The user to get stats for
-            problem: Optional problem to filter by
-            course: Optional course to filter by
-
-        Returns:
-            Dictionary with submission statistics
-        """
-        from django.db.models import Count, Avg, Max, Q
-
-        qs = Submission.objects.filter(user=user)
-
-        if problem:
-            qs = qs.filter(problem=problem)
-        if course:
-            qs = qs.filter(course=course)
-
-        stats = qs.aggregate(
-            total_submissions=Count('id'),
-            best_score=Max('score'),
-            avg_score=Avg('score'),
-            completed_count=Count('id', filter=Q(completion_status='complete')),
-            partial_count=Count('id', filter=Q(completion_status='partial')),
-            eipl_count=Count('id', filter=Q(submission_type='eipl')),
-            direct_code_count=Count('id', filter=Q(submission_type='direct_code'))
-        )
-
-        # Get hint usage stats
-        hint_stats = HintActivation.objects.filter(
-            submission__user=user
-        )
-        if problem:
-            hint_stats = hint_stats.filter(submission__problem=problem)
-        if course:
-            hint_stats = hint_stats.filter(submission__course=course)
-
-        hint_usage = hint_stats.values('hint__hint_type').annotate(
-            usage_count=Count('id')
-        )
-
-        stats['hint_usage'] = {h['hint__hint_type']: h['usage_count'] for h in hint_usage}
-
-        # Get segmentation stats for EiPL submissions
-        seg_stats = SegmentationAnalysis.objects.filter(
-            submission__user=user,
-            submission__submission_type='eipl'
-        )
-        if problem:
-            seg_stats = seg_stats.filter(submission__problem=problem)
-        if course:
-            seg_stats = seg_stats.filter(submission__course=course)
-
-        comprehension_stats = seg_stats.values('comprehension_level').annotate(
-            count=Count('id')
-        )
-
-        stats['comprehension'] = {c['comprehension_level']: c['count'] for c in comprehension_stats}
-
-        return stats
 
     @staticmethod
     def _map_grade_to_completion_status(grade: str) -> str:

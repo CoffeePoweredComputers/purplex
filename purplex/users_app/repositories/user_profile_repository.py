@@ -4,7 +4,7 @@ Repository for UserProfile model data access.
 
 from typing import Optional, List, Dict, Any, Tuple
 from django.db.models import QuerySet, Q
-from django.db import transaction, IntegrityError
+from django.db import IntegrityError
 from django.contrib.auth.models import User
 import logging
 

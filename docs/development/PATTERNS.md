@@ -694,143 +694,62 @@ const fetchProgress = () => store.dispatch('progress/fetchProgress')
 </script>
 ```
 
-### Composable Pattern
+### Service Pattern (SSE)
 
 ```typescript
-// From: purplex/client/src/composables/useSSE.ts
-import { ref, onUnmounted, Ref } from 'vue';
+// From: purplex/client/src/services/sseService.ts
+// Singleton service for SSE connections - caller manages cleanup via returned disconnect function
+
+import { log } from '../utils/logger';
 import { firebaseAuth } from '../firebaseConfig';
-import { getIdToken } from 'firebase/auth';
+import type { UnifiedSubmissionResult } from '../types';
 
-export interface SSEOptions {
-  onProgress?: (progress: { current: number; total: number; description: string }) => void;
-  onError?: (error: any) => void;
-  onTimeout?: () => void;
-  reconnectAttempts?: number;
-  reconnectDelay?: number;
-}
+class SSEService {
+  private completedTasks: Set<string> = new Set();
 
-export interface TaskResult {
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'retrying';
-  result?: any;
-  error?: string;
-  progress?: {
-    current: number;
-    total: number;
-    description: string;
-  };
-}
-
-export function useSSE() {
-  const isConnected = ref(false);
-  const currentStatus = ref<TaskResult | null>(null);
-  const error = ref<string | null>(null);
-  
-  let eventSource: EventSource | null = null;
-  let reconnectCount = 0;
-  let reconnectTimer: NodeJS.Timeout | null = null;
-
-  const connectToTask = async (
-    taskId: string,
-    onComplete: (result: TaskResult) => void,
+  /**
+   * Unified submission SSE handler for all activity types.
+   * Returns a disconnect function - caller must call it for cleanup.
+   */
+  connectToSubmission(
+    requestId: string,
+    onSuccess: (result: UnifiedSubmissionResult) => void,
     options: SSEOptions = {}
-  ) => {
-    const {
-      onProgress,
-      onError,
-      onTimeout,
-      reconnectAttempts = 3,
-      reconnectDelay = 1000
-    } = options;
-
-    try {
-      // Get Firebase auth token
-      const currentUser = firebaseAuth.currentUser;
-      if (!currentUser) {
-        throw new Error('User not authenticated');
-      }
-      
-      const token = await getIdToken(currentUser);
-      const url = `/api/tasks/${taskId}/stream/?token=${encodeURIComponent(token)}`;
-      
-      eventSource = new EventSource(url);
-      
-      eventSource.onopen = () => {
-        isConnected.value = true;
-        reconnectCount = 0;
-        error.value = null;
-      };
-      
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          currentStatus.value = data;
-          
-          if (data.type === 'update' && onProgress) {
-            onProgress({
-              current: data.progress * 100,
-              total: 100,
-              description: data.message
-            });
+  ): Promise<() => void> {
+    return this.connectToTask(
+      requestId,
+      (taskResult) => {
+        if (taskResult.status === 'completed' && taskResult.result) {
+          const unified = taskResult.result as UnifiedSubmissionResult;
+          if (unified.submission_id) {
+            onSuccess(unified);
+          } else if (options.onError) {
+            options.onError({ error: 'Submission failed' });
           }
-          
-          if (data.type === 'completed') {
-            onComplete(data);
-            disconnect();
-          }
-          
-          if (data.type === 'failed') {
-            error.value = data.error;
-            if (onError) onError(data.error);
-            disconnect();
-          }
-        } catch (e) {
-          console.error('Error parsing SSE data:', e);
         }
-      };
-      
-      eventSource.onerror = () => {
-        isConnected.value = false;
-        if (reconnectCount < reconnectAttempts) {
-          reconnectCount++;
-          reconnectTimer = setTimeout(() => {
-            connectToTask(taskId, onComplete, options);
-          }, reconnectDelay);
-        } else if (onError) {
-          onError(new Error('Failed to connect after multiple attempts'));
-        }
-      };
-      
-    } catch (err) {
-      error.value = err.message;
-      if (onError) onError(err);
-    }
-  };
-
-  const disconnect = () => {
-    if (eventSource) {
-      eventSource.close();
-      eventSource = null;
-    }
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
-    isConnected.value = false;
-  };
-
-  onUnmounted(() => {
-    disconnect();
-  });
-
-  return {
-    isConnected,
-    currentStatus,
-    error,
-    connectToTask,
-    disconnect
-  };
+      },
+      options
+    );
+  }
 }
+
+export const sseService = new SSEService();
+
+// Usage in component:
+const disconnect = await sseService.connectToSubmission(
+  taskId,
+  (result) => {
+    // Handle unified result - dispatch on result.problem_type
+    if (result.problem_type === 'mcq') {
+      // MCQ handling
+    } else {
+      // EiPL handling
+    }
+  },
+  { onError: (err) => console.error(err) }
+);
+
+// Important: Call disconnect() on component unmount or when done
 ```
 
 ## Model Pattern

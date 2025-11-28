@@ -224,7 +224,7 @@ if os.environ.get('SENTRY_DSN'):
 
             # Critical user operations - always sample
             critical_patterns = [
-                '/api/submit-eipl',
+                '/api/submit',
             ]
             if any(pattern in transaction_name for pattern in critical_patterns):
                 return 1.0  # 100%

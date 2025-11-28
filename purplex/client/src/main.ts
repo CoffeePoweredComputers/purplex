@@ -4,6 +4,8 @@ import App from './App.vue'
 import axios from "axios";
 import router from "./router";
 import store from "./store";
+import { i18n, setLocale, getStoredLocale } from './i18n';
+import type { SupportedLocale } from './i18n';
 import { log } from './utils/logger';
 import { environment } from './services/environment';
 import { ensureFirebaseInitialized, firebaseAuth } from './firebaseConfig';
@@ -25,6 +27,16 @@ if (environment.isDevelopment) {
 const app = createApp(App)
     .use(router)
     .use(store)
+    .use(i18n)
+
+// Initialize locale from stored preference
+const initializeLocale = async () => {
+  const storedLocale = getStoredLocale();
+  if (storedLocale !== 'en') {
+    await setLocale(storedLocale);
+  }
+};
+initializeLocale();
 
 // Circuit breaker for 401 retry protection
 let consecutiveAuthFailures = 0;

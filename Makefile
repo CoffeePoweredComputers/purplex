@@ -50,8 +50,7 @@ createsuperuser: ## Create superuser account
 
 .PHONY: populate
 populate: ## Populate sample data
-	python manage.py populate_sample_data
-	python manage.py populate_comprehensive_data
+	python manage.py populate_comprehensive
 
 # =====================================================================================
 # TESTING COMMANDS
@@ -164,7 +163,7 @@ db-restore: ## Restore database from backup
 db-reset: ## Reset database (WARNING: Deletes all data!)
 	python manage.py flush --noinput
 	python manage.py migrate
-	python manage.py populate_sample_data
+	python manage.py populate_comprehensive
 
 # =====================================================================================
 # UTILITY COMMANDS

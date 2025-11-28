@@ -4,6 +4,8 @@ import axios from 'axios';
 import { log } from '../utils/logger';
 import { ensureFirebaseInitialized } from '../firebaseConfig';
 import { environment } from '../services/environment';
+import { setLocale, isValidLocale } from '../i18n';
+import type { SupportedLocale } from '../i18n';
 
 // Firebase will be initialized asynchronously
 let firebaseAuth: any = null;
@@ -71,6 +73,7 @@ export interface User {
   password?: string;
   role: 'admin' | 'user' | 'instructor';
   isAdmin: boolean;
+  languagePreference?: string;
 }
 
 export interface AuthStatus {
@@ -103,6 +106,7 @@ export interface AuthError {
 export interface UserMeResponse {
   role: string;
   is_admin: boolean;
+  language_preference: string;
 }
 
 // ===== VUEX MODULE TYPES =====
@@ -156,9 +160,15 @@ export const auth: Module<AuthState, any> = {
                 email: result.user.email!,
                 displayName: result.user.displayName || undefined,
                 role: response.data.role as User['role'],
-                isAdmin: response.data.is_admin
+                isAdmin: response.data.is_admin,
+                languagePreference: response.data.language_preference
               };
               commit('loginSuccess', userData);
+
+              // Sync locale with user's language preference
+              if (response.data.language_preference && isValidLocale(response.data.language_preference)) {
+                await setLocale(response.data.language_preference as SupportedLocale);
+              }
             } catch (error) {
               log.warn('Failed to fetch user role after redirect, using defaults', error);
               const userData: User = {
@@ -166,7 +176,8 @@ export const auth: Module<AuthState, any> = {
                 email: result.user.email!,
                 displayName: result.user.displayName || undefined,
                 role: 'user',
-                isAdmin: false
+                isAdmin: false,
+                languagePreference: 'en'
               };
               commit('loginSuccess', userData);
             }
@@ -197,9 +208,15 @@ export const auth: Module<AuthState, any> = {
             email: firebaseAuth.currentUser.email!,
             displayName: firebaseAuth.currentUser.displayName || undefined,
             role: response.data.role as User['role'],
-            isAdmin: response.data.is_admin
+            isAdmin: response.data.is_admin,
+            languagePreference: response.data.language_preference
           };
           commit('loginSuccess', userData);
+
+          // Sync locale with user's language preference
+          if (response.data.language_preference && isValidLocale(response.data.language_preference)) {
+            await setLocale(response.data.language_preference as SupportedLocale);
+          }
         } catch (error) {
           log.error('Error refreshing user data', error);
         }
@@ -503,7 +520,8 @@ export const auth: Module<AuthState, any> = {
         email: user.email,
         displayName: user.displayName,
         role: user.role,
-        isAdmin: user.isAdmin
+        isAdmin: user.isAdmin,
+        languagePreference: user.languagePreference
       };
 
       localStorage.setItem('user', JSON.stringify(safeUserData));
@@ -538,6 +556,7 @@ export const auth: Module<AuthState, any> = {
     isAdmin: (state: AuthState): boolean => state.user?.isAdmin || false,
     getUser: (state: AuthState): User | null => state.user,
     getUserRole: (state: AuthState): string | null => state.user ? state.user.role : null,
-    isAuthReady: (state: AuthState): boolean => state.authReady
+    isAuthReady: (state: AuthState): boolean => state.authReady,
+    getLanguagePreference: (state: AuthState): string => state.user?.languagePreference || 'en'
   }
 };

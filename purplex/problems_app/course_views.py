@@ -13,7 +13,7 @@ from .serializers import (
     CourseEnrollmentSerializer, CourseLookupSerializer, CourseEnrollSerializer,
     ProblemSetListSerializer
 )
-from purplex.users_app.permissions import IsAdmin, IsInstructor, IsCourseInstructor, IsInstructorOrReadOnly
+from purplex.users_app.permissions import IsAdmin, IsInstructor, IsCourseInstructor
 
 logger = logging.getLogger(__name__)
 
@@ -148,98 +148,6 @@ class AdminCourseDetailView(APIView):
         
         CourseService.soft_delete_course(course)
         return Response({'message': 'Course deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
-
-
-class AdminCourseProblemSetView(APIView):
-    """Admin endpoint for managing problem sets in a course"""
-    permission_classes = [IsAdmin]
-    
-    def post(self, request, course_id):
-        """Add a problem set to a course"""
-        course = CourseService.get_course_by_id(course_id, require_active=False)
-        if not course:
-            return Response(
-                {'error': 'Course not found'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        problem_set_id = request.data.get('problem_set_id')
-        order = request.data.get('order', 0)
-        is_required = request.data.get('is_required', True)
-        
-        # Use service layer to add problem set - need to convert from ID to slug
-        # This is a limitation in the current implementation - we should ideally use IDs
-        try:
-            from .repositories.problem_repository import ProblemRepository
-            problem_set = ProblemRepository.get_by_id(problem_set_id)
-            if not problem_set:
-                return Response(
-                    {'error': 'Problem set not found'}, 
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            result = CourseService.add_problem_set_to_course(
-                course, problem_set.slug, order, is_required
-            )
-            
-            if not result['success']:
-                return Response(
-                    {'error': result['error']}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            course_ps = result['course_problem_set']
-            problem_set = result['problem_set']
-            
-            return Response({
-                'id': course_ps.id,
-                'problem_set': ProblemSetListSerializer(problem_set).data,
-                'order': course_ps.order,
-                'is_required': course_ps.is_required
-            }, status=status.HTTP_201_CREATED)
-            
-        except Exception as e:
-            logger.error(f"Error adding problem set to course: {str(e)}")
-            return Response(
-                {'error': 'Failed to add problem set to course'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-    
-    def delete(self, request, course_id, ps_id):
-        """Remove a problem set from a course"""
-        course = CourseService.get_course_by_id(course_id, require_active=False)
-        if not course:
-            return Response(
-                {'error': 'Course not found'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # Convert ps_id to slug
-        try:
-            from .repositories.problem_repository import ProblemRepository
-            problem_set = ProblemRepository.get_by_id(ps_id)
-            if not problem_set:
-                return Response(
-                    {'error': 'Problem set not found'}, 
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            result = CourseService.remove_problem_set_from_course(course, problem_set.slug)
-            
-            if not result['success']:
-                return Response(
-                    {'error': result['error']}, 
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            return Response(status=status.HTTP_204_NO_CONTENT)
-            
-        except Exception as e:
-            logger.error(f"Error removing problem set from course: {str(e)}")
-            return Response(
-                {'error': 'Failed to remove problem set from course'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
 
 # Instructor Views

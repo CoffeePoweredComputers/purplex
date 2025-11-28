@@ -252,7 +252,7 @@ export default {
 ### Component API Migration Strategy
 - **New Features**: Always use Composition API with `<script setup>` for new components
 - **Existing Components**: Keep Options API to avoid unnecessary refactoring unless doing major rework
-- **Logic Sharing**: Use composables (e.g., `useProblemState`, `useSSE`) instead of mixins
+- **Logic Sharing**: Use composables (e.g., `useProblemState`, `useFeedbackState`) or services (e.g., `sseService`) instead of mixins
 - **Migration Timing**: Only migrate Options API components during significant feature additions or bug fixes
 - **TypeScript**: Strongly encouraged for new Composition API components
 

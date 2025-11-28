@@ -1,0 +1,38 @@
+{
+  "loading": "Generating feedback...",
+  "emptyState": "Submit a prompt to start getting feedback!",
+  "yourResponse": "Your response",
+  "comprehension": {
+    "sectionTitle": "Comprehension Level",
+    "sectionDescription": "Shows how high-level vs. line-by-line your explanation is",
+    "level": {
+      "relational": "Great!",
+      "multiStructural": "Too detailed",
+      "default": "Analyzed"
+    },
+    "description": {
+      "relational": "High-level understanding",
+      "multiStructural": "Review suggested improvements",
+      "default": "View analysis"
+    }
+  },
+  "correctness": {
+    "sectionTitle": "Correctness",
+    "sectionDescription": "Multiple AI interpretations of your description tested against unit tests"
+  },
+  "tests": {
+    "passing": "{count} Passing",
+    "failing": "{count} Failing",
+    "failingGroup": "Failing Tests ({count})",
+    "passingGroup": "Passing Tests ({count})",
+    "expected": "Expected:",
+    "got": "Got:"
+  },
+  "solution": {
+    "title": "Solution {current} of {total}"
+  },
+  "attempts": {
+    "label": "Previous Submissions:",
+    "ariaLabel": "View previous submissions. Current: attempt {current} of {total}, score {score}%"
+  }
+}
