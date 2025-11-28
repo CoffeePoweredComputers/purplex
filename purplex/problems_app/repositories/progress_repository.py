@@ -3,8 +3,8 @@ Repository for UserProgress and related model data access.
 """
 
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
-from django.db.models import Q, Count, Avg, Sum, Max, Min
+from datetime import timedelta
+from django.db.models import Q, Count, Avg, Sum, Max
 from django.contrib.auth.models import User
 from django.utils import timezone
 

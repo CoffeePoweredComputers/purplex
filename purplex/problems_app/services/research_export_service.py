@@ -11,7 +11,6 @@ This service provides structured, research-grade data exports including:
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from django.contrib.auth.models import User
-from django.db.models import Prefetch
 from django.utils import timezone
 
 from purplex.problems_app.models import (

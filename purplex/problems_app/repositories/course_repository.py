@@ -3,7 +3,7 @@ Repository for Course model data access.
 """
 
 from typing import Optional, List, Dict, Any
-from django.db.models import QuerySet, Q, Prefetch, Count, F, Sum
+from django.db.models import QuerySet, Q, Prefetch, Count, Sum
 from django.contrib.auth.models import User
 
 from purplex.problems_app.models import Course, CourseEnrollment, CourseProblemSet

@@ -507,8 +507,6 @@ class ProgressService:
                     progress.save()
 
             # Get all problems in the set with user progress
-            # CRITICAL FIX: Use prefetch_related to avoid N+1 queries
-            from django.db.models import Prefetch
             from purplex.submissions.models import Submission
 
             # Prefetch user progress for all problems in this set (single query)

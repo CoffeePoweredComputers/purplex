@@ -9,8 +9,8 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 from django.contrib.auth.models import User
 from django.db.models import (
-    Q, Count, Avg, Sum, Max, Min, F,
-    Case, When, IntegerField, FloatField
+    Q, Count, Avg, Sum, Max,
+    Case, When, FloatField
 )
 from django.utils import timezone
 

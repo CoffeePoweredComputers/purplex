@@ -6,7 +6,7 @@ from typing import Optional, List, Dict, Any
 from django.db.models import Q, Count, Avg
 from django.contrib.auth.models import User
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from purplex.problems_app.models import CourseEnrollment, Course
 from .base_repository import BaseRepository

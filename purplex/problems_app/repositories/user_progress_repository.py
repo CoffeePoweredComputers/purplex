@@ -3,10 +3,10 @@ Repository for UserProgress model data access.
 """
 
 from typing import Optional, List, Dict, Any
-from django.db.models import Q, Count, Avg, Sum, Max, Min
+from django.db.models import Q, Count, Avg, Sum, Max
 from django.contrib.auth.models import User
 from django.utils import timezone
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from purplex.problems_app.models import UserProgress, Problem, ProblemSet, Course
 from .base_repository import BaseRepository
