@@ -34,12 +34,6 @@ export interface TestCaseDisplay extends TestCaseInput {
   error?: string | null;
 }
 
-export interface TestCaseValidation {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-}
-
 // ===== PROBLEM TYPES =====
 export interface BaseProblem {
   readonly slug: string;
@@ -90,12 +84,6 @@ export interface ProblemUpdateRequest extends Partial<ProblemCreateRequest> {
 }
 
 // ===== API RESPONSE TYPES =====
-export interface APIResponse<T> {
-  data: T;
-  success: boolean;
-  message?: string;
-}
-
 export interface APIError {
   error: string;
   details?: Record<string, string[]>;
@@ -139,22 +127,8 @@ export interface LoadingStates {
   saving: boolean;
 }
 
-export interface ErrorStates {
-  load: string | null;
-  save: string | null;
-  test: string | null;
-  validation: ValidationError[];
-}
-
 // ===== NOTIFICATION TYPES =====
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
-
-export interface Notification {
-  show: boolean;
-  message: string;
-  type: NotificationType;
-  duration?: number;
-}
 
 // ===== SERVICE TYPES =====
 export interface TestProblemRequest {
