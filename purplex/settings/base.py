@@ -306,4 +306,4 @@ USE_MOCK_OPENAI = config.use_mock_openai
 PURPLEX_ENVIRONMENT = config.env.value
 
 # Import security configuration
-from purplex.settings.security import CODE_EXECUTION, RATE_LIMITS
+from purplex.settings.security import CODE_EXECUTION

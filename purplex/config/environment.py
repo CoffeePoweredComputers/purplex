@@ -9,7 +9,7 @@ This module provides a single source of truth for all configuration with:
 import os
 import sys
 from enum import Enum
-from typing import Dict, Optional, Any, List, Union
+from typing import Dict, Optional, Any, List
 from pathlib import Path
 
 
