@@ -6,6 +6,9 @@
 import { environment } from './environment';
 import { log } from '../utils/logger';
 
+// Create a component-specific logger for MockFirebase
+const mockLogger = log.createComponentLogger('MockFirebase');
+
 // Types to match Firebase Auth
 export interface MockUser {
   uid: string;
@@ -82,7 +85,7 @@ class MockFirebaseAuth {
    * Sign in with email and password
    */
   async signInWithEmailAndPassword(email: string, password: string): Promise<MockUserCredential> {
-    console.log(`[MockFirebase] Signing in with email: ${email}`);
+    mockLogger.info(`Signing in with email: ${email}`);
     
     // Check test users
     const testUser = TEST_USERS[email as keyof typeof TEST_USERS];
@@ -131,7 +134,7 @@ class MockFirebaseAuth {
    * Create a new user account
    */
   async createUserWithEmailAndPassword(email: string, password: string): Promise<MockUserCredential> {
-    console.log(`[MockFirebase] Creating account for: ${email}`);
+    mockLogger.info(`Creating account for: ${email}`);
     
     // In development, allow any email
     const mockUser = {
@@ -158,8 +161,8 @@ class MockFirebaseAuth {
   /**
    * Sign in with popup (mock Google sign-in)
    */
-  async signInWithPopup(provider: any): Promise<MockUserCredential> {
-    console.log('[MockFirebase] Mock Google sign-in');
+  async signInWithPopup(_provider: MockGoogleAuthProvider): Promise<MockUserCredential> {
+    mockLogger.info('Mock Google sign-in');
     
     // Simulate Google sign-in with a test account
     const mockUser = {
@@ -187,7 +190,7 @@ class MockFirebaseAuth {
    * Sign out the current user
    */
   async signOut(): Promise<void> {
-    console.log('[MockFirebase] Signing out');
+    mockLogger.info('Signing out');
     this.currentUser = null;
     this.clearAuthState();
     this.notifyAuthStateListeners();
@@ -228,7 +231,7 @@ class MockFirebaseAuth {
   /**
    * Create a mock user object
    */
-  private createMockUser(userData: any): MockUser {
+  private createMockUser(userData: { uid: string; email: string; displayName: string }): MockUser {
     const user: MockUser = {
       uid: userData.uid,
       email: userData.email,
@@ -263,7 +266,7 @@ class MockFirebaseAuth {
   /**
    * Create a mock JWT token
    */
-  private createMockToken(userData: any): string {
+  private createMockToken(userData: { uid: string; email: string; displayName: string }): string {
     // Create a simple mock token for development
     // Format: MOCK.base64(payload).signature
     const payload = {
@@ -307,9 +310,9 @@ class MockFirebaseAuth {
       try {
         const userData = JSON.parse(authData);
         this.currentUser = this.createMockUser(userData);
-        console.log('[MockFirebase] Restored auth state for:', userData.email);
+        mockLogger.debug('Restored auth state', { email: userData.email });
       } catch (e) {
-        console.error('[MockFirebase] Failed to restore auth state:', e);
+        mockLogger.error('Failed to restore auth state', e);
         this.clearAuthState();
       }
     }
@@ -347,7 +350,7 @@ export class MockGoogleAuthProvider {
     // No-op in mock
   }
   
-  setCustomParameters(params: any): void {
+  setCustomParameters(_params: Record<string, string>): void {
     // No-op in mock
   }
 }
@@ -357,26 +360,27 @@ export const mockFirebaseAuth = new MockFirebaseAuth();
 export const mockGoogleProvider = new MockGoogleAuthProvider();
 
 // Helper functions to match Firebase API
-export const signInWithEmailAndPassword = (auth: any, email: string, password: string) => {
+// These ignore the auth param since we use the singleton mockFirebaseAuth
+export const signInWithEmailAndPassword = (_auth: MockFirebaseAuth, email: string, password: string) => {
   return mockFirebaseAuth.signInWithEmailAndPassword(email, password);
 };
 
-export const createUserWithEmailAndPassword = (auth: any, email: string, password: string) => {
+export const createUserWithEmailAndPassword = (_auth: MockFirebaseAuth, email: string, password: string) => {
   return mockFirebaseAuth.createUserWithEmailAndPassword(email, password);
 };
 
-export const signInWithPopup = (auth: any, provider: any) => {
+export const signInWithPopup = (_auth: MockFirebaseAuth, provider: MockGoogleAuthProvider) => {
   return mockFirebaseAuth.signInWithPopup(provider);
 };
 
-export const signOut = (auth: any) => {
+export const signOut = (_auth: MockFirebaseAuth) => {
   return mockFirebaseAuth.signOut();
 };
 
-export const onAuthStateChanged = (auth: any, callback: (user: any) => void) => {
+export const onAuthStateChanged = (_auth: MockFirebaseAuth, callback: (user: MockUser | null) => void) => {
   return mockFirebaseAuth.onAuthStateChanged(callback);
 };
 
-export const onIdTokenChanged = (auth: any, callback: (user: any) => void) => {
+export const onIdTokenChanged = (_auth: MockFirebaseAuth, callback: (user: MockUser | null) => void) => {
   return mockFirebaseAuth.onIdTokenChanged(callback);
 };

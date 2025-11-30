@@ -9,9 +9,23 @@ import { log } from '../utils/logger';
 import { firebaseAuth } from '../firebaseConfig';
 import type { UnifiedSubmissionResult } from '../types';
 
+// Helper to extract error message from unknown error
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return String(err);
+}
+
+export interface SSEErrorPayload {
+  error: string;
+  timeout?: boolean;
+  connectionLost?: boolean;
+  status?: string;
+}
+
 export interface SSEOptions {
   onProgress?: (progress: { current: number; total: number; description: string }) => void;
-  onError?: (error: any) => void;
+  onError?: (error: SSEErrorPayload) => void;
   onTimeout?: () => void;
   reconnectAttempts?: number;
   reconnectDelay?: number;
@@ -19,7 +33,7 @@ export interface SSEOptions {
 
 export interface TaskResult {
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'retrying';
-  result?: any;
+  result?: UnifiedSubmissionResult | { error?: string };
   error?: string;
   progress?: {
     current: number;
@@ -148,7 +162,9 @@ class SSEService {
         url += `?sse_token=${encodeURIComponent(sseToken)}`;
       }
 
-      eventSource = new EventSource(url, { withCredentials: true } as any);
+      // EventSourceInit type doesn't include withCredentials in all TS versions
+      // but browsers support it - cast to suppress the warning
+      eventSource = new EventSource(url, { withCredentials: true } as EventSourceInit);
 
       // Connection opened
       eventSource.onopen = () => {
@@ -180,8 +196,8 @@ class SSEService {
         try {
           const data = JSON.parse(event.data);
           log.debug('SSE connected event', { taskId, data });
-        } catch (err: any) {
-          log.error('Error parsing SSE connected event', { taskId, error: err?.message || err });
+        } catch (err) {
+          log.error('Error parsing SSE connected event', { taskId, error: getErrorMessage(err) });
         }
       });
 
@@ -189,8 +205,8 @@ class SSEService {
         try {
           const data = JSON.parse(event.data);
           log.debug('SSE subscribed event', { taskId, data });
-        } catch (err: any) {
-          log.error('Error parsing SSE subscribed event', { taskId, error: err?.message || err });
+        } catch (err) {
+          log.error('Error parsing SSE subscribed event', { taskId, error: getErrorMessage(err) });
         }
       });
 
@@ -222,8 +238,8 @@ class SSEService {
               description: data.message || 'Processing...'
             });
           }
-        } catch (err: any) {
-          log.error('Error parsing SSE update', { taskId, error: err?.message || err });
+        } catch (err) {
+          log.error('Error parsing SSE update', { taskId, error: getErrorMessage(err) });
         }
       });
 
@@ -240,8 +256,8 @@ class SSEService {
             result: data.result
           });
           disconnect();
-        } catch (err: any) {
-          log.error('Error parsing SSE completed event', { taskId, error: err?.message || err });
+        } catch (err) {
+          log.error('Error parsing SSE completed event', { taskId, error: getErrorMessage(err) });
         }
       });
 
@@ -259,8 +275,8 @@ class SSEService {
             onError({ error: errorMsg, status: 'failed' });
           }
           disconnect();
-        } catch (err: any) {
-          log.error('Error parsing SSE failed event', { taskId, error: err?.message || err });
+        } catch (err) {
+          log.error('Error parsing SSE failed event', { taskId, error: getErrorMessage(err) });
         }
       });
 
@@ -272,8 +288,8 @@ class SSEService {
           if (onError) {
             onError(data);
           }
-        } catch (err: any) {
-          log.error('Error parsing SSE error event', { taskId, error: err?.message || err });
+        } catch (err) {
+          log.error('Error parsing SSE error event', { taskId, error: getErrorMessage(err) });
         }
       });
 

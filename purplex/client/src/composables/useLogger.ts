@@ -24,23 +24,25 @@ export function useLogger(componentName?: string) {
     error: logger.error,
     
     // Convenience methods for common patterns
-    logError: (message: string, error: any, context?: any) => {
-      logger.error(message, { error: error.message || error, context });
+    logError: (message: string, error: unknown, context?: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(message, { error: errorMessage, context });
     },
-    
-    logAsyncError: (operation: string, error: any) => {
+
+    logAsyncError: (operation: string, error: unknown) => {
       logger.error(`Async operation failed: ${operation}`, error);
     },
-    
-    logApiError: (endpoint: string, error: any) => {
-      logger.error(`API call failed`, { endpoint, error: error.message || error });
+
+    logApiError: (endpoint: string, error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`API call failed`, { endpoint, error: errorMessage });
     },
-    
-    logUserAction: (action: string, data?: any) => {
+
+    logUserAction: (action: string, data?: unknown) => {
       logger.info(`User action: ${action}`, data);
     },
-    
-    logStateChange: (from: any, to: any) => {
+
+    logStateChange: (from: unknown, to: unknown) => {
       logger.debug('State change', { from, to });
     }
   };

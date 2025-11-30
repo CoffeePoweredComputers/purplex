@@ -8,7 +8,12 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
-@shared_task(name='cleanup.prune_orphaned_containers')
+@shared_task(
+    name='cleanup.prune_orphaned_containers',
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    max_retries=3
+)
 def prune_orphaned_containers():
     """
     Periodic task to clean up orphaned Docker sandbox containers.
@@ -90,7 +95,12 @@ def prune_orphaned_containers():
         return {'error': str(e)}
 
 
-@shared_task(name='cleanup.log_pool_metrics')
+@shared_task(
+    name='cleanup.log_pool_metrics',
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    max_retries=2
+)
 def log_pool_metrics():
     """
     Periodic task to log Docker pool metrics for monitoring.

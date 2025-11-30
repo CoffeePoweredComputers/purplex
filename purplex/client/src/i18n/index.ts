@@ -2,6 +2,7 @@ import { createI18n } from 'vue-i18n';
 import type { I18n } from 'vue-i18n';
 import en from './locales/en';
 import { getBrandName } from './brand';
+import { log } from '../utils/logger';
 
 // Type for message schema based on English locale
 export type MessageSchema = typeof en;
@@ -39,7 +40,7 @@ async function loadLocaleMessages(locale: SupportedLocale): Promise<MessageSchem
     return messages.default;
   } catch {
     // Fallback to English if locale not found
-    console.warn(`Locale "${locale}" not found, falling back to English`);
+    log.warn(`Locale "${locale}" not found, falling back to English`);
     return en;
   }
 }

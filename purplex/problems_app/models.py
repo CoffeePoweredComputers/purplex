@@ -113,6 +113,11 @@ class Problem(models.Model):
 
     class Meta:
         ordering = ['difficulty', 'title']
+        indexes = [
+            models.Index(fields=['is_active', '-created_at']),
+            models.Index(fields=['is_active', 'difficulty']),
+            models.Index(fields=['created_by', '-created_at']),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.slug:

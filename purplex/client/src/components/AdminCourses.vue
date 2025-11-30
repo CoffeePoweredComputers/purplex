@@ -349,8 +349,9 @@ export default defineComponent({
         
         closeModals()
         await fetchCourses()
-      } catch (error: any) {
-        const errorMsg = error.response?.data?.error || 'Failed to save course'
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { data?: { error?: string } } }
+        const errorMsg = axiosError.response?.data?.error || 'Failed to save course'
         notify.error('Error', errorMsg)
       } finally {
         saving.value = false

@@ -288,10 +288,10 @@ class SubmissionHistoryView(APIView):
         # Format submission data for frontend
         submission_history = []
         for index, submission in enumerate(submissions):
-            # Get test execution summary
-            test_executions = submission.test_executions.all()
-            total_tests = test_executions.count()
-            passed_tests = test_executions.filter(passed=True).count()
+            # Get test execution summary (use prefetched data, avoid extra queries)
+            test_executions = list(submission.test_executions.all())
+            total_tests = len(test_executions)
+            passed_tests = sum(1 for t in test_executions if t.passed)
 
             # Get code variations
             variations = submission.code_variations.all()
@@ -367,7 +367,7 @@ class SubmissionHistoryView(APIView):
                                     'error_message': te.error_message if hasattr(te, 'error_message') else '',
                                     'inputs': te.input_values
                                 }
-                                for te in test_executions.filter(code_variation=var)
+                                for te in [t for t in test_executions if t.code_variation_id == var.id]
                             ])
                         }
                         for var in variations

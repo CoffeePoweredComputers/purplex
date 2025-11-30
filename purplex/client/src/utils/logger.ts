@@ -16,7 +16,7 @@ export enum LogLevel {
 interface LogEntry {
   level: LogLevel;
   message: string;
-  data?: any;
+  data?: unknown;
   timestamp: string;
   component?: string;
 }
@@ -57,7 +57,7 @@ class Logger {
     }
   }
 
-  private log(level: LogLevel, message: string, data?: any, component?: string): void {
+  private log(level: LogLevel, message: string, data?: unknown, component?: string): void {
     if (!this.shouldLog(level)) {
       return;
     }
@@ -114,19 +114,19 @@ class Logger {
   }
 
   // Public API
-  debug(message: string, data?: any, component?: string): void {
+  debug(message: string, data?: unknown, component?: string): void {
     this.log(LogLevel.DEBUG, message, data, component);
   }
 
-  info(message: string, data?: any, component?: string): void {
+  info(message: string, data?: unknown, component?: string): void {
     this.log(LogLevel.INFO, message, data, component);
   }
 
-  warn(message: string, data?: any, component?: string): void {
+  warn(message: string, data?: unknown, component?: string): void {
     this.log(LogLevel.WARN, message, data, component);
   }
 
-  error(message: string, data?: any, component?: string): void {
+  error(message: string, data?: unknown, component?: string): void {
     this.log(LogLevel.ERROR, message, data, component);
   }
 
@@ -146,10 +146,10 @@ class Logger {
   // Component-specific loggers
   createComponentLogger(componentName: string) {
     return {
-      debug: (message: string, data?: any) => this.debug(message, data, componentName),
-      info: (message: string, data?: any) => this.info(message, data, componentName),
-      warn: (message: string, data?: any) => this.warn(message, data, componentName),
-      error: (message: string, data?: any) => this.error(message, data, componentName),
+      debug: (message: string, data?: unknown) => this.debug(message, data, componentName),
+      info: (message: string, data?: unknown) => this.info(message, data, componentName),
+      warn: (message: string, data?: unknown) => this.warn(message, data, componentName),
+      error: (message: string, data?: unknown) => this.error(message, data, componentName),
     };
   }
 }

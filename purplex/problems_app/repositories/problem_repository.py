@@ -3,7 +3,7 @@ Repository for Problem and ProblemSet model data access.
 """
 
 from typing import Optional, List, Dict, Any
-from django.db.models import Q, Count, Prefetch
+from django.db.models import Q, Count, Prefetch, QuerySet
 from django.contrib.auth.models import User
 
 from purplex.problems_app.models import (
@@ -16,13 +16,21 @@ from .base_repository import BaseRepository
 class ProblemRepository(BaseRepository):
     """
     Repository for all Problem-related database queries.
-    
+
     This repository handles all data access for problems,
     problem sets, test cases, and categories.
     """
-    
+
     model_class = Problem
-    
+
+    @classmethod
+    def _with_test_case_counts(cls, queryset: QuerySet) -> QuerySet:
+        """Add test case count annotations to avoid N+1 queries."""
+        return queryset.annotate(
+            test_cases_count=Count('test_cases'),
+            visible_test_cases_count=Count('test_cases', filter=Q(test_cases__is_hidden=False))
+        )
+
     @classmethod
     def get_problem_by_slug(cls, slug: str) -> Optional[Problem]:
         """Get a problem by its slug."""
@@ -31,55 +39,50 @@ class ProblemRepository(BaseRepository):
     @classmethod
     def get_all_problems(cls) -> List[Problem]:
         """Get all problems with optimizations."""
-        return list(
-            Problem.objects.all().select_related(
-                'created_by'
-            ).prefetch_related(
-                'categories'
-            ).order_by('-created_at')
-        )
+        queryset = Problem.objects.all().select_related(
+            'created_by'
+        ).prefetch_related(
+            'categories'
+        ).order_by('-created_at')
+        return list(cls._with_test_case_counts(queryset))
     
     @classmethod
     def get_active_problems(cls) -> List[Problem]:
         """Get all active (non-draft) problems."""
-        return list(
-            Problem.objects.filter(
-                is_active=True
-            ).select_related(
-                'created_by'
-            ).prefetch_related(
-                'categories'
-            ).order_by('-created_at')
-        )
+        queryset = Problem.objects.filter(
+            is_active=True
+        ).select_related(
+            'created_by'
+        ).prefetch_related(
+            'categories'
+        ).order_by('-created_at')
+        return list(cls._with_test_case_counts(queryset))
     
     @classmethod
     def get_problems_by_category(cls, category: ProblemCategory) -> List[Problem]:
         """Get all problems in a specific category."""
-        return list(
-            Problem.objects.filter(
-                categories=category
-            ).select_related('created_by').order_by('title')
-        )
+        queryset = Problem.objects.filter(
+            categories=category
+        ).select_related('created_by').order_by('title')
+        return list(cls._with_test_case_counts(queryset))
     
     @classmethod
     def get_problems_by_difficulty(cls, difficulty: int) -> List[Problem]:
         """Get problems by difficulty level."""
-        return list(
-            Problem.objects.filter(
-                difficulty=difficulty
-            ).select_related('created_by').prefetch_related('categories').order_by('title')
-        )
+        queryset = Problem.objects.filter(
+            difficulty=difficulty
+        ).select_related('created_by').prefetch_related('categories').order_by('title')
+        return list(cls._with_test_case_counts(queryset))
     
     @classmethod
     def search_problems(cls, query: str) -> List[Problem]:
         """Search problems by title or description."""
-        return list(
-            Problem.objects.filter(
-                Q(title__icontains=query) |
-                Q(description__icontains=query),
-                is_active=True
-            ).select_related('created_by').prefetch_related('categories')
-        )
+        queryset = Problem.objects.filter(
+            Q(title__icontains=query) |
+            Q(description__icontains=query),
+            is_active=True
+        ).select_related('created_by').prefetch_related('categories')
+        return list(cls._with_test_case_counts(queryset))
     
     @classmethod
     def get_problem_with_test_cases(cls, slug: str) -> Optional[Problem]:
@@ -120,13 +123,12 @@ class ProblemRepository(BaseRepository):
     @classmethod
     def get_problems_in_set(cls, problem_set: ProblemSet) -> List[Problem]:
         """Get all problems in a problem set, ordered."""
-        return list(
-            Problem.objects.filter(
-                problem_set_memberships__problem_set=problem_set
-            ).prefetch_related(
-                'categories'
-            ).order_by('problem_set_memberships__order')
-        )
+        queryset = Problem.objects.filter(
+            problem_set_memberships__problem_set=problem_set
+        ).prefetch_related(
+            'categories'
+        ).order_by('problem_set_memberships__order')
+        return list(cls._with_test_case_counts(queryset))
     
     @classmethod
     def problem_in_set(cls, problem: Problem, problem_set: ProblemSet) -> bool:
@@ -159,11 +161,10 @@ class ProblemRepository(BaseRepository):
     @classmethod
     def get_user_created_problems(cls, user_id: int) -> List[Problem]:
         """Get all problems created by a specific user."""
-        return list(
-            Problem.objects.filter(
-                created_by_id=user_id
-            ).prefetch_related('categories').order_by('-created_at')
-        )
+        queryset = Problem.objects.filter(
+            created_by_id=user_id
+        ).prefetch_related('categories').order_by('-created_at')
+        return list(cls._with_test_case_counts(queryset))
     
     @classmethod
     def count_problems_by_difficulty(cls) -> Dict[int, int]:

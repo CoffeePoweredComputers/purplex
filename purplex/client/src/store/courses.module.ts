@@ -154,8 +154,8 @@ export const courses: Module<CoursesState, RootState> = {
     },
     
     // Check if user is instructor of any course
-    isInstructor: (_state: CoursesState, _getters: any, rootState: RootState): boolean => {
-      return rootState.auth.user?.role === 'instructor' || 
+    isInstructor: (_state: CoursesState, _getters: unknown, rootState: RootState): boolean => {
+      return rootState.auth.user?.role === 'instructor' ||
              rootState.auth.user?.role === 'admin';
     },
     
@@ -258,9 +258,10 @@ export const courses: Module<CoursesState, RootState> = {
           loading: false 
         });
         return response.data;
-      } catch (error: any) {
-        const errorMsg = error.response?.data?.error || 'Course not found';
-        commit('SET_ENROLLMENT_MODAL', { 
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { data?: { error?: string } } };
+        const errorMsg = axiosError.response?.data?.error || 'Course not found';
+        commit('SET_ENROLLMENT_MODAL', {
           error: errorMsg,
           loading: false,
           coursePreview: null
@@ -268,24 +269,25 @@ export const courses: Module<CoursesState, RootState> = {
         throw error;
       }
     },
-    
+
     async enrollInCourse({ commit, dispatch }: CoursesActionContext, courseId: string): Promise<CourseEnrollmentResponse> {
       commit('SET_ENROLLMENT_MODAL', { loading: true });
-      
+
       try {
-        const response = await axios.post<CourseEnrollmentResponse>('/api/courses/enroll/', { 
-          course_id: courseId 
+        const response = await axios.post<CourseEnrollmentResponse>('/api/courses/enroll/', {
+          course_id: courseId
         });
-        
+
         // Refresh enrolled courses (which now includes progress)
         await dispatch('fetchEnrolledCourses');
-        
+
         // Reset modal
         commit('RESET_ENROLLMENT_MODAL');
-        
+
         return response.data;
-      } catch (error: any) {
-        const errorMsg = error.response?.data?.error || 'Enrollment failed';
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { data?: { error?: string } } };
+        const errorMsg = axiosError.response?.data?.error || 'Enrollment failed';
         commit('SET_ENROLLMENT_MODAL', { error: errorMsg, loading: false });
         throw error;
       }

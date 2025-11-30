@@ -75,9 +75,19 @@
     setup(props, { emit, expose }) {
       const editor = ref(null);
       
+      // Ace Editor instance type - minimal interface for what we use
+      interface AceEditor {
+        setOptions(options: Record<string, unknown>): void;
+        container: HTMLElement;
+        renderer: { $cursorLayer: { element: { style: { display: string } } }; container: { style: { pointerEvents: string; userSelect: string } } };
+        setOption(name: string, value: unknown): void;
+        commands: { addCommand(command: { name: string; bindKey: { win: string; mac: string }; exec: (editor: AceEditor) => void }): void };
+        blur(): void;
+      }
+
       /* Simple editor initialization */
-      const editorInit = (editorInstance: any) => {
-        editor.value = editorInstance;
+      const editorInit = (editorInstance: AceEditor) => {
+        editor.value = editorInstance as unknown;
         editorInstance.setOptions({
           showGutter: props.showGutter,
           maxLines: props.characterLimit,
@@ -112,15 +122,16 @@
             'select:not([disabled]):not([tabindex="-1"]), ' +
             'textarea:not([disabled]):not([tabindex="-1"]), ' +
             '[tabindex]:not([tabindex="-1"])'
-          )).filter((el: any) => {
+          )).filter((el) => {
             // Filter out hidden elements and ACE editor internal elements
-            const isVisible = el.offsetParent !== null &&
-                   getComputedStyle(el).visibility !== 'hidden' &&
-                   getComputedStyle(el).display !== 'none';
+            const htmlEl = el as HTMLElement;
+            const isVisible = htmlEl.offsetParent !== null &&
+                   getComputedStyle(htmlEl).visibility !== 'hidden' &&
+                   getComputedStyle(htmlEl).display !== 'none';
 
             // Exclude elements inside ACE editor (except the container itself)
-            const isAceInternal = el.classList.contains('ace_text-input') ||
-                                 el.classList.contains('ace_content');
+            const isAceInternal = htmlEl.classList.contains('ace_text-input') ||
+                                 htmlEl.classList.contains('ace_content');
 
             return isVisible && !isAceInternal;
           });
@@ -129,17 +140,17 @@
         editorInstance.commands.addCommand({
           name: 'overrideTab',
           bindKey: { win: 'Tab', mac: 'Tab' },
-          exec: function(editor: any) {
+          exec: function(aceEditor: AceEditor) {
             // Temporarily remove tabindex to prevent re-focusing
-            const container = editor.container;
+            const container = aceEditor.container;
             const originalTabIndex = container.getAttribute('tabindex');
             container.setAttribute('tabindex', '-1');
 
-            editor.blur();
+            aceEditor.blur();
 
             setTimeout(() => {
               // Restore tabindex
-              container.setAttribute('tabindex', originalTabIndex);
+              container.setAttribute('tabindex', originalTabIndex || '0');
 
               const focusableElements = getFocusableElements();
               const currentIndex = focusableElements.indexOf(container);
@@ -169,17 +180,17 @@
         editorInstance.commands.addCommand({
           name: 'overrideShiftTab',
           bindKey: { win: 'Shift-Tab', mac: 'Shift-Tab' },
-          exec: function(editor: any) {
+          exec: function(aceEditor: AceEditor) {
             // Temporarily remove tabindex to prevent re-focusing
-            const container = editor.container;
+            const container = aceEditor.container;
             const originalTabIndex = container.getAttribute('tabindex');
             container.setAttribute('tabindex', '-1');
 
-            editor.blur();
+            aceEditor.blur();
 
             setTimeout(() => {
               // Restore tabindex
-              container.setAttribute('tabindex', originalTabIndex);
+              container.setAttribute('tabindex', originalTabIndex || '0');
 
               const focusableElements = getFocusableElements();
               const currentIndex = focusableElements.indexOf(container);
@@ -196,8 +207,8 @@
         editorInstance.commands.addCommand({
           name: 'exitEditor',
           bindKey: { win: 'Esc', mac: 'Esc' },
-          exec: function(editor: any) {
-            editor.blur();
+          exec: function(aceEditor: AceEditor) {
+            aceEditor.blur();
 
             // Try to focus submit button after escaping
             setTimeout(() => {

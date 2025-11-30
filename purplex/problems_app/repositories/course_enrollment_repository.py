@@ -4,6 +4,7 @@ Repository for CourseEnrollment model data access.
 
 from typing import Optional, List, Dict, Any
 from django.db.models import Q, Count, Avg
+from django.db.models.functions import TruncDate
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
@@ -252,9 +253,9 @@ class CourseEnrollmentRepository(BaseRepository):
             course=course,
             enrolled_at__date__gte=start_date,
             enrolled_at__date__lte=end_date
-        ).extra({
-            'enrollment_date': 'date(enrolled_at)'
-        }).values('enrollment_date').annotate(
+        ).annotate(
+            enrollment_date=TruncDate('enrolled_at')
+        ).values('enrollment_date').annotate(
             count=Count('id')
         ).order_by('enrollment_date')
         

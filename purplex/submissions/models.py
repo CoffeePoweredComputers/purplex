@@ -93,8 +93,8 @@ class Submission(models.Model):
     # Time tracking
     time_spent = models.DurationField(null=True, blank=True, help_text="Time spent on this attempt")
 
-    # Async processing
-    celery_task_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+    # Async processing - unique constraint prevents duplicate submissions on task retry
+    celery_task_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
 
     class Meta:
         indexes = [

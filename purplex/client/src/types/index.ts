@@ -233,7 +233,7 @@ export interface HintRequest {
 
 export interface HintResponse {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
 }
 

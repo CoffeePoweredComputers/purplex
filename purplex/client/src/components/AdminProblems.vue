@@ -148,7 +148,7 @@ export default defineComponent({
         this.problems = response.data;
         this.loading = false;
       } catch (error) {
-        const axiosError = error as AxiosError<any>;
+        const axiosError = error as AxiosError<{ error?: string }>;
         log.error('Failed to fetch problems', {
           error,
           response: axiosError.response,

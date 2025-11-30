@@ -39,9 +39,10 @@ class AuthService {
       });
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error('Token validation error', error);
-      return { authenticated: false, error: error.message };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { authenticated: false, error: errorMessage };
     }
   }
 

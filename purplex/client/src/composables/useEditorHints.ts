@@ -7,12 +7,21 @@ import {
 } from '../services/hintProcessors'
 import { log } from '../utils/logger'
 
-// Types
+// Types for hint content - varies by hint type
+interface HintContent {
+  segments?: Array<{ label: string; code: string }>
+  fadeLevels?: Record<string, number>
+  traceSteps?: Array<{ line: number; description: string }>
+  [key: string]: unknown  // Allow additional hint-specific properties
+}
+
 interface HintData {
   hintId?: string
   hintType?: string
-  content?: any
-  [key: string]: any
+  content?: HintContent
+  timestamp?: number
+  action?: string
+  result?: HintResult
 }
 
 
@@ -22,7 +31,9 @@ interface HintData {
  * Composable for managing hint-based editor modifications
  * Handles state, transformations, and coordination between different hint types
  */
-export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
+// Editor ref is typically an Ace Editor instance or null
+// Using unknown since we don't access editor methods directly in this composable
+export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string>) {
   // Reactive state
   const activeHints = ref<HintData[]>([])
   const modifiedCode = ref<string>(originalCode?.value || '')
@@ -45,7 +56,7 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
   })
 
   // Track UI overlays for OVERLAY_UI strategy hints
-  const activeOverlays = ref<Array<{ component: string; props: any }>>([])  
+  const activeOverlays = ref<Array<{ component: string; props: Record<string, unknown> }>>([])  
 
   // Watch for original code changes
   watch(originalCode, (newCode) => {
@@ -350,8 +361,14 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
    * Get hint statistics
    * @returns {Object} Statistics about hint usage
    */
-  const getHintStats = (): Record<string, any> => {
-    const stats: Record<string, any> = {
+  interface HintStats {
+    activeCount: number
+    historyCount: number
+    byType: Record<string, number>
+  }
+
+  const getHintStats = (): HintStats => {
+    const stats: HintStats = {
       activeCount: activeHints.value.length,
       historyCount: hintHistory.value.length,
       byType: {}
@@ -386,13 +403,18 @@ export function useEditorHints(editorRef: Ref<any>, originalCode: Ref<string>) {
    * Restore hint state
    * @param {Object} state - Previously saved state
    */
-  const restoreState = async (state: any) => {
+  interface SavedHintState {
+    activeHints?: Array<{ hintType: string; content?: HintContent; timestamp?: number }>
+    hasHints?: boolean
+  }
+
+  const restoreState = async (state: SavedHintState | null | undefined) => {
     // Always clear current state first
     await removeAllHints()
-    
+
     // If no state to restore, we're done (hints are cleared)
     if (!state || !state.activeHints || state.activeHints.length === 0) {return}
-    
+
     // Reapply each saved hint
     for (const savedHint of state.activeHints) {
       await applyHint(savedHint.hintType, { content: savedHint.content })

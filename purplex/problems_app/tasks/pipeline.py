@@ -15,7 +15,18 @@ from typing import Dict, List, Any, Optional, TYPE_CHECKING
 from django.conf import settings
 from purplex.utils.redis_client import get_pubsub_client
 from django.db import transaction
+from contextlib import contextmanager
 from gevent.pool import Pool as GeventPool
+
+
+@contextmanager
+def managed_gevent_pool(size: int):
+    """Context manager for GeventPool that ensures cleanup on exit."""
+    pool = GeventPool(size=size)
+    try:
+        yield pool
+    finally:
+        pool.kill()
 
 # Try to import sentry_sdk for monitoring (optional)
 try:
@@ -44,9 +55,33 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _publish_to_redis(channel: str, event_data: dict, event_type: str, max_retries: int = 3) -> bool:
+    """
+    Publish to Redis with retry logic for transient failures.
+
+    Returns True if published successfully, False otherwise.
+    Never raises - failures are logged but don't break the task.
+    """
+    for attempt in range(max_retries):
+        try:
+            client = get_pubsub_client()
+            client.publish(channel, json.dumps(event_data))
+            return True
+        except (redis.ConnectionError, redis.TimeoutError) as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"Redis publish retry {attempt + 1}/{max_retries} for {event_type}: {e}")
+                time.sleep(0.1 * (attempt + 1))  # Brief backoff: 0.1s, 0.2s
+            else:
+                logger.error(f"Redis publish failed after {max_retries} attempts for {event_type}: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error publishing {event_type}: {e}")
+            break
+
+    return False
+
+
 def publish_progress(task_id: str, progress: float, message: str, extra_data: dict = None):
     """Publish a progress event to the Redis channel."""
-    channel = f'task:{task_id}'
     event_data = {
         'type': 'update',
         'timestamp': time.time(),
@@ -57,18 +92,11 @@ def publish_progress(task_id: str, progress: float, message: str, extra_data: di
     if extra_data:
         event_data.update(extra_data)
 
-    try:
-        client = get_pubsub_client()  # Use centralized client
-        client.publish(channel, json.dumps(event_data))
-    except (redis.ConnectionError, redis.TimeoutError) as e:
-        logger.error(f"⚠️ Redis connection failed while publishing progress event: {e}")
-    except Exception as e:
-        logger.error(f"Failed to publish progress event: {e}")
+    _publish_to_redis(f'task:{task_id}', event_data, 'progress')
 
 
 def publish_completion(task_id: str, result: dict):
     """Publish completion event with full results."""
-    channel = f'task:{task_id}'
     event_data = {
         'type': 'completed',
         'timestamp': time.time(),
@@ -77,19 +105,12 @@ def publish_completion(task_id: str, result: dict):
         'result': result
     }
 
-    try:
-        client = get_pubsub_client()  # Use centralized client
-        client.publish(channel, json.dumps(event_data))
+    if _publish_to_redis(f'task:{task_id}', event_data, 'completion'):
         logger.info(f"Published completion event for task {task_id}")
-    except (redis.ConnectionError, redis.TimeoutError) as e:
-        logger.error(f"⚠️ Redis connection failed while publishing completion event: {e}")
-    except Exception as e:
-        logger.error(f"Failed to publish completion event: {e}")
 
 
 def publish_error(task_id: str, error_message: str):
     """Publish error event."""
-    channel = f'task:{task_id}'
     event_data = {
         'type': 'failed',
         'timestamp': time.time(),
@@ -98,14 +119,8 @@ def publish_error(task_id: str, error_message: str):
         'message': f"Task failed: {error_message}"
     }
 
-    try:
-        client = get_pubsub_client()  # Use centralized client
-        client.publish(channel, json.dumps(event_data))
+    if _publish_to_redis(f'task:{task_id}', event_data, 'error'):
         logger.error(f"Published error event: {error_message}")
-    except (redis.ConnectionError, redis.TimeoutError) as e:
-        logger.error(f"⚠️ Redis connection failed while publishing error event: {e}")
-    except Exception as e:
-        logger.error(f"Failed to publish error event: {e}")
 
 
 def build_completion_result(
@@ -146,8 +161,88 @@ def build_completion_result(
     # Merge legacy fields for backward compatibility during migration
     if legacy_fields:
         envelope.update(legacy_fields)
-    
+
     return envelope
+
+
+def _build_cached_eipl_result(submission: 'Submission') -> Dict[str, Any]:
+    """
+    Build result dict from an existing submission for idempotent retries.
+
+    This is called when a task retry detects the submission already exists
+    (due to worker crash with task_acks_late=True).
+
+    Args:
+        submission: Existing Submission instance
+
+    Returns:
+        Complete result dict matching normal pipeline output
+    """
+    from purplex.problems_app.handlers import get_handler
+
+    # Ensure we have all the needed data
+    submission = submission.__class__.objects.select_related(
+        'problem'
+    ).prefetch_related(
+        'code_variations',
+        'code_variations__test_executions'
+    ).get(pk=submission.pk)
+
+    handler = get_handler('eipl')
+
+    # Build legacy fields from code variations
+    legacy_fields = {
+        'variations': [cv.generated_code for cv in submission.code_variations.all()],
+        'test_results': [],  # Will be populated by handler.serialize_result
+        'segmentation': None,
+        'successful_variations': sum(1 for cv in submission.code_variations.all() if cv.tests_passed == cv.tests_total),
+        'total_variations': submission.code_variations.count(),
+        'passing_variations': sum(1 for cv in submission.code_variations.all() if cv.tests_passed == cv.tests_total),
+    }
+
+    # Check for segmentation data
+    if hasattr(submission, 'segmentation') and submission.segmentation:
+        seg = submission.segmentation
+        legacy_fields['segmentation'] = {
+            'segment_count': seg.segment_count,
+            'comprehension_level': seg.comprehension_level,
+            'segments': seg.segments,
+            'passed': seg.passed,
+            'feedback': seg.feedback_message,
+            'improvements': seg.suggested_improvements,
+        }
+
+    return build_completion_result(
+        submission=submission,
+        handler=handler,
+        user_input=submission.raw_input,
+        legacy_fields=legacy_fields
+    )
+
+
+def _build_cached_mcq_result(submission: 'Submission') -> Dict[str, Any]:
+    """
+    Build result dict from an existing MCQ submission for idempotent retries.
+
+    Args:
+        submission: Existing Submission instance
+
+    Returns:
+        Complete result dict matching normal MCQ pipeline output
+    """
+    from purplex.problems_app.handlers import get_handler
+
+    # Ensure we have the problem relationship
+    submission = submission.__class__.objects.select_related('problem').get(pk=submission.pk)
+
+    handler = get_handler('mcq')
+
+    return build_completion_result(
+        submission=submission,
+        handler=handler,
+        user_input=submission.raw_input,
+        legacy_fields={}
+    )
 
 
 def generate_variations_helper(problem_id: int, user_prompt: str) -> List[str]:
@@ -319,23 +414,41 @@ def save_submission_helper(
 
     # PERFORMANCE: Single atomic transaction to reduce DB overhead
     # Previously: 3 separate transactions caused ~60% extra DB load
-    with transaction.atomic():
-        # Create submission using _no_transaction method to avoid nested transactions
-        # The outer transaction.atomic() manages the entire pipeline as one unit
-        submission = SubmissionService._create_submission_no_transaction(
-            user=user,
-            problem=problem,
-            raw_input=user_prompt,
-            submission_type='eipl',
-            problem_set=problem_set,
-            course=course,
-            time_spent=None,  # Could be passed from frontend in future
-            activated_hints=activated_hints  # Now tracking hints from frontend
-        )
+    # IDEMPOTENCY: Handle race condition where another worker beat us to creating the submission
+    from django.db import IntegrityError
+    from purplex.submissions.models import Submission
 
-        # Set the celery task ID
-        submission.celery_task_id = task_id
-        submission.save()
+    try:
+        with transaction.atomic():
+            # Create submission using _no_transaction method to avoid nested transactions
+            # The outer transaction.atomic() manages the entire pipeline as one unit
+            # IDEMPOTENCY: Pass celery_task_id atomically with submission creation
+            # This eliminates the race window where submission exists without task_id
+            submission = SubmissionService._create_submission_no_transaction(
+                user=user,
+                problem=problem,
+                raw_input=user_prompt,
+                submission_type='eipl',
+                problem_set=problem_set,
+                course=course,
+                time_spent=None,  # Could be passed from frontend in future
+                activated_hints=activated_hints,  # Now tracking hints from frontend
+                celery_task_id=task_id  # For idempotency on task retry
+            )
+    except IntegrityError as e:
+        # Another worker beat us - fetch and return existing submission
+        if 'celery_task_id' in str(e):
+            logger.info(f"🔄 Race condition: another worker already created submission for task {task_id}")
+            existing = Submission.objects.get(celery_task_id=task_id)
+            # Return minimal result that signals to use cached result
+            return {
+                'submission_id': str(existing.submission_id),
+                'score': existing.score,
+                'idempotent_hit': True,
+            }
+        raise  # Re-raise if it's not a celery_task_id uniqueness error
+
+    with transaction.atomic():
 
         # Record code variations for EiPL
         variation_data = []
@@ -506,6 +619,15 @@ def execute_eipl_pipeline(
         logger.warning("Django apps not ready, calling setup()")
         django.setup()
 
+    # IDEMPOTENCY CHECK - early exit if task was already processed
+    # This handles retries caused by worker crashes with task_acks_late=True
+    from purplex.submissions.models import Submission
+    existing = Submission.objects.filter(celery_task_id=task_id).first()
+    if existing:
+        logger.info(f"🔄 Task {task_id} already processed (submission {existing.submission_id}), returning cached result")
+        publish_progress(task_id, 100, "Submission already processed (idempotent retry)")
+        return _build_cached_eipl_result(existing)
+
     # Start Sentry transaction if available
     if SENTRY_AVAILABLE:
         transaction = sentry_sdk.start_transaction(
@@ -579,88 +701,86 @@ def execute_eipl_pipeline(
         # CRITICAL: GeventPool instead of ThreadPoolExecutor prevents deadlocks with gevent workers
         max_workers = min(variation_count, 6)  # Allow up to 6 concurrent tests (pool has 30 containers)
 
-        # Create gevent pool for cooperative concurrency
-        pool = GeventPool(size=max_workers)
+        # Create gevent pool with automatic cleanup via context manager
+        with managed_gevent_pool(max_workers) as pool:
+            # Spawn greenlets for each variation test
+            greenlet_to_index = {}
+            for i, code in enumerate(variations):
+                greenlet = pool.spawn(test_variation_helper, code, problem_id, i)
+                greenlet_to_index[greenlet] = i
 
-        # Spawn greenlets for each variation test
-        greenlet_to_index = {}
-        for i, code in enumerate(variations):
-            greenlet = pool.spawn(test_variation_helper, code, problem_id, i)
-            greenlet_to_index[greenlet] = i
+            # Collect results as they complete
+            completed = 0
+            results_by_index = {}
 
-        # Collect results as they complete
-        completed = 0
-        results_by_index = {}
+            # Wait for greenlets to complete (cooperative, no deadlock)
+            for greenlet in greenlet_to_index:
+                i = greenlet_to_index[greenlet]
+                completed += 1
 
-        # Wait for greenlets to complete (cooperative, no deadlock)
-        for greenlet in greenlet_to_index:
-            i = greenlet_to_index[greenlet]
-            completed += 1
+                try:
+                    # Greenlet.get() blocks cooperatively (gevent-aware)
+                    result = greenlet.get()
+                    results_by_index[i] = result
 
-            try:
-                # Greenlet.get() blocks cooperatively (gevent-aware)
-                result = greenlet.get()
-                results_by_index[i] = result
+                    # Calculate progress
+                    test_progress = 20 + (50 * completed / max(variation_count, 1))
 
-                # Calculate progress
-                test_progress = 20 + (50 * completed / max(variation_count, 1))
+                    # Report result of this variation
+                    if result['success']:
+                        publish_progress(
+                            task_id,
+                            test_progress,
+                            f"Variation {i+1}: ✓ Passed all tests ({completed}/{variation_count} complete)"
+                        )
+                    else:
+                        # Include error message if present
+                        error_msg = result.get('error', '')
+                        if error_msg:
+                            publish_progress(
+                                task_id,
+                                test_progress,
+                                f"Variation {i+1}: ERROR - {error_msg[:80]} ({completed}/{variation_count} complete)"
+                            )
+                            logger.warning(f"Variation {i+1} failed: {error_msg}")
+                        else:
+                            publish_progress(
+                                task_id,
+                                test_progress,
+                                f"Variation {i+1}: {result['testsPassed']}/{result['totalTests']} tests passed ({completed}/{variation_count} complete)"
+                            )
 
-                # Report result of this variation
-                if result['success']:
+                except Exception as e:
+                    # Enhanced error logging with full traceback
+                    import traceback
+                    error_details = traceback.format_exc()
+                    logger.error(
+                        f"❌ Variation {i+1} testing FAILED with exception\n"
+                        f"Problem ID: {problem_id}\n"
+                        f"Variation Index: {i}\n"
+                        f"Error: {str(e)}\n"
+                        f"Traceback:\n{error_details}"
+                    )
+
+                    # Publish error to user
                     publish_progress(
                         task_id,
-                        test_progress,
-                        f"Variation {i+1}: ✓ Passed all tests ({completed}/{variation_count} complete)"
+                        20 + (50 * completed / max(variation_count, 1)),
+                        f"⚠️ Variation {i+1}: Testing failed - {str(e)[:100]} ({completed}/{variation_count} complete)"
                     )
-                else:
-                    # Include error message if present
-                    error_msg = result.get('error', '')
-                    if error_msg:
-                        publish_progress(
-                            task_id,
-                            test_progress,
-                            f"Variation {i+1}: ERROR - {error_msg[:80]} ({completed}/{variation_count} complete)"
-                        )
-                        logger.warning(f"Variation {i+1} failed: {error_msg}")
-                    else:
-                        publish_progress(
-                            task_id,
-                            test_progress,
-                            f"Variation {i+1}: {result['testsPassed']}/{result['totalTests']} tests passed ({completed}/{variation_count} complete)"
-                        )
 
-            except Exception as e:
-                # Enhanced error logging with full traceback
-                import traceback
-                error_details = traceback.format_exc()
-                logger.error(
-                    f"❌ Variation {i+1} testing FAILED with exception\n"
-                    f"Problem ID: {problem_id}\n"
-                    f"Variation Index: {i}\n"
-                    f"Error: {str(e)}\n"
-                    f"Traceback:\n{error_details}"
-                )
+                    results_by_index[i] = {
+                        'variation_index': i,
+                        'code': variations[i],
+                        'testsPassed': 0,
+                        'totalTests': 0,
+                        'success': False,
+                        'test_results': [],
+                        'error': str(e),
+                        'error_traceback': error_details
+                    }
 
-                # Publish error to user
-                publish_progress(
-                    task_id,
-                    20 + (50 * completed / max(variation_count, 1)),
-                    f"⚠️ Variation {i+1}: Testing failed - {str(e)[:100]} ({completed}/{variation_count} complete)"
-                )
-
-                results_by_index[i] = {
-                    'variation_index': i,
-                    'code': variations[i],
-                    'testsPassed': 0,
-                    'totalTests': 0,
-                    'success': False,
-                    'test_results': [],
-                    'error': str(e),
-                    'error_traceback': error_details
-                }
-
-        # Kill the pool to clean up resources
-        pool.kill()
+        # Pool cleanup handled by context manager
 
         # Reconstruct results in original order
         test_results = [results_by_index[i] for i in range(variation_count)]
@@ -862,6 +982,15 @@ def execute_mcq_pipeline(
     task_id = self.request.id
     logger.info(f"🚀 MCQ PIPELINE START: task_id={task_id}, problem_id={problem_id}")
 
+    # IDEMPOTENCY CHECK - early exit if task was already processed
+    # This handles retries caused by worker crashes with task_acks_late=True
+    from purplex.submissions.models import Submission
+    existing = Submission.objects.filter(celery_task_id=task_id).first()
+    if existing:
+        logger.info(f"🔄 Task {task_id} already processed (submission {existing.submission_id}), returning cached result")
+        publish_progress(task_id, 100, "Submission already processed (idempotent retry)")
+        return _build_cached_mcq_result(existing)
+
     try:
         # ─── Phase 1: Load entities ─────────────────────────────────
         publish_progress(task_id, 10, "Loading problem...")
@@ -905,34 +1034,49 @@ def execute_mcq_pipeline(
         publish_progress(task_id, 60, "Saving submission...")
 
         # ─── Phase 3: Create submission ─────────────────────────────
-        with transaction.atomic():
-            submission = SubmissionService.create_submission(
-                user=user,
-                problem=problem,
-                raw_input=selected_option,
-                processed_code=selected_option,  # For MCQ, same as raw_input
-                submission_type='mcq',
-                problem_set=problem_set,
-                course=course
-            )
+        # IDEMPOTENCY: Pass celery_task_id atomically with submission creation
+        # Handle race condition where another worker beat us to creating the submission
+        from django.db import IntegrityError
+        from purplex.submissions.models import Submission as SubmissionModel
 
-            # Update submission with results
-            submission.score = score
-            submission.passed_all_tests = is_correct
-            submission.is_correct = is_correct
-            submission.completion_status = 'completed' if is_correct else 'incomplete'
-            submission.execution_status = 'completed'
-            submission.save()
+        try:
+            with transaction.atomic():
+                submission = SubmissionService.create_submission(
+                    user=user,
+                    problem=problem,
+                    raw_input=selected_option,
+                    submission_type='mcq',
+                    problem_set=problem_set,
+                    course=course,
+                    celery_task_id=task_id  # For idempotency on task retry
+                )
 
-            # Update progress
-            from purplex.problems_app.services.progress_service import ProgressService
-            ProgressService.update_progress_from_submission(
-                user=user,
-                problem=problem,
-                submission=submission,
-                problem_set=problem_set,
-                course=course
-            )
+                # Update submission with results
+                submission.processed_code = selected_option  # For MCQ, same as raw_input
+                submission.score = score
+                submission.passed_all_tests = is_correct
+                submission.is_correct = is_correct
+                submission.completion_status = 'completed' if is_correct else 'incomplete'
+                submission.execution_status = 'completed'
+                submission.save()
+
+                # Update progress
+                from purplex.problems_app.services.progress_service import ProgressService
+                ProgressService.update_progress_from_submission(
+                    user=user,
+                    problem=problem,
+                    submission=submission,
+                    problem_set=problem_set,
+                    course=course
+                )
+        except IntegrityError as e:
+            # Another worker beat us - fetch and return existing submission
+            if 'celery_task_id' in str(e):
+                logger.info(f"🔄 Race condition: another worker already created submission for task {task_id}")
+                existing = SubmissionModel.objects.get(celery_task_id=task_id)
+                publish_progress(task_id, 100, "Submission already processed (idempotent retry)")
+                return _build_cached_mcq_result(existing)
+            raise  # Re-raise if it's not a celery_task_id uniqueness error
 
         publish_progress(task_id, 100, f"Complete! {'Correct!' if is_correct else 'Incorrect.'}")
 

@@ -6,15 +6,23 @@ import { ensureFirebaseInitialized } from '../firebaseConfig';
 import { environment } from '../services/environment';
 import { setLocale, isValidLocale } from '../i18n';
 import type { SupportedLocale } from '../i18n';
+import type { Auth, User as FirebaseUser, UserCredential, AuthProvider } from 'firebase/auth';
+
+// Type for Firebase auth functions (works for both real and mock Firebase)
+type SignInWithEmailFn = (auth: Auth, email: string, password: string) => Promise<UserCredential>;
+type SignInWithPopupFn = (auth: Auth, provider: AuthProvider) => Promise<UserCredential>;
+type SignInWithRedirectFn = (auth: Auth, provider: AuthProvider) => Promise<void>;
+type GetRedirectResultFn = (auth: Auth) => Promise<UserCredential | null>;
+type CreateUserFn = (auth: Auth, email: string, password: string) => Promise<UserCredential>;
 
 // Firebase will be initialized asynchronously
-let firebaseAuth: any = null;
-let provider: any = null;
-let signInWithEmailAndPassword: any = null;
-let signInWithPopup: any = null;
-let signInWithRedirect: any = null;
-let getRedirectResult: any = null;
-let createUserWithEmailAndPassword: any = null;
+let firebaseAuth: Auth | null = null;
+let provider: AuthProvider | null = null;
+let signInWithEmailAndPassword: SignInWithEmailFn | null = null;
+let signInWithPopup: SignInWithPopupFn | null = null;
+let signInWithRedirect: SignInWithRedirectFn | null = null;
+let getRedirectResult: GetRedirectResultFn | null = null;
+let createUserWithEmailAndPassword: CreateUserFn | null = null;
 
 // Initialize Firebase auth functions
 async function initializeAuthFunctions() {
@@ -23,17 +31,24 @@ async function initializeAuthFunctions() {
   provider = firebase.provider;
 
   // For mock Firebase, functions are on the auth object
+  // Cast to proper function types - mock Firebase implements compatible interface
   if (environment.useMockFirebase && firebaseAuth) {
-    signInWithEmailAndPassword = (auth: any, email: string, password: string) =>
-      firebaseAuth.signInWithEmailAndPassword(email, password);
-    signInWithPopup = (auth: any, prov: any) =>
-      firebaseAuth.signInWithPopup(prov);
-    signInWithRedirect = (auth: any, prov: any) =>
-      firebaseAuth.signInWithPopup(prov); // Mock uses popup
-    getRedirectResult = (auth: any) =>
-      Promise.resolve({ user: firebaseAuth.currentUser });
-    createUserWithEmailAndPassword = (auth: any, email: string, password: string) =>
-      firebaseAuth.createUserWithEmailAndPassword(email, password);
+    const mockAuth = firebaseAuth as Auth & {
+      signInWithEmailAndPassword: (email: string, password: string) => Promise<UserCredential>;
+      signInWithPopup: (provider: AuthProvider) => Promise<UserCredential>;
+      createUserWithEmailAndPassword: (email: string, password: string) => Promise<UserCredential>;
+      currentUser: FirebaseUser | null;
+    };
+    signInWithEmailAndPassword = (_auth: Auth, email: string, password: string) =>
+      mockAuth.signInWithEmailAndPassword(email, password);
+    signInWithPopup = (_auth: Auth, prov: AuthProvider) =>
+      mockAuth.signInWithPopup(prov);
+    signInWithRedirect = (_auth: Auth, _prov: AuthProvider) =>
+      mockAuth.signInWithPopup(provider!) as unknown as Promise<void>; // Mock uses popup
+    getRedirectResult = (_auth: Auth) =>
+      Promise.resolve(mockAuth.currentUser ? { user: mockAuth.currentUser } as UserCredential : null);
+    createUserWithEmailAndPassword = (_auth: Auth, email: string, password: string) =>
+      mockAuth.createUserWithEmailAndPassword(email, password);
   } else {
     // For real Firebase, import the functions
     const authModule = await import('firebase/auth');
@@ -103,6 +118,15 @@ export interface AuthError {
   num: number;
 }
 
+// Firebase errors have a code property
+interface FirebaseError extends Error {
+  code: string;
+}
+
+function isFirebaseError(error: unknown): error is FirebaseError {
+  return typeof error === 'object' && error !== null && 'code' in error;
+}
+
 export interface UserMeResponse {
   role: string;
   is_admin: boolean;
@@ -111,7 +135,13 @@ export interface UserMeResponse {
 
 // ===== VUEX MODULE TYPES =====
 
-type AuthActionContext = ActionContext<AuthState, any>;
+// Import RootState to avoid circular dependency - use inline type
+interface RootState {
+  auth: AuthState;
+  courses: unknown;  // Avoid circular import of CoursesState
+}
+
+type AuthActionContext = ActionContext<AuthState, RootState>;
 
 // ===== INITIAL STATE =====
 
@@ -126,7 +156,7 @@ log.debug('Auth initial state', initialState);
 
 // ===== MODULE DEFINITION =====
 
-export const auth: Module<AuthState, any> = {
+export const auth: Module<AuthState, RootState> = {
   namespaced: true,
   state: initialState,
   actions: {
@@ -189,7 +219,7 @@ export const auth: Module<AuthState, any> = {
             log.info('No redirect result found');
             sessionStorage.removeItem('pendingGoogleRedirect');
           }
-        } catch (error: any) {
+        } catch (error) {
           log.error('Error processing redirect result', error);
           sessionStorage.removeItem('pendingGoogleRedirect');
           // Redirect errors will be shown on the login page if user is not authenticated
@@ -331,15 +361,15 @@ export const auth: Module<AuthState, any> = {
         log.info('Initiating Google sign-in popup with timeout...', { timeoutMs });
 
         // Create a timeout promise that rejects after timeoutMs
-        const timeoutPromise = new Promise((_, reject) => {
+        const timeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(() => reject({ code: 'auth/popup-timeout', message: 'Sign-in popup timed out' }), timeoutMs);
         });
 
         // Race between the popup and timeout
         const result = await Promise.race([
-          signInWithPopup(firebaseAuth, provider),
+          signInWithPopup(firebaseAuth!, provider!),
           timeoutPromise
-        ]) as any;
+        ]) as UserCredential;
 
         if (result && result.user) {
           log.info('Google sign-in successful', { email: result.user.email });
@@ -368,14 +398,15 @@ export const auth: Module<AuthState, any> = {
             commit('loginSuccess', userData);
           }
         }
-      } catch (error: any) {
+      } catch (error) {
         log.error('Google sign-in popup failed', error);
 
         // Calculate how long the popup was open
         const elapsedTime = Date.now() - startTime;
+        const errorCode = isFirebaseError(error) ? error.code : '';
 
         // Handle popup timeout - automatically fallback to redirect
-        if (error.code === 'auth/popup-timeout') {
+        if (errorCode === 'auth/popup-timeout') {
           log.warn('Popup timed out, falling back to redirect mode');
           throw {
             code: 'auth/popup-timeout-redirect',
@@ -386,7 +417,7 @@ export const auth: Module<AuthState, any> = {
         }
 
         // Handle popup blocked or closed
-        if (error.code === 'auth/popup-closed-by-user') {
+        if (errorCode === 'auth/popup-closed-by-user') {
           // If popup "closed" in less than 2 seconds, it's likely a third-party cookie issue
           // NOT the user actually closing it
           if (elapsedTime < 2000) {
@@ -400,7 +431,7 @@ export const auth: Module<AuthState, any> = {
           }
           // User actually closed the popup
           throw { code: 'auth/popup-closed', message: 'Sign-in popup was closed', num: 401 } as AuthError;
-        } else if (error.code === 'auth/popup-blocked') {
+        } else if (errorCode === 'auth/popup-blocked') {
           throw {
             code: 'auth/popup-blocked',
             message: 'Sign-in popup was blocked - please allow popups or try redirect mode',
@@ -410,7 +441,7 @@ export const auth: Module<AuthState, any> = {
         }
 
         // Handle network errors - suggest redirect
-        if (error.code === 'auth/network-request-failed') {
+        if (errorCode === 'auth/network-request-failed') {
           throw {
             code: 'auth/network-error',
             message: 'Network error - please check your connection or try redirect mode',
@@ -437,7 +468,7 @@ export const auth: Module<AuthState, any> = {
         await signInWithRedirect(firebaseAuth, provider);
 
         // Code after this won't execute because we've redirected
-      } catch (error: any) {
+      } catch (error) {
         log.error('Google sign-in redirect failed', error);
         sessionStorage.removeItem('pendingGoogleRedirect');
         throw { code: 'auth/redirect-failed', message: 'Unable to initiate redirect login', num: 500 } as AuthError;

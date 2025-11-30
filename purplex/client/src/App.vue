@@ -122,7 +122,7 @@ export default defineComponent({
             if (firebaseAuth && firebaseAuth.onAuthStateChanged) {
                 // Create a promise that resolves when auth state is determined
                 await new Promise<void>((resolve) => {
-                    const unsubscribe = firebaseAuth.onAuthStateChanged((user: any) => {
+                    const unsubscribe = firebaseAuth.onAuthStateChanged((user: unknown) => {
                         // Auth state has been determined (user is either signed in or null)
                         unsubscribe(); // Stop listening after first update
                         resolve();

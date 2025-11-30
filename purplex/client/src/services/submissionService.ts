@@ -42,11 +42,12 @@ class SubmissionService {
       const response = await axios.post(`${this.baseURL}/submit/`, data);
       log.info('Activity submission successful', { taskId: response.data.task_id });
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error('Failed to submit activity solution', error);
+      const axiosError = error as { response?: { data?: { error?: string }; status?: number } };
       throw {
-        error: error.response?.data?.error || 'Failed to submit activity solution',
-        status: error.response?.status || 500
+        error: axiosError.response?.data?.error || 'Failed to submit activity solution',
+        status: axiosError.response?.status || 500
       };
     }
   }
@@ -62,7 +63,7 @@ class SubmissionService {
     limit?: number
   ): Promise<SubmissionHistoryResponse> {
     try {
-      const params: any = {};
+      const params: Record<string, string | number> = {};
 
       if (problemSetSlug) {
         params.problem_set_slug = problemSetSlug;
@@ -84,12 +85,13 @@ class SubmissionService {
       });
 
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: unknown; status?: number } };
       log.error('Failed to fetch submission history', {
         problemSlug,
         error,
-        response: error.response?.data,
-        status: error.response?.status
+        response: axiosError.response?.data,
+        status: axiosError.response?.status
       });
       throw error;
     }

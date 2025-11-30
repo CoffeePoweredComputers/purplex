@@ -149,7 +149,7 @@ ensureFirebaseInitialized().then(() => {
   // Use the auth state changed method from our Firebase config
   // This works for both mock and real Firebase
   if (firebaseAuth && firebaseAuth.onAuthStateChanged) {
-    firebaseAuth.onAuthStateChanged(async (user: any) => {
+    firebaseAuth.onAuthStateChanged(async (user: unknown) => {
   if (user) {
     // User is signed in - dispatch the checkAuthState action
     // This will get the user's role and update the store

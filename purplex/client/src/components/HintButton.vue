@@ -278,7 +278,7 @@ export default {
             await this.loadHintContent(hintType)
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         log.error('Error loading hints', error)
         // Ensure we have safe defaults even on error
         this.availableHints = []
@@ -354,14 +354,15 @@ export default {
         })
         
         this.notify.info('Hint Unlocked', 'Hint content has been revealed')
-      } catch (error: any) {
+      } catch (error: unknown) {
         log.error('Error getting hint', error)
-        
+
         // Handle 403 errors specially - these are expected when hints aren't unlocked yet
-        if (error.status === 403 && error.error) {
-          this.notify.info('Hint Locked', error.error)
+        const apiError = error as { status?: number; error?: string }
+        if (apiError.status === 403 && apiError.error) {
+          this.notify.info('Hint Locked', apiError.error)
         } else {
-          this.notify.error('Error', error.error || 'Failed to load hint content')
+          this.notify.error('Error', apiError.error || 'Failed to load hint content')
         }
       } finally {
         this.loading = false
@@ -389,12 +390,13 @@ export default {
           originalData: response,
           problemSlug: loadProblemSlug
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         log.error('Error loading hint content', error)
-        
+
         // Handle 403 errors silently during initial load - hints may be locked
-        if (error.status !== 403) {
-          this.notify.error('Error', error.error || 'Failed to load hint content')
+        const apiError = error as { status?: number; error?: string }
+        if (apiError.status !== 403) {
+          this.notify.error('Error', apiError.error || 'Failed to load hint content')
         }
       }
     },

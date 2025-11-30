@@ -177,16 +177,27 @@ class ProblemServiceImpl {
    * @param defaultMessage - Default error message
    * @returns Formatted APIError
    */
-  private _handleError(error: any, defaultMessage: string): APIError {
-    if (error.response) {
+  private _handleError(error: unknown, defaultMessage: string): APIError {
+    // Type guard for axios errors
+    const axiosError = error as {
+      response?: {
+        status: number;
+        data?: { error?: string; details?: unknown } & Record<string, unknown>
+      };
+      request?: unknown;
+      message?: string;
+    };
+
+    if (axiosError.response) {
+      const { response } = axiosError;
       // Handle validation errors from Django REST framework
-      if (error.response.status === 400 && error.response.data && typeof error.response.data === 'object') {
+      if (response.status === 400 && response.data && typeof response.data === 'object') {
         // Check if it's a validation error with field-specific messages
-        const validationErrors = [];
-        for (const [field, messages] of Object.entries(error.response.data)) {
+        const validationErrors: string[] = [];
+        for (const [field, messages] of Object.entries(response.data)) {
           if (Array.isArray(messages)) {
             validationErrors.push(`${field}: ${messages.join(', ')}`);
-          } else if (field === 'error') {
+          } else if (field === 'error' && typeof messages === 'string') {
             // Direct error message
             validationErrors.push(messages);
           }
@@ -195,25 +206,25 @@ class ProblemServiceImpl {
         if (validationErrors.length > 0) {
           return {
             error: validationErrors.join('; '),
-            details: error.response.data,
-            status: error.response.status
+            details: response.data,
+            status: response.status
           };
         }
       }
 
       return {
-        error: error.response.data?.error || defaultMessage,
-        details: error.response.data?.details,
-        status: error.response.status
+        error: response.data?.error || defaultMessage,
+        details: response.data?.details,
+        status: response.status
       };
-    } else if (error.request) {
+    } else if (axiosError.request) {
       return {
         error: 'Network error - please check your connection',
         status: 0
       };
     } else {
       return {
-        error: error.message || defaultMessage,
+        error: axiosError.message || defaultMessage,
         status: -1
       };
     }
@@ -227,7 +238,7 @@ class ProblemServiceImpl {
    * @throws APIError on request failure
    */
   async getHints(
-    problemSlug: string, 
+    problemSlug: string,
     context?: { courseId?: string; problemSetSlug?: string }
   ): Promise<{
     available_hints: Array<{
@@ -240,7 +251,7 @@ class ProblemServiceImpl {
     current_attempts: number;
   }> {
     try {
-      const params: any = {};
+      const params: Record<string, string> = {};
       if (context?.courseId) {
         params.course_id = context.courseId;
       }
@@ -266,11 +277,11 @@ class ProblemServiceImpl {
    * @throws APIError on request failure
    */
   async getHintContent(
-    problemSlug: string, 
+    problemSlug: string,
     hintType: 'variable_fade' | 'subgoal_highlight' | 'suggested_trace'
   ): Promise<{
     type: string;
-    content: Record<string, any>;
+    content: Record<string, unknown>;
     min_attempts: number;
   }> {
     try {

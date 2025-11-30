@@ -177,8 +177,11 @@ while True:
                 memswap_limit=self.max_memory,
                 cpu_quota=self.max_cpu_percent * 1000,
                 cpu_period=100000,
+                cpu_shares=128,  # Low priority (default 1024) - deprioritize under contention
                 pids_limit=50,
                 read_only=True,
+                privileged=False,  # Explicit non-privileged mode
+                cap_drop=['ALL'],  # Drop all Linux capabilities
                 security_opt=['no-new-privileges'],
                 user='1000:1000',
                 working_dir='/sandbox',
@@ -1109,8 +1112,11 @@ print(json.dumps(output))
             'memswap_limit': self.max_memory,  # Prevent swap usage
             'cpu_quota': self.max_cpu_percent * 1000,  # Convert percentage to microseconds
             'cpu_period': 100000,  # 100ms period
+            'cpu_shares': 128,  # Low priority (default 1024) - deprioritize under contention
             'pids_limit': 50,  # Limit number of processes
             'read_only': True,  # Read-only root filesystem
+            'privileged': False,  # Explicit non-privileged mode
+            'cap_drop': ['ALL'],  # Drop all Linux capabilities
             'security_opt': ['no-new-privileges'],  # Prevent privilege escalation
             'user': '1000:1000',  # Run as non-root user
             'working_dir': '/sandbox',

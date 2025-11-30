@@ -3,6 +3,7 @@
  * This service provides consistent environment detection and configuration
  * across the entire Vue application.
  */
+import { log } from '../utils/logger';
 
 export enum Environment {
   DEVELOPMENT = 'development',
@@ -29,13 +30,13 @@ class EnvironmentService {
         this.env = Environment.PRODUCTION;
         break;
       default:
-        console.warn(`Unknown environment: ${viteEnv}, defaulting to development`);
+        log.warn(`Unknown environment: ${viteEnv}, defaulting to development`);
         this.env = Environment.DEVELOPMENT;
     }
-    
+
     // Debug log for troubleshooting
     if (this.isDevelopment) {
-      console.log('Environment variables:', {
+      log.debug('Environment variables', {
         MODE: import.meta.env.MODE,
         VITE_PURPLEX_ENV: import.meta.env.VITE_PURPLEX_ENV,
         VITE_FIREBASE_MOCK: import.meta.env.VITE_FIREBASE_MOCK,
@@ -164,13 +165,13 @@ class EnvironmentService {
    * Log environment information (useful for debugging)
    */
   logEnvironmentInfo(): void {
-    console.group('🌍 Environment Configuration');
-    console.log('Environment:', this.env);
-    console.log('API URL:', this.apiUrl);
-    console.log('Mock Firebase:', this.useMockFirebase);
-    console.log('Debug Mode:', this.isDebugMode);
-    console.log('Feature Flags:', this.getFeatureFlags());
-    console.groupEnd();
+    log.info('Environment Configuration', {
+      environment: this.env,
+      apiUrl: this.apiUrl,
+      mockFirebase: this.useMockFirebase,
+      debugMode: this.isDebugMode,
+      featureFlags: this.getFeatureFlags()
+    });
   }
 }
 

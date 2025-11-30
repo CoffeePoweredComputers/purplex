@@ -39,6 +39,7 @@ class SubmissionService:
         course: Optional['Course'] = None,
         time_spent: Optional[timedelta] = None,
         activated_hints: Optional[List[Dict]] = None,
+        celery_task_id: Optional[str] = None,
     ) -> Submission:
         """
         Create submission WITHOUT @transaction.atomic decorator.
@@ -52,6 +53,10 @@ class SubmissionService:
         Transaction Management Pattern:
         - create_submission() = Wraps this method with @transaction.atomic
         - _create_submission_no_transaction() = Raw operation, caller manages transaction
+
+        Idempotency:
+        - Pass celery_task_id to associate submission with Celery task
+        - The unique constraint on celery_task_id prevents duplicate submissions on retry
         """
         # Create main submission
         submission = Submission.objects.create(
@@ -65,7 +70,9 @@ class SubmissionService:
             execution_status='pending',
             # Explicitly set defaults for new grading fields
             comprehension_level='not_evaluated',
-            is_correct=False
+            is_correct=False,
+            # IDEMPOTENCY: Set celery_task_id atomically with creation
+            celery_task_id=celery_task_id
         )
 
         # Track hint activations
@@ -116,6 +123,7 @@ class SubmissionService:
         course: Optional['Course'] = None,
         time_spent: Optional[timedelta] = None,
         activated_hints: Optional[List[Dict]] = None,
+        celery_task_id: Optional[str] = None,
     ) -> Submission:
         """
         Create a new submission with all related data.
@@ -124,11 +132,12 @@ class SubmissionService:
             user: The user making the submission
             problem: The problem being submitted for
             raw_input: The user's input (code or natural language)
-            submission_type: Type of submission ('direct_code', 'eipl', 'function_redef')
+            submission_type: Type of submission ('direct_code', 'eipl', 'mcq', 'function_redef')
             problem_set: Optional problem set context
             course: Optional course context
             time_spent: Time spent on this attempt
             activated_hints: List of dicts with hint_id and trigger_type
+            celery_task_id: Optional Celery task ID for idempotency
 
         Returns:
             Created Submission instance
@@ -141,7 +150,8 @@ class SubmissionService:
             problem_set=problem_set,
             course=course,
             time_spent=time_spent,
-            activated_hints=activated_hints
+            activated_hints=activated_hints,
+            celery_task_id=celery_task_id
         )
 
     @classmethod

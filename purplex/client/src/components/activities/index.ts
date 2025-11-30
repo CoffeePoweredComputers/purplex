@@ -17,6 +17,7 @@ import { type Component, defineAsyncComponent } from 'vue'
 import type { ActivityComponentRegistry } from './types'
 import AsyncLoader from '@/components/ui/AsyncLoader.vue'
 import AsyncError from '@/components/ui/AsyncError.vue'
+import { log } from '@/utils/logger'
 
 // Re-export types for convenience
 export * from './types'
@@ -61,8 +62,7 @@ export function isActivityTypeRegistered(activityType: string): boolean {
 export function getActivityInput(activityType: string): Component | undefined {
   const definition = ACTIVITY_COMPONENTS[activityType]
   if (!definition) {
-    // eslint-disable-next-line no-console
-    console.warn(`No input component registered for activity type: ${activityType}`)
+    log.warn(`No input component registered for activity type: ${activityType}`)
     return undefined
   }
 
@@ -86,8 +86,7 @@ export function getActivityInput(activityType: string): Component | undefined {
 export function getActivityFeedback(activityType: string): Component | undefined {
   const definition = ACTIVITY_COMPONENTS[activityType]
   if (!definition) {
-    // eslint-disable-next-line no-console
-    console.warn(`No feedback component registered for activity type: ${activityType}`)
+    log.warn(`No feedback component registered for activity type: ${activityType}`)
     return undefined
   }
 
