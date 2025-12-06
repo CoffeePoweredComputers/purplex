@@ -130,9 +130,9 @@
         <div class="two-column-layout">
           <!-- Left Column: Code -->
           <div class="code-column">
-            <!-- EiPL Prompt if applicable -->
+            <!-- Natural Language Prompt (EiPL/Prompt types) - show if raw_input exists -->
             <div
-              v-if="submission?.submission_type === 'eipl' && submission?.raw_input"
+              v-if="submission?.raw_input"
               class="code-section"
             >
               <div class="section-header">
@@ -147,7 +147,7 @@
             <div class="code-section">
               <div class="section-header">
                 <span class="section-title">
-                  {{ hasVariations ? `Generated Code - Variation ${currentVariationIndex + 1}` : (submission?.submission_type === 'eipl' ? 'Generated Code' : 'Submitted Code') }}
+                  {{ hasVariations ? `Generated Code - Variation ${currentVariationIndex + 1}` : (submission?.raw_input ? 'Generated Code' : 'Submitted Code') }}
                 </span>
                 <button
                   class="copy-btn"

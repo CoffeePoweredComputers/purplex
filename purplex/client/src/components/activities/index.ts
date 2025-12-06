@@ -39,6 +39,10 @@ const ACTIVITY_COMPONENTS: ActivityComponentRegistry = {
     input: () => import('./inputs/McqInput.vue'),
     feedback: () => import('./feedback/McqFeedback.vue'),
   },
+  prompt: {
+    input: () => import('./inputs/PromptInput.vue'),
+    feedback: () => import('./feedback/PromptFeedback.vue'),
+  },
 }
 
 /**

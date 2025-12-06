@@ -2,7 +2,6 @@
 Test suite for the segmentation service with verbatim validation.
 """
 import unittest
-from unittest.mock import Mock, patch
 from purplex.problems_app.services.segmentation_service import SegmentationService
 
 
@@ -53,30 +52,30 @@ class TestSegmentationService(unittest.TestCase):
         )
         
     def test_parse_segments_pure_segmentation(self):
-        """Test that _parse_segments returns all segments (pure segmentation)"""
-        user_prompt = "The function takes two parameters and adds them"
-        
-        # Mock AI response with both verbatim and non-verbatim segments
+        """Test that _parse_segments returns segments with one-to-one mapping"""
+        user_prompt = "The function takes two parameters and adds them to return"
+
+        # Mock AI response - note: overlapping lines are deduplicated (one-to-one mapping)
         ai_response = '''
         {
             "segments": [
                 {"id": 1, "text": "takes two parameters", "code_lines": [1]},
                 {"id": 2, "text": "combines the values", "code_lines": [2]},
-                {"id": 3, "text": "adds them", "code_lines": [2]}
+                {"id": 3, "text": "return", "code_lines": [3]}
             ]
         }
         '''
-        
+
         result = self.service._parse_segments(ai_response, self.reference_code, user_prompt)
-        
-        # Should have ALL segments (pure segmentation - no filtering)
+
+        # Should have all non-overlapping segments
         self.assertTrue(result['success'])
-        self.assertEqual(len(result['segments']), 3)  # All 3 segments returned
-        
+        self.assertEqual(len(result['segments']), 3)  # 3 non-overlapping segments
+
         # Check that all segments are included
         segment_texts = [seg['text'] for seg in result['segments']]
         self.assertIn('takes two parameters', segment_texts)
-        self.assertIn('adds them', segment_texts)
+        self.assertIn('return', segment_texts)
         self.assertIn('combines the values', segment_texts)  # Non-verbatim also included
         
     def test_function_definition_segments_not_filtered(self):
@@ -103,16 +102,14 @@ class TestSegmentationService(unittest.TestCase):
         self.assertIn('returns their sum', segment_texts)
     
     def test_create_segmentation_prompt_includes_verbatim_rules(self):
-        """Test that the prompt includes strict verbatim extraction rules"""
+        """Test that the prompt includes strict one-to-one mapping rules"""
         prompt = self.service._create_segmentation_prompt(self.reference_code)
 
-        # Check for critical rules (updated for new format)
-        self.assertIn("<critical_rules>", prompt)
-        self.assertIn("VERBATIM EXTRACTION ONLY", prompt)
-        self.assertIn("CHARACTER-PERFECT MATCH", prompt)
-        self.assertIn("NO PARAPHRASING", prompt)
-        self.assertIn("COPY-PASTE PRECISION", prompt)
-        self.assertIn("<final_verification>", prompt)
+        # Check for critical one-to-one mapping rules (current format)
+        self.assertIn("CRITICAL ONE-TO-ONE MAPPING RULES", prompt)
+        self.assertIn("EXACTLY ONE distinct code section", prompt)
+        self.assertIn("no overlapping", prompt.lower())
+        self.assertIn("ONE-TO-ONE MAPPING VALIDATION", prompt)
 
         # Check that function definition filtering instruction is REMOVED
         self.assertNotIn("Remove any segments that just describe function definition", prompt)
@@ -134,14 +131,12 @@ class TestSegmentationService(unittest.TestCase):
 
         prompt = self.service._create_segmentation_prompt(self.reference_code, custom_examples)
 
-        # Check that instructor examples are included with high priority
-        self.assertIn("<instructor_provided_examples priority='HIGHEST'>", prompt)
-        self.assertIn("type='relational'", prompt)
-        self.assertIn("type='multi_structural'", prompt)
+        # Check that instructor examples are included (current format uses plain text headings)
+        self.assertIn("SEGMENTATION EXAMPLES", prompt)
+        self.assertIn("RELATIONAL", prompt)
+        self.assertIn("MULTI-STRUCTURAL", prompt)
         self.assertIn(custom_examples['relational']['prompt'], prompt)
         self.assertIn(custom_examples['multi_structural']['prompt'], prompt)
-        self.assertIn("INSTRUCTOR wants you to segment", prompt)
-        self.assertIn("FOLLOW THE INSTRUCTOR'S EXAMPLES", prompt)
 
 
 if __name__ == '__main__':

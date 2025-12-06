@@ -6,7 +6,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from ..services.progress_service import ProgressService
-from ..services.course_service import CourseService
 from purplex.users_app.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
@@ -41,8 +40,6 @@ class UserProgressView(APIView):
                         course_id=course_id
                     )
                     problem = context['problem']
-                    problem_set = context['problem_set']
-                    course = context['course']
                     progress = context['progress']
                     if progress:
                         progress_data = {

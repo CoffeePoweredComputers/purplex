@@ -14,7 +14,6 @@ from purplex.problems_app.models import (
     TestCase, UserProgress, UserProblemSetProgress, ProgressSnapshot,
     Course, CourseEnrollment, CourseProblemSet
 )
-from django.db import connection
 from purplex.submissions.models import (
     Submission, TestExecution, HintActivation, CodeVariation,
     SegmentationAnalysis, SubmissionFeedback

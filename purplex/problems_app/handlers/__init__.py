@@ -7,12 +7,13 @@ Handlers are registered using the @register_handler decorator.
 
 from typing import Dict, List, Type
 
-from .base import ActivityHandler, ProcessingResult, ValidationResult
+from .base import ActivityHandler, ProcessingResult, ValidationResult, SubmissionOutcome
 
 __all__ = [
     'ActivityHandler',
     'ValidationResult',
     'ProcessingResult',
+    'SubmissionOutcome',
     'register_handler',
     'get_handler',
     'get_registered_types',
@@ -67,3 +68,4 @@ def is_registered(type_name: str) -> bool:
 # This must be at the bottom to avoid circular imports
 from . import eipl  # noqa: E402, F401
 from . import mcq   # noqa: E402, F401
+from . import prompt  # noqa: E402, F401

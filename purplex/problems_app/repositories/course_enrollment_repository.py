@@ -3,7 +3,7 @@ Repository for CourseEnrollment model data access.
 """
 
 from typing import Optional, List, Dict, Any
-from django.db.models import Q, Count, Avg
+from django.db.models import Q, Count
 from django.db.models.functions import TruncDate
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -329,10 +329,105 @@ class CourseEnrollmentRepository(BaseRepository):
     def cleanup_old_inactive_enrollments(cls, days_inactive: int = 365) -> int:
         """Clean up old inactive enrollment records."""
         cutoff_date = timezone.now() - timedelta(days=days_inactive)
-        
+
         deleted, _ = CourseEnrollment.objects.filter(
             is_active=False,
             enrolled_at__lt=cutoff_date
         ).delete()
-        
+
         return deleted
+
+    @classmethod
+    def get_for_course_with_users(cls, course: Course, include_inactive: bool = False):
+        """
+        Get enrollments for a course with user data prefetched.
+
+        Used by export and analytics services.
+
+        Args:
+            course: Course instance
+            include_inactive: Whether to include inactive enrollments
+
+        Returns:
+            QuerySet of CourseEnrollment with select_related user
+        """
+        queryset = CourseEnrollment.objects.filter(
+            course=course
+        ).select_related('user')
+
+        if not include_inactive:
+            queryset = queryset.filter(is_active=True)
+
+        return queryset
+
+    @classmethod
+    def get_active_student_ids(cls, course: Course) -> List[int]:
+        """
+        Get list of active student user IDs for a course.
+
+        Args:
+            course: Course instance
+
+        Returns:
+            List of user IDs
+        """
+        return list(
+            CourseEnrollment.objects.filter(
+                course=course,
+                is_active=True
+            ).values_list('user_id', flat=True)
+        )
+
+    @classmethod
+    def get_enrollments_with_progress_stats(cls, course: Course):
+        """
+        Get enrollments with aggregated progress statistics.
+
+        Used for instructor analytics student list view.
+
+        Args:
+            course: Course instance
+
+        Returns:
+            QuerySet of CourseEnrollment with user and progress annotations
+        """
+        from django.db.models import Count, Avg, Sum, Max, Q
+
+        return CourseEnrollment.objects.filter(
+            course=course,
+            is_active=True
+        ).select_related('user').annotate(
+            # Aggregate progress stats for each student
+            total_problems=Count(
+                'user__userprogress_set',
+                filter=Q(user__userprogress_set__course=course)
+            ),
+            completed_problems=Count(
+                'user__userprogress_set',
+                filter=Q(
+                    user__userprogress_set__course=course,
+                    user__userprogress_set__is_completed=True
+                )
+            ),
+            avg_score=Avg(
+                'user__userprogress_set__best_score',
+                filter=Q(user__userprogress_set__course=course)
+            ),
+            total_attempts=Sum(
+                'user__userprogress_set__attempts',
+                filter=Q(user__userprogress_set__course=course)
+            ),
+            total_time_spent=Sum(
+                'user__userprogress_set__total_time_spent',
+                filter=Q(user__userprogress_set__course=course)
+            ),
+            last_activity=Max(
+                'user__userprogress_set__last_attempt',
+                filter=Q(user__userprogress_set__course=course)
+            ),
+            # Problem set progress average
+            avg_completion=Avg(
+                'user__userproblemsetprogress_set__completion_percentage',
+                filter=Q(user__userproblemsetprogress_set__course=course)
+            )
+        )

@@ -1,7 +1,7 @@
 <template>
   <div class="section-header">
     <div class="section-label">
-      {{ inputConfig?.label || 'Select the correct answer' }}
+      {{ problem?.display_config?.section_label || inputConfig?.label || 'Select the correct answer' }}
     </div>
   </div>
 

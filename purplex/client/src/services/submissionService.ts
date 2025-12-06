@@ -7,11 +7,61 @@ export type { BaseSubmission, SubmissionDetailed, CodeVariation, SubmissionTestR
 
 // ===== SUBMISSION TYPES =====
 
-export interface SubmissionResponse {
+/**
+ * Response from async submissions (EiPL, Prompt)
+ * These return a task_id for polling/SSE
+ */
+export interface AsyncSubmissionResponse {
   task_id: string;
+  request_id: string;
   status: 'processing';
+  problem_type: string;
   stream_url: string;
   message: string;
+}
+
+/**
+ * Response from sync submissions (MCQ)
+ * These return the result immediately
+ */
+export interface SyncSubmissionResponse {
+  status: 'complete';
+  submission_id: string;
+  problem_type: string;
+  score: number;
+  is_correct: boolean;
+  completion_status: string;
+  problem_slug: string;
+  user_input: string;
+  selected_option?: {
+    id: string;
+    text: string;
+  };
+  correct_option?: {
+    id: string;
+    text: string;
+    explanation: string;
+  };
+  result?: Record<string, unknown>;
+}
+
+/**
+ * Union type for all submission responses
+ */
+export type SubmissionResponse = AsyncSubmissionResponse | SyncSubmissionResponse;
+
+/**
+ * Type guard to check if response is synchronous (complete)
+ */
+export function isSyncResponse(response: SubmissionResponse): response is SyncSubmissionResponse {
+  return response.status === 'complete';
+}
+
+/**
+ * Type guard to check if response is asynchronous (processing)
+ */
+export function isAsyncResponse(response: SubmissionResponse): response is AsyncSubmissionResponse {
+  return response.status === 'processing';
 }
 
 export interface ActivitySubmissionRequest {
@@ -34,13 +84,27 @@ class SubmissionService {
 
   /**
    * Submit an activity problem solution (generic endpoint for all activity types)
-   * This triggers async processing with Celery
+   *
+   * Returns either:
+   * - SyncSubmissionResponse: For instant results (MCQ) - status='complete'
+   * - AsyncSubmissionResponse: For background processing (EiPL, Prompt) - status='processing'
+   *
+   * Use isSyncResponse() / isAsyncResponse() type guards to discriminate.
    */
   async submitActivity(data: ActivitySubmissionRequest): Promise<SubmissionResponse> {
     try {
       log.info('Submitting activity solution', { problemSlug: data.problem_slug });
       const response = await axios.post(`${this.baseURL}/submit/`, data);
-      log.info('Activity submission successful', { taskId: response.data.task_id });
+
+      if (response.data.status === 'complete') {
+        log.info('Sync submission complete', {
+          submissionId: response.data.submission_id,
+          score: response.data.score
+        });
+      } else {
+        log.info('Async submission started', { taskId: response.data.task_id });
+      }
+
       return response.data;
     } catch (error: unknown) {
       log.error('Failed to submit activity solution', error);

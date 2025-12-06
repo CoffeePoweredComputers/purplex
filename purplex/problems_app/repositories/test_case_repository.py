@@ -3,7 +3,6 @@ Repository for TestCase model data access.
 """
 
 from typing import Optional, List, Dict, Any
-from django.db.models import Q
 
 from purplex.problems_app.models import TestCase, Problem
 from .base_repository import BaseRepository

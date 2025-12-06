@@ -5,8 +5,8 @@ Provides aggregated metrics, student performance analysis, and
 actionable insights for instructors.
 """
 
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from typing import Dict, List, Any
+from datetime import timedelta
 from django.contrib.auth.models import User
 from django.db.models import (
     Q, Count, Avg, Sum, Max,
@@ -15,7 +15,7 @@ from django.db.models import (
 from django.utils import timezone
 
 from purplex.problems_app.models import (
-    Problem, ProblemSet, Course, UserProgress,
+    Problem, Course, UserProgress,
     UserProblemSetProgress, ProgressSnapshot, CourseEnrollment
 )
 from purplex.submissions.models import Submission, HintActivation
@@ -34,19 +34,14 @@ class InstructorAnalyticsService:
         Returns:
             Dictionary with course statistics
         """
-        # Get enrolled students
-        enrollments = CourseEnrollment.objects.filter(
-            course=course,
-            is_active=True
-        ).select_related('user')
+        # Get enrolled student IDs via repository
+        from ..repositories import CourseEnrollmentRepository, ProgressRepository
+        from purplex.submissions.repositories import SubmissionRepository
 
-        student_ids = [e.user.id for e in enrollments]
+        student_ids = CourseEnrollmentRepository.get_active_student_ids(course)
 
-        # Get all progress for this course
-        progress_records = UserProgress.objects.filter(
-            course=course,
-            user_id__in=student_ids
-        )
+        # Get all progress for this course via repository
+        progress_records = ProgressRepository.get_for_course_analytics(course, student_ids)
 
         # Calculate aggregates
         stats = progress_records.aggregate(
@@ -63,21 +58,10 @@ class InstructorAnalyticsService:
             avg_time_per_problem=Avg('total_time_spent'),
         )
 
-        # Get problem set progress
+        # Get problem set progress via repository
         # CRITICAL FIX: Use single annotated query instead of loop with aggregates
         # This reduces N queries (1 per problem set) to just 1 query total
-        ps_stats = UserProblemSetProgress.objects.filter(
-            course=course,
-            user_id__in=student_ids
-        ).values(
-            'problem_set__slug',
-            'problem_set__title',
-            'problem_set_id'
-        ).annotate(
-            avg_completion=Avg('completion_percentage'),
-            students_completed=Count('id', filter=Q(is_completed=True)),
-            students_started=Count('id')
-        )
+        ps_stats = ProgressRepository.get_problem_set_for_course_analytics(course, student_ids)
 
         # Build dict for O(1) lookup
         ps_stats_dict = {stat['problem_set_id']: stat for stat in ps_stats}
@@ -104,12 +88,8 @@ class InstructorAnalyticsService:
                 ),
             })
 
-        # Get recent activity
-        recent_submissions = Submission.objects.filter(
-            course=course,
-            user_id__in=student_ids,
-            submitted_at__gte=timezone.now() - timedelta(days=7)
-        ).count()
+        # Get recent activity via repository
+        recent_submissions = SubmissionRepository.get_recent_for_course(course, student_ids)
 
         return {
             'course_id': course.course_id,
@@ -147,44 +127,9 @@ class InstructorAnalyticsService:
         # Get all enrolled students
         # CRITICAL FIX: Use annotated query instead of loop with aggregates
         # This reduces N queries (2 per student) to just 1 query total
-        enrollments = CourseEnrollment.objects.filter(
-            course=course,
-            is_active=True
-        ).select_related('user').annotate(
-            # Aggregate progress stats for each student
-            total_problems=Count(
-                'user__userprogress_set',
-                filter=Q(user__userprogress_set__course=course)
-            ),
-            completed_problems=Count(
-                'user__userprogress_set',
-                filter=Q(
-                    user__userprogress_set__course=course,
-                    user__userprogress_set__is_completed=True
-                )
-            ),
-            avg_score=Avg(
-                'user__userprogress_set__best_score',
-                filter=Q(user__userprogress_set__course=course)
-            ),
-            total_attempts=Sum(
-                'user__userprogress_set__attempts',
-                filter=Q(user__userprogress_set__course=course)
-            ),
-            total_time_spent=Sum(
-                'user__userprogress_set__total_time_spent',
-                filter=Q(user__userprogress_set__course=course)
-            ),
-            last_activity=Max(
-                'user__userprogress_set__last_attempt',
-                filter=Q(user__userprogress_set__course=course)
-            ),
-            # Problem set progress average
-            avg_completion=Avg(
-                'user__userproblemsetprogress_set__completion_percentage',
-                filter=Q(user__userproblemsetprogress_set__course=course)
-            )
-        )
+        # Get enrollments with progress stats via repository
+        from ..repositories import CourseEnrollmentRepository
+        enrollments = CourseEnrollmentRepository.get_enrollments_with_progress_stats(course)
 
         students = []
 
@@ -264,37 +209,23 @@ class InstructorAnalyticsService:
         Returns:
             Detailed student analytics
         """
-        # Get overall progress
-        progress_records = UserProgress.objects.filter(
-            course=course,
-            user=user
-        ).select_related('problem', 'problem_set')
+        # Get overall progress via repository
+        from ..repositories import ProgressRepository, HintRepository
+        from purplex.submissions.repositories import SubmissionRepository
 
-        # Get problem set progress
-        ps_progress = UserProblemSetProgress.objects.filter(
-            course=course,
-            user=user
-        ).select_related('problem_set')
+        progress_records = ProgressRepository.get_for_student_detail(course, user)
 
-        # Get submissions
-        submissions = Submission.objects.filter(
-            course=course,
-            user=user
-        ).select_related('problem', 'problem_set').order_by('-submitted_at')[:20]
+        # Get problem set progress via repository
+        ps_progress = ProgressRepository.get_problem_set_for_student(course, user)
 
-        # Get hint usage
-        hint_usage = HintActivation.objects.filter(
-            submission__course=course,
-            submission__user=user
-        ).values('hint__hint_type').annotate(
-            usage_count=Count('id')
-        )
+        # Get submissions via repository
+        submissions = SubmissionRepository.get_for_student_detail(course, user)
 
-        # Get progress history
-        history = ProgressSnapshot.objects.filter(
-            user=user,
-            problem_set__in=course.problem_sets.all()
-        ).order_by('snapshot_date')[:30]
+        # Get hint usage via repository
+        hint_usage = HintRepository.get_usage_stats_for_student(course, user)
+
+        # Get progress history via repository
+        history = ProgressRepository.get_snapshots_for_student(user, course.problem_sets.all())
 
         # Calculate learning trajectory
         trajectory = []
@@ -377,18 +308,14 @@ class InstructorAnalyticsService:
         Returns:
             Problem analytics
         """
-        # Get enrolled student IDs
-        student_ids = CourseEnrollment.objects.filter(
-            course=course,
-            is_active=True
-        ).values_list('user_id', flat=True)
+        # Get enrolled student IDs via repository
+        from ..repositories import CourseEnrollmentRepository, ProgressRepository
+        from purplex.submissions.repositories import SubmissionRepository
 
-        # Get progress for this problem
-        progress_records = UserProgress.objects.filter(
-            course=course,
-            problem=problem,
-            user_id__in=student_ids
-        )
+        student_ids = CourseEnrollmentRepository.get_active_student_ids(course)
+
+        # Get progress for this problem via repository
+        progress_records = ProgressRepository.get_for_problem_analytics(course, problem, student_ids)
 
         stats = progress_records.aggregate(
             total_students=Count('user', distinct=True),
@@ -425,15 +352,8 @@ class InstructorAnalyticsService:
             else:
                 buckets['81-100'] += 1
 
-        # Get common errors
-        from purplex.submissions.models import TestExecution
-        error_stats = TestExecution.objects.filter(
-            submission__course=course,
-            submission__problem=problem,
-            passed=False
-        ).values('error_type').annotate(
-            count=Count('id')
-        ).order_by('-count')[:5]
+        # Get common errors via repository
+        error_stats = SubmissionRepository.get_error_stats_for_problem(course, problem)
 
         return {
             'problem_slug': problem.slug,

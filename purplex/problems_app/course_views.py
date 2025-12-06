@@ -9,11 +9,10 @@ from rest_framework.permissions import IsAuthenticated
 
 from .services.course_service import CourseService
 from .serializers import (
-    CourseListSerializer, CourseDetailSerializer, CourseCreateUpdateSerializer,
-    CourseEnrollmentSerializer, CourseLookupSerializer, CourseEnrollSerializer,
-    ProblemSetListSerializer
+    CourseListSerializer, CourseDetailSerializer, CourseCreateUpdateSerializer
 )
 from purplex.users_app.permissions import IsAdmin, IsInstructor, IsCourseInstructor
+from purplex.users_app.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +24,8 @@ class AdminInstructorsListView(APIView):
 
     def get(self, request):
         """List all users who can be assigned as instructors"""
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-
-        # Get all active users (admins and instructors)
-        users = User.objects.filter(is_active=True).order_by('username')
+        # Get all active users (admins and instructors) using repository
+        users = UserRepository.get_active_users()
 
         user_list = [
             {
@@ -68,11 +64,8 @@ class AdminCourseListCreateView(APIView):
             # Get instructor from instructor_id or default to current user
             instructor_id = serializer.validated_data.pop('instructor_id', None)
             if instructor_id:
-                from django.contrib.auth import get_user_model
-                User = get_user_model()
-                try:
-                    instructor = User.objects.get(id=instructor_id)
-                except User.DoesNotExist:
+                instructor = UserRepository.get_by_id(instructor_id)
+                if not instructor:
                     return Response(
                         {'error': 'Instructor not found'},
                         status=status.HTTP_400_BAD_REQUEST
@@ -122,16 +115,13 @@ class AdminCourseDetailView(APIView):
             # Handle instructor update if provided
             instructor_id = serializer.validated_data.pop('instructor_id', None)
             if instructor_id:
-                from django.contrib.auth import get_user_model
-                User = get_user_model()
-                try:
-                    instructor = User.objects.get(id=instructor_id)
-                    serializer.validated_data['instructor'] = instructor
-                except User.DoesNotExist:
+                instructor = UserRepository.get_by_id(instructor_id)
+                if not instructor:
                     return Response(
                         {'error': 'Instructor not found'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+                serializer.validated_data['instructor'] = instructor
 
             updated_course = CourseService.update_course(course, **serializer.validated_data)
             return Response(CourseDetailSerializer(updated_course).data)

@@ -3,7 +3,7 @@ Base repository class with common database patterns.
 """
 
 from typing import Optional, List, Dict, Any, Type, TypeVar, Generic, Tuple
-from django.db.models import Model, QuerySet, Q
+from django.db.models import Model, QuerySet
 from django.core.paginator import Paginator
 
 # Type variable for the model class

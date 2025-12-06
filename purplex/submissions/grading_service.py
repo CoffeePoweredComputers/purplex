@@ -6,7 +6,7 @@ This service delegates to activity type handlers for type-specific grading logic
 
 import logging
 
-from problems_app.handlers import get_handler
+from purplex.problems_app.handlers import get_handler
 
 logger = logging.getLogger(__name__)
 

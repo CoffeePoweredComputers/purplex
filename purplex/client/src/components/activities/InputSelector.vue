@@ -7,6 +7,7 @@
   <component
     :is="InputComponent"
     v-if="InputComponent"
+    :key="activityType"
     v-model="inputValue"
     :problem="problem"
     :disabled="disabled"

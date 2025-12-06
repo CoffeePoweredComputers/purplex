@@ -1,7 +1,7 @@
 """Service layer for student-related business logic."""
 
 import logging
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, TYPE_CHECKING
 from django.http import Http404
 
 from ..repositories import (
@@ -14,7 +14,7 @@ from ..repositories import (
 # Import models only for type hints
 if TYPE_CHECKING:
     from django.db.models import QuerySet
-    from ..models import Problem, ProblemSet, ProblemCategory
+    from ..models import Problem, ProblemSet
 
 logger = logging.getLogger(__name__)
 
@@ -103,18 +103,24 @@ class StudentService:
     @staticmethod
     def get_problem_set_problems(problem_set: 'ProblemSet', user=None) -> List[dict]:
         """
-        Get ordered problems for a problem set with test cases.
+        Get ordered problems for a problem set with test cases and handler configs.
 
         Performance: Uses prefetched data from repository to avoid N+1 queries.
-        Test cases, counts, and categories are all fetched in a single query.
+        Test cases, counts, categories, and handler configs are all included.
+
+        The handler configs (display_config, input_config, hints_config, feedback_config)
+        come from each problem type's handler via get_problem_config(). This enables
+        the frontend to render type-specific UI without hardcoded type checks.
 
         Args:
             problem_set: ProblemSet instance
             user: Optional user for progress filtering
 
         Returns:
-            List of problem data with ordering, categories, and test cases
+            List of problem data with ordering, categories, test cases, and handler configs
         """
+        from ..handlers import get_handler, is_registered
+
         # Get problems through the membership table to preserve order
         # Repository returns structured data with categories AND test cases (optimized)
         memberships_data = ProblemSetMembershipRepository.get_problem_set_memberships_with_categories(problem_set)
@@ -122,21 +128,61 @@ class StudentService:
         problems_data = []
         for membership in memberships_data:
             problem = membership['problem']
+            problem_obj = membership['problem_obj']  # Problem model instance for handler calls
+
             if problem['is_active']:
                 problem_data = {
+                    # Core fields (all problem types)
                     'slug': problem['slug'],
                     'title': problem['title'],
-                    'description': problem['description'],
                     'difficulty': problem['difficulty'],
                     'problem_type': problem['problem_type'],
-                    'segmentation_enabled': problem['segmentation_enabled'],
-                    'reference_solution': problem['reference_solution'],
                     'order': membership['order'],
                     'categories': problem['categories'],
-                    'test_cases': problem['test_cases'],  # ✅ From prefetched data (no query)
-                    'test_case_count': problem['test_case_count'],  # ✅ From prefetched data (no query)
-                    'visible_test_case_count': problem['visible_test_case_count']  # ✅ From prefetched data (no query)
+                    # Test cases (all types)
+                    'test_cases': problem['test_cases'],
+                    'test_case_count': problem['test_case_count'],
+                    'visible_test_case_count': problem['visible_test_case_count'],
+                    # SpecProblem fields (EiPL, Prompt) - None for MCQ
+                    'function_name': problem['function_name'],
+                    'function_signature': problem['function_signature'],
+                    'reference_solution': problem['reference_solution'],
+                    'segmentation_enabled': problem['segmentation_enabled'],
+                    'segmentation_config': problem['segmentation_config'],
+                    # MCQ fields - None for EiPL/Prompt
+                    'question_text': problem['question_text'],
+                    'options': problem['options'],
+                    'allow_multiple': problem['allow_multiple'],
+                    # Prompt-specific fields (image_url, image_alt_text)
+                    'image_url': problem['image_url'],
+                    'image_alt_text': problem['image_alt_text'],
                 }
+
+                # Enrich with handler-provided configs
+                # These configs tell the frontend how to render this problem type
+                problem_type = problem['problem_type']
+                if is_registered(problem_type):
+                    try:
+                        handler = get_handler(problem_type)
+                        config = handler.get_problem_config(problem_obj)
+                        problem_data['display_config'] = config.get('display', {})
+                        problem_data['input_config'] = config.get('input', {})
+                        problem_data['hints_config'] = config.get('hints', {})
+                        problem_data['feedback_config'] = config.get('feedback', {})
+                    except Exception as e:
+                        logger.warning(f"Failed to get handler config for {problem_type}: {e}")
+                        # Provide empty configs as fallback
+                        problem_data['display_config'] = {}
+                        problem_data['input_config'] = {}
+                        problem_data['hints_config'] = {}
+                        problem_data['feedback_config'] = {}
+                else:
+                    # Unknown type - provide empty configs
+                    problem_data['display_config'] = {}
+                    problem_data['input_config'] = {}
+                    problem_data['hints_config'] = {}
+                    problem_data['feedback_config'] = {}
+
                 problems_data.append(problem_data)
 
         return problems_data

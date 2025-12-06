@@ -3,7 +3,7 @@ Repository for Course model data access.
 """
 
 from typing import Optional, List, Dict, Any
-from django.db.models import QuerySet, Q, Prefetch, Count, Sum
+from django.db.models import Q, Count
 from django.contrib.auth.models import User
 
 from purplex.problems_app.models import Course, CourseEnrollment, CourseProblemSet
@@ -432,10 +432,10 @@ class CourseRepository(BaseRepository):
     @classmethod
     def search_courses(cls, query: str) -> List[Dict[str, Any]]:
         """Search for courses by name, description, or course_id.
-        
+
         Args:
             query: Search query string
-            
+
         Returns:
             List of dicts with matching course data
         """
@@ -446,7 +446,7 @@ class CourseRepository(BaseRepository):
             is_active=True,
             is_deleted=False
         ).select_related('instructor')
-        
+
         return [
             {
                 'id': c.id,
@@ -458,3 +458,17 @@ class CourseRepository(BaseRepository):
             }
             for c in courses
         ]
+
+    @classmethod
+    def get_all_names(cls) -> List[str]:
+        """
+        Get all unique course names for filter dropdowns.
+
+        Returns:
+            List of course names, sorted alphabetically
+        """
+        return list(
+            Course.objects.values_list('name', flat=True)
+            .order_by('name')
+            .distinct()
+        )

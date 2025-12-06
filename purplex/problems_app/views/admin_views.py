@@ -2,19 +2,19 @@
 
 import json
 import logging
-from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.conf import settings
-from django.db.models import Q, Count, Avg, Prefetch
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from ..serializers import (
-    AdminProblemSerializer, ProblemSetSerializer, ProblemCategorySerializer,
-    TestCaseSerializer
+    AdminProblemSerializer, AdminMcqProblemSerializer, McqProblemSerializer,
+    ProblemSetSerializer, AdminProblemSetSerializer, ProblemCategorySerializer, TestCaseSerializer,
+    ProblemPolymorphicListSerializer
 )
+from ..models import McqProblem
 from ..services.admin_service import AdminProblemService
 from purplex.users_app.permissions import IsAdmin
 from purplex.submissions.repositories import SubmissionRepository
@@ -32,7 +32,8 @@ class AdminProblemListView(APIView):
     def get(self, request):
         # Use service layer to get problems with optimized queries
         problems = AdminProblemService.get_all_problems_optimized()
-        serializer = AdminProblemSerializer(problems, many=True)
+        # Use polymorphic serializer to handle different problem types
+        serializer = ProblemPolymorphicListSerializer(problems, many=True)
         return Response(serializer.data)
     
     def post(self, request):
@@ -43,7 +44,13 @@ class AdminProblemListView(APIView):
         logger.info(f"Creating problem with data: {data}")
         logger.info(f"Problem set slugs: {problem_set_slugs}")
 
-        serializer = AdminProblemSerializer(data=data)
+        # Route to correct serializer based on problem_type
+        problem_type = data.get('problem_type', 'eipl')
+        if problem_type == 'mcq':
+            serializer = AdminMcqProblemSerializer(data=data)
+        else:
+            serializer = AdminProblemSerializer(data=data)
+
         if serializer.is_valid():
             try:
                 with transaction.atomic():
@@ -55,9 +62,12 @@ class AdminProblemListView(APIView):
                             problem, problem_set_slugs
                         )
 
-                    # Return the serialized problem with all relations
-                    serializer = AdminProblemSerializer(problem)
-                    return Response(serializer.data, status=status.HTTP_201_CREATED)
+                    # Return the serialized problem with correct serializer
+                    if problem_type == 'mcq':
+                        response_serializer = McqProblemSerializer(problem)
+                    else:
+                        response_serializer = AdminProblemSerializer(problem)
+                    return Response(response_serializer.data, status=status.HTTP_201_CREATED)
             except Exception as e:
                 logger.error(f"Failed to create problem: {str(e)}")
                 return Response({
@@ -80,7 +90,11 @@ class AdminProblemDetailView(APIView):
                 {'error': f'Problem with slug {slug} not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        serializer = AdminProblemSerializer(problem)
+        # Use correct serializer based on problem type
+        if isinstance(problem, McqProblem):
+            serializer = McqProblemSerializer(problem)
+        else:
+            serializer = AdminProblemSerializer(problem)
         return Response(serializer.data)
     
     def put(self, request, slug):
@@ -90,33 +104,41 @@ class AdminProblemDetailView(APIView):
                 {'error': f'Problem with slug {slug} not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Use service layer to prepare data
         data, problem_sets_slugs = AdminProblemService.prepare_problem_data(request.data)
-        
-        serializer = AdminProblemSerializer(problem, data=data, partial=True)
+
+        # Use correct serializer based on problem type
+        is_mcq = isinstance(problem, McqProblem)
+        if is_mcq:
+            serializer = AdminMcqProblemSerializer(problem, data=data, partial=True)
+        else:
+            serializer = AdminProblemSerializer(problem, data=data, partial=True)
+
         if serializer.is_valid():
             try:
                 with transaction.atomic():
                     problem = serializer.save()
-                    
+
                     # Use service layer to handle problem sets relationship
                     # Only update problem sets if explicitly provided in the request
                     if 'problem_sets' in request.data:
                         problem_sets = AdminProblemService.get_problem_sets_by_slugs(problem_sets_slugs)
                         AdminProblemService.update_problem_set_relations(problem, problem_sets)
-                    
-                    # Return fresh data with all relationships
+
+                    # Return fresh data with correct serializer
+                    if is_mcq:
+                        return Response(McqProblemSerializer(problem).data)
                     return Response(AdminProblemSerializer(problem).data)
             except Exception as e:
                 logger.error(f"Failed to update problem {slug}: {str(e)}")
                 logger.error(f"Exception type: {type(e).__name__}")
                 logger.error(f"Exception args: {e.args}")
-                
+
                 # Import traceback for more detailed error information
                 import traceback
                 logger.error(f"Full traceback: {traceback.format_exc()}")
-                
+
                 return Response({
                     'error': f'Failed to update problem: {str(e)}'
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -131,12 +153,13 @@ class AdminProblemDetailView(APIView):
             )
         
         # Use service layer to delete the problem
-        if AdminProblemService.delete_problem(problem):
+        result = AdminProblemService.delete_problem(problem)
+        if result['success']:
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(
-                {'error': 'Failed to delete problem'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {'error': result.get('error', 'Failed to delete problem')},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
 
@@ -316,12 +339,13 @@ class AdminProblemSetDetailView(APIView):
                 {'error': f'Problem set with slug {slug} not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        serializer = ProblemSetSerializer(problem_set)
+        # Use AdminProblemSetSerializer which includes problems_detail
+        serializer = AdminProblemSetSerializer(problem_set)
         data = serializer.data
-        
+
         if problem_set.icon:
             data['icon'] = SERVER_URL + problem_set.icon.url
-            
+
         return Response(data)
     
     def put(self, request, slug):
@@ -408,7 +432,7 @@ class AdminCategoryView(APIView):
     def post(self, request):
         serializer = ProblemCategorySerializer(data=request.data)
         if serializer.is_valid():
-            category = serializer.save()
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -461,10 +485,10 @@ class AdminSubmissionListView(APIView):
             })
 
         # Get filter metadata - all available options for dropdowns
-        from purplex.problems_app.models import ProblemSet, Course
+        from purplex.problems_app.repositories import ProblemSetRepository, CourseRepository
         filter_metadata = {
-            'problem_sets': list(ProblemSet.objects.values_list('title', flat=True).order_by('title').distinct()),
-            'courses': list(Course.objects.values_list('name', flat=True).order_by('name').distinct()),
+            'problem_sets': ProblemSetRepository.get_all_titles(),
+            'courses': CourseRepository.get_all_names(),
             'statuses': ['incomplete', 'partial', 'complete']  # Valid completion_status values
         }
 

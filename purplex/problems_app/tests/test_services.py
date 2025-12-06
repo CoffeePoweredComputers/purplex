@@ -2,7 +2,7 @@
 Test suite for all service layer components including segmentation.
 """
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 from django.test import TestCase
 from ..services.docker_execution_service import DockerExecutionService as CodeExecutionService
 from purplex.problems_app.services.segmentation_service import SegmentationService
@@ -34,8 +34,7 @@ class TestServiceIntegration(TestCase):
         
         # Test data
         user_prompt = "This function calculates the sum of two numbers"
-        reference_code = "def add(a, b):\n    return a + b"
-        
+
         # Test segment validation
         valid_segment = "calculates the sum"
         invalid_segment = "computes the total"  # paraphrased
@@ -50,14 +49,14 @@ class TestServiceIntegration(TestCase):
         mock_client = MagicMock()
         mock_openai_class.return_value = mock_client
         
-        # Mock API response
+        # Mock API response - using non-overlapping lines for one-to-one mapping
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = '''
         {
             "segments": [
-                {"id": 1, "text": "calculates the sum", "code_lines": [1, 2]},
-                {"id": 2, "text": "two numbers", "code_lines": [1]}
+                {"id": 1, "text": "calculates the sum", "code_lines": [1]},
+                {"id": 2, "text": "two numbers", "code_lines": [2]}
             ]
         }
         '''
@@ -93,7 +92,7 @@ class TestServiceIntegration(TestCase):
         """Test CodeExecutionService basic functionality"""
         service = CodeExecutionService()
         self.assertIsNotNone(service)
-        self.assertEqual(service.timeout, 5)  # Default timeout
+        self.assertEqual(service.max_execution_time, 5)  # Default max execution time
         
     def test_validation_service(self):
         """Test ProblemValidationService initialization"""
@@ -108,17 +107,15 @@ class TestSegmentationPromptGeneration(TestCase):
         self.service = SegmentationService()
         
     def test_prompt_includes_critical_rules(self):
-        """Test that generated prompts include verbatim rules"""
+        """Test that generated prompts include one-to-one mapping rules"""
         reference_code = "def test():\n    pass"
         prompt = self.service._create_segmentation_prompt(reference_code)
-        
-        # Check for critical elements
-        self.assertIn("CRITICAL RULES", prompt)
-        self.assertIn("EXACT text from the student's explanation", prompt)
-        self.assertIn("character-for-character substring", prompt)
-        self.assertIn("DO NOT paraphrase", prompt)
-        self.assertIn("WARNING", prompt)
-        self.assertIn("Copy-paste precision", prompt)
+
+        # Check for critical one-to-one mapping elements (current format)
+        self.assertIn("CRITICAL ONE-TO-ONE MAPPING RULES", prompt)
+        self.assertIn("EXACTLY ONE distinct code section", prompt)
+        self.assertIn("no overlapping", prompt.lower())
+        self.assertIn("ONE-TO-ONE MAPPING VALIDATION", prompt)
         
     def test_prompt_with_examples(self):
         """Test prompt generation with custom examples"""

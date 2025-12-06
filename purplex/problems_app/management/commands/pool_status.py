@@ -19,7 +19,7 @@ except ImportError:
     DOCKER_AVAILABLE = False
 
 try:
-    import psutil
+    import psutil  # noqa: F401 - availability check pattern
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
@@ -97,7 +97,7 @@ class Command(BaseCommand):
             from purplex.problems_app.services.docker_execution_service import SharedDockerServiceContext
             with SharedDockerServiceContext() as service:
                 metrics = service.get_pool_metrics()
-        except Exception as e:
+        except Exception:
             # Service not available or failed - that's okay
             pass
 
@@ -196,10 +196,9 @@ class Command(BaseCommand):
                 utilization = (pool_max - pool_size) / pool_max * 100
                 self.stdout.write(f"  Pool utilization:      {utilization:.1f}% ({pool_max - pool_size}/{pool_max} in use)")
 
-            total_requests = metrics.get('total_created', 0)
-            if total_requests > 0:
-                hit_rate = (metrics.get('total_created', 0) - metrics.get('total_removed', 0)) / total_requests * 100
-                self.stdout.write(f"  Containers created:    {metrics.get('total_created', 0)}")
+            total_created = metrics.get('total_created', 0)
+            if total_created > 0:
+                self.stdout.write(f"  Containers created:    {total_created}")
                 self.stdout.write(f"  Containers removed:    {metrics.get('total_removed', 0)}")
 
             health_checks = metrics.get('health_checks_performed', 0)
@@ -217,7 +216,8 @@ class Command(BaseCommand):
 
             mem_status = '✅' if mem['percent'] < 75 else '⚠️'
             mem_style = self.style.SUCCESS if mem['percent'] < 75 else self.style.WARNING
-            self.stdout.write(f"  Usage:                 {mem_style(f\"{mem['percent']}%\")} {mem_status}\n")
+            mem_percent = f"{mem['percent']}%"
+            self.stdout.write(f"  Usage:                 {mem_style(mem_percent)} {mem_status}\n")
 
         # Overall status
         status_style = {

@@ -29,24 +29,38 @@ class ProblemValidationService:
     def validate_problem_data(data: dict) -> tuple[bool, Optional[str]]:
         """
         Validate problem data before saving
-        
+
         Returns:
             (is_valid, error_message)
         """
-        # Required fields (function_signature is required for test case parsing)
-        required_fields = ['title', 'reference_solution', 'function_signature']
-        for field in required_fields:
-            if not data.get(field):
-                return False, f"{field} is required"
-        
+        problem_type = data.get('problem_type', 'eipl')
+
+        # Title is always required
+        if not data.get('title'):
+            return False, "title is required"
+
         # Title validation
         title = data['title'].strip()
         if len(title) < ProblemValidationService.MIN_TITLE_LENGTH:
             return False, f"Title must be at least {ProblemValidationService.MIN_TITLE_LENGTH} characters long"
         if len(title) > ProblemValidationService.MAX_TITLE_LENGTH:
             return False, f"Title must not exceed {ProblemValidationService.MAX_TITLE_LENGTH} characters"
-        
-        # Description validation (now optional - field is deprecated)
+
+        # MCQ-specific validation
+        if problem_type == 'mcq':
+            # MCQ requires description (the question text)
+            if not data.get('description'):
+                return False, "Description is required for MCQ problems (this is the question text)"
+            # MCQ doesn't need reference_solution or function_signature
+            return True, None
+
+        # For non-MCQ problems: require reference_solution and function_signature
+        required_fields = ['reference_solution', 'function_signature']
+        for field in required_fields:
+            if not data.get(field):
+                return False, f"{field} is required"
+
+        # Description validation (optional for non-MCQ)
         if data.get('description'):
             description = data['description'].strip()
             # Only validate if provided (for backwards compatibility)
@@ -82,7 +96,7 @@ class ProblemValidationService:
             is_valid, error = ProblemValidationService.validate_function_name(extracted_name)
             if not is_valid:
                 return False, f"Function name in reference solution is invalid: {error}"
-        
+
         return True, None
     
     @staticmethod

@@ -22,6 +22,7 @@ export const BRAND_TRANSLITERATIONS: Record<string, string> = {
   es: 'Purplex',       // Latin (no change)
   fr: 'Purplex',       // Latin (no change)
   de: 'Purplex',       // Latin (no change)
+  mi: 'Pāpuraruraru',  // Te Reo Māori
 };
 
 export const BRAND_LATIN = 'Purplex';
@@ -53,6 +54,7 @@ export const SUPPORTED_LANGUAGES: LanguageInfo[] = [
   { code: 'es', name: 'Spanish', native: 'Español', brand: 'Purplex' },
   { code: 'fr', name: 'French', native: 'Français', brand: 'Purplex' },
   { code: 'de', name: 'German', native: 'Deutsch', brand: 'Purplex' },
+  { code: 'mi', name: 'Māori', native: 'Te Reo Māori', brand: 'Pāpuraruraru' },
 ];
 
 /**

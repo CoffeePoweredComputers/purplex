@@ -3,7 +3,7 @@ Repository for UserProfile model data access.
 """
 
 from typing import Optional, List, Dict, Any, Tuple
-from django.db.models import QuerySet, Q
+from django.db.models import QuerySet
 from django.db import IntegrityError
 from django.contrib.auth.models import User
 import logging
@@ -88,33 +88,7 @@ class UserProfileRepository(BaseRepository):
             return UserProfile.objects.get(firebase_uid=firebase_uid)
         except UserProfile.DoesNotExist:
             return None
-    
-    @classmethod
-    def get_by_firebase_uid_for_update(cls, firebase_uid: str) -> Optional[UserProfile]:
-        """
-        DEPRECATED: This method uses database locks which cause performance bottlenecks.
-        Use get_or_create_with_user() instead which handles race conditions without locks.
 
-        Get a user profile by Firebase UID with a database lock for update.
-        This is used for atomic operations to prevent race conditions.
-
-        Args:
-            firebase_uid: The Firebase UID
-
-        Returns:
-            UserProfile instance with update lock or None if not found
-        """
-        import warnings
-        warnings.warn(
-            "get_by_firebase_uid_for_update is deprecated. Use get_or_create_with_user instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        try:
-            return UserProfile.objects.select_for_update().get(firebase_uid=firebase_uid)
-        except UserProfile.DoesNotExist:
-            return None
-    
     @classmethod
     def get_by_firebase_with_user(cls, firebase_uid: str) -> Optional[UserProfile]:
         """
@@ -309,53 +283,6 @@ class UserProfileRepository(BaseRepository):
         return None
     
     @classmethod
-    def update_by_user(cls, user: User, **kwargs) -> Optional[UserProfile]:
-        """
-        Update a user profile by user reference.
-        
-        Args:
-            user: The User instance
-            **kwargs: Fields to update
-            
-        Returns:
-            Updated UserProfile instance or None if not found
-        """
-        updated = UserProfile.objects.filter(user=user).update(**kwargs)
-        if updated:
-            return cls.get_by_user(user)
-        return None
-    
-    @classmethod
-    def update_by_firebase_uid(cls, firebase_uid: str, **kwargs) -> Optional[UserProfile]:
-        """
-        Update a user profile by Firebase UID.
-        
-        Args:
-            firebase_uid: The Firebase UID
-            **kwargs: Fields to update
-            
-        Returns:
-            Updated UserProfile instance or None if not found
-        """
-        updated = UserProfile.objects.filter(firebase_uid=firebase_uid).update(**kwargs)
-        if updated:
-            return cls.get_by_firebase_uid(firebase_uid)
-        return None
-    
-    @classmethod
-    def firebase_uid_exists(cls, firebase_uid: str) -> bool:
-        """
-        Check if a Firebase UID already exists.
-        
-        Args:
-            firebase_uid: The Firebase UID to check
-            
-        Returns:
-            True if exists, False otherwise
-        """
-        return UserProfile.objects.filter(firebase_uid=firebase_uid).exists()
-    
-    @classmethod
     def get_or_create(cls, user: User, defaults: Dict[str, Any] = None) -> tuple[UserProfile, bool]:
         """
         Get or create a user profile for a user.
@@ -391,34 +318,6 @@ class UserProfileRepository(BaseRepository):
             QuerySet of all UserProfiles with users
         """
         return UserProfile.objects.all().select_related('user')
-    
-    @classmethod
-    def delete_by_user(cls, user: User) -> bool:
-        """
-        Delete a user profile by user reference.
-        
-        Args:
-            user: The User instance
-            
-        Returns:
-            True if deleted, False if not found
-        """
-        deleted, _ = UserProfile.objects.filter(user=user).delete()
-        return deleted > 0
-    
-    @classmethod
-    def delete_by_firebase_uid(cls, firebase_uid: str) -> bool:
-        """
-        Delete a user profile by Firebase UID.
-        
-        Args:
-            firebase_uid: The Firebase UID
-            
-        Returns:
-            True if deleted, False if not found
-        """
-        deleted, _ = UserProfile.objects.filter(firebase_uid=firebase_uid).delete()
-        return deleted > 0
     
     @classmethod
     def bulk_create(cls, profiles_data: List[Dict[str, Any]]) -> List[UserProfile]:
@@ -464,39 +363,3 @@ class UserProfileRepository(BaseRepository):
         
         return queryset.select_related('user')
     
-    @classmethod
-    def update_last_login(cls, firebase_uid: str) -> bool:
-        """
-        Update the last login timestamp for a user profile.
-        
-        Args:
-            firebase_uid: The Firebase UID
-            
-        Returns:
-            True if updated, False if not found
-        """
-        from django.utils import timezone
-        updated = UserProfile.objects.filter(firebase_uid=firebase_uid).update(
-            last_login=timezone.now()
-        )
-        return updated > 0
-    
-    @classmethod
-    def get_instructors(cls) -> QuerySet:
-        """
-        Get all user profiles with instructor role.
-        
-        Returns:
-            QuerySet of instructor profiles
-        """
-        return UserProfile.objects.filter(role='instructor').select_related('user')
-    
-    @classmethod
-    def get_students(cls) -> QuerySet:
-        """
-        Get all user profiles with student role.
-        
-        Returns:
-            QuerySet of student profiles
-        """
-        return UserProfile.objects.filter(role='student').select_related('user')

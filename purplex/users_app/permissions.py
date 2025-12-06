@@ -3,8 +3,6 @@ Clean permission system for Purplex.
 No debug bypasses, no backdoors - just proper permission checks.
 """
 from rest_framework import permissions
-from django.contrib.auth.models import User
-from typing import Any
 
 
 class IsAuthenticated(permissions.BasePermission):

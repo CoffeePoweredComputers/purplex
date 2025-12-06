@@ -12,7 +12,7 @@ from ..repositories.problem_set_repository import ProblemSetRepository
 from users_app.repositories import UserRepository
 
 if TYPE_CHECKING:
-    from ..models import CourseProblemSet
+    pass
 
 logger = logging.getLogger(__name__)
 

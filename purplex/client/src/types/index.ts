@@ -3,7 +3,7 @@
 export type DifficultyLevel = 'easy' | 'beginner' | 'intermediate' | 'advanced';
 // NOTE: Problem types are extensible via the activity type system.
 // See docs/architecture/ACTIVITY_TYPE_EXTENSIBILITY.md
-export type ProblemType = 'eipl' | 'mcq' | string;
+export type ProblemType = 'eipl' | 'mcq' | 'prompt' | string;
 
 // ===== PROBLEM CATEGORY TYPES =====
 export interface ProblemCategory {
@@ -29,9 +29,68 @@ export interface TestCaseInput {
 
 export interface TestCaseDisplay extends TestCaseInput {
   readonly id?: number;
-  inputsString: string;
-  expectedString: string;
   error?: string | null;
+}
+
+// ===== HANDLER CONFIG TYPES =====
+// These are returned by ActivityHandler.get_problem_config() on the backend
+
+export interface DisplayConfig {
+  show_reference_code?: boolean;
+  code_read_only?: boolean;
+  show_function_signature?: boolean;
+  /** Label for the input section header (e.g., "Describe the code here") */
+  section_label?: string;
+  /** Prompt-specific: show an image instead of code */
+  show_image?: boolean;
+  /** Prompt-specific: URL of the image to display */
+  image_url?: string;
+  /** Prompt-specific: alt text for the image */
+  image_alt_text?: string;
+}
+
+export interface InputConfig {
+  type?: 'textarea' | 'code' | 'radio' | 'checkbox';
+  label?: string;
+  placeholder?: string;
+  min_length?: number;
+  max_length?: number;
+  options?: Array<{ id: string; text: string }>;
+}
+
+export interface HintsHandlerConfig {
+  available?: string[];
+  enabled?: boolean;
+}
+
+export interface FeedbackConfig {
+  show_variations?: boolean;
+  show_segmentation?: boolean;
+  show_test_results?: boolean;
+  show_correct_answer?: boolean;
+}
+
+export interface SegmentationExample {
+  prompt: string;
+  segments: string[];
+  code_lines: number[][];
+}
+
+export interface SegmentationConfig {
+  enabled?: boolean;
+  threshold?: number;
+  examples?: {
+    relational?: SegmentationExample;
+    multi_structural?: SegmentationExample;
+  };
+}
+
+// ===== MCQ TYPES =====
+export interface McqOption {
+  id: string;
+  text: string;
+  is_correct?: boolean;
+  explanation?: string;
 }
 
 // ===== PROBLEM TYPES =====
@@ -51,6 +110,26 @@ export interface BaseProblem {
   readonly created_at: string;
   readonly updated_at: string;
   readonly version: number;
+  // Handler-provided configuration (from get_problem_config)
+  display_config?: DisplayConfig;
+  input_config?: InputConfig;
+  hints_config?: HintsHandlerConfig;
+  feedback_config?: FeedbackConfig;
+  // Segmentation settings (model fields)
+  segmentation_enabled?: boolean;
+  segmentation_config?: SegmentationConfig;
+  // Prompt config (model field for prompt type)
+  prompt_config?: { image_url?: string; image_alt_text?: string };
+}
+
+// MCQ-specific problem interface (polymorphic McqProblem)
+export interface McqProblem extends Omit<BaseProblem, 'function_name' | 'function_signature' | 'reference_solution'> {
+  problem_type: 'mcq';
+  question_text: string;
+  grading_mode: 'deterministic' | 'llm' | 'manual';
+  options: McqOption[];
+  allow_multiple: boolean;
+  shuffle_options: boolean;
 }
 
 export interface ProblemDetailed extends BaseProblem {
@@ -65,18 +144,38 @@ export interface ProblemDetailed extends BaseProblem {
 
 export interface ProblemCreateRequest {
   title: string;
-  description: string;
+  description?: string;
   difficulty: DifficultyLevel;
   problem_type: ProblemType;
   category_ids: number[];
-  function_name: string;
-  function_signature: string;
-  reference_solution: string;
+  function_name?: string;
+  function_signature?: string;
+  reference_solution?: string;
   hints?: string;
-  memory_limit: number;
+  memory_limit?: number;
   tags: string[];
   is_active: boolean;
-  test_cases: TestCaseInput[];
+  test_cases?: TestCaseInput[];
+  // Type-specific fields
+  segmentation_config?: SegmentationConfig | null;
+  requires_highlevel_comprehension?: boolean;
+  prompt_config?: { image_url?: string; image_alt_text?: string };
+}
+
+// MCQ-specific create request
+export interface McqProblemCreateRequest {
+  title: string;
+  difficulty: DifficultyLevel;
+  problem_type: 'mcq';
+  category_ids?: number[];
+  tags?: string[];
+  is_active?: boolean;
+  // MCQ-specific fields
+  question_text: string;
+  grading_mode?: 'deterministic' | 'llm' | 'manual';
+  options: McqOption[];
+  allow_multiple?: boolean;
+  shuffle_options?: boolean;
 }
 
 export interface ProblemUpdateRequest extends Partial<ProblemCreateRequest> {
@@ -447,7 +546,7 @@ export interface SubmissionHistoryItem {
   passed_all_tests: boolean;
   completion_status: 'incomplete' | 'partial' | 'complete';
   execution_status: string;
-  submission_type: 'direct_code' | 'eipl' | 'function_redef';
+  submission_type: 'eipl' | 'mcq' | 'prompt';
   tests_passed: number;
   total_tests: number;
   execution_time_ms: number | null;

@@ -1,6 +1,5 @@
 """Segmentation service for prompt analysis."""
 import time
-import re
 import json
 import logging
 from django.conf import settings

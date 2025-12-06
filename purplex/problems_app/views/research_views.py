@@ -6,14 +6,16 @@ import csv
 from io import StringIO
 from datetime import datetime
 from django.http import HttpResponse, JsonResponse
-from django.contrib.auth.models import User
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status as http_status
 
-from purplex.problems_app.models import Course, ProblemSet, ProgressSnapshot
+from purplex.problems_app.models import ProgressSnapshot
 from purplex.problems_app.services.research_export_service import ResearchExportService
+from purplex.problems_app.repositories.course_repository import CourseRepository
+from purplex.problems_app.repositories.problem_set_repository import ProblemSetRepository
+from purplex.users_app.repositories.user_repository import UserRepository
 import hashlib
 
 
@@ -48,18 +50,16 @@ class ResearchDataExportView(APIView):
         problem_set = None
 
         if course_id:
-            try:
-                course = Course.objects.get(course_id=course_id)
-            except Course.DoesNotExist:
+            course = CourseRepository.get_course_by_id(course_id)
+            if not course:
                 return Response(
                     {'error': f'Course {course_id} not found'},
                     status=http_status.HTTP_404_NOT_FOUND
                 )
 
         if problem_set_slug:
-            try:
-                problem_set = ProblemSet.objects.get(slug=problem_set_slug)
-            except ProblemSet.DoesNotExist:
+            problem_set = ProblemSetRepository.get_problem_set_by_slug(problem_set_slug)
+            if not problem_set:
                 return Response(
                     {'error': f'Problem set {problem_set_slug} not found'},
                     status=http_status.HTTP_404_NOT_FOUND
@@ -135,36 +135,33 @@ class ProgressHistoryExportView(APIView):
         end_date_str = request.query_params.get('end_date')
         anonymize = request.query_params.get('anonymize', 'false').lower() == 'true'
 
-        # Build queryset
-        queryset = ProgressSnapshot.objects.select_related(
-            'user', 'problem', 'problem_set'
-        ).order_by('snapshot_date', 'user', 'problem')
+        # Build queryset via repository
+        from ..repositories import ProgressRepository
+        queryset = ProgressRepository.get_snapshots_base_queryset()
 
         # Apply filters
         if course_id:
             # Filter by problem sets in course
-            try:
-                course = Course.objects.get(course_id=course_id)
-                problem_sets = course.problem_sets.all()
-                queryset = queryset.filter(problem_set__in=problem_sets)
-            except Course.DoesNotExist:
+            course = CourseRepository.get_course_by_id(course_id)
+            if not course:
                 return Response(
                     {'error': f'Course {course_id} not found'},
                     status=http_status.HTTP_404_NOT_FOUND
                 )
+            problem_sets = course.problem_sets.all()
+            queryset = queryset.filter(problem_set__in=problem_sets)
 
         if problem_set_slug:
             queryset = queryset.filter(problem_set__slug=problem_set_slug)
 
         if username:
-            try:
-                user = User.objects.get(username=username)
-                queryset = queryset.filter(user=user)
-            except User.DoesNotExist:
+            user = UserRepository.get_by_username(username)
+            if not user:
                 return Response(
                     {'error': f'User {username} not found'},
                     status=http_status.HTTP_404_NOT_FOUND
                 )
+            queryset = queryset.filter(user=user)
 
         if start_date_str:
             try:

@@ -19,6 +19,7 @@ __all__ = [
     'CodeExecutionService',
     'get_shared_docker_service',
     'cleanup_shared_service',
+    'SharedDockerServiceContext',
     'AITestGenerationService',
     'SegmentationService',
     'ProblemValidationService',

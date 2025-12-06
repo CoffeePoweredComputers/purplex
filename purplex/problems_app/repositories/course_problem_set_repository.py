@@ -4,7 +4,6 @@ Repository for CourseProblemSet model data access.
 
 from typing import Optional, List, Dict, Any
 from django.db.models import Q, Max
-from django.contrib.auth.models import User
 
 from purplex.problems_app.models import CourseProblemSet, Course, ProblemSet
 from .base_repository import BaseRepository

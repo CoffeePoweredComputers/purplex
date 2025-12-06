@@ -9,8 +9,7 @@ from purplex.problems_app.models import (
 from purplex.users_app.models import UserProfile
 from purplex.submissions.models import Submission
 from purplex.problems_app.services import ProgressService
-from datetime import datetime, timedelta
-from django.utils import timezone
+from datetime import timedelta
 import random
 
 
@@ -784,8 +783,16 @@ Multiply two 2x2 matrices.
                         'enabled': True,
                         'threshold': 3,
                         'examples': {
-                            'relational': ['The function should check if palindrome'],
-                            'multi_structural': ['First normalize the string, then check if it reads the same']
+                            'relational': {
+                                'prompt': 'The function checks if a string is a palindrome by comparing it with its reverse',
+                                'segments': ['The function should check if palindrome'],
+                                'code_lines': [[1, 2, 3]]
+                            },
+                            'multi_structural': {
+                                'prompt': 'First normalize the string, then check if it reads the same backwards',
+                                'segments': ['First normalize the string', 'then check if it reads the same'],
+                                'code_lines': [[1, 2], [3, 4]]
+                            }
                         }
                     } if data['slug'] in ['palindrome-checker', 'string-compression'] else {}
                 }

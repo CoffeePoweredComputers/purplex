@@ -1,12 +1,10 @@
-import json
 from django.test import TransactionTestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
-from django.db import transaction
 from ..models import (
-    Problem, ProblemHint, ProblemSet, ProblemSetMembership,
+    EiplProblem, ProblemHint, ProblemSet, ProblemSetMembership,
     UserProgress, Course, CourseEnrollment
 )
 
@@ -50,10 +48,9 @@ class HintWorkflowIntegrationTests(TransactionTestCase):
         )
         
         # Create problem
-        self.problem = Problem.objects.create(
+        self.problem = EiplProblem.objects.create(
             slug='sum-function',
             title='Sum Function',
-            description='Write a function that adds two numbers',
             function_name='add_numbers',
             function_signature='def add_numbers(a, b):',
             reference_solution='def add_numbers(a, b):\n    return a + b',
@@ -267,16 +264,16 @@ class HintWorkflowIntegrationTests(TransactionTestCase):
         """Test updating hint configuration when users already have progress"""
         
         # Create initial hint configuration
-        hint1 = ProblemHint.objects.create(
+        ProblemHint.objects.create(
             problem=self.problem,
             hint_type='variable_fade',
             is_enabled=True,
             min_attempts=5,
             content={'mappings': []}
         )
-        
+
         # Create user progress
-        progress = UserProgress.objects.create(
+        UserProgress.objects.create(
             user=self.student_user,
             problem=self.problem,
             problem_set=self.problem_set,
@@ -437,7 +434,6 @@ class HintWorkflowIntegrationTests(TransactionTestCase):
     def test_concurrent_hint_access(self):
         """Test hint access under concurrent conditions"""
         import threading
-        import time
         
         # Create hint
         ProblemHint.objects.create(

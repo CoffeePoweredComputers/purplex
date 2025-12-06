@@ -8,11 +8,9 @@ that manages the entire pipeline and publishes consistent progress events.
 from celery import shared_task
 import json
 import logging
-import os
 import time
 import redis
 from typing import Dict, List, Any, Optional, TYPE_CHECKING
-from django.conf import settings
 from purplex.utils.redis_client import get_pubsub_client
 from django.db import transaction
 from contextlib import contextmanager
@@ -35,8 +33,8 @@ try:
 except ImportError:
     SENTRY_AVAILABLE = False
 
-# Import services only (not repositories directly)
-from purplex.problems_app.services.problem_service import ProblemService
+# Import services and repositories
+from purplex.problems_app.repositories import ProblemRepository
 from purplex.problems_app.services.test_case_service import TestCaseService
 from purplex.submissions.services import SubmissionService  # Use new submission service
 from purplex.submissions.models import CodeVariation
@@ -48,9 +46,7 @@ from purplex.users_app.services.user_service import UserService
 
 # Import models only for type hints
 if TYPE_CHECKING:
-    from django.contrib.auth.models import User
-    from purplex.problems_app.models import Problem, ProblemSet, Course
-    from purplex.submissions.models import Submission, SegmentationAnalysis
+    from purplex.submissions.models import Submission
 
 logger = logging.getLogger(__name__)
 
@@ -232,8 +228,9 @@ def _build_cached_mcq_result(submission: 'Submission') -> Dict[str, Any]:
     """
     from purplex.problems_app.handlers import get_handler
 
-    # Ensure we have the problem relationship
-    submission = submission.__class__.objects.select_related('problem').get(pk=submission.pk)
+    # Re-fetch submission to ensure all relationships are fresh
+    # NOTE: 'problem' excluded from select_related for django-polymorphic to resolve subclass
+    submission = submission.__class__.objects.get(pk=submission.pk)
 
     handler = get_handler('mcq')
 
@@ -246,9 +243,9 @@ def _build_cached_mcq_result(submission: 'Submission') -> Dict[str, Any]:
 
 
 def generate_variations_helper(problem_id: int, user_prompt: str) -> List[str]:
-    """Helper function to generate code variations using service layer."""
-    # Get problem through service
-    problem = ProblemService.get_problem_by_id(problem_id)
+    """Helper function to generate code variations using repository layer."""
+    # Get problem through repository
+    problem = ProblemRepository.get_by_id(problem_id)
     if not problem or not problem.is_active:
         raise Exception(f"Problem {problem_id} not found or not active")
     
@@ -262,9 +259,9 @@ def generate_variations_helper(problem_id: int, user_prompt: str) -> List[str]:
 
 
 def test_variation_helper(code: str, problem_id: int, variation_index: int) -> Dict[str, Any]:
-    """Helper function to test a single variation using service layer."""
-    # Get problem through service
-    problem = ProblemService.get_problem_by_id(problem_id)
+    """Helper function to test a single variation using repository layer."""
+    # Get problem through repository
+    problem = ProblemRepository.get_by_id(problem_id)
     if not problem:
         raise Exception(f"Problem {problem_id} not found")
 
@@ -334,7 +331,7 @@ def test_variation_helper(code: str, problem_id: int, variation_index: int) -> D
 def segment_prompt_helper(user_prompt: str, problem_id: int) -> Optional[Dict[str, Any]]:
     """Helper function for prompt segmentation using service layer."""
     # Get problem through service
-    problem = ProblemService.get_problem_by_id(problem_id)
+    problem = ProblemRepository.get_problem_by_id(problem_id)
     if not problem:
         raise Exception(f"Problem {problem_id} not found")
     
@@ -376,13 +373,13 @@ def save_submission_helper(
     if not user:
         raise Exception(f"User {user_id} not found")
 
-    problem = ProblemService.get_problem_by_id(problem_id)
+    problem = ProblemRepository.get_problem_by_id(problem_id)
     if not problem:
         raise Exception(f"Problem {problem_id} not found")
 
     problem_set = None
     if problem_set_id:
-        problem_set = ProblemService.get_problem_set_by_id(problem_set_id)
+        problem_set = ProblemRepository.get_problem_set_by_id(problem_set_id)
         if not problem_set:
             raise Exception(f"Problem set {problem_set_id} not found")
 
@@ -886,7 +883,8 @@ def execute_eipl_pipeline(
         from purplex.submissions.models import Submission
 
         handler = get_handler('eipl')
-        submission = Submission.objects.select_related('problem').prefetch_related(
+        # NOTE: 'problem' excluded from select_related for django-polymorphic to resolve subclass
+        submission = Submission.objects.prefetch_related(
             'code_variations', 'code_variations__test_executions'
         ).get(submission_id=submission_result['submission_id'])
 
@@ -995,7 +993,7 @@ def execute_mcq_pipeline(
         # ─── Phase 1: Load entities ─────────────────────────────────
         publish_progress(task_id, 10, "Loading problem...")
 
-        problem = ProblemService.get_problem_by_id(problem_id)
+        problem = ProblemRepository.get_problem_by_id(problem_id)
         if not problem:
             raise ValueError(f"Problem not found: {problem_id}")
 
@@ -1005,7 +1003,7 @@ def execute_mcq_pipeline(
 
         problem_set = None
         if problem_set_id:
-            problem_set = ProblemService.get_problem_set_by_id(problem_set_id)
+            problem_set = ProblemRepository.get_problem_set_by_id(problem_set_id)
 
         course = None
         if course_id:
@@ -1014,10 +1012,17 @@ def execute_mcq_pipeline(
         publish_progress(task_id, 30, "Checking answer...")
 
         # ─── Phase 2: Check answer ──────────────────────────────────
-        mcq_options = getattr(problem, 'mcq_options', None) or []
+        # Get the actual McqProblem instance for MCQ-specific fields
+        from purplex.problems_app.models import McqProblem
+        if isinstance(problem, McqProblem):
+            mcq = problem
+        else:
+            mcq = McqProblem.objects.get(pk=problem.pk)
+
+        mcq_options = mcq.options or []
 
         if not mcq_options:
-            raise ValueError(f"MCQ problem {problem.slug} has no options configured")
+            raise ValueError(f"MCQ problem {mcq.slug} has no options configured")
 
         # Find correct answer
         correct_option = next(

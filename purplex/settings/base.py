@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'django_celery_beat',  # Celery periodic tasks
+    'polymorphic',  # Django polymorphic models
 
     # Our apps
     'purplex.problems_app',
@@ -151,6 +152,7 @@ LANGUAGES = [
     ('es', 'Spanish'),
     ('fr', 'French'),
     ('de', 'German'),
+    ('mi', 'Māori'),
 ]
 
 # Path to translation files
@@ -306,4 +308,3 @@ USE_MOCK_OPENAI = config.use_mock_openai
 PURPLEX_ENVIRONMENT = config.env.value
 
 # Import security configuration
-from purplex.settings.security import CODE_EXECUTION

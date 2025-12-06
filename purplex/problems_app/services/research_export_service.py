@@ -14,7 +14,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from purplex.problems_app.models import (
-    Problem, ProblemSet, Course, UserProgress, ProgressSnapshot
+    ProblemSet, Course, UserProgress, ProgressSnapshot
 )
 from purplex.submissions.models import Submission
 from purplex.utils.anonymization import AnonymizationService
@@ -99,23 +99,15 @@ class ResearchExportService:
         anonymize: bool
     ) -> List[Dict[str, Any]]:
         """Export detailed submission data."""
-        # Build filtered queryset
-        queryset = Submission.objects.select_related(
-            'user', 'problem', 'problem_set', 'course', 'segmentation'
-        ).prefetch_related(
-            'test_executions__test_case',
-            'hint_activations__hint',
-            'code_variations',
-        )
+        from purplex.submissions.repositories import SubmissionRepository
 
-        if course:
-            queryset = queryset.filter(course=course)
-        if problem_set:
-            queryset = queryset.filter(problem_set=problem_set)
-        if start_date:
-            queryset = queryset.filter(submitted_at__gte=start_date)
-        if end_date:
-            queryset = queryset.filter(submitted_at__lte=end_date)
+        # Build filtered queryset via repository
+        queryset = SubmissionRepository.get_for_research_export(
+            course=course,
+            problem_set=problem_set,
+            start_date=start_date,
+            end_date=end_date
+        )
 
         submissions = []
         for submission in queryset:
@@ -165,14 +157,13 @@ class ResearchExportService:
         anonymize: bool
     ) -> List[Dict[str, Any]]:
         """Export current progress state for all users."""
-        queryset = UserProgress.objects.select_related(
-            'user', 'problem', 'problem_set', 'course'
-        )
+        from ..repositories import ProgressRepository
 
-        if course:
-            queryset = queryset.filter(course=course)
-        if problem_set:
-            queryset = queryset.filter(problem_set=problem_set)
+        # Get progress via repository
+        queryset = ProgressRepository.get_for_research_export(
+            course=course,
+            problem_set=problem_set
+        )
 
         progress_data = []
         for progress in queryset:
@@ -210,17 +201,14 @@ class ResearchExportService:
         anonymize: bool
     ) -> List[Dict[str, Any]]:
         """Export historical progress snapshots."""
-        queryset = ProgressSnapshot.objects.select_related(
-            'user', 'problem', 'problem_set'
+        from ..repositories import ProgressRepository
+
+        # Get snapshots via repository
+        queryset = ProgressRepository.get_snapshots_for_research_export(
+            problem_set=problem_set,
+            start_date=start_date,
+            end_date=end_date
         )
-
-        if problem_set:
-            queryset = queryset.filter(problem_set=problem_set)
-
-        if start_date:
-            queryset = queryset.filter(snapshot_date__gte=start_date.date())
-        if end_date:
-            queryset = queryset.filter(snapshot_date__lte=end_date.date())
 
         snapshots = []
         for snapshot in queryset:
@@ -245,20 +233,13 @@ class ResearchExportService:
         anonymize: bool
     ) -> List[Dict[str, Any]]:
         """Export hint usage patterns and effectiveness."""
-        from purplex.problems_app.models import HintActivation
+        from ..repositories import HintRepository
 
-        queryset = HintActivation.objects.select_related(
-            'submission__user',
-            'submission__problem',
-            'submission__problem_set',
-            'submission__course',
-            'hint'
+        # Get hint activations via repository
+        queryset = HintRepository.get_activations_for_research_export(
+            course=course,
+            problem_set=problem_set
         )
-
-        if course:
-            queryset = queryset.filter(submission__course=course)
-        if problem_set:
-            queryset = queryset.filter(submission__problem_set=problem_set)
 
         hint_usage = []
         for activation in queryset:

@@ -2,6 +2,7 @@
   <component
     :is="FeedbackComponent"
     v-if="FeedbackComponent"
+    :key="activityType"
     :progress="progress"
     :notches="notches"
     :code-results="codeResults"

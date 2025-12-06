@@ -1,5 +1,5 @@
 """Service for managing test cases with proper abstraction."""
-from typing import List, Dict, Any, Optional, TYPE_CHECKING
+from typing import List, Dict, Any, TYPE_CHECKING
 
 from ..repositories import TestCaseRepository
 

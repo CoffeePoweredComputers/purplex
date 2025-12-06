@@ -3,8 +3,8 @@ Repository for ProblemSetMembership model data access.
 """
 
 from typing import Optional, List, Dict, Any
-from django.db.models import Q, Prefetch
 
+from django.db.models import Prefetch
 from purplex.problems_app.models import ProblemSetMembership, Problem, ProblemSet
 from .base_repository import BaseRepository
 
@@ -67,7 +67,7 @@ class ProblemSetMembershipRepository(BaseRepository):
         """
         return list(ProblemSetMembership.objects.filter(
             problem_set=problem_set
-        ).select_related('problem').order_by('order'))
+        ).order_by('order'))
     
     @classmethod
     def get_problem_set_memberships_with_categories(cls, problem_set: ProblemSet) -> List[Dict[str, Any]]:
@@ -83,11 +83,14 @@ class ProblemSetMembershipRepository(BaseRepository):
         Returns:
             List of dicts with membership and problem data including categories and test cases
         """
+        # Use Prefetch with Problem.objects.all() for proper polymorphic resolution
+        # This ensures we get correct subclass instances (EiplProblem, McqProblem, etc.)
         memberships = ProblemSetMembership.objects.filter(
             problem_set=problem_set
-        ).select_related('problem').prefetch_related(
+        ).prefetch_related(
+            Prefetch('problem', queryset=Problem.objects.all()),
             'problem__categories',
-            'problem__test_cases'  # Prefetch test cases to avoid N+1
+            'problem__test_cases'
         ).order_by('order')
 
         result = []
@@ -112,23 +115,42 @@ class ProblemSetMembershipRepository(BaseRepository):
             # Filter visible test cases from prefetched data (no extra query)
             visible_test_cases = [tc for tc in test_cases_data if not tc['is_hidden']]
 
+            # Build problem data with type-specific fields using getattr for safety
+            # EiPL/Prompt have: function_name, function_signature, reference_solution, segmentation_*
+            # MCQ has: question_text, options, allow_multiple
+            problem_data = {
+                'id': problem.id,
+                'slug': problem.slug,
+                'title': problem.title,
+                'difficulty': problem.difficulty,
+                'problem_type': problem.problem_type,
+                'is_active': problem.is_active,
+                'categories': [cat.name for cat in problem.categories.all()],
+                'test_cases': visible_test_cases,
+                'test_case_count': len(all_test_cases),
+                'visible_test_case_count': len(visible_test_cases),
+            }
+
+            # Add SpecProblem fields (EiPL, Prompt) - these may not exist on MCQ
+            problem_data['function_name'] = getattr(problem, 'function_name', None)
+            problem_data['function_signature'] = getattr(problem, 'function_signature', None)
+            problem_data['reference_solution'] = getattr(problem, 'reference_solution', None)
+            problem_data['segmentation_enabled'] = getattr(problem, 'segmentation_enabled', False)
+            problem_data['segmentation_config'] = getattr(problem, 'segmentation_config', {})
+
+            # Add MCQ fields - may not exist on EiPL/Prompt
+            problem_data['question_text'] = getattr(problem, 'question_text', None)
+            problem_data['options'] = getattr(problem, 'options', None)
+            problem_data['allow_multiple'] = getattr(problem, 'allow_multiple', None)
+
+            # Add Prompt-specific fields (image_url, image_alt_text)
+            problem_data['image_url'] = getattr(problem, 'image_url', None)
+            problem_data['image_alt_text'] = getattr(problem, 'image_alt_text', None)
+
             result.append({
                 'order': membership.order,
-                'problem': {
-                    'id': problem.id,
-                    'slug': problem.slug,
-                    'title': problem.title,
-                    'description': problem.description,
-                    'difficulty': problem.difficulty,
-                    'problem_type': problem.problem_type,
-                    'segmentation_enabled': problem.segmentation_enabled,
-                    'reference_solution': problem.reference_solution,
-                    'is_active': problem.is_active,
-                    'categories': [cat.name for cat in problem.categories.all()],
-                    'test_cases': visible_test_cases,  # Include visible test cases
-                    'test_case_count': len(all_test_cases),  # Count from prefetched data
-                    'visible_test_case_count': len(visible_test_cases)  # Count from filtered list
-                }
+                'problem_obj': problem,  # Include Problem model for handler config calls
+                'problem': problem_data
             })
 
         return result

@@ -40,7 +40,7 @@ export default defineConfig({
           // Admin components - lazy loaded for admin users only
           'admin': [
             './src/components/AdminProblems.vue',
-            './src/components/AdminProblemEditor.vue',
+            './src/components/admin/AdminProblemEditorShell.vue',
             './src/components/AdminSubmissions.vue',
             './src/components/AdminCourses.vue',
             './src/components/AdminUsers.vue',

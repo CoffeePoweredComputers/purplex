@@ -58,7 +58,7 @@ class UserProgressRepository(BaseRepository):
             user=user,
             problem_set=problem_set,
             course=course
-        ).select_related('problem').order_by('problem__title'))
+        ).order_by('problem__title'))
     
     @classmethod
     def get_user_progress_in_course(cls, user: User, course: Course) -> List:
@@ -66,7 +66,7 @@ class UserProgressRepository(BaseRepository):
         return list(UserProgress.objects.filter(
             user=user,
             course=course
-        ).select_related('problem', 'problem_set').order_by('-last_attempt'))
+        ).select_related('problem_set').order_by('-last_attempt'))
     
     @classmethod
     def get_completed_problems(cls, user: User, problem_set: Optional[ProblemSet] = None,
@@ -81,8 +81,8 @@ class UserProgressRepository(BaseRepository):
         if course:
             filters['course'] = course
         
-        return list(UserProgress.objects.filter(**filters).select_related('problem'))
-    
+        return list(UserProgress.objects.filter(**filters))
+
     @classmethod
     def get_in_progress_problems(cls, user: User, problem_set: Optional[ProblemSet] = None,
                                 course: Optional[Course] = None) -> List:
@@ -96,8 +96,8 @@ class UserProgressRepository(BaseRepository):
         if course:
             filters['course'] = course
         
-        return list(UserProgress.objects.filter(**filters).select_related('problem'))
-    
+        return list(UserProgress.objects.filter(**filters))
+
     @classmethod
     def get_user_statistics(cls, user: User, problem_set: Optional[ProblemSet] = None,
                            course: Optional[Course] = None) -> Dict[str, Any]:
@@ -143,7 +143,7 @@ class UserProgressRepository(BaseRepository):
             filters['course'] = course
         
         return list(UserProgress.objects.filter(**filters).select_related(
-            'problem', 'problem_set'
+            'problem_set'
         ).order_by('-last_attempt'))
     
     @classmethod
@@ -163,9 +163,9 @@ class UserProgressRepository(BaseRepository):
         if course:
             filters['course'] = course
         
-        return list(UserProgress.objects.filter(**filters).select_related(
-            'problem'
-        ).order_by('-attempts', 'best_score'))
+        return list(UserProgress.objects.filter(**filters).order_by(
+            '-attempts', 'best_score'
+        ))
     
     @classmethod
     def get_progress_by_difficulty(cls, user: User, difficulty: str,
@@ -181,8 +181,8 @@ class UserProgressRepository(BaseRepository):
         if course:
             filters['course'] = course
         
-        return list(UserProgress.objects.filter(**filters).select_related('problem'))
-    
+        return list(UserProgress.objects.filter(**filters))
+
     @classmethod
     def get_fastest_completions(cls, user: User, limit: int = 10,
                                problem_set: Optional[ProblemSet] = None,
@@ -198,9 +198,9 @@ class UserProgressRepository(BaseRepository):
         if course:
             filters['course'] = course
         
-        return list(UserProgress.objects.filter(**filters).select_related(
-            'problem'
-        ).order_by('days_to_complete')[:limit])
+        return list(UserProgress.objects.filter(**filters).order_by(
+            'days_to_complete'
+        )[:limit])
     
     @classmethod
     def get_high_scorers(cls, problem: Problem, limit: int = 10,
@@ -291,7 +291,7 @@ class UserProgressRepository(BaseRepository):
         progress_records = UserProgress.objects.filter(
             user=user,
             course=course
-        ).select_related('problem', 'problem_set').order_by('problem_set__order', 'problem__title')
+        ).select_related('problem_set').order_by('problem_set__order', 'problem__title')
         
         learning_path = []
         for progress in progress_records:

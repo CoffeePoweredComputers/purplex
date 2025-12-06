@@ -8,7 +8,6 @@ import time
 import os
 import secrets
 from typing import Dict, Optional, List
-from django.contrib.auth.models import User
 
 
 class MockFirebaseAuth:

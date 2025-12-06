@@ -2,7 +2,7 @@
 Repository for ProblemCategory model data access.
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from django.db.models import Count
 
 from purplex.problems_app.models import ProblemCategory
@@ -23,11 +23,24 @@ class ProblemCategoryRepository(BaseRepository):
     def get_all_categories(cls) -> List:
         """
         Get all problem categories ordered by order and name.
-        
+
         Returns:
             QuerySet of all problem categories
         """
         return list(ProblemCategory.objects.all().order_by('order', 'name'))
+
+    @classmethod
+    def get_all_queryset(cls):
+        """
+        Get all problem categories as an unevaluated QuerySet.
+
+        This is required for DRF's PrimaryKeyRelatedField which needs
+        a queryset for validation. Framework requirement - not ORM abuse.
+
+        Returns:
+            QuerySet of all problem categories (unevaluated)
+        """
+        return ProblemCategory.objects.all()
     
     @classmethod
     def get_category_by_slug(cls, slug: str) -> Optional[ProblemCategory]:

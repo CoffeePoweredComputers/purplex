@@ -13,11 +13,9 @@ from ..repositories import (
 
 # Import models only for type hints
 if TYPE_CHECKING:
-    from django.db import transaction
-    from django.db.models import QuerySet
     from ..models import (
         Problem, ProblemCategory, ProblemSet, 
-        ProblemSetMembership, TestCase
+        TestCase
     )
 
 logger = logging.getLogger(__name__)
@@ -483,7 +481,7 @@ class AdminProblemService:
         return ProblemRepository.get_problem_test_case_by_id(problem, test_case_id, include_hidden=True)
     
     @staticmethod
-    def delete_problem(problem: 'Problem') -> bool:
+    def delete_problem(problem: 'Problem') -> dict:
         """
         Delete a problem.
         
@@ -491,14 +489,24 @@ class AdminProblemService:
             problem: Problem instance to delete
             
         Returns:
-            True if deleted successfully
+            Dict with 'success' bool and optional 'error' message
         """
+        from purplex.submissions.repositories import SubmissionRepository
+
+        # Check for existing submissions
+        submission_count = SubmissionRepository.count_for_problem(problem)
+        if submission_count > 0:
+            return {
+                'success': False,
+                'error': f'This problem has {submission_count} student submission(s). To preserve academic records, problems with submissions cannot be deleted. You can deactivate the problem instead to hide it from students.'
+            }
+        
         try:
             problem.delete()
-            return True
+            return {'success': True}
         except Exception as e:
             logger.error(f"Failed to delete problem {problem.slug}: {str(e)}")
-            return False
+            return {'success': False, 'error': f'Failed to delete problem: {str(e)}'}
     
     @staticmethod
     def delete_problem_set(problem_set: 'ProblemSet') -> bool:

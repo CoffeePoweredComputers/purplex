@@ -7,7 +7,7 @@ import time
 import logging
 import random
 from functools import wraps
-from typing import Optional, Tuple, Type, Callable, Any
+from typing import Tuple, Type, Callable, Any
 from django.db import OperationalError, DatabaseError
 from datetime import datetime, timedelta
 
@@ -186,43 +186,3 @@ def retry_with_backoff(
 
         return wrapper
     return decorator
-
-
-def retry_database_operation(func: Callable, *args, **kwargs) -> Any:
-    """
-    Execute a database operation with retry logic and circuit breaker.
-
-    This is a simpler interface for one-off retries without decorators.
-
-    Args:
-        func: Function to execute
-        *args: Positional arguments for func
-        **kwargs: Keyword arguments for func
-
-    Returns:
-        Result of func
-
-    Raises:
-        Exception: If all retries fail or circuit is open
-    """
-    max_retries = 3
-    delay = 0.1
-
-    for attempt in range(max_retries):
-        try:
-            # Try through circuit breaker
-            return db_circuit_breaker.call(func, *args, **kwargs)
-
-        except OperationalError as e:
-            if attempt == max_retries - 1:
-                raise
-
-            # Exponential backoff with jitter
-            sleep_time = delay * (2 ** attempt) * (0.5 + random.random())
-            logger.warning(
-                f"Database operation failed (attempt {attempt + 1}/{max_retries}): {e}. "
-                f"Retrying in {sleep_time:.2f}s..."
-            )
-            time.sleep(sleep_time)
-
-    raise OperationalError(f"Database operation failed after {max_retries} retries")

@@ -11,10 +11,11 @@ from ..repositories import (
     ProgressRepository,
     CourseRepository
 )
+from ..models import ProblemHint
 
 # Import models only for type hints
 if TYPE_CHECKING:
-    from ..models import Problem, ProblemHint, UserProgress, ProblemSet, Course, CourseEnrollment
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,7 @@ class HintService:
         Returns:
             List of hint type strings (e.g., ['variable_fade', 'subgoal_highlight'])
         """
-        from purplex.submissions.models import HintActivation, Submission
+        from purplex.submissions.models import HintActivation
 
         problem = ProblemRepository.get_problem_by_slug(problem_slug)
         if not problem:
@@ -136,20 +137,13 @@ class HintService:
         if course_id:
             course = CourseRepository.get_active_course(course_id)
 
-        # Query hint activations for this user/problem/context
-        activations_query = HintActivation.objects.filter(
-            submission__user=user,
-            submission__problem=problem
-        )
-
-        # Add context filters if provided
-        if problem_set:
-            activations_query = activations_query.filter(submission__problem_set=problem_set)
-        if course:
-            activations_query = activations_query.filter(submission__course=course)
-
-        # Get distinct hint IDs that were activated
-        activations_query = activations_query.select_related('hint').order_by('activated_at')
+        # Query hint activations for this user/problem/context via repository
+        activations_query = HintRepository.get_activations_for_user_problem(
+            user=user,
+            problem=problem,
+            problem_set=problem_set,
+            course=course
+        ).select_related('hint').order_by('activated_at')
 
         # Build list of unique hint types that were used
         used_hint_types = []
@@ -535,7 +529,16 @@ class AdminHintService:
                     raise ValueError(
                         f'Invalid hint type: {hint_type}. Must be one of: {", ".join(valid_hint_types)}'
                     )
-                
+
+                # Validate content structure before creating/updating
+                content = hint_data.get('content', {})
+                temp_hint = ProblemHint(
+                    problem=problem,
+                    hint_type=hint_type,
+                    content=content
+                )
+                temp_hint.clean()  # Raises ValidationError if content is invalid
+
                 # Get or create the hint
                 hint, created = HintRepository.get_or_create_hint(
                     problem=problem,
@@ -571,6 +574,8 @@ class AdminHintService:
                 
         except ValidationError as e:
             raise ValueError(str(e))
+        except ValueError:
+            raise  # Re-raise ValueErrors (validation failures)
         except Exception as e:
             logger.error(f"Failed to update hints for problem {problem_slug}: {str(e)}")
             raise RuntimeError("Failed to update hints. Please check the hint configurations.")

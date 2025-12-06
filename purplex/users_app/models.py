@@ -24,6 +24,7 @@ class LanguageChoice(models.TextChoices):
     SPANISH = 'es', 'Spanish'
     FRENCH = 'fr', 'French'
     GERMAN = 'de', 'German'
+    MAORI = 'mi', 'Māori'
 
 # Extend the User model if needed
 class UserProfile(models.Model):

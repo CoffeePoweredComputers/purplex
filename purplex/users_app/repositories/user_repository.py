@@ -95,19 +95,6 @@ class UserRepository(BaseRepository):
         return User.objects.filter(username=username).exists()
     
     @classmethod
-    def email_exists(cls, email: str) -> bool:
-        """
-        Check if an email already exists.
-        
-        Args:
-            email: The email to check
-            
-        Returns:
-            True if email exists, False otherwise
-        """
-        return User.objects.filter(email=email).exists()
-    
-    @classmethod
     def create(cls, **kwargs) -> User:
         """
         Create a new user.
@@ -223,62 +210,6 @@ class UserRepository(BaseRepository):
         return None
     
     @classmethod
-    def delete_user(cls, user_id: int) -> bool:
-        """
-        Delete a user.
-        
-        Args:
-            user_id: The user's primary key
-            
-        Returns:
-            True if deleted, False if not found
-        """
-        deleted, _ = User.objects.filter(pk=user_id).delete()
-        return deleted > 0
-    
-    @classmethod
-    def deactivate_user(cls, user_id: int) -> bool:
-        """
-        Deactivate a user (soft delete).
-        
-        Args:
-            user_id: The user's primary key
-            
-        Returns:
-            True if deactivated, False if not found
-        """
-        updated = User.objects.filter(pk=user_id).update(is_active=False)
-        return updated > 0
-    
-    @classmethod
-    def activate_user(cls, user_id: int) -> bool:
-        """
-        Activate a user.
-        
-        Args:
-            user_id: The user's primary key
-            
-        Returns:
-            True if activated, False if not found
-        """
-        updated = User.objects.filter(pk=user_id).update(is_active=True)
-        return updated > 0
-    
-    @classmethod
-    def bulk_create_users(cls, users_data: List[Dict[str, Any]]) -> List[User]:
-        """
-        Bulk create multiple users.
-        
-        Args:
-            users_data: List of dictionaries with user data
-            
-        Returns:
-            List of created User instances
-        """
-        users = [User(**data) for data in users_data]
-        return User.objects.bulk_create(users)
-    
-    @classmethod
     def search_users(cls, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         """
         Search users by username, email, first name, or last name.
@@ -311,34 +242,3 @@ class UserRepository(BaseRepository):
             for user in users
         ]
     
-    @classmethod
-    def exists_with_email(cls, email: str) -> bool:
-        """
-        Check if a user exists with the given email.
-        
-        Args:
-            email: Email to check
-            
-        Returns:
-            True if exists, False otherwise
-        """
-        return User.objects.filter(email=email).exists()
-    
-    @classmethod
-    def get_or_create_service_account(cls) -> tuple[User, bool]:
-        """
-        Get or create the service account user.
-        
-        Returns:
-            Tuple of (User instance, created boolean)
-        """
-        return User.objects.get_or_create(
-            username='service_account',
-            defaults={
-                'email': 'service@purplex.ai',
-                'first_name': 'Service',
-                'last_name': 'Account',
-                'is_active': True,
-                'is_staff': False,
-            }
-        )

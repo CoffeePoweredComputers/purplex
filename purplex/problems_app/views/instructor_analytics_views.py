@@ -3,18 +3,19 @@ API views for instructor analytics.
 """
 
 from django.http import HttpResponse
-from django.contrib.auth.models import User
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
-from purplex.problems_app.models import Course, Problem
 from purplex.problems_app.services.instructor_analytics_service import (
     InstructorAnalyticsService
 )
 from purplex.problems_app.services.course_export_service import CourseExportService
+from purplex.problems_app.repositories.course_repository import CourseRepository
+from purplex.problems_app.repositories.problem_repository import ProblemRepository
+from purplex.users_app.repositories.user_repository import UserRepository
 
 
 class InstructorCourseAnalyticsView(APIView):
@@ -27,9 +28,8 @@ class InstructorCourseAnalyticsView(APIView):
 
     def get(self, request, course_id):
         """Get course analytics overview."""
-        try:
-            course = Course.objects.get(course_id=course_id)
-        except Course.DoesNotExist:
+        course = CourseRepository.get_course_by_id(course_id)
+        if not course:
             return Response(
                 {'error': 'Course not found'},
                 status=status.HTTP_404_NOT_FOUND
@@ -60,9 +60,8 @@ class InstructorStudentListView(APIView):
 
     def get(self, request, course_id):
         """Get student list with metrics."""
-        try:
-            course = Course.objects.get(course_id=course_id)
-        except Course.DoesNotExist:
+        course = CourseRepository.get_course_by_id(course_id)
+        if not course:
             return Response(
                 {'error': 'Course not found'},
                 status=status.HTTP_404_NOT_FOUND
@@ -101,15 +100,15 @@ class InstructorStudentDetailView(APIView):
 
     def get(self, request, course_id, user_id):
         """Get student detail analytics."""
-        try:
-            course = Course.objects.get(course_id=course_id)
-            user = User.objects.get(id=user_id)
-        except Course.DoesNotExist:
+        course = CourseRepository.get_course_by_id(course_id)
+        if not course:
             return Response(
                 {'error': 'Course not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        except User.DoesNotExist:
+
+        user = UserRepository.get_by_id(user_id)
+        if not user:
             return Response(
                 {'error': 'User not found'},
                 status=status.HTTP_404_NOT_FOUND
@@ -139,15 +138,15 @@ class InstructorProblemAnalyticsView(APIView):
 
     def get(self, request, course_id, problem_slug):
         """Get problem analytics."""
-        try:
-            course = Course.objects.get(course_id=course_id)
-            problem = Problem.objects.get(slug=problem_slug)
-        except Course.DoesNotExist:
+        course = CourseRepository.get_course_by_id(course_id)
+        if not course:
             return Response(
                 {'error': 'Course not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        except Problem.DoesNotExist:
+
+        problem = ProblemRepository.get_problem_by_slug(problem_slug)
+        if not problem:
             return Response(
                 {'error': 'Problem not found'},
                 status=status.HTTP_404_NOT_FOUND
@@ -180,9 +179,8 @@ class InstructorCourseExportView(APIView):
 
     def get(self, request, course_id):
         """Export course progress."""
-        try:
-            course = Course.objects.get(course_id=course_id)
-        except Course.DoesNotExist:
+        course = CourseRepository.get_course_by_id(course_id)
+        if not course:
             return Response(
                 {'error': 'Course not found'},
                 status=status.HTTP_404_NOT_FOUND

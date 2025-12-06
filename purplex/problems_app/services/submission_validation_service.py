@@ -1,12 +1,11 @@
 """Submission validation service for centralizing submission validation logic."""
 from typing import Optional, Tuple, TYPE_CHECKING
 from ..repositories import ProblemRepository, CourseRepository
-from .validation_service import ProblemValidationService
 from ..handlers import get_handler, is_registered
 
 # Import models only for type hints
 if TYPE_CHECKING:
-    from ..models import Problem, ProblemSet, Course
+    pass
 
 
 class SubmissionValidationService:
@@ -73,31 +72,3 @@ class SubmissionValidationService:
 
         validated_data['raw_input'] = raw_input.strip()
         return True, None, validated_data
-
-    @staticmethod
-    def validate_eipl_submission(data: dict) -> Tuple[bool, Optional[str], Optional[dict]]:
-        """
-        Validate EiPL submission request data.
-
-        DEPRECATED: Use validate_submission() instead. This method is kept for
-        backwards compatibility and maps to the generic validation.
-
-        Args:
-            data: Request data dictionary
-
-        Returns:
-            Tuple[bool, Optional[str], Optional[dict]]:
-            (is_valid, error_message, validated_data)
-        """
-        # Map user_prompt to raw_input for generic validation
-        if 'user_prompt' in data and 'raw_input' not in data:
-            data = dict(data)  # Copy to avoid mutating original
-            data['raw_input'] = data['user_prompt']
-
-        is_valid, error, validated_data = SubmissionValidationService.validate_submission(data)
-
-        # Map raw_input back to user_prompt for backwards compatibility
-        if validated_data and 'raw_input' in validated_data:
-            validated_data['user_prompt'] = validated_data['raw_input']
-
-        return is_valid, error, validated_data

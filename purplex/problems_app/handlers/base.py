@@ -7,12 +7,12 @@ this interface to handle its specific logic.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from problems_app.models import Problem
-    from submissions.models import Submission
+    from purplex.problems_app.models import Problem
+    from purplex.submissions.models import Submission
 
 
 @dataclass
@@ -29,6 +29,26 @@ class ProcessingResult:
     processed_code: Optional[str] = None
     error: Optional[str] = None
     type_specific_data: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class SubmissionOutcome:
+    """
+    Result of handler.submit() - encapsulates sync vs async execution.
+
+    For synchronous handlers (e.g., MCQ):
+        - complete=True
+        - submission contains the finalized result
+
+    For asynchronous handlers (e.g., EiPL):
+        - complete=False
+        - task_id contains the Celery task ID for polling
+    """
+    complete: bool
+    submission: 'Submission'
+    task_id: Optional[str] = None
+    error: Optional[str] = None
+    result_data: Dict[str, Any] = field(default_factory=dict)
 
 
 class ActivityHandler(ABC):
@@ -192,6 +212,34 @@ class ActivityHandler(ABC):
         - optional_fields: List of optional field names
         - type_specific_section: Component name for type-specific input (or None)
         - supports: Dict of feature flags (hints, segmentation, test_cases, etc.)
+        """
+        pass
+
+    # ─── Submission Execution ────────────────────────────────────
+
+    @abstractmethod
+    def submit(
+        self,
+        submission: 'Submission',
+        raw_input: str,
+        problem: 'Problem',
+        context: Dict[str, Any]
+    ) -> 'SubmissionOutcome':
+        """
+        Execute the full submission lifecycle for this activity type.
+
+        This method owns the execution model (sync vs async) for the type.
+        - Synchronous handlers (MCQ): process inline, return complete=True
+        - Asynchronous handlers (EiPL): queue Celery task, return complete=False
+
+        Args:
+            submission: The Submission record (already created, status='pending')
+            raw_input: The user's input
+            problem: The Problem being submitted to
+            context: Additional context (user_id, problem_set_id, course_id, etc.)
+
+        Returns:
+            SubmissionOutcome with either complete results or task_id for polling
         """
         pass
 

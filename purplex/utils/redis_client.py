@@ -23,7 +23,6 @@ Usage:
 import redis
 import logging
 import socket
-from typing import Optional
 from django.conf import settings
 
 logger = logging.getLogger(__name__)

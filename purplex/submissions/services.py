@@ -17,6 +17,8 @@ from .models import (
     SegmentationAnalysis,
     SubmissionFeedback
 )
+from .repositories.submission_repository import SubmissionRepository
+from purplex.problems_app.repositories.hint_repository import HintRepository
 from purplex.problems_app.services import ProgressService
 from .grading_service import GradingService
 
@@ -58,8 +60,8 @@ class SubmissionService:
         - Pass celery_task_id to associate submission with Celery task
         - The unique constraint on celery_task_id prevents duplicate submissions on retry
         """
-        # Create main submission
-        submission = Submission.objects.create(
+        # Create main submission using repository
+        submission = SubmissionRepository.create(
             user=user,
             problem=problem,
             problem_set=problem_set,
@@ -77,29 +79,26 @@ class SubmissionService:
 
         # Track hint activations
         if activated_hints:
-            from purplex.problems_app.models import ProblemHint
-
             for order, hint_data in enumerate(activated_hints):
                 # Support both hint_id and hint_type
                 if 'hint_id' in hint_data:
                     # Direct hint ID provided
                     hint_id = hint_data['hint_id']
                 elif 'hint_type' in hint_data:
-                    # Look up hint by type for this problem
-                    try:
-                        hint = ProblemHint.objects.get(
-                            problem=problem,
-                            hint_type=hint_data['hint_type']
-                        )
-                        hint_id = hint.id
-                    except ProblemHint.DoesNotExist:
+                    # Look up hint by type for this problem using repository
+                    hint = HintRepository.get_hint_by_problem_and_type(
+                        problem=problem,
+                        hint_type=hint_data['hint_type']
+                    )
+                    if hint is None:
                         logger.warning(f"Hint type {hint_data['hint_type']} not found for problem {problem.slug}")
                         continue
+                    hint_id = hint.id
                 else:
                     logger.warning("Hint data missing both hint_id and hint_type")
                     continue
 
-                HintActivation.objects.create(
+                SubmissionRepository.create_hint_activation(
                     submission=submission,
                     hint_id=hint_id,
                     activation_order=order,
@@ -429,22 +428,13 @@ class SubmissionService:
         Returns:
             Dictionary with complete submission details
         """
-        from django.db.models import Prefetch
         from purplex.utils.query_monitor import query_counter
 
         with query_counter("get_submission_details", warning_threshold=5):
-            # Optimized prefetch strategy to eliminate N+1 queries
-            submission = Submission.objects.select_related(
-                'user', 'problem', 'problem_set', 'course', 'segmentation'
-            ).prefetch_related(
-                'test_executions__test_case',
-                'hint_activations__hint',
-                # Use Prefetch for better control over nested prefetching
-                Prefetch('code_variations',
-                         queryset=CodeVariation.objects.prefetch_related('test_executions__test_case')),
-                Prefetch('feedback',
-                         queryset=SubmissionFeedback.objects.select_related('provided_by').filter(is_visible_to_student=True))
-            ).get(submission_id=submission_id)
+            # Use repository for optimized prefetch strategy
+            submission = SubmissionRepository.get_with_details(submission_id)
+            if submission is None:
+                raise Submission.DoesNotExist(f"Submission {submission_id} not found")
 
             details = {
                 'submission_id': str(submission.submission_id),

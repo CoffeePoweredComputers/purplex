@@ -3,13 +3,13 @@
 import logging
 import time
 from typing import Dict, Any, Optional, List, TYPE_CHECKING
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.core.cache import cache
 from django.db import transaction, IntegrityError, DatabaseError
 from django.utils import timezone
 
 from purplex.submissions.grading_service import GradingService
-from problems_app.handlers import get_handler
+from purplex.problems_app.handlers import get_handler
 
 from ..repositories import (
     ProgressRepository, ProblemRepository, CourseRepository,
@@ -19,10 +19,8 @@ from ..repositories import (
 # Import models only for type hints
 if TYPE_CHECKING:
     from django.db import models
-    from django.db.models import F, Q, Count, Avg
     from django.contrib.auth.models import User
     from ..models import UserProgress, UserProblemSetProgress, Problem, ProblemSet, Course
-    from purplex.submissions.models import Submission
 
 logger = logging.getLogger(__name__)
 
@@ -515,16 +513,15 @@ class ProgressService:
             ).filter(
                 problem_set=problem_set,
                 course=course
-            ).select_related('problem')
+            )
 
-            # Prefetch latest submissions with segmentation (single query)
-            latest_submissions_qs = Submission.objects.filter(
+            # Prefetch latest submissions with segmentation via repository (single query)
+            from purplex.submissions.repositories import SubmissionRepository
+            latest_submissions_qs = SubmissionRepository.get_latest_per_problem_in_set(
                 user=user,
                 problem_set=problem_set,
                 course=course
-            ).select_related('problem').prefetch_related('segmentation').order_by(
-                'problem__id', '-submitted_at'
-            ).distinct('problem__id')
+            )
 
             # Build lookup dictionaries for O(1) access
             progress_by_problem = {p.problem_id: p for p in progress_qs}
@@ -617,18 +614,14 @@ class ProgressService:
         if problem_set:
             filters['problem_set'] = problem_set
 
-        # Add course filter if provided
-        if course:
-            filters['course'] = course
-
-        # CRITICAL FIX: Prefetch related data to prevent N+1 queries when accessing variations
-        submission = Submission.objects.filter(
-            **filters
-        ).prefetch_related(
-            'test_executions__test_case',
-            'code_variations__test_executions__test_case',
-            'segmentation'
-        ).order_by('-submitted_at').first()
+        # Get latest submission with variations via repository
+        from purplex.submissions.repositories import SubmissionRepository
+        submission = SubmissionRepository.get_latest_with_variations(
+            user=user,
+            problem=problem,
+            problem_set=problem_set,
+            course=course
+        )
 
         return {
             'problem': problem,
@@ -712,7 +705,7 @@ class ProgressService:
         Returns:
             The updated UserProgress instance
         """
-        from ..models import UserProgress, UserProblemSetProgress
+        from ..models import UserProblemSetProgress
 
         logger.info(f"[ProgressService] Processing submission {submission.submission_id}")
         logger.info(f"[ProgressService] User: {submission.user.username}, Problem: {submission.problem.slug}")
@@ -795,6 +788,7 @@ class ProgressService:
     def _get_or_create_progress_for_submission(submission) -> 'UserProgress':
         """Get or create UserProgress record with row-level locking, handling migration of old records."""
         from ..models import UserProgress
+        from ..repositories import ProgressRepository
 
         # Initialize created flag to prevent UnboundLocalError
         created = False
@@ -806,12 +800,13 @@ class ProgressService:
             # Use nowait=True to fail fast instead of blocking indefinitely
             lock_start = time.time()
             try:
-                progress = UserProgress.objects.select_for_update(nowait=True).filter(
+                progress = ProgressRepository.get_with_lock(
                     user=submission.user,
                     problem=submission.problem,
                     problem_set=submission.problem_set,
                     course=submission.course,
-                ).first()
+                    nowait=True
+                )
                 lock_duration = time.time() - lock_start
                 if lock_duration > 0.1:  # Log if lock acquisition took >100ms
                     logger.info(f"[ProgressService] Lock acquired in {lock_duration:.3f}s")
@@ -820,12 +815,13 @@ class ProgressService:
                 logger.warning(f"[ProgressService] Progress locked by another request after {lock_duration:.3f}s: {e}")
                 # Retry once with a small delay
                 time.sleep(0.1)
-                progress = UserProgress.objects.select_for_update(nowait=True).filter(
+                progress = ProgressRepository.get_with_lock(
                     user=submission.user,
                     problem=submission.problem,
                     problem_set=submission.problem_set,
                     course=submission.course,
-                ).first()
+                    nowait=True
+                )
 
             if progress:
                 logger.info(f"[ProgressService] Progress record FOUND with ID: {progress.id} (LOCKED)")
@@ -834,7 +830,7 @@ class ProgressService:
                 # No existing record, create new one
                 # Note: There's still a small race window here, so we catch IntegrityError
                 try:
-                    progress = UserProgress.objects.create(
+                    progress = ProgressRepository.create_progress_record(
                         user=submission.user,
                         problem=submission.problem,
                         problem_set=submission.problem_set,
@@ -846,11 +842,12 @@ class ProgressService:
                 except IntegrityError:
                     # Race condition: another request created it between our check and create
                     # Retry with lock to get the newly created record
-                    progress = UserProgress.objects.select_for_update(nowait=True).get(
+                    progress = ProgressRepository.get_with_lock_by_pk(
                         user=submission.user,
                         problem=submission.problem,
                         problem_set=submission.problem_set,
                         course=submission.course,
+                        nowait=True
                     )
                     logger.info(f"[ProgressService] Progress record FOUND after race condition with ID: {progress.id} (LOCKED)")
                     created = False
@@ -864,12 +861,11 @@ class ProgressService:
         # Handle migration of old records without problem_set
         if created and submission.problem_set:
             try:
-                # Look for existing progress without problem_set context
-                old_progress = UserProgress.objects.get(
+                # Look for existing progress without problem_set context via repository
+                old_progress = ProgressRepository.get_legacy_progress(
                     user=submission.user,
                     problem=submission.problem,
-                    problem_set__isnull=True,
-                    course=submission.course if submission.course else None
+                    course=submission.course
                 )
 
                 logger.info(f"[ProgressService] Migrating old progress record without problem_set")
@@ -985,15 +981,13 @@ class ProgressService:
         This enables research on learning curves and student progress over time.
         Snapshots are unique per (user, problem, problem_set, date).
         """
-        from ..models import ProgressSnapshot
-
         today = timezone.now().date()
 
         # Calculate time spent today (if this is the first submission today, use full time)
         time_spent_today = submission.time_spent or timedelta(0)
 
         # Get or update today's snapshot
-        snapshot, created = ProgressSnapshot.objects.update_or_create(
+        snapshot, created = ProgressRepository.update_or_create_snapshot(
             user=progress.user,
             problem=progress.problem,
             problem_set=progress.problem_set,

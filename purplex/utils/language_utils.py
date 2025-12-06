@@ -87,6 +87,11 @@ SUPPORTED_LANGUAGES = {
         'native': 'Deutsch',
         'brand': 'Purplex',
     },
+    'mi': {
+        'name': 'Māori',
+        'native': 'Te Reo Māori',
+        'brand': 'Pāpuraruraru',
+    },
 }
 
 # Template-based feedback messages for AI comprehension analysis
@@ -109,6 +114,7 @@ FEEDBACK_TEMPLATES = {
         'es': '¡Excelente! Tu(s) {count} segmento(s) muestra(n) comprensión de alto nivel.',
         'fr': 'Excellent ! Vos {count} segment(s) montre(nt) une compréhension de haut niveau.',
         'de': 'Ausgezeichnet! Ihre {count} Segment(e) zeigt/zeigen ein hohes Verständnisniveau.',
+        'mi': 'Ka rawe! Ko ō wāhanga {count} e whakaatu ana i te māramatanga teitei.',
     },
     'multi_structural': {
         'en': 'Your {count} segments are too detailed. Try to describe the overall purpose in {threshold} or fewer segments.',
@@ -127,53 +133,6 @@ FEEDBACK_TEMPLATES = {
         'es': 'Tus {count} segmentos son muy detallados. Intenta describir el propósito general en {threshold} o menos segmentos.',
         'fr': 'Vos {count} segments sont trop détaillés. Essayez de décrire l\'objectif global en {threshold} segments ou moins.',
         'de': 'Ihre {count} Segmente sind zu detailliert. Versuchen Sie, den Gesamtzweck in {threshold} oder weniger Segmenten zu beschreiben.',
+        'mi': 'He tino taipitopito ō wāhanga {count}. Whakamātauria te whakamārama i te kaupapa whānui i roto i ngā wāhanga {threshold} noa iho.',
     },
 }
-
-
-def get_language_name(code: str) -> str:
-    """Get the English name of a language by its code."""
-    return SUPPORTED_LANGUAGES.get(code, {}).get('name', 'English')
-
-
-def get_native_name(code: str) -> str:
-    """Get the native name of a language by its code."""
-    return SUPPORTED_LANGUAGES.get(code, {}).get('native', 'English')
-
-
-def get_brand_name(code: str) -> str:
-    """Get the brand name transliteration for a language."""
-    return SUPPORTED_LANGUAGES.get(code, {}).get('brand', 'Purplex')
-
-
-def get_feedback_message(level: str, count: int, threshold: int, language: str = 'en') -> str:
-    """
-    Get a localized feedback message for comprehension level.
-
-    Args:
-        level: 'relational' or 'multi_structural'
-        count: Number of segments
-        threshold: Threshold for relational classification
-        language: Language code (defaults to 'en')
-
-    Returns:
-        Localized feedback message string
-    """
-    templates = FEEDBACK_TEMPLATES.get(level, {})
-    template = templates.get(language) or templates.get('en', '')
-    return template.format(count=count, threshold=threshold)
-
-
-def is_supported_language(code: str) -> bool:
-    """Check if a language code is supported."""
-    return code in SUPPORTED_LANGUAGES
-
-
-def get_all_language_codes() -> list:
-    """Get a list of all supported language codes."""
-    return list(SUPPORTED_LANGUAGES.keys())
-
-
-def get_language_choices() -> list:
-    """Get language choices suitable for Django model fields."""
-    return [(code, data['name']) for code, data in SUPPORTED_LANGUAGES.items()]

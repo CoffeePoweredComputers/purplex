@@ -4,8 +4,7 @@ from rest_framework import status
 from .permissions import IsAdmin, IsAuthenticated
 from django.conf import settings
 
-from django.contrib.auth.models import User
-from .models import UserProfile, UserRole, LanguageChoice
+from .models import UserRole, LanguageChoice
 from .authentication import PurplexAuthentication
 from .services.authentication_service import AuthenticationService
 from .services.rate_limit_service import RateLimitService

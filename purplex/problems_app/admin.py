@@ -1,12 +1,13 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from django.db.models import Count, Avg
 from django.http import HttpResponse
 import csv
 from datetime import datetime
+from polymorphic.admin import PolymorphicParentModelAdmin, PolymorphicChildModelAdmin, PolymorphicChildModelFilter
 from .models import (
-    Problem, ProblemSet, ProblemCategory, TestCase, ProblemSetMembership,
-    UserProgress, UserProblemSetProgress, ProgressSnapshot
+    Problem, McqProblem, EiplProblem, PromptProblem,
+    ProblemSet, ProblemCategory, TestCase, ProblemSetMembership,
+    UserProgress, UserProblemSetProgress
 )
 
 @admin.register(ProblemCategory)
@@ -42,61 +43,181 @@ class TestCaseInline(admin.TabularInline):
     def has_change_permission(self, request, obj=None):
         return False  # Make inline read-only
 
-@admin.register(Problem)
-class ProblemAdmin(admin.ModelAdmin):
-    list_display = ['title', 'slug', 'problem_type', 'difficulty', 'function_name', 'is_active', 'test_cases_count', 'created_at', 'edit_link']
-    list_filter = ['problem_type', 'difficulty', 'is_active', 'categories', 'created_at']
-    search_fields = ['title', 'slug', 'description', 'function_name']
-    filter_horizontal = ['categories']
-    
-    # Make all fields read-only
-    def get_readonly_fields(self, request, obj=None):
-        # Return all fields as read-only
-        return [f.name for f in self.model._meta.fields] + ['categories', 'test_cases_count', 'visible_test_cases_count']
-    
-    # Disable add permission
-    def has_add_permission(self, request):
-        return False
-    
-    # Disable delete permission (optional - uncomment if you want to prevent deletion from Django admin)
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
-    
+class McqProblemChildAdmin(PolymorphicChildModelAdmin):
+    """Admin for MCQ problems (polymorphic child)."""
+    base_model = McqProblem
+    show_in_index = True
+
+    list_display = ['title', 'slug', 'difficulty', 'is_active', 'allow_multiple', 'created_at']
+    search_fields = ['title', 'slug', 'question_text']
+
     fieldsets = (
         ('Basic Information', {
-            'fields': ('title', 'slug', 'problem_type', 'description', 'difficulty', 'categories', 'tags')
+            'fields': ('title', 'slug', 'difficulty', 'categories', 'tags', 'is_active')
         }),
-        ('Function Details', {
-            'fields': ('function_name', 'function_signature', 'reference_solution')
-        }),
-        ('Segmentation Settings', {
-            'fields': ('segmentation_config',),
-            'classes': ('collapse',),
-            'description': 'Prompt segmentation for EiPL problems. Edit in Vue admin interface.'
-        }),
-        ('Settings', {
-            'fields': ('memory_limit', 'is_active'),
-            'classes': ('collapse',)
+        ('MCQ Content', {
+            'fields': ('question_text', 'grading_mode', 'options', 'allow_multiple', 'shuffle_options')
         }),
         ('Metadata', {
-            'fields': ('created_by', 'created_at', 'updated_at', 'version', 'test_cases_count', 'visible_test_cases_count'),
+            'fields': ('created_by', 'created_at', 'updated_at', 'version'),
             'classes': ('collapse',)
         })
     )
-    
+
+    def get_readonly_fields(self, request, obj=None):
+        return [f.name for f in self.model._meta.fields if f.name not in ['options', 'question_text', 'is_active']] + ['categories']
+
+
+@admin.register(Problem)
+class ProblemAdmin(PolymorphicParentModelAdmin):
+    """Polymorphic parent admin for all problem types."""
+    base_model = Problem
+    child_models = (McqProblem, EiplProblem, PromptProblem)
+    polymorphic_list = True
+
+    list_display = ['title', 'slug', 'polymorphic_type_display', 'difficulty', 'is_active', 'test_cases_count', 'created_at', 'edit_link']
+    list_filter = [PolymorphicChildModelFilter, 'difficulty', 'is_active', 'categories', 'created_at']
+    search_fields = ['title', 'slug', 'description', 'function_name']
+
+    # Make all fields read-only (editing via Vue admin)
+    def get_readonly_fields(self, request, obj=None):
+        return [f.name for f in self.model._meta.fields] + ['categories', 'test_cases_count', 'visible_test_cases_count']
+
+    # Disable add permission (use Vue admin)
+    def has_add_permission(self, request):
+        return False
+
+    def polymorphic_type_display(self, obj):
+        """Display the polymorphic type."""
+        return obj.polymorphic_type
+    polymorphic_type_display.short_description = 'Type'
+
     def test_cases_count(self, obj):
         return obj.test_cases.count()
     test_cases_count.short_description = 'Test Cases'
-    
+
     def edit_link(self, obj):
         if obj.slug:
             url = f'/admin/problems/{obj.slug}/edit'
             return format_html('<a href="{}" target="_blank">Edit in Vue Admin →</a>', url)
         return '-'
     edit_link.short_description = 'Edit'
-    
+
     # Override change form template to show a notice
     change_form_template = 'admin/problems_app/problem/change_form.html'
+
+
+@admin.register(McqProblem)
+class McqProblemAdmin(admin.ModelAdmin):
+    """Standalone admin for MCQ problems."""
+    list_display = ['title', 'slug', 'difficulty', 'allow_multiple', 'is_active', 'created_at']
+    list_filter = ['difficulty', 'is_active', 'allow_multiple', 'grading_mode']
+    search_fields = ['title', 'slug', 'question_text']
+    filter_horizontal = ['categories']
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('title', 'slug', 'difficulty', 'categories', 'tags', 'is_active')
+        }),
+        ('MCQ Content', {
+            'fields': ('question_text', 'grading_mode', 'options', 'allow_multiple', 'shuffle_options'),
+            'description': 'Configure the multiple choice question'
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at', 'updated_at', 'version'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def get_readonly_fields(self, request, obj=None):
+        # Make most fields read-only, allow editing question content
+        readonly = ['slug', 'created_by', 'created_at', 'updated_at', 'version']
+        return readonly
+
+
+@admin.register(EiplProblem)
+class EiplProblemAdmin(admin.ModelAdmin):
+    """Standalone admin for EiPL problems."""
+    list_display = ['title', 'slug', 'difficulty', 'is_active', 'test_cases_count', 'created_at']
+    list_filter = ['difficulty', 'is_active', 'requires_highlevel_comprehension']
+    search_fields = ['title', 'slug', 'description', 'function_name']
+    filter_horizontal = ['categories']
+    inlines = [TestCaseInline]
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('title', 'slug', 'description', 'difficulty', 'categories', 'tags', 'is_active')
+        }),
+        ('Code Execution', {
+            'fields': ('reference_solution', 'function_signature', 'function_name', 'memory_limit'),
+            'description': 'Code execution configuration'
+        }),
+        ('LLM Configuration', {
+            'fields': ('llm_config',),
+            'classes': ('collapse',)
+        }),
+        ('Segmentation', {
+            'fields': ('segmentation_config', 'segmentation_threshold', 'requires_highlevel_comprehension'),
+            'description': 'Comprehension analysis settings'
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at', 'updated_at', 'version'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def test_cases_count(self, obj):
+        return obj.test_cases.count()
+    test_cases_count.short_description = 'Test Cases'
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = ['slug', 'created_by', 'created_at', 'updated_at', 'version']
+        return readonly
+
+
+@admin.register(PromptProblem)
+class PromptProblemAdmin(admin.ModelAdmin):
+    """Standalone admin for Prompt problems (image-based EiPL)."""
+    list_display = ['title', 'slug', 'difficulty', 'is_active', 'test_cases_count', 'created_at']
+    list_filter = ['difficulty', 'is_active', 'requires_highlevel_comprehension']
+    search_fields = ['title', 'slug', 'description', 'function_name']
+    filter_horizontal = ['categories']
+    inlines = [TestCaseInline]
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('title', 'slug', 'description', 'difficulty', 'categories', 'tags', 'is_active')
+        }),
+        ('Image Display', {
+            'fields': ('image_url', 'image_alt_text'),
+            'description': 'Image to display instead of code'
+        }),
+        ('Code Execution', {
+            'fields': ('reference_solution', 'function_signature', 'function_name', 'memory_limit'),
+            'description': 'Code execution configuration'
+        }),
+        ('LLM Configuration', {
+            'fields': ('llm_config',),
+            'classes': ('collapse',)
+        }),
+        ('Segmentation', {
+            'fields': ('segmentation_config', 'segmentation_threshold', 'requires_highlevel_comprehension'),
+            'description': 'Comprehension analysis settings'
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at', 'updated_at', 'version'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def test_cases_count(self, obj):
+        return obj.test_cases.count()
+    test_cases_count.short_description = 'Test Cases'
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = ['slug', 'created_by', 'created_at', 'updated_at', 'version']
+        return readonly
+
 
 @admin.register(TestCase)
 class TestCaseAdmin(admin.ModelAdmin):
@@ -253,18 +374,6 @@ class UserProgressAdmin(admin.ModelAdmin):
 
     def export_as_csv(self, request, queryset):
         """Export selected progress records as CSV."""
-
-        meta = self.model._meta
-        field_names = [
-            'user__username', 'user__email',
-            'problem__title', 'problem__slug',
-            'problem_set__title', 'course__course_id',
-            'status', 'grade', 'best_score', 'average_score',
-            'attempts', 'successful_attempts', 'hints_used',
-            'first_attempt', 'last_attempt', 'completed_at',
-            'total_time_spent', 'is_completed', 'completion_percentage'
-        ]
-
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename=user_progress_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
 
@@ -280,7 +389,7 @@ class UserProgressAdmin(admin.ModelAdmin):
         ])
 
         # Write data rows
-        for obj in queryset.select_related('user', 'problem', 'problem_set', 'course'):
+        for obj in queryset.select_related('user', 'problem_set', 'course'):
             # Convert timedelta to minutes
             time_spent_minutes = None
             if obj.total_time_spent:

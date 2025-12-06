@@ -5,8 +5,6 @@ Prevents brute force attacks and excessive API usage.
 import redis
 import time
 import logging
-from typing import Optional
-from django.conf import settings
 from purplex.utils.redis_client import get_rate_limit_client
 
 logger = logging.getLogger(__name__)
@@ -23,45 +21,6 @@ class RateLimitService:
     SERVICE_ACCOUNT_ATTEMPTS_PER_MINUTE = 5
     SSE_TOKEN_REQUESTS_PER_MINUTE = 20
 
-    @classmethod
-    def check_auth_rate_limit(cls, identifier: str) -> bool:
-        """
-        Check if authentication attempt is within rate limits.
-
-        Args:
-            identifier: IP address or user identifier
-
-        Returns:
-            True if within limits, False if rate limited
-        """
-        try:
-            redis_client = get_rate_limit_client()  # Use centralized client
-
-            # Check per-minute limit
-            minute_key = f"auth_limit:minute:{identifier}:{int(time.time() // 60)}"
-            minute_count = redis_client.incr(minute_key)
-            redis_client.expire(minute_key, 60)
-
-            if minute_count > cls.AUTH_ATTEMPTS_PER_MINUTE:
-                logger.warning(f"Auth rate limit exceeded (minute) for {identifier}")
-                return False
-
-            # Check per-hour limit
-            hour_key = f"auth_limit:hour:{identifier}:{int(time.time() // 3600)}"
-            hour_count = redis_client.incr(hour_key)
-            redis_client.expire(hour_key, 3600)
-
-            if hour_count > cls.AUTH_ATTEMPTS_PER_HOUR:
-                logger.warning(f"Auth rate limit exceeded (hour) for {identifier}")
-                return False
-
-            return True
-        except (redis.ConnectionError, redis.TimeoutError) as e:
-            # Fail open: Allow authentication if Redis is temporarily unavailable
-            # This prevents Redis outages from blocking all authentication
-            logger.error(f"⚠️ Redis connection failed for rate limiting: {e}. Failing open (allowing request).")
-            return True
-    
     @classmethod
     def check_service_account_rate_limit(cls, identifier: str) -> bool:
         """

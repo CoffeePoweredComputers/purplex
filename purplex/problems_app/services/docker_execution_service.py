@@ -2,10 +2,12 @@
 import json
 import logging
 import hashlib
+import os
+import re
 import time
 import threading
 import atexit
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Optional
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
@@ -111,7 +113,6 @@ class DockerExecutionService:
     
     def _build_sandbox_image(self):
         """Build the sandbox Docker image."""
-        import os
         dockerfile_path = os.path.join(settings.BASE_DIR, 'docker', 'sandbox')
         
         try:
@@ -719,7 +720,6 @@ for item in os.listdir('/sandbox'):
         user_id = getattr(self, '_current_user_id', 'anonymous')
 
         # Validate function name first (prevent code injection)
-        import re
         if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', function_name):
             return {
                 'error': f'Invalid function name: {function_name}',

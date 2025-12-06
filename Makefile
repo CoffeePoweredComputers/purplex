@@ -191,6 +191,20 @@ check-security: ## Check for security vulnerabilities
 	safety check
 	bandit -r purplex/
 
+.PHONY: check-dead-code
+check-dead-code: ## Detect unused code with vulture
+	vulture purplex/ vulture_whitelist.py \
+		--min-confidence 80 \
+		--exclude "**/migrations/**,**/tests/**,**/node_modules/**" \
+		--ignore-names "view,exc_type,exc_val,exc_tb,check_revoked,page_token,schema_editor,application,beat_schedule"
+
+.PHONY: check-dead-code-deep
+check-dead-code-deep: ## Deep dead code scan (more false positives, needs manual review)
+	vulture purplex/ vulture_whitelist.py \
+		--min-confidence 60 \
+		--exclude "**/migrations/**,**/tests/**,**/node_modules/**,**/admin.py" \
+		--ignore-names "view,exc_type,exc_val,exc_tb,check_revoked,page_token,schema_editor,application,beat_schedule"
+
 .PHONY: version
 version: ## Show version
 	@cat VERSION

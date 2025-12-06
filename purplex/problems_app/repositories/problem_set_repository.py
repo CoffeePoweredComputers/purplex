@@ -3,7 +3,7 @@ Repository for ProblemSet model data access.
 """
 
 from typing import Optional, List, Dict, Any
-from django.db.models import Q, Count, Avg, Prefetch
+from django.db.models import Q, Count, Prefetch
 from django.contrib.auth.models import User
 
 from purplex.problems_app.models import ProblemSet, Problem, ProblemSetMembership, Course
@@ -174,38 +174,7 @@ class ProblemSetRepository(BaseRepository):
         )
         
         return stats
-    
-    @classmethod
-    def get_recommended_problem_sets(cls, user: User, limit: int = 5) -> List:
-        """Get recommended problem sets for a user based on their progress."""
-        # Simple recommendation: sets they haven't completed with problems at their level
-        # This could be expanded with more sophisticated recommendation logic
-        from purplex.problems_app.models import UserProblemSetProgress
-        
-        completed_sets = UserProblemSetProgress.objects.filter(
-            user=user,
-            is_completed=True
-        ).values_list('problem_set_id', flat=True)
-        
-        return list(ProblemSet.objects.filter(
-            is_published=True
-        ).exclude(
-            id__in=completed_sets
-        ).annotate(
-            problem_count=Count('problems')
-        ).order_by('-problem_count')[:limit])
-    
-    @classmethod
-    def get_popular_problem_sets(cls, limit: int = 10) -> List:
-        """Get most popular problem sets based on user engagement."""
-        from purplex.problems_app.models import UserProblemSetProgress
-        
-        return list(ProblemSet.objects.filter(
-            is_published=True
-        ).annotate(
-            user_count=Count('userproblemsetprogress__user', distinct=True)
-        ).order_by('-user_count')[:limit])
-    
+
     @classmethod
     def get_problem_sets_in_course(cls, course: Course) -> List:
         """Get all problem sets associated with a course."""
@@ -256,60 +225,7 @@ class ProblemSetRepository(BaseRepository):
             )
         
         return new_set
-    
-    @classmethod
-    def get_problem_set_completion_stats(cls, problem_set: ProblemSet, 
-                                        course: Optional[Course] = None) -> Dict[str, Any]:
-        """Get completion statistics for a problem set."""
-        from purplex.problems_app.models import UserProblemSetProgress
-        
-        filters = {'problem_set': problem_set}
-        if course:
-            filters['course'] = course
-        
-        progress_records = UserProblemSetProgress.objects.filter(**filters)
-        
-        stats = progress_records.aggregate(
-            total_users=Count('user', distinct=True),
-            completed_users=Count('user', filter=Q(is_completed=True)),
-            average_completion=Avg('completion_percentage'),
-            average_score=Avg('average_score')
-        )
-        
-        # Calculate completion rate
-        total = stats['total_users'] or 0
-        completed = stats['completed_users'] or 0
-        stats['completion_rate'] = (completed / total * 100) if total > 0 else 0
-        
-        return stats
-    
-    @classmethod
-    def get_problem_set_leaderboard(cls, problem_set: ProblemSet, 
-                                   course: Optional[Course] = None,
-                                   limit: int = 10) -> List:
-        """Get top performers for a problem set."""
-        from purplex.problems_app.models import UserProblemSetProgress
-        
-        filters = {'problem_set': problem_set}
-        if course:
-            filters['course'] = course
-        
-        return list(UserProblemSetProgress.objects.filter(**filters).select_related(
-            'user'
-        ).order_by('-completion_percentage', '-average_score', 'completed_at')[:limit])
-    
-    @classmethod
-    def update_problem_set_metadata(cls, problem_set: ProblemSet, **kwargs) -> bool:
-        """Update problem set metadata fields."""
-        try:
-            for key, value in kwargs.items():
-                if hasattr(problem_set, key):
-                    setattr(problem_set, key, value)
-            problem_set.save()
-            return True
-        except Exception:
-            return False
-    
+
     @classmethod
     def publish_problem_set(cls, problem_set: ProblemSet) -> bool:
         """Publish a problem set (make it available to students)."""
@@ -329,3 +245,17 @@ class ProblemSetRepository(BaseRepository):
             return True
         except Exception:
             return False
+
+    @classmethod
+    def get_all_titles(cls) -> List[str]:
+        """
+        Get all unique problem set titles for filter dropdowns.
+
+        Returns:
+            List of problem set titles, sorted alphabetically
+        """
+        return list(
+            ProblemSet.objects.values_list('title', flat=True)
+            .order_by('title')
+            .distinct()
+        )

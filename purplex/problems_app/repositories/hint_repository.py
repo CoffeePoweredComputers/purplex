@@ -3,8 +3,6 @@ Repository for ProblemHint model data access.
 """
 
 from typing import Optional, List, Dict, Any
-from django.db.models import Q
-from django.contrib.auth.models import User
 
 from purplex.problems_app.models import ProblemHint, Problem
 from .base_repository import BaseRepository
@@ -56,6 +54,23 @@ class HintRepository(BaseRepository):
     def get_hint_by_id(cls, hint_id: int) -> Optional[ProblemHint]:
         """Get a specific hint by ID."""
         return ProblemHint.objects.filter(id=hint_id).first()
+
+    @classmethod
+    def get_hint_by_problem_and_type(cls, problem: Problem, hint_type: str) -> Optional[ProblemHint]:
+        """
+        Get a single hint by problem and type.
+
+        Args:
+            problem: The problem to get hint for
+            hint_type: The type of hint
+
+        Returns:
+            ProblemHint instance or None if not found
+        """
+        return ProblemHint.objects.filter(
+            problem=problem,
+            hint_type=hint_type
+        ).first()
     
     @classmethod
     def hint_exists_for_problem(cls, problem: Problem, hint_type: str) -> bool:
@@ -297,12 +312,12 @@ class HintRepository(BaseRepository):
     def get_or_create_hint(cls, problem: Problem, hint_type: str, defaults: Dict[str, Any]) -> tuple:
         """
         Get or create a hint for a problem.
-        
+
         Args:
             problem: The problem
             hint_type: Type of hint
             defaults: Default values if creating
-            
+
         Returns:
             Tuple of (hint, created) where created is bool
         """
@@ -310,4 +325,110 @@ class HintRepository(BaseRepository):
             problem=problem,
             hint_type=hint_type,
             defaults=defaults
+        )
+
+    # =========================================================================
+    # HINT ACTIVATION QUERIES
+    # =========================================================================
+
+    @classmethod
+    def get_activations_for_user_problem(cls, user, problem, problem_set=None, course=None):
+        """
+        Get hint activations for a specific user/problem combination.
+
+        Used by hint service to check which hints a user has already seen.
+
+        Args:
+            user: User instance
+            problem: Problem instance
+            problem_set: Optional problem set filter
+            course: Optional course filter
+
+        Returns:
+            QuerySet of HintActivation instances
+        """
+        from purplex.submissions.models import HintActivation
+
+        queryset = HintActivation.objects.filter(
+            submission__user=user,
+            submission__problem=problem
+        )
+
+        if problem_set:
+            queryset = queryset.filter(submission__problem_set=problem_set)
+        if course:
+            queryset = queryset.filter(submission__course=course)
+
+        return queryset
+
+    @classmethod
+    def get_activations_for_course_export(cls, course, user_ids: List[int]):
+        """
+        Get all hint activations for a course, optimized for export.
+
+        Args:
+            course: Course instance
+            user_ids: List of enrolled user IDs
+
+        Returns:
+            QuerySet of HintActivation with related data
+        """
+        from purplex.submissions.models import HintActivation
+
+        return HintActivation.objects.filter(
+            submission__course=course,
+            submission__user_id__in=user_ids
+        ).select_related(
+            'hint', 'submission'
+        ).order_by('submission__user_id', 'submission__problem_id', 'activated_at')
+
+    @classmethod
+    def get_activations_for_research_export(cls, course=None, problem_set=None):
+        """
+        Get hint activations for research export with all related data.
+
+        Args:
+            course: Optional course filter
+            problem_set: Optional problem set filter
+
+        Returns:
+            QuerySet of HintActivation with related data
+        """
+        from purplex.submissions.models import HintActivation
+
+        queryset = HintActivation.objects.select_related(
+            'submission__user',
+            'submission__problem',
+            'submission__problem_set',
+            'submission__course',
+            'hint'
+        )
+
+        if course:
+            queryset = queryset.filter(submission__course=course)
+        if problem_set:
+            queryset = queryset.filter(submission__problem_set=problem_set)
+
+        return queryset
+
+    @classmethod
+    def get_usage_stats_for_student(cls, course, user):
+        """
+        Get hint usage statistics for a specific student in a course.
+
+        Args:
+            course: Course instance
+            user: User instance
+
+        Returns:
+            QuerySet with hint type counts
+        """
+        from purplex.submissions.models import HintActivation
+        from django.db.models import Count
+
+        return HintActivation.objects.filter(
+            submission__course=course,
+            submission__user=user
+        ).values('hint__hint_type').annotate(
+            usage_count=Count('id')
         )

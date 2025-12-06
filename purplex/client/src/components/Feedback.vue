@@ -290,7 +290,7 @@
             class="test-group-header passing"
             tabindex="0"
             role="button"
-            :aria-expanded="$el.querySelector('.test-group[open]') ? 'true' : 'false'"
+            aria-expanded="false"
           >
             <span class="group-icon">▶</span>
             Passing Tests ({{ passingTestsForCurrentSlide.length }})
@@ -477,12 +477,10 @@ export default defineComponent({
     };
   },
   computed: {
-    isEiPLProblem(): boolean {
-      return this.problemType === 'eipl';
-    },
+    // Segmentation support is determined by handler config (feedback_config.show_segmentation)
+    // passed via the segmentationEnabled prop, so no need for type-specific checks
     shouldShowSegmentation(): boolean {
-      return this.isEiPLProblem &&
-             this.segmentationEnabled === true &&
+      return this.segmentationEnabled === true &&
              this.segmentation != null &&
              typeof this.segmentation === 'object' &&
              Object.keys(this.segmentation).length > 0;
@@ -493,18 +491,16 @@ export default defineComponent({
     },
     showLockedSegmentation(): boolean {
       // Show locked banner when:
-      // 1. Problem is EiPL type
-      // 2. Segmentation is enabled for this problem
-      // 3. Not all variations have passed yet
-      // 4. We don't have segmentation data yet (because backend gates it on correctness)
-      return this.isEiPLProblem &&
-             this.segmentationEnabled === true &&
+      // 1. Segmentation is enabled for this problem (via handler config)
+      // 2. Not all variations have passed yet
+      // 3. We don't have segmentation data yet (because backend gates it on correctness)
+      return this.segmentationEnabled === true &&
              !this.allVariationsPass &&
              (this.segmentation == null || Object.keys(this.segmentation).length === 0);
     },
     shouldShowComprehensionSection(): boolean {
-      // Show comprehension section divider when problem has segmentation enabled
-      return this.isEiPLProblem && this.segmentationEnabled === true;
+      // Show comprehension section divider when problem has segmentation enabled (via handler config)
+      return this.segmentationEnabled === true;
     },
     slides(): Slide[] {
       const slideResults = this.codeResults.map((code, index) => {
@@ -706,7 +702,7 @@ export default defineComponent({
     positionDropdown(): void {
       this.$nextTick(() => {
         const dropdown = this.$refs.dropdownPanel as HTMLElement;
-        if (!dropdown) {return;}
+        if (!dropdown || !this.$el) {return;}
 
         const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement;
         if (!trigger) {return;}
@@ -718,7 +714,7 @@ export default defineComponent({
     },
 
     handleClickOutside(event: MouseEvent): void {
-      if (!this.showAttemptDropdown) {return;}
+      if (!this.showAttemptDropdown || !this.$el) {return;}
 
       const dropdown = this.$refs.dropdownPanel as HTMLElement;
       const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement;
@@ -788,6 +784,7 @@ export default defineComponent({
     closeDropdownAndFocusTrigger(): void {
       this.showAttemptDropdown = false;
       this.$nextTick(() => {
+        if (!this.$el) {return;}
         const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement;
         trigger?.focus();
       });
@@ -811,6 +808,7 @@ export default defineComponent({
 
     handleHomeKey(event: KeyboardEvent): void {
       event.preventDefault();
+      if (!this.$el) {return;}
       const attemptList = this.$el.querySelectorAll('.attempt-item-minimal');
       if (attemptList.length > 0) {
         (attemptList[0] as HTMLElement).focus();
@@ -819,6 +817,7 @@ export default defineComponent({
 
     handleEndKey(event: KeyboardEvent): void {
       event.preventDefault();
+      if (!this.$el) {return;}
       const attemptList = this.$el.querySelectorAll('.attempt-item-minimal');
       if (attemptList.length > 0) {
         (attemptList[attemptList.length - 1] as HTMLElement).focus();

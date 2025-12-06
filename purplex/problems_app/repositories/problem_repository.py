@@ -2,9 +2,8 @@
 Repository for Problem and ProblemSet model data access.
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 from django.db.models import Q, Count, Prefetch, QuerySet
-from django.contrib.auth.models import User
 
 from purplex.problems_app.models import (
     Problem, ProblemSet, ProblemSetMembership, 
@@ -25,17 +24,25 @@ class ProblemRepository(BaseRepository):
 
     @classmethod
     def _with_test_case_counts(cls, queryset: QuerySet) -> QuerySet:
-        """Add test case count annotations to avoid N+1 queries."""
+        """Add test case count annotations to avoid N+1 queries.
+
+        Note: Uses _annotated suffix to avoid conflict with model @property methods.
+        """
         return queryset.annotate(
-            test_cases_count=Count('test_cases'),
-            visible_test_cases_count=Count('test_cases', filter=Q(test_cases__is_hidden=False))
+            test_cases_count_annotated=Count('test_cases'),
+            visible_test_cases_count_annotated=Count('test_cases', filter=Q(test_cases__is_hidden=False))
         )
 
     @classmethod
     def get_problem_by_slug(cls, slug: str) -> Optional[Problem]:
         """Get a problem by its slug."""
         return Problem.objects.filter(slug=slug).first()
-    
+
+    @classmethod
+    def get_problem_by_id(cls, problem_id: int) -> Optional[Problem]:
+        """Get a problem by its ID."""
+        return Problem.objects.filter(id=problem_id).first()
+
     @classmethod
     def get_all_problems(cls) -> List[Problem]:
         """Get all problems with optimizations."""
@@ -107,7 +114,12 @@ class ProblemRepository(BaseRepository):
     def get_problem_set_by_slug(cls, slug: str) -> Optional[ProblemSet]:
         """Get a problem set by slug."""
         return ProblemSet.objects.filter(slug=slug).first()
-    
+
+    @classmethod
+    def get_problem_set_by_id(cls, problem_set_id: int) -> Optional[ProblemSet]:
+        """Get a problem set by ID."""
+        return ProblemSet.objects.filter(id=problem_set_id).first()
+
     @classmethod
     def get_problem_set_with_problems(cls, slug: str) -> Optional[ProblemSet]:
         """Get a problem set with all its problems prefetched."""
@@ -204,8 +216,48 @@ class ProblemRepository(BaseRepository):
             setattr(problem, attr, value)
         problem.save()
         return problem
-    
+
+    @staticmethod
+    def get_problem_type_choices() -> list:
+        """
+        Get available problem type choices for the polymorphic hierarchy.
+
+        Returns:
+            List of (type_name, display_label) tuples
+        """
+        return [
+            ('eipl', 'EiPL (Explain in Plain Language)'),
+            ('prompt', 'Prompt (Image-based EiPL)'),
+            ('mcq', 'Multiple Choice Question'),
+        ]
+
     @classmethod
-    def get_problem_type_choices(cls) -> List[tuple]:
-        """Get the available problem type choices from the Problem model."""
-        return Problem.PROBLEM_TYPE_CHOICES
+    def create_mcq_problem(cls, **kwargs) -> 'McqProblem':
+        """
+        Create a new MCQ problem.
+
+        Args:
+            **kwargs: MCQ problem fields
+
+        Returns:
+            Created McqProblem instance
+        """
+        from purplex.problems_app.models import McqProblem
+        return McqProblem.objects.create(**kwargs)
+
+    @classmethod
+    def get_mcq_problem_by_pk(cls, pk: int) -> Optional['McqProblem']:
+        """
+        Get an MCQ problem by its primary key.
+
+        This is used by handlers to ensure they have the properly-typed
+        McqProblem instance when django-polymorphic returns the base Problem type.
+
+        Args:
+            pk: Primary key of the problem
+
+        Returns:
+            McqProblem instance or None if not found/not MCQ type
+        """
+        from purplex.problems_app.models import McqProblem
+        return McqProblem.objects.filter(pk=pk).first()

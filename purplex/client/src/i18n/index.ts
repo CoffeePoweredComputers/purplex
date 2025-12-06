@@ -10,7 +10,7 @@ export type MessageSchema = typeof en;
 // Supported locale codes
 export type SupportedLocale =
   | 'en' | 'hi' | 'bn' | 'te' | 'pa' | 'mr' | 'kn' | 'ta'
-  | 'ja' | 'zh' | 'pt' | 'vi' | 'th' | 'es' | 'fr' | 'de';
+  | 'ja' | 'zh' | 'pt' | 'vi' | 'th' | 'es' | 'fr' | 'de' | 'mi';
 
 // Create i18n instance with Composition API mode
 export const i18n = createI18n<[MessageSchema], SupportedLocale>({
@@ -95,7 +95,7 @@ export function getStoredLocale(): SupportedLocale {
 export function isValidLocale(locale: string): locale is SupportedLocale {
   const validLocales: SupportedLocale[] = [
     'en', 'hi', 'bn', 'te', 'pa', 'mr', 'kn', 'ta',
-    'ja', 'zh', 'pt', 'vi', 'th', 'es', 'fr', 'de'
+    'ja', 'zh', 'pt', 'vi', 'th', 'es', 'fr', 'de', 'mi'
   ];
   return validLocales.includes(locale as SupportedLocale);
 }

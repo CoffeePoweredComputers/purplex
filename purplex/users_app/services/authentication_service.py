@@ -11,14 +11,12 @@ import logging
 
 # Import models only for type hints
 if TYPE_CHECKING:
-    from django.db import transaction
+    pass
 import os
 import sys
 import hmac
 import secrets
-import json
 import time
-import redis
 
 # Add parent directory to path for config import
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -65,7 +63,7 @@ class AuthenticationService:
                         # Get Firebase credentials path from config or environment
                         firebase_path = config.firebase_credentials_path or os.environ.get('FIREBASE_CREDENTIALS_PATH', '/app/firebase-credentials.json')
                         cred = credentials.Certificate(firebase_path)
-                        firebase_admin_app = initialize_app(cred)
+                        initialize_app(cred)
                         settings._firebase_initialized = True
                         logger.info(f"Firebase initialized with credentials from {firebase_path}")
                     except Exception as e:
@@ -73,7 +71,7 @@ class AuthenticationService:
                         raise
                 
                 cls._firebase_auth = auth
-            except ImportError as e:
+            except ImportError:
                 logger.error("firebase-admin not installed. Install it for production use.")
                 raise
         
@@ -370,41 +368,6 @@ class AuthenticationService:
         if user_profile.was_created:
             logger.info(f"Created new user: {user.username} (Firebase UID: {firebase_uid})")
 
-        return user
-    
-    @classmethod
-    def _create_django_user(cls, firebase_uid: str, email: str, display_name: str) -> User:
-        """
-        Create a Django user with unique username.
-        
-        Args:
-            firebase_uid: Firebase user ID
-            email: User's email address
-            display_name: User's display name
-            
-        Returns:
-            New Django User instance
-        """
-        # Generate username from email or firebase_uid
-        if email:
-            username_base = email.split('@')[0]
-        else:
-            username_base = firebase_uid[:15]
-        
-        # Ensure username is unique using repository
-        username = username_base
-        counter = 1
-        while UserRepository.username_exists(username):
-            username = f"{username_base}{counter}"
-            counter += 1
-        
-        # Create the Django user using repository
-        user = UserRepository.create(
-            username=username,
-            email=email or '',
-            first_name=display_name or ''
-        )
-        
         return user
     
     @classmethod

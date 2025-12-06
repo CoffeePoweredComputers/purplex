@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
-from ..models import Problem, ProblemHint, ProblemCategory
+from ..models import EiplProblem, ProblemHint, ProblemCategory
 
 
 class ProblemHintModelTests(TestCase):
@@ -19,10 +19,9 @@ class ProblemHintModelTests(TestCase):
             description='Test category description'
         )
         
-        self.problem = Problem.objects.create(
+        self.problem = EiplProblem.objects.create(
             slug='test-problem',
             title='Test Problem',
-            description='Test problem description',
             function_name='test_function',
             function_signature='def test_function():',
             reference_solution='def test_function():\n    return True',
@@ -238,21 +237,21 @@ class ProblemHintModelTests(TestCase):
 
     def test_hint_ordering_by_type(self):
         """Test that hints are ordered by hint_type"""
-        hint_c = ProblemHint.objects.create(
+        ProblemHint.objects.create(
             problem=self.problem,
             hint_type='variable_fade',
             is_enabled=True,
             content={'mappings': []}
         )
-        
-        hint_a = ProblemHint.objects.create(
+
+        ProblemHint.objects.create(
             problem=self.problem,
             hint_type='subgoal_highlight',
             is_enabled=True,
             content={'subgoals': []}
         )
-        
-        hint_b = ProblemHint.objects.create(
+
+        ProblemHint.objects.create(
             problem=self.problem,
             hint_type='suggested_trace',
             is_enabled=True,

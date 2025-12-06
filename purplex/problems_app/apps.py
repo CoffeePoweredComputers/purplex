@@ -6,5 +6,5 @@ class ProblemsConfig(AppConfig):
     
     def ready(self):
         """Import signal handlers when app is ready."""
-        # Import Celery signal handlers to register them
-        from . import signals
+        # Import signal handlers to register them (side-effect import)
+        from . import signals  # noqa: F401

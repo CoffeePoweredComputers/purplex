@@ -101,13 +101,68 @@
       class="workspace"
       :class="{ 'is-navigating': isNavigating }"
     >
-      <!-- Left panel: Code editor and submission -->
+      <!-- Left panel: Code editor/image and submission -->
       <div
         class="left-panel"
         :class="{ 'is-navigating': isNavigating }"
       >
-        <!-- Code editor section -->
+        <!-- Image section for prompt problems (when display_config.show_image is true) -->
         <div
+          v-if="getCurrentProblem()?.display_config?.show_image"
+          id="problem-image"
+          class="image-section"
+        >
+          <div class="section-header">
+            <div class="section-label">
+              Problem Image
+            </div>
+          </div>
+          <div class="problem-image-wrapper">
+            <img
+              v-if="getCurrentProblem()?.display_config?.image_url"
+              :src="getCurrentProblem()?.display_config?.image_url"
+              :alt="getCurrentProblem()?.display_config?.image_alt_text || 'Problem image'"
+              class="problem-image"
+              loading="lazy"
+            />
+            <div
+              v-else
+              class="problem-image-placeholder"
+            >
+              No image configured for this problem
+            </div>
+          </div>
+        </div>
+
+        <!-- Problem description section (for MCQ and other non-code problems) -->
+        <div
+          v-else-if="getCurrentProblem()?.display_config?.show_reference_code === false"
+          id="problem-description"
+          class="description-section"
+        >
+          <div class="section-header">
+            <div class="section-label">
+              {{ getCurrentProblem()?.title || 'Question' }}
+            </div>
+          </div>
+          <div class="problem-description-content">
+            <div
+              v-if="getCurrentProblem()?.description"
+              class="problem-description-markdown"
+              v-html="renderMarkdown(getCurrentProblem()?.description)"
+            />
+            <div
+              v-else
+              class="problem-description-missing"
+            >
+              No question text provided. Please add a description in the admin panel.
+            </div>
+          </div>
+        </div>
+
+        <!-- Code editor section (for EiPL and other code-based problems) -->
+        <div
+          v-else
           id="code-editor"
           class="editor-section"
         >
@@ -115,7 +170,7 @@
             <div class="section-label">
               Code Editor
             </div>
-            <HintButton 
+            <HintButton
               :problem-slug="getCurrentProblem().slug"
               :course-id="courseId"
               :problem-set-slug="$route.params.slug"
@@ -127,13 +182,13 @@
               @clear-all-hints="onClearAllHints"
             />
           </div>
-          <Editor 
-            ref="entry" 
+          <Editor
+            ref="entry"
             :key="editorRenderKey"
-            lang="python" 
-            mode="python" 
-            height="450px" 
-            width="100%" 
+            lang="python"
+            mode="python"
+            height="450px"
+            width="100%"
             :value="displayedCode"
             :read-only="true"
             :show-gutter="showLineNumbers"
@@ -265,7 +320,7 @@
           :segmentation="feedback.segmentationData"
           :mcq-result="feedback.mcqResult"
           :reference-code="getCurrentProblem()?.reference_solution || ''"
-          :segmentation-enabled="getCurrentProblem()?.segmentation_enabled === true"
+          :segmentation-enabled="getCurrentProblem()?.feedback_config?.show_segmentation === true"
           :is-loading="loading"
           :is-navigating="isNavigating"
           :submission-history="submissionHistory"
@@ -292,6 +347,7 @@ import PyTutorModal from "@/modals/PyTutorModal.vue"
 import InputSelector from "@/components/activities/InputSelector.vue"
 import FeedbackSelector from "@/components/activities/FeedbackSelector.vue"
 import axios from 'axios'
+import { marked } from 'marked'
 import { useNotification } from '@/composables/useNotification'
 import { useLogger } from '@/composables/useLogger'
 import { useOptimisticProgress } from '@/composables/useOptimisticProgress'
@@ -541,6 +597,11 @@ export default {
     },
     
     methods: {
+        renderMarkdown(text) {
+            if (!text) return '';
+            return marked(text, { breaks: true });
+        },
+
         async nextProblem() {
             await this.navigateToProblem((this.currentProblem + 1) % this.problems.length);
         },
@@ -614,9 +675,9 @@ export default {
 
                     this.submissionHistory = submissionHistory;
 
-                    // Only set segmentation data if the problem has segmentation enabled
+                    // Only set segmentation data if the problem has segmentation enabled (use handler config)
                     const currentProblem = this.getCurrentProblem();
-                    const segData = currentProblem?.segmentation_enabled && submissionData.segmentation
+                    const segData = currentProblem?.feedback_config?.show_segmentation && submissionData.segmentation
                         ? submissionData.segmentation
                         : null;
 
@@ -959,9 +1020,9 @@ export default {
                 testResultsPerVariation.push(varTestResults);
             }
 
-            // Apply segmentation data only if the problem has segmentation enabled
+            // Apply segmentation data only if the problem has segmentation enabled (use handler config)
             const currentProblem = this.getCurrentProblem();
-            const segData = currentProblem?.segmentation_enabled && attempt.segmentation
+            const segData = currentProblem?.feedback_config?.show_segmentation && attempt.segmentation
                 ? attempt.segmentation
                 : null;
 
@@ -1138,14 +1199,28 @@ export default {
 
                 this.logger.info('Submitting activity solution', { problemSlug: currentProblemSlug });
 
-                // Submit to generic async endpoint
+                // Submit to generic activity endpoint
                 const submissionResponse = await submissionService.submitActivity(submissionData);
 
+                // Check if this is a synchronous (immediate) response
+                if (submissionResponse.status === 'complete') {
+                    // Synchronous submission (e.g., MCQ) - result is already available
+                    this.logger.info('Sync submission complete', {
+                        submissionId: submissionResponse.submission_id,
+                        score: submissionResponse.score
+                    });
+
+                    // Process the immediate result
+                    this.handleSyncSubmissionResult(submissionResponse, currentProblemSlug, rawInput);
+                    return;
+                }
+
+                // Asynchronous submission - need to connect to SSE
                 if (!submissionResponse.task_id) {
                     throw new Error('No task ID received from server');
                 }
 
-                this.logger.info('Activity submission accepted, connecting to SSE stream', {
+                this.logger.info('Async submission accepted, connecting to SSE stream', {
                     taskId: submissionResponse.task_id
                 });
 
@@ -1268,7 +1343,7 @@ export default {
 
                             // Only update displayed feedback if this submission is for the currently viewed problem
                             if (currentProblemSlug === this.getCurrentProblem().slug) {
-                                const segData = currentProblem?.segmentation_enabled && segmentation
+                                const segData = currentProblem?.feedback_config?.show_segmentation && segmentation
                                     ? segmentation
                                     : null;
 
@@ -1291,8 +1366,10 @@ export default {
                             const segmentationPassed = segmentation?.passed ?? null;
                             const submittedProblem = this.problems.find(p => p.slug === currentProblemSlug);
 
+                            // Determine completion status using handler config instead of hardcoded type checks
+                            // feedback_config.show_segmentation comes from ActivityHandler.get_problem_config()
                             let finalStatus = 'in_progress';
-                            if (submittedProblem?.problem_type === 'eipl' && submittedProblem?.segmentation_enabled) {
+                            if (submittedProblem?.feedback_config?.show_segmentation) {
                                 finalStatus = (score >= 100 && segmentationPassed === true) ? 'completed' : 'in_progress';
                             } else {
                                 finalStatus = score >= 100 ? 'completed' : 'in_progress';
@@ -1328,7 +1405,9 @@ export default {
                             let message = `${problemIdentifier}: `;
                             let notificationType = 'info';
 
-                            if (submittedProblem?.problem_type === 'eipl' && submittedProblem?.segmentation_enabled && segmentation) {
+                            // Use handler config instead of hardcoded type checks
+                            // feedback_config.show_segmentation comes from ActivityHandler.get_problem_config()
+                            if (submittedProblem?.feedback_config?.show_segmentation && segmentation) {
                                 const segmentCount = segmentation.segment_count || 0;
                                 const threshold = submittedProblem.segmentation_config?.threshold || 2;
                                 const highLevelText = segmentationPassed
@@ -1437,7 +1516,95 @@ export default {
                 // Don't reset it here as SSE is still processing
             }
         },
-        
+
+        handleSyncSubmissionResult(response, problemSlug, rawInput) {
+            /**
+             * Handle synchronous submission result (e.g., MCQ).
+             * MCQ submissions return immediately with complete results.
+             */
+            const problemType = response.problem_type || 'mcq';
+            const problemIndex = this.problems.findIndex(p => p.slug === problemSlug);
+            const problemIdentifier = problemIndex >= 0 ? `Problem ${problemIndex + 1}` : 'Submission';
+
+            // Build MCQ result from response
+            const mcqResult = {
+                is_correct: response.is_correct ?? false,
+                score: response.score ?? 0,
+                submission_id: response.submission_id,
+                selected_option: response.selected_option || { id: '', text: '' },
+                correct_option: response.correct_option || { id: '', text: '', explanation: '' },
+                completion_status: response.completion_status
+            };
+
+            // Only update displayed feedback if this submission is for the currently viewed problem
+            if (problemSlug === this.getCurrentProblem().slug) {
+                this.setFeedback({
+                    mcqResult: mcqResult,
+                    promptCorrectness: response.score ?? 0,
+                    userPrompt: response.user_input ?? rawInput,
+                    // Clear EiPL-specific fields
+                    codeResults: [],
+                    testResults: [],
+                    comprehensionResults: '',
+                    segmentationData: null
+                });
+                this.promptEditorValue = response.user_input ?? rawInput;
+            }
+
+            // Update problem status
+            const finalStatus = mcqResult.is_correct ? 'completed' : 'in_progress';
+            this.problemStatuses = {
+                ...this.problemStatuses,
+                [problemSlug]: {
+                    status: finalStatus,
+                    score: response.score,
+                    attempts: (this.problemStatuses[problemSlug]?.attempts || 0) + 1
+                }
+            };
+
+            // Update cache
+            const cacheKey = this.submissionCache.buildKey(
+                this.$route.params.slug,
+                problemSlug,
+                this.courseId
+            );
+            this.submissionCache.set(cacheKey, {
+                has_submission: true,
+                mcq_result: mcqResult,
+                user_prompt: response.user_input
+            });
+
+            // Show notification
+            const message = `${problemIdentifier}: ${mcqResult.is_correct ? 'Correct!' : 'Incorrect'}`;
+            if (mcqResult.is_correct) {
+                this.notify.success(message);
+            } else {
+                this.notify.warning(message);
+            }
+
+            // Clean up submission tracking state
+            this.clearOptimistic(problemSlug);
+            this.submissionTracking.removeSubmission(problemSlug);
+            this.loading = this.submissionTracking.isSubmitting(this.getCurrentProblem().slug);
+
+            // Clear current attempt hints
+            this.currentAttemptHints = new Set();
+
+            // Refresh submission history
+            this.loadSubmissionHistory(problemSlug).then(() => {
+                this.logger.info('Submission history refreshed after sync submission');
+            }).catch(error => {
+                this.logger.error('Failed to refresh submission history', error);
+            });
+
+            this.logger.info('Sync submission processed', {
+                problemSlug,
+                problemType,
+                isCorrect: mcqResult.is_correct,
+                score: response.score
+            });
+        },
+
         async loadProblemSet() {
             const problemSetSlug = this.$route.params.slug;
             this.isLoading = true;
@@ -1794,6 +1961,7 @@ export default {
 
 /* No transitions - keep content completely static during navigation */
 .editor-section,
+.description-section,
 .submission-section,
 .right-panel,
 .left-panel {
@@ -2110,6 +2278,138 @@ export default {
     border-color: var(--color-bg-input);
 }
 
+/* Image Section (for prompt problems) */
+.image-section {
+    background: var(--color-bg-panel);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    border: 2px solid transparent;
+    transition: var(--transition-base);
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    min-height: 0;
+    scroll-margin-top: 120px;
+}
+
+.image-section:hover {
+    border-color: var(--color-bg-input);
+}
+
+.problem-image-wrapper {
+    padding: var(--spacing-lg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    max-height: 500px;
+    background: var(--color-bg-input);
+}
+
+.problem-image {
+    max-width: 100%;
+    max-height: 450px;
+    object-fit: contain;
+    border-radius: var(--radius-base);
+}
+
+.problem-image-placeholder {
+    color: var(--color-text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: var(--spacing-xl);
+}
+
+/* Description Section (for MCQ and other non-code problems) */
+.description-section {
+    background: var(--color-bg-panel);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    border: 2px solid transparent;
+    transition: var(--transition-base);
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    min-height: 0;
+    scroll-margin-top: 120px;
+}
+
+.description-section:hover {
+    border-color: var(--color-bg-input);
+}
+
+.problem-description-content {
+    padding: var(--spacing-xl);
+}
+
+.problem-description-markdown {
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+    line-height: 1.7;
+}
+
+.problem-description-markdown :deep(p) {
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+.problem-description-markdown :deep(p:last-child) {
+    margin-bottom: 0;
+}
+
+.problem-description-markdown :deep(code) {
+    background: var(--color-bg-hover);
+    padding: 2px 6px;
+    border-radius: var(--radius-xs);
+    font-family: 'Fira Code', 'Monaco', monospace;
+    font-size: 0.9em;
+    color: var(--color-text-code);
+}
+
+.problem-description-markdown :deep(pre) {
+    background: var(--color-bg-input);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-base);
+    overflow-x: auto;
+    margin: var(--spacing-md) 0;
+}
+
+.problem-description-markdown :deep(pre code) {
+    background: none;
+    padding: 0;
+    font-size: var(--font-size-sm);
+}
+
+.problem-description-markdown :deep(ul),
+.problem-description-markdown :deep(ol) {
+    margin: var(--spacing-md) 0;
+    padding-left: var(--spacing-xl);
+}
+
+.problem-description-markdown :deep(li) {
+    margin-bottom: var(--spacing-xs);
+}
+
+.problem-description-markdown :deep(strong) {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.problem-description-markdown :deep(em) {
+    font-style: italic;
+}
+
+.problem-description-missing {
+    font-size: var(--font-size-base);
+    color: var(--color-warning);
+    font-style: italic;
+    padding: var(--spacing-md);
+    background: var(--color-warning-bg);
+    border-radius: var(--radius-base);
+    border: 1px dashed var(--color-warning);
+}
+
 .editor-toolbar {
     background: var(--color-bg-hover);
     border-top: 1px solid var(--color-bg-input);
@@ -2274,11 +2574,12 @@ export default {
         min-height: 400px;
     }
     
-    .editor-section {
+    .editor-section,
+    .description-section {
         min-height: 500px;
         flex: none;
     }
-    
+
     .submission-section {
         min-height: 250px;
         flex: none;
@@ -2328,14 +2629,15 @@ export default {
         width: 100%;
     }
     
-    .editor-section {
+    .editor-section,
+    .description-section {
         min-height: 400px;
     }
-    
+
     .submission-section {
         min-height: 200px;
     }
-    
+
     .section-header {
         padding: var(--spacing-md) var(--spacing-lg);
     }

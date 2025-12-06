@@ -7,7 +7,26 @@
  */
 
 import type { Component, DefineComponent } from 'vue'
-import type { HintConfig, SubmissionHistoryItem } from '@/types'
+import type {
+  HintConfig,
+  SubmissionHistoryItem,
+  DisplayConfig,
+  InputConfig,
+  HintsHandlerConfig,
+  FeedbackConfig,
+  McqOption,
+} from '@/types'
+
+// Re-export config types from central types module
+export type {
+  DisplayConfig,
+  InputConfig,
+  FeedbackConfig,
+  McqOption,
+}
+
+// Alias for backward compatibility
+export type HintsConfig = HintsHandlerConfig
 
 // ===== ACTIVITY INPUT TYPES =====
 
@@ -105,54 +124,21 @@ export interface ActivityProblem {
   hints_config?: HintsConfig
   /** Type-specific feedback configuration from handler */
   feedback_config?: FeedbackConfig
+  /** Prompt-specific configuration */
+  prompt_config?: PromptConfig
 }
 
 /**
- * Display configuration from activity handler.
+ * Prompt problem configuration.
  */
-export interface DisplayConfig {
-  show_reference_code?: boolean
-  code_read_only?: boolean
-  show_function_signature?: boolean
+export interface PromptConfig {
+  image_url?: string
+  image_alt_text?: string
 }
 
-/**
- * Input configuration from activity handler.
- */
-export interface InputConfig {
-  type?: 'textarea' | 'code' | 'radio' | 'multiple_choice'
-  label?: string
-  min_length?: number
-  max_length?: number
-  placeholder?: string
-  /** MCQ options (for radio/multiple_choice types) */
-  options?: McqOption[]
-}
-
-/**
- * MCQ option definition.
- */
-export interface McqOption {
-  id: string
-  text: string
-}
-
-/**
- * Hints configuration from activity handler.
- */
-export interface HintsConfig {
-  available?: string[]
-  max_per_problem?: number
-}
-
-/**
- * Feedback configuration from activity handler.
- */
-export interface FeedbackConfig {
-  show_segmentation?: boolean
-  show_variations?: boolean
-  show_test_details?: boolean
-}
+// NOTE: DisplayConfig, InputConfig, FeedbackConfig, and McqOption are now
+// imported from @/types and re-exported above for backward compatibility.
+// HintsConfig is an alias for HintsHandlerConfig from @/types.
 
 /**
  * Code result for a variation.

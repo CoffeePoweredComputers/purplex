@@ -1,0 +1,41 @@
+{
+  "status": {
+    "completed": "Kua Oti",
+    "inProgress": "E Haere Ana",
+    "remaining": "E Toe Ana",
+    "notStarted": "Kāore Anō Kia Tīmata"
+  },
+  "problemSet": {
+    "title": "Huinga Raru",
+    "progress": "Kauneke",
+    "problems": "Ngā Raru"
+  },
+  "editor": {
+    "copy": "Tārua",
+    "copied": "Kua Tāruatia",
+    "lines": "Ngā Rārangi",
+    "noLines": "Kāore he Rārangi",
+    "theme": {
+      "dark": "Pōuri",
+      "light": "Mārama"
+    },
+    "size": {
+      "small": "Iti",
+      "medium": "Waenga",
+      "large": "Nui"
+    }
+  },
+  "submission": {
+    "submit": "Tuku",
+    "submitting": "E tuku ana...",
+    "runTests": "Whakahaerehia ngā Whakamātautau",
+    "running": "E haere ana...",
+    "placeholder": "Whakamāramahia he aha te mahi a tēnei waehere ki ō ake kupu..."
+  },
+  "hints": {
+    "title": "Ngā Tohutohu",
+    "showHint": "Whakaatuhia te Tohutohu",
+    "hideHint": "Hunaia te Tohutohu",
+    "noHints": "Kāore he tohutohu e wātea ana"
+  }
+}

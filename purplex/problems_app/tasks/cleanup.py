@@ -2,6 +2,7 @@
 Periodic cleanup tasks for Docker containers and system resources.
 """
 import logging
+from datetime import datetime, timedelta
 from celery import shared_task
 from django.utils import timezone
 
@@ -64,7 +65,6 @@ def prune_orphaned_containers():
                 # Only remove if older than 1 hour
                 created_at = container.attrs['Created']
                 # Docker timestamps are ISO format
-                from datetime import datetime, timedelta
                 created_time = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
                 if (timezone.now() - created_time) > timedelta(hours=1):
                     container.remove(force=True)

@@ -1,6 +1,7 @@
 """Views for handling code submissions and testing."""
 
 import logging
+import uuid
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
@@ -10,24 +11,13 @@ from django.utils.decorators import method_decorator
 
 from ..services.submission_validation_service import SubmissionValidationService
 from ..services.course_service import CourseService
-from ..services.problem_service import ProblemService
 from ..services.progress_service import ProgressService
 from ..repositories import ProblemRepository
 from ..handlers import get_handler, get_registered_types, is_registered
 from purplex.users_app.permissions import IsAuthenticated
-from ..tasks.pipeline import execute_eipl_pipeline, execute_mcq_pipeline
-import uuid
+from purplex.submissions.services import SubmissionService
 
 logger = logging.getLogger(__name__)
-
-
-# ─── Pipeline Task Registry ─────────────────────────────────────────────────
-# Maps problem_type to their async Celery pipeline tasks
-# New activity types should register their pipeline here
-PIPELINE_TASKS = {
-    'eipl': execute_eipl_pipeline,
-    'mcq': execute_mcq_pipeline,
-}
 
 
 @method_decorator(ratelimit(key='user', rate='50/m', method='POST'), name='post')
@@ -35,8 +25,9 @@ class ActivitySubmissionView(APIView):
     """
     Unified submission endpoint for all activity types.
 
-    Dispatches to type-specific pipelines based on problem.problem_type.
-    This is the preferred endpoint for new activity types.
+    Delegates to handler.submit() which owns the execution model:
+    - Synchronous handlers (MCQ): process inline, return immediate result
+    - Asynchronous handlers (EiPL, Prompt): queue Celery task, return task_id
     """
     permission_classes = [IsAuthenticated]
 
@@ -77,19 +68,21 @@ class ActivitySubmissionView(APIView):
                     'error': enrollment_result['error']
                 }, status=enrollment_result['status_code'])
 
-        # Check if we have a pipeline for this problem type
+        # Get handler for this problem type
         problem_type = problem.problem_type
-        if problem_type not in PIPELINE_TASKS:
+        if not is_registered(problem_type):
             return Response({
-                'error': f'Submission pipeline not implemented for activity type: {problem_type}'
+                'error': f'No handler registered for activity type: {problem_type}'
             }, status=status.HTTP_501_NOT_IMPLEMENTED)
+
+        handler = get_handler(problem_type)
 
         logger.info(f"Activity submission for {problem_type} problem {problem.slug} by user {request.user.username}")
 
         # Generate request ID for tracking
         request_id = str(uuid.uuid4())
 
-        # Store submission context in cache
+        # Store submission context in cache (for async handlers)
         from django.core.cache import cache
 
         submission_context = {
@@ -108,67 +101,71 @@ class ActivitySubmissionView(APIView):
             'submitted_at': timezone.now().isoformat()
         }
 
-        # Store context with 2 hour TTL (generic key format)
         cache.set(
             f"submission:context:{request_id}",
             submission_context,
             timeout=7200
         )
 
-        logger.debug(f"Stored submission context for request {request_id}")
-
-        # Dispatch to type-specific pipeline
         try:
-            pipeline_task_class = PIPELINE_TASKS[problem_type]
-
-            # Build args based on problem type
-            # EiPL expects: problem_id, user_prompt, user_id, problem_set_id, course_id
-            if problem_type == 'eipl':
-                task_args = [
-                    problem.id,
-                    raw_input,  # user_prompt for EiPL
-                    request.user.id,
-                    problem_set.id if problem_set else None,
-                    course.id if course else None
-                ]
-            else:
-                # Generic args for other types
-                task_args = [
-                    problem.id,
-                    raw_input,
-                    request.user.id,
-                    problem_set.id if problem_set else None,
-                    course.id if course else None
-                ]
-
-            logger.info(f"🚀 Starting {problem_type} pipeline for problem {problem.slug} with request ID {request_id}")
-
-            pipeline_task = pipeline_task_class.apply_async(
-                args=task_args,
-                task_id=request_id
+            # Create submission record
+            submission = SubmissionService.create_submission(
+                user=request.user,
+                problem=problem,
+                raw_input=raw_input,
+                submission_type=problem_type,
+                problem_set=problem_set,
+                course=course,
+                activated_hints=activated_hints,
             )
 
-            logger.info(f"✅ Task queued successfully: task_id={pipeline_task.id}, state={pipeline_task.state}")
-
-            # Store request_id in session for SSE authentication
-            if not request.session.get('user_tasks'):
-                request.session['user_tasks'] = []
-            request.session['user_tasks'].append(request_id)
-            request.session.save()
-
-            return Response({
+            # Build context for handler
+            handler_context = {
+                'user_id': request.user.id,
+                'problem_set': problem_set,
+                'problem_set_id': problem_set.id if problem_set else None,
+                'course': course,
+                'course_id': course.id if course else None,
                 'request_id': request_id,
-                'task_id': pipeline_task.id,
-                'status': 'processing',
-                'problem_type': problem_type,
-                'stream_url': f'/api/tasks/{request_id}/stream/',
-                'message': 'Your submission is being processed. Connect to the stream URL for real-time updates.'
-            }, status=status.HTTP_202_ACCEPTED)
+                'activated_hints': activated_hints,
+            }
+
+            # Delegate to handler - handler owns sync/async decision
+            outcome = handler.submit(submission, raw_input, problem, handler_context)
+
+            if outcome.complete:
+                # Synchronous completion (e.g., MCQ)
+                logger.info(f"✅ Sync submission complete: {submission.submission_id}")
+
+                return Response({
+                    'status': 'complete',
+                    'submission_id': str(submission.submission_id),
+                    'problem_type': problem_type,
+                    **outcome.result_data
+                }, status=status.HTTP_200_OK)
+            else:
+                # Asynchronous processing (e.g., EiPL)
+                logger.info(f"🚀 Async task queued: task_id={outcome.task_id}")
+
+                # Store request_id in session for SSE authentication
+                if not request.session.get('user_tasks'):
+                    request.session['user_tasks'] = []
+                request.session['user_tasks'].append(request_id)
+                request.session.save()
+
+                return Response({
+                    'request_id': request_id,
+                    'task_id': outcome.task_id,
+                    'status': 'processing',
+                    'problem_type': problem_type,
+                    'stream_url': f'/api/tasks/{request_id}/stream/',
+                    'message': 'Your submission is being processed. Connect to the stream URL for real-time updates.'
+                }, status=status.HTTP_202_ACCEPTED)
 
         except Exception as e:
-            logger.error(f"❌ Failed to start {problem_type} pipeline for problem {problem.slug}: {str(e)}", exc_info=True)
+            logger.error(f"❌ Submission failed for {problem_type} problem {problem.slug}: {str(e)}", exc_info=True)
             return Response({
-                'error': 'Failed to start submission task. Please try again.',
+                'error': 'Failed to process submission. Please try again.',
                 'request_id': None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -190,7 +187,7 @@ class ActivityTypesView(APIView):
             types_data.append({
                 'type': type_name,
                 'label': dict(ProblemRepository.get_problem_type_choices()).get(type_name, type_name),
-                'has_pipeline': type_name in PIPELINE_TASKS,
+                'has_pipeline': True,  # All registered handlers have submit()
                 'admin_config': handler.get_admin_config(),
             })
 
@@ -241,7 +238,7 @@ class SubmissionHistoryView(APIView):
 
         # Add problem_set filter if provided - important to prevent cross-set leakage
         if problem_set_slug:
-            problem_set = ProblemService.get_problem_set_by_slug(problem_set_slug)
+            problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
             if not problem_set:
                 return Response({
                     'error': 'Problem set not found'
@@ -269,17 +266,16 @@ class SubmissionHistoryView(APIView):
                             'error': 'Problem set does not belong to this course'
                         }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Fetch submissions from the new Submission model
-        from purplex.submissions.models import Submission, CodeVariation, TestExecution, SegmentationAnalysis
+        # Fetch submissions via repository
+        from purplex.submissions.repositories import SubmissionRepository
 
-        submissions = Submission.objects.filter(
-            **filters
-        ).select_related(
-            'problem', 'problem_set', 'course', 'segmentation'
-        ).prefetch_related(
-            'code_variations',
-            'test_executions'
-        ).order_by('-submitted_at')[:limit]
+        submissions = SubmissionRepository.get_user_submission_history(
+            user=request.user,
+            problem=problem,
+            problem_set=filters.get('problem_set'),
+            course=filters.get('course'),
+            limit=limit
+        )
 
         # Find the best attempt
         best_score = 0

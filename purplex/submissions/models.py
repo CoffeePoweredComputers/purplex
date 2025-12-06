@@ -28,12 +28,17 @@ class Submission(models.Model):
 
     # Submission metadata
     submitted_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    # NOTE: Submission types should align with PROBLEM_TYPE_CHOICES in problems_app/models.py
+    # Legacy types (direct_code, function_redef) kept for historical data compatibility
     submission_type = models.CharField(
         max_length=20,
         choices=[
-            ('direct_code', 'Direct Code Submission'),
+            # Active types (have handlers in problems_app/handlers/)
             ('eipl', 'Explain in Plain Language'),
             ('mcq', 'Multiple Choice Question'),
+            ('prompt', 'Prompt (Image-based)'),
+            # Legacy types (no handler, historical data only)
+            ('direct_code', 'Direct Code Submission'),
             ('function_redef', 'Function Redefinition'),
         ],
         db_index=True

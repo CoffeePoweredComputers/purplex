@@ -5,11 +5,10 @@ Service for exporting course progress data to CSV.
 import csv
 import json
 from io import StringIO
-from typing import Optional
 from collections import defaultdict
 
 from purplex.problems_app.models import Course, UserProgress, CourseEnrollment
-from purplex.submissions.models import Submission, HintActivation
+from purplex.submissions.models import HintActivation
 
 
 class CourseExportService:
@@ -65,36 +64,23 @@ class CourseExportService:
             'is_completed',
         ])
 
-        # Get enrolled students
-        enrollments = CourseEnrollment.objects.filter(
-            course=course
-        ).select_related('user')
-
-        if not include_inactive:
-            enrollments = enrollments.filter(is_active=True)
+        # Get enrolled students via repository
+        from ..repositories import CourseEnrollmentRepository, ProgressRepository, HintRepository
+        enrollments = CourseEnrollmentRepository.get_for_course_with_users(
+            course, include_inactive=include_inactive
+        )
 
         # CRITICAL FIX: Fetch ALL progress records in ONE query instead of N queries
         # Build enrollment lookup dict
         enrollment_dict = {e.user_id: e for e in enrollments}
+        user_ids = list(enrollment_dict.keys())
 
-        # Get all progress for all enrolled students in a single query
-        all_progress = UserProgress.objects.filter(
-            course=course,
-            user_id__in=[e.user_id for e in enrollments]
-        ).select_related(
-            'user', 'problem', 'problem_set'
-        ).prefetch_related(
-            'problem__hints'
-        ).order_by('user__username', 'problem__slug')
+        # Get all progress for all enrolled students via repository
+        all_progress = ProgressRepository.get_for_course_export(course, user_ids)
 
-        # Fetch ALL hint activations for this course in a single query
+        # Fetch ALL hint activations for this course via repository
         # Build a mapping: (user_id, problem_id) -> list of hint activations
-        hint_activations = HintActivation.objects.filter(
-            submission__course=course,
-            submission__user_id__in=[e.user_id for e in enrollments]
-        ).select_related(
-            'hint', 'submission'
-        ).order_by('submission__user_id', 'submission__problem_id', 'activated_at')
+        hint_activations = HintRepository.get_activations_for_course_export(course, user_ids)
 
         # Build lookup dict for efficient access
         hint_lookup = defaultdict(list)

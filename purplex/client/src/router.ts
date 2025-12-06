@@ -61,15 +61,14 @@ const routes: RouteRecordRaw[] = [
     },
     {
         path: "/admin/problems/new",
-        name: "AdminCreateProblem", 
-        component: () => import("./components/AdminProblemEditor.vue"),
+        name: "AdminCreateProblem",
+        component: () => import("./components/admin/AdminProblemEditorShell.vue"),
         meta: {requiresAuth: true, requiresAdmin: true}
     },
     {
         path: "/admin/problems/:slug/edit",
         name: "AdminEditProblem",
-        component: () => import("./components/AdminProblemEditor.vue"),
-        props: route => ({ problemSlug: route.params.slug as string }),
+        component: () => import("./components/admin/AdminProblemEditorShell.vue"),
         meta: {requiresAuth: true, requiresAdmin: true}
     },
     {

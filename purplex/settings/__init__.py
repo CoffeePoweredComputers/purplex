@@ -4,7 +4,6 @@ Automatically selects the appropriate settings module based on PURPLEX_ENV.
 """
 import os
 import sys
-from pathlib import Path
 
 # Import configuration manager first
 from purplex.config.environment import config

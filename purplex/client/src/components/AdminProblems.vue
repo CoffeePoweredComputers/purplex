@@ -99,6 +99,7 @@ import { mapGetters } from 'vuex';
 import axios, { AxiosError } from 'axios';
 import AdminNavBar from './AdminNavBar.vue';
 import { log } from '@/utils/logger';
+import { useNotification } from '@/composables/useNotification';
 import type { ProblemDetailed } from '@/types';
 
 interface ProblemSet {
@@ -111,6 +112,10 @@ export default defineComponent({
   name: 'AdminProblems',
   components: {
     AdminNavBar
+  },
+  setup() {
+    const { notify } = useNotification();
+    return { notify };
   },
   data(): {
     problems: ProblemDetailed[];
@@ -236,6 +241,10 @@ export default defineComponent({
       switch(type) {
         case 'eipl':
           return 'EiPL';
+        case 'mcq':
+          return 'MCQ';
+        case 'prompt':
+          return 'Prompt';
         default:
           return type || 'Unknown';
       }
@@ -258,10 +267,21 @@ export default defineComponent({
     async deleteProblem(problem: ProblemDetailed): Promise<void> {
       try {
         await axios.delete(`/api/admin/problems/${problem.slug}/`);
-        // Remove the problem from the array
         this.problems = this.problems.filter(p => p.slug !== problem.slug);
+        this.notify.success('Problem deleted', `"${problem.title}" has been removed.`);
       } catch (error) {
-        this.error = 'Failed to delete problem. Please try again.';
+        const axiosError = error as AxiosError<{ error?: string }>;
+        const backendError = axiosError.response?.data?.error;
+
+        // Check if it's a submissions-related error
+        if (backendError?.includes('submission')) {
+          this.notify.error(
+            `"${problem.title}" has existing submissions`,
+            'Deactivate the problem instead to hide it from students.'
+          );
+        } else {
+          this.notify.error('Delete failed', backendError || 'Please try again.');
+        }
         log.error('Error deleting problem', { error });
       }
     },

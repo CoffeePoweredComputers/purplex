@@ -5,7 +5,6 @@ Useful for development and debugging authentication issues.
 
 from django.core.management.base import BaseCommand
 from purplex.users_app.services.rate_limit_service import RateLimitService
-import redis
 
 
 class Command(BaseCommand):

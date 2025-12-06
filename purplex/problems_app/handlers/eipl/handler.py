@@ -4,18 +4,19 @@ Handler for Explain in Plain Language (EiPL) activity type.
 EiPL problems present code to students who must describe what it does in
 natural language. The system generates code variations from the description
 and runs tests to verify understanding.
+
+EiPL uses asynchronous processing via Celery because it requires:
+- LLM calls for code generation
+- Docker containers for code execution
+- Segmentation analysis
 """
 
 import json
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import Any, Dict, List
 
-from ..base import ActivityHandler, ProcessingResult, ValidationResult
+from ..base import ActivityHandler, ProcessingResult, ValidationResult, SubmissionOutcome
 from .. import register_handler
-
-if TYPE_CHECKING:
-    from problems_app.models import Problem
-    from submissions.models import Submission
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +239,7 @@ class EiPLHandler(ActivityHandler):
                 'show_reference_code': True,
                 'code_read_only': True,
                 'show_function_signature': True,
+                'section_label': 'Describe the code here',
             },
             'input': {
                 'type': 'textarea',
@@ -307,7 +309,7 @@ class EiPLHandler(ActivityHandler):
     def get_admin_config(self) -> Dict[str, Any]:
         """Return admin UI configuration for EiPL problems."""
         return {
-            'hidden_sections': ['mcq_options'],
+            'hidden_sections': [],
             'required_fields': ['title', 'function_signature', 'reference_solution'],
             'optional_fields': ['description', 'tags', 'categories', 'segmentation_config'],
             'type_specific_section': None,  # Uses standard code editor
@@ -336,3 +338,45 @@ class EiPLHandler(ActivityHandler):
                 else repr(input_values)
             )
         return f"{function_name}({args})"
+
+    # ─── Submission Execution ─────────────────────────────────────
+
+    def submit(
+        self,
+        submission: 'Submission',
+        raw_input: str,
+        problem: 'Problem',
+        context: Dict[str, Any]
+    ) -> SubmissionOutcome:
+        """
+        Execute EiPL submission asynchronously via Celery.
+
+        EiPL requires async because it involves:
+        - LLM API calls for code variation generation
+        - Docker containers for code execution
+        - Segmentation analysis
+        """
+        from purplex.problems_app.tasks.pipeline import execute_eipl_pipeline
+
+        # Queue the Celery task
+        task = execute_eipl_pipeline.apply_async(
+            args=[
+                problem.id,
+                raw_input,
+                context['user_id'],
+                context.get('problem_set_id'),
+                context.get('course_id'),
+            ],
+            task_id=context['request_id']
+        )
+
+        logger.info(
+            f"EiPL submission queued: task_id={task.id}, "
+            f"problem={problem.slug}, user={context['user_id']}"
+        )
+
+        return SubmissionOutcome(
+            complete=False,
+            submission=submission,
+            task_id=task.id
+        )

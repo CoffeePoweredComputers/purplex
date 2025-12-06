@@ -15,7 +15,6 @@ from celery.signals import (
     task_retry,
     task_success
 )
-from django.conf import settings
 from purplex.utils.redis_client import get_pubsub_client
 
 logger = logging.getLogger(__name__)
