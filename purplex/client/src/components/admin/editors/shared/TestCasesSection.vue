@@ -11,7 +11,9 @@
     >
       <div class="loading-spinner-container">
         <div class="spinner" />
-        <div class="loading-text">Running tests...</div>
+        <div class="loading-text">
+          Running tests...
+        </div>
       </div>
     </div>
 
@@ -85,7 +87,12 @@
             </div>
           </div>
 
-          <div v-else class="no-params-message">No parameters</div>
+          <div
+            v-else
+            class="no-params-message"
+          >
+            No parameters
+          </div>
 
           <div class="output-field-container">
             <div class="output-input-container">
@@ -116,9 +123,27 @@
               class="remove-btn"
               @click="removeTestCase(index)"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16">
-                <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5" />
-                <line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.5" />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+              >
+                <circle
+                  cx="8"
+                  cy="8"
+                  r="7"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                />
+                <line
+                  x1="5"
+                  y1="8"
+                  x2="11"
+                  y2="8"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                />
               </svg>
             </button>
             <div
@@ -126,14 +151,24 @@
               class="status-badge"
               :class="editor.testCases.getStatusClass(index, editor.ui.ui.testResults)"
             >
-              <div class="status-icon">{{ editor.testCases.getStatusText(index, editor.ui.ui.testResults) }}</div>
+              <div class="status-icon">
+                {{ editor.testCases.getStatusText(index, editor.ui.ui.testResults) }}
+              </div>
             </div>
           </div>
         </div>
 
-        <div v-if="testCase.error" class="error-msg">{{ testCase.error }}</div>
+        <div
+          v-if="testCase.error"
+          class="error-msg"
+        >
+          {{ testCase.error }}
+        </div>
 
-        <div v-if="editor.testCases.isTestFailed(index, editor.ui.ui.testResults)" class="failure-msg">
+        <div
+          v-if="editor.testCases.isTestFailed(index, editor.ui.ui.testResults)"
+          class="failure-msg"
+        >
           Expected: {{ JSON.stringify(editor.ui.ui.testResults?.results[index]?.expected_output) }} |
           Got: {{ JSON.stringify(editor.ui.ui.testResults?.results[index]?.actual_output) }}
           <span v-if="editor.ui.ui.testResults?.results[index]?.error">
@@ -187,9 +222,9 @@ const canTestReason = computed(() => {
   const functionSignature = (props.editor.form.form.function_signature || '').toString().trim()
   const referenceSolution = (props.editor.form.form.reference_solution || '').toString().trim()
 
-  if (props.editor.ui.ui.loading) return 'Currently loading...'
-  if (!functionSignature) return 'Function signature required'
-  if (!referenceSolution) return 'Reference solution required'
+  if (props.editor.ui.ui.loading) {return 'Currently loading...'}
+  if (!functionSignature) {return 'Function signature required'}
+  if (!referenceSolution) {return 'Reference solution required'}
   // Delegate to composable for test case-specific reasons
   return props.editor.testCases.canTestReason.value
 })

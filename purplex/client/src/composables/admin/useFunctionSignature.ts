@@ -9,7 +9,7 @@
  * Used for test case input field generation and type validation.
  */
 
-import { ref, readonly, type Ref, type DeepReadonly } from 'vue';
+import { type DeepReadonly, readonly, type Ref, ref } from 'vue';
 import { parseTypeAnnotation } from '@/utils/typeSystem';
 
 // ===== TYPES =====
@@ -60,7 +60,7 @@ export const useFunctionSignature = (): UseFunctionSignatureReturn => {
    * Parse parameter string into parameter objects
    */
   const parseParameters = (paramsStr: string): FunctionParameter[] => {
-    if (!paramsStr.trim()) return [];
+    if (!paramsStr.trim()) {return [];}
 
     const params: FunctionParameter[] = [];
 
@@ -138,15 +138,15 @@ export const useFunctionSignature = (): UseFunctionSignatureReturn => {
   const getParameterPlaceholder = (type: string): string => {
     const lowerType = type.toLowerCase();
 
-    if (lowerType.includes('str')) return '"example"';
-    if (lowerType.includes('int')) return '42';
-    if (lowerType.includes('float')) return '3.14';
-    if (lowerType.includes('bool')) return 'True';
-    if (lowerType.includes('list')) return '[1, 2, 3]';
-    if (lowerType.includes('dict')) return '{"key": "value"}';
-    if (lowerType.includes('tuple')) return '(1, 2)';
-    if (lowerType.includes('set')) return '{1, 2, 3}';
-    if (lowerType === 'none') return 'None';
+    if (lowerType.includes('str')) {return '"example"';}
+    if (lowerType.includes('int')) {return '42';}
+    if (lowerType.includes('float')) {return '3.14';}
+    if (lowerType.includes('bool')) {return 'True';}
+    if (lowerType.includes('list')) {return '[1, 2, 3]';}
+    if (lowerType.includes('dict')) {return '{"key": "value"}';}
+    if (lowerType.includes('tuple')) {return '(1, 2)';}
+    if (lowerType.includes('set')) {return '{1, 2, 3}';}
+    if (lowerType === 'none') {return 'None';}
 
     return 'value';
   };
@@ -155,7 +155,7 @@ export const useFunctionSignature = (): UseFunctionSignatureReturn => {
    * Extract function name from code
    */
   const extractFunctionName = (code: string): string => {
-    if (!code) return '';
+    if (!code) {return '';}
 
     const functionNameRegex = /def\s+(\w+)\s*\(/;
     const match = code.match(functionNameRegex);
@@ -166,7 +166,7 @@ export const useFunctionSignature = (): UseFunctionSignatureReturn => {
    * Extract full function signature from code
    */
   const extractSignature = (code: string): string => {
-    if (!code) return '';
+    if (!code) {return '';}
 
     // Match the full function definition line including type hints
     const signatureRegex = /def\s+\w+\s*\([^)]*\)(?:\s*->\s*[^:]+)?:/;

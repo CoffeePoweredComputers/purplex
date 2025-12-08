@@ -14,6 +14,7 @@ from .hint_service import HintService, AdminHintService
 from .hint_display_service import HintDisplayService
 from .admin_service import AdminProblemService
 from .course_service import CourseService
+from .probe_service import ProbeService
 
 __all__ = [
     'CodeExecutionService',
@@ -30,5 +31,6 @@ __all__ = [
     'AdminHintService',
     'HintDisplayService',
     'AdminProblemService',
-    'CourseService'
+    'CourseService',
+    'ProbeService',
 ]

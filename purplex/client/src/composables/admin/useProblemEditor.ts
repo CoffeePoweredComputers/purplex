@@ -10,7 +10,7 @@
  * - Activity type configuration from /api/activity-types/
  */
 
-import { ref, computed, watch, type Ref, type ComputedRef } from 'vue';
+import { computed, type ComputedRef, type Ref, ref, watch } from 'vue';
 import axios from 'axios';
 import type { ProblemDetailed, ProblemType, TestExecutionResult } from '@/types';
 import { problemService } from '@/services/problemService';
@@ -27,6 +27,10 @@ import { useSegmentation, type UseSegmentationReturn } from './useSegmentation';
 import { useCategoryManager, type UseCategoryManagerReturn } from './useCategoryManager';
 import { usePromptConfig, type UsePromptConfigReturn } from './usePromptConfig';
 import { useEditorSettings, type UseEditorSettingsReturn } from './useEditorSettings';
+import { useRefuteConfig, type UseRefuteConfigReturn } from './useRefuteConfig';
+import { useDebugFixConfig, type UseDebugFixConfigReturn } from './useDebugFixConfig';
+import { useProbeableCodeConfig, type UseProbeableCodeConfigReturn } from './useProbeableCodeConfig';
+import { useProbeableSpecConfig, type UseProbeableSpecConfigReturn } from './useProbeableSpecConfig';
 
 // ===== TYPES =====
 
@@ -55,6 +59,10 @@ export interface UseProblemEditorReturn {
   categories: UseCategoryManagerReturn;
   promptConfig: UsePromptConfigReturn;
   editorSettings: UseEditorSettingsReturn;
+  refuteConfig: UseRefuteConfigReturn;
+  debugFixConfig: UseDebugFixConfigReturn;
+  probeableCodeConfig: UseProbeableCodeConfigReturn;
+  probeableSpecConfig: UseProbeableSpecConfigReturn;
 
   // Activity type state
   availableTypes: Ref<ActivityTypeConfig[]>;
@@ -91,6 +99,10 @@ export const useProblemEditor = (): UseProblemEditorReturn => {
   const categories = useCategoryManager();
   const promptConfig = usePromptConfig();
   const editorSettings = useEditorSettings();
+  const refuteConfig = useRefuteConfig();
+  const debugFixConfig = useDebugFixConfig();
+  const probeableCodeConfig = useProbeableCodeConfig();
+  const probeableSpecConfig = useProbeableSpecConfig();
 
   // Activity type state
   const availableTypes = ref<ActivityTypeConfig[]>([]);
@@ -292,6 +304,10 @@ export const useProblemEditor = (): UseProblemEditorReturn => {
     categories.reset();
     promptConfig.reset();
     editorSettings.reset();
+    refuteConfig.reset();
+    debugFixConfig.reset();
+    probeableCodeConfig.reset();
+    probeableSpecConfig.reset();
     currentSlug.value = null;
     ui.clearError();
     ui.clearTestResults();
@@ -309,6 +325,10 @@ export const useProblemEditor = (): UseProblemEditorReturn => {
     categories,
     promptConfig,
     editorSettings,
+    refuteConfig,
+    debugFixConfig,
+    probeableCodeConfig,
+    probeableSpecConfig,
 
     // Activity type state
     availableTypes,

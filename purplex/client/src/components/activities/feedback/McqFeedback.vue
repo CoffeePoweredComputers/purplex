@@ -1,7 +1,9 @@
 <template>
   <div class="mcq-feedback">
     <div class="feedback-header">
-      <h3 class="feedback-title">{{ title }}</h3>
+      <h3 class="feedback-title">
+        {{ title }}
+      </h3>
     </div>
 
     <div
@@ -33,7 +35,9 @@
       <!-- Answer Details -->
       <div class="answer-details">
         <div class="answer-section">
-          <div class="answer-label">Your Answer</div>
+          <div class="answer-label">
+            Your Answer
+          </div>
           <div
             class="answer-value"
             :class="isCorrect ? 'answer-value--correct' : 'answer-value--incorrect'"
@@ -46,7 +50,9 @@
           v-if="!isCorrect"
           class="answer-section"
         >
-          <div class="answer-label">Correct Answer</div>
+          <div class="answer-label">
+            Correct Answer
+          </div>
           <div class="answer-value answer-value--correct">
             {{ correctAnswer }}
           </div>
@@ -56,7 +62,9 @@
           v-if="explanation"
           class="explanation-section"
         >
-          <div class="answer-label">Explanation</div>
+          <div class="answer-label">
+            Explanation
+          </div>
           <div class="explanation-text">
             {{ explanation }}
           </div>

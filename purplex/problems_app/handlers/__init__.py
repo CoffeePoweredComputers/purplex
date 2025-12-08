@@ -69,3 +69,7 @@ def is_registered(type_name: str) -> bool:
 from . import eipl  # noqa: E402, F401
 from . import mcq   # noqa: E402, F401
 from . import prompt  # noqa: E402, F401
+from . import refute  # noqa: E402, F401
+from . import debug_fix  # noqa: E402, F401
+from . import probeable_code  # noqa: E402, F401
+from . import probeable_spec  # noqa: E402, F401

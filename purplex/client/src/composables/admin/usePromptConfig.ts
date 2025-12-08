@@ -6,7 +6,7 @@
  * - Alt text for accessibility
  */
 
-import { reactive, readonly, computed, type DeepReadonly, type ComputedRef } from 'vue';
+import { computed, type ComputedRef, type DeepReadonly, reactive, readonly } from 'vue';
 
 // ===== TYPES =====
 
@@ -55,7 +55,7 @@ export const usePromptConfig = (): UsePromptConfigReturn => {
   const hasImage = computed(() => state.image_url.trim().length > 0);
 
   const isValidUrl = computed(() => {
-    if (!state.image_url.trim()) return true; // Empty is valid
+    if (!state.image_url.trim()) {return true;} // Empty is valid
     try {
       new URL(state.image_url);
       return true;

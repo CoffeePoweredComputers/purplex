@@ -20,7 +20,10 @@
           placeholder="https://example.com/image.png"
           @input="editor.promptConfig.setImageUrl(($event.target as HTMLInputElement).value)"
         >
-        <p v-if="!editor.promptConfig.isValidUrl.value" class="field-error">
+        <p
+          v-if="!editor.promptConfig.isValidUrl.value"
+          class="field-error"
+        >
           Please enter a valid URL
         </p>
       </div>
@@ -40,7 +43,10 @@
       </div>
 
       <!-- Image Preview -->
-      <div v-if="editor.promptConfig.hasImage.value && editor.promptConfig.isValidUrl.value" class="image-preview">
+      <div
+        v-if="editor.promptConfig.hasImage.value && editor.promptConfig.isValidUrl.value"
+        class="image-preview"
+      >
         <label>Preview</label>
         <div class="preview-container">
           <img
@@ -49,13 +55,19 @@
             @error="handleImageError"
             @load="handleImageLoad"
           >
-          <div v-if="imageLoadError" class="preview-error">
+          <div
+            v-if="imageLoadError"
+            class="preview-error"
+          >
             Failed to load image. Please check the URL.
           </div>
         </div>
       </div>
 
-      <div v-else-if="!editor.promptConfig.hasImage.value" class="image-placeholder">
+      <div
+        v-else-if="!editor.promptConfig.hasImage.value"
+        class="image-placeholder"
+      >
         <div class="placeholder-content">
           <span class="placeholder-icon">🖼️</span>
           <p>Enter an image URL above to see a preview</p>
@@ -108,8 +120,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import type { ProblemEditorProps, ProblemEditorEmits } from './types'
+import { computed, onMounted, ref, watch } from 'vue'
+import type { ProblemEditorEmits, ProblemEditorProps } from './types'
 import { log } from '@/utils/logger'
 import Editor from '@/features/editor/Editor.vue'
 import BasicInfoSection from './shared/BasicInfoSection.vue'
@@ -148,21 +160,21 @@ watch(() => editor.value.promptConfig.imageUrl.value, () => {
 const isValid = computed(() => {
   const form = editor.value.form.form
   const title = (form.title || '').toString().trim()
-  if (!title) return false
+  if (!title) {return false}
 
   // Require valid image URL for prompt type
-  if (!editor.value.promptConfig.hasImage.value) return false
-  if (!editor.value.promptConfig.isValidUrl.value) return false
+  if (!editor.value.promptConfig.hasImage.value) {return false}
+  if (!editor.value.promptConfig.isValidUrl.value) {return false}
 
   // Require code solution fields
   const signature = (form.function_signature || '').toString().trim()
-  if (!signature) return false
+  if (!signature) {return false}
 
   const solution = (form.reference_solution || '').toString().trim()
-  if (!solution) return false
+  if (!solution) {return false}
 
   // Require at least one test case
-  if (editor.value.testCases.testCases.value.length === 0) return false
+  if (editor.value.testCases.testCases.value.length === 0) {return false}
 
   return true
 })

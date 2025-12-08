@@ -8,15 +8,15 @@
  * - Conversion between frontend and backend formats
  */
 
-import { ref, computed, type Ref, type ComputedRef } from 'vue';
+import { computed, type ComputedRef, type Ref, ref } from 'vue';
 import type { TestCaseDisplay, TestExecutionResult } from '@/types';
 import {
   autoDetectAndConvert,
   autoDetectTypeFromInput,
-  parseTypeAnnotation,
-  validateValueAgainstType,
   formatValueForInput,
   getPlaceholderForType,
+  parseTypeAnnotation,
+  validateValueAgainstType,
 } from '@/utils/typeSystem';
 import type { FunctionParameter, TypeSpec } from './useFunctionSignature';
 
@@ -256,17 +256,17 @@ export const useTestCases = (): UseTestCasesReturn => {
    * Get CSS class for type badge
    */
   const getTypeClass = (detectedType: string, hasError = false): string => {
-    if (hasError) return 'type-error';
+    if (hasError) {return 'type-error';}
 
     const baseType = detectedType.toLowerCase().split('[')[0];
 
-    if (['int', 'float'].includes(baseType)) return 'type-number';
-    if (baseType === 'str') return 'type-string';
-    if (baseType === 'bool') return 'type-boolean';
-    if (['list', 'dict', 'tuple', 'set'].includes(baseType)) return 'type-collection';
-    if (baseType === 'none') return 'type-none';
-    if (baseType === 'invalid') return 'type-invalid';
-    if (baseType === 'optional') return 'type-optional';
+    if (['int', 'float'].includes(baseType)) {return 'type-number';}
+    if (baseType === 'str') {return 'type-string';}
+    if (baseType === 'bool') {return 'type-boolean';}
+    if (['list', 'dict', 'tuple', 'set'].includes(baseType)) {return 'type-collection';}
+    if (baseType === 'none') {return 'type-none';}
+    if (baseType === 'invalid') {return 'type-invalid';}
+    if (baseType === 'optional') {return 'type-optional';}
 
     return 'type-any';
   };
@@ -296,7 +296,7 @@ export const useTestCases = (): UseTestCasesReturn => {
     const expectedType = functionParameters[paramIndex]?.type || 'Any';
     const error = getParameterValidationError(testCase, paramIndex, functionParameters);
 
-    if (error) return error;
+    if (error) {return error;}
     return `Detected: ${detectedType} | Expected: ${expectedType}`;
   };
 
@@ -375,7 +375,7 @@ export const useTestCases = (): UseTestCasesReturn => {
     const detectedType = getOutputDetectedType(testCase);
     const error = getOutputValidationError(testCase, returnType);
 
-    if (error) return error;
+    if (error) {return error;}
     return `Detected: ${detectedType} | Expected: ${returnType}`;
   };
 
@@ -412,8 +412,8 @@ export const useTestCases = (): UseTestCasesReturn => {
    * Get CSS class for test status
    */
   const getStatusClass = (index: number, testResults: TestExecutionResult | null): string => {
-    if (isTestPassed(index, testResults)) return 'status-passed';
-    if (isTestFailed(index, testResults)) return 'status-failed';
+    if (isTestPassed(index, testResults)) {return 'status-passed';}
+    if (isTestFailed(index, testResults)) {return 'status-failed';}
     return '';
   };
 
@@ -421,8 +421,8 @@ export const useTestCases = (): UseTestCasesReturn => {
    * Get status text for test
    */
   const getStatusText = (index: number, testResults: TestExecutionResult | null): string => {
-    if (isTestPassed(index, testResults)) return 'Passed';
-    if (isTestFailed(index, testResults)) return 'Failed';
+    if (isTestPassed(index, testResults)) {return 'Passed';}
+    if (isTestFailed(index, testResults)) {return 'Failed';}
     return '';
   };
 

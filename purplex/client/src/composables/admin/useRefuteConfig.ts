@@ -1,0 +1,183 @@
+/**
+ * useRefuteConfig - Manages refute (counterexample) problem configuration.
+ *
+ * This composable handles the configuration for refute-type problems:
+ * - Claim text: The false claim students must disprove
+ * - Expected counterexample: Optional JSON hint for known counterexamples
+ */
+
+import { computed, type ComputedRef, type DeepReadonly, reactive, readonly } from 'vue';
+
+// ===== TYPES =====
+
+export interface RefuteConfig {
+  claim_text: string;
+  expected_counterexample: string; // JSON string
+}
+
+export interface UseRefuteConfigReturn {
+  /** Readonly refute config */
+  config: DeepReadonly<RefuteConfig>;
+  /** Claim text */
+  claimText: ComputedRef<string>;
+  /** Expected counterexample (JSON string) */
+  expectedCounterexample: ComputedRef<string>;
+  /** Whether config has a claim */
+  hasClaim: ComputedRef<boolean>;
+  /** Whether the claim follows good patterns (contains "always", "never", "for all", etc.) */
+  hasGoodClaimPattern: ComputedRef<boolean>;
+  /** Warning message for claim quality */
+  claimWarning: ComputedRef<string | null>;
+  /** Whether expected counterexample is valid JSON */
+  isValidJson: ComputedRef<boolean>;
+  /** Parsed counterexample object (or null if invalid) */
+  parsedCounterexample: ComputedRef<Record<string, unknown> | null>;
+  /** JSON parse error message */
+  jsonError: ComputedRef<string | null>;
+
+  /** Set claim text */
+  setClaimText: (text: string) => void;
+  /** Set expected counterexample JSON */
+  setExpectedCounterexample: (json: string) => void;
+  /** Load config from problem data */
+  loadConfig: (config: Partial<RefuteConfig> | null | undefined) => void;
+  /** Get config for API */
+  getConfigForApi: () => RefuteConfig;
+  /** Reset to initial state */
+  reset: () => void;
+}
+
+// ===== CONSTANTS =====
+
+// Patterns that indicate a well-formed claim (universal/absolute statements)
+const GOOD_CLAIM_PATTERNS = [
+  /\balways\b/i,
+  /\bnever\b/i,
+  /\bfor all\b/i,
+  /\bevery\b/i,
+  /\bany\b/i,
+  /\ball\b/i,
+  /\bno\b/i,
+  /\bnone\b/i,
+  /\bguaranteed\b/i,
+  /\bmust\b/i,
+  /\bwill\b/i,
+  /\bcannot\b/i,
+];
+
+// ===== COMPOSABLE =====
+
+export const useRefuteConfig = (): UseRefuteConfigReturn => {
+  const state = reactive<RefuteConfig>({
+    claim_text: '',
+    expected_counterexample: '',
+  });
+
+  // ===== Computed =====
+
+  const claimText = computed(() => state.claim_text);
+  const expectedCounterexample = computed(() => state.expected_counterexample);
+
+  const hasClaim = computed(() => state.claim_text.trim().length > 0);
+
+  const hasGoodClaimPattern = computed(() => {
+    if (!hasClaim.value) {return true;} // Don't warn on empty
+    return GOOD_CLAIM_PATTERNS.some(pattern => pattern.test(state.claim_text));
+  });
+
+  const claimWarning = computed((): string | null => {
+    if (!hasClaim.value) {return null;}
+    if (hasGoodClaimPattern.value) {return null;}
+    return 'Consider using absolute terms like "always", "never", "for all", or "every" to make the claim easier to disprove.';
+  });
+
+  const parsedCounterexample = computed((): Record<string, unknown> | null => {
+    const json = state.expected_counterexample.trim();
+    if (!json) {return null;}
+    try {
+      const parsed = JSON.parse(json);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed as Record<string, unknown>;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+
+  const isValidJson = computed(() => {
+    const json = state.expected_counterexample.trim();
+    if (!json) {return true;} // Empty is valid (optional field)
+    return parsedCounterexample.value !== null;
+  });
+
+  const jsonError = computed((): string | null => {
+    const json = state.expected_counterexample.trim();
+    if (!json) {return null;}
+    try {
+      const parsed = JSON.parse(json);
+      if (typeof parsed !== 'object' || parsed === null) {
+        return 'Expected counterexample must be a JSON object';
+      }
+      return null;
+    } catch (e) {
+      return `Invalid JSON: ${(e as Error).message}`;
+    }
+  });
+
+  // ===== Methods =====
+
+  const setClaimText = (text: string): void => {
+    state.claim_text = text;
+  };
+
+  const setExpectedCounterexample = (json: string): void => {
+    state.expected_counterexample = json;
+  };
+
+  const loadConfig = (config: Partial<RefuteConfig> | null | undefined): void => {
+    if (!config) {
+      reset();
+      return;
+    }
+
+    state.claim_text = config.claim_text || '';
+    // Handle both string and object for expected_counterexample
+    if (typeof config.expected_counterexample === 'string') {
+      state.expected_counterexample = config.expected_counterexample;
+    } else if (config.expected_counterexample) {
+      state.expected_counterexample = JSON.stringify(config.expected_counterexample, null, 2);
+    } else {
+      state.expected_counterexample = '';
+    }
+  };
+
+  const getConfigForApi = (): RefuteConfig => {
+    return {
+      claim_text: state.claim_text.trim(),
+      expected_counterexample: state.expected_counterexample.trim(),
+    };
+  };
+
+  const reset = (): void => {
+    state.claim_text = '';
+    state.expected_counterexample = '';
+  };
+
+  return {
+    config: readonly(state),
+    claimText,
+    expectedCounterexample,
+    hasClaim,
+    hasGoodClaimPattern,
+    claimWarning,
+    isValidJson,
+    parsedCounterexample,
+    jsonError,
+    setClaimText,
+    setExpectedCounterexample,
+    loadConfig,
+    getConfigForApi,
+    reset,
+  };
+};

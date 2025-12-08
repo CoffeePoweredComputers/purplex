@@ -8,13 +8,13 @@
 
 import type { Component, DefineComponent } from 'vue'
 import type {
-  HintConfig,
-  SubmissionHistoryItem,
   DisplayConfig,
-  InputConfig,
-  HintsHandlerConfig,
   FeedbackConfig,
+  HintConfig,
+  HintsHandlerConfig,
+  InputConfig,
   McqOption,
+  SubmissionHistoryItem,
 } from '@/types'
 
 // Re-export config types from central types module
@@ -126,6 +126,8 @@ export interface ActivityProblem {
   feedback_config?: FeedbackConfig
   /** Prompt-specific configuration */
   prompt_config?: PromptConfig
+  /** Probe configuration for probeable problem types */
+  probe_config?: ProbeConfig
 }
 
 /**
@@ -134,6 +136,20 @@ export interface ActivityProblem {
 export interface PromptConfig {
   image_url?: string
   image_alt_text?: string
+}
+
+/**
+ * Probe configuration for probeable problem types.
+ */
+export interface ProbeConfig {
+  enabled?: boolean
+  mode?: 'explore' | 'cooldown'
+  max_probes?: number
+  cooldown_attempts?: number
+  cooldown_refill?: number
+  function_signature?: string
+  function_name?: string
+  parameters?: ProbeParameter[]
 }
 
 // NOTE: DisplayConfig, InputConfig, FeedbackConfig, and McqOption are now
@@ -227,3 +243,34 @@ export interface ActivityComponentDefinition {
  * Registry mapping activity types to component definitions.
  */
 export type ActivityComponentRegistry = Record<string, ActivityComponentDefinition>
+
+// ===== PROBE TYPES =====
+
+/**
+ * Probe parameter definition.
+ */
+export interface ProbeParameter {
+  name: string
+  type: string
+}
+
+/**
+ * Probe history entry.
+ */
+export interface ProbeHistoryEntry {
+  input: Record<string, unknown>
+  output: unknown
+  timestamp?: string
+}
+
+/**
+ * Probe status from backend.
+ */
+export interface ProbeStatus {
+  mode: 'block' | 'cooldown' | 'explore'
+  remaining: number | null
+  used: number
+  can_probe: boolean
+  message: string
+  submissions_to_next_refill?: number
+}

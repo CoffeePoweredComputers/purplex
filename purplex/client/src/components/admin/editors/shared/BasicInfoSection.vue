@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { UseProblemEditorReturn } from '@/composables/admin/useProblemEditor'
 
 interface Props {
@@ -70,8 +70,8 @@ const newTag = ref('')
 
 const parsedTags = computed(() => {
   const tags = props.editor.form.form.tags
-  if (!tags) return []
-  if (Array.isArray(tags)) return tags
+  if (!tags) {return []}
+  if (Array.isArray(tags)) {return tags}
   return []
 })
 
@@ -81,7 +81,7 @@ function updateField(field: string, value: string) {
 
 function addTag() {
   const tag = newTag.value.trim()
-  if (!tag) return
+  if (!tag) {return}
 
   const currentTags = [...parsedTags.value]
   if (!currentTags.includes(tag)) {

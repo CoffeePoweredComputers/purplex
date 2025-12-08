@@ -31,6 +31,11 @@ from .views.hint_views import (
     ProblemHintAvailabilityView, ProblemHintDetailView, AdminProblemHintView
 )
 
+# Probe views for Probeable Code problems
+from .views.probe_views import (
+    ProbeOracleView, ProbeStatusView, ProbeHistoryView
+)
+
 # Research export views
 from .views.research_views import (
     ResearchDataExportView, ProgressHistoryExportView
@@ -82,7 +87,12 @@ urlpatterns = [
     # Hint endpoints
     path('problems/<slug:slug>/hints/', ProblemHintAvailabilityView.as_view(), name='problem_hint_availability'),
     path('problems/<slug:slug>/hints/<str:hint_type>/', ProblemHintDetailView.as_view(), name='problem_hint_detail'),
-    
+
+    # Probe endpoints (Probeable Code problems)
+    path('problems/<slug:slug>/probe/', ProbeOracleView.as_view(), name='probe_oracle'),
+    path('problems/<slug:slug>/probe/status/', ProbeStatusView.as_view(), name='probe_status'),
+    path('problems/<slug:slug>/probe/history/', ProbeHistoryView.as_view(), name='probe_history'),
+
     # Admin endpoints - Problems
     path('admin/problems/', AdminProblemListView.as_view(), name='admin_problem_list'),
     path('admin/problems/<slug:slug>/', AdminProblemDetailView.as_view(), name='admin_problem_detail'),

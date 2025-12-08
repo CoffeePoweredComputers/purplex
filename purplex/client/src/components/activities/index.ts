@@ -43,6 +43,22 @@ const ACTIVITY_COMPONENTS: ActivityComponentRegistry = {
     input: () => import('./inputs/PromptInput.vue'),
     feedback: () => import('./feedback/PromptFeedback.vue'),
   },
+  refute: {
+    input: () => import('./inputs/RefuteInput.vue'),
+    feedback: () => import('./feedback/RefuteFeedback.vue'),
+  },
+  debug_fix: {
+    input: () => import('./inputs/DebugFixInput.vue'),
+    feedback: () => import('./feedback/DebugFixFeedback.vue'),
+  },
+  probeable_code: {
+    input: () => import('./inputs/ProbeableCodeInput.vue'),
+    feedback: () => import('./feedback/ProbeableCodeFeedback.vue'),
+  },
+  probeable_spec: {
+    input: () => import('./inputs/ProbeableSpecInput.vue'),
+    feedback: () => import('./feedback/ProbeableSpecFeedback.vue'),
+  },
 }
 
 /**

@@ -9,7 +9,7 @@
  * 5. Emit events for monitoring
  */
 
-import { ref, onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { ensureFirebaseInitialized, firebaseAuth } from '../firebaseConfig';
 import { log } from '../utils/logger';
 
@@ -217,7 +217,7 @@ export function useTokenRefresh() {
   async function initialize(): Promise<void> {
     await ensureFirebaseInitialized();
 
-    if (!firebaseAuth) return;
+    if (!firebaseAuth) {return;}
 
     // Initial token fetch
     if (firebaseAuth.currentUser) {

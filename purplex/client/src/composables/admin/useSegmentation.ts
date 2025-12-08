@@ -7,7 +7,7 @@
  * - Example segments for relational and multi-structural responses
  */
 
-import { reactive, readonly, computed, type DeepReadonly, type ComputedRef } from 'vue';
+import { computed, type ComputedRef, type DeepReadonly, reactive, readonly } from 'vue';
 
 // ===== TYPES =====
 
@@ -194,7 +194,7 @@ export const useSegmentation = (): UseSegmentationReturn => {
    * Validate line range string (e.g., "1-3" or "1,2,3" or "1")
    */
   const validateLineRange = (input: string): boolean => {
-    if (!input.trim()) return true; // Empty is valid
+    if (!input.trim()) {return true;} // Empty is valid
     return /^(\d+(-\d+)?)(,\s*\d+(-\d+)?)*$/.test(input.trim());
   };
 
@@ -202,7 +202,7 @@ export const useSegmentation = (): UseSegmentationReturn => {
    * Parse line range string to array of line numbers
    */
   const parseLineRange = (input: string): number[] => {
-    if (!input.trim()) return [];
+    if (!input.trim()) {return [];}
 
     const lines: number[] = [];
     const parts = input.split(',').map(p => p.trim());
@@ -211,7 +211,7 @@ export const useSegmentation = (): UseSegmentationReturn => {
       if (part.includes('-')) {
         const [start, end] = part.split('-').map(n => parseInt(n, 10));
         for (let i = start; i <= end; i++) {
-          if (!lines.includes(i)) lines.push(i);
+          if (!lines.includes(i)) {lines.push(i);}
         }
       } else {
         const num = parseInt(part, 10);
@@ -228,7 +228,7 @@ export const useSegmentation = (): UseSegmentationReturn => {
    * Format array of line numbers to compact string
    */
   const formatLineRange = (lines: number[]): string => {
-    if (!lines || !lines.length) return '';
+    if (!lines || !lines.length) {return '';}
 
     const sorted = [...lines].sort((a, b) => a - b);
     const ranges: string[] = [];

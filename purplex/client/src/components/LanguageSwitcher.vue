@@ -1,6 +1,9 @@
 <template>
   <div class="language-switcher">
-    <label class="switcher-label" for="language-select">
+    <label
+      class="switcher-label"
+      for="language-select"
+    >
       {{ $t('auth.account.language') }}
     </label>
     <p class="switcher-description">
@@ -11,8 +14,8 @@
         id="language-select"
         v-model="selectedLanguage"
         class="language-select"
-        @change="handleLanguageChange"
         :disabled="isUpdating"
+        @change="handleLanguageChange"
       >
         <option
           v-for="lang in languages"
@@ -22,13 +25,16 @@
           {{ lang.native }} ({{ lang.name }})
         </option>
       </select>
-      <span v-if="isUpdating" class="loading-indicator">...</span>
+      <span
+        v-if="isUpdating"
+        class="loading-indicator"
+      >...</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import axios from 'axios';

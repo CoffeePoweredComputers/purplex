@@ -1,5 +1,8 @@
 <template>
-  <div class="feedback-container" :class="{ 'is-navigating': isNavigating }">
+  <div
+    class="feedback-container"
+    :class="{ 'is-navigating': isNavigating }"
+  >
     <!-- Static Loading Message -->
     <div
       v-if="isLoading && slides.length === 0"
@@ -76,7 +79,10 @@
             <span aria-hidden="true">{{ getScoreIcon(currentAttemptScore) }}</span>
             {{ currentAttemptScore }}%
           </span>
-          <span class="dropdown-arrow" aria-hidden="true">{{ showAttemptDropdown ? '▾' : '▾' }}</span>
+          <span
+            class="dropdown-arrow"
+            aria-hidden="true"
+          >{{ showAttemptDropdown ? '▾' : '▾' }}</span>
         </button>
 
         <!-- Dropdown Panel -->
@@ -108,14 +114,20 @@
               @keydown.home="handleHomeKey"
               @keydown.end="handleEndKey"
             >
-              <span class="attempt-indicator" aria-hidden="true" />
+              <span
+                class="attempt-indicator"
+                aria-hidden="true"
+              />
               <span class="attempt-num">{{ attempt.attempt_number }}</span>
               <span
                 class="attempt-score-minimal"
                 :class="getScoreClass(attempt.score)"
               >{{ attempt.score }}%</span>
               <span class="attempt-tests">{{ attempt.tests_passed }}/{{ attempt.total_tests }}</span>
-              <time class="attempt-time" :datetime="attempt.submitted_at">{{ formatTime(attempt.submitted_at) }}</time>
+              <time
+                class="attempt-time"
+                :datetime="attempt.submitted_at"
+              >{{ formatTime(attempt.submitted_at) }}</time>
               <span
                 v-if="attempt.is_best"
                 class="best-mark"
@@ -147,7 +159,10 @@
       </div>
 
       <!-- Comprehension Level Section Divider -->
-      <div v-if="shouldShowComprehensionSection" class="section-divider">
+      <div
+        v-if="shouldShowComprehensionSection"
+        class="section-divider"
+      >
         <span class="divider-label">
           <span class="divider-icon">🧠</span>
           <span class="divider-title">Comprehension Level</span>
@@ -159,9 +174,25 @@
           title="Evaluates the abstraction level of your explanation by analyzing how you describe the code's purpose. HIGH-LEVEL (✓): Describes overall goals, algorithm choices, and problem-solving approach without step-by-step details (e.g., 'uses binary search to efficiently find the target'). LINE-BY-LINE (✗): Describes implementation details, variable operations, and control flow step-by-step (e.g., 'sets left to 0, right to length, calculates mid'). This measures understanding depth - can you explain the 'why' and 'what' without the 'how'? Only available after all code variations pass their tests."
           aria-label="Info about comprehension level"
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="7" cy="7" r="6.5" stroke="currentColor" />
-            <path d="M7 10.5V6.5M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="7"
+              cy="7"
+              r="6.5"
+              stroke="currentColor"
+            />
+            <path
+              d="M7 10.5V6.5M7 4.5V4"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
           </svg>
         </span>
       </div>
@@ -192,15 +223,34 @@
           title="Tests the clarity and completeness of your explanation by generating multiple independent code implementations from your description using AI, then running each against the problem's unit tests. Each variation represents a different interpretation of your words - if all variations pass, your explanation was unambiguous and captured all necessary logic. Failing variations reveal gaps, ambiguities, or missing details in how you described the solution. This evaluates whether someone could correctly implement the code from your explanation alone, without seeing the original."
           aria-label="Info about correctness"
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="7" cy="7" r="6.5" stroke="currentColor" />
-            <path d="M7 10.5V6.5M7 4.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="7"
+              cy="7"
+              r="6.5"
+              stroke="currentColor"
+            />
+            <path
+              d="M7 10.5V6.5M7 4.5V4"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
           </svg>
         </span>
       </div>
 
       <!-- Solution Timeline -->
-      <nav class="solution-timeline" aria-label="Solution variations">
+      <nav
+        class="solution-timeline"
+        aria-label="Solution variations"
+      >
         <button
           v-for="(slide, index) in slides"
           :key="index"
@@ -211,8 +261,14 @@
           :aria-current="currentSlide === index ? 'true' : 'false'"
           @click="goToSlide(index)"
         >
-          <span class="node-number" aria-hidden="true">{{ index + 1 }}</span>
-          <span class="node-icon" aria-hidden="true">{{ getSlideIcon(slide) }}</span>
+          <span
+            class="node-number"
+            aria-hidden="true"
+          >{{ index + 1 }}</span>
+          <span
+            class="node-icon"
+            aria-hidden="true"
+          >{{ getSlideIcon(slide) }}</span>
         </button>
       </nav>
 

@@ -13,7 +13,10 @@
       @click="toggleHintMenu"
       @keydown.escape="showMenu = false"
     >
-      <span class="hint-icon" aria-hidden="true">💡</span>
+      <span
+        class="hint-icon"
+        aria-hidden="true"
+      >💡</span>
       <span class="hint-text">Hints</span>
       <span
         v-if="availableHintsCount > 0"

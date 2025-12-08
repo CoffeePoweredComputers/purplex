@@ -71,13 +71,12 @@
         Please mark one option as the correct answer
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, watch } from 'vue'
-import type { ProblemEditorProps, ProblemEditorEmits } from './types'
+import type { ProblemEditorEmits, ProblemEditorProps } from './types'
 import BasicInfoSection from './shared/BasicInfoSection.vue'
 
 // Props and emits

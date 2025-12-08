@@ -5,7 +5,7 @@
  * a generic action executor with automatic loading/error handling.
  */
 
-import { reactive, readonly, type DeepReadonly, ref, type Ref } from 'vue';
+import { type DeepReadonly, reactive, readonly, type Ref, ref } from 'vue';
 import type { TestExecutionResult } from '@/types';
 import { useNotification } from '@/composables/useNotification';
 import { log } from '@/utils/logger';

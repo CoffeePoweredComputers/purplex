@@ -78,3 +78,33 @@ export type { UsePromptConfigReturn, PromptConfig } from './usePromptConfig';
 // @internal - Editor settings
 export { useEditorSettings } from './useEditorSettings';
 export type { UseEditorSettingsReturn } from './useEditorSettings';
+
+// @internal - Refute type configuration
+export { useRefuteConfig } from './useRefuteConfig';
+export type { UseRefuteConfigReturn, RefuteConfig } from './useRefuteConfig';
+
+// @internal - Debug Fix type configuration
+export { useDebugFixConfig } from './useDebugFixConfig';
+export type { UseDebugFixConfigReturn, DebugFixConfig, BugHint } from './useDebugFixConfig';
+
+// @internal - Base probe configuration (shared by Probeable Code and Probeable Spec)
+export { useProbeConfig, PROBE_MODES as BASE_PROBE_MODES } from './useProbeConfig';
+export type {
+  UseProbeConfigReturn,
+  ProbeConfig,
+  ProbeMode,
+} from './useProbeConfig';
+
+// @internal - Probeable Code type configuration
+export { useProbeableCodeConfig, PROBE_MODES } from './useProbeableCodeConfig';
+export type {
+  UseProbeableCodeConfigReturn,
+  ProbeableCodeConfig,
+} from './useProbeableCodeConfig';
+
+// @internal - Probeable Spec type configuration (probe + segmentation)
+export { useProbeableSpecConfig, PROBE_MODES as PROBEABLE_SPEC_PROBE_MODES } from './useProbeableSpecConfig';
+export type {
+  UseProbeableSpecConfigReturn,
+  ProbeableSpecConfig,
+} from './useProbeableSpecConfig';

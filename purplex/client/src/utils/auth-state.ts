@@ -18,7 +18,7 @@ export const waitForAuthState = (): Promise<FirebaseUser | null> => {
           // Wait for first auth state change
           let unsubscribe: (() => void) | null = null;
           unsubscribe = firebaseAuth.onAuthStateChanged((user: FirebaseUser | null) => {
-            if (unsubscribe) unsubscribe(); // Immediately unsubscribe after first call
+            if (unsubscribe) {unsubscribe();} // Immediately unsubscribe after first call
             log.debug('Auth state determined', { hasUser: !!user });
             resolve(user);
           });

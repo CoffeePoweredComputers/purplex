@@ -47,15 +47,25 @@ export interface DisplayConfig {
   image_url?: string;
   /** Prompt-specific: alt text for the image */
   image_alt_text?: string;
+  /** Refute-specific: show the claim to disprove */
+  show_claim?: boolean;
+  /** Refute-specific: the claim text */
+  claim_text?: string;
+  /** Refute-specific: function signature */
+  function_signature?: string;
+  /** Refute-specific: function name */
+  function_name?: string;
 }
 
 export interface InputConfig {
-  type?: 'textarea' | 'code' | 'radio' | 'checkbox';
+  type?: 'textarea' | 'code' | 'radio' | 'checkbox' | 'json';
   label?: string;
   placeholder?: string;
   min_length?: number;
   max_length?: number;
   options?: Array<{ id: string; text: string }>;
+  /** Refute-specific: function parameters for JSON input */
+  parameters?: Array<{ name: string; type: string }>;
 }
 
 export interface HintsHandlerConfig {

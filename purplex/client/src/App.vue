@@ -1,10 +1,17 @@
 <template>
   <!-- Skip to main content link - MUST be first for keyboard users -->
-  <a :href="skipLinkTarget" class="skip-link" @click.prevent="handleSkipLink">Skip to main content</a>
+  <a
+    :href="skipLinkTarget"
+    class="skip-link"
+    @click.prevent="handleSkipLink"
+  >Skip to main content</a>
 
   <!-- Loading state while determining auth -->
-  <div v-if="!authReady" class="auth-loading">
-    <div class="loading-spinner"></div>
+  <div
+    v-if="!authReady"
+    class="auth-loading"
+  >
+    <div class="loading-spinner" />
   </div>
 
   <!-- Login page when not authenticated -->
@@ -13,7 +20,12 @@
   <!-- Main app when authenticated -->
   <div v-else>
     <NavBar />
-    <div id="main-content" class="main-content" tabindex="-1" aria-label="Main content">
+    <div
+      id="main-content"
+      class="main-content"
+      tabindex="-1"
+      aria-label="Main content"
+    >
       <router-view />
     </div>
   </div>

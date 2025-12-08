@@ -7,10 +7,14 @@ Re-exports maintain backward compatibility with existing imports.
 Model hierarchy:
     Problem (PolymorphicModel base)
     ├── StaticProblem (abstract) - no code execution
-    │   └── McqProblem
+    │   ├── McqProblem
+    │   └── RefuteProblem
     ├── SpecProblem (abstract) - NL -> LLM -> code -> test
     │   ├── EiplProblem
-    │   └── PromptProblem
+    │   ├── PromptProblem
+    │   ├── DebugFixProblem
+    │   ├── ProbeableCodeProblem
+    │   └── ProbeableSpecProblem
     └── (Future) CodeProblem (abstract) - student code -> execute
 """
 
@@ -21,10 +25,13 @@ from .category import ProblemCategory
 from .base import Problem, DEFAULT_COMPLETION_THRESHOLD
 
 # Static problem types (no code execution)
-from .static import StaticProblem, McqProblem
+from .static import StaticProblem, McqProblem, RefuteProblem
 
 # Spec problem types (NL -> LLM -> code -> test)
-from .spec import SpecProblem, EiplProblem, PromptProblem
+from .spec import (
+    SpecProblem, EiplProblem, PromptProblem, DebugFixProblem,
+    ProbeableCodeProblem, ProbeableSpecProblem
+)
 
 # Test cases
 from .test_case import TestCase
@@ -52,10 +59,14 @@ __all__ = [
     # Problems - static (no code)
     'StaticProblem',
     'McqProblem',
+    'RefuteProblem',
     # Problems - spec (NL -> LLM -> code)
     'SpecProblem',
     'EiplProblem',
     'PromptProblem',
+    'DebugFixProblem',
+    'ProbeableCodeProblem',
+    'ProbeableSpecProblem',
     # Test cases
     'TestCase',
     # Problem sets

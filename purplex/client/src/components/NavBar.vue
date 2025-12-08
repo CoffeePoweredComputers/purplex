@@ -2,13 +2,19 @@
   <nav class="navbar-wrapper">
     <div class="navbar-container">
       <div class="nav-logo">
-        <router-link to="/home" class="logo-link">
+        <router-link
+          to="/home"
+          class="logo-link"
+        >
           <img
             src="/plx-logo.png"
             :alt="brandName"
             class="logo-icon"
           >
-          <span class="logo-text" :class="{ 'non-latin': isNonLatinBrand }">{{ brandName }}</span>
+          <span
+            class="logo-text"
+            :class="{ 'non-latin': isNonLatinBrand }"
+          >{{ brandName }}</span>
         </router-link>
       </div>
 
@@ -40,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import AccountModal from '../modals/AccountModal.vue';

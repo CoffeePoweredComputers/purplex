@@ -11,10 +11,11 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from ..serializers import (
     AdminProblemSerializer, AdminMcqProblemSerializer, McqProblemSerializer,
+    AdminProbeableCodeProblemSerializer, ProbeableCodeProblemSerializer,
     ProblemSetSerializer, AdminProblemSetSerializer, ProblemCategorySerializer, TestCaseSerializer,
     ProblemPolymorphicListSerializer
 )
-from ..models import McqProblem
+from ..models import McqProblem, ProbeableCodeProblem
 from ..services.admin_service import AdminProblemService
 from purplex.users_app.permissions import IsAdmin
 from purplex.submissions.repositories import SubmissionRepository
@@ -48,6 +49,8 @@ class AdminProblemListView(APIView):
         problem_type = data.get('problem_type', 'eipl')
         if problem_type == 'mcq':
             serializer = AdminMcqProblemSerializer(data=data)
+        elif problem_type == 'probeable_code':
+            serializer = AdminProbeableCodeProblemSerializer(data=data)
         else:
             serializer = AdminProblemSerializer(data=data)
 
@@ -65,6 +68,8 @@ class AdminProblemListView(APIView):
                     # Return the serialized problem with correct serializer
                     if problem_type == 'mcq':
                         response_serializer = McqProblemSerializer(problem)
+                    elif problem_type == 'probeable_code':
+                        response_serializer = ProbeableCodeProblemSerializer(problem)
                     else:
                         response_serializer = AdminProblemSerializer(problem)
                     return Response(response_serializer.data, status=status.HTTP_201_CREATED)
@@ -93,6 +98,8 @@ class AdminProblemDetailView(APIView):
         # Use correct serializer based on problem type
         if isinstance(problem, McqProblem):
             serializer = McqProblemSerializer(problem)
+        elif isinstance(problem, ProbeableCodeProblem):
+            serializer = ProbeableCodeProblemSerializer(problem)
         else:
             serializer = AdminProblemSerializer(problem)
         return Response(serializer.data)
@@ -110,8 +117,11 @@ class AdminProblemDetailView(APIView):
 
         # Use correct serializer based on problem type
         is_mcq = isinstance(problem, McqProblem)
+        is_probeable_code = isinstance(problem, ProbeableCodeProblem)
         if is_mcq:
             serializer = AdminMcqProblemSerializer(problem, data=data, partial=True)
+        elif is_probeable_code:
+            serializer = AdminProbeableCodeProblemSerializer(problem, data=data, partial=True)
         else:
             serializer = AdminProblemSerializer(problem, data=data, partial=True)
 
@@ -129,6 +139,8 @@ class AdminProblemDetailView(APIView):
                     # Return fresh data with correct serializer
                     if is_mcq:
                         return Response(McqProblemSerializer(problem).data)
+                    elif is_probeable_code:
+                        return Response(ProbeableCodeProblemSerializer(problem).data)
                     return Response(AdminProblemSerializer(problem).data)
             except Exception as e:
                 logger.error(f"Failed to update problem {slug}: {str(e)}")

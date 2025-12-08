@@ -7,14 +7,14 @@
  * - Suggested Trace: Shows a function call for Python Tutor
  */
 
-import { reactive, readonly, ref, type DeepReadonly, type Ref } from 'vue';
+import { type DeepReadonly, reactive, readonly, type Ref, ref } from 'vue';
 import type {
-  VariableFadeHint,
+  HintConfig,
+  SubgoalHighlight,
   SubgoalHighlightHint,
   SuggestedTraceHint,
+  VariableFadeHint,
   VariableFadeMapping,
-  SubgoalHighlight,
-  HintConfig,
 } from '@/types';
 import { problemService } from '@/services/problemService';
 import { log } from '@/utils/logger';
@@ -215,8 +215,8 @@ export const useHintsConfig = (): UseHintsConfigReturn => {
       // Check for balanced parentheses
       let depth = 0;
       for (const char of call) {
-        if (char === '(') depth++;
-        if (char === ')') depth--;
+        if (char === '(') {depth++;}
+        if (char === ')') {depth--;}
         if (depth < 0) {
           functionCallError.value = 'Unbalanced parentheses';
           return;

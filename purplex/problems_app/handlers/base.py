@@ -6,9 +6,10 @@ Each activity type (EiPL, Direct Code, Multiple Choice, etc.) implements
 this interface to handle its specific logic.
 """
 
+import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 if TYPE_CHECKING:
     from purplex.problems_app.models import Problem
@@ -252,3 +253,34 @@ class ActivityHandler(ABC):
     def on_submission_complete(self, submission: 'Submission') -> None:
         """Hook called after submission processing is complete."""
         pass
+
+    # ─── Shared Utilities ─────────────────────────────────────────
+
+    @staticmethod
+    def _format_function_call(
+        function_name: str,
+        input_values: Union[List[Any], Any]
+    ) -> str:
+        """
+        Format a function call string from function name and input values.
+
+        Args:
+            function_name: Name of the function
+            input_values: Either a list of arguments or a single argument
+
+        Returns:
+            Formatted function call string, e.g., "my_func(1, 'hello', [1, 2])"
+        """
+        if isinstance(input_values, list):
+            # Use json.dumps for strings to ensure proper quoting, repr for others
+            args = ', '.join(
+                json.dumps(v) if isinstance(v, str) else repr(v)
+                for v in input_values
+            )
+        else:
+            # Single value case
+            args = (
+                json.dumps(input_values) if isinstance(input_values, str)
+                else repr(input_values)
+            )
+        return f"{function_name}({args})"

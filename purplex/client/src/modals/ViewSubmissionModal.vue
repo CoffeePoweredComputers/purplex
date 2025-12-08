@@ -283,7 +283,9 @@
                 >
                   <span class="hint-icon">{{ getHintIcon(hint.hint_type) }}</span>
                   <div class="hint-details">
-                    <div class="hint-type-name">{{ formatHintType(hint.hint_type) }}</div>
+                    <div class="hint-type-name">
+                      {{ formatHintType(hint.hint_type) }}
+                    </div>
                     <div class="hint-meta">
                       <span class="hint-trigger">{{ formatTriggerType(hint.trigger_type) }}</span>
                       <span class="hint-time">{{ formatHintTime(hint.activated_at) }}</span>

@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from rest_polymorphic.serializers import PolymorphicSerializer
 from .models import (
-    McqProblem, EiplProblem, PromptProblem,
+    McqProblem, EiplProblem, PromptProblem, RefuteProblem, ProbeableCodeProblem,
+    DebugFixProblem, ProbeableSpecProblem,
     ProblemSet, ProblemCategory, TestCase, Course
 )
 from .services.admin_service import AdminProblemService
@@ -164,6 +165,102 @@ class AdminMcqProblemSerializer(McqProblemSerializer):
             return instance
 
 
+class ProbeableCodeProblemSerializer(serializers.ModelSerializer):
+    """Serializer for Probeable Code problems."""
+    categories = ProblemCategorySerializer(many=True, read_only=True)
+    category_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=ProblemCategoryRepository.get_all_queryset(),
+        source='categories',
+        write_only=True,
+        required=False
+    )
+    problem_sets = SimpleProblemSetSerializer(many=True, read_only=True)
+    test_cases = TestCaseSerializer(many=True, read_only=True)
+    test_cases_count = serializers.ReadOnlyField()
+    visible_test_cases_count = serializers.ReadOnlyField()
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+
+    class Meta:
+        model = ProbeableCodeProblem
+        fields = [
+            'slug', 'title', 'difficulty', 'problem_type', 'categories', 'category_ids',
+            'function_name', 'function_signature', 'reference_solution',
+            'memory_limit', 'tags', 'is_active', 'segmentation_enabled', 'segmentation_config',
+            'requires_highlevel_comprehension', 'segmentation_threshold',
+            'problem_sets', 'test_cases', 'test_cases_count', 'visible_test_cases_count',
+            'created_by', 'created_by_name', 'created_at', 'updated_at', 'version',
+            # ProbeableCode-specific fields
+            'show_function_signature', 'probe_mode', 'max_probes',
+            'cooldown_attempts', 'cooldown_refill',
+        ]
+        read_only_fields = ['slug', 'problem_type', 'created_by', 'created_at', 'updated_at', 'version']
+
+
+class AdminProbeableCodeProblemSerializer(ProbeableCodeProblemSerializer):
+    """Admin serializer for Probeable Code problems with full CRUD support."""
+
+    category_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        allow_empty=True
+    )
+    test_cases = TestCaseSerializer(many=True, required=False)
+
+    class Meta(ProbeableCodeProblemSerializer.Meta):
+        read_only_fields = ['slug', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        """Create Probeable Code problem."""
+        from django.db import transaction
+
+        test_cases_data = validated_data.pop('test_cases', [])
+        category_ids = validated_data.pop('category_ids', [])
+        # Remove fields that are read-only properties or don't exist on the model
+        validated_data.pop('problem_type', None)
+        validated_data.pop('description', None)
+
+        with transaction.atomic():
+            problem = ProbeableCodeProblem.objects.create(**validated_data)
+
+            if category_ids:
+                categories = ProblemCategoryRepository.get_categories_by_ids(category_ids)
+                problem.categories.set(categories)
+
+            # Create test cases
+            for order, test_case_data in enumerate(test_cases_data):
+                test_case_data['order'] = order
+                TestCase.objects.create(problem=problem, **test_case_data)
+
+            return problem
+
+    def update(self, instance, validated_data):
+        """Update Probeable Code problem."""
+        from django.db import transaction
+
+        test_cases_data = validated_data.pop('test_cases', None)
+        category_ids = validated_data.pop('category_ids', None)
+
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.version += 1
+            instance.save()
+
+            if category_ids is not None:
+                categories = ProblemCategoryRepository.get_categories_by_ids(category_ids)
+                instance.categories.set(categories)
+
+            if test_cases_data is not None:
+                instance.test_cases.all().delete()
+                for order, test_case_data in enumerate(test_cases_data):
+                    test_case_data['order'] = order
+                    TestCase.objects.create(problem=instance, **test_case_data)
+
+            return instance
+
+
 # ============================================================================
 # Type-Specific Serializers for Problem Set Context
 # ============================================================================
@@ -198,6 +295,10 @@ class HandlerConfigMixin:
     def get_feedback_config(self, problem):
         """Get feedback configuration from handler."""
         return self._get_handler_config(problem).get('feedback', {})
+
+    def get_probe_config(self, problem):
+        """Get probe configuration from handler."""
+        return self._get_handler_config(problem).get('probe', {})
 
 
 # ============================================================================
@@ -245,12 +346,71 @@ class McqProblemListSerializer(serializers.ModelSerializer):
         ]
 
 
+class RefuteProblemListSerializer(serializers.ModelSerializer):
+    """List serializer for Refute (Counterexample) problems."""
+    categories = ProblemCategorySerializer(many=True, read_only=True)
+    problem_sets = SimpleProblemSetSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = RefuteProblem
+        fields = [
+            'slug', 'title', 'difficulty', 'problem_type', 'categories', 'problem_sets',
+            'tags', 'is_active', 'created_at'
+        ]
+
+
+class ProbeableCodeProblemListSerializer(serializers.ModelSerializer):
+    """List serializer for Probeable Code problems."""
+    categories = ProblemCategorySerializer(many=True, read_only=True)
+    problem_sets = SimpleProblemSetSerializer(many=True, read_only=True)
+    test_cases_count = serializers.ReadOnlyField()
+
+    class Meta:
+        model = ProbeableCodeProblem
+        fields = [
+            'slug', 'title', 'difficulty', 'problem_type', 'categories', 'problem_sets',
+            'function_name', 'tags', 'is_active', 'test_cases_count', 'created_at'
+        ]
+
+
+class DebugFixProblemListSerializer(serializers.ModelSerializer):
+    """List serializer for Debug Fix problems."""
+    categories = ProblemCategorySerializer(many=True, read_only=True)
+    problem_sets = SimpleProblemSetSerializer(many=True, read_only=True)
+    test_cases_count = serializers.ReadOnlyField()
+
+    class Meta:
+        model = DebugFixProblem
+        fields = [
+            'slug', 'title', 'difficulty', 'problem_type', 'categories', 'problem_sets',
+            'function_name', 'tags', 'is_active', 'test_cases_count', 'created_at'
+        ]
+
+
+class ProbeableSpecProblemListSerializer(serializers.ModelSerializer):
+    """List serializer for Probeable Spec problems."""
+    categories = ProblemCategorySerializer(many=True, read_only=True)
+    problem_sets = SimpleProblemSetSerializer(many=True, read_only=True)
+    test_cases_count = serializers.ReadOnlyField()
+
+    class Meta:
+        model = ProbeableSpecProblem
+        fields = [
+            'slug', 'title', 'difficulty', 'problem_type', 'categories', 'problem_sets',
+            'function_name', 'tags', 'is_active', 'test_cases_count', 'created_at'
+        ]
+
+
 class ProblemPolymorphicListSerializer(PolymorphicSerializer):
     """Polymorphic serializer for problem lists."""
     model_serializer_mapping = {
         EiplProblem: EiplProblemListSerializer,
         PromptProblem: PromptProblemListSerializer,
         McqProblem: McqProblemListSerializer,
+        RefuteProblem: RefuteProblemListSerializer,
+        ProbeableCodeProblem: ProbeableCodeProblemListSerializer,
+        DebugFixProblem: DebugFixProblemListSerializer,
+        ProbeableSpecProblem: ProbeableSpecProblemListSerializer,
     }
 
 
@@ -334,6 +494,10 @@ class AdminProblemSetSerializer(serializers.ModelSerializer):
                     'eiplproblem': 'eipl',
                     'mcqproblem': 'mcq',
                     'promptproblem': 'prompt',
+                    'refuteproblem': 'refute',
+                    'debugfixproblem': 'debug_fix',
+                    'probeablecodeproblem': 'probeable_code',
+                    'probeablespecproblem': 'probeable_spec',
                 }
                 problem_type = type_map.get(model_name, model_name)
 

@@ -7,9 +7,9 @@
  */
 
 import type {
-  ProblemEditorRegistry,
   EditorComponentLoader,
   ProblemEditorDefinition,
+  ProblemEditorRegistry,
 } from './types'
 
 /**
@@ -31,6 +31,26 @@ const PROBLEM_EDITORS: ProblemEditorRegistry = {
     editor: () => import('./PromptProblemEditor.vue'),
     label: 'Prompt (Image-based)',
     description: 'Image-based explanation problems',
+  },
+  refute: {
+    editor: () => import('./RefuteProblemEditor.vue'),
+    label: 'Refute (Counterexample)',
+    description: 'Student finds input that disproves a claim about a function',
+  },
+  debug_fix: {
+    editor: () => import('./DebugFixProblemEditor.vue'),
+    label: 'Debug Fix',
+    description: 'Student fixes buggy code to pass test cases',
+  },
+  probeable_code: {
+    editor: () => import('./ProbeableCodeProblemEditor.vue'),
+    label: 'Probeable Code',
+    description: 'Student discovers behavior via oracle, writes code',
+  },
+  probeable_spec: {
+    editor: () => import('./ProbeableSpecProblemEditor.vue'),
+    label: 'Probeable Spec',
+    description: 'Student probes oracle, writes NL explanation',
   },
 }
 

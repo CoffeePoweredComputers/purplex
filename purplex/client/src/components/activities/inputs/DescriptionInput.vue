@@ -1,6 +1,6 @@
 <template>
-  <!-- Vue 3 fragment - multiple root elements -->
-  <div class="section-header">
+  <div class="description-input">
+    <div class="section-header">
     <div class="section-label">
       {{ sectionLabel }}
     </div>
@@ -57,6 +57,7 @@
       <span class="visually-hidden">Submitting solution, please wait</span>
     </div>
   </button>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -144,6 +145,11 @@ function handleSubmit() {
  * Shared styles for description input component
  * Used by EiPL and Prompt activity types
  */
+
+/* Container - positioned ancestor for absolute elements */
+.description-input {
+  position: relative;
+}
 
 /* Section Header */
 .section-header {

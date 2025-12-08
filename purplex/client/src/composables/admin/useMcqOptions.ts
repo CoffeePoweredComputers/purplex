@@ -7,7 +7,7 @@
  * - Managing explanation text
  */
 
-import { ref, computed, type Ref, type ComputedRef } from 'vue';
+import { computed, type ComputedRef, type Ref, ref } from 'vue';
 
 // ===== TYPES =====
 
@@ -74,7 +74,7 @@ export const useMcqOptions = (): UseMcqOptionsReturn => {
    * Add a new option
    */
   const addOption = (): void => {
-    if (!canAddMore.value) return;
+    if (!canAddMore.value) {return;}
 
     options.value.push({
       id: String(Date.now()),
@@ -88,7 +88,7 @@ export const useMcqOptions = (): UseMcqOptionsReturn => {
    * Remove an option by index
    */
   const removeOption = (index: number): void => {
-    if (!canRemove.value) return;
+    if (!canRemove.value) {return;}
 
     options.value.splice(index, 1);
   };

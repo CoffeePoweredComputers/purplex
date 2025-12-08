@@ -7,7 +7,10 @@
     <div class="banner-content">
       <div class="banner-main">
         <div class="progress-section">
-          <span class="feedback-icon" :class="iconClass">
+          <span
+            class="feedback-icon"
+            :class="iconClass"
+          >
             {{ getIcon() }}
           </span>
         </div>

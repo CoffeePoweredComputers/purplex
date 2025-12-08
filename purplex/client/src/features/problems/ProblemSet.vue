@@ -124,7 +124,7 @@
               :alt="getCurrentProblem()?.display_config?.image_alt_text || 'Problem image'"
               class="problem-image"
               loading="lazy"
-            />
+            >
             <div
               v-else
               class="problem-image-placeholder"
@@ -356,6 +356,7 @@ import { useEditorHints } from '@/composables/useEditorHints'
 import { useFeedbackState } from '@/composables/useFeedbackState'
 import { useSubmissionCache } from '@/composables/useSubmissionCache'
 import { useSubmissionTracking } from '@/composables/useSubmissionTracking'
+import { parseProblemQueryParam } from './problemNavigation'
 import { sseService } from '@/services/sseService'
 import { submissionService } from '@/services/submissionService'
 import { computed, ref, watch } from 'vue'
@@ -598,7 +599,7 @@ export default {
     
     methods: {
         renderMarkdown(text) {
-            if (!text) return '';
+            if (!text) {return '';}
             return marked(text, { breaks: true });
         },
 
@@ -662,6 +663,11 @@ export default {
                 // This prevents multiple re-renders with partial data
                 this.currentProblem = newIndex;
                 this.loading = isSubmitting;
+
+                // Update URL to persist problem position across refresh
+                this.$router.replace({
+                    query: { ...this.$route.query, p: newIndex }
+                });
 
                 if (isSubmitting) {
                     // Clear feedback to show loading state
@@ -1626,6 +1632,12 @@ export default {
 
                 await this.loadProblemStatuses();
 
+                // Restore problem position from URL query param
+                const initialIndex = parseProblemQueryParam(this.$route.query, this.problems.length);
+                if (initialIndex > 0) {
+                    this.currentProblem = initialIndex;
+                }
+
             } catch (error) {
                 this.logger.error('Error fetching problem set', error);
                 this.notify.error('Load Error', 'Failed to load problem set.');
@@ -1633,7 +1645,7 @@ export default {
                 this.isLoading = false;
             }
         },
-        
+
         async loadProblemStatuses() {
             const problemSetSlug = this.$route.params.slug;
 
@@ -2302,16 +2314,15 @@ export default {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 300px;
-    max-height: 500px;
-    background: var(--color-bg-input);
 }
 
 .problem-image {
     max-width: 100%;
-    max-height: 450px;
+    max-height: 500px;
     object-fit: contain;
     border-radius: var(--radius-base);
+    border: 4px solid var(--color-text-muted);
+    box-shadow: var(--shadow-md);
 }
 
 .problem-image-placeholder {

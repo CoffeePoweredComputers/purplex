@@ -868,6 +868,13 @@ def execute_eipl_pipeline(
                 task_id=task_id
             )
             logger.info(f"✅ STEP 5 COMPLETE: Submission {submission_result['submission_id']} saved successfully (task {task_id})")
+
+            # Record submission for cooldown tracking (ProbeableSpec problems)
+            problem = ProblemRepository.get_by_id(problem_id)
+            if problem and problem.problem_type == 'probeable_spec':
+                from purplex.problems_app.services.probe_service import ProbeService
+                ProbeService.record_submission(problem.id, user_id)
+                logger.info(f"Recorded ProbeableSpec submission for cooldown tracking (problem={problem_id}, user={user_id})")
         except Exception as save_error:
             logger.error(f"❌ STEP 5 FAILED: Failed to save submission for task {task_id}: {str(save_error)}", exc_info=True)
             raise
@@ -1067,13 +1074,7 @@ def execute_mcq_pipeline(
 
                 # Update progress
                 from purplex.problems_app.services.progress_service import ProgressService
-                ProgressService.update_progress_from_submission(
-                    user=user,
-                    problem=problem,
-                    submission=submission,
-                    problem_set=problem_set,
-                    course=course
-                )
+                ProgressService.process_submission(submission)
         except IntegrityError as e:
             # Another worker beat us - fetch and return existing submission
             if 'celery_task_id' in str(e):
@@ -1128,6 +1129,587 @@ def execute_mcq_pipeline(
         publish_error(task_id, error_msg)
 
         if SENTRY_AVAILABLE:
+            sentry_sdk.capture_exception(e, extras={
+                "task_id": task_id,
+                "problem_id": problem_id,
+                "user_id": user_id,
+            })
+
+        raise
+
+
+# -----------------------------------------------------------------------------
+# Debug Fix Pipeline - Execute student's fixed code against test cases
+# -----------------------------------------------------------------------------
+
+def _build_cached_debug_fix_result(existing: 'Submission') -> Dict[str, Any]:
+    """Build result from an existing debug fix submission (for idempotent retries)."""
+    from purplex.problems_app.handlers import get_handler
+    handler = get_handler('debug_fix')
+
+    return {
+        'submission_id': str(existing.submission_id),
+        'score': existing.score,
+        'is_correct': existing.passed_all_tests,
+        'completion_status': existing.completion_status or 'incomplete',
+        'idempotent_hit': True,
+        'result': handler.serialize_result(existing),
+    }
+
+
+@shared_task(bind=True, name='pipeline.execute_debug_fix')
+def execute_debug_fix_pipeline(
+    self,
+    problem_id: int,
+    fixed_code: str,
+    user_id: int,
+    problem_set_id: Optional[int] = None,
+    course_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Execute Debug Fix submission pipeline.
+
+    This task executes the student's fixed code against test cases.
+    Simpler than EiPL - no LLM generation, no segmentation.
+
+    Args:
+        problem_id: Database ID of the problem
+        fixed_code: Student's fixed code to test
+        user_id: ID of the user making the submission
+        problem_set_id: Optional problem set ID
+        course_id: Optional course ID
+
+    Returns:
+        Complete submission result
+    """
+    task_id = self.request.id
+    logger.info(f"DEBUG_FIX PIPELINE START: task_id={task_id}, problem_id={problem_id}, user_id={user_id}")
+
+    # Publish initial progress
+    publish_progress(task_id, 0, "Task received, initializing...")
+
+    # Allow Django ORM calls in gevent context
+    import os
+    os.environ['DJANGO_ALLOW_ASYNC_UNSAFE'] = 'true'
+
+    # Ensure Django is properly initialized
+    import django
+    if not django.apps.apps.ready:
+        logger.warning("Django apps not ready, calling setup()")
+        django.setup()
+
+    # IDEMPOTENCY CHECK
+    from purplex.submissions.models import Submission
+    existing = Submission.objects.filter(celery_task_id=task_id).first()
+    if existing:
+        logger.info(f"Task {task_id} already processed (submission {existing.submission_id}), returning cached result")
+        publish_progress(task_id, 100, "Submission already processed (idempotent retry)")
+        return _build_cached_debug_fix_result(existing)
+
+    # Start Sentry transaction if available
+    if SENTRY_AVAILABLE:
+        sentry_txn = sentry_sdk.start_transaction(
+            op="celery.task",
+            name="execute_debug_fix_pipeline",
+            description=f"Process Debug Fix submission for problem {problem_id}"
+        )
+        sentry_txn.set_tag("problem_id", problem_id)
+        sentry_txn.set_tag("user_id", user_id)
+    else:
+        sentry_txn = None
+
+    try:
+        # Step 1: Load entities (0-10% progress)
+        publish_progress(task_id, 5, "Loading problem and test cases...")
+
+        problem = ProblemRepository.get_by_id(problem_id)
+        if not problem:
+            raise Exception(f"Problem {problem_id} not found")
+
+        user = UserService.get_user_by_id(user_id)
+        if not user:
+            raise Exception(f"User {user_id} not found")
+
+        problem_set = None
+        if problem_set_id:
+            problem_set = ProblemRepository.get_problem_set_by_id(problem_set_id)
+
+        course = None
+        if course_id:
+            course = CourseService.get_course_by_pk(course_id)
+
+        # Step 2: Test the fixed code (10-70% progress)
+        publish_progress(task_id, 10, "Testing your code against test cases...")
+
+        if SENTRY_AVAILABLE and sentry_txn:
+            test_span = sentry_txn.start_child(
+                op="code.execution",
+                description="Execute fixed code against test cases"
+            )
+        else:
+            test_span = None
+
+        # Get test cases formatted for testing
+        test_cases = TestCaseService.get_test_cases_for_testing(problem, include_hidden=True)
+        test_case_ids = [tc.get('id') for tc in test_cases]
+
+        # Parse JSON fields if needed
+        for tc in test_cases:
+            if isinstance(tc['inputs'], str):
+                try:
+                    tc['inputs'] = json.loads(tc['inputs'])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            if isinstance(tc['expected_output'], str):
+                try:
+                    tc['expected_output'] = json.loads(tc['expected_output'])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+        # Execute code in Docker
+        with SharedDockerServiceContext() as service:
+            service.set_user_context(f"debug_fix_{user_id}")
+            result = service.test_solution(fixed_code, problem.function_name, test_cases)
+
+        publish_progress(task_id, 70, f"Testing complete: {result.get('testsPassed', 0)}/{result.get('totalTests', 0)} passed")
+
+        # Build test results with IDs
+        tests_passed = result.get('testsPassed', 0)
+        tests_total = result.get('totalTests', 0)
+        all_passed = tests_passed == tests_total and tests_total > 0
+
+        test_results_list = []
+        for idx, test_result in enumerate(result.get('results', [])):
+            if idx < len(test_case_ids):
+                test_result['test_case_id'] = test_case_ids[idx]
+            test_results_list.append(test_result)
+
+        if SENTRY_AVAILABLE and test_span:
+            test_span.set_data("tests_passed", tests_passed)
+            test_span.set_data("tests_total", tests_total)
+            test_span.finish()
+
+        # Step 3: Save submission (70-100% progress)
+        publish_progress(task_id, 80, "Saving submission...")
+
+        score = int((tests_passed / tests_total * 100) if tests_total > 0 else 0)
+
+        # Create submission
+        from django.db import IntegrityError
+
+        try:
+            with transaction.atomic():
+                submission = SubmissionService._create_submission_no_transaction(
+                    user=user,
+                    problem=problem,
+                    raw_input=fixed_code,
+                    submission_type='debug_fix',
+                    problem_set=problem_set,
+                    course=course,
+                    time_spent=None,
+                    activated_hints=None,
+                    celery_task_id=task_id
+                )
+        except IntegrityError as e:
+            if 'celery_task_id' in str(e):
+                logger.info(f"Race condition: another worker already created submission for task {task_id}")
+                existing = Submission.objects.get(celery_task_id=task_id)
+                return _build_cached_debug_fix_result(existing)
+            raise
+
+        # Use regular transaction.atomic for the rest
+        with transaction.atomic():
+            # Create a single CodeVariation to store results (reuse EiPL structure)
+            variation = CodeVariation.objects.create(
+                submission=submission,
+                variation_index=0,
+                generated_code=fixed_code,
+                tests_passed=tests_passed,
+                tests_total=tests_total,
+                score=score,
+                model_used='student_fix',  # Not LLM-generated
+                is_selected=True
+            )
+
+            # Record test execution results
+            test_execution_data = []
+            for test_result in test_results_list:
+                test_case_id = test_result.get('test_case_id')
+                if test_case_id:
+                    actual_output = test_result.get('actual_output')
+                    if actual_output is None:
+                        actual_output = test_result.get('output', '')
+
+                    test_execution_data.append({
+                        'test_case_id': test_case_id,
+                        'passed': test_result.get('pass', False) or test_result.get('isSuccessful', False),
+                        'inputs': test_result.get('inputs', {}),
+                        'expected': test_result.get('expected_output', ''),
+                        'actual': actual_output,
+                        'error_type': 'none' if (test_result.get('pass', False) or test_result.get('isSuccessful', False)) else 'wrong_output',
+                        'error_message': test_result.get('error', '')
+                    })
+
+            # Record test results and update progress
+            if test_execution_data:
+                # Set processed_code before service call (will be saved by service)
+                submission.processed_code = fixed_code
+                SubmissionService._record_eipl_test_results_no_transaction(
+                    submission=submission,
+                    variations_with_tests=[{
+                        'variation': variation,
+                        'test_results': test_execution_data
+                    }]
+                )
+            else:
+                # No test data edge case - update submission manually
+                submission.processed_code = fixed_code
+                submission.score = score
+                submission.passed_all_tests = all_passed
+                submission.is_correct = all_passed
+                submission.execution_status = 'completed'
+                submission.completion_status = 'complete' if all_passed else 'incomplete'
+                submission.save()
+                from purplex.problems_app.services.progress_service import ProgressService
+                ProgressService.process_submission(submission)
+
+        publish_progress(task_id, 100, f"Complete! Score: {score}%")
+
+        # Build result using unified helper
+        from purplex.problems_app.handlers import get_handler
+        handler = get_handler('debug_fix')
+
+        # Reload submission with relations
+        submission = Submission.objects.prefetch_related(
+            'code_variations', 'code_variations__test_executions'
+        ).get(submission_id=submission.submission_id)
+
+        submission_result = build_completion_result(
+            submission=submission,
+            handler=handler,
+            user_input=fixed_code,
+            legacy_fields={
+                'fixed_code': fixed_code,
+                'tests_passed': tests_passed,
+                'tests_total': tests_total,
+            }
+        )
+
+        # Publish completion
+        publish_completion(task_id, submission_result)
+
+        if SENTRY_AVAILABLE and sentry_txn:
+            sentry_txn.set_status("ok")
+            sentry_txn.finish()
+
+        logger.info(f"DEBUG_FIX PIPELINE COMPLETE: task_id={task_id}, score={score}%")
+        return submission_result
+
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(
+            f"DEBUG_FIX PIPELINE FAILED: task_id={task_id}, error={error_msg}",
+            exc_info=True
+        )
+        publish_error(task_id, error_msg)
+
+        if SENTRY_AVAILABLE:
+            if sentry_txn:
+                sentry_txn.set_status("error")
+                sentry_txn.finish()
+            sentry_sdk.capture_exception(e, extras={
+                "task_id": task_id,
+                "problem_id": problem_id,
+                "user_id": user_id,
+            })
+
+        raise
+
+
+# ==============================================================================
+# PROBEABLE CODE PIPELINE
+# ==============================================================================
+
+def _build_cached_probeable_code_result(existing: 'Submission') -> Dict[str, Any]:
+    """Build result from an existing probeable code submission (for idempotent retries)."""
+    from purplex.problems_app.handlers import get_handler
+    handler = get_handler('probeable_code')
+
+    return {
+        'submission_id': str(existing.submission_id),
+        'score': existing.score,
+        'is_correct': existing.passed_all_tests,
+        'completion_status': existing.completion_status or 'incomplete',
+        'idempotent_hit': True,
+        'result': handler.serialize_result(existing),
+    }
+
+
+@shared_task(bind=True, name='pipeline.execute_probeable_code')
+def execute_probeable_code_pipeline(
+    self,
+    problem_id: int,
+    student_code: str,
+    user_id: int,
+    problem_set_id: Optional[int] = None,
+    course_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Execute Probeable Code submission pipeline.
+
+    This task executes the student's implementation code against test cases.
+    Similar to Debug Fix - no LLM generation, no segmentation.
+    Additionally records the submission for cooldown tracking.
+
+    Args:
+        problem_id: Database ID of the problem
+        student_code: Student's implementation code to test
+        user_id: ID of the user making the submission
+        problem_set_id: Optional problem set ID
+        course_id: Optional course ID
+
+    Returns:
+        Complete submission result
+    """
+    task_id = self.request.id
+    logger.info(f"PROBEABLE_CODE PIPELINE START: task_id={task_id}, problem_id={problem_id}, user_id={user_id}")
+
+    # Publish initial progress
+    publish_progress(task_id, 0, "Task received, initializing...")
+
+    # Allow Django ORM calls in gevent context
+    import os
+    os.environ['DJANGO_ALLOW_ASYNC_UNSAFE'] = 'true'
+
+    # Ensure Django is properly initialized
+    import django
+    if not django.apps.apps.ready:
+        logger.warning("Django apps not ready, calling setup()")
+        django.setup()
+
+    # IDEMPOTENCY CHECK
+    from purplex.submissions.models import Submission
+    existing = Submission.objects.filter(celery_task_id=task_id).first()
+    if existing:
+        logger.info(f"Task {task_id} already processed (submission {existing.submission_id}), returning cached result")
+        publish_progress(task_id, 100, "Submission already processed (idempotent retry)")
+        return _build_cached_probeable_code_result(existing)
+
+    # Start Sentry transaction if available
+    if SENTRY_AVAILABLE:
+        sentry_txn = sentry_sdk.start_transaction(
+            op="celery.task",
+            name="execute_probeable_code_pipeline",
+            description=f"Process Probeable Code submission for problem {problem_id}"
+        )
+        sentry_txn.set_tag("problem_id", problem_id)
+        sentry_txn.set_tag("user_id", user_id)
+    else:
+        sentry_txn = None
+
+    try:
+        # Step 1: Load entities (0-10% progress)
+        publish_progress(task_id, 5, "Loading problem and test cases...")
+
+        problem = ProblemRepository.get_by_id(problem_id)
+        if not problem:
+            raise Exception(f"Problem {problem_id} not found")
+
+        user = UserService.get_user_by_id(user_id)
+        if not user:
+            raise Exception(f"User {user_id} not found")
+
+        problem_set = None
+        if problem_set_id:
+            problem_set = ProblemRepository.get_problem_set_by_id(problem_set_id)
+
+        course = None
+        if course_id:
+            course = CourseService.get_course_by_pk(course_id)
+
+        # Step 2: Test the student's code (10-70% progress)
+        publish_progress(task_id, 10, "Testing your code against test cases...")
+
+        if SENTRY_AVAILABLE and sentry_txn:
+            test_span = sentry_txn.start_child(
+                op="code.execution",
+                description="Execute student code against test cases"
+            )
+        else:
+            test_span = None
+
+        # Get test cases formatted for testing
+        test_cases = TestCaseService.get_test_cases_for_testing(problem, include_hidden=True)
+        test_case_ids = [tc.get('id') for tc in test_cases]
+
+        # Parse JSON fields if needed
+        for tc in test_cases:
+            if isinstance(tc['inputs'], str):
+                try:
+                    tc['inputs'] = json.loads(tc['inputs'])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            if isinstance(tc['expected_output'], str):
+                try:
+                    tc['expected_output'] = json.loads(tc['expected_output'])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+        # Execute code in Docker
+        with SharedDockerServiceContext() as service:
+            service.set_user_context(f"probeable_code_{user_id}")
+            result = service.test_solution(student_code, problem.function_name, test_cases)
+
+        publish_progress(task_id, 70, f"Testing complete: {result.get('testsPassed', 0)}/{result.get('totalTests', 0)} passed")
+
+        # Build test results with IDs
+        tests_passed = result.get('testsPassed', 0)
+        tests_total = result.get('totalTests', 0)
+        all_passed = tests_passed == tests_total and tests_total > 0
+
+        test_results_list = []
+        for idx, test_result in enumerate(result.get('results', [])):
+            if idx < len(test_case_ids):
+                test_result['test_case_id'] = test_case_ids[idx]
+            test_results_list.append(test_result)
+
+        if SENTRY_AVAILABLE and test_span:
+            test_span.set_data("tests_passed", tests_passed)
+            test_span.set_data("tests_total", tests_total)
+            test_span.finish()
+
+        # Step 3: Save submission (70-100% progress)
+        publish_progress(task_id, 80, "Saving submission...")
+
+        score = int((tests_passed / tests_total * 100) if tests_total > 0 else 0)
+
+        # Create submission
+        from django.db import IntegrityError
+
+        try:
+            with transaction.atomic():
+                submission = SubmissionService._create_submission_no_transaction(
+                    user=user,
+                    problem=problem,
+                    raw_input=student_code,
+                    submission_type='probeable_code',
+                    problem_set=problem_set,
+                    course=course,
+                    time_spent=None,
+                    activated_hints=None,
+                    celery_task_id=task_id
+                )
+        except IntegrityError as e:
+            if 'celery_task_id' in str(e):
+                logger.info(f"Race condition: another worker already created submission for task {task_id}")
+                existing = Submission.objects.get(celery_task_id=task_id)
+                return _build_cached_probeable_code_result(existing)
+            raise
+
+        # Use regular transaction.atomic for the rest
+        with transaction.atomic():
+            # Create a single CodeVariation to store results (reuse EiPL structure)
+            variation = CodeVariation.objects.create(
+                submission=submission,
+                variation_index=0,
+                generated_code=student_code,
+                tests_passed=tests_passed,
+                tests_total=tests_total,
+                score=score,
+                model_used='student_implementation',  # Not LLM-generated
+                is_selected=True
+            )
+
+            # Record test execution results
+            test_execution_data = []
+            for test_result in test_results_list:
+                test_case_id = test_result.get('test_case_id')
+                if test_case_id:
+                    actual_output = test_result.get('actual_output')
+                    if actual_output is None:
+                        actual_output = test_result.get('output', '')
+
+                    test_execution_data.append({
+                        'test_case_id': test_case_id,
+                        'passed': test_result.get('pass', False) or test_result.get('isSuccessful', False),
+                        'inputs': test_result.get('inputs', {}),
+                        'expected': test_result.get('expected_output', ''),
+                        'actual': actual_output,
+                        'error_type': 'none' if (test_result.get('pass', False) or test_result.get('isSuccessful', False)) else 'wrong_output',
+                        'error_message': test_result.get('error', '')
+                    })
+
+            # Record test results and update progress
+            if test_execution_data:
+                # Set processed_code before service call (will be saved by service)
+                submission.processed_code = student_code
+                SubmissionService._record_eipl_test_results_no_transaction(
+                    submission=submission,
+                    variations_with_tests=[{
+                        'variation': variation,
+                        'test_results': test_execution_data
+                    }]
+                )
+            else:
+                # No test data edge case - update submission manually
+                submission.processed_code = student_code
+                submission.score = score
+                submission.passed_all_tests = all_passed
+                submission.is_correct = all_passed
+                submission.execution_status = 'completed'
+                submission.completion_status = 'complete' if all_passed else 'incomplete'
+                submission.save()
+                from purplex.problems_app.services.progress_service import ProgressService
+                ProgressService.process_submission(submission)
+
+            # Record submission for cooldown tracking
+            from purplex.problems_app.services.probe_service import ProbeService
+            ProbeService.record_submission(problem.id, user.id)
+
+        publish_progress(task_id, 100, f"Complete! Score: {score}%")
+
+        # Build result using unified helper
+        from purplex.problems_app.handlers import get_handler
+        handler = get_handler('probeable_code')
+
+        # Reload submission with relations
+        submission = Submission.objects.prefetch_related(
+            'code_variations', 'code_variations__test_executions'
+        ).get(submission_id=submission.submission_id)
+
+        submission_result = build_completion_result(
+            submission=submission,
+            handler=handler,
+            user_input=student_code,
+            legacy_fields={
+                'student_code': student_code,
+                'tests_passed': tests_passed,
+                'tests_total': tests_total,
+            }
+        )
+
+        # Publish completion
+        publish_completion(task_id, submission_result)
+
+        if SENTRY_AVAILABLE and sentry_txn:
+            sentry_txn.set_status("ok")
+            sentry_txn.finish()
+
+        logger.info(f"PROBEABLE_CODE PIPELINE COMPLETE: task_id={task_id}, score={score}%")
+        return submission_result
+
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(
+            f"PROBEABLE_CODE PIPELINE FAILED: task_id={task_id}, error={error_msg}",
+            exc_info=True
+        )
+        publish_error(task_id, error_msg)
+
+        if SENTRY_AVAILABLE:
+            if sentry_txn:
+                sentry_txn.set_status("error")
+                sentry_txn.finish()
             sentry_sdk.capture_exception(e, extras={
                 "task_id": task_id,
                 "problem_id": problem_id,

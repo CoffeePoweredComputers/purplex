@@ -21,49 +21,7 @@
 
       <div class="form-group">
         <label for="reference_solution">Reference Solution *</label>
-
-        <div class="editor-toolbar">
-          <div class="toolbar-left">
-            <div class="zoom-controls">
-              <button
-                type="button"
-                :disabled="editor.editorSettings.fontSize.value <= 12"
-                class="zoom-btn"
-                title="Decrease font size"
-                @click="editor.editorSettings.decreaseFontSize"
-              >
-                <span class="zoom-icon">−</span>
-              </button>
-              <span class="zoom-display">{{ Math.round((editor.editorSettings.fontSize.value / 14) * 100) }}%</span>
-              <button
-                type="button"
-                :disabled="editor.editorSettings.fontSize.value >= 24"
-                class="zoom-btn"
-                title="Increase font size"
-                @click="editor.editorSettings.increaseFontSize"
-              >
-                <span class="zoom-icon">+</span>
-              </button>
-            </div>
-
-            <div class="theme-selector">
-              <select
-                :value="editor.editorSettings.theme.value"
-                class="theme-dropdown"
-                @change="editor.editorSettings.setTheme(($event.target as HTMLSelectElement).value)"
-              >
-                <option value="monokai">Monokai</option>
-                <option value="github">GitHub</option>
-                <option value="clouds_midnight">Clouds Midnight</option>
-                <option value="chrome">Chrome</option>
-                <option value="solarized_dark">Solarized Dark</option>
-                <option value="solarized_light">Solarized Light</option>
-                <option value="dracula">Dracula</option>
-                <option value="tomorrow_night">Tomorrow Night</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        <EditorToolbar :editor="editor" />
 
         <div class="code-editor">
           <Editor
@@ -388,7 +346,9 @@
               v-if="editor.hints.hints.suggested_trace.content.suggested_call && !editor.hints.functionCallError.value"
               class="trace-preview-section"
             >
-              <div class="preview-label">Preview (as students will see it):</div>
+              <div class="preview-label">
+                Preview (as students will see it):
+              </div>
               <div class="suggested-trace">
                 <div class="trace-content">
                   <span class="trace-label">💡 Try tracing:</span>
@@ -410,174 +370,7 @@
     </div>
 
     <!-- Segmentation Configuration -->
-    <div class="form-section rounded-lg border-default transition-fast">
-      <h3>Prompt Segmentation Configuration</h3>
-
-      <div class="segmentation-toggle">
-        <label class="toggle-label">
-          <input
-            :checked="editor.segmentation.isEnabled.value"
-            type="checkbox"
-            class="toggle-checkbox"
-            @change="editor.segmentation.setEnabled(($event.target as HTMLInputElement).checked)"
-          >
-          <span class="toggle-text">Enable Prompt Segmentation Analysis</span>
-        </label>
-        <p class="hint-description">
-          Analyzes student explanations to classify their code comprehension level.
-        </p>
-      </div>
-
-      <div
-        v-if="editor.segmentation.isEnabled.value"
-        class="segmentation-config-panel"
-      >
-        <div class="segmentation-examples-section">
-          <h4>Segmentation Training Examples</h4>
-          <p class="section-description">
-            Provide examples to train the AI how to segment student responses.
-          </p>
-
-          <div class="threshold-setting">
-            <label class="form-label">Comprehension Threshold</label>
-            <div class="threshold-control">
-              <input
-                :value="editor.segmentation.threshold.value"
-                type="number"
-                min="1"
-                max="5"
-                class="threshold-input"
-                @input="editor.segmentation.setThreshold(parseInt(($event.target as HTMLInputElement).value) || 3)"
-              >
-              <span class="threshold-help">
-                ≤ {{ editor.segmentation.threshold.value }} segments = Good (Relational)<br>
-                > {{ editor.segmentation.threshold.value }} segments = Needs Work (Multi-structural)
-              </span>
-            </div>
-          </div>
-
-          <!-- Relational Example -->
-          <div class="example-block relational">
-            <h5>
-              <span class="example-icon">✅</span>
-              Good Example (Relational)
-            </h5>
-            <p class="example-help">Show how a high-level description should look</p>
-
-            <div class="form-group">
-              <label>Student Description</label>
-              <textarea
-                :value="editor.segmentation.config.examples.relational.prompt"
-                placeholder="Example: The function checks if a word is a palindrome by comparing it with its reverse"
-                rows="3"
-                @input="editor.segmentation.setRelationalPrompt(($event.target as HTMLTextAreaElement).value)"
-              />
-            </div>
-
-            <div class="segments-editor">
-              <label>Expected Segments ({{ editor.segmentation.relationalSegments.value.length }})</label>
-              <div
-                v-for="(segText, idx) in editor.segmentation.relationalSegments.value"
-                :key="`rel-${idx}`"
-                class="segment-item"
-              >
-                <div class="segment-row">
-                  <input
-                    :value="segText"
-                    placeholder="Segment text"
-                    class="segment-input"
-                    @input="editor.segmentation.updateRelationalSegmentText(idx, ($event.target as HTMLInputElement).value)"
-                  >
-                  <button
-                    type="button"
-                    class="btn-icon"
-                    @click="editor.segmentation.removeRelationalSegment(idx)"
-                  >
-                    ×
-                  </button>
-                </div>
-                <div class="code-lines-row">
-                  <label class="lines-label">Code lines:</label>
-                  <input
-                    :value="editor.segmentation.formatLineRange(editor.segmentation.relationalCodeLines.value[idx] || [])"
-                    placeholder="e.g., 1-3 or 1,2,3"
-                    class="lines-input"
-                    @input="editor.segmentation.updateRelationalSegmentCodeLines(idx, editor.segmentation.parseLineRange(($event.target as HTMLInputElement).value))"
-                  >
-                </div>
-              </div>
-              <button
-                type="button"
-                class="btn-secondary btn-sm"
-                @click="editor.segmentation.addRelationalSegment"
-              >
-                + Add Segment
-              </button>
-            </div>
-          </div>
-
-          <!-- Multi-structural Example -->
-          <div class="example-block multi-structural">
-            <h5>
-              <span class="example-icon">❌</span>
-              Needs Work Example (Multi-structural)
-            </h5>
-            <p class="example-help">Show how a line-by-line description looks</p>
-
-            <div class="form-group">
-              <label>Student Description</label>
-              <textarea
-                :value="editor.segmentation.config.examples.multi_structural.prompt"
-                placeholder="Example: It takes the input. Converts each character. Creates empty string. Loops through..."
-                rows="3"
-                @input="editor.segmentation.setMultiStructuralPrompt(($event.target as HTMLTextAreaElement).value)"
-              />
-            </div>
-
-            <div class="segments-editor">
-              <label>Expected Segments ({{ editor.segmentation.multiStructuralSegments.value.length }})</label>
-              <div
-                v-for="(segText, idx) in editor.segmentation.multiStructuralSegments.value"
-                :key="`multi-${idx}`"
-                class="segment-item"
-              >
-                <div class="segment-row">
-                  <input
-                    :value="segText"
-                    placeholder="Segment text"
-                    class="segment-input"
-                    @input="editor.segmentation.updateMultiStructuralSegmentText(idx, ($event.target as HTMLInputElement).value)"
-                  >
-                  <button
-                    type="button"
-                    class="btn-icon"
-                    @click="editor.segmentation.removeMultiStructuralSegment(idx)"
-                  >
-                    ×
-                  </button>
-                </div>
-                <div class="code-lines-row">
-                  <label class="lines-label">Code lines:</label>
-                  <input
-                    :value="editor.segmentation.formatLineRange(editor.segmentation.multiStructuralCodeLines.value[idx] || [])"
-                    placeholder="e.g., 1-3 or 1,2,3"
-                    class="lines-input"
-                    @input="editor.segmentation.updateMultiStructuralSegmentCodeLines(idx, editor.segmentation.parseLineRange(($event.target as HTMLInputElement).value))"
-                  >
-                </div>
-              </div>
-              <button
-                type="button"
-                class="btn-secondary btn-sm"
-                @click="editor.segmentation.addMultiStructuralSegment"
-              >
-                + Add Segment
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <SegmentationConfigSection :editor="editor" />
 
     <!-- Python Tutor Modal -->
     <PyTutorModal
@@ -589,12 +382,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import type { ProblemEditorProps, ProblemEditorEmits } from './types'
+import { computed, onMounted, ref, watch } from 'vue'
+import type { ProblemEditorEmits, ProblemEditorProps } from './types'
 import Editor from '@/features/editor/Editor.vue'
 import PyTutorModal from '@/modals/PyTutorModal.vue'
 import BasicInfoSection from './shared/BasicInfoSection.vue'
 import TestCasesSection from './shared/TestCasesSection.vue'
+import EditorToolbar from './shared/EditorToolbar.vue'
+import SegmentationConfigSection from './shared/SegmentationConfigSection.vue'
 
 // Props and emits
 const props = defineProps<ProblemEditorProps>()

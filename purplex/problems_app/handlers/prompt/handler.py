@@ -296,23 +296,6 @@ class PromptHandler(ActivityHandler):
             }
         }
 
-    # --- Helper Methods ---
-
-    @staticmethod
-    def _format_function_call(function_name: str, input_values) -> str:
-        """Format a function call string from function name and input values."""
-        if isinstance(input_values, list):
-            args = ', '.join(
-                json.dumps(v) if isinstance(v, str) else repr(v)
-                for v in input_values
-            )
-        else:
-            args = (
-                json.dumps(input_values) if isinstance(input_values, str)
-                else repr(input_values)
-            )
-        return f"{function_name}({args})"
-
     # --- Submission Execution ---
 
     def submit(

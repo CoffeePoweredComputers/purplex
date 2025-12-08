@@ -37,6 +37,10 @@ class Submission(models.Model):
             ('eipl', 'Explain in Plain Language'),
             ('mcq', 'Multiple Choice Question'),
             ('prompt', 'Prompt (Image-based)'),
+            ('refute', 'Refute (Counterexample)'),
+            ('debug_fix', 'Debug Fix'),
+            ('probeable_code', 'Probeable Code'),
+            ('probeable_spec', 'Probeable Spec'),
             # Legacy types (no handler, historical data only)
             ('direct_code', 'Direct Code Submission'),
             ('function_redef', 'Function Redefinition'),

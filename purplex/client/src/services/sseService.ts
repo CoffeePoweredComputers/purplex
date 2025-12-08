@@ -11,8 +11,8 @@ import type { UnifiedSubmissionResult } from '../types';
 
 // Helper to extract error message from unknown error
 function getErrorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  if (typeof err === 'string') return err;
+  if (err instanceof Error) {return err.message;}
+  if (typeof err === 'string') {return err;}
   return String(err);
 }
 

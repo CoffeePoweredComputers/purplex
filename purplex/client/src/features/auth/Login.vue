@@ -7,98 +7,102 @@
           alt="Purplex Logo"
           class="login-logo"
         >
-        <h1 class="login-title">Purplex</h1>
+        <h1 class="login-title">
+          Purplex
+        </h1>
       </div>
-      <p class="login-subtitle">Natural Language Programming Problems for the Age of GenAI</p>
+      <p class="login-subtitle">
+        Natural Language Programming Problems for the Age of GenAI
+      </p>
     </div>
 
     <div id="login-form">
       <form>
-      <div class="form-field">
-        <label
-          for="email"
-          class="field-label"
-        >
-          <span class="label-text">Email Address</span>
-          <span class="label-subtitle">Use your work or personal email</span>
-        </label>
-        <input
-          id="email"
-          v-model="email"
-          type="email"
-          placeholder="you@example.com"
-          name="email"
-          required
-        >
-      </div>
+        <div class="form-field">
+          <label
+            for="email"
+            class="field-label"
+          >
+            <span class="label-text">Email Address</span>
+            <span class="label-subtitle">Use your work or personal email</span>
+          </label>
+          <input
+            id="email"
+            v-model="email"
+            type="email"
+            placeholder="you@example.com"
+            name="email"
+            required
+          >
+        </div>
 
-      <div class="form-field">
-        <label
-          for="psw"
-          class="field-label"
-        >
-          <span class="label-text">Password</span>
-          <span class="label-subtitle">Must be at least 6 characters</span>
-        </label>
-        <input
-          id="psw"
-          v-model="password"
-          type="password"
-          placeholder="Enter your password"
-          name="psw"
-          required
-        >
-      </div>
+        <div class="form-field">
+          <label
+            for="psw"
+            class="field-label"
+          >
+            <span class="label-text">Password</span>
+            <span class="label-subtitle">Must be at least 6 characters</span>
+          </label>
+          <input
+            id="psw"
+            v-model="password"
+            type="password"
+            placeholder="Enter your password"
+            name="psw"
+            required
+          >
+        </div>
 
-      <div class="login-btns">
-        <button
-          type="button"
-          @click="login"
-          :disabled="isLoading"
+        <div class="login-btns">
+          <button
+            type="button"
+            :disabled="isLoading"
+            @click="login"
+          >
+            <span v-if="isLoading">Logging in...</span>
+            <span v-else>Login</span>
+          </button>
+          <button
+            type="button"
+            :disabled="isLoading"
+            @click="createAccount"
+          >
+            New Account
+          </button>
+          <button
+            type="button"
+            :disabled="isLoading"
+            @click="loginWithGoogle"
+          >
+            <span v-if="isLoading">Signing in...</span>
+            <span v-else>Login with Google</span>
+          </button>
+          <button
+            v-if="showRedirectOption"
+            type="button"
+            :disabled="isLoading"
+            class="redirect-mode-btn"
+            @click="loginWithGoogleRedirect"
+          >
+            Use Redirect Mode (Slower Connection)
+          </button>
+        </div>
+
+        <div
+          v-if="errorMessage"
+          class="error-message"
         >
-          <span v-if="isLoading">Logging in...</span>
-          <span v-else>Login</span>
-        </button>
-        <button
-          type="button"
-          @click="createAccount"
-          :disabled="isLoading"
-        >
-          New Account
-        </button>
-        <button
-          type="button"
-          @click="loginWithGoogle"
-          :disabled="isLoading"
-        >
-          <span v-if="isLoading">Signing in...</span>
-          <span v-else>Login with Google</span>
-        </button>
-        <button
+          {{ errorMessage }}
+        </div>
+
+        <div
           v-if="showRedirectOption"
-          type="button"
-          @click="loginWithGoogleRedirect"
-          :disabled="isLoading"
-          class="redirect-mode-btn"
+          class="info-message"
         >
-          Use Redirect Mode (Slower Connection)
-        </button>
-      </div>
-
-      <div
-        v-if="errorMessage"
-        class="error-message"
-      >
-        {{ errorMessage }}
-      </div>
-
-      <div
-        v-if="showRedirectOption"
-        class="info-message"
-      >
-        Having trouble? Redirect mode works better with slow connections or strict network policies.
-      </div>
-    </form>
+          Having trouble? Redirect mode works better with slow connections or strict network policies.
+        </div>
+      </form>
     </div>
   </div>
 </template>

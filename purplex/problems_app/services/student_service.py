@@ -169,6 +169,7 @@ class StudentService:
                         problem_data['input_config'] = config.get('input', {})
                         problem_data['hints_config'] = config.get('hints', {})
                         problem_data['feedback_config'] = config.get('feedback', {})
+                        problem_data['probe_config'] = config.get('probe', {})
                     except Exception as e:
                         logger.warning(f"Failed to get handler config for {problem_type}: {e}")
                         # Provide empty configs as fallback
@@ -176,12 +177,14 @@ class StudentService:
                         problem_data['input_config'] = {}
                         problem_data['hints_config'] = {}
                         problem_data['feedback_config'] = {}
+                        problem_data['probe_config'] = {}
                 else:
                     # Unknown type - provide empty configs
                     problem_data['display_config'] = {}
                     problem_data['input_config'] = {}
                     problem_data['hints_config'] = {}
                     problem_data['feedback_config'] = {}
+                    problem_data['probe_config'] = {}
 
                 problems_data.append(problem_data)
 

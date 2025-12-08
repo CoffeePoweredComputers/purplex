@@ -46,7 +46,10 @@
               {{ actType.label }}
             </option>
           </select>
-          <p v-if="editor.isEditing.value" class="type-locked-hint">
+          <p
+            v-if="editor.isEditing.value"
+            class="type-locked-hint"
+          >
             Problem type cannot be changed after creation
           </p>
         </div>
@@ -80,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, defineAsyncComponent, type Component } from 'vue'
+import { type Component, computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProblemEditor } from '@/composables/admin'
 import { getProblemEditor } from './editors'
@@ -116,12 +119,12 @@ const currentEditorComponent = computed<Component | null>(() => {
 
 // Can save computed - combines form validation with type-specific validation
 const canSave = computed(() => {
-  if (editor.ui.ui.loading) return false
-  if (!isTypeEditorValid.value) return false
+  if (editor.ui.ui.loading) {return false}
+  if (!isTypeEditorValid.value) {return false}
 
   // Basic validation - title required
   const title = (editor.form.form.title || '').toString().trim()
-  if (!title) return false
+  if (!title) {return false}
 
   return true
 })
