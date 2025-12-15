@@ -3,7 +3,7 @@
     :lang="lang"
     :theme="theme"
     :mode="mode"
-    :style="{ height: height, width: width }"
+    :style="editorStyle"
     :value="value"
     :options="{ readOnly: readOnly }"
     @init="editorInit"
@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, watch } from 'vue';
+  import { defineComponent, ref, watch, computed } from 'vue';
   import { VAceEditor } from 'vue3-ace-editor';
   import 'ace-builds/src-noconflict/mode-python';
   import 'ace-builds/src-noconflict/theme-clouds_midnight';
@@ -58,6 +58,18 @@
         type: Number,
         default: null,
       },
+      minLines: {
+        type: Number,
+        default: null,
+      },
+      maxLines: {
+        type: Number,
+        default: null,
+      },
+      extraLines: {
+        type: Number,
+        default: 0,
+      },
       value: {
         type: String,
         default: '',
@@ -74,13 +86,31 @@
     emits: ['update:value'],
     setup(props, { emit, expose }) {
       const editor = ref(null);
-      
+      let lastMinLines: number | null = null;
+
+      // When using minLines/maxLines, don't set a fixed height - let Ace manage it
+      const editorStyle = computed(() => {
+        const useAutoHeight = props.minLines !== null || props.maxLines !== null;
+        return {
+          height: useAutoHeight ? undefined : props.height,
+          width: props.width,
+        };
+      });
+
       // Ace Editor instance type - minimal interface for what we use
       interface AceEditor {
         setOptions(options: Record<string, unknown>): void;
         container: HTMLElement;
-        renderer: { $cursorLayer: { element: { style: { display: string } } }; container: { style: { pointerEvents: string; userSelect: string } } };
+        renderer: {
+          $cursorLayer: { element: { style: { display: string } } };
+          container: { style: { pointerEvents: string; userSelect: string } };
+          freeze(): void;
+          unfreeze(): void;
+        };
         setOption(name: string, value: unknown): void;
+        getOption(name: string): unknown;
+        getValue(): string;
+        setValue(value: string, cursorPos?: number): void;
         commands: { addCommand(command: { name: string; bindKey: { win: string; mac: string }; exec: (editor: AceEditor) => void }): void };
         blur(): void;
       }
@@ -88,9 +118,22 @@
       /* Simple editor initialization */
       const editorInit = (editorInstance: AceEditor) => {
         editor.value = editorInstance as unknown;
+        const baseMaxLines = props.maxLines ?? props.characterLimit ?? undefined;
+
+        // Calculate minLines: use prop value, but if extraLines is set and content
+        // exceeds minLines, add buffer lines
+        let effectiveMinLines = props.minLines ?? undefined;
+        if (props.extraLines > 0 && effectiveMinLines !== undefined) {
+          const contentLines = (props.value?.split('\n').length ?? 0);
+          if (contentLines > effectiveMinLines) {
+            effectiveMinLines = contentLines + props.extraLines;
+          }
+        }
+
         editorInstance.setOptions({
           showGutter: props.showGutter,
-          maxLines: props.characterLimit,
+          minLines: effectiveMinLines,
+          maxLines: baseMaxLines ? baseMaxLines + props.extraLines : undefined,
           readOnly: props.readOnly,
           highlightActiveLine: false,
           highlightGutterLine: false,
@@ -220,7 +263,7 @@
           }
         });
       };
-      
+
       /* Handle input changes */
       const handleInput = (value: string) => {
         emit('update:value', value);
@@ -233,12 +276,28 @@
         if (editor.value && newValue !== undefined) {
           const currentValue = editor.value.getValue();
           if (currentValue !== newValue) {
-            // Simple full replacement
+            // Freeze renderer completely during setValue to prevent flicker
+            // setValue() clears content then inserts, causing layout recalculation
+            editor.value.renderer.freeze();
             editor.value.setValue(newValue, 1);
+            editor.value.renderer.unfreeze();
+          }
+
+          // Update minLines if extraLines is set - only when value actually changes
+          if (props.extraLines > 0 && props.minLines !== null) {
+            const contentLines = newValue.split('\n').length;
+            const effectiveMinLines = contentLines > props.minLines
+              ? contentLines + props.extraLines
+              : props.minLines;
+            // Only update if the value changed to avoid layout thrashing
+            if (effectiveMinLines !== lastMinLines) {
+              lastMinLines = effectiveMinLines;
+              editor.value.setOption('minLines', effectiveMinLines);
+            }
           }
         }
-      });
-      
+      }, { immediate: true });
+
       // Expose editor instance if needed
       expose({
         editor
@@ -246,6 +305,7 @@
 
       return {
         editor,
+        editorStyle,
         editorInit,
         handleInput
       };
@@ -262,6 +322,11 @@
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     font-size: var(--font-size-sm);
     transition: var(--transition-base);
+  }
+
+  /* Remove extra padding at bottom when using auto-height (minLines/maxLines) */
+  :deep(.ace_scroller) {
+    padding-bottom: 0 !important;
   }
 
   /* Fix text wrapping - ensure wrapped lines maintain proper indentation */
@@ -385,32 +450,32 @@
   /* Hint System Styles */
   /* Variable fade has no visual styling - just transforms variable names */
   /* Subgoal highlighting styles moved to global styles block below */
-  
+
   /* Hide cursor only for read-only editors */
   :deep(.ace_editor.ace_read-only .ace_cursor-layer) {
     display: none !important;
   }
-  
+
   :deep(.ace_editor.ace_read-only .ace_cursor) {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
   }
-  
+
   /* Remove active line highlighting only for read-only editors */
   :deep(.ace_editor.ace_read-only .ace_active-line) {
     background: transparent !important;
   }
-  
+
   /* Make editor truly read-only visually */
   :deep(.ace_editor.ace_read-only) {
     cursor: default !important;
   }
-  
+
   :deep(.ace_editor.ace_read-only .ace_cursor-layer) {
     display: none !important;
   }
-  
+
   :deep(.ace_editor.ace_read-only .ace_content) {
     cursor: text !important;
   }
@@ -462,4 +527,3 @@
     margin: 1px 0;
   }
 </style>
-

@@ -19,18 +19,18 @@
       :has-valid-inputs="hasValidInputs"
       :probe-history="probeHistory"
       :probe-error="probeError"
+      :is-duplicate="isDuplicate"
+      :cached-result="cachedResult"
       :format-function-call="formatFunctionCall"
       :format-output="formatOutput"
       @execute-probe="executeProbe"
       @update-input="updateProbeInput"
     />
 
+    <!-- Divider between probe and editor -->
+    <div class="section-divider" />
+
     <!-- Code Editor -->
-    <div class="section-header code-section-header">
-      <div class="section-label">
-        Write Your Implementation
-      </div>
-    </div>
     <span
       v-if="draftSaved"
       class="draft-indicator"
@@ -138,15 +138,15 @@ const {
   probeCountDisplay,
   probeStatusClass,
   hasValidInputs,
+  isDuplicate,
+  cachedResult,
   executeProbe,
   formatFunctionCall,
   formatOutput,
   updateProbeInput,
 } = useProbeState(() => props.problem)
 
-const sectionLabel = computed(() => {
-  return props.problem?.display_config?.section_label || 'Discover the function behavior'
-})
+const sectionLabel = 'Discover Function Behavior and Replicate Implementation'
 
 // Code editor logic
 const inputValue = computed({
@@ -191,6 +191,9 @@ function handleSubmit() {
 /* Container for proper positioning */
 .probeable-code-input {
   position: relative;
+  background: var(--color-bg-panel);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
 /* Section Header */
@@ -210,8 +213,11 @@ function handleSubmit() {
   color: var(--color-text-secondary);
 }
 
-.code-section-header {
-  margin-top: var(--spacing-lg);
+/* Divider between probe panel and editor */
+.section-divider {
+  height: 1px;
+  background: var(--color-bg-input);
+  margin: var(--spacing-md) var(--spacing-lg);
 }
 
 /* Draft Indicator */

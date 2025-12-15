@@ -5,19 +5,18 @@ Handles problems where students must find input that disproves a claim about a f
 Processing is synchronous - no Celery needed since we execute code in-process.
 """
 
-import ast
 import json
 import logging
 import re
 from typing import TYPE_CHECKING, Any, Dict, List
 
+from .. import register_handler
 from ..base import (
     ActivityHandler,
     ProcessingResult,
     SubmissionOutcome,
     ValidationResult,
 )
-from .. import register_handler
 
 if TYPE_CHECKING:
     from purplex.problems_app.models import RefuteProblem
@@ -26,7 +25,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _ensure_refute_problem(problem: Any) -> 'RefuteProblem':
+def _ensure_refute_problem(problem: Any) -> "RefuteProblem":
     """
     Ensure we have a RefuteProblem instance.
 
@@ -39,7 +38,7 @@ def _ensure_refute_problem(problem: Any) -> 'RefuteProblem':
         return problem
 
     # If it's a base Problem, try to get the RefuteProblem
-    if hasattr(problem, 'refuteproblem'):
+    if hasattr(problem, "refuteproblem"):
         return problem.refuteproblem
 
     raise TypeError(
@@ -59,7 +58,7 @@ def _parse_function_args(signature: str) -> List[Dict[str, str]]:
         List of dicts with 'name' and 'type' keys
     """
     # Extract the part between parentheses
-    match = re.search(r'\(([^)]*)\)', signature)
+    match = re.search(r"\(([^)]*)\)", signature)
     if not match:
         return []
 
@@ -68,24 +67,20 @@ def _parse_function_args(signature: str) -> List[Dict[str, str]]:
         return []
 
     params = []
-    for param in params_str.split(','):
+    for param in params_str.split(","):
         param = param.strip()
-        if ':' in param:
-            name, type_hint = param.split(':', 1)
-            params.append({
-                'name': name.strip(),
-                'type': type_hint.strip()
-            })
+        if ":" in param:
+            name, type_hint = param.split(":", 1)
+            params.append({"name": name.strip(), "type": type_hint.strip()})
         else:
-            params.append({
-                'name': param,
-                'type': 'Any'
-            })
+            params.append({"name": param, "type": "Any"})
 
     return params
 
 
-def _safe_execute(code: str, function_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
+def _safe_execute(
+    code: str, function_name: str, args: Dict[str, Any]
+) -> Dict[str, Any]:
     """
     Execute function code safely with provided arguments.
 
@@ -101,55 +96,56 @@ def _safe_execute(code: str, function_name: str, args: Dict[str, Any]) -> Dict[s
     """
     # Restricted builtins - only safe operations
     safe_builtins = {
-        'abs': abs,
-        'all': all,
-        'any': any,
-        'bool': bool,
-        'chr': chr,
-        'dict': dict,
-        'divmod': divmod,
-        'enumerate': enumerate,
-        'filter': filter,
-        'float': float,
-        'frozenset': frozenset,
-        'int': int,
-        'isinstance': isinstance,
-        'len': len,
-        'list': list,
-        'map': map,
-        'max': max,
-        'min': min,
-        'ord': ord,
-        'pow': pow,
-        'range': range,
-        'reversed': reversed,
-        'round': round,
-        'set': set,
-        'sorted': sorted,
-        'str': str,
-        'sum': sum,
-        'tuple': tuple,
-        'zip': zip,
-        'True': True,
-        'False': False,
-        'None': None,
+        "abs": abs,
+        "all": all,
+        "any": any,
+        "bool": bool,
+        "chr": chr,
+        "dict": dict,
+        "divmod": divmod,
+        "enumerate": enumerate,
+        "filter": filter,
+        "float": float,
+        "frozenset": frozenset,
+        "int": int,
+        "isinstance": isinstance,
+        "len": len,
+        "list": list,
+        "map": map,
+        "max": max,
+        "min": min,
+        "ord": ord,
+        "pow": pow,
+        "range": range,
+        "reversed": reversed,
+        "round": round,
+        "set": set,
+        "sorted": sorted,
+        "str": str,
+        "sum": sum,
+        "tuple": tuple,
+        "zip": zip,
+        "True": True,
+        "False": False,
+        "None": None,
     }
 
     # Create restricted globals
     restricted_globals = {
-        '__builtins__': safe_builtins,
+        "__builtins__": safe_builtins,
     }
 
     try:
         # Execute the function definition
-        exec(code, restricted_globals)
+        # nosec B102: exec used with restricted_globals (safe_builtins only, no file/network access)
+        exec(code, restricted_globals)  # nosec B102
 
         # Check if function was defined
         if function_name not in restricted_globals:
             return {
-                'success': False,
-                'result': None,
-                'error': f"Function '{function_name}' not defined in code"
+                "success": False,
+                "result": None,
+                "error": f"Function '{function_name}' not defined in code",
             }
 
         # Get the function
@@ -158,18 +154,10 @@ def _safe_execute(code: str, function_name: str, args: Dict[str, Any]) -> Dict[s
         # Call the function with provided args
         result = func(**args)
 
-        return {
-            'success': True,
-            'result': result,
-            'error': None
-        }
+        return {"success": True, "result": result, "error": None}
 
     except Exception as e:
-        return {
-            'success': False,
-            'result': None,
-            'error': str(e)
-        }
+        return {"success": False, "result": None, "error": str(e)}
 
 
 def _extract_function_name(signature: str) -> str:
@@ -182,21 +170,23 @@ def _extract_function_name(signature: str) -> str:
     Returns:
         Function name (e.g., "f")
     """
-    match = re.match(r'(\w+)\s*\(', signature)
-    return match.group(1) if match else 'f'
+    match = re.match(r"(\w+)\s*\(", signature)
+    return match.group(1) if match else "f"
 
 
-@register_handler('refute')
+@register_handler("refute")
 class RefuteHandler(ActivityHandler):
     """Handler for Refute (Counterexample) problems."""
 
     @property
     def type_name(self) -> str:
-        return 'refute'
+        return "refute"
 
     # --- Input Validation ---
 
-    def validate_input(self, raw_input: str, problem: 'RefuteProblem') -> ValidationResult:
+    def validate_input(
+        self, raw_input: str, problem: "RefuteProblem"
+    ) -> ValidationResult:
         """
         Validate student's counterexample input.
 
@@ -208,28 +198,23 @@ class RefuteHandler(ActivityHandler):
 
         if not text:
             return ValidationResult(
-                is_valid=False,
-                error="Please provide input values for the function"
+                is_valid=False, error="Please provide input values for the function"
             )
 
         # Parse as JSON
         try:
             args = json.loads(text)
         except json.JSONDecodeError as e:
-            return ValidationResult(
-                is_valid=False,
-                error=f"Invalid JSON format: {e}"
-            )
+            return ValidationResult(is_valid=False, error=f"Invalid JSON format: {e}")
 
         if not isinstance(args, dict):
             return ValidationResult(
-                is_valid=False,
-                error="Input must be a JSON object (e.g., {\"x\": -5})"
+                is_valid=False, error='Input must be a JSON object (e.g., {"x": -5})'
             )
 
         # Get expected parameter names
         params = _parse_function_args(refute.function_signature)
-        expected_names = {p['name'] for p in params}
+        expected_names = {p["name"] for p in params}
 
         # Check if all required parameters are provided
         provided_names = set(args.keys())
@@ -237,7 +222,7 @@ class RefuteHandler(ActivityHandler):
         if missing:
             return ValidationResult(
                 is_valid=False,
-                error=f"Missing parameter(s): {', '.join(sorted(missing))}"
+                error=f"Missing parameter(s): {', '.join(sorted(missing))}",
             )
 
         # Validate that values can be evaluated safely
@@ -251,10 +236,7 @@ class RefuteHandler(ActivityHandler):
     # --- Submission Processing ---
 
     def process_submission(
-        self,
-        submission: 'Submission',
-        raw_input: str,
-        problem: 'RefuteProblem'
+        self, submission: "Submission", raw_input: str, problem: "RefuteProblem"
     ) -> ProcessingResult:
         """
         Process refute submission.
@@ -270,100 +252,162 @@ class RefuteHandler(ActivityHandler):
         func_name = _extract_function_name(refute.function_signature)
 
         # Execute the function
-        exec_result = _safe_execute(
-            refute.reference_solution,
-            func_name,
-            args
-        )
+        exec_result = _safe_execute(refute.reference_solution, func_name, args)
 
         # Check if execution failed
-        if not exec_result['success']:
+        if not exec_result["success"]:
             return ProcessingResult(
                 success=True,  # Submission processed, but execution failed
                 processed_code=raw_input,
                 type_specific_data={
-                    'input_args': args,
-                    'execution_success': False,
-                    'execution_error': exec_result['error'],
-                    'claim_disproven': False,
-                    'result_value': None,
-                }
+                    "input_args": args,
+                    "execution_success": False,
+                    "execution_error": exec_result["error"],
+                    "claim_disproven": False,
+                    "result_value": None,
+                },
             )
 
-        result_value = exec_result['result']
+        result_value = exec_result["result"]
 
-        # Determine if the claim is disproven
-        # The claim is disproven if the result doesn't match what the claim says
-        # For now, we assume the claim is about the function returning a certain property
-        # The grading logic will need to evaluate the claim against the result
-        # For simplicity, we mark as disproven if the result is not what the claim implies
-
-        # This is a simplified check - in reality, we'd need to parse the claim
-        # For now, we just store the result and let the frontend/grading determine if it disproves
-        claim_disproven = self._evaluate_claim(refute.claim_text, result_value)
+        # Determine if the claim is disproven using predicate or legacy pattern matching
+        claim_disproven = self._evaluate_claim(
+            claim_predicate=getattr(refute, "claim_predicate", ""),
+            claim_text=refute.claim_text,
+            result=result_value,
+            input_args=args,
+        )
 
         return ProcessingResult(
             success=True,
             processed_code=raw_input,
             type_specific_data={
-                'input_args': args,
-                'execution_success': True,
-                'execution_error': None,
-                'claim_disproven': claim_disproven,
-                'result_value': self._serialize_result(result_value),
-            }
+                "input_args": args,
+                "execution_success": True,
+                "execution_error": None,
+                "claim_disproven": claim_disproven,
+                "result_value": self._serialize_result(result_value),
+            },
         )
 
-    def _evaluate_claim(self, claim_text: str, result: Any) -> bool:
+    def _evaluate_claim(
+        self, claim_predicate: str, claim_text: str, result: Any, input_args: dict
+    ) -> bool:
         """
-        Evaluate if the result disproves the claim.
+        Evaluate if the result disproves the claim using the predicate.
+
+        Args:
+            claim_predicate: Python expression that's True when claim holds (e.g., 'result > 0')
+            claim_text: Human-readable claim text (fallback for legacy pattern matching)
+            result: The actual result from executing the function
+            input_args: The input arguments provided by the student
+
+        Returns:
+            True if the claim is disproven (student found a valid counterexample)
+        """
+        # If a predicate is provided, use it
+        if claim_predicate and claim_predicate.strip():
+            try:
+                # Build evaluation context with result and input arguments
+                context = {"result": result, **input_args}
+
+                # Restricted builtins for predicate evaluation
+                safe_builtins = {
+                    "abs": abs,
+                    "all": all,
+                    "any": any,
+                    "bool": bool,
+                    "len": len,
+                    "max": max,
+                    "min": min,
+                    "sum": sum,
+                    "isinstance": isinstance,
+                    "int": int,
+                    "float": float,
+                    "str": str,
+                    "list": list,
+                    "dict": dict,
+                    "set": set,
+                    "tuple": tuple,
+                    "True": True,
+                    "False": False,
+                    "None": None,
+                }
+
+                # Evaluate predicate - True means claim holds, False means disproven
+                # nosec B307: eval used with restricted builtins (no file/network access)
+                claim_holds = eval(
+                    claim_predicate, {"__builtins__": safe_builtins}, context
+                )  # nosec B307
+                return not claim_holds  # Return True if claim is disproven
+
+            except Exception as e:
+                logger.error(
+                    f"Predicate evaluation failed for '{claim_predicate}': {e}. "
+                    f"Falling back to legacy pattern matching."
+                )
+                # Fall through to legacy pattern matching
+
+        # Fallback to legacy pattern matching if no predicate or predicate failed
+        return self._legacy_evaluate_claim(claim_text, result)
+
+    def _legacy_evaluate_claim(self, claim_text: str, result: Any) -> bool:
+        """
+        Legacy evaluation using pattern matching on claim text.
 
         This is a simplified implementation that checks for common claim patterns.
-        More sophisticated claim parsing could be added later.
+        Deprecated: Use claim_predicate field instead.
         """
         claim_lower = claim_text.lower()
 
         # Check for "always returns positive" claims
-        if 'positive' in claim_lower and 'always' in claim_lower:
+        if "positive" in claim_lower and "always" in claim_lower:
             if isinstance(result, (int, float)):
                 return result <= 0  # Disproven if non-positive
 
         # Check for "always returns negative" claims
-        if 'negative' in claim_lower and 'always' in claim_lower:
+        if "negative" in claim_lower and "always" in claim_lower:
             if isinstance(result, (int, float)):
                 return result >= 0  # Disproven if non-negative
 
         # Check for "always returns True" claims
-        if 'true' in claim_lower and 'always' in claim_lower:
+        if "true" in claim_lower and "always" in claim_lower:
             return result is not True
 
         # Check for "always returns False" claims
-        if 'false' in claim_lower and 'always' in claim_lower:
+        if "false" in claim_lower and "always" in claim_lower:
             return result is not False
 
         # Check for "never returns None" claims
-        if 'never' in claim_lower and 'none' in claim_lower:
+        if "never" in claim_lower and "none" in claim_lower:
             return result is None
 
         # Check for "always greater than" claims
-        match = re.search(r'always\s+(?:returns?\s+)?(?:a\s+value\s+)?greater\s+than\s+(-?\d+)', claim_lower)
+        match = re.search(
+            r"always\s+(?:returns?\s+)?(?:a\s+value\s+)?greater\s+than\s+(-?\d+)",
+            claim_lower,
+        )
         if match:
             threshold = int(match.group(1))
             if isinstance(result, (int, float)):
                 return result <= threshold
 
         # Check for "always less than" claims
-        match = re.search(r'always\s+(?:returns?\s+)?(?:a\s+value\s+)?less\s+than\s+(-?\d+)', claim_lower)
+        match = re.search(
+            r"always\s+(?:returns?\s+)?(?:a\s+value\s+)?less\s+than\s+(-?\d+)",
+            claim_lower,
+        )
         if match:
             threshold = int(match.group(1))
             if isinstance(result, (int, float)):
                 return result >= threshold
 
         # Default: can't determine, mark as not disproven
-        # This encourages instructors to use clear claim patterns
+        # This encourages instructors to use clear claim patterns or set a predicate
         logger.warning(
             f"Could not parse claim pattern: '{claim_text}'. "
-            f"Result was: {result}"
+            f"Result was: {result}. "
+            f"Consider adding a claim_predicate for reliable evaluation."
         )
         return False
 
@@ -381,26 +425,24 @@ class RefuteHandler(ActivityHandler):
 
     # --- Grading ---
 
-    def calculate_grade(self, submission: 'Submission') -> str:
+    def calculate_grade(self, submission: "Submission") -> str:
         """
         Calculate grade for refute submission.
 
         Binary grading: complete if counterexample found, incomplete otherwise.
         """
         if submission.passed_all_tests:
-            return 'complete'
-        return 'incomplete'
+            return "complete"
+        return "incomplete"
 
-    def is_correct(self, submission: 'Submission') -> bool:
+    def is_correct(self, submission: "Submission") -> bool:
         """Check if refute submission found a valid counterexample."""
         return submission.passed_all_tests
 
     # --- Completion Evaluation ---
 
     def evaluate_completion(
-        self,
-        submission: 'Submission',
-        problem: 'RefuteProblem'
+        self, submission: "Submission", problem: "RefuteProblem"
     ) -> str:
         """
         Evaluate completion status for progress tracking.
@@ -408,49 +450,52 @@ class RefuteHandler(ActivityHandler):
         For Refute: Just check if counterexample was found.
         """
         if submission.passed_all_tests:
-            return 'complete'
-        return 'incomplete'
+            return "complete"
+        return "incomplete"
 
     # --- Data Extraction ---
 
-    def extract_variations(self, submission: 'Submission') -> List[str]:
+    def extract_variations(self, submission: "Submission") -> List[str]:
         """Extract variations from refute submission (returns single input)."""
         return [submission.raw_input] if submission.raw_input else []
 
     def extract_test_results(
-        self,
-        submission: 'Submission',
-        problem: 'RefuteProblem'
+        self, submission: "Submission", problem: "RefuteProblem"
     ) -> List[Dict[str, Any]]:
         """Extract test results for refute (single result)."""
         # Parse type-specific data if available
         try:
-            if hasattr(submission, 'type_specific_data') and submission.type_specific_data:
+            if (
+                hasattr(submission, "type_specific_data")
+                and submission.type_specific_data
+            ):
                 data = submission.type_specific_data
             else:
                 data = {}
         except (json.JSONDecodeError, AttributeError):
             data = {}
 
-        return [{
-            'isSuccessful': submission.passed_all_tests,
-            'input_args': data.get('input_args', {}),
-            'result_value': data.get('result_value'),
-            'claim_disproven': data.get('claim_disproven', False),
-            'execution_error': data.get('execution_error'),
-        }]
+        return [
+            {
+                "isSuccessful": submission.passed_all_tests,
+                "input_args": data.get("input_args", {}),
+                "result_value": data.get("result_value"),
+                "claim_disproven": data.get("claim_disproven", False),
+                "execution_error": data.get("execution_error"),
+            }
+        ]
 
-    def count_variations(self, submission: 'Submission') -> int:
+    def count_variations(self, submission: "Submission") -> int:
         """Refute has exactly 1 variation (the input provided)."""
         return 1
 
-    def count_passing_variations(self, submission: 'Submission') -> int:
+    def count_passing_variations(self, submission: "Submission") -> int:
         """Refute has 1 passing if counterexample found, 0 otherwise."""
         return 1 if submission.passed_all_tests else 0
 
     # --- API Configuration ---
 
-    def get_problem_config(self, problem: 'RefuteProblem') -> Dict[str, Any]:
+    def get_problem_config(self, problem: "RefuteProblem") -> Dict[str, Any]:
         """Return configuration for frontend rendering of Refute problems."""
         refute = _ensure_refute_problem(problem)
 
@@ -458,69 +503,72 @@ class RefuteHandler(ActivityHandler):
         params = _parse_function_args(refute.function_signature)
 
         return {
-            'display': {
-                'show_reference_code': True,
-                'code_read_only': True,
-                'show_function_signature': True,
-                'show_claim': True,
-                'section_label': 'Find a counterexample',
+            "display": {
+                "show_reference_code": True,
+                "code_read_only": True,
+                "show_function_signature": True,
+                "show_claim": True,
+                "section_label": "Find a counterexample",
                 # Include claim and function info for frontend rendering
-                'claim_text': refute.claim_text,
-                'function_signature': refute.function_signature,
-                'function_name': _extract_function_name(refute.function_signature),
+                "claim_text": refute.claim_text,
+                "function_signature": refute.function_signature,
+                "function_name": _extract_function_name(refute.function_signature),
             },
-            'input': {
-                'type': 'json',
-                'label': 'Enter function arguments as JSON',
-                'placeholder': self._generate_placeholder(params),
-                'parameters': params,
+            "input": {
+                "type": "json",
+                "label": "Enter function arguments as JSON",
+                "placeholder": self._generate_placeholder(params),
+                "parameters": params,
             },
-            'hints': {
-                'available': [],
-                'enabled': bool(refute.expected_counterexample),
+            "hints": {
+                "available": [],
+                "enabled": bool(refute.expected_counterexample),
             },
-            'feedback': {
-                'show_variations': False,
-                'show_segmentation': False,
-                'show_test_results': True,
-                'show_execution_result': True,
+            "feedback": {
+                "show_variations": False,
+                "show_segmentation": False,
+                "show_test_results": True,
+                "show_execution_result": True,
             },
         }
 
     def _generate_placeholder(self, params: List[Dict[str, str]]) -> str:
         """Generate a placeholder example for the input field."""
         if not params:
-            return '{}'
+            return "{}"
 
         examples = []
         for param in params:
-            name = param['name']
-            type_hint = param['type'].lower()
+            name = param["name"]
+            type_hint = param["type"].lower()
 
-            if 'int' in type_hint:
+            if "int" in type_hint:
                 examples.append(f'"{name}": 0')
-            elif 'float' in type_hint:
+            elif "float" in type_hint:
                 examples.append(f'"{name}": 0.0')
-            elif 'str' in type_hint:
+            elif "str" in type_hint:
                 examples.append(f'"{name}": ""')
-            elif 'bool' in type_hint:
+            elif "bool" in type_hint:
                 examples.append(f'"{name}": true')
-            elif 'list' in type_hint:
+            elif "list" in type_hint:
                 examples.append(f'"{name}": []')
-            elif 'dict' in type_hint:
+            elif "dict" in type_hint:
                 examples.append(f'"{name}": {{}}')
             else:
                 examples.append(f'"{name}": null')
 
-        return '{' + ', '.join(examples) + '}'
+        return "{" + ", ".join(examples) + "}"
 
-    def serialize_result(self, submission: 'Submission') -> Dict[str, Any]:
+    def serialize_result(self, submission: "Submission") -> Dict[str, Any]:
         """Serialize refute submission result for API response."""
         refute = _ensure_refute_problem(submission.problem)
 
         # Parse type-specific data
         try:
-            if hasattr(submission, 'type_specific_data') and submission.type_specific_data:
+            if (
+                hasattr(submission, "type_specific_data")
+                and submission.type_specific_data
+            ):
                 data = submission.type_specific_data
             else:
                 data = {}
@@ -528,37 +576,93 @@ class RefuteHandler(ActivityHandler):
             data = {}
 
         return {
-            'input_args': data.get('input_args', {}),
-            'result_value': data.get('result_value'),
-            'claim_disproven': data.get('claim_disproven', False),
-            'execution_success': data.get('execution_success', False),
-            'execution_error': data.get('execution_error'),
-            'claim_text': refute.claim_text,
-            'function_signature': refute.function_signature,
+            "input_args": data.get("input_args", {}),
+            "result_value": data.get("result_value"),
+            "claim_disproven": data.get("claim_disproven", False),
+            "execution_success": data.get("execution_success", False),
+            "execution_error": data.get("execution_error"),
+            "claim_text": refute.claim_text,
+            "function_signature": refute.function_signature,
+        }
+
+    def test_counterexample(
+        self, problem: "RefuteProblem", input_args: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Test if input values disprove the claim (for interactive frontend).
+
+        This is a lightweight probe-like operation for the student UI.
+        Unlike full submission, this doesn't create a Submission record.
+
+        Args:
+            problem: The RefuteProblem instance
+            input_args: Dictionary of input parameter values
+
+        Returns:
+            Dict with result, claim_disproven, and error fields
+        """
+        refute = _ensure_refute_problem(problem)
+
+        # Get function name from signature
+        func_name = _extract_function_name(refute.function_signature)
+
+        # Execute the function
+        exec_result = _safe_execute(refute.reference_solution, func_name, input_args)
+
+        if not exec_result["success"]:
+            return {
+                "success": False,
+                "result": None,
+                "claim_disproven": False,
+                "error": exec_result["error"],
+            }
+
+        result_value = exec_result["result"]
+
+        # Evaluate if claim is disproven
+        claim_disproven = self._evaluate_claim(
+            claim_predicate=getattr(refute, "claim_predicate", ""),
+            claim_text=refute.claim_text,
+            result=result_value,
+            input_args=input_args,
+        )
+
+        return {
+            "success": True,
+            "result": self._serialize_result(result_value),
+            "claim_disproven": claim_disproven,
+            "error": None,
         }
 
     def get_admin_config(self) -> Dict[str, Any]:
         """Return admin UI configuration for Refute problems."""
         return {
-            'hidden_sections': ['mcq_options', 'segmentation'],
-            'required_fields': ['title', 'question_text', 'claim_text', 'reference_solution', 'function_signature'],
-            'optional_fields': ['tags', 'categories', 'expected_counterexample'],
-            'type_specific_section': 'refute_config',
-            'supports': {
-                'hints': True,
-                'segmentation': False,
-                'test_cases': False,
-            }
+            "hidden_sections": ["mcq_options", "segmentation"],
+            "required_fields": [
+                "title",
+                "question_text",
+                "claim_text",
+                "claim_predicate",
+                "reference_solution",
+                "function_signature",
+            ],
+            "optional_fields": ["tags", "categories", "expected_counterexample"],
+            "type_specific_section": "refute_config",
+            "supports": {
+                "hints": True,
+                "segmentation": False,
+                "test_cases": False,
+            },
         }
 
     # --- Submission Execution ---
 
     def submit(
         self,
-        submission: 'Submission',
+        submission: "Submission",
         raw_input: str,
-        problem: 'RefuteProblem',
-        context: Dict[str, Any]
+        problem: "RefuteProblem",
+        context: Dict[str, Any],
     ) -> SubmissionOutcome:
         """
         Execute refute submission synchronously.
@@ -572,30 +676,29 @@ class RefuteHandler(ActivityHandler):
             args = json.loads(raw_input.strip())
         except json.JSONDecodeError as e:
             return SubmissionOutcome(
-                complete=True,
-                submission=submission,
-                error=f"Invalid JSON input: {e}"
+                complete=True, submission=submission, error=f"Invalid JSON input: {e}"
             )
 
         # Get function name from signature
         func_name = _extract_function_name(refute.function_signature)
 
         # Execute the function
-        exec_result = _safe_execute(
-            refute.reference_solution,
-            func_name,
-            args
-        )
+        exec_result = _safe_execute(refute.reference_solution, func_name, args)
 
-        # Determine if claim is disproven
-        if exec_result['success']:
-            claim_disproven = self._evaluate_claim(refute.claim_text, exec_result['result'])
-            result_value = self._serialize_result(exec_result['result'])
+        # Determine if claim is disproven using predicate or legacy pattern matching
+        if exec_result["success"]:
+            claim_disproven = self._evaluate_claim(
+                claim_predicate=getattr(refute, "claim_predicate", ""),
+                claim_text=refute.claim_text,
+                result=exec_result["result"],
+                input_args=args,
+            )
+            result_value = self._serialize_result(exec_result["result"])
             execution_error = None
         else:
             claim_disproven = False
             result_value = None
-            execution_error = exec_result['error']
+            execution_error = exec_result["error"]
 
         is_correct = claim_disproven
         score = 100 if is_correct else 0
@@ -605,12 +708,13 @@ class RefuteHandler(ActivityHandler):
         submission.score = score
         submission.passed_all_tests = is_correct
         submission.is_correct = is_correct
-        submission.completion_status = 'complete' if is_correct else 'incomplete'
-        submission.execution_status = 'completed'
+        submission.completion_status = "complete" if is_correct else "incomplete"
+        submission.execution_status = "completed"
         submission.save()
 
         # Update progress
         from purplex.problems_app.services.progress_service import ProgressService
+
         ProgressService.process_submission(submission)
 
         logger.info(
@@ -620,25 +724,23 @@ class RefuteHandler(ActivityHandler):
 
         # Build result data
         result_data = {
-            'submission_id': str(submission.submission_id),
-            'problem_type': 'refute',
-            'score': score,
-            'is_correct': is_correct,
-            'completion_status': submission.completion_status,
-            'problem_slug': problem.slug,
-            'user_input': raw_input,
-            'input_args': args,
-            'result_value': result_value,
-            'claim_disproven': claim_disproven,
-            'execution_success': exec_result['success'],
-            'execution_error': execution_error,
-            'claim_text': refute.claim_text,
-            'function_signature': refute.function_signature,
-            'result': self.serialize_result(submission),
+            "submission_id": str(submission.submission_id),
+            "problem_type": "refute",
+            "score": score,
+            "is_correct": is_correct,
+            "completion_status": submission.completion_status,
+            "problem_slug": problem.slug,
+            "user_input": raw_input,
+            "input_args": args,
+            "result_value": result_value,
+            "claim_disproven": claim_disproven,
+            "execution_success": exec_result["success"],
+            "execution_error": execution_error,
+            "claim_text": refute.claim_text,
+            "function_signature": refute.function_signature,
+            "result": self.serialize_result(submission),
         }
 
         return SubmissionOutcome(
-            complete=True,
-            submission=submission,
-            result_data=result_data
+            complete=True, submission=submission, result_data=result_data
         )

@@ -2,9 +2,12 @@
 Rate limiting service for authentication endpoints.
 Prevents brute force attacks and excessive API usage.
 """
-import redis
-import time
+
 import logging
+import time
+
+import redis
+
 from purplex.utils.redis_client import get_rate_limit_client
 
 logger = logging.getLogger(__name__)
@@ -14,7 +17,7 @@ class RateLimitService:
     """
     Redis-based rate limiting for authentication endpoints.
     """
-    
+
     # Default rate limits
     AUTH_ATTEMPTS_PER_MINUTE = 10
     AUTH_ATTEMPTS_PER_HOUR = 100
@@ -46,9 +49,11 @@ class RateLimitService:
 
             return True
         except (redis.ConnectionError, redis.TimeoutError) as e:
-            logger.error(f"⚠️ Redis connection failed for service account rate limiting: {e}. Failing open.")
+            logger.error(
+                f"⚠️ Redis connection failed for service account rate limiting: {e}. Failing open."
+            )
             return True
-    
+
     @classmethod
     def check_sse_token_rate_limit(cls, user_id: int) -> bool:
         """
@@ -73,9 +78,11 @@ class RateLimitService:
 
             return True
         except (redis.ConnectionError, redis.TimeoutError) as e:
-            logger.error(f"⚠️ Redis connection failed for SSE token rate limiting: {e}. Failing open.")
+            logger.error(
+                f"⚠️ Redis connection failed for SSE token rate limiting: {e}. Failing open."
+            )
             return True
-    
+
     @classmethod
     def record_failed_auth(cls, identifier: str) -> None:
         """
@@ -105,7 +112,7 @@ class RateLimitService:
         except (redis.ConnectionError, redis.TimeoutError) as e:
             logger.error(f"⚠️ Redis connection failed while recording failed auth: {e}")
             # Continue - not critical if we can't record this
-    
+
     @classmethod
     def is_blocked(cls, identifier: str) -> bool:
         """
@@ -129,9 +136,11 @@ class RateLimitService:
 
             return False
         except (redis.ConnectionError, redis.TimeoutError) as e:
-            logger.error(f"⚠️ Redis connection failed while checking if blocked: {e}. Failing open.")
+            logger.error(
+                f"⚠️ Redis connection failed while checking if blocked: {e}. Failing open."
+            )
             return False  # Not blocked if we can't check
-    
+
     @classmethod
     def reset_limits(cls, identifier: str) -> None:
         """
@@ -149,21 +158,21 @@ class RateLimitService:
         except (redis.ConnectionError, redis.TimeoutError) as e:
             logger.error(f"⚠️ Redis connection failed while resetting limits: {e}")
             # Continue - not critical if we can't reset
-    
+
     @classmethod
     def get_client_ip(cls, request) -> str:
         """
         Get client IP address from request.
-        
+
         Args:
             request: Django request object
-            
+
         Returns:
             Client IP address
         """
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
+            ip = x_forwarded_for.split(",")[0]
         else:
-            ip = request.META.get('REMOTE_ADDR', 'unknown')
+            ip = request.META.get("REMOTE_ADDR", "unknown")
         return ip

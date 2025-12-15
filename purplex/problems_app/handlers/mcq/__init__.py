@@ -2,4 +2,4 @@
 
 from .handler import MCQHandler
 
-__all__ = ['MCQHandler']
+__all__ = ["MCQHandler"]

@@ -9,30 +9,29 @@ This migration:
 4. Sets the polymorphic_ctype on the base Problem record
 """
 
-from django.db import migrations
 import json
+
+from django.db import migrations
 
 
 def migrate_mcq_problems(apps, schema_editor):
     """Migrate existing MCQ problems to polymorphic McqProblem model."""
     from django.db import connection
 
-    Problem = apps.get_model('problems_app', 'Problem')
-    ContentType = apps.get_model('contenttypes', 'ContentType')
+    Problem = apps.get_model("problems_app", "Problem")
+    ContentType = apps.get_model("contenttypes", "ContentType")
 
     # Get the ContentType for McqProblem and Problem
     # Need to get or create since this may be first time
     mcq_content_type, _ = ContentType.objects.get_or_create(
-        app_label='problems_app',
-        model='mcqproblem'
+        app_label="problems_app", model="mcqproblem"
     )
     problem_content_type, _ = ContentType.objects.get_or_create(
-        app_label='problems_app',
-        model='problem'
+        app_label="problems_app", model="problem"
     )
 
     # Find all MCQ problems in the base Problem table
-    mcq_problems = Problem.objects.filter(problem_type='mcq')
+    mcq_problems = Problem.objects.filter(problem_type="mcq")
     print(f"Found {mcq_problems.count()} MCQ problems to migrate")
 
     # Use raw SQL to insert McqProblem records without touching the parent
@@ -40,44 +39,52 @@ def migrate_mcq_problems(apps, schema_editor):
         for problem in mcq_problems:
             # Serialize options to JSON string
             options_json = json.dumps(problem.mcq_options or [])
-            question_text = problem.description or ''
+            question_text = problem.description or ""
 
             # Insert into McqProblem table
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO problems_app_mcqproblem
                 (problem_ptr_id, question_text, grading_mode, options, allow_multiple, shuffle_options)
                 VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (problem_ptr_id) DO NOTHING
-            """, [
-                problem.pk,
-                question_text,
-                'deterministic',
-                options_json,
-                False,
-                False
-            ])
+            """,
+                [
+                    problem.pk,
+                    question_text,
+                    "deterministic",
+                    options_json,
+                    False,
+                    False,
+                ],
+            )
 
             # Update polymorphic_ctype on the Problem
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE problems_app_problem
                 SET polymorphic_ctype_id = %s
                 WHERE id = %s
-            """, [mcq_content_type.pk, problem.pk])
+            """,
+                [mcq_content_type.pk, problem.pk],
+            )
 
             print(f"  Migrated: {problem.title}")
 
     # Set polymorphic_ctype for non-MCQ problems (they stay as base Problem for now)
     non_mcq_problems = Problem.objects.filter(
-        problem_type__in=['eipl', 'prompt'],
-        polymorphic_ctype__isnull=True
+        problem_type__in=["eipl", "prompt"], polymorphic_ctype__isnull=True
     )
     with connection.cursor() as cursor:
         for problem in non_mcq_problems:
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE problems_app_problem
                 SET polymorphic_ctype_id = %s
                 WHERE id = %s AND polymorphic_ctype_id IS NULL
-            """, [problem_content_type.pk, problem.pk])
+            """,
+                [problem_content_type.pk, problem.pk],
+            )
 
 
 def reverse_migrate_mcq_problems(apps, schema_editor):

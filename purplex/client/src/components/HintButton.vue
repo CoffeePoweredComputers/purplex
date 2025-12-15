@@ -24,10 +24,10 @@
         aria-hidden="true"
       >{{ availableHintsCount }}</span>
     </button>
-    
+
     <transition name="slide">
       <div
-        v-if="showMenu && hasUnlockedHints" 
+        v-if="showMenu && hasUnlockedHints"
         class="hint-menu"
         :style="{ top: menuPosition.top, left: menuPosition.left }"
       >
@@ -41,7 +41,7 @@
             <span aria-hidden="true">×</span>
           </button>
         </div>
-        
+
         <div class="hint-list">
           <div
             v-if="availableHints.length === 0"
@@ -49,16 +49,16 @@
           >
             <p>No hints are configured for this problem.</p>
           </div>
-          <div 
+          <div
             v-for="hint in availableHints"
-            v-else 
+            v-else
             :key="hint.type"
             class="hint-item"
-            :class="{ 
-              'unlocked': hint.unlocked, 
+            :class="{
+              'unlocked': hint.unlocked,
               'used': isHintUsed(hint.type),
               'active': isHintActive(hint.type),
-              'locked': !hint.unlocked 
+              'locked': !hint.unlocked
             }"
           >
             <div class="hint-header">
@@ -100,7 +100,7 @@
                 >🔒</span>
               </div>
             </div>
-            
+
             <transition name="expand">
               <div
                 v-if="expandedHint === hint.type && hintContent[hint.type]"
@@ -120,7 +120,7 @@
             </transition>
           </div>
         </div>
-        
+
         <div class="hint-footer">
           <div class="hint-stats">
             <p class="hint-attempts">
@@ -134,15 +134,15 @@
             v-if="hasAnyActiveHints"
             class="hint-actions"
           >
-            <button 
-              class="action-btn secondary" 
+            <button
+              class="action-btn secondary"
               :disabled="!hasAnyActiveHints"
               @click="showOriginalCode"
             >
               Show Original
             </button>
-            <button 
-              class="action-btn danger" 
+            <button
+              class="action-btn danger"
               :disabled="!hasAnyActiveHints"
               @click="removeAllHints"
             >
@@ -247,7 +247,7 @@ export default {
       }
     }
   },
-  
+
   beforeUnmount() {
     // Clean up event listeners
     window.removeEventListener('resize', this.handleResize)
@@ -258,23 +258,23 @@ export default {
       try {
         // Store the current problem slug to validate against
         const loadingProblemSlug = this.problemSlug
-        
+
         const context = {
           courseId: this.courseId,
           problemSetSlug: this.problemSetSlug
         }
-        
+
         const response = await problemService.getHints(this.problemSlug, context)
-        
+
         // Validate that we're still on the same problem after async operation
         if (this.problemSlug !== loadingProblemSlug) {
           log.debug('Problem changed during hint loading, discarding stale data')
           return
         }
-        
+
         this.availableHints = response.available_hints || []
         this.hintsUsed = response.hints_used || []
-        
+
         // Load content for already used hints
         for (const hintType of this.hintsUsed) {
           if (!this.hintContent[hintType]) {
@@ -288,12 +288,12 @@ export default {
         this.hintsUsed = []
       }
     },
-    
+
     async toggleHint(hintType) {
       if (this.loading) {return}
-      
+
       const isActive = this.isHintActive(hintType)
-      
+
       if (isActive) {
         // Remove hint
         this.activeHints.delete(hintType)
@@ -307,7 +307,7 @@ export default {
         if (!this.hintContent[hintType]) {
           await this.requestHintContent(hintType)
         }
-        
+
         if (this.hintContent[hintType]) {
           this.activeHints.add(hintType)
           const transformedData = this.transformHintDataForProcessor(hintType)
@@ -322,20 +322,20 @@ export default {
 
     async requestHintContent(hintType) {
       if (this.loading || this.hintContent[hintType]) {return}
-      
+
       // Store the current problem slug to validate against
       const requestProblemSlug = this.problemSlug
-      
+
       this.loading = true
       try {
         const response = await problemService.getHintContent(this.problemSlug, hintType)
-        
+
         // Validate that we're still on the same problem after async operation
         if (this.problemSlug !== requestProblemSlug) {
           log.debug('Problem changed during hint content loading, discarding stale data')
           return
         }
-        
+
         // Store the original response for processing
         this.hintContent[hintType] = {
           type: response.type,
@@ -344,18 +344,18 @@ export default {
           originalData: response, // Keep original for hint processors
           problemSlug: requestProblemSlug // Track which problem this hint belongs to
         }
-        
+
         if (!this.hintsUsed.includes(hintType)) {
           this.hintsUsed.push(hintType)
         }
-        
+
         // Emit event for parent to track hint usage
         this.$emit('hint-used', {
           problemSlug: this.problemSlug,
           hintType: hintType,
           timestamp: new Date().toISOString()
         })
-        
+
         this.notify.info('Hint Unlocked', 'Hint content has been revealed')
       } catch (error: unknown) {
         log.error('Error getting hint', error)
@@ -371,20 +371,20 @@ export default {
         this.loading = false
       }
     },
-    
+
     async loadHintContent(hintType) {
       try {
         // Store the current problem slug to validate against
         const loadProblemSlug = this.problemSlug
-        
+
         const response = await problemService.getHintContent(this.problemSlug, hintType)
-        
+
         // Validate that we're still on the same problem after async operation
         if (this.problemSlug !== loadProblemSlug) {
           log.debug('Problem changed during hint content preload, discarding stale data')
           return
         }
-        
+
         // Transform backend response to expected format
         this.hintContent[hintType] = {
           type: response.type,
@@ -403,7 +403,7 @@ export default {
         }
       }
     },
-    
+
     toggleHintMenu() {
       if (!this.showMenu) {
         // Calculate position before showing menu
@@ -411,7 +411,7 @@ export default {
       }
       this.showMenu = !this.showMenu
     },
-    
+
     calculateMenuPosition() {
       this.$nextTick(() => {
         const button = this.$el.querySelector('.hint-button')
@@ -420,40 +420,40 @@ export default {
           const menuWidth = 400 // Approximate menu width
           const viewportWidth = window.innerWidth
           const viewportHeight = window.innerHeight
-          
+
           // Calculate initial position below the button
           let top = rect.bottom + 8
           let left = rect.left
-          
+
           // Adjust if menu would go off the right edge
           if (left + menuWidth > viewportWidth - 20) {
             left = viewportWidth - menuWidth - 20
           }
-          
+
           // Adjust if menu would go off the left edge
           if (left < 20) {
             left = 20
           }
-          
+
           // If menu would go off bottom, show above button instead
           if (top + 300 > viewportHeight - 20) { // Approximate menu height
             top = rect.top - 300 - 8
           }
-          
+
           // Ensure menu doesn't go above viewport
           if (top < 20) {
             top = 20
           }
-          
+
           this.menuPosition = { top: `${top}px`, left: `${left}px` }
         }
       })
     },
-    
+
     isHintUsed(hintType) {
       return this.hintsUsed && Array.isArray(this.hintsUsed) && this.hintsUsed.includes(hintType)
     },
-    
+
     getHintIcon(type) {
       const icons = {
         'variable_fade': '🔤',
@@ -465,16 +465,16 @@ export default {
       }
       return icons[type] || '💡'
     },
-    
+
     getMinAttemptsForNextHint() {
       if (!this.availableHints || !Array.isArray(this.availableHints)) {
         return 1
       }
-      
+
       // Find the next locked hint with the lowest min_attempts requirement
       const lockedHints = this.availableHints.filter(h => h && !h.unlocked)
       if (lockedHints.length === 0) {return 0}
-      
+
       // Get min attempts from hint data or use defaults
       const nextRequiredAttempts = Math.min(...lockedHints.map(h => this.getMinAttemptsForHint(h.type)))
       return Math.max(nextRequiredAttempts - this.currentAttempts, 0)
@@ -485,20 +485,20 @@ export default {
       if (this.hintContent[hintType]?.originalData?.min_attempts !== undefined) {
         return this.hintContent[hintType].originalData.min_attempts
       }
-      
+
       // Default requirements based on hint type
       const defaults = {
         'subgoal_highlight': 0,
-        'variable_fade': 1, 
+        'variable_fade': 1,
         'suggested_trace': 2
       }
       return defaults[hintType] || 1
     },
-    
+
     getHintTitle(hintType) {
       const titles = {
         'variable_fade': 'Variable Fade',
-        'subgoal_highlight': 'Subgoal Highlighting', 
+        'subgoal_highlight': 'Subgoal Highlighting',
         'suggested_trace': 'Suggested Trace',
         'structural': 'Structural',
         'implementation': 'Implementation',
@@ -519,19 +519,19 @@ export default {
     transformHintDataForProcessor(hintType) {
       const hintData = this.hintContent[hintType]
       const originalData = hintData?.originalData
-      
+
       if (!originalData) {
         log.error(`No original data found for hint type: ${hintType}`)
         return null
       }
-      
+
       // Validate hint belongs to current problem
       const currentSlug = this.problemSlug
       if (!currentSlug) {
         log.error('No current problem slug for hint validation')
         return null
       }
-      
+
       // Check if the hint data is for the current problem
       if (hintData.problemSlug && hintData.problemSlug !== currentSlug) {
         log.warn(`Hint data is for problem ${hintData.problemSlug} but current problem is ${currentSlug}`)
@@ -548,7 +548,7 @@ export default {
           return null
         }
       }
-      
+
       // Transform field names based on hint type
       if (hintType === 'variable_fade' && content.mappings) {
         // Map backend's 'mappings' to processor's expected 'variable_mappings'
@@ -558,7 +558,7 @@ export default {
         }
         delete content.mappings
       }
-      
+
       // Return in the format expected by processors
       const result = {
         content: content
@@ -574,19 +574,19 @@ export default {
       this.activeHints.clear()
       this.$emit('remove-all-hints')
     },
-    
+
     handleResize() {
       if (this.showMenu) {
         this.calculateMenuPosition()
       }
     },
-    
+
     handleScroll() {
       if (this.showMenu) {
         this.calculateMenuPosition()
       }
     },
-    
+
     clearHintState() {
       // Clear all hint-related state when switching problems
       this.hintContent = {}
@@ -594,10 +594,10 @@ export default {
       this.hintsUsed = []
       this.expandedHint = null
       this.showMenu = false
-      
+
       // Emit event to clear any applied hints in the editor
       this.$emit('clear-all-hints')
-      
+
       // Log for debugging
       log.debug('Cleared hint state for problem navigation')
     }
@@ -1046,49 +1046,49 @@ export default {
     background: #1f2937;
     color: #f3f4f6;
   }
-  
+
   .hint-menu-header {
     border-bottom-color: #374151;
   }
-  
+
   .hint-menu-header h4 {
     color: #f3f4f6;
   }
-  
+
   .close-btn {
     color: #9ca3af;
   }
-  
+
   .close-btn:hover {
     background: #374151;
   }
-  
+
   .hint-header.clickable:hover {
     background: #374151;
   }
-  
+
   .hint-info h5 {
     color: #f3f4f6;
   }
-  
+
   .hint-description {
     color: #9ca3af;
   }
-  
+
   .hint-content {
     background: #374151;
     border-top-color: #4b5563;
   }
-  
+
   .hint-content-body p {
     color: #e5e7eb;
   }
-  
+
   .hint-footer {
     background: #374151;
     border-top-color: #4b5563;
   }
-  
+
   .hint-footer p {
     color: #9ca3af;
   }

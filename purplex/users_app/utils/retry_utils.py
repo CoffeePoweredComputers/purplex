@@ -3,13 +3,14 @@ Retry utilities for handling database connection issues and other transient fail
 Includes exponential backoff and circuit breaker patterns.
 """
 
-import time
 import logging
 import random
-from functools import wraps
-from typing import Tuple, Type, Callable, Any
-from django.db import OperationalError, DatabaseError
+import time
 from datetime import datetime, timedelta
+from functools import wraps
+from typing import Any, Callable, Tuple, Type
+
+from django.db import DatabaseError, OperationalError
 
 logger = logging.getLogger(__name__)
 
@@ -24,15 +25,15 @@ class CircuitBreaker:
     - HALF_OPEN: Testing if service recovered, limited requests allowed
     """
 
-    CLOSED = 'closed'
-    OPEN = 'open'
-    HALF_OPEN = 'half_open'
+    CLOSED = "closed"
+    OPEN = "open"
+    HALF_OPEN = "half_open"
 
     def __init__(
         self,
         failure_threshold: int = 5,
         recovery_timeout: int = 30,
-        expected_exception: Type[Exception] = OperationalError
+        expected_exception: Type[Exception] = OperationalError,
     ):
         """
         Initialize circuit breaker.
@@ -104,9 +105,7 @@ class CircuitBreaker:
 
 # Global circuit breaker for database operations
 db_circuit_breaker = CircuitBreaker(
-    failure_threshold=10,
-    recovery_timeout=30,
-    expected_exception=OperationalError
+    failure_threshold=10, recovery_timeout=30, expected_exception=OperationalError
 )
 
 
@@ -116,7 +115,10 @@ def retry_with_backoff(
     max_delay: float = 5.0,
     backoff_factor: float = 2.0,
     jitter: bool = True,
-    retriable_exceptions: Tuple[Type[Exception], ...] = (OperationalError, DatabaseError)
+    retriable_exceptions: Tuple[Type[Exception], ...] = (
+        OperationalError,
+        DatabaseError,
+    ),
 ):
     """
     Decorator for retrying functions with exponential backoff.
@@ -129,6 +131,7 @@ def retry_with_backoff(
         jitter: Add random jitter to prevent thundering herd
         retriable_exceptions: Exceptions that trigger retry
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -185,4 +188,5 @@ def retry_with_backoff(
                 raise last_exception
 
         return wrapper
+
     return decorator

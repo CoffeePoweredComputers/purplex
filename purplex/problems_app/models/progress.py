@@ -1,17 +1,20 @@
 """User progress tracking models."""
+
 from datetime import timedelta
-from django.db import models
-from django.db.models import Q, Count, Avg, Min, Max
+
 from django.contrib.auth.models import User
+from django.db import models
+from django.db.models import Avg, Count, Max, Min, Q
 from django.utils import timezone
 
 from .base import Problem
-from .problem_set import ProblemSet
 from .course import Course
+from .problem_set import ProblemSet
 
 
 class UserProgress(models.Model):
     """Tracks user progress on individual problems within a specific problem set and course context."""
+
     # CRITICAL: Use SET_NULL for user to preserve analytics data even if account deleted
     # Use PROTECT for problem/set/course to prevent deletion of content with progress data
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
@@ -21,23 +24,27 @@ class UserProgress(models.Model):
     problem_version = models.PositiveIntegerField(default=1)
 
     # Simplified status: just completed or not completed
-    status = models.CharField(max_length=20, choices=[
-        ('not_started', 'Not Started'),
-        ('in_progress', 'In Progress'),
-        ('completed', 'Completed'),
-    ], default='not_started')
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("not_started", "Not Started"),
+            ("in_progress", "In Progress"),
+            ("completed", "Completed"),
+        ],
+        default="not_started",
+    )
 
     # Grade per GRADING_PIPELINE.md specification
     grade = models.CharField(
         max_length=20,
         choices=[
-            ('incomplete', 'Incomplete'),
-            ('partial', 'Partially Complete'),
-            ('complete', 'Complete')
+            ("incomplete", "Incomplete"),
+            ("partial", "Partially Complete"),
+            ("complete", "Complete"),
         ],
-        default='incomplete',
+        default="incomplete",
         help_text="Grade based on correctness and high-levelness dimensions",
-        db_index=True
+        db_index=True,
     )
 
     # Scoring and attempts
@@ -62,14 +69,14 @@ class UserProgress(models.Model):
     completion_percentage = models.IntegerField(default=0, db_index=True)
 
     class Meta:
-        app_label = 'problems_app'
-        unique_together = ['user', 'problem', 'problem_set', 'course']
+        app_label = "problems_app"
+        unique_together = ["user", "problem", "problem_set", "course"]
         indexes = [
-            models.Index(fields=['user', 'problem_set', 'is_completed']),
-            models.Index(fields=['user', 'problem_set', 'status']),
-            models.Index(fields=['problem', 'problem_set', 'status']),
-            models.Index(fields=['user', 'problem_set', '-last_attempt']),
-            models.Index(fields=['user', 'course', 'problem_set', 'is_completed']),
+            models.Index(fields=["user", "problem_set", "is_completed"]),
+            models.Index(fields=["user", "problem_set", "status"]),
+            models.Index(fields=["problem", "problem_set", "status"]),
+            models.Index(fields=["user", "problem_set", "-last_attempt"]),
+            models.Index(fields=["user", "course", "problem_set", "is_completed"]),
         ]
 
     def __str__(self):
@@ -78,6 +85,7 @@ class UserProgress(models.Model):
 
 class UserProblemSetProgress(models.Model):
     """Cached aggregate progress for problem sets with course context."""
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     problem_set = models.ForeignKey(ProblemSet, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True)
@@ -95,11 +103,11 @@ class UserProblemSetProgress(models.Model):
     is_completed = models.BooleanField(default=False, db_index=True)
 
     class Meta:
-        app_label = 'problems_app'
-        unique_together = ['user', 'problem_set', 'course']
+        app_label = "problems_app"
+        unique_together = ["user", "problem_set", "course"]
         indexes = [
-            models.Index(fields=['user', 'course', '-last_activity']),
-            models.Index(fields=['problem_set', 'course', '-completion_percentage']),
+            models.Index(fields=["user", "course", "-last_activity"]),
+            models.Index(fields=["problem_set", "course", "-completion_percentage"]),
         ]
 
     @classmethod
@@ -115,20 +123,22 @@ class UserProblemSetProgress(models.Model):
         stats = UserProgress.objects.filter(
             user=user_progress.user,
             problem_set=user_progress.problem_set,
-            course=user_progress.course
+            course=user_progress.course,
         ).aggregate(
-            total=Count('id'),
-            completed=Count('id', filter=Q(is_completed=True)),
-            in_progress=Count('id', filter=Q(status='in_progress')),
-            avg_score=Avg('best_score'),
-            first_attempt=Min('first_attempt'),
-            last_activity=Max('last_attempt')
+            total=Count("id"),
+            completed=Count("id", filter=Q(is_completed=True)),
+            in_progress=Count("id", filter=Q(status="in_progress")),
+            avg_score=Avg("best_score"),
+            first_attempt=Min("first_attempt"),
+            last_activity=Max("last_attempt"),
         )
 
         # Calculate completion metrics
         total_problems = user_progress.problem_set.problems.count()
-        completed = stats['completed'] or 0
-        completion_pct = int((completed / total_problems * 100) if total_problems > 0 else 0)
+        completed = stats["completed"] or 0
+        completion_pct = int(
+            (completed / total_problems * 100) if total_problems > 0 else 0
+        )
         is_completed = (completed == total_problems) if total_problems > 0 else False
 
         # Atomic update_or_create with all fields in defaults
@@ -137,22 +147,22 @@ class UserProblemSetProgress(models.Model):
             problem_set=user_progress.problem_set,
             course=user_progress.course,
             defaults={
-                'total_problems': total_problems,
-                'completed_problems': completed,
-                'in_progress_problems': stats['in_progress'] or 0,
-                'average_score': stats['avg_score'] or 0,
-                'first_attempt': stats['first_attempt'],
-                'last_activity': stats['last_activity'],
-                'completion_percentage': completion_pct,
-                'is_completed': is_completed,
-                'completed_at': models.F('completed_at')
-            }
+                "total_problems": total_problems,
+                "completed_problems": completed,
+                "in_progress_problems": stats["in_progress"] or 0,
+                "average_score": stats["avg_score"] or 0,
+                "first_attempt": stats["first_attempt"],
+                "last_activity": stats["last_activity"],
+                "completion_percentage": completion_pct,
+                "is_completed": is_completed,
+                "completed_at": models.F("completed_at"),
+            },
         )
 
         # If just became completed and completed_at wasn't set, update it
         if is_completed and not created and not set_progress.completed_at:
             set_progress.completed_at = timezone.now()
-            set_progress.save(update_fields=['completed_at'])
+            set_progress.save(update_fields=["completed_at"])
 
     def __str__(self):
         return f"{self.user.username} - {self.problem_set.title} ({self.completion_percentage}%)"
@@ -160,9 +170,14 @@ class UserProblemSetProgress(models.Model):
 
 class ProgressSnapshot(models.Model):
     """Historical snapshots for tracking progress over time."""
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    problem = models.ForeignKey(Problem, on_delete=models.CASCADE, null=True, blank=True)
-    problem_set = models.ForeignKey(ProblemSet, on_delete=models.CASCADE, null=True, blank=True)
+    problem = models.ForeignKey(
+        Problem, on_delete=models.CASCADE, null=True, blank=True
+    )
+    problem_set = models.ForeignKey(
+        ProblemSet, on_delete=models.CASCADE, null=True, blank=True
+    )
 
     snapshot_date = models.DateField(auto_now_add=True)
     completion_percentage = models.IntegerField()
@@ -171,12 +186,12 @@ class ProgressSnapshot(models.Model):
     time_spent_today = models.DurationField(default=timedelta(0))
 
     class Meta:
-        app_label = 'problems_app'
+        app_label = "problems_app"
         indexes = [
-            models.Index(fields=['user', '-snapshot_date']),
-            models.Index(fields=['user', 'problem', '-snapshot_date']),
+            models.Index(fields=["user", "-snapshot_date"]),
+            models.Index(fields=["user", "problem", "-snapshot_date"]),
         ]
-        unique_together = ['user', 'problem', 'problem_set', 'snapshot_date']
+        unique_together = ["user", "problem", "problem_set", "snapshot_date"]
 
     def __str__(self):
         target = self.problem.title if self.problem else self.problem_set.title

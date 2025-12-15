@@ -7,9 +7,9 @@ import sys
 def main():
     """Run administrative tasks."""
     # Set default environment to development if not specified
-    os.environ.setdefault('PURPLEX_ENV', 'development')
+    os.environ.setdefault("PURPLEX_ENV", "development")
     # Use new settings module that auto-selects based on environment
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'purplex.settings')
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "purplex.settings")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -21,5 +21,5 @@ def main():
     execute_from_command_line(sys.argv)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

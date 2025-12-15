@@ -23,7 +23,7 @@ export const useNotification = (): UseNotificationReturn => {
         } as NotificationPayload);
       }
     },
-    
+
     error(message: string, details: string | null = null): void {
       if (window.$notify) {
         window.$notify({
@@ -34,7 +34,7 @@ export const useNotification = (): UseNotificationReturn => {
         } as NotificationPayload);
       }
     },
-    
+
     warning(message: string, details: string | null = null): void {
       if (window.$notify) {
         window.$notify({
@@ -45,7 +45,7 @@ export const useNotification = (): UseNotificationReturn => {
         } as NotificationPayload);
       }
     },
-    
+
     info(message: string, details: string | null = null): void {
       if (window.$notify) {
         window.$notify({
@@ -57,6 +57,6 @@ export const useNotification = (): UseNotificationReturn => {
       }
     }
   };
-  
+
   return { notify };
 };

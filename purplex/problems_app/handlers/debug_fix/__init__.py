@@ -2,4 +2,4 @@
 
 from .handler import DebugFixHandler
 
-__all__ = ['DebugFixHandler']
+__all__ = ["DebugFixHandler"]

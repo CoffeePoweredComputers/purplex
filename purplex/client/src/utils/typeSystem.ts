@@ -47,8 +47,8 @@ export interface TypeConversionError extends Error {
 
 export const pythonTypes: Record<string, TypeHandler> = {
   // Basic types
-  'int': { 
-    validate: /^-?\d+$/, 
+  'int': {
+    validate: /^-?\d+$/,
     convert: (v: string): number => {
       const result = parseInt(v, 10);
       if (isNaN(result)) {
@@ -60,9 +60,9 @@ export const pythonTypes: Record<string, TypeHandler> = {
     examples: ['0', '42', '-17'],
     description: 'Integer number'
   },
-  
-  'float': { 
-    validate: /^-?\d*\.?\d+([eE][+-]?\d+)?$/, 
+
+  'float': {
+    validate: /^-?\d*\.?\d+([eE][+-]?\d+)?$/,
     convert: (v: string): number => {
       const result = parseFloat(v);
       if (isNaN(result)) {
@@ -74,9 +74,9 @@ export const pythonTypes: Record<string, TypeHandler> = {
     examples: ['3.14', '-2.5', '1e-10'],
     description: 'Floating point number'
   },
-  
-  'str': { 
-    validate: /.*/, 
+
+  'str': {
+    validate: /.*/,
     convert: (v: string): string => {
       // Remove quotes if present
       if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
@@ -88,9 +88,9 @@ export const pythonTypes: Record<string, TypeHandler> = {
     examples: ['hello', '"quoted string"', 'text with spaces'],
     description: 'Text string'
   },
-  
-  'bool': { 
-    validate: /^(true|false|True|False|yes|no)$/i, 
+
+  'bool': {
+    validate: /^(true|false|True|False|yes|no)$/i,
     convert: (v: string): boolean => {
       const lower = v.toLowerCase();
       return lower === 'true' || lower === 'yes';
@@ -99,10 +99,10 @@ export const pythonTypes: Record<string, TypeHandler> = {
     examples: ['true', 'false', 'True', 'False'],
     description: 'Boolean value'
   },
-  
+
   // Collections
-  'list': { 
-    validate: /^\[.*\]$/, 
+  'list': {
+    validate: /^\[.*\]$/,
     convert: (v: string): unknown[] => {
       try {
         const result = JSON.parse(v);
@@ -118,9 +118,9 @@ export const pythonTypes: Record<string, TypeHandler> = {
     examples: ['[]', '[1, 2, 3]', '["a", "b"]'],
     description: 'List of values'
   },
-  
-  'dict': { 
-    validate: /^\{.*\}$/, 
+
+  'dict': {
+    validate: /^\{.*\}$/,
     convert: (v: string): Record<string, unknown> => {
       try {
         // First try JSON.parse for standard JSON format
@@ -142,7 +142,7 @@ export const pythonTypes: Record<string, TypeHandler> = {
             }
             return match;
           });
-          
+
           const result = JSON.parse(jsonString);
           if (typeof result !== 'object' || result === null || Array.isArray(result)) {
             throw new Error('Not an object');
@@ -157,9 +157,9 @@ export const pythonTypes: Record<string, TypeHandler> = {
     examples: ['{}', '{"a": 1}', '{1: 2}', '{"name": "John", "age": 30}'],
     description: 'Dictionary/object with key-value pairs'
   },
-  
-  'tuple': { 
-    validate: /^\(.*\)$/, 
+
+  'tuple': {
+    validate: /^\(.*\)$/,
     convert: (v: string): unknown[] => {
       try {
         // Convert tuple notation to array
@@ -177,16 +177,16 @@ export const pythonTypes: Record<string, TypeHandler> = {
     examples: ['()', '(1, 2)', '("a", "b", "c")'],
     description: 'Tuple (immutable list)'
   },
-  
-  'set': { 
-    validate: /^\{.*\}$/, 
+
+  'set': {
+    validate: /^\{.*\}$/,
     convert: (v: string): unknown[] => {
       try {
         // Try parsing as array first (JSON set notation)
         if (v.startsWith('[') && v.endsWith(']')) {
           return JSON.parse(v);
         }
-        
+
         // Parse as object and extract unique values
         const parsed = JSON.parse(v);
         if (Array.isArray(parsed)) {
@@ -203,18 +203,18 @@ export const pythonTypes: Record<string, TypeHandler> = {
     examples: ['{1, 2, 3}', '{"a", "b"}', 'set()'],
     description: 'Set of unique values'
   },
-  
+
   // Special types
-  'None': { 
-    validate: /^(None|null|none|NULL)$/i, 
+  'None': {
+    validate: /^(None|null|none|NULL)$/i,
     convert: (): null => null,
     placeholder: 'None',
     examples: ['None', 'null'],
     description: 'None/null value'
   },
-  
-  'Any': { 
-    validate: /.*/, 
+
+  'Any': {
+    validate: /.*/,
     convert: (v: string): unknown => autoDetectAndConvert(v),
     placeholder: 'any value',
     examples: ['42', '"text"', '[1, 2, 3]'],
@@ -239,9 +239,9 @@ function parseTypeAnnotationInternal(typeStr: string): TypeSpec {
   // Handle Optional[T] by converting to Union[T, None]
   if (typeStr.startsWith('Optional[') && typeStr.endsWith(']')) {
     const inner = typeStr.slice(9, -1);
-    return { 
-      type: 'Union', 
-      unionTypes: [parseTypeAnnotation(inner), { type: 'None' }] 
+    return {
+      type: 'Union',
+      unionTypes: [parseTypeAnnotation(inner), { type: 'None' }]
     };
   }
 
@@ -251,19 +251,19 @@ function parseTypeAnnotationInternal(typeStr: string): TypeSpec {
     const literalValues = parseLiteralValues(inner);
     return { type: 'Literal', literalValues };
   }
-  
+
   // Handle List[T] and list[T]
   if ((typeStr.startsWith('List[') || typeStr.startsWith('list[')) && typeStr.endsWith(']')) {
     const start = typeStr.indexOf('[') + 1;
     const inner = typeStr.slice(start, -1);
     return { type: 'list', elementType: parseTypeAnnotation(inner) };
   }
-  
+
   // Handle Dict[K, V] and dict[K, V]
   if ((typeStr.startsWith('Dict[') || typeStr.startsWith('dict[')) && typeStr.endsWith(']')) {
     const start = typeStr.indexOf('[') + 1;
     const inner = typeStr.slice(start, -1);
-    
+
     const commaIndex = findTopLevelComma(inner);
     if (commaIndex !== -1) {
       const keyType = inner.slice(0, commaIndex).trim();
@@ -275,27 +275,27 @@ function parseTypeAnnotationInternal(typeStr: string): TypeSpec {
       };
     }
   }
-  
+
   // Handle Set[T] and set[T]
   if ((typeStr.startsWith('Set[') || typeStr.startsWith('set[')) && typeStr.endsWith(']')) {
     const start = typeStr.indexOf('[') + 1;
     const inner = typeStr.slice(start, -1);
     return { type: 'set', elementType: parseTypeAnnotation(inner) };
   }
-  
+
   // Handle Tuple[T, ...] and tuple[T, ...]
   if ((typeStr.startsWith('Tuple[') || typeStr.startsWith('tuple[')) && typeStr.endsWith(']')) {
     const start = typeStr.indexOf('[') + 1;
     const inner = typeStr.slice(start, -1);
     return { type: 'tuple', elementType: parseTypeAnnotation(inner.replace(/,\s*\.\.\./, '')) };
   }
-  
+
   // Handle basic types
   const basicTypes = ['int', 'float', 'str', 'bool', 'None', 'Any'];
   if (basicTypes.includes(typeStr)) {
     return { type: typeStr };
   }
-  
+
   // Default to Any for unknown types
   return { type: 'Any' };
 }
@@ -306,10 +306,10 @@ function parseUnionTypes(unionStr: string): TypeSpec[] {
   const types: TypeSpec[] = [];
   let current = '';
   let depth = 0;
-  
+
   for (let i = 0; i < unionStr.length; i++) {
     const char = unionStr[i];
-    
+
     if (char === '[') {
       depth++;
     } else if (char === ']') {
@@ -321,14 +321,14 @@ function parseUnionTypes(unionStr: string): TypeSpec[] {
       current = '';
       continue;
     }
-    
+
     current += char;
   }
-  
+
   if (current.trim()) {
     types.push(parseTypeAnnotation(current.trim()));
   }
-  
+
   return types;
 }
 
@@ -338,10 +338,10 @@ function parseLiteralValues(literalStr: string): unknown[] {
   let depth = 0;
   let inString = false;
   let stringChar = '';
-  
+
   for (let i = 0; i < literalStr.length; i++) {
     const char = literalStr[i];
-    
+
     if (!inString && (char === '"' || char === "'")) {
       inString = true;
       stringChar = char;
@@ -361,14 +361,14 @@ function parseLiteralValues(literalStr: string): unknown[] {
         continue;
       }
     }
-    
+
     current += char;
   }
-  
+
   if (current.trim()) {
     values.push(parseLiteralValue(current.trim()));
   }
-  
+
   return values;
 }
 
@@ -386,10 +386,10 @@ function findTopLevelComma(str: string): number {
   let depth = 0;
   let inString = false;
   let stringChar = '';
-  
+
   for (let i = 0; i < str.length; i++) {
     const char = str[i];
-    
+
     if (!inString && (char === '"' || char === "'")) {
       inString = true;
       stringChar = char;
@@ -406,22 +406,22 @@ function findTopLevelComma(str: string): number {
       }
     }
   }
-  
+
   return -1;
 }
 
 // ===== ENHANCED VALIDATION =====
 
 export function validateValueAgainstType(
-  value: unknown, 
-  typeSpec: TypeSpec, 
+  value: unknown,
+  typeSpec: TypeSpec,
   path: string[] = []
 ): ValidationResult {
   // Handle Any type - always valid
   if (typeSpec.type === 'Any') {
     return { valid: true, path };
   }
-  
+
   // Handle Union types
   if (typeSpec.type === 'Union' && typeSpec.unionTypes) {
     for (const unionType of typeSpec.unionTypes) {
@@ -430,10 +430,10 @@ export function validateValueAgainstType(
         return result;
       }
     }
-    
+
     const typeOptions = typeSpec.unionTypes.map(t => formatTypeSpec(t)).join(' | ');
-    return { 
-      valid: false, 
+    return {
+      valid: false,
       error: `Value doesn't match any of: ${typeOptions}`,
       path,
       suggestion: generateUnionTypeSuggestion(value, typeSpec.unionTypes)
@@ -442,10 +442,10 @@ export function validateValueAgainstType(
 
   // Handle Literal types
   if (typeSpec.type === 'Literal' && typeSpec.literalValues) {
-    const isValid = typeSpec.literalValues.some(literal => 
+    const isValid = typeSpec.literalValues.some(literal =>
       JSON.stringify(literal) === JSON.stringify(value)
     );
-    
+
     if (!isValid) {
       const validValues = typeSpec.literalValues.map(v => JSON.stringify(v)).join(', ');
       return {
@@ -455,45 +455,45 @@ export function validateValueAgainstType(
         suggestion: `Try: ${typeSpec.literalValues[0]}`
       };
     }
-    
+
     return { valid: true, path };
   }
-  
+
   // Handle None type
   if (typeSpec.type === 'None') {
     if (value === null || value === undefined) {
       return { valid: true, path };
     }
-    return { 
-      valid: false, 
+    return {
+      valid: false,
       error: `Expected None but got ${getValueTypeDescription(value)}`,
       path,
       suggestion: 'Use None or null'
     };
   }
-  
+
   // Handle primitive types with enhanced error messages
   if (['int', 'float', 'str', 'bool'].includes(typeSpec.type)) {
     return validatePrimitiveType(value, typeSpec.type, path);
   }
-  
+
   // Handle collection types
   if (typeSpec.type === 'list') {
     return validateListType(value, typeSpec, path);
   }
-  
+
   if (typeSpec.type === 'dict') {
     return validateDictType(value, typeSpec, path);
   }
-  
+
   if (typeSpec.type === 'set') {
     return validateSetType(value, typeSpec, path);
   }
-  
+
   if (typeSpec.type === 'tuple') {
     return validateTupleType(value, typeSpec, path);
   }
-  
+
   // Unknown type - assume valid
   return { valid: true, path };
 }
@@ -504,46 +504,46 @@ function validatePrimitiveType(value: unknown, expectedType: string, path: strin
       if (typeof value === 'number' && Number.isInteger(value)) {
         return { valid: true, path };
       }
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         error: `Expected int but got ${getValueTypeDescription(value)}`,
         path,
         suggestion: generateIntSuggestion(value)
       };
-      
+
     case 'float':
       if (typeof value === 'number') {
         return { valid: true, path };
       }
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         error: `Expected float but got ${getValueTypeDescription(value)}`,
         path,
         suggestion: generateFloatSuggestion(value)
       };
-      
+
     case 'str':
       if (typeof value === 'string') {
         return { valid: true, path };
       }
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         error: `Expected str but got ${getValueTypeDescription(value)}`,
         path,
         suggestion: generateStrSuggestion(value)
       };
-      
+
     case 'bool':
       if (typeof value === 'boolean') {
         return { valid: true, path };
       }
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         error: `Expected bool but got ${getValueTypeDescription(value)}`,
         path,
         suggestion: generateBoolSuggestion(value)
       };
-      
+
     default:
       return { valid: true, path };
   }
@@ -551,18 +551,18 @@ function validatePrimitiveType(value: unknown, expectedType: string, path: strin
 
 function validateListType(value: unknown, typeSpec: TypeSpec, path: string[]): ValidationResult {
   if (!Array.isArray(value)) {
-    return { 
-      valid: false, 
+    return {
+      valid: false,
       error: `Expected list but got ${getValueTypeDescription(value)}`,
       path,
       suggestion: 'Use array notation: [item1, item2, ...]'
     };
   }
-  
+
   // Validate each element
   for (let i = 0; i < value.length; i++) {
     const result = validateValueAgainstType(
-      value[i], 
+      value[i],
       typeSpec.elementType || { type: 'Any' },
       [...path, `[${i}]`]
     );
@@ -570,20 +570,20 @@ function validateListType(value: unknown, typeSpec: TypeSpec, path: string[]): V
       return result;
     }
   }
-  
+
   return { valid: true, path };
 }
 
 function validateDictType(value: unknown, typeSpec: TypeSpec, path: string[]): ValidationResult {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return { 
-      valid: false, 
+    return {
+      valid: false,
       error: `Expected dict but got ${getValueTypeDescription(value)}`,
       path,
       suggestion: 'Use object notation: {"key": "value"}'
     };
   }
-  
+
   // Validate each key-value pair
   for (const [key, val] of Object.entries(value)) {
     // Validate key type if specified
@@ -596,7 +596,7 @@ function validateDictType(value: unknown, typeSpec: TypeSpec, path: string[]): V
         };
       }
     }
-    
+
     // Validate value type
     const valueResult = validateValueAgainstType(
       val,
@@ -607,20 +607,20 @@ function validateDictType(value: unknown, typeSpec: TypeSpec, path: string[]): V
       return valueResult;
     }
   }
-  
+
   return { valid: true, path };
 }
 
 function validateSetType(value: unknown, typeSpec: TypeSpec, path: string[]): ValidationResult {
   if (!Array.isArray(value)) {
-    return { 
-      valid: false, 
+    return {
+      valid: false,
       error: `Expected set but got ${getValueTypeDescription(value)}`,
       path,
       suggestion: 'Use array notation for set: [item1, item2, ...]'
     };
   }
-  
+
   // Check for duplicates
   const unique = [...new Set(value.map(v => JSON.stringify(v)))];
   if (unique.length !== value.length) {
@@ -631,11 +631,11 @@ function validateSetType(value: unknown, typeSpec: TypeSpec, path: string[]): Va
       suggestion: 'Remove duplicate values from the set'
     };
   }
-  
+
   // Validate each element
   for (let i = 0; i < value.length; i++) {
     const result = validateValueAgainstType(
-      value[i], 
+      value[i],
       typeSpec.elementType || { type: 'Any' },
       [...path, `{${i}}`]
     );
@@ -643,24 +643,24 @@ function validateSetType(value: unknown, typeSpec: TypeSpec, path: string[]): Va
       return result;
     }
   }
-  
+
   return { valid: true, path };
 }
 
 function validateTupleType(value: unknown, typeSpec: TypeSpec, path: string[]): ValidationResult {
   if (!Array.isArray(value)) {
-    return { 
-      valid: false, 
+    return {
+      valid: false,
       error: `Expected tuple but got ${getValueTypeDescription(value)}`,
       path,
       suggestion: 'Use tuple notation: (item1, item2, ...)'
     };
   }
-  
+
   // Validate each element
   for (let i = 0; i < value.length; i++) {
     const result = validateValueAgainstType(
-      value[i], 
+      value[i],
       typeSpec.elementType || { type: 'Any' },
       [...path, `(${i})`]
     );
@@ -668,7 +668,7 @@ function validateTupleType(value: unknown, typeSpec: TypeSpec, path: string[]): 
       return result;
     }
   }
-  
+
   return { valid: true, path };
 }
 
@@ -693,7 +693,7 @@ function generateUnionTypeSuggestion(value: unknown, unionTypes: TypeSpec[]): st
       return value ? 'True' : 'False';
     }
   }
-  
+
   // Return the first type as fallback
   return formatTypeSpec(unionTypes[0]);
 }
@@ -764,126 +764,126 @@ export function inferPythonTypeFromValue(value: unknown): TypeSpec {
   if (value === null || value === undefined) {
     return { type: 'None' };
   }
-  
+
   // Handle primitive types
   if (typeof value === 'boolean') {
     return { type: 'bool' };
   }
-  
+
   if (typeof value === 'number') {
     return Number.isInteger(value) ? { type: 'int' } : { type: 'float' };
   }
-  
+
   if (typeof value === 'string') {
     return { type: 'str' };
   }
-  
+
   // Handle arrays (lists/tuples)
   if (Array.isArray(value)) {
     if (value.length === 0) {
       return { type: 'list', elementType: { type: 'Any' } };
     }
-    
+
     // Analyze all elements to determine the most specific common type
     const elementTypes = value.map(inferPythonTypeFromValue);
     const commonType = findCommonType(elementTypes);
-    
+
     return { type: 'list', elementType: commonType };
   }
-  
+
   // Handle objects (dicts)
   if (typeof value === 'object') {
     const entries = Object.entries(value);
     if (entries.length === 0) {
       return { type: 'dict', keyType: { type: 'Any' }, valueType: { type: 'Any' } };
     }
-    
+
     // Use the enhanced key type detection
     const keyTypes = entries.map(([key]) => inferActualKeyType(key));
     const valueTypes = entries.map(([, val]) => inferPythonTypeFromValue(val));
-    
+
     const commonKeyType = findCommonType(keyTypes);
     const commonValueType = findCommonType(valueTypes);
-    
-    return { 
-      type: 'dict', 
-      keyType: commonKeyType, 
-      valueType: commonValueType 
+
+    return {
+      type: 'dict',
+      keyType: commonKeyType,
+      valueType: commonValueType
     };
   }
-  
+
   return { type: 'Any' };
 }
 
 export function findCommonType(types: TypeSpec[]): TypeSpec {
   if (types.length === 0) {return { type: 'Any' };}
   if (types.length === 1) {return types[0];}
-  
+
   // Check if all types are identical
   const firstType = types[0];
   const allSame = types.every(t => deepTypeEquals(t, firstType));
   if (allSame) {return firstType;}
-  
+
   // Check for numeric compatibility (int + float = float)
   const hasInt = types.some(t => t.type === 'int');
   const hasFloat = types.some(t => t.type === 'float');
   const allNumeric = types.every(t => t.type === 'int' || t.type === 'float');
-  
+
   if (allNumeric && (hasInt || hasFloat)) {
     return hasFloat ? { type: 'float' } : { type: 'int' };
   }
-  
+
   // Check for collection type compatibility
   const listTypes = types.filter(t => t.type === 'list');
   if (listTypes.length === types.length) {
     const elementTypes = listTypes.map(t => t.elementType).filter(Boolean) as TypeSpec[];
     return { type: 'list', elementType: findCommonType(elementTypes) };
   }
-  
+
   const dictTypes = types.filter(t => t.type === 'dict');
   if (dictTypes.length === types.length) {
     const keyTypes = dictTypes.map(t => t.keyType).filter(Boolean) as TypeSpec[];
     const valueTypes = dictTypes.map(t => t.valueType).filter(Boolean) as TypeSpec[];
-    return { 
-      type: 'dict', 
-      keyType: findCommonType(keyTypes), 
-      valueType: findCommonType(valueTypes) 
+    return {
+      type: 'dict',
+      keyType: findCommonType(keyTypes),
+      valueType: findCommonType(valueTypes)
     };
   }
-  
+
   // If types are different, create a Union type
-  const uniqueTypes = types.filter((type, index, arr) => 
+  const uniqueTypes = types.filter((type, index, arr) =>
     arr.findIndex(t => deepTypeEquals(t, type)) === index
   );
-  
+
   if (uniqueTypes.length > 1) {
     return { type: 'Union', unionTypes: uniqueTypes };
   }
-  
+
   return { type: 'Any' };
 }
 
 export function deepTypeEquals(type1: TypeSpec, type2: TypeSpec): boolean {
   if (type1.type !== type2.type) {return false;}
-  
+
   if (type1.type === 'list') {
     return deepTypeEquals(type1.elementType || { type: 'Any' }, type2.elementType || { type: 'Any' });
   }
-  
+
   if (type1.type === 'dict') {
     return deepTypeEquals(type1.keyType || { type: 'Any' }, type2.keyType || { type: 'Any' }) &&
            deepTypeEquals(type1.valueType || { type: 'Any' }, type2.valueType || { type: 'Any' });
   }
-  
+
   if (type1.type === 'Union') {
     const unions1 = type1.unionTypes || [];
     const unions2 = type2.unionTypes || [];
-    
+
     if (unions1.length !== unions2.length) {return false;}
-    
+
     return unions1.every(u1 => unions2.some(u2 => deepTypeEquals(u1, u2)));
   }
-  
+
   return true;
 }
 
@@ -892,22 +892,22 @@ export function inferTypeFromString(str: string): TypeSpec {
   if (/^(None|null|none)$/i.test(str)) {
     return { type: 'None' };
   }
-  
+
   // Check for boolean
   if (/^(true|false|True|False)$/i.test(str)) {
     return { type: 'bool' };
   }
-  
+
   // Check for integer
   if (/^-?\d+$/.test(str)) {
     return { type: 'int' };
   }
-  
+
   // Check for float
   if (/^-?\d*\.\d+$/.test(str)) {
     return { type: 'float' };
   }
-  
+
   // Default to string
   return { type: 'str' };
 }
@@ -925,10 +925,10 @@ function parsePythonStyleDict(dictStr: string): Record<string, unknown> {
     }
     return match;
   });
-  
+
   // Also handle single quotes by converting them to double quotes
   jsonString = jsonString.replace(/'/g, '"');
-  
+
   const result = JSON.parse(jsonString);
   if (typeof result !== 'object' || result === null || Array.isArray(result)) {
     throw new Error('Not an object');
@@ -942,19 +942,19 @@ function extractNestedObjectString(originalInput: string, key: string): string |
     // Look for patterns like "key": {...} or key: {...}
     const quotedKeyPattern = new RegExp(`["']${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']\\s*:\\s*({[^}]*(?:{[^}]*}[^}]*)*})`);
     const unquotedKeyPattern = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:\\s*({[^}]*(?:{[^}]*}[^}]*)*})`);
-    
+
     let match = quotedKeyPattern.exec(originalInput);
     if (!match) {
       match = unquotedKeyPattern.exec(originalInput);
     }
-    
+
     if (match && match[1]) {
       return match[1];
     }
   } catch {
     // Regex failed, fall back to null
   }
-  
+
   return null;
 }
 
@@ -962,44 +962,44 @@ function inferPythonTypeFromValueWithFormat(value: unknown, originalInput?: stri
   if (value === null || value === undefined) {
     return { type: 'None' };
   }
-  
+
   if (typeof value === 'boolean') {
     return { type: 'bool' };
   }
-  
+
   if (typeof value === 'number') {
     return Number.isInteger(value) ? { type: 'int' } : { type: 'float' };
   }
-  
+
   if (typeof value === 'string') {
     return { type: 'str' };
   }
-  
+
   if (Array.isArray(value)) {
     if (value.length === 0) {
       return { type: 'list', elementType: { type: 'Any' } };
     }
-    
+
     // Analyze all elements to determine the most specific common type
     const elementTypes = value.map(v => inferPythonTypeFromValueWithFormat(v));
     const commonType = findCommonType(elementTypes);
-    
+
     return { type: 'list', elementType: commonType };
   }
-  
+
   if (typeof value === 'object') {
     const entries = Object.entries(value);
     if (entries.length === 0) {
       return { type: 'dict', keyType: { type: 'Any' }, valueType: { type: 'Any' } };
     }
-    
+
     // Enhanced key type detection that considers original format
     const keyTypes = entries.map(([key]) => {
       // If we have the original input, check if this key was quoted
       if (originalInput) {
         const quotedKeyPattern = new RegExp(`["']${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`);
         const unquotedKeyPattern = new RegExp(`\\b${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`);
-        
+
         if (quotedKeyPattern.test(originalInput)) {
           // Key was quoted in original input, so it's a string
           return { type: 'str' };
@@ -1008,11 +1008,11 @@ function inferPythonTypeFromValueWithFormat(value: unknown, originalInput?: stri
           return inferActualKeyType(key);
         }
       }
-      
+
       // Fallback to inferring from string representation
       return inferActualKeyType(key);
     });
-    
+
     // Enhanced value type detection with nested context
     const valueTypes = entries.map(([key, val]) => {
       if (typeof val === 'object' && val !== null && !Array.isArray(val) && originalInput) {
@@ -1024,17 +1024,17 @@ function inferPythonTypeFromValueWithFormat(value: unknown, originalInput?: stri
       }
       return inferPythonTypeFromValueWithFormat(val, originalInput, key);
     });
-    
+
     const commonKeyType = findCommonType(keyTypes);
     const commonValueType = findCommonType(valueTypes);
-    
-    return { 
-      type: 'dict', 
-      keyType: commonKeyType, 
-      valueType: commonValueType 
+
+    return {
+      type: 'dict',
+      keyType: commonKeyType,
+      valueType: commonValueType
     };
   }
-  
+
   return { type: 'Any' };
 }
 
@@ -1058,64 +1058,64 @@ export function autoDetectTypeFromInput(inputValue: string): TypeDetectionResult
   if (!inputValue || inputValue.trim() === '') {
     return { detected: 'None', annotation: 'None', confidence: 'high' };
   }
-  
+
   const trimmed = inputValue.trim();
-  
+
   // Handle primitive string patterns with confidence levels
   if (/^(None|null|none)$/i.test(trimmed)) {
     return { detected: 'None', annotation: 'None', confidence: 'high' };
   }
-  
+
   if (/^(true|false|True|False)$/i.test(trimmed)) {
     return { detected: 'bool', annotation: 'bool', confidence: 'high' };
   }
-  
+
   // Enhanced integer detection with positive sign support
   if (/^[+-]?\d+$/.test(trimmed)) {
     return { detected: 'int', annotation: 'int', confidence: 'high' };
   }
-  
+
   // Only check for yes/no as boolean patterns (not pure numbers)
   if (/^(yes|no)$/i.test(trimmed)) {
     return { detected: 'bool', annotation: 'bool', confidence: 'medium' };
   }
-  
+
   // Enhanced float detection supporting all formats:
   // - 3.14, -2.5, +1.0 (regular decimals)
   // - .5, -.5, +.5 (leading decimal point)
-  // - 5., -5., +5. (trailing decimal point) 
+  // - 5., -5., +5. (trailing decimal point)
   // - 1e10, 1E-5, 1e+3 (scientific notation)
   if (/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(trimmed)) {
     return { detected: 'float', annotation: 'float', confidence: 'high' };
   }
-  
+
   // Try to parse as JSON for collections
   if ((trimmed.startsWith('[') && trimmed.endsWith(']')) ||
       (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
       (trimmed.startsWith('(') && trimmed.endsWith(')'))) {
-    
+
     try {
       let parsed: unknown;
-      
+
       // Handle tuple notation
       if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
         const arrayStr = trimmed.replace(/^\(/, '[').replace(/\)$/, ']');
         parsed = JSON.parse(arrayStr);
         const inferredType = inferPythonTypeFromValue(parsed);
-        return { 
-          detected: 'tuple', 
+        return {
+          detected: 'tuple',
           annotation: `Tuple[${formatTypeSpec(inferredType.elementType || { type: 'Any' })}]`,
           confidence: 'high'
         };
       }
-      
+
       // Handle list/dict notation with enhanced Python-style parsing
       try {
         // First try standard JSON parsing
         parsed = JSON.parse(trimmed);
         const inferredType = inferPythonTypeFromValueWithFormat(parsed, trimmed);
-        return { 
-          detected: inferredType.type, 
+        return {
+          detected: inferredType.type,
           annotation: formatTypeSpec(inferredType),
           confidence: 'high'
         };
@@ -1125,8 +1125,8 @@ export function autoDetectTypeFromInput(inputValue: string): TypeDetectionResult
           try {
             const parsedDict = parsePythonStyleDict(trimmed);
             const inferredType = inferPythonTypeFromValueWithFormat(parsedDict, trimmed);
-            return { 
-              detected: inferredType.type, 
+            return {
+              detected: inferredType.type,
               annotation: formatTypeSpec(inferredType),
               confidence: 'high'
             };
@@ -1134,33 +1134,33 @@ export function autoDetectTypeFromInput(inputValue: string): TypeDetectionResult
             return { detected: 'invalid', annotation: 'invalid', confidence: 'high' };
           }
         }
-        
+
         return { detected: 'invalid', annotation: 'invalid', confidence: 'high' };
       }
-      
+
     } catch {
       return { detected: 'invalid', annotation: 'invalid', confidence: 'high' };
     }
   }
-  
+
   // Handle quoted strings
   if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
       (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
     return { detected: 'str', annotation: 'str', confidence: 'high' };
   }
-  
+
   // Handle unquoted strings with more comprehensive patterns
   if (/^[a-zA-Z_][a-zA-Z0-9_\s\-\.]*$/.test(trimmed) ||  // Basic identifiers with hyphens and dots
       /^[a-zA-Z0-9]+[a-zA-Z][a-zA-Z0-9]*$/.test(trimmed)) {  // Mixed alphanumeric (must contain at least one letter)
     return { detected: 'str', annotation: 'str', confidence: 'medium' };
   }
-  
+
   // Handle special number formats that should be strings
   if (/^0[xX][0-9a-fA-F]+$/.test(trimmed) ||  // Hexadecimal
       /^0[bB][01]+$/.test(trimmed)) {           // Binary
     return { detected: 'str', annotation: 'str', confidence: 'high' };
   }
-  
+
   // Invalid input
   return { detected: 'invalid', annotation: 'invalid', confidence: 'high' };
 }
@@ -1168,7 +1168,7 @@ export function autoDetectTypeFromInput(inputValue: string): TypeDetectionResult
 export function autoDetectAndConvert(value: string): unknown {
   const typeInfo = autoDetectTypeFromInput(value);
   const typeHandler = pythonTypes[typeInfo.detected];
-  
+
   if (typeHandler && typeHandler.convert) {
     try {
       return typeHandler.convert(value);
@@ -1176,7 +1176,7 @@ export function autoDetectAndConvert(value: string): unknown {
       throw new Error(`Type conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
-  
+
   return value;
 }
 
@@ -1184,7 +1184,7 @@ export function autoDetectAndConvert(value: string): unknown {
 
 export function formatTypeSpec(typeSpec: TypeSpec): string {
   if (!typeSpec) {return 'Any';}
-  
+
   switch (typeSpec.type) {
     case 'Union':
       if (typeSpec.unionTypes) {
@@ -1192,31 +1192,31 @@ export function formatTypeSpec(typeSpec: TypeSpec): string {
         return `Union[${formatted}]`;
       }
       return 'Union';
-      
+
     case 'Optional':
       return `Optional[${formatTypeSpec(typeSpec.innerType || { type: 'Any' })}]`;
-      
+
     case 'Literal':
       if (typeSpec.literalValues) {
         const values = typeSpec.literalValues.map(v => JSON.stringify(v)).join(', ');
         return `Literal[${values}]`;
       }
       return 'Literal';
-      
+
     case 'list':
       return `List[${formatTypeSpec(typeSpec.elementType || { type: 'Any' })}]`;
-      
+
     case 'dict':
       const keyType = formatTypeSpec(typeSpec.keyType || { type: 'Any' });
       const valueType = formatTypeSpec(typeSpec.valueType || { type: 'Any' });
       return `Dict[${keyType}, ${valueType}]`;
-      
+
     case 'set':
       return `Set[${formatTypeSpec(typeSpec.elementType || { type: 'Any' })}]`;
-      
+
     case 'tuple':
       return `Tuple[${formatTypeSpec(typeSpec.elementType || { type: 'Any' })}]`;
-      
+
     default:
       return typeSpec.type;
   }
@@ -1253,4 +1253,3 @@ export function getTypeDescription(typeStr: string): string {
   const simplified = simplifyPythonType(typeStr);
   return pythonTypes[simplified]?.description || 'Unknown type';
 }
-

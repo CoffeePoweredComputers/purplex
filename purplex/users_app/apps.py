@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 
+
 class UsersConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'purplex.users_app'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "purplex.users_app"

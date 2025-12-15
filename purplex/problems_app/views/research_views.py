@@ -3,20 +3,22 @@ Research data export views.
 """
 
 import csv
-from io import StringIO
+import hashlib
 from datetime import datetime
+from io import StringIO
+
 from django.http import HttpResponse, JsonResponse
-from rest_framework.views import APIView
+from rest_framework import status as http_status
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from rest_framework import status as http_status
+from rest_framework.views import APIView
 
-from purplex.problems_app.models import ProgressSnapshot
-from purplex.problems_app.services.research_export_service import ResearchExportService
 from purplex.problems_app.repositories.course_repository import CourseRepository
-from purplex.problems_app.repositories.problem_set_repository import ProblemSetRepository
+from purplex.problems_app.repositories.problem_set_repository import (
+    ProblemSetRepository,
+)
+from purplex.problems_app.services.research_export_service import ResearchExportService
 from purplex.users_app.repositories.user_repository import UserRepository
-import hashlib
 
 
 class ResearchDataExportView(APIView):
@@ -32,18 +34,21 @@ class ResearchDataExportView(APIView):
         anonymize: Anonymize user data (default: false)
         format: Export format (json or csv, default: json)
     """
+
     permission_classes = [IsAdminUser]
 
     def get(self, request):
         """Export complete research dataset."""
         # Parse filters
-        course_id = request.query_params.get('course')
-        problem_set_slug = request.query_params.get('problem_set')
-        start_date_str = request.query_params.get('start_date')
-        end_date_str = request.query_params.get('end_date')
-        include_code = request.query_params.get('include_code', 'false').lower() == 'true'
-        anonymize = request.query_params.get('anonymize', 'false').lower() == 'true'
-        export_format = request.query_params.get('format', 'json').lower()
+        course_id = request.query_params.get("course")
+        problem_set_slug = request.query_params.get("problem_set")
+        start_date_str = request.query_params.get("start_date")
+        end_date_str = request.query_params.get("end_date")
+        include_code = (
+            request.query_params.get("include_code", "false").lower() == "true"
+        )
+        anonymize = request.query_params.get("anonymize", "false").lower() == "true"
+        export_format = request.query_params.get("format", "json").lower()
 
         # Get course and problem set objects
         course = None
@@ -53,16 +58,16 @@ class ResearchDataExportView(APIView):
             course = CourseRepository.get_course_by_id(course_id)
             if not course:
                 return Response(
-                    {'error': f'Course {course_id} not found'},
-                    status=http_status.HTTP_404_NOT_FOUND
+                    {"error": f"Course {course_id} not found"},
+                    status=http_status.HTTP_404_NOT_FOUND,
                 )
 
         if problem_set_slug:
             problem_set = ProblemSetRepository.get_problem_set_by_slug(problem_set_slug)
             if not problem_set:
                 return Response(
-                    {'error': f'Problem set {problem_set_slug} not found'},
-                    status=http_status.HTTP_404_NOT_FOUND
+                    {"error": f"Problem set {problem_set_slug} not found"},
+                    status=http_status.HTTP_404_NOT_FOUND,
                 )
 
         # Parse dates
@@ -74,8 +79,8 @@ class ResearchDataExportView(APIView):
                 start_date = datetime.fromisoformat(start_date_str)
             except ValueError:
                 return Response(
-                    {'error': 'Invalid start_date format. Use ISO format (YYYY-MM-DD)'},
-                    status=http_status.HTTP_400_BAD_REQUEST
+                    {"error": "Invalid start_date format. Use ISO format (YYYY-MM-DD)"},
+                    status=http_status.HTTP_400_BAD_REQUEST,
                 )
 
         if end_date_str:
@@ -83,8 +88,8 @@ class ResearchDataExportView(APIView):
                 end_date = datetime.fromisoformat(end_date_str)
             except ValueError:
                 return Response(
-                    {'error': 'Invalid end_date format. Use ISO format (YYYY-MM-DD)'},
-                    status=http_status.HTTP_400_BAD_REQUEST
+                    {"error": "Invalid end_date format. Use ISO format (YYYY-MM-DD)"},
+                    status=http_status.HTTP_400_BAD_REQUEST,
                 )
 
         # Export data
@@ -94,18 +99,20 @@ class ResearchDataExportView(APIView):
             start_date=start_date,
             end_date=end_date,
             include_code=include_code,
-            anonymize=anonymize
+            anonymize=anonymize,
         )
 
         # Return appropriate format
-        if export_format == 'json':
+        if export_format == "json":
             response = JsonResponse(dataset, safe=False)
-            response['Content-Disposition'] = f'attachment; filename="research_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json"'
+            response["Content-Disposition"] = (
+                f'attachment; filename="research_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json"'
+            )
             return response
         else:
             return Response(
-                {'error': 'Unsupported format. Use json.'},
-                status=http_status.HTTP_400_BAD_REQUEST
+                {"error": "Unsupported format. Use json."},
+                status=http_status.HTTP_400_BAD_REQUEST,
             )
 
 
@@ -121,6 +128,7 @@ class ProgressHistoryExportView(APIView):
         end_date: End date (ISO format)
         anonymize: Anonymize user data (default: false)
     """
+
     permission_classes = [IsAdminUser]
 
     def get(self, request):
@@ -128,15 +136,16 @@ class ProgressHistoryExportView(APIView):
         from django.utils import timezone
 
         # Parse filters
-        course_id = request.query_params.get('course')
-        problem_set_slug = request.query_params.get('problem_set')
-        username = request.query_params.get('user')
-        start_date_str = request.query_params.get('start_date')
-        end_date_str = request.query_params.get('end_date')
-        anonymize = request.query_params.get('anonymize', 'false').lower() == 'true'
+        course_id = request.query_params.get("course")
+        problem_set_slug = request.query_params.get("problem_set")
+        username = request.query_params.get("user")
+        start_date_str = request.query_params.get("start_date")
+        end_date_str = request.query_params.get("end_date")
+        anonymize = request.query_params.get("anonymize", "false").lower() == "true"
 
         # Build queryset via repository
         from ..repositories import ProgressRepository
+
         queryset = ProgressRepository.get_snapshots_base_queryset()
 
         # Apply filters
@@ -145,8 +154,8 @@ class ProgressHistoryExportView(APIView):
             course = CourseRepository.get_course_by_id(course_id)
             if not course:
                 return Response(
-                    {'error': f'Course {course_id} not found'},
-                    status=http_status.HTTP_404_NOT_FOUND
+                    {"error": f"Course {course_id} not found"},
+                    status=http_status.HTTP_404_NOT_FOUND,
                 )
             problem_sets = course.problem_sets.all()
             queryset = queryset.filter(problem_set__in=problem_sets)
@@ -158,8 +167,8 @@ class ProgressHistoryExportView(APIView):
             user = UserRepository.get_by_username(username)
             if not user:
                 return Response(
-                    {'error': f'User {username} not found'},
-                    status=http_status.HTTP_404_NOT_FOUND
+                    {"error": f"User {username} not found"},
+                    status=http_status.HTTP_404_NOT_FOUND,
                 )
             queryset = queryset.filter(user=user)
 
@@ -169,8 +178,8 @@ class ProgressHistoryExportView(APIView):
                 queryset = queryset.filter(snapshot_date__gte=start_date)
             except ValueError:
                 return Response(
-                    {'error': 'Invalid start_date format. Use ISO format (YYYY-MM-DD)'},
-                    status=http_status.HTTP_400_BAD_REQUEST
+                    {"error": "Invalid start_date format. Use ISO format (YYYY-MM-DD)"},
+                    status=http_status.HTTP_400_BAD_REQUEST,
                 )
 
         if end_date_str:
@@ -179,8 +188,8 @@ class ProgressHistoryExportView(APIView):
                 queryset = queryset.filter(snapshot_date__lte=end_date)
             except ValueError:
                 return Response(
-                    {'error': 'Invalid end_date format. Use ISO format (YYYY-MM-DD)'},
-                    status=http_status.HTTP_400_BAD_REQUEST
+                    {"error": "Invalid end_date format. Use ISO format (YYYY-MM-DD)"},
+                    status=http_status.HTTP_400_BAD_REQUEST,
                 )
 
         # Create CSV
@@ -188,18 +197,20 @@ class ProgressHistoryExportView(APIView):
         writer = csv.writer(output)
 
         # Write header
-        writer.writerow([
-            'user_id',
-            'user_email',
-            'problem_slug',
-            'problem_set_slug',
-            'snapshot_date',
-            'completion_percentage',
-            'problems_completed',
-            'average_score',
-            'time_spent_today_seconds',
-            'cumulative_time_seconds',
-        ])
+        writer.writerow(
+            [
+                "user_id",
+                "user_email",
+                "problem_slug",
+                "problem_set_slug",
+                "snapshot_date",
+                "completion_percentage",
+                "problems_completed",
+                "average_score",
+                "time_spent_today_seconds",
+                "cumulative_time_seconds",
+            ]
+        )
 
         # Track cumulative time per user/problem
         cumulative_time = {}
@@ -210,7 +221,9 @@ class ProgressHistoryExportView(APIView):
             user_id = snapshot.user.username
             user_email = snapshot.user.email
             if anonymize:
-                hash_key = hashlib.sha256(f"user_{snapshot.user.id}".encode()).hexdigest()[:16]
+                hash_key = hashlib.sha256(
+                    f"user_{snapshot.user.id}".encode()
+                ).hexdigest()[:16]
                 user_id = f"user_{hash_key}"
                 user_email = f"{hash_key}@anonymized.edu"
 
@@ -219,26 +232,32 @@ class ProgressHistoryExportView(APIView):
             if key not in cumulative_time:
                 cumulative_time[key] = 0
 
-            time_today = snapshot.time_spent_today.total_seconds() if snapshot.time_spent_today else 0
+            time_today = (
+                snapshot.time_spent_today.total_seconds()
+                if snapshot.time_spent_today
+                else 0
+            )
             cumulative_time[key] += time_today
 
-            writer.writerow([
-                user_id,
-                user_email,
-                snapshot.problem.slug if snapshot.problem else '',
-                snapshot.problem_set.slug if snapshot.problem_set else '',
-                snapshot.snapshot_date.isoformat(),
-                snapshot.completion_percentage,
-                snapshot.problems_completed,
-                snapshot.average_score,
-                time_today,
-                cumulative_time[key],
-            ])
+            writer.writerow(
+                [
+                    user_id,
+                    user_email,
+                    snapshot.problem.slug if snapshot.problem else "",
+                    snapshot.problem_set.slug if snapshot.problem_set else "",
+                    snapshot.snapshot_date.isoformat(),
+                    snapshot.completion_percentage,
+                    snapshot.problems_completed,
+                    snapshot.average_score,
+                    time_today,
+                    cumulative_time[key],
+                ]
+            )
 
         # Create response
         output.seek(0)
-        response = HttpResponse(output.getvalue(), content_type='text/csv')
+        response = HttpResponse(output.getvalue(), content_type="text/csv")
         filename = f'progress_history_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv'
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
         return response

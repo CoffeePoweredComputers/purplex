@@ -33,7 +33,7 @@ Check the modified code against STANDARDS.md and report:
    - Inconsistent API responses
 
 Output format:
-✅ PASS: [description] 
+✅ PASS: [description]
 ❌ FAIL: [description] - Line [X]: [specific issue]
 ⚠️ WARN: [description] - Consider: [suggestion]
 

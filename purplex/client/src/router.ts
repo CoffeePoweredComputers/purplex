@@ -40,7 +40,7 @@ const routes: RouteRecordRaw[] = [
         path: "/courses/:courseId/problem-set/:slug",
         name: "CourseProblemSet",
         component: ProblemSet,
-        props: route => ({ 
+        props: route => ({
             slug: route.params.slug as string,
             courseId: route.params.courseId as string
         }),

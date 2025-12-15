@@ -2,4 +2,4 @@
 
 from .handler import PromptHandler
 
-__all__ = ['PromptHandler']
+__all__ = ["PromptHandler"]

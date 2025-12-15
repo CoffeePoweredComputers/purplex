@@ -21,6 +21,8 @@ export interface McqOption {
 export interface UseMcqOptionsReturn {
   /** MCQ options array */
   options: Ref<McqOption[]>;
+  /** The question text shown to students */
+  questionText: Ref<string>;
   /** Whether there is a correct answer selected */
   hasCorrectAnswer: ComputedRef<boolean>;
   /** Whether more options can be added (max 6) */
@@ -36,6 +38,8 @@ export interface UseMcqOptionsReturn {
   setCorrect: (index: number) => void;
   /** Set all options */
   setOptions: (newOptions: McqOption[]) => void;
+  /** Set the question text */
+  setQuestionText: (text: string) => void;
   /** Get options for API (filtered) */
   getOptionsForApi: () => McqOption[];
   /** Reset to initial state */
@@ -48,6 +52,8 @@ export const useMcqOptions = (): UseMcqOptionsReturn => {
   const options = ref<McqOption[]>([
     { id: '1', text: '', is_correct: false, explanation: '' },
   ]);
+
+  const questionText = ref<string>('');
 
   /**
    * Check if there is a correct answer
@@ -113,6 +119,13 @@ export const useMcqOptions = (): UseMcqOptionsReturn => {
   };
 
   /**
+   * Set the question text (used when loading)
+   */
+  const setQuestionText = (text: string): void => {
+    questionText.value = text;
+  };
+
+  /**
    * Get options for API (filter out empty options)
    */
   const getOptionsForApi = (): McqOption[] => {
@@ -126,10 +139,12 @@ export const useMcqOptions = (): UseMcqOptionsReturn => {
     options.value = [
       { id: '1', text: '', is_correct: false, explanation: '' },
     ];
+    questionText.value = '';
   };
 
   return {
     options,
+    questionText,
     hasCorrectAnswer,
     canAddMore,
     canRemove,
@@ -137,6 +152,7 @@ export const useMcqOptions = (): UseMcqOptionsReturn => {
     removeOption,
     setCorrect,
     setOptions,
+    setQuestionText,
     getOptionsForApi,
     reset,
   };

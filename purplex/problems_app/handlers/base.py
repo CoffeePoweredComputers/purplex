@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 @dataclass
 class ValidationResult:
     """Result of input validation."""
+
     is_valid: bool
     error: Optional[str] = None
 
@@ -26,6 +27,7 @@ class ValidationResult:
 @dataclass
 class ProcessingResult:
     """Result of submission processing."""
+
     success: bool
     processed_code: Optional[str] = None
     error: Optional[str] = None
@@ -45,8 +47,9 @@ class SubmissionOutcome:
         - complete=False
         - task_id contains the Celery task ID for polling
     """
+
     complete: bool
-    submission: 'Submission'
+    submission: "Submission"
     task_id: Optional[str] = None
     error: Optional[str] = None
     result_data: Dict[str, Any] = field(default_factory=dict)
@@ -69,11 +72,7 @@ class ActivityHandler(ABC):
     # ─── Input Validation ───────────────────────────────────────
 
     @abstractmethod
-    def validate_input(
-        self,
-        raw_input: str,
-        problem: 'Problem'
-    ) -> ValidationResult:
+    def validate_input(self, raw_input: str, problem: "Problem") -> ValidationResult:
         """
         Validate user input before submission processing.
         Called before creating the Submission object.
@@ -84,10 +83,7 @@ class ActivityHandler(ABC):
 
     @abstractmethod
     def process_submission(
-        self,
-        submission: 'Submission',
-        raw_input: str,
-        problem: 'Problem'
+        self, submission: "Submission", raw_input: str, problem: "Problem"
     ) -> ProcessingResult:
         """
         Process the submission. This is the main type-specific logic.
@@ -103,7 +99,7 @@ class ActivityHandler(ABC):
     # ─── Grading ────────────────────────────────────────────────
 
     @abstractmethod
-    def calculate_grade(self, submission: 'Submission') -> str:
+    def calculate_grade(self, submission: "Submission") -> str:
         """
         Calculate grade based on submission results.
 
@@ -112,7 +108,7 @@ class ActivityHandler(ABC):
         pass
 
     @abstractmethod
-    def is_correct(self, submission: 'Submission') -> bool:
+    def is_correct(self, submission: "Submission") -> bool:
         """
         Determine if submission meets correctness criteria.
 
@@ -125,11 +121,7 @@ class ActivityHandler(ABC):
     # ─── Completion Evaluation ──────────────────────────────────
 
     @abstractmethod
-    def evaluate_completion(
-        self,
-        submission: 'Submission',
-        problem: 'Problem'
-    ) -> str:
+    def evaluate_completion(self, submission: "Submission", problem: "Problem") -> str:
         """
         Evaluate completion status for progress tracking.
 
@@ -144,7 +136,7 @@ class ActivityHandler(ABC):
     # ─── Data Extraction ────────────────────────────────────────
 
     @abstractmethod
-    def extract_variations(self, submission: 'Submission') -> List[str]:
+    def extract_variations(self, submission: "Submission") -> List[str]:
         """
         Extract code variations from a submission.
 
@@ -155,9 +147,7 @@ class ActivityHandler(ABC):
 
     @abstractmethod
     def extract_test_results(
-        self,
-        submission: 'Submission',
-        problem: 'Problem'
+        self, submission: "Submission", problem: "Problem"
     ) -> List[Dict[str, Any]]:
         """
         Extract test results in frontend-compatible format.
@@ -165,14 +155,14 @@ class ActivityHandler(ABC):
         pass
 
     @abstractmethod
-    def count_variations(self, submission: 'Submission') -> int:
+    def count_variations(self, submission: "Submission") -> int:
         """
         Count total variations for a submission.
         """
         pass
 
     @abstractmethod
-    def count_passing_variations(self, submission: 'Submission') -> int:
+    def count_passing_variations(self, submission: "Submission") -> int:
         """
         Count variations that pass all tests.
         """
@@ -181,7 +171,7 @@ class ActivityHandler(ABC):
     # ─── API Configuration ──────────────────────────────────────
 
     @abstractmethod
-    def get_problem_config(self, problem: 'Problem') -> Dict[str, Any]:
+    def get_problem_config(self, problem: "Problem") -> Dict[str, Any]:
         """
         Return configuration for frontend rendering.
 
@@ -194,7 +184,7 @@ class ActivityHandler(ABC):
         pass
 
     @abstractmethod
-    def serialize_result(self, submission: 'Submission') -> Dict[str, Any]:
+    def serialize_result(self, submission: "Submission") -> Dict[str, Any]:
         """
         Serialize submission result for API response.
 
@@ -221,11 +211,11 @@ class ActivityHandler(ABC):
     @abstractmethod
     def submit(
         self,
-        submission: 'Submission',
+        submission: "Submission",
         raw_input: str,
-        problem: 'Problem',
-        context: Dict[str, Any]
-    ) -> 'SubmissionOutcome':
+        problem: "Problem",
+        context: Dict[str, Any],
+    ) -> "SubmissionOutcome":
         """
         Execute the full submission lifecycle for this activity type.
 
@@ -246,11 +236,11 @@ class ActivityHandler(ABC):
 
     # ─── Optional Hooks ─────────────────────────────────────────
 
-    def on_submission_created(self, submission: 'Submission') -> None:
+    def on_submission_created(self, submission: "Submission") -> None:
         """Hook called after submission is created but before processing."""
         pass
 
-    def on_submission_complete(self, submission: 'Submission') -> None:
+    def on_submission_complete(self, submission: "Submission") -> None:
         """Hook called after submission processing is complete."""
         pass
 
@@ -258,8 +248,7 @@ class ActivityHandler(ABC):
 
     @staticmethod
     def _format_function_call(
-        function_name: str,
-        input_values: Union[List[Any], Any]
+        function_name: str, input_values: Union[List[Any], Any]
     ) -> str:
         """
         Format a function call string from function name and input values.
@@ -273,14 +262,14 @@ class ActivityHandler(ABC):
         """
         if isinstance(input_values, list):
             # Use json.dumps for strings to ensure proper quoting, repr for others
-            args = ', '.join(
-                json.dumps(v) if isinstance(v, str) else repr(v)
-                for v in input_values
+            args = ", ".join(
+                json.dumps(v) if isinstance(v, str) else repr(v) for v in input_values
             )
         else:
             # Single value case
             args = (
-                json.dumps(input_values) if isinstance(input_values, str)
+                json.dumps(input_values)
+                if isinstance(input_values, str)
                 else repr(input_values)
             )
         return f"{function_name}({args})"

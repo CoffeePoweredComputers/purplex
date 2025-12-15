@@ -1,353 +1,362 @@
 <template>
-  <div
-    class="modal-overlay"
-    @click="closeModal"
-  >
+  <Teleport to="body">
     <div
-      class="modal-content large-modal"
-      @click.stop
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="problem-set-modal-title"
+      @click.self="closeModal"
     >
-      <div class="modal-header">
-        <h2>{{ editMode ? 'Edit Problem Set' : 'Add New Problem Set' }}</h2>
-        <button
-          class="modal-close"
-          @click="closeModal"
-        >
-          &times;
-        </button>
-      </div>
-      
       <div
-        v-if="!loading"
-        class="modal-body"
+        ref="modalContentRef"
+        class="modal-content large-modal"
+        @keydown.esc="closeModal"
       >
-        <form @submit.prevent="submitForm">
-          <div class="form-section">
-            <div class="form-group">
-              <label for="title">Title *</label>
-              <input 
-                id="title" 
-                v-model="formData.title"
-                type="text" 
-                class="form-input"
-                placeholder="Enter problem set title"
-                required
-              >
-            </div>
-            
-            <div class="form-group">
-              <label for="description">Description</label>
-              <textarea 
-                id="description"
-                v-model="formData.description" 
-                class="form-input"
-                placeholder="Enter description (optional)"
-                rows="3"
-              />
-            </div>
-            
-            <div class="form-group">
-              <label for="visibility">Visibility</label>
-              <button 
-                type="button" 
-                class="form-input toggle-button"
-                :class="{ 'active': formData.is_public }"
-                @click="formData.is_public = !formData.is_public"
-              >
-                {{ formData.is_public ? 'Public' : 'Private' }}
-              </button>
-            </div>
-          </div>
+        <div class="modal-header">
+          <h2 id="problem-set-modal-title">
+            {{ editMode ? 'Edit Problem Set' : 'Add New Problem Set' }}
+          </h2>
+          <button
+            class="modal-close"
+            @click="closeModal"
+          >
+            &times;
+          </button>
+        </div>
 
-          <div class="form-section">
-            <div
-              class="section-header"
-              @click="showProblemSelection = !showProblemSelection"
-            >
-              <h3>
-                <span class="toggle-icon">{{ showProblemSelection ? '▼' : '▶' }}</span>
-                Select Problems {{ editMode ? '' : '(Optional)' }}
-              </h3>
-              <span class="selection-count">{{ selectedProblems.length }} selected</span>
-            </div>
-            
-            <div
-              v-if="showProblemSelection"
-              class="problems-selection"
-            >
-              <!-- Filters and Bulk Actions -->
-              <div class="problems-controls">
-                <div class="filter-row">
-                  <input 
-                    v-model="searchQuery" 
-                    type="text"
-                    placeholder="Search problems..."
-                    class="form-input search-input"
-                  >
-                  <select
-                    v-model="difficultyFilter"
-                    class="form-input filter-select"
-                  >
-                    <option value="">
-                      All Difficulties
-                    </option>
-                    <option value="easy">
-                      Easy
-                    </option>
-                    <option value="beginner">
-                      Beginner
-                    </option>
-                    <option value="intermediate">
-                      Intermediate
-                    </option>
-                    <option value="advanced">
-                      Advanced
-                    </option>
-                  </select>
-                  <select
-                    v-model="typeFilter"
-                    class="form-input filter-select"
-                  >
-                    <option value="">
-                      All Types
-                    </option>
-                    <option value="eipl">
-                      EiPL
-                    </option>
-                  </select>
-                </div>
-                <div class="bulk-actions">
-                  <button
-                    type="button"
-                    class="bulk-btn"
-                    @click="selectAll"
-                  >
-                    Select All
-                  </button>
-                  <button
-                    type="button"
-                    class="bulk-btn"
-                    @click="selectNone"
-                  >
-                    Select None
-                  </button>
-                  <button
-                    type="button"
-                    class="bulk-btn"
-                    @click="selectByDifficulty('beginner')"
-                  >
-                    All Beginner
-                  </button>
-                </div>
-              </div>
-
-
-              <!-- Available Problems Table -->
-              <div class="available-problems">
-                <h4>Available Problems ({{ filteredProblems.length }})</h4>
-                <div class="problems-table-container">
-                  <table class="problems-table">
-                    <thead>
-                      <tr>
-                        <th
-                          class="col-title sortable"
-                          @click="sortBy('title')"
-                        >
-                          Title
-                          <span
-                            v-if="sortField === 'title'"
-                            class="sort-indicator"
-                          >
-                            {{ sortDirection === 'asc' ? '↑' : '↓' }}
-                          </span>
-                        </th>
-                        <th
-                          class="col-difficulty sortable"
-                          @click="sortBy('difficulty')"
-                        >
-                          Difficulty
-                          <span
-                            v-if="sortField === 'difficulty'"
-                            class="sort-indicator"
-                          >
-                            {{ sortDirection === 'asc' ? '↑' : '↓' }}
-                          </span>
-                        </th>
-                        <th class="col-type">
-                          Type
-                        </th>
-                        <th class="col-tests">
-                          Tests
-                        </th>
-                        <th class="col-action">
-                          Add/Remove
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr 
-                        v-for="problem in paginatedProblems" 
-                        :key="problem.slug"
-                        class="problem-row"
-                        :class="{ selected: isSelected(problem.slug) }"
-                      >
-                        <td class="problem-title-cell">
-                          <div class="problem-title">
-                            {{ problem.title }}
-                          </div>
-                          <div
-                            v-if="problem.description"
-                            class="problem-description"
-                          >
-                            {{ truncateText(problem.description, 60) }}
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            class="badge"
-                            :class="difficultyClass(problem.difficulty)"
-                          >
-                            {{ problem.difficulty }}
-                          </span>
-                        </td>
-                        <td>
-                          <span class="type-badge">{{ getProblemTypeLabel(problem.problem_type) }}</span>
-                        </td>
-                        <td>
-                          <span class="test-count">{{ problem.test_cases_count || 0 }}</span>
-                        </td>
-                        <td>
-                          <button 
-                            type="button"
-                            class="action-btn"
-                            :class="{ 'remove-btn': isSelected(problem.slug), 'add-btn': !isSelected(problem.slug) }"
-                            @click="toggleProblem(problem.slug)"
-                          >
-                            {{ isSelected(problem.slug) ? '−' : '+' }}
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                
-                <!-- Pagination -->
-                <div
-                  v-if="totalPages > 1"
-                  class="pagination"
+        <div
+          v-if="!loading"
+          class="modal-body"
+        >
+          <form @submit.prevent="submitForm">
+            <div class="form-section">
+              <div class="form-group">
+                <label for="title">Title *</label>
+                <input
+                  id="title"
+                  v-model="formData.title"
+                  type="text"
+                  class="form-input"
+                  placeholder="Enter problem set title"
+                  required
                 >
-                  <button 
-                    type="button"
-                    :disabled="currentPage === 1"
-                    class="page-btn"
-                    @click="currentPage = Math.max(1, currentPage - 1)"
-                  >
-                    Previous
-                  </button>
-                  <span class="page-info">{{ currentPage }} of {{ totalPages }}</span>
-                  <button 
-                    type="button"
-                    :disabled="currentPage === totalPages"
-                    class="page-btn"
-                    @click="currentPage = Math.min(totalPages, currentPage + 1)"
-                  >
-                    Next
-                  </button>
-                </div>
               </div>
 
-              <!-- Selected Problems with Ordering -->
+              <div class="form-group">
+                <label for="description">Description</label>
+                <textarea
+                  id="description"
+                  v-model="formData.description"
+                  class="form-input"
+                  placeholder="Enter description (optional)"
+                  rows="3"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="visibility">Visibility</label>
+                <button
+                  type="button"
+                  class="form-input toggle-button"
+                  :class="{ 'active': formData.is_public }"
+                  @click="formData.is_public = !formData.is_public"
+                >
+                  {{ formData.is_public ? 'Public' : 'Private' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="form-section">
               <div
-                v-if="selectedProblems.length > 0"
-                class="selected-problems"
+                class="section-header"
+                @click="showProblemSelection = !showProblemSelection"
               >
-                <h4>Selected Problems ({{ selectedProblems.length }})</h4>
-                <div class="selected-list">
-                  <div 
-                    v-for="(problemSlug, index) in selectedProblems" 
-                    :key="problemSlug"
-                    class="selected-item"
-                    draggable="true"
-                    @dragstart="dragStart(index)"
-                    @dragover.prevent
-                    @drop="drop(index)"
-                  >
-                    <div class="order-number">
-                      {{ index + 1 }}
-                    </div>
-                    <div class="drag-handle">
-                      ⋮⋮
-                    </div>
-                    <div class="selected-content">
-                      <div class="selected-title">
-                        {{ getProblemBySlug(problemSlug)?.title }}
-                      </div>
-                      <div class="selected-meta">
-                        <span
-                          class="badge"
-                          :class="difficultyClass(getProblemBySlug(problemSlug)?.difficulty)"
-                        >
-                          {{ getProblemBySlug(problemSlug)?.difficulty }}
-                        </span>
-                        <span class="type-badge">{{ getProblemTypeLabel(getProblemBySlug(problemSlug)?.problem_type) }}</span>
-                      </div>
-                    </div>
-                    <button 
-                      type="button"
-                      class="remove-selected-btn"
-                      title="Remove from selection"
-                      @click="removeProblem(problemSlug)"
+                <h3>
+                  <span class="toggle-icon">{{ showProblemSelection ? '▼' : '▶' }}</span>
+                  Select Problems {{ editMode ? '' : '(Optional)' }}
+                </h3>
+                <span class="selection-count">{{ selectedProblems.length }} selected</span>
+              </div>
+
+              <div
+                v-if="showProblemSelection"
+                class="problems-selection"
+              >
+                <!-- Filters and Bulk Actions -->
+                <div class="problems-controls">
+                  <div class="filter-row">
+                    <input
+                      v-model="searchQuery"
+                      type="text"
+                      placeholder="Search problems..."
+                      class="form-input search-input"
                     >
-                      ×
+                    <select
+                      v-model="difficultyFilter"
+                      class="form-input filter-select"
+                    >
+                      <option value="">
+                        All Difficulties
+                      </option>
+                      <option value="easy">
+                        Easy
+                      </option>
+                      <option value="beginner">
+                        Beginner
+                      </option>
+                      <option value="intermediate">
+                        Intermediate
+                      </option>
+                      <option value="advanced">
+                        Advanced
+                      </option>
+                    </select>
+                    <select
+                      v-model="typeFilter"
+                      class="form-input filter-select"
+                    >
+                      <option value="">
+                        All Types
+                      </option>
+                      <option value="eipl">
+                        EiPL
+                      </option>
+                    </select>
+                  </div>
+                  <div class="bulk-actions">
+                    <button
+                      type="button"
+                      class="bulk-btn"
+                      @click="selectAll"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      class="bulk-btn"
+                      @click="selectNone"
+                    >
+                      Select None
+                    </button>
+                    <button
+                      type="button"
+                      class="bulk-btn"
+                      @click="selectByDifficulty('beginner')"
+                    >
+                      All Beginner
                     </button>
                   </div>
                 </div>
-              </div>
 
-              <div class="selection-summary">
-                {{ selectedProblems.length }} problem{{ selectedProblems.length !== 1 ? 's' : '' }} selected
-                <span
+
+                <!-- Available Problems Table -->
+                <div class="available-problems">
+                  <h4>Available Problems ({{ filteredProblems.length }})</h4>
+                  <div class="problems-table-container">
+                    <table class="problems-table">
+                      <thead>
+                        <tr>
+                          <th
+                            class="col-title sortable"
+                            @click="sortBy('title')"
+                          >
+                            Title
+                            <span
+                              v-if="sortField === 'title'"
+                              class="sort-indicator"
+                            >
+                              {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                            </span>
+                          </th>
+                          <th
+                            class="col-difficulty sortable"
+                            @click="sortBy('difficulty')"
+                          >
+                            Difficulty
+                            <span
+                              v-if="sortField === 'difficulty'"
+                              class="sort-indicator"
+                            >
+                              {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                            </span>
+                          </th>
+                          <th class="col-type">
+                            Type
+                          </th>
+                          <th class="col-tests">
+                            Tests
+                          </th>
+                          <th class="col-action">
+                            Add/Remove
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="problem in paginatedProblems"
+                          :key="problem.slug"
+                          class="problem-row"
+                          :class="{ selected: isSelected(problem.slug) }"
+                        >
+                          <td class="problem-title-cell">
+                            <div class="problem-title">
+                              {{ problem.title }}
+                            </div>
+                            <div
+                              v-if="problem.description"
+                              class="problem-description"
+                            >
+                              {{ truncateText(problem.description, 60) }}
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              class="badge"
+                              :class="difficultyClass(problem.difficulty)"
+                            >
+                              {{ problem.difficulty }}
+                            </span>
+                          </td>
+                          <td>
+                            <span class="type-badge">{{ getProblemTypeLabel(problem.problem_type) }}</span>
+                          </td>
+                          <td>
+                            <span class="test-count">{{ problem.test_cases_count || 0 }}</span>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              class="action-btn"
+                              :class="{ 'remove-btn': isSelected(problem.slug), 'add-btn': !isSelected(problem.slug) }"
+                              @click="toggleProblem(problem.slug)"
+                            >
+                              {{ isSelected(problem.slug) ? '−' : '+' }}
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Pagination -->
+                  <div
+                    v-if="totalPages > 1"
+                    class="pagination"
+                  >
+                    <button
+                      type="button"
+                      :disabled="currentPage === 1"
+                      class="page-btn"
+                      @click="currentPage = Math.max(1, currentPage - 1)"
+                    >
+                      Previous
+                    </button>
+                    <span class="page-info">{{ currentPage }} of {{ totalPages }}</span>
+                    <button
+                      type="button"
+                      :disabled="currentPage === totalPages"
+                      class="page-btn"
+                      @click="currentPage = Math.min(totalPages, currentPage + 1)"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Selected Problems with Ordering -->
+                <div
                   v-if="selectedProblems.length > 0"
-                  class="summary-meta"
+                  class="selected-problems"
                 >
-                  • {{ getSelectedDifficultyBreakdown() }}
-                </span>
+                  <h4>Selected Problems ({{ selectedProblems.length }})</h4>
+                  <div class="selected-list">
+                    <div
+                      v-for="(problemSlug, index) in selectedProblems"
+                      :key="problemSlug"
+                      class="selected-item"
+                      draggable="true"
+                      @dragstart="dragStart(index)"
+                      @dragover.prevent
+                      @drop="drop(index)"
+                    >
+                      <div class="order-number">
+                        {{ index + 1 }}
+                      </div>
+                      <div class="drag-handle">
+                        ⋮⋮
+                      </div>
+                      <div class="selected-content">
+                        <div class="selected-title">
+                          {{ getProblemBySlug(problemSlug)?.title }}
+                        </div>
+                        <div class="selected-meta">
+                          <span
+                            class="badge"
+                            :class="difficultyClass(getProblemBySlug(problemSlug)?.difficulty)"
+                          >
+                            {{ getProblemBySlug(problemSlug)?.difficulty }}
+                          </span>
+                          <span class="type-badge">{{ getProblemTypeLabel(getProblemBySlug(problemSlug)?.problem_type) }}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        class="remove-selected-btn"
+                        title="Remove from selection"
+                        @click="removeProblem(problemSlug)"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="selection-summary">
+                  {{ selectedProblems.length }} problem{{ selectedProblems.length !== 1 ? 's' : '' }} selected
+                  <span
+                    v-if="selectedProblems.length > 0"
+                    class="summary-meta"
+                  >
+                    • {{ getSelectedDifficultyBreakdown() }}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="action-button cancel-button"
-              @click="closeModal"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              class="action-button save-button"
-              :disabled="isSubmitting || !formData.title.trim()"
-            >
-              {{ isSubmitting ? (editMode ? 'Saving...' : 'Creating...') : (editMode ? 'Save Changes' : 'Create Problem Set') }}
-            </button>
-          </div>
-        </form>
-      </div>
-      <div
-        v-else
-        class="loading-state"
-      >
-        Loading problem set details...
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="action-button cancel-button"
+                @click="closeModal"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="action-button save-button"
+                :disabled="isSubmitting || !formData.title.trim()"
+              >
+                {{ isSubmitting ? (editMode ? 'Saving...' : 'Creating...') : (editMode ? 'Save Changes' : 'Create Problem Set') }}
+              </button>
+            </div>
+          </form>
+        </div>
+        <div
+          v-else
+          class="loading-state"
+        >
+          Loading problem set details...
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, ref, toRef } from 'vue';
 import axios from 'axios';
 import { log } from '@/utils/logger';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 
 export default {
   name: 'AddEditProblemSetModal',
@@ -363,16 +372,22 @@ export default {
     problems: {
       type: Array,
       default: () => []
+    },
+    isVisible: {
+      type: Boolean,
+      default: true
     }
   },
   emits: ['close', 'problem-set-added', 'problem-set-updated', 'error'],
   setup(props, { emit }) {
+    // Focus trap composable
+    const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible));
     const formData = ref({
       title: '',
       description: '',
       is_public: true
     });
-    
+
     const selectedProblems = ref([]);
     const searchQuery = ref('');
     const difficultyFilter = ref('');
@@ -388,49 +403,49 @@ export default {
 
     const filteredProblems = computed(() => {
       let filtered = [...props.problems];
-      
+
       // Apply search filter
       if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase();
-        filtered = filtered.filter(problem => 
+        filtered = filtered.filter(problem =>
           problem.title.toLowerCase().includes(query) ||
           problem.difficulty.toLowerCase().includes(query) ||
           problem.problem_type.toLowerCase().includes(query) ||
           (problem.description && problem.description.toLowerCase().includes(query))
         );
       }
-      
+
       // Apply difficulty filter
       if (difficultyFilter.value) {
-        filtered = filtered.filter(problem => 
+        filtered = filtered.filter(problem =>
           problem.difficulty.toLowerCase() === difficultyFilter.value.toLowerCase()
         );
       }
-      
+
       // Apply type filter
       if (typeFilter.value) {
-        filtered = filtered.filter(problem => 
+        filtered = filtered.filter(problem =>
           problem.problem_type === typeFilter.value
         );
       }
-      
+
       // Apply sorting
       filtered.sort((a, b) => {
         let aValue = a[sortField.value] || '';
         let bValue = b[sortField.value] || '';
-        
+
         if (typeof aValue === 'string') {
           aValue = aValue.toLowerCase();
           bValue = bValue.toLowerCase();
         }
-        
+
         let comparison = 0;
         if (aValue < bValue) {comparison = -1;}
         if (aValue > bValue) {comparison = 1;}
-        
+
         return sortDirection.value === 'asc' ? comparison : -comparison;
       });
-      
+
       return filtered;
     });
 
@@ -511,8 +526,8 @@ export default {
 
     const selectByDifficulty = (difficulty) => {
       const problemsToAdd = filteredProblems.value
-        .filter(problem => 
-          problem.difficulty.toLowerCase() === difficulty.toLowerCase() && 
+        .filter(problem =>
+          problem.difficulty.toLowerCase() === difficulty.toLowerCase() &&
           !isSelected(problem.slug)
         )
         .map(problem => problem.slug);
@@ -544,7 +559,7 @@ export default {
           breakdown[difficulty] = (breakdown[difficulty] || 0) + 1;
         }
       });
-      
+
       return Object.entries(breakdown)
         .map(([difficulty, count]) => `${count} ${difficulty}`)
         .join(', ');
@@ -557,20 +572,20 @@ export default {
 
     const drop = (targetIndex) => {
       if (draggedIndex.value === null || draggedIndex.value === targetIndex) {return;}
-      
+
       const item = selectedProblems.value[draggedIndex.value];
       selectedProblems.value.splice(draggedIndex.value, 1);
       selectedProblems.value.splice(targetIndex, 0, item);
-      
+
       draggedIndex.value = null;
     };
 
     const submitForm = async () => {
       if (isSubmitting.value || !formData.value.title.trim()) {return;}
-      
+
       try {
         isSubmitting.value = true;
-        
+
         if (props.editMode) {
           // Edit mode - use FormData for potential file uploads
           const data = new FormData();
@@ -578,9 +593,9 @@ export default {
           data.append('description', formData.value.description || '');
           data.append('problem_slugs', JSON.stringify(selectedProblems.value));
           data.append('is_public', formData.value.is_public ? 'true' : 'false');
-          
+
           const response = await axios.put(
-            `/api/admin/problem-sets/${props.problemSetData.slug}/`, 
+            `/api/admin/problem-sets/${props.problemSetData.slug}/`,
             data,
             {
               headers: {
@@ -588,7 +603,7 @@ export default {
               }
             }
           );
-          
+
           emit('problem-set-updated', response.data);
         } else {
           // Add mode - use JSON
@@ -596,19 +611,19 @@ export default {
             ...formData.value,
             problem_slugs: selectedProblems.value
           };
-          
+
           log.debug('Sending create request with payload', { payload });
           const response = await axios.post('/api/admin/problem-sets/', payload);
-          
+
           emit('problem-set-added', response.data);
         }
-        
+
         closeModal();
       } catch (error) {
         log.error('Error saving problem set', { error, response: error.response });
-        const errorMessage = error.response?.data?.detail || 
-                           error.response?.data?.error || 
-                           error.response?.data?.message || 
+        const errorMessage = error.response?.data?.detail ||
+                           error.response?.data?.error ||
+                           error.response?.data?.message ||
                            error.message ||
                            `Failed to ${props.editMode ? 'update' : 'create'} problem set. Please try again.`;
         emit('error', errorMessage);
@@ -620,23 +635,23 @@ export default {
     // Load problem set data in edit mode
     const loadProblemSetData = async () => {
       if (!props.editMode || !props.problemSetData) {return;}
-      
+
       try {
         loading.value = true;
         const response = await axios.get(`/api/admin/problem-sets/${props.problemSetData.slug}/`);
         const problemSet = response.data;
-        
+
         // Populate form data
         formData.value = {
           title: problemSet.title,
           description: problemSet.description || '',
           is_public: problemSet.is_public
         };
-        
+
         // Extract problem slugs from the problems_detail array
-        selectedProblems.value = problemSet.problems_detail ? 
+        selectedProblems.value = problemSet.problems_detail ?
           problemSet.problems_detail.map(pd => pd.problem.slug) : [];
-        
+
         // Open problem selection if there are problems
         if (selectedProblems.value.length > 0) {
           showProblemSelection.value = true;
@@ -650,25 +665,14 @@ export default {
       }
     };
 
-    // ESC key handler
-    const handleEscape = (event) => {
-      if (event.key === 'Escape') {
-        closeModal();
-      }
-    };
-
     onMounted(() => {
-      document.addEventListener('keydown', handleEscape);
       if (props.editMode) {
         loadProblemSetData();
       }
     });
 
-    onUnmounted(() => {
-      document.removeEventListener('keydown', handleEscape);
-    });
-
     return {
+      modalContentRef,
       formData,
       selectedProblems,
       searchQuery,

@@ -1,6 +1,6 @@
 /**
  * Centralized logging utility for Purplex frontend
- * 
+ *
  * This utility provides structured logging that can be easily controlled
  * based on environment and configured for different log levels.
  */
@@ -29,7 +29,7 @@ class Logger {
 
   constructor() {
     this.isDevelopment = import.meta.env.MODE === 'development' || import.meta.env.DEV;
-    
+
     // Set log level based on environment
     if (this.isDevelopment) {
       this.currentLevel = LogLevel.DEBUG;

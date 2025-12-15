@@ -5,7 +5,7 @@
       <h1 class="page-title">
         Submissions Management
       </h1>
-      
+
       <div class="status-container">
         <div
           v-if="loading"
@@ -13,7 +13,7 @@
         >
           Loading submissions...
         </div>
-        
+
         <div
           v-if="error"
           class="error-message"
@@ -21,15 +21,15 @@
           {{ error }}
         </div>
       </div>
-      
+
       <div
         v-if="!loading && !error"
         class="controls-container"
       >
         <div class="search-container">
-          <input 
-            v-model="searchQuery" 
-            type="text" 
+          <input
+            v-model="searchQuery"
+            type="text"
             placeholder="Search users, problems, or problem sets..."
             class="search-input"
             @input="debounceSearch"
@@ -94,7 +94,7 @@
           Export CSV ({{ totalCount }})
         </button>
       </div>
-      
+
       <div
         v-if="!loading && !error"
         class="table-responsive"
@@ -179,7 +179,7 @@
             </tr>
           </tbody>
         </table>
-        
+
         <div
           v-if="submissions.length === 0 && !loading"
           class="empty-state"
@@ -194,7 +194,7 @@
             Try adjusting your search or filter criteria
           </div>
         </div>
-        
+
         <!-- Pagination Controls -->
         <div
           v-if="totalPages > 1 && !loading && !error"
@@ -203,55 +203,55 @@
           <div class="pagination-info">
             Showing {{ paginationInfo.start }}-{{ paginationInfo.end }} of {{ paginationInfo.total }} results
           </div>
-          
+
           <div class="pagination-controls">
-            <button 
-              class="pagination-btn" 
-              :disabled="!hasPrevious" 
+            <button
+              class="pagination-btn"
+              :disabled="!hasPrevious"
               title="First page"
               @click="goToPage(1)"
             >
               ⟪
             </button>
-            
-            <button 
-              class="pagination-btn" 
-              :disabled="!hasPrevious" 
+
+            <button
+              class="pagination-btn"
+              :disabled="!hasPrevious"
               title="Previous page"
               @click="goToPage(currentPage - 1)"
             >
               ⟨
             </button>
-            
-            <button 
-              v-for="page in pageNumbers" 
+
+            <button
+              v-for="page in pageNumbers"
               :key="page"
-              class="pagination-btn page-number" 
+              class="pagination-btn page-number"
               :class="{ active: page === currentPage }"
               @click="goToPage(page)"
             >
               {{ page }}
             </button>
-            
-            <button 
-              class="pagination-btn" 
-              :disabled="!hasNext" 
+
+            <button
+              class="pagination-btn"
+              :disabled="!hasNext"
               title="Next page"
               @click="goToPage(currentPage + 1)"
             >
               ⟩
             </button>
-            
-            <button 
-              class="pagination-btn" 
-              :disabled="!hasNext" 
+
+            <button
+              class="pagination-btn"
+              :disabled="!hasNext"
               title="Last page"
               @click="goToPage(totalPages)"
             >
               ⟫
             </button>
           </div>
-          
+
           <div class="page-size-selector">
             <label for="pageSize">Per page:</label>
             <select
@@ -273,10 +273,10 @@
           </div>
         </div>
       </div>
-      
+
       <!-- View Submission Modal -->
-      <ViewSubmissionModal 
-        :is-visible="showViewModal" 
+      <ViewSubmissionModal
+        :is-visible="showViewModal"
         :submission="selectedSubmission"
         @close="closeViewModal"
         @download="downloadSubmissionData"
@@ -355,39 +355,39 @@ export default defineComponent({
       const end = Math.min(this.currentPage * this.pageSize, this.totalCount);
       return { start, end, total: this.totalCount };
     },
-    
+
     pageNumbers(): number[] {
       const pages: number[] = [];
       const maxVisible = 5;
       const half = Math.floor(maxVisible / 2);
-      
+
       let start = Math.max(1, this.currentPage - half);
       const end = Math.min(this.totalPages, start + maxVisible - 1);
-      
+
       if (end - start + 1 < maxVisible) {
         start = Math.max(1, end - maxVisible + 1);
       }
-      
+
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-      
+
       return pages;
     },
-    
+
     // Removed groupedSubmissions - no longer needed for simple table
   },
   created() {
     // Set up notification
     const { notify } = useNotification();
     this.notify = notify;
-    
+
     // Redirect non-admin users
     if (!this.isAdmin) {
       this.$router.push('/');
       return;
     }
-    
+
     this.fetchSubmissions();
   },
   methods: {
@@ -435,19 +435,19 @@ export default defineComponent({
         log.error('Error fetching submissions', { error });
       }
     },
-    
+
     goToPage(page: number): void {
       if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
         this.currentPage = page;
         this.fetchSubmissions();
       }
     },
-    
+
     changePageSize(): void {
       this.currentPage = 1; // Reset to first page
       this.fetchSubmissions();
     },
-    
+
     debounceSearch(): void {
       clearTimeout(this.searchTimeout);
       this.searchTimeout = setTimeout(() => {
@@ -455,21 +455,21 @@ export default defineComponent({
         this.fetchSubmissions();
       }, 500);
     },
-    
+
     onFilterChange(): void {
       this.currentPage = 1; // Reset to first page
       this.fetchSubmissions();
     },
-    
+
     // Removed toggleUserGroup and calculateAverageScore - no longer needed
-    
+
     getScoreClass(score: number): string {
       if (score >= 80) {return 'score-excellent';}
       if (score >= 60) {return 'score-good';}
       if (score >= 40) {return 'score-fair';}
       return 'score-poor';
     },
-    
+
     async viewSubmission(submissionId: number): Promise<void> {
       try {
         this.loading = true;
@@ -483,12 +483,12 @@ export default defineComponent({
         this.loading = false;
       }
     },
-    
+
     closeViewModal(): void {
       this.showViewModal = false;
       this.selectedSubmission = null;
     },
-    
+
     submissionStatusClass(status: string): string {
       switch(status.toLowerCase()) {
         case 'passed':
@@ -537,13 +537,13 @@ export default defineComponent({
           return 'Not Evaluated';
       }
     },
-    
+
     formatISODate(dateString: string | null): string {
       if (!dateString) {return 'Unknown';}
       const date = new Date(dateString);
       return date.toISOString();
     },
-    
+
     async exportToCSV(): Promise<void> {
       try {
         const response = await axios.post('/api/admin/submissions/', {
@@ -583,7 +583,7 @@ export default defineComponent({
         this.notify.error('Failed to export CSV. Please try again.');
       }
     },
-    
+
     async downloadSubmissionData(submission: SubmissionDetailed): Promise<void> {
       // Guard against undefined or missing submission
       if (!submission || !submission.id) {
@@ -596,7 +596,7 @@ export default defineComponent({
         // Fetch full submission details
         const response = await axios.get(`/api/admin/submissions/${submission.id}/`);
         const fullSubmission = response.data;
-        
+
         // Create JSON content with full submission data (new field structure)
         const jsonContent = JSON.stringify({
           id: fullSubmission.id,
@@ -629,7 +629,7 @@ export default defineComponent({
           success_rate: fullSubmission.total_variations ?
             Math.round((fullSubmission.passing_variations || 0) / fullSubmission.total_variations * 100) : 0
         }, null, 2);
-        
+
         // Create and download file
         const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
         const link = document.createElement('a');
@@ -640,17 +640,17 @@ export default defineComponent({
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        
+
       } catch (error) {
         log.error('Error downloading submission data', { error, submissionId: submission.id });
         this.notify.error('Failed to download submission data. Please try again.');
       }
     },
-    
+
     // Helper methods for CSV formatting
     formatCodeVariationsForCSV(codeVariations: any): string {
       if (!codeVariations || !Array.isArray(codeVariations)) {return '[]';}
-      
+
       // Return as pretty-printed JSON string for easy analysis
       try {
         return JSON.stringify(codeVariations, null, 2).replace(/"/g, '""');
@@ -659,7 +659,7 @@ export default defineComponent({
         return '[]';
       }
     },
-    
+
     formatTestResultsForCSV(testResults: any): string {
       if (!testResults || !Array.isArray(testResults)) {return '[]';}
 
@@ -1362,75 +1362,75 @@ export default defineComponent({
     align-items: stretch;
     text-align: center;
   }
-  
+
   .pagination-controls {
     justify-content: center;
     flex-wrap: wrap;
   }
-  
+
   .pagination-info,
   .page-size-selector {
     justify-content: center;
   }
-  
+
   .page-header {
     flex-direction: column;
     align-items: stretch;
     gap: var(--spacing-md);
   }
-  
+
   .header-controls {
     flex-direction: column;
     gap: var(--spacing-sm);
   }
-  
+
   .search-input {
     width: 100%;
   }
-  
+
   .user-header {
     padding: var(--spacing-md);
   }
-  
+
   .user-avatar {
     width: 40px;
     height: 40px;
     font-size: var(--font-size-base);
   }
-  
+
   .username {
     font-size: var(--font-size-base);
   }
-  
+
   .table-header {
     grid-template-columns: 1fr;
     gap: 0;
   }
-  
+
   .header-cell {
     display: none;
   }
-  
+
   .header-cell:first-child {
     display: flex;
   }
-  
+
   .header-cell:first-child::after {
     content: ' / Problem / Set / Score / Status / Time / Actions';
     font-size: var(--font-size-xs);
     opacity: 0.7;
   }
-  
+
   .submission-row {
     grid-template-columns: 1fr;
     gap: var(--spacing-sm);
     padding: var(--spacing-md);
   }
-  
+
   .table-cell {
     padding: var(--spacing-xs) 0;
   }
-  
+
   .table-cell::before {
     content: attr(data-label);
     font-weight: 600;
@@ -1447,37 +1447,37 @@ export default defineComponent({
   .admin-submissions {
     padding: var(--spacing-md);
   }
-  
+
   .submissions-list {
     padding: var(--spacing-md);
   }
-  
+
   .card-header,
   .card-body {
     padding: var(--spacing-md);
   }
-  
+
   .header-controls {
     flex-wrap: wrap;
   }
-  
+
   .search-input {
     min-width: 200px;
   }
-  
+
   .export-button {
     width: 100%;
     justify-content: center;
   }
-  
+
   .table-header {
     padding: var(--spacing-md);
   }
-  
+
   .submission-row {
     padding: var(--spacing-md);
   }
-  
+
   .mini-action-btn {
     width: 32px;
     height: 32px;

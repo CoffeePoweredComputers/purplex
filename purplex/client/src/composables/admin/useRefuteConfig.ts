@@ -12,6 +12,7 @@ import { computed, type ComputedRef, type DeepReadonly, reactive, readonly } fro
 
 export interface RefuteConfig {
   claim_text: string;
+  claim_predicate: string; // Python expression that's True when claim holds
   expected_counterexample: string; // JSON string
 }
 
@@ -20,10 +21,14 @@ export interface UseRefuteConfigReturn {
   config: DeepReadonly<RefuteConfig>;
   /** Claim text */
   claimText: ComputedRef<string>;
+  /** Claim predicate (Python expression) */
+  claimPredicate: ComputedRef<string>;
   /** Expected counterexample (JSON string) */
   expectedCounterexample: ComputedRef<string>;
   /** Whether config has a claim */
   hasClaim: ComputedRef<boolean>;
+  /** Whether config has a predicate */
+  hasPredicate: ComputedRef<boolean>;
   /** Whether the claim follows good patterns (contains "always", "never", "for all", etc.) */
   hasGoodClaimPattern: ComputedRef<boolean>;
   /** Warning message for claim quality */
@@ -34,9 +39,13 @@ export interface UseRefuteConfigReturn {
   parsedCounterexample: ComputedRef<Record<string, unknown> | null>;
   /** JSON parse error message */
   jsonError: ComputedRef<string | null>;
+  /** Predicate validation error */
+  predicateError: ComputedRef<string | null>;
 
   /** Set claim text */
   setClaimText: (text: string) => void;
+  /** Set claim predicate */
+  setClaimPredicate: (predicate: string) => void;
   /** Set expected counterexample JSON */
   setExpectedCounterexample: (json: string) => void;
   /** Load config from problem data */
@@ -70,15 +79,38 @@ const GOOD_CLAIM_PATTERNS = [
 export const useRefuteConfig = (): UseRefuteConfigReturn => {
   const state = reactive<RefuteConfig>({
     claim_text: '',
+    claim_predicate: '',
     expected_counterexample: '',
   });
 
   // ===== Computed =====
 
   const claimText = computed(() => state.claim_text);
+  const claimPredicate = computed(() => state.claim_predicate);
   const expectedCounterexample = computed(() => state.expected_counterexample);
 
   const hasClaim = computed(() => state.claim_text.trim().length > 0);
+  const hasPredicate = computed(() => state.claim_predicate.trim().length > 0);
+
+  // Basic predicate syntax validation (just checks for obvious issues)
+  const predicateError = computed((): string | null => {
+    const predicate = state.claim_predicate.trim();
+    if (!predicate) {return null;} // Empty is valid (optional for backwards compatibility)
+
+    // Check for common dangerous patterns
+    if (predicate.includes('import ') || predicate.includes('__')) {
+      return 'Predicate cannot contain import statements or dunder methods';
+    }
+
+    // Check for basic syntax issues
+    const openParens = (predicate.match(/\(/g) || []).length;
+    const closeParens = (predicate.match(/\)/g) || []).length;
+    if (openParens !== closeParens) {
+      return 'Mismatched parentheses';
+    }
+
+    return null;
+  });
 
   const hasGoodClaimPattern = computed(() => {
     if (!hasClaim.value) {return true;} // Don't warn on empty
@@ -131,6 +163,10 @@ export const useRefuteConfig = (): UseRefuteConfigReturn => {
     state.claim_text = text;
   };
 
+  const setClaimPredicate = (predicate: string): void => {
+    state.claim_predicate = predicate;
+  };
+
   const setExpectedCounterexample = (json: string): void => {
     state.expected_counterexample = json;
   };
@@ -142,6 +178,7 @@ export const useRefuteConfig = (): UseRefuteConfigReturn => {
     }
 
     state.claim_text = config.claim_text || '';
+    state.claim_predicate = config.claim_predicate || '';
     // Handle both string and object for expected_counterexample
     if (typeof config.expected_counterexample === 'string') {
       state.expected_counterexample = config.expected_counterexample;
@@ -155,26 +192,32 @@ export const useRefuteConfig = (): UseRefuteConfigReturn => {
   const getConfigForApi = (): RefuteConfig => {
     return {
       claim_text: state.claim_text.trim(),
+      claim_predicate: state.claim_predicate.trim(),
       expected_counterexample: state.expected_counterexample.trim(),
     };
   };
 
   const reset = (): void => {
     state.claim_text = '';
+    state.claim_predicate = '';
     state.expected_counterexample = '';
   };
 
   return {
     config: readonly(state),
     claimText,
+    claimPredicate,
     expectedCounterexample,
     hasClaim,
+    hasPredicate,
     hasGoodClaimPattern,
     claimWarning,
     isValidJson,
     parsedCounterexample,
     jsonError,
+    predicateError,
     setClaimText,
+    setClaimPredicate,
     setExpectedCounterexample,
     loadConfig,
     getConfigForApi,

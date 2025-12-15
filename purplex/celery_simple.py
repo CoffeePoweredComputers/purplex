@@ -11,9 +11,9 @@ import sys
 # CRITICAL: Import gevent_setup FIRST to enable monkey-patching
 # BUT only when running as a Celery worker, not for Django management commands
 _is_celery_worker = (
-    'celery' in sys.argv[0] or
-    any('celery' in arg for arg in sys.argv) or
-    os.environ.get('CELERY_WORKER', '') == '1'
+    "celery" in sys.argv[0]
+    or any("celery" in arg for arg in sys.argv)
+    or os.environ.get("CELERY_WORKER", "") == "1"
 )
 
 if _is_celery_worker:
@@ -23,18 +23,18 @@ from celery import Celery
 # Set default Django settings module for Celery
 # This will use the environment variable if it's already set (e.g., from start.sh)
 # Otherwise falls back to the default settings
-os.environ.setdefault('PURPLEX_ENV', 'development')
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'purplex.settings')
+os.environ.setdefault("PURPLEX_ENV", "development")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "purplex.settings")
 
 # Note: Django setup is handled differently to avoid circular imports
 # django.setup() is called when the Celery worker starts, not during import
 
 # Create Celery app instance
-app = Celery('purplex')
+app = Celery("purplex")
 
 # Configure Celery using Django settings
 # All CELERY_* settings in settings.py will be read
-app.config_from_object('django.conf:settings', namespace='CELERY')
+app.config_from_object("django.conf:settings", namespace="CELERY")
 
 # Auto-discover tasks from all registered Django apps
 app.autodiscover_tasks()
@@ -45,6 +45,7 @@ app.autodiscover_tasks()
 if _is_celery_worker:
     try:
         from psycogreen.gevent import patch_psycopg
+
         patch_psycopg()
         print("✓ psycopg2 patched with psycogreen for greenlet-aware DB connections")
     except ImportError:
@@ -54,23 +55,20 @@ if _is_celery_worker:
 # Minimal configuration - everything else goes in settings.py
 app.conf.update(
     # Core settings
-    broker_url=os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
-    result_backend=os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0'),
-    
+    broker_url=os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0"),
+    result_backend=os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/0"),
     # Serialization
-    task_serializer='json',
-    accept_content=['json'],
-    result_serializer='json',
-    timezone='UTC',
+    task_serializer="json",
+    accept_content=["json"],
+    result_serializer="json",
+    timezone="UTC",
     enable_utc=True,
-    
     # Task execution
     task_track_started=True,
     task_time_limit=300,  # 5 minutes hard limit
     task_soft_time_limit=240,  # 4 minutes soft limit
     task_acks_late=True,
     worker_prefetch_multiplier=4,
-    
     # Simple retry policy
     task_default_retry_delay=30,
     task_max_retries=3,
@@ -78,12 +76,12 @@ app.conf.update(
 
 # Periodic tasks schedule
 app.conf.beat_schedule = {
-    'prune-orphaned-containers': {
-        'task': 'cleanup.prune_orphaned_containers',
-        'schedule': 3600.0,  # Every hour
+    "prune-orphaned-containers": {
+        "task": "cleanup.prune_orphaned_containers",
+        "schedule": 3600.0,  # Every hour
     },
-    'log-pool-metrics': {
-        'task': 'cleanup.log_pool_metrics',
-        'schedule': 900.0,  # Every 15 minutes
+    "log-pool-metrics": {
+        "task": "cleanup.log_pool_metrics",
+        "schedule": 900.0,  # Every 15 minutes
     },
 }

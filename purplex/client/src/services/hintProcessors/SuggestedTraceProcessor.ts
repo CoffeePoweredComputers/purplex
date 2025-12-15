@@ -4,11 +4,11 @@
  */
 
 import { log } from '../../utils/logger';
-import { 
-  HintProcessor, 
-  HintRenderStrategy, 
-  HintResult, 
-  SuggestedTraceData 
+import {
+  HintProcessor,
+  HintRenderStrategy,
+  HintResult,
+  SuggestedTraceData
 } from './types';
 
 const logger = log.createComponentLogger('SuggestedTraceProcessor');
@@ -21,12 +21,12 @@ class SuggestedTraceProcessor implements HintProcessor<SuggestedTraceData> {
 
     try {
       const { suggested_call, explanation, expected_output } = hintData;
-      
+
       if (!suggested_call) {
         logger.warn('Invalid hint data: missing suggested_call');
-        return { 
-          success: false, 
-          error: 'Missing suggested function call' 
+        return {
+          success: false,
+          error: 'Missing suggested function call'
         };
       }
 
@@ -53,9 +53,9 @@ class SuggestedTraceProcessor implements HintProcessor<SuggestedTraceData> {
     } catch (error) {
       logger.error('Suggested trace processing error', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      return { 
-        success: false, 
-        error: errorMessage 
+      return {
+        success: false,
+        error: errorMessage
       };
     }
   }

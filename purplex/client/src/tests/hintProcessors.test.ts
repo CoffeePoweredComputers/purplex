@@ -28,7 +28,7 @@ describe('VariableFadeProcessor', () => {
 
       expect(result.success).toBe(true)
       expect(result.code).toContain('first_number')
-      expect(result.code).toContain('second_number') 
+      expect(result.code).toContain('second_number')
       expect(result.code).toContain('sum')
       expect(result.code).not.toContain('x +')
       expect(result.markers).toBeDefined()
@@ -121,13 +121,13 @@ describe('VariableFadeProcessor', () => {
       const code = `def complex_function(a, b, c):
     # Calculate first part
     temp = a + b
-    
+
     # Apply transformation
     if temp > 0:
         result = temp * c
     else:
         result = temp - c
-        
+
     return result`
 
       const hintData = {
@@ -280,7 +280,7 @@ describe('SubgoalHighlightProcessor', () => {
     temp1 = x * 2
     temp2 = y * 3
     temp3 = z * 4
-    
+
     # Combine
     result = temp1 + temp2 + temp3
     return result`

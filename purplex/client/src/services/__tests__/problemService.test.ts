@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest'
 import axios from 'axios'
 import { problemService } from '../problemService'
-import type { 
-  HintConfig, 
-  ProblemCategory, 
+import type {
+  HintConfig,
+  ProblemCategory,
   ProblemCreateRequest,
   ProblemDetailed,
   ProblemUpdateRequest,
@@ -263,14 +263,14 @@ describe('ProblemService', () => {
       })
 
       it('should handle test execution errors', async () => {
-        const error = { 
-          response: { 
-            data: { 
+        const error = {
+          response: {
+            data: {
               error: 'Syntax error in solution',
               details: 'Line 1: invalid syntax'
-            }, 
-            status: 400 
-          } 
+            },
+            status: 400
+          }
         };
         (axios.post as Mock).mockRejectedValue(error)
 
@@ -325,11 +325,11 @@ describe('ProblemService', () => {
       })
 
       it('should handle category creation errors', async () => {
-        const error = { 
-          response: { 
-            data: { error: 'Category already exists' }, 
-            status: 400 
-          } 
+        const error = {
+          response: {
+            data: { error: 'Category already exists' },
+            status: 400
+          }
         };
         (axios.post as Mock).mockRejectedValue(error)
 
@@ -379,7 +379,7 @@ describe('ProblemService', () => {
 
         expect(axios.get).toHaveBeenCalledWith(
           '/api/problems/two-sum/hints/',
-          { 
+          {
             params: {
               course_id: 'cs101',
               problem_set_slug: 'week-1'

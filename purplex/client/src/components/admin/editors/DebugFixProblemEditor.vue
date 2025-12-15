@@ -336,81 +336,6 @@
       @test="$emit('test')"
     />
 
-    <!-- Student Preview -->
-    <div class="form-section rounded-lg border-default">
-      <h3>Student Preview</h3>
-      <p class="section-description">
-        This is approximately how the problem will appear to students.
-      </p>
-
-      <div class="student-preview">
-        <div class="preview-header">
-          <h4>{{ editor.form.form.title || 'Problem Title' }}</h4>
-          <p
-            v-if="editor.form.form.description"
-            class="preview-description"
-          >
-            {{ editor.form.form.description }}
-          </p>
-        </div>
-
-        <div class="preview-instructions">
-          <div class="instruction-label">
-            Your Task:
-          </div>
-          <div class="instruction-text">
-            The following code has bugs. Fix the code so that it passes all test cases.
-            <span v-if="!editor.debugFixConfig.allowCompleteRewrite.value">
-              Make minimal, targeted fixes rather than rewriting from scratch.
-            </span>
-          </div>
-        </div>
-
-        <div class="preview-code-section">
-          <div class="code-label">
-            Buggy Code to Fix:
-          </div>
-          <pre class="preview-code">{{ editor.debugFixConfig.buggyCode.value || '# Buggy code will appear here' }}</pre>
-        </div>
-
-        <div
-          v-if="editor.debugFixConfig.bugHints.value.length > 0"
-          class="preview-hints"
-        >
-          <div class="hints-label">
-            Available Hints ({{ editor.debugFixConfig.bugHints.value.length }}):
-          </div>
-          <div class="hint-preview-list">
-            <div
-              v-for="(hint, index) in sortedHints"
-              :key="index"
-              class="hint-preview-item"
-            >
-              <span class="hint-level-badge">Level {{ hint.level }}</span>
-              <span class="hint-preview-text">{{ truncateHint(hint.text) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="preview-test-cases">
-          <div class="test-cases-label">
-            Test Cases ({{ editor.testCases.testCases.value.length }}):
-          </div>
-          <div
-            v-if="editor.testCases.testCases.value.length > 0"
-            class="test-cases-preview"
-          >
-            Your code must pass all {{ editor.testCases.testCases.value.length }} test cases to be marked correct.
-          </div>
-          <div
-            v-else
-            class="no-tests-warning"
-          >
-            No test cases defined. Add at least one test case.
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -445,10 +370,6 @@ const codesDifferComputed = computed(() => {
   )
 })
 
-const sortedHints = computed(() => {
-  return [...editor.value.debugFixConfig.bugHints.value].sort((a, b) => a.level - b.level)
-})
-
 // ===== Helper Functions =====
 
 function updateField(key: string, value: string) {
@@ -479,11 +400,6 @@ function addNewHint() {
 
   // Reset the new hint form
   editor.value.debugFixConfig.newHint.value = { level: 1, text: '' }
-}
-
-function truncateHint(text: string, maxLength: number = 60): string {
-  if (text.length <= maxLength) {return text}
-  return text.substring(0, maxLength) + '...'
 }
 
 // ===== Validation =====
@@ -989,131 +905,6 @@ onMounted(() => {
   padding-left: 26px;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-}
-
-/* Student Preview */
-.student-preview {
-  padding: var(--spacing-lg);
-  background: var(--color-bg-hover);
-  border: 2px dashed var(--color-bg-border);
-  border-radius: var(--radius-base);
-}
-
-.preview-header h4 {
-  margin: 0 0 var(--spacing-sm) 0;
-  color: var(--color-text-primary);
-  font-size: var(--font-size-lg);
-}
-
-.preview-description {
-  margin: 0 0 var(--spacing-lg) 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
-.preview-instructions {
-  margin-bottom: var(--spacing-lg);
-  padding: var(--spacing-md);
-  background: rgba(59, 130, 246, 0.1);
-  border-left: 4px solid #3b82f6;
-  border-radius: var(--radius-xs);
-}
-
-.instruction-label {
-  font-size: var(--font-size-xs);
-  color: #3b82f6;
-  font-weight: 600;
-  margin-bottom: var(--spacing-xs);
-  text-transform: uppercase;
-}
-
-.instruction-text {
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-}
-
-.preview-code-section {
-  margin-bottom: var(--spacing-lg);
-}
-
-.code-label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin-bottom: var(--spacing-xs);
-}
-
-.preview-code {
-  padding: var(--spacing-md);
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-xs);
-  font-family: monospace;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  white-space: pre-wrap;
-  overflow-x: auto;
-  margin: 0;
-}
-
-.preview-hints {
-  margin-bottom: var(--spacing-lg);
-}
-
-.hints-label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin-bottom: var(--spacing-sm);
-}
-
-.hint-preview-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.hint-preview-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-xs);
-}
-
-.hint-level-badge {
-  padding: 2px 6px;
-  border-radius: var(--radius-xs);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  background: var(--color-bg-hover);
-  color: var(--color-text-secondary);
-}
-
-.hint-preview-text {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.preview-test-cases {
-  padding: var(--spacing-md);
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-xs);
-}
-
-.test-cases-label {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin-bottom: var(--spacing-xs);
-}
-
-.test-cases-preview {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-}
-
-.no-tests-warning {
-  font-size: var(--font-size-sm);
-  color: var(--color-warning);
-  font-style: italic;
 }
 
 /* Buttons */

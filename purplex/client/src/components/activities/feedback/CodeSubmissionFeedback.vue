@@ -511,7 +511,7 @@ onBeforeUnmount(() => {
   box-shadow: var(--shadow-md);
   overflow: hidden;
   position: relative;
-  min-height: 600px;
+  /* Removed min-height: 600px to prevent black space overflow */
 }
 
 .feedback-container.is-navigating {
@@ -562,7 +562,7 @@ onBeforeUnmount(() => {
 .navigation-skeleton-panel {
   padding: var(--spacing-lg);
   background: var(--color-bg-panel);
-  min-height: 600px;
+  min-height: 300px;
 }
 
 .skeleton-header {

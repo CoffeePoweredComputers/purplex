@@ -19,6 +19,7 @@
     :title="title"
     :mcq-result="mcqResult"
     @load-attempt="$emit('load-attempt', $event)"
+    @next-problem="$emit('next-problem')"
   />
   <div
     v-else
@@ -91,6 +92,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits<{
   (e: 'load-attempt', attemptId: string): void
+  (e: 'next-problem'): void
 }>()
 
 // Get the appropriate feedback component for the activity type

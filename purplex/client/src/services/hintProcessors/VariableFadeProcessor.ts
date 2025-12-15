@@ -4,10 +4,10 @@
  */
 
 import { log } from '../../utils/logger';
-import { 
-  HintProcessor, 
-  HintRenderStrategy, 
-  HintResult, 
+import {
+  HintProcessor,
+  HintRenderStrategy,
+  HintResult,
   VariableFadeData
 } from './types';
 
@@ -21,7 +21,7 @@ class VariableFadeProcessor implements HintProcessor<VariableFadeData> {
     try {
       const { code, variable_mappings, mappings } = hintData;
       const actualMappings = variable_mappings || mappings; // Support both formats
-      
+
       if (!code || !actualMappings) {
         logger.warn('Invalid hint data: missing code or mappings');
         return { success: false, code: '', error: 'Missing required data' };

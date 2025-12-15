@@ -3,9 +3,22 @@
     <!-- Basic Information -->
     <BasicInfoSection :editor="editor" />
 
-    <!-- MCQ Options -->
+    <!-- Question & Options -->
     <div class="form-section rounded-lg border-default transition-fast">
-      <h3>Answer Options</h3>
+      <h3>Question & Options</h3>
+
+      <div class="form-group">
+        <label for="question-text">Question *</label>
+        <textarea
+          id="question-text"
+          :value="editor.mcqOptions.questionText.value"
+          placeholder="Enter the question that students will see"
+          rows="3"
+          required
+          @input="editor.mcqOptions.setQuestionText(($event.target as HTMLTextAreaElement).value)"
+        />
+      </div>
+
       <p class="section-description">
         Add 2-6 answer options. Mark one as the correct answer and optionally add explanations.
       </p>
@@ -89,11 +102,12 @@ const editor = computed(() => props.editor)
 // Validation
 const isValid = computed(() => {
   const title = (editor.value.form.form.title || '').toString().trim()
+  const questionText = (editor.value.mcqOptions.questionText.value || '').trim()
   const hasCorrectAnswer = editor.value.mcqOptions.hasCorrectAnswer.value
   const hasValidOptions = editor.value.mcqOptions.options.value.length >= 2 &&
     editor.value.mcqOptions.options.value.every(opt => opt.text.trim().length > 0)
 
-  return title.length > 0 && hasCorrectAnswer && hasValidOptions
+  return title.length > 0 && questionText.length > 0 && hasCorrectAnswer && hasValidOptions
 })
 
 watch(isValid, (valid) => {
@@ -162,6 +176,7 @@ defineExpose({
 }
 
 .form-group input[type="text"],
+.form-group textarea,
 .form-group select {
   width: 100%;
   padding: var(--spacing-md);
@@ -173,7 +188,13 @@ defineExpose({
   transition: var(--transition-base);
 }
 
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
 .form-group input:focus,
+.form-group textarea:focus,
 .form-group select:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);

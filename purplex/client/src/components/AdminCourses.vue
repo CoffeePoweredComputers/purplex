@@ -1,7 +1,7 @@
 <template>
   <div class="admin-courses">
     <AdminNavBar />
-    
+
     <div class="content-container">
       <div class="page-header">
         <h1>Course Management</h1>
@@ -13,7 +13,7 @@
           Create Course
         </button>
       </div>
-      
+
       <!-- Loading State -->
       <div
         v-if="loading"
@@ -22,7 +22,7 @@
         <div class="loading-spinner" />
         <p>Loading courses...</p>
       </div>
-      
+
       <!-- Courses Table -->
       <div
         v-else-if="courses.length > 0"
@@ -95,7 +95,7 @@
           </tbody>
         </table>
       </div>
-      
+
       <!-- Empty State -->
       <div
         v-else
@@ -114,7 +114,7 @@
         </button>
       </div>
     </div>
-    
+
     <!-- Create/Edit Course Modal -->
     <div
       v-if="showCreateModal || showEditModal"
@@ -131,7 +131,7 @@
             ×
           </button>
         </div>
-        
+
         <form
           class="course-form"
           @submit.prevent="saveCourse"
@@ -148,7 +148,7 @@
             >
             <small>Unique identifier for the course (cannot be changed after creation)</small>
           </div>
-          
+
           <div class="form-group">
             <label for="course-name">Course Name *</label>
             <input
@@ -193,7 +193,7 @@
               placeholder="Course description..."
             />
           </div>
-          
+
           <div class="form-group checkbox-group">
             <label>
               <input
@@ -210,7 +210,7 @@
               Enrollment is open
             </label>
           </div>
-          
+
           <div class="modal-footer">
             <button
               type="button"
@@ -230,7 +230,7 @@
         </form>
       </div>
     </div>
-    
+
     <!-- Problem Sets Management Modal -->
     <AdminCourseProblemSetsModal
       v-if="selectedCourse"
@@ -239,7 +239,7 @@
       @close="showProblemSetsModal = false"
       @updated="fetchCourses"
     />
-    
+
     <!-- Students Management Modal -->
     <AdminCourseStudentsModal
       v-if="selectedCourse"
@@ -287,7 +287,7 @@ export default defineComponent({
   },
   setup() {
     const { notify } = useNotification()
-    
+
     // Data
     const courses: Ref<Course[]> = ref([])
     const instructors: Ref<Instructor[]> = ref([])
@@ -307,7 +307,7 @@ export default defineComponent({
       is_active: true,
       enrollment_open: true
     })
-    
+
     // Methods
     const fetchCourses = async (): Promise<void> => {
       loading.value = true
@@ -333,7 +333,7 @@ export default defineComponent({
         log.error('Error fetching instructors', { error: axiosError })
       }
     }
-    
+
     const saveCourse = async (): Promise<void> => {
       saving.value = true
       try {
@@ -346,7 +346,7 @@ export default defineComponent({
           await axios.post('/api/admin/courses/', courseForm.value)
           notify.success('Success', 'Course created successfully')
         }
-        
+
         closeModals()
         await fetchCourses()
       } catch (error: unknown) {
@@ -357,7 +357,7 @@ export default defineComponent({
         saving.value = false
       }
     }
-    
+
     const editCourse = (course: Course): void => {
       selectedCourse.value = course
       courseForm.value = {
@@ -370,12 +370,12 @@ export default defineComponent({
       }
       showEditModal.value = true
     }
-    
+
     const deleteCourse = async (course: Course): Promise<void> => {
       if (!confirm(`Are you sure you want to delete "${course.name}"? This action cannot be undone.`)) {
         return
       }
-      
+
       try {
         await axios.delete(`/api/admin/courses/${course.course_id}/`)
         notify.success('Success', 'Course deleted successfully')
@@ -386,17 +386,17 @@ export default defineComponent({
         log.error('Error deleting course', { error: axiosError })
       }
     }
-    
+
     const manageProblemSets = (course: Course): void => {
       selectedCourse.value = course
       showProblemSetsModal.value = true
     }
-    
+
     const viewStudents = (course: Course): void => {
       selectedCourse.value = course
       showStudentsModal.value = true
     }
-    
+
     const closeModals = (): void => {
       showCreateModal.value = false
       showEditModal.value = false
@@ -412,7 +412,7 @@ export default defineComponent({
         enrollment_open: true
       }
     }
-    
+
     // Lifecycle
     onMounted(() => {
       fetchCourses()

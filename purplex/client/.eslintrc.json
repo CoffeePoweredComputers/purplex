@@ -20,7 +20,7 @@
   "rules": {
     // Disallow all console statements - use logger utility instead
     "no-console": "error",
-    
+
     // Vue specific rules
     "vue/multi-word-component-names": "off",
     "vue/no-v-html": "warn",
@@ -30,14 +30,14 @@
     "vue/no-unused-components": "error",
     "vue/prefer-import-from-vue": "error",
     "vue/no-ref-as-operand": "error",
-    
+
     // Component size limit
     "max-lines": ["warn", {
       "max": 500,
       "skipBlankLines": true,
       "skipComments": true
     }],
-    
+
     // TypeScript specific rules
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/explicit-function-return-type": "off",
@@ -45,7 +45,7 @@
       "argsIgnorePattern": "^_",
       "varsIgnorePattern": "^_"
     }],
-    
+
     // General code quality
     "no-unused-vars": "off", // Use TypeScript's no-unused-vars instead
     "prefer-const": "error",
@@ -53,12 +53,12 @@
     "eqeqeq": ["error", "always"],
     "curly": ["error", "all"],
     "no-throw-literal": "error",
-    
+
     // Async/await best practices
     "no-return-await": "error",
     "require-await": "error",
     "no-async-promise-executor": "error",
-    
+
     // Import rules
     "no-duplicate-imports": "error",
     "sort-imports": ["error", {

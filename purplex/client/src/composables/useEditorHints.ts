@@ -1,5 +1,5 @@
 import { computed, nextTick, Ref, ref, toRaw, watch } from 'vue'
-import { 
+import {
   HintProcessors,
   HintRenderStrategy,
   HintResult,
@@ -56,7 +56,7 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
   })
 
   // Track UI overlays for OVERLAY_UI strategy hints
-  const activeOverlays = ref<Array<{ component: string; props: Record<string, unknown> }>>([])  
+  const activeOverlays = ref<Array<{ component: string; props: Record<string, unknown> }>>([])
 
   // Watch for original code changes
   watch(originalCode, (newCode) => {
@@ -106,18 +106,18 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
 
       // Process the hint
       const baseCode = activeHints.value.length === 0 ? originalCode.value : modifiedCode.value
-      
+
       // Prepare data for processor - unwrap Vue reactivity
       const rawContent = toRaw(hintData.content || {})
       const processorInput = {
         code: baseCode,
         ...rawContent
       }
-      
+
       // Create processor instance and call processHint method
       const processorInstance = new processor()
       const result: HintResult = processorInstance.processHint(processorInput)
-      
+
       // Check if processing was successful
       if (!result || !result.success) {
         errorState.value = result?.error || 'Failed to process hint'
@@ -145,7 +145,7 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
               });
             }
             break
-            
+
           case HintRenderStrategy.OVERLAY_UI:
             // Add overlay component
             if (result.overlayComponent && result.overlayProps) {
@@ -205,7 +205,7 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
 
       // Get the hint data before removing
       const hintData = activeHints.value[hintIndex]
-      
+
       // Remove hint from active list
       activeHints.value.splice(hintIndex, 1)
 
@@ -247,9 +247,9 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
       errorState.value = 'Hint type is required'
       return false
     }
-    
+
     const isActive = activeHints.value.some(h => h.hintType === hintData.hintType)
-    
+
     if (isActive) {
       return await removeHint(hintData.hintType)
     } else {
@@ -268,10 +268,10 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
 
       // Clear all hints
       activeHints.value = []
-      
+
       // Clear all overlays
       activeOverlays.value = []
-      
+
       // Reset to original code
       modifiedCode.value = originalCode.value
 
@@ -315,42 +315,39 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
    * Used when hints are removed to ensure proper layering
    */
   const reapplyAllHints = async (): Promise<void> => {
-    // Start with original code
-    modifiedCode.value = originalCode.value
-    
-    // Clear all editor modifications
+    // Compute final code without intermediate reactive updates to prevent flicker
+    let finalCode = originalCode.value
 
     // Reapply each hint in order (excluding UI-only hints)
     const hintsToReapply = activeHints.value.filter(
       h => h.result?.metadata?.strategy !== HintRenderStrategy.OVERLAY_UI
     )
-    
+
     for (const hint of hintsToReapply) {
       const processor = getProcessor(hint.hintType as HintType)
       if (processor) {
         // Prepare data for processor - unwrap Vue reactivity
         const rawContent = toRaw(hint.content || {})
         const processorInput = {
-          code: modifiedCode.value,
+          code: finalCode,
           ...rawContent
         }
-        
+
         // Create processor instance and call processHint method
         const processorInstance = new processor()
         const result: HintResult = processorInstance.processHint(processorInput)
-        
+
         // Only apply if successful
         if (result && result.success) {
           if (result.code) {
-            modifiedCode.value = result.code
+            finalCode = result.code
           }
-          // Annotations are not part of HintResult interface
-          // if (result.annotations) {
-          //   editorAnnotations.value = [...editorAnnotations.value, ...result.annotations]
-          // }
         }
       }
     }
+
+    // Set final code once to avoid intermediate reactive updates
+    modifiedCode.value = finalCode
 
     // Let Vue's reactivity handle the update
     await nextTick()
@@ -383,7 +380,7 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
 
     return stats
   }
-  
+
   /**
    * Save current hint state
    * @returns {Object} Serializable hint state
@@ -398,7 +395,7 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
       hasHints: hasActiveHints.value
     }
   }
-  
+
   /**
    * Restore hint state
    * @param {Object} state - Previously saved state
@@ -431,7 +428,7 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
     hintsByType,
     processingState: computed(() => processingState.value),
     errorState: computed(() => errorState.value),
-    
+
     // Methods
     applyHint,
     removeHint,
@@ -440,11 +437,11 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
     isHintActive,
     getHintData,
     getHintStats,
-    
+
     // State management
     saveState,
     restoreState,
-    
+
     // Utility
     reapplyAllHints
   }

@@ -1,139 +1,160 @@
 <template>
-  <div class="refute-container">
-    <!-- Claim Section -->
-    <div class="claim-section">
-      <div class="section-header">
-        <div class="section-label">
-          Claim to Disprove
-        </div>
-      </div>
-      <div class="claim-text">
-        {{ claimText }}
-      </div>
+  <div class="refute-input">
+    <!-- Claim Banner -->
+    <div class="claim-banner">
+      <span class="claim-label">Disprove:</span>
+      <span class="claim-text">"{{ claimText }}"</span>
     </div>
 
-    <!-- Function Reference -->
-    <div class="function-section">
-      <div class="section-header">
-        <div class="section-label">
-          Function Signature
-        </div>
-      </div>
-      <div class="function-signature">
-        <code>{{ functionSignature }}</code>
-      </div>
-    </div>
-
-    <!-- Reference Code (if enabled) -->
-    <div
-      v-if="showReferenceCode"
-      class="code-section"
-    >
-      <div class="section-header">
-        <div class="section-label">
-          Reference Code
-        </div>
-      </div>
-      <pre class="reference-code"><code>{{ problem.reference_solution }}</code></pre>
-    </div>
-
-    <!-- Input Section -->
-    <div class="input-section">
-      <div class="section-header">
-        <div class="section-label">
-          {{ inputConfig?.label || 'Enter function arguments as JSON' }}
-        </div>
-      </div>
-
-      <div class="input-hint">
-        Provide input values that will make the claim false.
-        <span
-          v-if="parameters.length > 0"
-          class="param-hint"
+    <!-- Function Call Interface -->
+    <div class="test-wrapper">
+      <div class="function-call">
+        <span class="fn-name">{{ functionName }}</span>
+        <span class="fn-paren">(</span>
+        <template
+          v-for="(param, i) in parameters"
+          :key="param.name"
         >
-          Required parameters: {{ parameters.map(p => p.name).join(', ') }}
+          <span
+            v-if="i > 0"
+            class="fn-comma"
+          >, </span>
+          <span class="param-name">{{ param.name }}</span>
+          <span class="param-eq">=</span>
+          <input
+            :id="`param-${param.name}`"
+            v-model="inputs[param.name]"
+            type="text"
+            class="param-input"
+            :placeholder="param.type"
+            :disabled="testing || disabled"
+            :aria-label="`Enter value for ${param.name} (type: ${param.type})`"
+            @keydown.enter="!testing && hasValidInputs && testInput()"
+          >
+        </template>
+        <span class="fn-paren">)</span>
+        <span class="fn-arrow">→</span>
+        <span
+          class="fn-result"
+          :class="{
+            'has-result': lastResult !== null,
+            'result-flash': showResultFlash,
+            'is-disproven': lastDisproven
+          }"
+        >
+          {{ lastResult !== null ? formatOutput(lastResult) : '?' }}
         </span>
       </div>
 
-      <div class="json-input-wrapper">
-        <textarea
-          ref="inputRef"
-          :value="modelValue"
-          :placeholder="placeholder"
-          :disabled="disabled"
-          class="json-input"
-          rows="3"
-          spellcheck="false"
-          @input="handleInput"
-          @keydown.ctrl.enter="handleSubmit"
-          @keydown.meta.enter="handleSubmit"
-        />
-        <div
-          v-if="validationError"
-          class="validation-error"
-        >
-          {{ validationError }}
-        </div>
+      <button
+        class="test-btn"
+        :disabled="testing || !hasValidInputs"
+        @click="testInput"
+      >
+        <template v-if="testing">
+          <span class="spinner" />
+          <span>Testing</span>
+        </template>
+        <template v-else>
+          <span>Test</span>
+        </template>
+      </button>
+    </div>
+
+    <!-- Test Error -->
+    <div
+      v-if="testError"
+      class="test-error"
+    >
+      {{ testError }}
+    </div>
+
+    <!-- Attempt History -->
+    <div
+      v-if="attempts.length > 0"
+      class="attempt-history"
+    >
+      <div
+        v-for="(attempt, idx) in attempts"
+        :key="idx"
+        class="attempt-row"
+        :class="{ 'is-selected': selectedAttempt === idx }"
+        @click="selectAttempt(idx)"
+      >
+        <span class="attempt-call">{{ formatCall(attempt.input) }}</span>
+        <span class="attempt-arrow">→</span>
+        <span class="attempt-result">{{ formatOutput(attempt.result) }}</span>
+        <span
+          v-if="attempt.disproven"
+          class="badge-success"
+        >✓ DISPROVES</span>
+        <span
+          v-else
+          class="badge-muted"
+        >claim holds</span>
       </div>
     </div>
 
-    <!-- Submit Button -->
+    <!-- Submit Button (only when counterexample found) -->
     <button
-      id="submitButton"
+      v-if="hasCounterexample"
       class="submit-button"
-      :disabled="disabled || !isValidJson"
-      :aria-busy="disabled"
-      :aria-label="getButtonAriaLabel()"
-      @click="handleSubmit"
+      :disabled="disabled"
+      @click="submitCounterexample"
     >
-      <span
-        v-if="!disabled"
-        class="button-text"
-      >Find Counterexample</span>
+      <span v-if="!disabled">
+        Submit {{ formatCall(counterexample!) }} as counterexample
+      </span>
       <div
-        v-if="disabled"
+        v-else
         class="loading-content"
-        role="status"
-        aria-live="polite"
       >
-        <div
-          class="bouncing-dots"
-          aria-hidden="true"
-        >
+        <div class="bouncing-dots">
           <span class="dot" />
           <span class="dot" />
           <span class="dot" />
         </div>
-        <span class="visually-hidden">Checking input, please wait</span>
       </div>
     </button>
+
+    <!-- No counterexample hint -->
+    <div
+      v-else-if="attempts.length > 0"
+      class="hint-message"
+    >
+      Keep trying! Find an input that makes the claim false.
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 /**
- * RefuteInput - Input component for Refute (Counterexample) activities.
+ * RefuteInput - Compact counterexample finder interface.
  *
- * Allows students to enter JSON arguments to disprove a claim about a function.
+ * Students test function inputs to find one that disproves the claim.
+ * Uses function-call style interface similar to ProbePanel.
  */
-import { computed, ref, watch } from 'vue'
-import type { ActivityProblem, InputConfig } from '../types'
+import { computed, ref, reactive, watch } from 'vue'
+import axios from 'axios'
+import type { ActivityProblem } from '../types'
+import { log } from '@/utils/logger'
 
 interface FunctionParam {
   name: string
   type: string
 }
 
+interface TestAttempt {
+  input: Record<string, unknown>
+  result: unknown
+  disproven: boolean
+}
+
 interface Props {
-  /** Current JSON input (v-model) */
   modelValue: string
-  /** Current problem data */
   problem: ActivityProblem
-  /** Whether input is disabled (during submission) */
   disabled?: boolean
-  /** Editor theme (unused but part of interface) */
   theme?: string
-  /** Whether draft has been saved (unused for refute) */
   draftSaved?: boolean
 }
 
@@ -148,315 +169,542 @@ const emit = defineEmits<{
   (e: 'submit'): void
 }>()
 
-const inputRef = ref<HTMLTextAreaElement | null>(null)
-const validationError = ref<string>('')
+// State
+const inputs = reactive<Record<string, string>>({})
+const attempts = ref<TestAttempt[]>([])
+const testing = ref(false)
+const testError = ref<string | null>(null)
+const showResultFlash = ref(false)
+const selectedAttempt = ref<number | null>(null)
 
-// Get configurations from problem
-const inputConfig = computed<InputConfig | undefined>(() => props.problem.input_config)
-const displayConfig = computed(() => props.problem.display_config)
+// Get config from problem
+const displayConfig = computed(() => props.problem.display_config || {})
+const inputConfig = computed(() => props.problem.input_config || {})
 
-// Extract claim and function info from display_config
-// These come from the handler's get_problem_config
-const claimText = computed<string>(() => {
-  // Handler provides claim_text in display_config
-  return displayConfig.value?.claim_text ||
-         props.problem.description ||
-         'No claim specified'
-})
+const claimText = computed(() =>
+  displayConfig.value.claim_text ||
+  props.problem.description ||
+  'No claim specified'
+)
 
-const functionSignature = computed<string>(() => {
-  // Handler provides function_signature in display_config
-  return displayConfig.value?.function_signature ||
-         props.problem.function_signature ||
-         'f(x)'
-})
+const functionSignature = computed(() =>
+  displayConfig.value.function_signature ||
+  props.problem.function_signature ||
+  'f(x)'
+)
 
-const showReferenceCode = computed<boolean>(() => {
-  return displayConfig.value?.show_reference_code ?? false
-})
-
-const placeholder = computed<string>(() => {
-  return inputConfig.value?.placeholder || '{"x": 0}'
-})
+const functionName = computed(() =>
+  displayConfig.value.function_name ||
+  extractFunctionName(functionSignature.value)
+)
 
 const parameters = computed<FunctionParam[]>(() => {
-  return (inputConfig.value?.parameters as FunctionParam[]) || []
+  const params = inputConfig.value.parameters as FunctionParam[] | undefined
+  if (params && params.length > 0) return params
+  return parseParameters(functionSignature.value)
 })
 
-// Validate JSON input
-const isValidJson = computed<boolean>(() => {
-  if (!props.modelValue.trim()) {
-    return false
-  }
-  try {
-    const parsed = JSON.parse(props.modelValue)
-    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
-  } catch {
-    return false
-  }
-})
-
-// Watch for input changes and validate
-watch(() => props.modelValue, (newValue) => {
-  if (!newValue.trim()) {
-    validationError.value = ''
-    return
-  }
-
-  try {
-    const parsed = JSON.parse(newValue)
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      validationError.value = 'Input must be a JSON object (e.g., {"x": -5})'
-    } else {
-      // Check for required parameters
-      const provided = new Set(Object.keys(parsed))
-      const required = new Set(parameters.value.map(p => p.name))
-      const missing = [...required].filter(name => !provided.has(name))
-
-      if (missing.length > 0) {
-        validationError.value = `Missing parameter(s): ${missing.join(', ')}`
-      } else {
-        validationError.value = ''
-      }
+// Initialize inputs for each parameter
+watch(parameters, (params) => {
+  params.forEach(p => {
+    if (!(p.name in inputs)) {
+      inputs[p.name] = ''
     }
-  } catch (e) {
-    validationError.value = 'Invalid JSON format'
-  }
+  })
+}, { immediate: true })
+
+// Computed
+const hasValidInputs = computed(() => {
+  return parameters.value.every(p => {
+    const val = inputs[p.name]?.trim()
+    return val && val.length > 0
+  })
 })
 
-function handleInput(event: Event) {
-  const target = event.target as HTMLTextAreaElement
-  emit('update:modelValue', target.value)
+const lastResult = computed(() => {
+  if (attempts.value.length === 0) return null
+  return attempts.value[0].result
+})
+
+const lastDisproven = computed(() => {
+  if (attempts.value.length === 0) return false
+  return attempts.value[0].disproven
+})
+
+const counterexample = computed<TestAttempt | null>(() => {
+  return attempts.value.find(a => a.disproven) || null
+})
+
+const hasCounterexample = computed(() => counterexample.value !== null)
+
+// Methods
+function extractFunctionName(signature: string): string {
+  const match = signature.match(/(?:def\s+)?(\w+)\s*\(/)
+  return match ? match[1] : 'f'
 }
 
-function handleSubmit() {
-  if (!props.disabled && isValidJson.value) {
-    emit('submit')
+function parseParameters(signature: string): FunctionParam[] {
+  const match = signature.match(/\(([^)]*)\)/)
+  if (!match) return []
+
+  const paramsStr = match[1].trim()
+  if (!paramsStr) return []
+
+  return paramsStr.split(',').map(p => {
+    const parts = p.trim().split(':')
+    return {
+      name: parts[0].trim(),
+      type: parts[1]?.trim() || 'Any'
+    }
+  })
+}
+
+function parseInputValue(value: string, type: string): unknown {
+  const trimmed = value.trim()
+
+  // Handle common types
+  if (type.toLowerCase().includes('int')) {
+    const num = parseInt(trimmed, 10)
+    return isNaN(num) ? trimmed : num
+  }
+  if (type.toLowerCase().includes('float')) {
+    const num = parseFloat(trimmed)
+    return isNaN(num) ? trimmed : num
+  }
+  if (type.toLowerCase().includes('bool')) {
+    if (trimmed.toLowerCase() === 'true') return true
+    if (trimmed.toLowerCase() === 'false') return false
+    return trimmed
+  }
+  if (type.toLowerCase().includes('str')) {
+    // Remove quotes if present
+    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+      return trimmed.slice(1, -1)
+    }
+    return trimmed
+  }
+  if (type.toLowerCase().includes('list') || trimmed.startsWith('[')) {
+    try {
+      return JSON.parse(trimmed)
+    } catch {
+      return trimmed
+    }
+  }
+  if (type.toLowerCase().includes('dict') || trimmed.startsWith('{')) {
+    try {
+      return JSON.parse(trimmed)
+    } catch {
+      return trimmed
+    }
+  }
+
+  // Try to parse as JSON, fallback to string
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    return trimmed
   }
 }
 
-function getButtonAriaLabel(): string {
-  if (props.disabled) {
-    return 'Checking input, please wait'
+function buildInputArgs(): Record<string, unknown> {
+  const args: Record<string, unknown> = {}
+  parameters.value.forEach(p => {
+    args[p.name] = parseInputValue(inputs[p.name], p.type)
+  })
+  return args
+}
+
+async function testInput() {
+  if (testing.value || !hasValidInputs.value) return
+
+  testing.value = true
+  testError.value = null
+
+  const inputArgs = buildInputArgs()
+
+  try {
+    const response = await axios.post(
+      `/api/problems/${props.problem.slug}/test-counterexample/`,
+      { input: inputArgs }
+    )
+
+    const { success, result, claim_disproven, error } = response.data
+
+    if (!success) {
+      testError.value = error || 'Execution failed'
+      return
+    }
+
+    // Add to history (most recent first)
+    attempts.value.unshift({
+      input: inputArgs,
+      result,
+      disproven: claim_disproven
+    })
+
+    // Flash effect
+    showResultFlash.value = true
+    setTimeout(() => { showResultFlash.value = false }, 600)
+
+    log.info('Refute test', { input: inputArgs, result, disproven: claim_disproven })
+
+  } catch (err) {
+    const axiosError = err as { response?: { data?: { error?: string } } }
+    testError.value = axiosError.response?.data?.error || 'Test failed'
+    log.error('Refute test failed', err)
+  } finally {
+    testing.value = false
   }
-  if (!isValidJson.value) {
-    return 'Please enter valid JSON input before submitting'
+}
+
+function selectAttempt(idx: number) {
+  selectedAttempt.value = idx
+  const attempt = attempts.value[idx]
+  if (attempt.disproven) {
+    // Pre-fill for submission
+    emit('update:modelValue', JSON.stringify(attempt.input))
   }
-  return 'Find Counterexample'
+}
+
+function submitCounterexample() {
+  if (!counterexample.value || props.disabled) return
+
+  // Set the model value to the counterexample JSON
+  emit('update:modelValue', JSON.stringify(counterexample.value.input))
+
+  // Trigger submit
+  emit('submit')
+}
+
+function formatCall(input: Record<string, unknown>): string {
+  const args = parameters.value.map(p => {
+    const val = input[p.name]
+    return `${p.name}=${formatOutput(val)}`
+  }).join(', ')
+  return `${functionName.value}(${args})`
+}
+
+function formatOutput(value: unknown): string {
+  if (value === null) return 'None'
+  if (value === undefined) return '?'
+  if (typeof value === 'string') return `"${value}"`
+  if (typeof value === 'boolean') return value ? 'True' : 'False'
+  if (Array.isArray(value)) return JSON.stringify(value)
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
 }
 </script>
 
 <style scoped>
-/* Container */
-.refute-container {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+.refute-input {
+  background: var(--color-bg-panel);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
-/* Section Headers */
-.section-header {
+/* Claim Banner */
+.claim-banner {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: rgba(234, 102, 102, 0.1);
+  border-bottom: 2px solid rgba(234, 102, 102, 0.3);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg-hover);
-  border-bottom: 1px solid var(--color-bg-input);
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
 }
 
-.section-label {
+.claim-label {
   font-size: var(--font-size-sm);
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--color-danger);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-/* Claim Section */
-.claim-section {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-base);
-  overflow: hidden;
-  border: 1px solid var(--color-bg-border);
-}
-
 .claim-text {
-  padding: var(--spacing-md) var(--spacing-lg);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   color: var(--color-text-primary);
   font-style: italic;
-  background: rgba(234, 102, 102, 0.1);
-  border-left: 4px solid var(--color-danger);
 }
 
-/* Function Section */
-.function-section {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-base);
-  overflow: hidden;
-  border: 1px solid var(--color-bg-border);
-}
-
-.function-signature {
-  padding: var(--spacing-md) var(--spacing-lg);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-base);
-  color: var(--color-primary-gradient-start);
-  background: var(--color-bg-input);
-}
-
-.function-signature code {
-  background: transparent;
-}
-
-/* Code Section */
-.code-section {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-base);
-  overflow: hidden;
-  border: 1px solid var(--color-bg-border);
-}
-
-.reference-code {
-  margin: 0;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-input);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.reference-code code {
-  background: transparent;
-}
-
-/* Input Section */
-.input-section {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-base);
-  overflow: hidden;
-  border: 1px solid var(--color-bg-border);
-}
-
-.input-hint {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  background: var(--color-bg-input);
-}
-
-.param-hint {
-  display: block;
-  margin-top: var(--spacing-xs);
-  font-family: var(--font-mono);
-  color: var(--color-text-secondary);
-}
-
-.json-input-wrapper {
-  padding: var(--spacing-md) var(--spacing-lg);
-}
-
-.json-input {
-  width: 100%;
-  padding: var(--spacing-md);
+/* Test Wrapper */
+.test-wrapper {
   background: var(--color-bg-input);
   border: 2px solid var(--color-bg-border);
   border-radius: var(--radius-base);
-  font-family: var(--font-mono);
+  margin: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
+  transition: border-color 0.2s ease;
+}
+
+.test-wrapper:focus-within {
+  border-color: var(--color-primary-gradient-start);
+}
+
+.function-call {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-base);
   color: var(--color-text-primary);
-  resize: vertical;
-  transition: var(--transition-base);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-sm);
 }
 
-.json-input:focus {
-  outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+.fn-name {
+  color: var(--color-info);
+  font-weight: 600;
 }
 
-.json-input:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.json-input::placeholder {
+.fn-paren,
+.fn-comma {
   color: var(--color-text-muted);
 }
 
-.validation-error {
-  margin-top: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(234, 102, 102, 0.1);
-  border: 1px solid var(--color-danger);
+.param-name {
+  color: var(--color-text-secondary);
+}
+
+.param-eq {
+  color: var(--color-text-muted);
+  margin: 0 2px;
+}
+
+.param-input {
+  width: 80px;
+  height: 28px;
+  padding: 0 var(--spacing-sm);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-bg-border);
   border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-sm);
-  color: var(--color-danger);
+  text-align: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.param-input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  font-size: var(--font-size-xs);
+}
+
+.param-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.param-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fn-arrow {
+  color: var(--color-text-muted);
+  margin: 0 var(--spacing-sm);
+}
+
+.fn-result {
+  color: var(--color-text-muted);
+  font-style: italic;
+  min-width: 40px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.fn-result.has-result {
+  color: var(--color-text-primary);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.fn-result.is-disproven {
+  color: var(--color-success);
+}
+
+.fn-result.result-flash {
+  animation: resultFlash 0.6s ease;
+}
+
+@keyframes resultFlash {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* Test Button */
+.test-btn {
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-lg);
+  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.test-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.test-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Test Error */
+.test-error {
+  margin: 0 var(--spacing-lg) var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+}
+
+/* Attempt History */
+.attempt-history {
+  margin: 0 var(--spacing-lg) var(--spacing-md);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.attempt-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-xs);
+  background: var(--color-bg-hover);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.attempt-row:hover {
+  background: var(--color-bg-input);
+}
+
+.attempt-row.is-selected {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-primary-gradient-start);
+}
+
+.attempt-call {
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attempt-arrow {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.attempt-result {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--color-success);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.badge-muted {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  flex-shrink: 0;
 }
 
 /* Submit Button */
 .submit-button {
-  margin: var(--spacing-md);
+  margin: var(--spacing-md) var(--spacing-lg);
+  width: calc(100% - calc(var(--spacing-lg) * 2));
   padding: var(--spacing-md) var(--spacing-xl);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  background: linear-gradient(135deg, var(--color-success) 0%, #059669 100%);
+  color: white;
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
   font-weight: 600;
   cursor: pointer;
-  transition: var(--transition-base);
-  box-shadow: var(--shadow-colored);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
 
 .submit-button:disabled {
-  background: var(--color-bg-disabled);
-  cursor: not-allowed;
   opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Loading Animation */
 .loading-content {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--spacing-xs);
+  justify-content: center;
 }
 
 .bouncing-dots {
   display: flex;
-  justify-content: center;
-  align-items: center;
   gap: var(--spacing-sm);
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
-  background: var(--color-text-primary);
-  border-radius: var(--radius-circle);
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out both;
 }
 
-.dot:nth-child(1) {
-  animation-delay: -0.32s;
-}
-
-.dot:nth-child(2) {
-  animation-delay: -0.16s;
-}
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
 
 @keyframes bounce {
   0%, 80%, 100% {
@@ -469,16 +717,14 @@ function getButtonAriaLabel(): string {
   }
 }
 
-/* Accessibility */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+/* Hint Message */
+.hint-message {
+  margin: 0 var(--spacing-lg) var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
 }
 </style>

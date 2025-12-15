@@ -19,6 +19,8 @@
       :has-valid-inputs="hasValidInputs"
       :probe-history="probeHistory"
       :probe-error="probeError"
+      :is-duplicate="isDuplicate"
+      :cached-result="cachedResult"
       :format-function-call="formatFunctionCall"
       :format-output="formatOutput"
       @execute-probe="executeProbe"
@@ -138,6 +140,8 @@ const {
   probeCountDisplay,
   probeStatusClass,
   hasValidInputs,
+  isDuplicate,
+  cachedResult,
   executeProbe,
   formatFunctionCall,
   formatOutput,

@@ -31,6 +31,7 @@ import { useRefuteConfig, type UseRefuteConfigReturn } from './useRefuteConfig';
 import { useDebugFixConfig, type UseDebugFixConfigReturn } from './useDebugFixConfig';
 import { useProbeableCodeConfig, type UseProbeableCodeConfigReturn } from './useProbeableCodeConfig';
 import { useProbeableSpecConfig, type UseProbeableSpecConfigReturn } from './useProbeableSpecConfig';
+import { problemTypeHandlers, type ComposableBundle } from './problemTypeHandlers';
 
 // ===== TYPES =====
 
@@ -104,6 +105,17 @@ export const useProblemEditor = (): UseProblemEditorReturn => {
   const probeableCodeConfig = useProbeableCodeConfig();
   const probeableSpecConfig = useProbeableSpecConfig();
 
+  // Bundle of type-specific composables for registry handlers
+  const composables: ComposableBundle = {
+    mcqOptions,
+    promptConfig,
+    debugFixConfig,
+    probeableCodeConfig,
+    probeableSpecConfig,
+    refuteConfig,
+    segmentation,
+  };
+
   // Activity type state
   const availableTypes = ref<ActivityTypeConfig[]>([]);
   const loadingTypes = ref(false);
@@ -143,9 +155,13 @@ export const useProblemEditor = (): UseProblemEditorReturn => {
       log.error('Failed to load activity types', error);
       // Fallback to default types
       availableTypes.value = [
-        { type: 'eipl', label: 'Explain in Plain Language (EiPL)', has_pipeline: true },
         { type: 'mcq', label: 'Multiple Choice Question', has_pipeline: true },
-        { type: 'prompt', label: 'Prompt (Image-based EiPL)', has_pipeline: true },
+        { type: 'eipl', label: 'Explain in Plain Language', has_pipeline: true },
+        { type: 'prompt', label: 'Prompt Problem', has_pipeline: true },
+        { type: 'debug_fix', label: 'Debug and Fix Code', has_pipeline: true },
+        { type: 'probeable_code', label: 'Probeable Problem (Code)', has_pipeline: true },
+        { type: 'probeable_spec', label: 'Probeable Problem (Explanation)', has_pipeline: true },
+        { type: 'refute', label: 'Refute: Find Counterexample', has_pipeline: true },
       ];
     } finally {
       loadingTypes.value = false;
@@ -178,18 +194,10 @@ export const useProblemEditor = (): UseProblemEditorReturn => {
       // Load test cases via their composable (single source of truth)
       testCases.loadFromBackend(problemData.test_cases || []);
 
-      // Load type-specific data
-      // MCQ problems use 'options' field (polymorphic McqProblem model)
-      if (problemData.options) {
-        mcqOptions.setOptions(problemData.options);
-      }
-
-      if (problemData.segmentation_config) {
-        segmentation.loadConfig(problemData.segmentation_config);
-      }
-
-      if (problemData.prompt_config) {
-        promptConfig.loadConfig(problemData.prompt_config);
+      // Load type-specific data via registry
+      const typeHandler = problemTypeHandlers[problemData.problem_type];
+      if (typeHandler) {
+        typeHandler.load(problemData, composables);
       }
 
       // Load hints
@@ -210,9 +218,8 @@ export const useProblemEditor = (): UseProblemEditorReturn => {
 
   const saveProblem = async (): Promise<ProblemDetailed> => {
     return ui.executeAction('save problem', async () => {
-      // Get handler config for this problem type
+      // Get handler config for this problem type (used for capability checks)
       const config = typeConfig.value;
-      const typeSpecificSection = config?.type_specific_section;
 
       // Build problem data with universal fields
       const problemData: Record<string, unknown> = {
@@ -232,21 +239,10 @@ export const useProblemEditor = (): UseProblemEditorReturn => {
         problemData.test_cases = testCases.convertForBackend();
       }
 
-      // Segmentation (eipl, prompt types that support it)
-      if (config?.supports?.segmentation) {
-        problemData.segmentation_config = segmentation.formatForApi();
-        problemData.requires_highlevel_comprehension = segmentation.isEnabled.value;
-      }
-
-      // MCQ options (types with type_specific_section = 'options')
-      if (typeSpecificSection === 'options') {
-        problemData.options = mcqOptions.getOptionsForApi();
-        problemData.question_text = form.form.description;  // MCQ uses description as question_text
-      }
-
-      // Prompt config (types with type_specific_section = 'prompt_config')
-      if (typeSpecificSection === 'prompt_config') {
-        problemData.prompt_config = promptConfig.getConfigForApi();
+      // Type-specific data via registry
+      const typeHandler = problemTypeHandlers[form.form.problem_type];
+      if (typeHandler) {
+        Object.assign(problemData, typeHandler.save(composables));
       }
 
       // Save

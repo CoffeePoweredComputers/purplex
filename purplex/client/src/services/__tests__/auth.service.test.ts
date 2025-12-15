@@ -90,9 +90,9 @@ describe('AuthService', () => {
 
       const result = await authService.validateToken()
 
-      expect(result).toEqual({ 
-        authenticated: false, 
-        error: 'Token retrieval failed' 
+      expect(result).toEqual({
+        authenticated: false,
+        error: 'Token retrieval failed'
       })
       expect(log.error).toHaveBeenCalledWith('Token validation error', mockError)
     })
@@ -107,9 +107,9 @@ describe('AuthService', () => {
 
       const result = await authService.validateToken()
 
-      expect(result).toEqual({ 
-        authenticated: false, 
-        error: 'Backend validation failed' 
+      expect(result).toEqual({
+        authenticated: false,
+        error: 'Backend validation failed'
       })
       expect(log.error).toHaveBeenCalledWith('Token validation error', mockError)
     })
@@ -125,9 +125,9 @@ describe('AuthService', () => {
 
       const result = await authService.validateToken()
 
-      expect(result).toEqual({ 
-        authenticated: false, 
-        error: 'Network error' 
+      expect(result).toEqual({
+        authenticated: false,
+        error: 'Network error'
       })
     })
   })

@@ -1,441 +1,387 @@
 <template>
-  <transition name="modal-fade">
-    <div 
-      v-if="isVisible" 
-      class="modal-overlay" 
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-      aria-describedby="modal-description"
-      @click.self="closeModal"
-    >
+  <Teleport to="body">
+    <transition name="modal-fade">
       <div
-        ref="modalContent"
-        class="modal-content"
-        :style="modalStyle"
-        @keydown.esc="closeModal"
+        v-if="isVisible"
+        class="modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+        @click.self="closeModal"
       >
-        <div class="modal-header">
-          <h3
-            id="modal-title"
-            class="modal-title"
-          >
-            🔍 Step-by-Step Debugger
-          </h3>
-          <span
-            id="modal-description"
-            class="sr-only"
-          >Interactive Python code debugger powered by Python Tutor</span>
-          <div class="modal-actions">
-            <div class="size-controls-group">
-              <span class="size-label">Size</span>
-              <div class="size-controls">
-                <button 
-                  v-for="size in sizePresets" 
-                  :key="size.name"
-                  :class="['size-btn', { active: currentSize === size.name }]"
-                  :title="`${size.label} view`"
-                  :aria-label="`Set ${size.label.toLowerCase()} window size`"
-                  @click="setModalSize(size.name)"
+        <div
+          ref="modalContentRef"
+          class="modal-content"
+          :style="modalStyle"
+          @keydown.esc="closeModal"
+        >
+          <div class="modal-header">
+            <h3
+              id="modal-title"
+              class="modal-title"
+            >
+              🔍 Step-by-Step Debugger
+            </h3>
+            <span
+              id="modal-description"
+              class="sr-only"
+            >Interactive Python code debugger powered by Python Tutor</span>
+            <div class="modal-actions">
+              <div class="size-controls-group">
+                <span class="size-label">Size</span>
+                <div class="size-controls">
+                  <button
+                    v-for="size in sizePresets"
+                    :key="size.name"
+                    :class="['size-btn', { active: currentSize === size.name }]"
+                    :title="`${size.label} view`"
+                    :aria-label="`Set ${size.label.toLowerCase()} window size`"
+                    @click="setModalSize(size.name)"
+                  >
+                    {{ size.icon }}
+                  </button>
+                </div>
+              </div>
+              <button
+                class="action-button"
+                title="Open in new tab"
+                aria-label="Open Python Tutor in new tab"
+                @click="openInNewTab"
+              >
+                <span class="icon">⬈</span>
+              </button>
+              <button
+                class="close-button"
+                title="Close (ESC)"
+                aria-label="Close modal"
+                @click="closeModal"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+          <div class="modal-body">
+            <div
+              v-if="loading"
+              class="loading-container"
+            >
+              <div class="loading-spinner" />
+              <p>Loading debugger...</p>
+            </div>
+            <div
+              v-show="!loading && !urlTooLong"
+              v-if="pythonTutorUrl && !urlTooLong"
+              class="iframe-wrapper"
+            >
+              <div class="iframe-header">
+                <span class="iframe-info">Python Tutor Visualizer</span>
+                <button
+                  class="theme-toggle"
+                  :title="`Switch to ${isDarkWrapper ? 'light' : 'dark'} background`"
+                  @click="toggleTheme"
                 >
-                  {{ size.icon }}
+                  <span v-if="isDarkWrapper">🌞</span>
+                  <span v-else>🌙</span>
+                </button>
+              </div>
+              <iframe
+                :src="pythonTutorUrl"
+                :title="iframeTitle"
+                width="100%"
+                height="100%"
+                tabindex="0"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                referrerpolicy="no-referrer"
+                class="debugger-iframe"
+                :class="{ 'dark-wrapper': isDarkWrapper }"
+                @load="onIframeLoad"
+                @error="onIframeError"
+              />
+            </div>
+            <div
+              v-if="urlTooLong"
+              class="url-warning"
+            >
+              <p>⚠️ Code is too large for direct debugging</p>
+              <p class="warning-details">
+                The code exceeds the URL length limit ({{ urlLength }} characters)
+              </p>
+              <div class="warning-actions">
+                <button
+                  class="action-btn primary"
+                  @click="copyAndOpen"
+                >
+                  <span>📋</span> Copy Code & Open Python Tutor
+                </button>
+                <button
+                  class="action-btn secondary"
+                  @click="closeModal"
+                >
+                  Cancel
                 </button>
               </div>
             </div>
-            <button
-              class="action-button"
-              title="Open in new tab"
-              aria-label="Open Python Tutor in new tab"
-              @click="openInNewTab"
+            <div
+              v-if="error"
+              class="error-message"
             >
-              <span class="icon">⬈</span>
-            </button>
-            <button
-              class="close-button"
-              title="Close (ESC)"
-              aria-label="Close modal"
-              @click="closeModal"
-            >
-              &times;
-            </button>
-          </div>
-        </div>
-        <div class="modal-body">
-          <div
-            v-if="loading"
-            class="loading-container"
-          >
-            <div class="loading-spinner" />
-            <p>Loading debugger...</p>
-          </div>
-          <div
-            v-show="!loading && !urlTooLong"
-            v-if="pythonTutorUrl && !urlTooLong"
-            class="iframe-wrapper"
-          >
-            <div class="iframe-header">
-              <span class="iframe-info">Python Tutor Visualizer</span>
-              <button 
-                class="theme-toggle" 
-                :title="`Switch to ${isDarkWrapper ? 'light' : 'dark'} background`"
-                @click="toggleTheme"
-              >
-                <span v-if="isDarkWrapper">🌞</span>
-                <span v-else>🌙</span>
-              </button>
-            </div>
-            <iframe
-              :src="pythonTutorUrl"
-              :title="iframeTitle"
-              width="100%"
-              height="100%"
-              tabindex="0"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-              referrerpolicy="no-referrer"
-              class="debugger-iframe"
-              :class="{ 'dark-wrapper': isDarkWrapper }"
-              @load="onIframeLoad"
-              @error="onIframeError"
-            />
-          </div>
-          <div
-            v-if="urlTooLong"
-            class="url-warning"
-          >
-            <p>⚠️ Code is too large for direct debugging</p>
-            <p class="warning-details">
-              The code exceeds the URL length limit ({{ urlLength }} characters)
-            </p>
-            <div class="warning-actions">
-              <button
-                class="action-btn primary"
-                @click="copyAndOpen"
-              >
-                <span>📋</span> Copy Code & Open Python Tutor
-              </button>
-              <button
-                class="action-btn secondary"
-                @click="closeModal"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-          <div
-            v-if="error"
-            class="error-message"
-          >
-            <p class="error-icon">
-              ❌
-            </p>
-            <h4 class="error-title">
-              {{ getErrorTitle() }}
-            </h4>
-            <p class="error-description">
-              {{ errorMessage }}
-            </p>
-            <div class="error-actions">
-              <button
-                class="retry-button"
-                @click="retry"
-              >
-                <span>🔄</span> Try Again
-              </button>
-              <a 
-                v-if="errorType === 'TIMEOUT' || errorType === 'NETWORK'"
-                href="https://pythontutor.com"
-                target="_blank"
-                class="error-link"
-              >
-                Open Python Tutor directly
-              </a>
+              <p class="error-icon">
+                ❌
+              </p>
+              <h4 class="error-title">
+                {{ getErrorTitle() }}
+              </h4>
+              <p class="error-description">
+                {{ errorMessage }}
+              </p>
+              <div class="error-actions">
+                <button
+                  class="retry-button"
+                  @click="retry"
+                >
+                  <span>🔄</span> Try Again
+                </button>
+                <a
+                  v-if="errorType === 'TIMEOUT' || errorType === 'NETWORK'"
+                  href="https://pythontutor.com"
+                  target="_blank"
+                  class="error-link"
+                >
+                  Open Python Tutor directly
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </transition>
+    </transition>
+  </Teleport>
 </template>
 
-<script>
-import { log } from '@/utils/logger';
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
+import { log } from '@/utils/logger'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 
-export default {
-  name: 'PyTutorModal',
-  props: {
-    isVisible: {
-      type: Boolean,
-      required: true,
-    },
-    pythonTutorUrl: {
-      type: String,
-      required: true,
-    },
-  },
-  data() {
-    return {
-      loading: true,
-      error: false,
-      errorType: null,
-      errorMessage: '',
-      urlTooLong: false,
-      urlLength: 0,
-      iframeTitle: 'Python Tutor Code Visualizer',
-      URL_LIMIT: 2000, // Safe URL length limit
-      lastFocusedElement: null,
-      loadingTimeout: null,
-      TIMEOUT_DURATION: 10000, // 10 seconds
-      escListenerAdded: false,
-      isDarkWrapper: false,
-      currentSize: 'medium',
-      sizePresets: [
-        { name: 'small', label: 'Small', icon: '◻', width: '800px', height: '600px' },
-        { name: 'medium', label: 'Medium', icon: '◼', width: '1200px', height: '800px' },
-        { name: 'large', label: 'Large', icon: '⬛', width: '95%', height: '90vh' },
-        { name: 'fullscreen', label: 'Fullscreen', icon: '⛶', width: '100%', height: '100vh' }
-      ],
-    };
-  },
-  computed: {
-    modalStyle() {
-      const preset = this.sizePresets.find(s => s.name === this.currentSize);
-      if (!preset) {return {};}
-      
-      return {
-        '--modal-width': preset.width,
-        '--modal-height': preset.height,
-        '--modal-max-width': preset.name === 'fullscreen' ? '100%' : preset.width,
-        '--modal-max-height': preset.name === 'fullscreen' ? '100%' : preset.height,
-      };
-    },
-  },
-  watch: {
-    isVisible(newVal) {
-      if (newVal) {
-        this.loading = true;
-        this.error = false;
-        this.errorType = null;
-        this.errorMessage = '';
-        this.checkUrlLength();
-        
-        // Start loading timeout
-        if (!this.urlTooLong) {
-          this.startLoadingTimeout();
-        }
-        
-        // Add ESC key listener only if not already added
-        if (!this.escListenerAdded) {
-          document.addEventListener('keydown', this.handleEscKey);
-          this.escListenerAdded = true;
-        }
-        // Focus management
-        this.$nextTick(() => {
-          this.trapFocus();
-          this.focusFirstElement();
-        });
-      } else {
-        // Remove ESC key listener if it was added
-        if (this.escListenerAdded) {
-          document.removeEventListener('keydown', this.handleEscKey);
-          this.escListenerAdded = false;
-        }
-        this.clearLoadingTimeout();
-        // Restore focus to trigger element
-        if (this.lastFocusedElement) {
-          this.lastFocusedElement.focus();
-        }
-      }
-    },
-    pythonTutorUrl(newVal) {
-      if (newVal) {
-        this.checkUrlLength();
-      }
-    },
-  },
-  created() {
-    // Store the currently focused element before modal opens
-    this.lastFocusedElement = document.activeElement;
-    // Load theme preference
-    const savedTheme = localStorage.getItem('pytutor-dark-wrapper');
-    if (savedTheme !== null) {
-      this.isDarkWrapper = savedTheme === 'true';
+type SizePreset = 'small' | 'medium' | 'large' | 'fullscreen'
+type ErrorType = 'TIMEOUT' | 'NETWORK' | null
+
+interface SizePresetConfig {
+  name: SizePreset
+  label: string
+  icon: string
+  width: string
+  height: string
+}
+
+const props = defineProps<{
+  isVisible: boolean
+  pythonTutorUrl: string
+}>()
+
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'debugger-loaded'): void
+  (e: 'debugger-error', payload: { type: ErrorType; message: string }): void
+}>()
+
+// Focus trap composable
+const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
+
+// Constants
+const URL_LIMIT = 2000
+const TIMEOUT_DURATION = 10000
+
+// State
+const loading = ref(true)
+const error = ref(false)
+const errorType = ref<ErrorType>(null)
+const errorMessage = ref('')
+const urlTooLong = ref(false)
+const urlLength = ref(0)
+const iframeTitle = ref('Python Tutor Code Visualizer')
+const loadingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+const isDarkWrapper = ref(false)
+const currentSize = ref<SizePreset>('medium')
+
+const sizePresets: SizePresetConfig[] = [
+  { name: 'small', label: 'Small', icon: '◻', width: '800px', height: '600px' },
+  { name: 'medium', label: 'Medium', icon: '◼', width: '1200px', height: '800px' },
+  { name: 'large', label: 'Large', icon: '⬛', width: '95%', height: '90vh' },
+  { name: 'fullscreen', label: 'Fullscreen', icon: '⛶', width: '100%', height: '100vh' }
+]
+
+// Computed
+const modalStyle = computed(() => {
+  const preset = sizePresets.find(s => s.name === currentSize.value)
+  if (!preset) {
+    return {}
+  }
+  return {
+    '--modal-width': preset.width,
+    '--modal-height': preset.height,
+    '--modal-max-width': preset.name === 'fullscreen' ? '100%' : preset.width,
+    '--modal-max-height': preset.name === 'fullscreen' ? '100%' : preset.height,
+  }
+})
+
+// Methods
+function closeModal(): void {
+  emit('close')
+}
+
+function checkUrlLength(): void {
+  urlLength.value = props.pythonTutorUrl.length
+  urlTooLong.value = urlLength.value > URL_LIMIT
+  if (urlTooLong.value) {
+    loading.value = false
+  }
+}
+
+function startLoadingTimeout(): void {
+  clearLoadingTimeout()
+  loadingTimeout.value = setTimeout(() => {
+    if (loading.value) {
+      loading.value = false
+      error.value = true
+      errorType.value = 'TIMEOUT'
+      errorMessage.value = 'Python Tutor is taking too long to load. This might be due to slow internet or service issues.'
+      emit('debugger-error', { type: errorType.value, message: errorMessage.value })
     }
-    // Load size preference
-    const savedSize = localStorage.getItem('pytutor-modal-size');
-    if (savedSize && this.sizePresets.find(s => s.name === savedSize)) {
-      this.currentSize = savedSize;
+  }, TIMEOUT_DURATION)
+}
+
+function clearLoadingTimeout(): void {
+  if (loadingTimeout.value) {
+    clearTimeout(loadingTimeout.value)
+    loadingTimeout.value = null
+  }
+}
+
+function onIframeLoad(): void {
+  clearLoadingTimeout()
+  loading.value = false
+  error.value = false
+  emit('debugger-loaded')
+}
+
+function onIframeError(): void {
+  clearLoadingTimeout()
+  loading.value = false
+  error.value = true
+  errorType.value = 'NETWORK'
+  errorMessage.value = 'Unable to connect to Python Tutor. Please check your internet connection.'
+  emit('debugger-error', { type: errorType.value, message: errorMessage.value })
+}
+
+function retry(): void {
+  loading.value = true
+  error.value = false
+  errorType.value = null
+  errorMessage.value = ''
+  startLoadingTimeout()
+  // Force iframe reload by setting src to itself
+  const iframe = modalContentRef.value?.querySelector('.debugger-iframe') as HTMLIFrameElement | null
+  if (iframe && iframe.src) {
+    const currentSrc = iframe.src
+    iframe.src = ''
+    iframe.src = currentSrc
+  }
+}
+
+function openInNewTab(): void {
+  const regularUrl = props.pythonTutorUrl.replace('/iframe-embed.html', '/visualize.html')
+  window.open(regularUrl, '_blank')
+  closeModal()
+}
+
+function copyAndOpen(): void {
+  const urlParams = new URL(props.pythonTutorUrl).hash.substring(1)
+  const params = new URLSearchParams(urlParams)
+  const code = params.get('code')
+
+  if (code) {
+    navigator.clipboard.writeText(code).then(() => {
+      window.open('https://pythontutor.com/visualize.html#mode=edit', '_blank')
+      closeModal()
+    }).catch(err => {
+      log.error('Failed to copy code', { error: err })
+      window.open('https://pythontutor.com/visualize.html#mode=edit', '_blank')
+    })
+  }
+}
+
+function getErrorTitle(): string {
+  switch (errorType.value) {
+    case 'TIMEOUT':
+      return 'Loading Timeout'
+    case 'NETWORK':
+      return 'Connection Error'
+    default:
+      return 'Failed to Load Debugger'
+  }
+}
+
+function toggleTheme(): void {
+  isDarkWrapper.value = !isDarkWrapper.value
+  localStorage.setItem('pytutor-dark-wrapper', String(isDarkWrapper.value))
+}
+
+function setModalSize(sizeName: SizePreset): void {
+  currentSize.value = sizeName
+  localStorage.setItem('pytutor-modal-size', sizeName)
+
+  const modalContent = modalContentRef.value
+  const modalOverlay = document.querySelector('.modal-overlay') as HTMLElement
+
+  if (sizeName === 'fullscreen') {
+    modalContent?.classList.add('fullscreen-mode')
+    modalOverlay?.classList.add('fullscreen-overlay')
+  } else {
+    modalContent?.classList.remove('fullscreen-mode')
+    modalOverlay?.classList.remove('fullscreen-overlay')
+  }
+}
+
+// Watchers
+watch(() => props.isVisible, (newVal) => {
+  if (newVal) {
+    loading.value = true
+    error.value = false
+    errorType.value = null
+    errorMessage.value = ''
+    checkUrlLength()
+
+    if (!urlTooLong.value) {
+      startLoadingTimeout()
     }
-  },
-  beforeUnmount() {
-    // Clean up ESC key listener if it was added
-    if (this.escListenerAdded) {
-      document.removeEventListener('keydown', this.handleEscKey);
-      this.escListenerAdded = false;
-    }
-    // Clean up focus trap
-    if (this._focusTrapHandler && this.$refs.modalContent) {
-      this.$refs.modalContent.removeEventListener('keydown', this._focusTrapHandler);
-    }
-    // Clear any pending timeouts
-    this.clearLoadingTimeout();
-  },
-  methods: {
-    closeModal() {
-      this.$emit('close');
-    },
-    handleEscKey(e) {
-      if (e.key === 'Escape') {
-        this.closeModal();
-      }
-    },
-    onIframeLoad() {
-      this.clearLoadingTimeout();
-      this.loading = false;
-      this.error = false;
-      this.$emit('debugger-loaded');
-    },
-    onIframeError(event) {
-      this.clearLoadingTimeout();
-      this.loading = false;
-      this.error = true;
-      this.errorType = 'NETWORK';
-      this.errorMessage = 'Unable to connect to Python Tutor. Please check your internet connection.';
-      this.$emit('debugger-error', { type: this.errorType, message: this.errorMessage });
-    },
-    retry() {
-      this.loading = true;
-      this.error = false;
-      this.errorType = null;
-      this.errorMessage = '';
-      this.startLoadingTimeout();
-      // Force iframe reload
-      const iframe = this.$el.querySelector('.debugger-iframe');
-      if (iframe) {
-        iframe.src = iframe.src;
-      }
-    },
-    openInNewTab() {
-      // Convert embed URL to regular URL for better experience in new tab
-      const regularUrl = this.pythonTutorUrl.replace('/iframe-embed.html', '/visualize.html');
-      window.open(regularUrl, '_blank');
-      this.closeModal();
-    },
-    checkUrlLength() {
-      this.urlLength = this.pythonTutorUrl.length;
-      this.urlTooLong = this.urlLength > this.URL_LIMIT;
-      if (this.urlTooLong) {
-        this.loading = false;
-      }
-    },
-    copyAndOpen() {
-      // Extract code from URL
-      const urlParams = new URL(this.pythonTutorUrl).hash.substring(1);
-      const params = new URLSearchParams(urlParams);
-      const code = params.get('code');
-      
-      if (code) {
-        // Copy to clipboard
-        navigator.clipboard.writeText(code).then(() => {
-          // Open Python Tutor in new tab
-          window.open('https://pythontutor.com/visualize.html#mode=edit', '_blank');
-          this.closeModal();
-        }).catch(err => {
-          log.error('Failed to copy code', { error: err });
-          // Fallback: just open Python Tutor
-          window.open('https://pythontutor.com/visualize.html#mode=edit', '_blank');
-        });
-      }
-    },
-    focusFirstElement() {
-      const modalContent = this.$refs.modalContent;
-      if (!modalContent) {return;}
-      
-      // Find first focusable element
-      const focusableElements = modalContent.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      
-      if (focusableElements.length > 0) {
-        focusableElements[0].focus();
-      }
-    },
-    trapFocus() {
-      const modalContent = this.$refs.modalContent;
-      if (!modalContent) {return;}
+  } else {
+    clearLoadingTimeout()
+  }
+})
 
-      const handleTabKey = (e) => {
-        const focusableElements = modalContent.querySelectorAll(
-          'button, [href], input, select, textarea, iframe[tabindex], [tabindex]:not([tabindex="-1"])'
-        );
+watch(() => props.pythonTutorUrl, (newVal) => {
+  if (newVal) {
+    checkUrlLength()
+  }
+})
 
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
+// Lifecycle
+onMounted(() => {
+  const savedTheme = localStorage.getItem('pytutor-dark-wrapper')
+  if (savedTheme !== null) {
+    isDarkWrapper.value = savedTheme === 'true'
+  }
+  const savedSize = localStorage.getItem('pytutor-modal-size') as SizePreset | null
+  if (savedSize && sizePresets.find(s => s.name === savedSize)) {
+    currentSize.value = savedSize
+  }
+})
 
-        if (e.key === 'Tab') {
-          if (e.shiftKey && document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement.focus();
-          } else if (!e.shiftKey && document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
-        }
-      };
-
-      modalContent.addEventListener('keydown', handleTabKey);
-
-      // Store the handler for cleanup
-      this._focusTrapHandler = handleTabKey;
-    },
-    startLoadingTimeout() {
-      this.clearLoadingTimeout();
-      this.loadingTimeout = setTimeout(() => {
-        if (this.loading) {
-          this.loading = false;
-          this.error = true;
-          this.errorType = 'TIMEOUT';
-          this.errorMessage = 'Python Tutor is taking too long to load. This might be due to slow internet or service issues.';
-          this.$emit('debugger-error', { type: this.errorType, message: this.errorMessage });
-        }
-      }, this.TIMEOUT_DURATION);
-    },
-    clearLoadingTimeout() {
-      if (this.loadingTimeout) {
-        clearTimeout(this.loadingTimeout);
-        this.loadingTimeout = null;
-      }
-    },
-    getErrorTitle() {
-      switch (this.errorType) {
-        case 'TIMEOUT':
-          return 'Loading Timeout';
-        case 'NETWORK':
-          return 'Connection Error';
-        default:
-          return 'Failed to Load Debugger';
-      }
-    },
-    toggleTheme() {
-      this.isDarkWrapper = !this.isDarkWrapper;
-      // Save preference to localStorage
-      localStorage.setItem('pytutor-dark-wrapper', this.isDarkWrapper);
-    },
-    setModalSize(sizeName) {
-      this.currentSize = sizeName;
-      // Save preference
-      localStorage.setItem('pytutor-modal-size', sizeName);
-      
-      // Handle fullscreen mode
-      if (sizeName === 'fullscreen') {
-        this.$refs.modalContent?.classList.add('fullscreen-mode');
-        document.querySelector('.modal-overlay')?.classList.add('fullscreen-overlay');
-      } else {
-        this.$refs.modalContent?.classList.remove('fullscreen-mode');
-        document.querySelector('.modal-overlay')?.classList.remove('fullscreen-overlay');
-      }
-    },
-  },
-};
+onBeforeUnmount(() => {
+  clearLoadingTimeout()
+})
 </script>
 
 <style scoped>
@@ -863,7 +809,7 @@ export default {
   .modal-overlay {
     padding: 0;
   }
-  
+
   .modal-content {
     width: 100%;
     height: 100%;
@@ -871,19 +817,19 @@ export default {
     max-height: 100%;
     border-radius: 0;
   }
-  
+
   .modal-header {
     padding: var(--spacing-sm) var(--spacing-md);
   }
-  
+
   .modal-title {
     font-size: var(--font-size-base);
   }
-  
+
   .size-controls-group {
     display: none; /* Hide size controls on mobile */
   }
-  
+
   .modal-actions {
     gap: var(--spacing-sm);
   }

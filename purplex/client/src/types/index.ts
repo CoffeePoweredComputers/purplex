@@ -150,6 +150,12 @@ export interface ProblemDetailed extends BaseProblem {
   visible_test_cases_count: number;
   readonly created_by?: number;
   readonly created_by_name?: string;
+  // MCQ-specific fields (present when problem_type is 'mcq')
+  question_text?: string;
+  options?: McqOption[];
+  grading_mode?: 'deterministic' | 'llm' | 'manual';
+  allow_multiple?: boolean;
+  shuffle_options?: boolean;
 }
 
 export interface ProblemCreateRequest {
@@ -428,13 +434,13 @@ export interface BaseSubmission {
   prompt: string;
   execution_time?: number;
   time_spent?: string;
-  
+
   // New submission fields
   code_variations: CodeVariation[] | string[];
   test_results: SubmissionTestResult[];
   passing_variations: number;
   total_variations: number;
-  
+
 }
 
 export interface SubmissionDetailed extends BaseSubmission {
@@ -655,4 +661,3 @@ export interface CourseProblemSet {
   icon?: string;
   order?: number;
 }
-

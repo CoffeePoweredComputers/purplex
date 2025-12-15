@@ -1,204 +1,189 @@
 <template>
-  <div
-    v-if="visible"
-    class="modal-overlay"
-    @click.self="$emit('close')"
-  >
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Manage Problem Sets for {{ course.name }}</h2>
-        <button
-          class="close-btn"
-          @click="$emit('close')"
-        >
-          ×
-        </button>
-      </div>
-      
-      <div class="modal-body">
-        <!-- Current Problem Sets Section -->
-        <div class="section">
-          <h3>Current Problem Sets</h3>
-          
-          <div
-            v-if="loading.current"
-            class="loading-container"
+  <Teleport to="body">
+    <div
+      v-if="visible"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="course-problem-sets-modal-title"
+      @click.self="closeModal"
+    >
+      <div
+        ref="modalContentRef"
+        class="modal-content"
+        @keydown.esc="closeModal"
+      >
+        <div class="modal-header">
+          <h2 id="course-problem-sets-modal-title">
+            Manage Problem Sets for {{ course.name }}
+          </h2>
+          <button
+            class="close-btn"
+            @click="closeModal"
           >
-            <div class="loading-spinner" />
-            <p>Loading problem sets...</p>
-          </div>
-          
-          <div
-            v-else-if="currentProblemSets.length === 0"
-            class="empty-state"
-          >
-            <p>No problem sets assigned to this course yet.</p>
-          </div>
-          
-          <table
-            v-else
-            class="problem-sets-table"
-          >
-            <thead>
-              <tr>
-                <th>Order</th>
-                <th>Problem Set</th>
-                <th>Problems</th>
-                <th>Required</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(item, index) in currentProblemSets"
-                :key="item.id"
-              >
-                <td class="order-cell">
-                  <div class="order-controls">
-                    <button 
-                      :disabled="index === 0" 
-                      class="order-btn"
-                      title="Move up"
-                      @click="moveUp(index)"
-                    >
-                      ↑
-                    </button>
-                    <span>{{ item.order + 1 }}</span>
-                    <button 
-                      :disabled="index === currentProblemSets.length - 1" 
-                      class="order-btn"
-                      title="Move down"
-                      @click="moveDown(index)"
-                    >
-                      ↓
-                    </button>
-                  </div>
-                </td>
-                <td>{{ item.problem_set.title }}</td>
-                <td class="center">
-                  {{ item.problem_set.problems_count }}
-                </td>
-                <td class="center">
-                  <input 
-                    v-model="item.is_required" 
-                    type="checkbox"
-                    @change="updateRequired(item)"
-                  >
-                </td>
-                <td>
-                  <button 
-                    class="remove-btn"
-                    title="Remove from course"
-                    @click="removeProblemSet(item)"
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            ×
+          </button>
         </div>
-        
-        <hr class="divider">
-        
-        <!-- Available Problem Sets Section -->
-        <div class="section">
-          <h3>Add Problem Sets</h3>
-          
-          <div
-            v-if="loading.available"
-            class="loading-container"
-          >
-            <div class="loading-spinner" />
-            <p>Loading available problem sets...</p>
-          </div>
-          
-          <div
-            v-else-if="availableProblemSets.length === 0"
-            class="empty-state"
-          >
-            <p>All problem sets have been added to this course.</p>
-          </div>
-          
-          <div
-            v-else
-            class="available-grid"
-          >
-            <div 
-              v-for="ps in availableProblemSets" 
-              :key="ps.slug"
-              class="available-item"
+
+        <div class="modal-body">
+          <!-- Current Problem Sets Section -->
+          <div class="section">
+            <h3>Current Problem Sets</h3>
+
+            <div
+              v-if="loading.current"
+              class="loading-container"
             >
-              <div class="item-info">
-                <h4>{{ ps.title }}</h4>
-                <p class="description">
-                  {{ ps.description || 'No description' }}
-                </p>
-                <span class="problems-count">{{ ps.problems_count }} problems</span>
-              </div>
-              <button 
-                class="add-btn"
-                :disabled="loading.adding"
-                @click="addProblemSet(ps)"
+              <div class="loading-spinner" />
+              <p>Loading problem sets...</p>
+            </div>
+
+            <div
+              v-else-if="currentProblemSets.length === 0"
+              class="empty-state"
+            >
+              <p>No problem sets assigned to this course yet.</p>
+            </div>
+
+            <table
+              v-else
+              class="problem-sets-table"
+            >
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Problem Set</th>
+                  <th>Problems</th>
+                  <th>Required</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(item, index) in currentProblemSets"
+                  :key="item.id"
+                >
+                  <td class="order-cell">
+                    <div class="order-controls">
+                      <button
+                        :disabled="index === 0"
+                        class="order-btn"
+                        title="Move up"
+                        @click="moveUp(index)"
+                      >
+                        ↑
+                      </button>
+                      <span>{{ item.order + 1 }}</span>
+                      <button
+                        :disabled="index === currentProblemSets.length - 1"
+                        class="order-btn"
+                        title="Move down"
+                        @click="moveDown(index)"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  </td>
+                  <td>{{ item.problem_set.title }}</td>
+                  <td class="center">
+                    {{ item.problem_set.problems_count }}
+                  </td>
+                  <td class="center">
+                    <input
+                      v-model="item.is_required"
+                      type="checkbox"
+                      @change="updateRequired(item)"
+                    >
+                  </td>
+                  <td>
+                    <button
+                      class="remove-btn"
+                      title="Remove from course"
+                      @click="removeProblemSet(item)"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Available Problem Sets Section -->
+          <div class="section">
+            <h3>Add Problem Sets</h3>
+
+            <div
+              v-if="loading.available"
+              class="loading-container"
+            >
+              <div class="loading-spinner" />
+              <p>Loading available problem sets...</p>
+            </div>
+
+            <div
+              v-else-if="availableProblemSets.length === 0"
+              class="empty-state"
+            >
+              <p>All problem sets have been added to this course.</p>
+            </div>
+
+            <div
+              v-else
+              class="available-grid"
+            >
+              <div
+                v-for="ps in availableProblemSets"
+                :key="ps.slug"
+                class="available-item"
               >
-                Add
-              </button>
+                <div class="item-info">
+                  <h4>{{ ps.title }}</h4>
+                  <p class="description">
+                    {{ ps.description || 'No description' }}
+                  </p>
+                  <span class="problems-count">{{ ps.problems_count }} problems</span>
+                </div>
+                <button
+                  class="add-btn"
+                  :disabled="loading.adding"
+                  @click="addProblemSet(ps)"
+                >
+                  Add
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      
-      <div class="modal-footer">
-        <button
-          class="close-modal-btn"
-          @click="$emit('close')"
-        >
-          Done
-        </button>
+
+        <div class="modal-footer">
+          <button
+            class="close-modal-btn"
+            @click="closeModal"
+          >
+            Done
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script lang="ts">
-import { defineComponent, type PropType, ref, watchEffect } from 'vue'
-import axios, { type AxiosError } from 'axios'
+import { defineComponent, type PropType, ref, toRef, watchEffect } from 'vue'
+import axios from 'axios'
 import { useNotification } from '@/composables/useNotification'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 import { log } from '@/utils/logger'
 import type { Course } from '@/types'
 
-interface ProblemSet {
+interface _ProblemSet {
   slug: string
   title: string
   description?: string
   problems_count: number
-}
-
-interface CourseProblemSetItem {
-  id: number
-  order: number
-  is_required: boolean
-  problem_set: ProblemSet
-}
-
-interface LoadingStates {
-  current: boolean
-  available: boolean
-  adding: boolean
-}
-
-interface APIErrorResponse {
-  error?: string
-}
-
-interface AddProblemSetRequest {
-  problem_set_slug: string
-  is_required: boolean
-}
-
-interface UpdateProblemSetRequest {
-  is_required?: boolean
-  order?: number
 }
 
 export default defineComponent({
@@ -216,7 +201,14 @@ export default defineComponent({
   emits: ['close', 'updated'] as const,
   setup(props, { emit }) {
     const { notify } = useNotification()
-    
+
+    // Focus trap composable
+    const { modalContentRef } = useFocusTrap(toRef(() => props.visible))
+
+    const closeModal = () => {
+      emit('close')
+    }
+
     // Data
     const currentProblemSets = ref([])
     const availableProblemSets = ref([])
@@ -225,7 +217,7 @@ export default defineComponent({
       available: false,
       adding: false
     })
-    
+
     // Methods
     const fetchCurrentProblemSets = async () => {
       loading.value.current = true
@@ -239,7 +231,7 @@ export default defineComponent({
         loading.value.current = false
       }
     }
-    
+
     const fetchAvailableProblemSets = async () => {
       loading.value.available = true
       try {
@@ -254,7 +246,7 @@ export default defineComponent({
         loading.value.available = false
       }
     }
-    
+
     const addProblemSet = async (problemSet) => {
       loading.value.adding = true
       try {
@@ -262,16 +254,16 @@ export default defineComponent({
           problem_set_slug: problemSet.slug,
           is_required: false
         })
-        
+
         // Add to current list
         currentProblemSets.value.push(response.data)
-        
+
         // Remove from available list
         const index = availableProblemSets.value.findIndex(ps => ps.slug === problemSet.slug)
         if (index > -1) {
           availableProblemSets.value.splice(index, 1)
         }
-        
+
         notify.success('Success', 'Problem set added to course')
         emit('updated')
       } catch (error) {
@@ -281,21 +273,21 @@ export default defineComponent({
         loading.value.adding = false
       }
     }
-    
+
     const removeProblemSet = async (item) => {
       if (!confirm(`Remove "${item.problem_set.title}" from this course?`)) {
         return
       }
-      
+
       try {
         await axios.delete(`/api/admin/courses/${props.course.course_id}/problem-sets/${item.problem_set.slug}/`)
-        
+
         // Remove from current list
         const index = currentProblemSets.value.findIndex(ps => ps.id === item.id)
         if (index > -1) {
           currentProblemSets.value.splice(index, 1)
         }
-        
+
         // Add back to available list
         availableProblemSets.value.push({
           slug: item.problem_set.slug,
@@ -303,17 +295,17 @@ export default defineComponent({
           problems_count: item.problem_set.problems_count,
           description: '' // We don't have description in current data
         })
-        
+
         // Sort available list by title
         availableProblemSets.value.sort((a, b) => a.title.localeCompare(b.title))
-        
+
         notify.success('Success', 'Problem set removed from course')
         emit('updated')
       } catch (error) {
         notify.error('Error', 'Failed to remove problem set')
       }
     }
-    
+
     const updateRequired = async (item) => {
       try {
         await axios.put(`/api/admin/courses/${props.course.course_id}/problem-sets/${item.problem_set.slug}/`, {
@@ -326,45 +318,45 @@ export default defineComponent({
         notify.error('Error', 'Failed to update required status')
       }
     }
-    
+
     const moveUp = async (index) => {
       if (index === 0) {return}
-      
+
       const current = currentProblemSets.value[index]
       const previous = currentProblemSets.value[index - 1]
-      
+
       // Swap orders
       const currentOrder = current.order
       current.order = previous.order
       previous.order = currentOrder
-      
+
       // Swap positions in array
       currentProblemSets.value.splice(index - 1, 2, current, previous)
-      
+
       // Update both items
       await updateOrder(current)
       await updateOrder(previous)
     }
-    
+
     const moveDown = async (index) => {
       if (index === currentProblemSets.value.length - 1) {return}
-      
+
       const current = currentProblemSets.value[index]
       const next = currentProblemSets.value[index + 1]
-      
+
       // Swap orders
       const currentOrder = current.order
       current.order = next.order
       next.order = currentOrder
-      
+
       // Swap positions in array
       currentProblemSets.value.splice(index, 2, next, current)
-      
+
       // Update both items
       await updateOrder(current)
       await updateOrder(next)
     }
-    
+
     const updateOrder = async (item) => {
       try {
         await axios.put(`/api/admin/courses/${props.course.course_id}/problem-sets/${item.problem_set.slug}/`, {
@@ -376,7 +368,7 @@ export default defineComponent({
         fetchCurrentProblemSets()
       }
     }
-    
+
     // Use watchEffect to reactively fetch data when both visible and course are available
     watchEffect(() => {
       if (props.visible && props.course && props.course.course_id) {
@@ -384,8 +376,10 @@ export default defineComponent({
         fetchAvailableProblemSets()
       }
     })
-    
+
     return {
+      modalContentRef,
+      closeModal,
       currentProblemSets,
       availableProblemSets,
       loading,

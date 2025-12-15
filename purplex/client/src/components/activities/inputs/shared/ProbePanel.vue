@@ -1,8 +1,8 @@
 <template>
   <div class="probe-panel">
-    <!-- Probe Input Box with integrated button -->
     <div class="probe-input-wrapper">
-      <div class="probe-call">
+      <div class="probe-row">
+        <div class="probe-call">
         <span class="fn-name">{{ functionName }}</span>
         <span class="fn-paren">(</span>
         <template
@@ -31,23 +31,44 @@
         <span class="fn-arrow">→</span>
         <span
           class="fn-result"
-          :class="{ 'has-result': lastResult !== null, 'result-flash': showResultFlash }"
+          :class="{
+            'has-result': displayResult !== null,
+            'result-flash': showResultFlash,
+            'is-cached': isDuplicate
+          }"
+          :aria-label="isDuplicate ? `Cached result: ${formatOutput(cachedResult)}` : undefined"
         >
-          {{ lastResult !== null ? formatOutput(lastResult) : '?' }}
+          {{ displayResult !== null ? formatOutput(displayResult) : '?' }}
         </span>
+        </div>
+
+        <button
+          v-if="uniqueHistory.length > 0"
+          class="history-btn"
+          :aria-label="`View probe history (${uniqueHistory.length} unique entries)`"
+          @click="showModal = true"
+        >
+          History ({{ uniqueHistory.length }})
+        </button>
       </div>
 
-      <!-- Probe Button (inside wrapper) -->
+      <!-- Probe Button -->
       <button
         class="probe-btn"
-        :disabled="!canProbe || isExecuting || !hasValidInputs"
+        :class="{ 'is-duplicate': isDuplicate }"
+        :disabled="!canProbe || isExecuting || !hasValidInputs || isDuplicate"
         :aria-busy="isExecuting"
-        :title="probeCountTooltip"
+        :aria-disabled="isDuplicate"
+        :title="buttonTooltip"
         @click="$emit('execute-probe')"
       >
         <template v-if="isExecuting">
           <span class="spinner" />
           <span>Probing</span>
+        </template>
+        <template v-else-if="isDuplicate">
+          <span class="duplicate-icon" aria-hidden="true">✓</span>
+          <span>Already probed</span>
         </template>
         <template v-else>
           <span>Probe</span>
@@ -58,6 +79,16 @@
           >· {{ probeCountDisplay }}</span>
         </template>
       </button>
+
+      <!-- Screen reader announcement (visually hidden) -->
+      <div
+        class="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {{ srAnnouncement }}
+      </div>
     </div>
 
     <!-- Probe Error -->
@@ -66,38 +97,6 @@
       class="probe-error"
     >
       {{ probeError }}
-    </div>
-
-    <!-- History Section -->
-    <div
-      v-if="probeHistory.length > 0"
-      class="history-section"
-    >
-      <div class="history-header">
-        <span class="history-label">HISTORY</span>
-        <button
-          v-if="probeHistory.length > 5"
-          class="view-all-btn"
-          @click="showModal = true"
-        >
-          View all ({{ probeHistory.length }})
-        </button>
-      </div>
-      <div
-        class="history-list"
-        aria-live="polite"
-      >
-        <div
-          v-for="(entry, idx) in recentHistory"
-          :key="idx"
-          class="history-item"
-        >
-          <span class="history-index">#{{ probeHistory.length - idx }}</span>
-          <span class="history-call">{{ formatFunctionCall(entry.input) }}</span>
-          <span class="history-arrow">→</span>
-          <span class="history-result">{{ formatOutput(entry.output) }}</span>
-        </div>
-      </div>
     </div>
 
     <!-- Full History Modal -->
@@ -109,6 +108,7 @@
         @keydown.escape="showModal = false"
       >
         <div
+          ref="modalContentRef"
           class="modal-content"
           role="dialog"
           aria-modal="true"
@@ -129,17 +129,17 @@
           </div>
           <div class="modal-body">
             <div
-              v-for="(entry, idx) in probeHistory"
+              v-for="(entry, idx) in uniqueHistory"
               :key="idx"
               class="modal-row"
             >
-              <span class="modal-index">#{{ probeHistory.length - idx }}</span>
+              <span class="modal-index">#{{ uniqueHistory.length - idx }}</span>
               <span class="modal-call">{{ formatFunctionCall(entry.input) }}</span>
               <span class="modal-arrow">→</span>
               <span class="modal-result">{{ formatOutput(entry.output) }}</span>
             </div>
             <div
-              v-if="probeHistory.length === 0"
+              v-if="uniqueHistory.length === 0"
               class="empty-state"
             >
               No probes yet. Enter values and click Probe to discover function behavior.
@@ -154,6 +154,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { ProbeHistoryEntry, ProbeParameter } from '../../types'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 
 interface Props {
   functionName: string
@@ -166,6 +167,8 @@ interface Props {
   hasValidInputs: boolean
   probeHistory: ProbeHistoryEntry[]
   probeError: string | null
+  isDuplicate: boolean
+  cachedResult: unknown
   formatFunctionCall: (input: Record<string, unknown>) => string
   formatOutput: (output: unknown) => string
 }
@@ -180,9 +183,18 @@ defineEmits<{
 const showModal = ref(false)
 const showResultFlash = ref(false)
 
-// Show only 5 most recent history entries
-const recentHistory = computed(() => {
-  return props.probeHistory.slice(0, 5)
+// Focus trap for modal accessibility
+const { modalContentRef } = useFocusTrap(showModal)
+
+// Unique history entries (dedupe by input)
+const uniqueHistory = computed(() => {
+  const seen = new Set<string>()
+  return props.probeHistory.filter(entry => {
+    const key = JSON.stringify(entry.input)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 })
 
 // Get the last result to display inline
@@ -193,15 +205,34 @@ const lastResult = computed(() => {
   return props.probeHistory[0].output
 })
 
-// Tooltip text for probe count
-const probeCountTooltip = computed(() => {
+// Display result: show cached result when duplicate, otherwise last result
+const displayResult = computed(() => {
+  if (props.isDuplicate) {
+    return props.cachedResult
+  }
+  return lastResult.value
+})
+
+// Tooltip for button - changes based on state
+const buttonTooltip = computed(() => {
+  if (props.isDuplicate) {
+    return 'You already probed these inputs - result shown above'
+  }
   if (props.probeStatusClass === 'status-explore') {
     return 'Unlimited probes available'
   }
   if (props.probeStatusClass === 'status-exhausted') {
     return 'No probes remaining'
   }
-  return 'Probes remaining'
+  return 'Query the oracle with these inputs'
+})
+
+// Screen reader announcement for duplicate state
+const srAnnouncement = computed(() => {
+  if (props.isDuplicate) {
+    return `These inputs were already probed. Result: ${props.formatOutput(props.cachedResult)}`
+  }
+  return ''
 })
 
 // Flash animation when new result arrives
@@ -218,23 +249,32 @@ watch(() => props.probeHistory.length, () => {
    PROBE PANEL - Container
    =========================================== */
 .probe-panel {
-  /* No extra styling - inherits from parent */
+  background: var(--color-bg-panel);
+  border-radius: var(--radius-lg);
 }
 
 /* ===========================================
-   PROBE INPUT WRAPPER - Matches code editor wrapper
+   PROBE INPUT WRAPPER
    =========================================== */
 .probe-input-wrapper {
   background: var(--color-bg-input);
   border: 2px solid var(--color-bg-border);
   border-radius: var(--radius-base);
-  margin: var(--spacing-md) var(--spacing-xl);
-  padding: var(--spacing-md) var(--spacing-lg);
+  margin: var(--spacing-sm) var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
   transition: border-color 0.2s ease;
 }
 
 .probe-input-wrapper:focus-within {
   border-color: var(--color-primary-gradient-start);
+}
+
+/* Row containing probe-call and history button */
+.probe-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
 }
 
 .probe-call {
@@ -245,6 +285,35 @@ watch(() => props.probeHistory.length, () => {
   font-size: var(--font-size-base);
   color: var(--color-text-primary);
   flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ===========================================
+   HISTORY BUTTON
+   =========================================== */
+.history-btn {
+  flex-shrink: 0;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.history-btn:hover {
+  background: var(--color-bg-input);
+  border-color: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
+}
+
+.history-btn:focus {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
 }
 
 .fn-name {
@@ -320,6 +389,12 @@ watch(() => props.probeHistory.length, () => {
   animation: resultFlash 0.6s ease;
 }
 
+.fn-result.is-cached {
+  color: var(--color-warning);
+  font-style: normal;
+  font-weight: 600;
+}
+
 @keyframes resultFlash {
   0% {
     transform: scale(1);
@@ -337,8 +412,8 @@ watch(() => props.probeHistory.length, () => {
    =========================================== */
 .probe-btn {
   width: 100%;
-  margin-top: var(--spacing-md);
-  padding: var(--spacing-sm) var(--spacing-xl);
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-lg);
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
   color: white;
   border: none;
@@ -367,6 +442,30 @@ watch(() => props.probeHistory.length, () => {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+.probe-btn.is-duplicate {
+  background: var(--color-bg-hover);
+  color: var(--color-warning);
+  box-shadow: none;
+  opacity: 1;
+}
+
+.duplicate-icon {
+  font-size: var(--font-size-sm);
+}
+
+/* Visually hidden but accessible to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .spinner {
@@ -405,89 +504,13 @@ watch(() => props.probeHistory.length, () => {
    ERROR MESSAGE
    =========================================== */
 .probe-error {
-  margin: 0 var(--spacing-xl) var(--spacing-md);
+  margin: 0 var(--spacing-lg) var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-sm);
   color: var(--color-error);
   font-size: var(--font-size-sm);
-}
-
-/* ===========================================
-   HISTORY SECTION
-   =========================================== */
-.history-section {
-  margin: var(--spacing-lg) var(--spacing-xl) 0;
-  padding: var(--spacing-md);
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-bg-border);
-  border-radius: var(--radius-base);
-}
-
-.history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-sm);
-}
-
-.history-label {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  color: var(--color-text-muted);
-  letter-spacing: 0.08em;
-}
-
-.view-all-btn {
-  font-size: var(--font-size-xs);
-  color: var(--color-info);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  transition: background 0.2s ease;
-}
-
-.view-all-btn:hover {
-  background: var(--color-bg-hover);
-  color: var(--color-primary);
-}
-
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.history-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xs) 0;
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-sm);
-}
-
-.history-index {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  min-width: 28px;
-  opacity: 0.6;
-}
-
-.history-call {
-  color: var(--color-text-primary);
-}
-
-.history-arrow {
-  color: var(--color-text-muted);
-}
-
-.history-result {
-  color: var(--color-success);
-  font-weight: 600;
 }
 
 /* ===========================================
@@ -554,7 +577,8 @@ watch(() => props.probeHistory.length, () => {
 .modal-body {
   padding: var(--spacing-md) var(--spacing-lg);
   overflow-y: auto;
-  flex: 1;
+  height: 300px;
+  max-height: 50vh;
 }
 
 .modal-row {

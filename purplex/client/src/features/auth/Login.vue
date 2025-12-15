@@ -177,7 +177,7 @@ export default {
           })
           .catch((error) => {
             const message = this.mapFirebaseErrorToMessage(error);
-            this.displayErrorMessage(message); 
+            this.displayErrorMessage(message);
           });
       },
       mapFirebaseErrorToMessage: function (error) {
@@ -215,7 +215,7 @@ export default {
         }
       },
       displayErrorMessage: function (message) {
-        this.errorMessage = message; 
+        this.errorMessage = message;
       }
   }
 };

@@ -11,10 +11,12 @@ https://docs.djangoproject.com/en/5.0/howto/deployment/wsgi/
 # This makes standard library threading-compatible with gevent greenlets
 # Only apply when running under gunicorn (not Django runserver)
 import sys
-_is_gunicorn = 'gunicorn' in sys.modules or 'gunicorn' in sys.argv[0]
+
+_is_gunicorn = "gunicorn" in sys.modules or "gunicorn" in sys.argv[0]
 if _is_gunicorn:
     try:
         from gevent import monkey
+
         monkey.patch_all()
     except ImportError:
         pass  # gevent not installed, skip monkey patching
@@ -24,7 +26,7 @@ import os
 from django.core.wsgi import get_wsgi_application
 
 # Set environment to production by default for WSGI
-os.environ.setdefault('PURPLEX_ENV', 'production')
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'purplex.settings')
+os.environ.setdefault("PURPLEX_ENV", "production")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "purplex.settings")
 
 application = get_wsgi_application()

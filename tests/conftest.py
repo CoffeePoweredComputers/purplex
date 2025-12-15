@@ -14,15 +14,14 @@ import pytest
 from rest_framework.test import APIClient
 
 from tests.factories import (
-    UserFactory,
-    UserProfileFactory,
+    CourseFactory,
     EiplProblemFactory,
     McqProblemFactory,
-    PromptProblemFactory,
     ProblemSetFactory,
-    CourseFactory,
+    PromptProblemFactory,
+    UserFactory,
+    UserProfileFactory,
 )
-
 
 # =============================================================================
 # API Client Fixtures
@@ -58,7 +57,7 @@ def user(db):
 @pytest.fixture
 def instructor(db):
     """Create an instructor user with profile."""
-    user = UserFactory(username='instructor')
+    user = UserFactory(username="instructor")
     UserProfileFactory(user=user)
     return user
 

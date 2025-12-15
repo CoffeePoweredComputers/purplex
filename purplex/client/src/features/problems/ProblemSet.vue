@@ -134,9 +134,10 @@
           </div>
         </div>
 
-        <!-- Problem description section (for MCQ and other non-code problems) -->
+        <!-- Problem description section (for non-code problems that aren't MCQ) -->
+        <!-- MCQ problems display their question_text via McqInput component -->
         <div
-          v-else-if="getCurrentProblem()?.display_config?.show_reference_code === false"
+          v-else-if="getCurrentProblem()?.display_config?.show_reference_code === false && getCurrentProblem()?.problem_type !== 'mcq'"
           id="problem-description"
           class="description-section"
         >
@@ -187,8 +188,11 @@
             :key="editorRenderKey"
             lang="python"
             mode="python"
-            height="450px"
+            height="auto"
             width="100%"
+            :min-lines="10"
+            :max-lines="35"
+            :extra-lines="2"
             :value="displayedCode"
             :read-only="true"
             :show-gutter="showLineNumbers"
@@ -326,15 +330,16 @@
           :submission-history="submissionHistory"
           title="Submission & Results"
           @load-attempt="loadSpecificAttempt"
+          @next-problem="nextProblem"
         />
       </div>
     </div>
 
     <!-- PyTutor Modal -->
-    <PyTutorModal 
-      :is-visible="showPyTutorModal" 
-      :python-tutor-url="pyTutorUrl" 
-      @close="closePyTutor" 
+    <PyTutorModal
+      :is-visible="showPyTutorModal"
+      :python-tutor-url="pyTutorUrl"
+      @close="closePyTutor"
     />
   </div>
 </template>
@@ -499,22 +504,22 @@ export default {
             submissionHistory: []
         };
     },
-    
+
     computed: {
         solutionCode() {
             return this.getCurrentProblem().reference_solution || '';
         },
-        
+
         displayedCode() {
             return this.hasActiveHints ? this.modifiedCode : this.solutionCode;
         },
-        
+
         suggestedTraceOverlays() {
             return (this.activeOverlays || []).filter(
                 overlay => overlay && overlay.component === 'SuggestedTraceOverlay'
             );
         },
-        
+
         completedCount() {
             const count = Object.values(this.problemStatuses).filter(s => s && s.status === 'completed').length;
             return count;
@@ -532,7 +537,7 @@ export default {
             const remaining = totalProblems - completed - inProgress;
             return remaining;
         },
-        
+
         currentTheme() {
             const themeMap = {
                 'dark': 'clouds_midnight',
@@ -547,7 +552,7 @@ export default {
             return themeMap[this.editorTheme] || 'clouds_midnight';
         }
     },
-    
+
     watch: {
         '$route.params.slug': function(newSlug) {
             if (newSlug) {
@@ -569,7 +574,7 @@ export default {
             }
         }
     },
-    
+
     async mounted() {
         await this.loadProblemSet();
         if (this.problems.length > 0) {
@@ -586,7 +591,7 @@ export default {
             });
         }
     },
-    
+
     beforeUnmount() {
         this.stopAutoSave();
         this.saveDraft(); // Save draft before leaving
@@ -596,7 +601,7 @@ export default {
         // but we call it explicitly here to ensure cleanup order
         this.submissionTracking.cancelAll();
     },
-    
+
     methods: {
         renderMarkdown(text) {
             if (!text) {return '';}
@@ -606,15 +611,15 @@ export default {
         async nextProblem() {
             await this.navigateToProblem((this.currentProblem + 1) % this.problems.length);
         },
-        
+
         async prevProblem() {
             await this.navigateToProblem((this.currentProblem - 1 + this.problems.length) % this.problems.length);
         },
-        
+
         async setProblem(index) {
             await this.navigateToProblem(index);
         },
-        
+
         async navigateToProblem(newIndex) {
             if (newIndex === this.currentProblem) {return;}
 
@@ -683,14 +688,31 @@ export default {
 
                     // Only set segmentation data if the problem has segmentation enabled (use handler config)
                     const currentProblem = this.getCurrentProblem();
+                    const problemType = currentProblem?.problem_type || 'eipl';
                     const segData = currentProblem?.feedback_config?.show_segmentation && submissionData.segmentation
                         ? submissionData.segmentation
                         : null;
 
+                    // Handle different data formats based on problem type
+                    let codeResults = [];
+                    let testResults = [];
+
+                    if (problemType === 'probeable_code') {
+                        // Probeable code stores student_code instead of variations
+                        if (submissionData.student_code) {
+                            codeResults = [{ code: submissionData.student_code }];
+                        }
+                        testResults = submissionData.results || submissionData.test_results || [];
+                    } else {
+                        // EiPL and other types use variations
+                        codeResults = submissionData.variations || [];
+                        testResults = submissionData.results || [];
+                    }
+
                     // Update feedback state atomically
                     this.setFeedback({
-                        codeResults: submissionData.variations || [],
-                        testResults: submissionData.results || [],
+                        codeResults: codeResults,
+                        testResults: testResults,
                         promptCorrectness: submissionData.passing_variations || 0,
                         comprehensionResults: submissionData.feedback || '',
                         userPrompt: submissionData.user_prompt || '',
@@ -743,7 +765,7 @@ export default {
                 this.isNavigating = false; // Always clear loading state on error
             }
         },
-        
+
         async loadProblemDataBatch(problemSlug) {
             /**
              * Batch load all problem data in parallel for atomic updates.
@@ -876,7 +898,7 @@ export default {
                 this.clearFeedbackData();
             }
         },
-        
+
         async loadSubmissionData(problemSlug) {
             const cacheKey = this.submissionCache.buildKey(
                 this.$route.params.slug,
@@ -918,7 +940,7 @@ export default {
                 };
             }
         },
-        
+
         clearFeedbackData() {
             // Use composable's clear() for atomic reset of all feedback state
             this.clearFeedback();
@@ -1093,35 +1115,35 @@ export default {
             const problem = this.problems[this.currentProblem] || this.problems[0];
             return problem;
         },
-        
+
         getProblem() {
             return this.getCurrentProblem();
         },
-        
+
         updateSolutionCode() {
             // Solution code is handled by computed property
         },
-        
+
         increaseFontSize() {
             if (this.editorFontSize < 35) {
                 this.editorFontSize += 2;
                 this.updateEditorFontSize();
             }
         },
-        
+
         decreaseFontSize() {
             if (this.editorFontSize > 12) {
                 this.editorFontSize -= 2;
                 this.updateEditorFontSize();
             }
         },
-        
+
         updateEditorFontSize() {
             if (this.$refs.entry && this.$refs.entry.editor) {
                 this.$refs.entry.editor.setFontSize(this.editorFontSize);
             }
         },
-        
+
         copyCode() {
             const code = this.solutionCode;
             navigator.clipboard.writeText(code).then(() => {
@@ -1133,14 +1155,14 @@ export default {
                 this.logger.error('Failed to copy code', err);
             });
         },
-        
+
         toggleLineNumbers() {
             this.showLineNumbers = !this.showLineNumbers;
             if (this.$refs.entry && this.$refs.entry.editor) {
                 this.$refs.entry.editor.renderer.setShowGutter(this.showLineNumbers);
             }
         },
-        
+
         updateTheme() {
             if (this.$refs.entry && this.$refs.entry.editor) {
                 this.$refs.entry.editor.setTheme(`ace/theme/${this.currentTheme}`);
@@ -1150,7 +1172,7 @@ export default {
                 this.$refs.prompt_entry.editor.setTheme(`ace/theme/${this.currentTheme}`);
             }
         },
-        
+
         async submit() {
             const currentProblemSlug = this.getCurrentProblem().slug;
             if (this.submissionTracking.isSubmitting(currentProblemSlug)) {return;}
@@ -1314,6 +1336,74 @@ export default {
                             // Show notification
                             const message = `${problemIdentifier}: ${mcqResult.is_correct ? 'Correct!' : 'Incorrect'}`;
                             if (mcqResult.is_correct) {
+                                this.notify.success(message);
+                            } else {
+                                this.notify.warning(message);
+                            }
+                        } else if (problemType === 'probeable_code') {
+                            // Probeable code processing - extracts student_code and test_results
+                            const probeableResult = unifiedResult.result || {};
+                            const studentCode = probeableResult.student_code || '';
+                            const testResults = probeableResult.test_results || [];
+
+                            // Calculate test statistics
+                            let totalTestsPassed = 0;
+                            let totalTestsRun = 0;
+
+                            (testResults || []).forEach(r => {
+                                const passed = r.testsPassed || 0;
+                                const total = r.totalTests || 0;
+                                totalTestsPassed += passed;
+                                totalTestsRun += total;
+                            });
+
+                            // Only update displayed feedback if this submission is for the currently viewed problem
+                            if (currentProblemSlug === this.getCurrentProblem().slug) {
+                                this.setFeedback({
+                                    codeResults: [{ code: studentCode }],
+                                    testResults: testResults,
+                                    promptCorrectness: unifiedResult.score ?? 0,
+                                    userPrompt: unifiedResult.user_input ?? rawInput,
+                                    comprehensionResults: '',
+                                    segmentationData: null,
+                                    mcqResult: null
+                                });
+                                this.promptEditorValue = unifiedResult.user_input ?? rawInput;
+                            }
+
+                            // Calculate score and determine status
+                            const score = totalTestsRun > 0
+                                ? Math.round((totalTestsPassed / totalTestsRun) * 100)
+                                : (unifiedResult.score ?? 0);
+                            const finalStatus = score >= 100 ? 'completed' : 'in_progress';
+
+                            // Update problem status
+                            this.problemStatuses = {
+                                ...this.problemStatuses,
+                                [currentProblemSlug]: {
+                                    status: finalStatus,
+                                    score: score,
+                                    attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
+                                }
+                            };
+
+                            // Update cache
+                            const cacheKey = this.submissionCache.buildKey(
+                                this.$route.params.slug,
+                                currentProblemSlug,
+                                this.courseId
+                            );
+                            this.submissionCache.set(cacheKey, {
+                                has_submission: true,
+                                student_code: studentCode,
+                                results: testResults,
+                                user_prompt: unifiedResult.user_input
+                            });
+
+                            // Show notification
+                            const allPassed = totalTestsRun > 0 && totalTestsPassed === totalTestsRun;
+                            const message = `${problemIdentifier}: ${totalTestsPassed}/${totalTestsRun} tests passed`;
+                            if (allPassed) {
                                 this.notify.success(message);
                             } else {
                                 this.notify.warning(message);
@@ -1485,10 +1575,10 @@ export default {
 
             } catch (error) {
                 this.logger.error('Error submitting code', error);
-                
+
                 // Clear feedback on error
                 this.clearFeedbackData();
-                
+
                 // Handle errors
                 if (error.response) {
                     if (error.response.status === 500) {
@@ -1710,12 +1800,12 @@ export default {
                 });
             }
         },
-        
+
         mapStatusFromAPI(apiStatus, score) {
             // Direct pass-through - backend status is source of truth
             return apiStatus;
         },
-        
+
         getProblemStatus(problemSlug) {
             const actualStatus = this.problemStatuses[problemSlug];
             // For debugging, bypass optimistic updates temporarily
@@ -1724,7 +1814,7 @@ export default {
             const finalStatus = optimisticStatus?.status || 'not_started';
             return finalStatus;
         },
-        
+
         getProblemTooltip(problem, index) {
             const status = this.problemStatuses[problem.slug];
             const problemName = problem.title || `Problem ${index + 1}`;
@@ -1763,7 +1853,7 @@ export default {
                 }, 2000);
             }
         },
-        
+
         loadDraft() {
             // First priority: Load the last submission (userPrompt)
             if (this.feedback.userPrompt) {
@@ -1799,33 +1889,33 @@ export default {
                 this.promptEditorValue = '';
             }
         },
-        
+
         clearDraft() {
             const draftKey = `draft_${this.$route.params.slug}_${this.getCurrentProblem().slug}`;
             localStorage.removeItem(draftKey);
             localStorage.removeItem(`${draftKey}_timestamp`);
         },
-        
+
         startAutoSave() {
             this.autoSaveInterval = setInterval(() => {
                 this.saveDraft();
             }, 30000); // 30 seconds
         },
-        
+
         stopAutoSave() {
             if (this.autoSaveInterval) {
                 clearInterval(this.autoSaveInterval);
                 this.autoSaveInterval = null;
             }
         },
-        
+
         // Hint Management
         getCurrentProblemAttempts() {
             const problemSlug = this.getCurrentProblem().slug;
             const status = this.problemStatuses[problemSlug];
             return status?.attempts || 0;
         },
-        
+
         onHintUsed(hintData) {
             // Log hint usage for research data
             this.logger.info('Hint used', hintData);
@@ -1850,11 +1940,11 @@ export default {
             // Emit event for analytics if needed
             this.$emit('hint-used', hintData);
         },
-        
+
         async onHintToggled(event) {
             try {
                 const { hintType, isActive, hintData } = event;
-                
+
                 if (isActive) {
                     // Apply the hint using the composable
                     const success = await this.applyHint(hintType, hintData);
@@ -1892,7 +1982,7 @@ export default {
                 this.logger.error('Error toggling hint', error);
             }
         },
-        
+
         async onShowOriginal() {
             try {
                 await this.restoreOriginal();
@@ -1901,7 +1991,7 @@ export default {
                 this.logger.error('Error restoring original code', error);
             }
         },
-        
+
         async onRemoveAllHints() {
             try {
                 await this.removeAllHints();
@@ -1910,7 +2000,7 @@ export default {
                 this.logger.error('Error removing all hints', error);
             }
         },
-        
+
         async onClearAllHints() {
             // Called when HintButton clears state during navigation
             try {
@@ -1921,13 +2011,13 @@ export default {
                 this.logger.error('Error clearing hints on navigation', error);
             }
         },
-        
+
         // PyTutor Modal Methods
         openPyTutor(url) {
             this.pyTutorUrl = url;
             this.showPyTutorModal = true;
         },
-        
+
         closePyTutor() {
             this.showPyTutorModal = false;
             this.pyTutorUrl = '';
@@ -2262,7 +2352,7 @@ export default {
     padding: var(--spacing-md) var(--spacing-lg);
     background: var(--color-bg-hover);
     border-bottom: 1px solid var(--color-bg-input);
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 0px !important;
 }
 
 .section-label {
@@ -2552,7 +2642,6 @@ export default {
     transition: var(--transition-base);
     display: flex;
     flex-direction: column;
-    min-height: 250px;
     position: relative;
 }
 
@@ -2570,29 +2659,27 @@ export default {
         gap: var(--spacing-lg);
         overflow-y: auto;
     }
-    
+
     .left-panel {
         flex: none;
         max-width: 100%;
         padding-right: 0;
         gap: var(--spacing-lg);
     }
-    
+
     .right-panel {
         flex: none;
         max-width: 100%;
         flex-basis: auto;
         min-height: 400px;
     }
-    
+
     .editor-section,
     .description-section {
-        min-height: 500px;
         flex: none;
     }
 
     .submission-section {
-        min-height: 250px;
         flex: none;
     }
 }
@@ -2601,86 +2688,86 @@ export default {
     .problem-set-container {
         min-height: auto;
     }
-    
+
     .problem-navigation {
         padding: var(--spacing-md) var(--spacing-lg);
         position: sticky;
         top: 0;
         z-index: 10;
     }
-    
+
     .problem-selector {
         gap: var(--spacing-sm);
         flex-wrap: wrap;
     }
-    
+
     .problem-info {
         min-width: 250px;
         order: -1;
         width: 100%;
         margin-bottom: var(--spacing-sm);
     }
-    
+
     .nav-button {
         width: 36px;
         height: 36px;
         font-size: 18px;
     }
-    
+
     .workspace {
         padding: var(--spacing-md);
         gap: var(--spacing-md);
         flex-direction: column;
         overflow-y: visible;
     }
-    
+
     .left-panel,
     .right-panel {
         flex: none;
         width: 100%;
     }
-    
+
     .editor-section,
     .description-section {
         min-height: 400px;
     }
 
     .submission-section {
-        min-height: 200px;
+        /* Content determines height */
     }
 
     .section-header {
         padding: var(--spacing-md) var(--spacing-lg);
     }
-    
+
     .editor-toolbar {
         padding: var(--spacing-sm) var(--spacing-lg);
         flex-wrap: wrap;
         gap: var(--spacing-sm);
         justify-content: center;
     }
-    
+
     .toolbar-options {
         gap: var(--spacing-xs);
         order: 2;
     }
-    
+
     .zoom-controls {
         gap: var(--spacing-sm);
         order: 1;
     }
-    
+
     .theme-dropdown {
         min-width: 90px;
         font-size: var(--font-size-xs);
     }
-    
+
     .zoom-btn {
         width: 24px;
         height: 24px;
         font-size: 14px;
     }
-    
+
     .zoom-level {
         font-size: var(--font-size-xs);
         min-width: 40px;

@@ -13,25 +13,26 @@ Usage:
 """
 
 import os
-import sys
 import subprocess
-import time
-import redis
+import sys
 from datetime import datetime, timedelta
 
+import redis
+
 # Add project root to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 
 # Colors for terminal output
 class Colors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
 
 
 def print_header(text):
@@ -63,10 +64,10 @@ def check_redis():
     try:
         # Connect to Redis
         r = redis.Redis(
-            host=os.getenv('REDIS_HOST', 'localhost'),
-            port=int(os.getenv('REDIS_PORT', 6379)),
+            host=os.getenv("REDIS_HOST", "localhost"),
+            port=int(os.getenv("REDIS_PORT", 6379)),
             db=0,
-            decode_responses=True
+            decode_responses=True,
         )
 
         # Test connection
@@ -79,20 +80,20 @@ def check_redis():
         # Test pub/sub
         print_info("Testing Redis pub/sub functionality...")
         pubsub = r.pubsub()
-        test_channel = 'test:diagnostic'
+        test_channel = "test:diagnostic"
         pubsub.subscribe(test_channel)
 
         # Publish a test message
-        r.publish(test_channel, 'diagnostic_test')
+        r.publish(test_channel, "diagnostic_test")
 
         # Try to receive it
         received = False
         for message in pubsub.listen():
-            if message['type'] == 'message' and message['data'] == 'diagnostic_test':
+            if message["type"] == "message" and message["data"] == "diagnostic_test":
                 print_success("Redis pub/sub is working correctly")
                 received = True
                 break
-            elif message['type'] == 'subscribe':
+            elif message["type"] == "subscribe":
                 continue
 
         pubsub.unsubscribe(test_channel)
@@ -119,10 +120,10 @@ def check_celery():
     try:
         # Try to run celery inspect active
         result = subprocess.run(
-            ['celery', '-A', 'purplex.celery_simple', 'inspect', 'active'],
+            ["celery", "-A", "purplex.celery_simple", "inspect", "active"],
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=10,
         )
 
         if result.returncode == 0:
@@ -132,7 +133,9 @@ def check_celery():
             return True
         else:
             print_error("Celery workers not responding")
-            print_info("Start workers with: celery -A purplex.celery_simple worker -l info")
+            print_info(
+                "Start workers with: celery -A purplex.celery_simple worker -l info"
+            )
             return False
 
     except FileNotFoundError:
@@ -154,7 +157,8 @@ def check_django():
     try:
         # Set up Django
         import django
-        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'purplex.settings')
+
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "purplex.settings")
         django.setup()
 
         from django.db import connection
@@ -167,6 +171,7 @@ def check_django():
 
             # Check recent submissions
             from purplex.submissions.models import Submission
+
             recent_count = Submission.objects.filter(
                 submitted_at__gte=datetime.now() - timedelta(hours=24)
             ).count()
@@ -176,7 +181,7 @@ def check_django():
             # Check for failed submissions
             failed_count = Submission.objects.filter(
                 submitted_at__gte=datetime.now() - timedelta(hours=24),
-                execution_status='failed'
+                execution_status="failed",
             ).count()
 
             if failed_count > 0:
@@ -203,16 +208,16 @@ def check_environment():
     print_header("Checking Environment Variables")
 
     required_vars = [
-        'DJANGO_SECRET_KEY',
-        'DATABASE_URL',
-        'REDIS_HOST',
-        'REDIS_PORT',
+        "DJANGO_SECRET_KEY",
+        "DATABASE_URL",
+        "REDIS_HOST",
+        "REDIS_PORT",
     ]
 
     optional_vars = [
-        'OPENAI_API_KEY',
-        'SENTRY_DSN',
-        'FIREBASE_CREDENTIALS_PATH',
+        "OPENAI_API_KEY",
+        "SENTRY_DSN",
+        "FIREBASE_CREDENTIALS_PATH",
     ]
 
     all_ok = True
@@ -238,13 +243,15 @@ def check_environment():
 def run_diagnostics():
     """Run all diagnostic checks."""
     print(f"\n{Colors.BOLD}Purplex Submission Pipeline Diagnostics{Colors.ENDC}")
-    print(f"{Colors.BOLD}Running at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.ENDC}")
+    print(
+        f"{Colors.BOLD}Running at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.ENDC}"
+    )
 
     results = {
-        'environment': check_environment(),
-        'redis': check_redis(),
-        'celery': check_celery(),
-        'django': check_django(),
+        "environment": check_environment(),
+        "redis": check_redis(),
+        "celery": check_celery(),
+        "django": check_django(),
     }
 
     # Summary
@@ -258,25 +265,27 @@ def run_diagnostics():
         print_error("Some checks failed. Please fix the issues above.")
 
         print_info("\nCommon fixes:")
-        if not results['redis']:
+        if not results["redis"]:
             print("  - Start Redis: redis-server")
             print("  - Or with Docker: docker run -d -p 6379:6379 redis:7")
 
-        if not results['celery']:
-            print("  - Start Celery worker: celery -A purplex.celery_simple worker -l info")
+        if not results["celery"]:
+            print(
+                "  - Start Celery worker: celery -A purplex.celery_simple worker -l info"
+            )
             print("  - Or use start.sh script: ./start.sh")
 
-        if not results['django']:
+        if not results["django"]:
             print("  - Check database connection settings")
             print("  - Run migrations: python manage.py migrate")
 
-        if not results['environment']:
+        if not results["environment"]:
             print("  - Set missing environment variables in .env file")
 
     return all_passed
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         success = run_diagnostics()
         sys.exit(0 if success else 1)
@@ -286,5 +295,6 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"\n{Colors.FAIL}Unexpected error: {e}{Colors.ENDC}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

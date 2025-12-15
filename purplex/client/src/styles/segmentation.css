@@ -6,22 +6,22 @@
   --seg-color-excellent: var(--color-success);
   --seg-color-good: var(--color-warning);
   --seg-color-needs-work: var(--color-error);
-  
+
   /* Segmentation spacing */
   --seg-spacing-xs: var(--spacing-xs);
   --seg-spacing-sm: var(--spacing-sm);
   --seg-spacing-md: var(--spacing-md);
   --seg-spacing-lg: var(--spacing-lg);
-  
+
   /* Segmentation animations */
   --seg-transition-fast: var(--transition-fast);
   --seg-transition-base: var(--transition-base);
-  
+
   /* Segmentation component heights */
   --seg-progress-height: 80px;
   --seg-block-size: 40px;
   --seg-block-size-mobile: 32px;
-  
+
   /* Segmentation z-index levels */
   --seg-z-tooltip: 1000;
   --seg-z-modal: 1100;
@@ -31,7 +31,7 @@
 .segmentation-container {
   --seg-border-radius: var(--radius-base);
   --seg-box-shadow: var(--shadow-md);
-  
+
   background: var(--color-bg-panel);
   border-radius: var(--seg-border-radius);
   box-shadow: var(--seg-box-shadow);
@@ -60,8 +60,8 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.2) 0%, 
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.2) 0%,
     transparent 50%
   );
   opacity: 0;
@@ -131,15 +131,15 @@
 }
 
 @keyframes segmentationShimmer {
-  from { 
-    transform: translateX(-100%); 
+  from {
+    transform: translateX(-100%);
     opacity: 0;
   }
   50% {
     opacity: 1;
   }
-  to { 
-    transform: translateX(100%); 
+  to {
+    transform: translateX(100%);
     opacity: 0;
   }
 }
@@ -174,9 +174,9 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, 
-    transparent 0%, 
-    rgba(255, 255, 255, 0.3) 50%, 
+  background: linear-gradient(135deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
     transparent 100%
   );
   animation: segmentationShimmer 0.6s ease-out;
@@ -261,24 +261,24 @@
 }
 
 .seg-feedback.excellent {
-  background: linear-gradient(135deg, 
-    rgba(76, 175, 80, 0.1) 0%, 
+  background: linear-gradient(135deg,
+    rgba(76, 175, 80, 0.1) 0%,
     rgba(76, 175, 80, 0.05) 100%
   );
   border-left: 4px solid var(--seg-color-excellent);
 }
 
 .seg-feedback.good {
-  background: linear-gradient(135deg, 
-    rgba(255, 193, 7, 0.1) 0%, 
+  background: linear-gradient(135deg,
+    rgba(255, 193, 7, 0.1) 0%,
     rgba(255, 193, 7, 0.05) 100%
   );
   border-left: 4px solid var(--seg-color-good);
 }
 
 .seg-feedback.needs-work {
-  background: linear-gradient(135deg, 
-    rgba(220, 53, 69, 0.1) 0%, 
+  background: linear-gradient(135deg,
+    rgba(220, 53, 69, 0.1) 0%,
     rgba(220, 53, 69, 0.05) 100%
   );
   border-left: 4px solid var(--seg-color-needs-work);
@@ -407,7 +407,7 @@
   .seg-connection-panel {
     display: none; /* Hide complex connections on tablets */
   }
-  
+
   .seg-mapping-grid {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
@@ -418,21 +418,21 @@
   :root {
     --seg-block-size: var(--seg-block-size-mobile);
   }
-  
+
   .seg-progress-block {
     width: var(--seg-block-size-mobile);
     height: var(--seg-block-size-mobile);
     font-size: var(--font-size-xs);
   }
-  
+
   .seg-feedback {
     padding: var(--seg-spacing-md);
   }
-  
+
   .seg-title {
     font-size: var(--font-size-base);
   }
-  
+
   .seg-mapping-grid {
     gap: var(--spacing-sm);
   }
@@ -443,12 +443,12 @@
     gap: var(--spacing-xs);
     justify-content: center;
   }
-  
+
   .seg-badges {
     flex-direction: column;
     gap: var(--spacing-xs);
   }
-  
+
   .seg-feedback {
     padding: var(--seg-spacing-sm);
   }
@@ -473,7 +473,7 @@
   .seg-tooltip {
     transition: none;
   }
-  
+
   .seg-block-fill-animation,
   .seg-shimmer-effect,
   .seg-pulse-animation,
@@ -487,11 +487,11 @@
   .seg-progress-block {
     border-width: 3px;
   }
-  
+
   .seg-connection {
     stroke-width: 3;
   }
-  
+
   .seg-code-highlight {
     border-left-width: 4px;
   }
@@ -504,12 +504,12 @@
   .seg-connection-dash {
     display: none;
   }
-  
+
   .seg-feedback {
     border: 1px solid #333;
     background: white !important;
   }
-  
+
   .seg-progress-block {
     border: 2px solid #333;
     background: white !important;
@@ -521,7 +521,7 @@
   .seg-tooltip {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   }
-  
+
   .seg-code-highlight {
     background: rgba(102, 126, 234, 0.2);
   }

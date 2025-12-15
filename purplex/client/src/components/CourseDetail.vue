@@ -7,7 +7,7 @@
       <div class="loading-spinner" />
       <p>Loading course...</p>
     </div>
-    
+
     <div
       v-else-if="course"
       class="course-content"
@@ -21,7 +21,7 @@
           <span class="back-arrow">←</span>
           Back to Courses
         </router-link>
-        
+
         <div class="course-info">
           <h1>{{ course.name }}</h1>
           <p class="course-id">
@@ -33,7 +33,7 @@
           >
             {{ course.description }}
           </p>
-          
+
           <div class="course-meta">
             <div class="meta-item">
               <span class="label">Instructor:</span>
@@ -50,26 +50,26 @@
           </div>
         </div>
       </div>
-      
+
       <hr class="divider">
-      
+
       <!-- Problem Sets -->
       <div class="problem-sets-section">
         <h2>Problem Sets</h2>
-        
+
         <div
           v-if="course.problem_sets.length === 0"
           class="empty-state"
         >
           <p>No problem sets have been added to this course yet.</p>
         </div>
-        
+
         <div
           v-else
           class="problem-sets-grid"
         >
-          <div 
-            v-for="psData in course.problem_sets" 
+          <div
+            v-for="psData in course.problem_sets"
             :key="psData.problem_set.slug"
             class="problem-set-card"
             @click="navigateToProblemSet(psData.problem_set.slug)"
@@ -82,14 +82,14 @@
                   class="required-badge"
                 >Required</span>
               </div>
-              
+
               <p
                 v-if="psData.problem_set.description"
                 class="card-description"
               >
                 {{ psData.problem_set.description }}
               </p>
-              
+
               <div class="card-footer">
                 <span class="problems-count">
                   {{ psData.problem_set.problems_count }} problems
@@ -103,7 +103,7 @@
         </div>
       </div>
     </div>
-    
+
     <div
       v-else
       class="error-container"
@@ -135,17 +135,17 @@ export default defineComponent({
     const route = useRoute()
     const router = useRouter()
     const store = useStore()
-    
+
     const course: Ref<Course | null> = ref(null)
     const loading = ref(true)
     const courseId = computed(() => route.params.courseId as string)
-    
+
     const fetchCourseDetails = async (): Promise<void> => {
       loading.value = true
       try {
         const response = await axios.get(`/api/courses/${courseId.value}/`)
         course.value = response.data
-        
+
         // Update current course in store
         store.commit('courses/SET_CURRENT_COURSE', response.data)
       } catch (error) {
@@ -156,7 +156,7 @@ export default defineComponent({
         loading.value = false
       }
     }
-    
+
     const navigateToProblemSet = (problemSetSlug: string): void => {
       router.push({
         name: 'CourseProblemSet',
@@ -166,13 +166,13 @@ export default defineComponent({
         }
       })
     }
-    
+
     onMounted(async () => {
       // Wait for auth state to be determined first
       await waitForAuthState()
       fetchCourseDetails()
     })
-    
+
     return {
       course,
       loading,
@@ -419,16 +419,16 @@ export default defineComponent({
   .course-detail {
     padding: var(--spacing-lg);
   }
-  
+
   .course-info h1 {
     font-size: var(--font-size-xxl);
   }
-  
+
   .course-meta {
     flex-direction: column;
     gap: var(--spacing-lg);
   }
-  
+
   .problem-sets-grid {
     grid-template-columns: 1fr;
   }

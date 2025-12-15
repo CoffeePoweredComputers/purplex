@@ -40,7 +40,7 @@ class ProblemServiceImpl {
     try {
       // Validate data before sending
       this._validateProblemData(data);
-      
+
       const response: AxiosResponse<ProblemDetailed> = await axios.post(
         this.baseURL + '/',
         data
@@ -59,7 +59,7 @@ class ProblemServiceImpl {
    * @throws APIError on validation or update failure
    */
   async updateProblem(
-    slug: string, 
+    slug: string,
     data: ProblemUpdateRequest
   ): Promise<ProblemDetailed> {
     try {
@@ -162,7 +162,11 @@ class ProblemServiceImpl {
       errors.push('Reference solution is required');
     }
 
-    if (!data.test_cases || data.test_cases.length === 0) {
+    // Some problem types don't require test cases (use their own evaluation)
+    const typesNotRequiringTestCases = ['mcq', 'refute'];
+    const problemType = (data as { problem_type?: string }).problem_type;
+    if (!typesNotRequiringTestCases.includes(problemType || '') &&
+        (!data.test_cases || data.test_cases.length === 0)) {
       errors.push('At least one test case is required');
     }
 
@@ -258,7 +262,7 @@ class ProblemServiceImpl {
       if (context?.problemSetSlug) {
         params.problem_set_slug = context.problemSetSlug;
       }
-      
+
       const response = await axios.get(
         `/api/problems/${problemSlug}/hints/`,
         { params }
@@ -328,11 +332,11 @@ class ProblemServiceImpl {
       const response = await axios.get(
         `${this.baseURL}/${slug}/hints/`
       );
-      
+
       return response.data.hints || [];
     } catch (error) {
       // If hints endpoint doesn't exist yet, return empty array
-      if (error && typeof error === 'object' && 'response' in error && 
+      if (error && typeof error === 'object' && 'response' in error &&
           error.response && typeof error.response === 'object' && 'status' in error.response &&
           error.response.status === 404) {
         return [];

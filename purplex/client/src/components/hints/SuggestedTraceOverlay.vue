@@ -55,7 +55,7 @@ export default defineComponent({
       const testCode = `# Suggested trace\nprint(${functionCall.value})`
       const formattedCode = `${props.solutionCode}\n\n${testCode}`
       const pytutorUrl = PythonTutorService.generateEmbedUrl(formattedCode)
-      
+
       emit('open-pytutor', pytutorUrl)
     }
 
@@ -144,13 +144,13 @@ export default defineComponent({
   .suggested-trace {
     margin: var(--spacing-md);
   }
-  
+
   .trace-content {
     flex-direction: column;
     align-items: stretch;
     gap: var(--spacing-sm);
   }
-  
+
   .trace-function {
     min-width: auto;
   }

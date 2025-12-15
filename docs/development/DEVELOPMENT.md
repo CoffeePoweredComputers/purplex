@@ -74,7 +74,7 @@ class MultipleChoiceSubmitView(APIView):
     def post(self, request, problem_id):
         problem = get_object_or_404(Problem, id=problem_id)
         is_correct = ProblemService.validate_multiple_choice_answer(
-            problem, 
+            problem,
             request.data.get('answer')
         )
         return Response({'correct': is_correct})
@@ -96,17 +96,17 @@ class FeatureView(APIView):
     Thin controller - delegates to service.
     """
     permission_classes = [IsAuthenticated]  # Always specify
-    
+
     def get(self, request):
         # 1. Parse input
         params = request.query_params
-        
+
         # 2. Call service (NO business logic here)
         result = FeatureService.process_feature(params)
-        
+
         # 3. Return response
         return Response(result, status=status.HTTP_200_OK)
-    
+
     def post(self, request):
         # Multiple HTTP methods in same class
         data = request.data
@@ -116,12 +116,12 @@ class FeatureView(APIView):
 # services/feature_service.py (or add to existing service file)
 class FeatureService:
     """Contains ALL business logic."""
-    
+
     @staticmethod
     def process_feature(params):
         # Complex logic here
         pass
-    
+
     @staticmethod
     def create_feature(data):
         # Creation logic here
@@ -463,14 +463,14 @@ DATABASES = {
 #### 2. Add Missing Database Indexes
 ```sql
 -- Create migration for these critical indexes
-CREATE INDEX CONCURRENTLY idx_userprogress_user 
+CREATE INDEX CONCURRENTLY idx_userprogress_user
     ON problems_app_userprogress(user_id);
 
-CREATE INDEX CONCURRENTLY idx_submission_lookup 
+CREATE INDEX CONCURRENTLY idx_submission_lookup
     ON submissions_app_promptsubmission(user_id, problem_id, submitted_at DESC);
 
-CREATE INDEX CONCURRENTLY idx_active_problems 
-    ON problems_app_problem(is_active, slug) 
+CREATE INDEX CONCURRENTLY idx_active_problems
+    ON problems_app_problem(is_active, slug)
     WHERE is_active = true;
 ```
 
@@ -522,7 +522,7 @@ LOGGING = {
     },
 }
 
-# Monitor slow queries in PostgreSQL: 
+# Monitor slow queries in PostgreSQL:
 # SET log_min_duration_statement = 100;  -- Log queries over 100ms
 ```
 
@@ -535,7 +535,7 @@ python manage.py test tests.test_database_performance
 psql -c "SELECT count(*) FROM pg_stat_activity WHERE state = 'active'"
 
 # Find slow queries
-psql -c "SELECT query, mean_exec_time FROM pg_stat_statements 
+psql -c "SELECT query, mean_exec_time FROM pg_stat_statements
          WHERE mean_exec_time > 50 ORDER BY mean_exec_time DESC LIMIT 10"
 ```
 
@@ -622,7 +622,7 @@ async function saveData() {
   } catch (error) {
     // Log full error for developers
     logger.error('Failed to save user data', error);
-    
+
     // Show user-friendly message
     notify.error('Unable to save your changes. Please try again.');
   }

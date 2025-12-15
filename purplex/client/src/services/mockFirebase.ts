@@ -75,25 +75,25 @@ class MockFirebaseAuth {
   public currentUser: MockUser | null = null;
   private authStateListeners: Array<(user: MockUser | null) => void> = [];
   private idTokenListeners: Array<(user: MockUser | null) => void> = [];
-  
+
   constructor() {
     // Check localStorage for persisted auth
     this.restoreAuthState();
   }
-  
+
   /**
    * Sign in with email and password
    */
   async signInWithEmailAndPassword(email: string, password: string): Promise<MockUserCredential> {
     mockLogger.info(`Signing in with email: ${email}`);
-    
+
     // Check test users
     const testUser = TEST_USERS[email as keyof typeof TEST_USERS];
     if (testUser && password === testUser.password) {
       this.currentUser = this.createMockUser(testUser);
       this.persistAuthState();
       this.notifyAuthStateListeners();
-      
+
       return {
         user: this.currentUser,
         credential: {
@@ -103,7 +103,7 @@ class MockFirebaseAuth {
         operationType: 'signIn'
       };
     }
-    
+
     // In development, allow any email/password combination
     if (environment.isDevelopment) {
       const mockUser = {
@@ -112,11 +112,11 @@ class MockFirebaseAuth {
         displayName: email.split('@')[0],
         password
       };
-      
+
       this.currentUser = this.createMockUser(mockUser);
       this.persistAuthState();
       this.notifyAuthStateListeners();
-      
+
       return {
         user: this.currentUser,
         credential: {
@@ -126,16 +126,16 @@ class MockFirebaseAuth {
         operationType: 'signIn'
       };
     }
-    
+
     throw new Error('Invalid email or password');
   }
-  
+
   /**
    * Create a new user account
    */
   async createUserWithEmailAndPassword(email: string, password: string): Promise<MockUserCredential> {
     mockLogger.info(`Creating account for: ${email}`);
-    
+
     // In development, allow any email
     const mockUser = {
       uid: `mock-uid-new-${email.replace('@', '-').replace('.', '-')}`,
@@ -143,11 +143,11 @@ class MockFirebaseAuth {
       displayName: email.split('@')[0],
       password
     };
-    
+
     this.currentUser = this.createMockUser(mockUser);
     this.persistAuthState();
     this.notifyAuthStateListeners();
-    
+
     return {
       user: this.currentUser,
       credential: {
@@ -157,13 +157,13 @@ class MockFirebaseAuth {
       operationType: 'signUp'
     };
   }
-  
+
   /**
    * Sign in with popup (mock Google sign-in)
    */
   async signInWithPopup(_provider: MockGoogleAuthProvider): Promise<MockUserCredential> {
     mockLogger.info('Mock Google sign-in');
-    
+
     // Simulate Google sign-in with a test account
     const mockUser = {
       uid: 'mock-uid-google',
@@ -171,11 +171,11 @@ class MockFirebaseAuth {
       displayName: 'Google Test User',
       password: ''
     };
-    
+
     this.currentUser = this.createMockUser(mockUser);
     this.persistAuthState();
     this.notifyAuthStateListeners();
-    
+
     return {
       user: this.currentUser,
       credential: {
@@ -185,7 +185,7 @@ class MockFirebaseAuth {
       operationType: 'signIn'
     };
   }
-  
+
   /**
    * Sign out the current user
    */
@@ -195,7 +195,7 @@ class MockFirebaseAuth {
     this.clearAuthState();
     this.notifyAuthStateListeners();
   }
-  
+
   /**
    * Listen for auth state changes
    */
@@ -203,7 +203,7 @@ class MockFirebaseAuth {
     this.authStateListeners.push(callback);
     // Immediately call with current state
     callback(this.currentUser);
-    
+
     // Return unsubscribe function
     return () => {
       const index = this.authStateListeners.indexOf(callback);
@@ -212,14 +212,14 @@ class MockFirebaseAuth {
       }
     };
   }
-  
+
   /**
    * Listen for ID token changes
    */
   onIdTokenChanged(callback: (user: MockUser | null) => void): () => void {
     this.idTokenListeners.push(callback);
     callback(this.currentUser);
-    
+
     return () => {
       const index = this.idTokenListeners.indexOf(callback);
       if (index > -1) {
@@ -227,7 +227,7 @@ class MockFirebaseAuth {
       }
     };
   }
-  
+
   /**
    * Create a mock user object
    */
@@ -259,10 +259,10 @@ class MockFirebaseAuth {
         this.notifyAuthStateListeners();
       }
     };
-    
+
     return user;
   }
-  
+
   /**
    * Create a mock JWT token
    */
@@ -277,13 +277,13 @@ class MockFirebaseAuth {
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour expiry
     };
-    
+
     // Use a special prefix to indicate this is a mock token
     // The backend will detect this and handle it differently
     const encodedPayload = btoa(JSON.stringify(payload));
     return `MOCK.${encodedPayload}.development`;
   }
-  
+
   /**
    * Persist auth state to localStorage
    */
@@ -300,7 +300,7 @@ class MockFirebaseAuth {
       localStorage.setItem('mockFirebaseAuth', JSON.stringify(authData));
     }
   }
-  
+
   /**
    * Restore auth state from localStorage
    */
@@ -317,14 +317,14 @@ class MockFirebaseAuth {
       }
     }
   }
-  
+
   /**
    * Clear auth state from localStorage
    */
   private clearAuthState(): void {
     localStorage.removeItem('mockFirebaseAuth');
   }
-  
+
   /**
    * Notify all auth state listeners
    */
@@ -341,15 +341,15 @@ class MockFirebaseAuth {
 // Mock Google Auth Provider
 export class MockGoogleAuthProvider {
   static PROVIDER_ID = 'google.com';
-  
+
   constructor() {
     // No configuration needed for mock
   }
-  
+
   addScope(scope: string): void {
     // No-op in mock
   }
-  
+
   setCustomParameters(_params: Record<string, string>): void {
     // No-op in mock
   }

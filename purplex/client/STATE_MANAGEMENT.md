@@ -89,7 +89,7 @@ export function useSubmission(problemSlug: string) {
   const submission = ref(null)
   const loading = ref(false)
   const error = ref(null)
-  
+
   const submitCode = async (code: string) => {
     loading.value = true
     try {
@@ -100,7 +100,7 @@ export function useSubmission(problemSlug: string) {
       loading.value = false
     }
   }
-  
+
   return {
     submission: readonly(submission),
     loading: readonly(loading),

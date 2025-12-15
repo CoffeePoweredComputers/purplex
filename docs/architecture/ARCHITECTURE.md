@@ -209,7 +209,7 @@ View → Service → Business Logic (for complex operations)
 Task → Repository → Model (for async operations)
 ```
 
-**Enforcement**: 
+**Enforcement**:
 - Business logic checker script (`scripts/check_business_logic.py`) validates compliance
 - 0 violations in views, services, or tasks
 - Repository pattern fully adopted for all data access in views/tasks
@@ -251,7 +251,7 @@ user, auth, app settings
 # ✅ CORRECT: Class-based views
 class ResourceView(APIView):
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request):
         # Thin controller - delegate to service
         return Response(Service.process())
@@ -287,7 +287,7 @@ User
 - Action endpoints for operations: `/api/submit/` (unified submission endpoint)
 
 ### Key API Endpoints (Actual Implementation)
-- **Authentication Endpoints**: 
+- **Authentication Endpoints**:
   - `/api/users/auth/status/` - Check auth status (POST)
   - `/api/users/auth/sse-token/` - Create/revoke SSE tokens (POST/DELETE)
   - `/api/users/user/me/` - Get current user info (GET)

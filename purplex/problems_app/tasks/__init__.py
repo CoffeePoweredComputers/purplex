@@ -8,5 +8,5 @@ This module contains the new clean pipeline tasks.
 from .pipeline import execute_eipl_pipeline
 
 __all__ = [
-    'execute_eipl_pipeline',
+    "execute_eipl_pipeline",
 ]

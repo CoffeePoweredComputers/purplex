@@ -2,4 +2,4 @@
 
 from .handler import EiPLHandler
 
-__all__ = ['EiPLHandler']
+__all__ = ["EiPLHandler"]

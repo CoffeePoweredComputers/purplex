@@ -15,6 +15,7 @@
     :submission-history="submissionHistory"
     :title="title"
     @load-attempt="$emit('load-attempt', $event)"
+    @next-problem="$emit('next-problem')"
   />
 </template>
 
@@ -79,5 +80,6 @@ withDefaults(defineProps<Props>(), {
 
 defineEmits<{
   (e: 'load-attempt', attemptId: string): void
+  (e: 'next-problem'): void
 }>()
 </script>

@@ -65,7 +65,7 @@ export default defineComponent({
         id,
         ...notification
       });
-      
+
       // Auto-remove after duration
       setTimeout(() => {
         this.removeNotification(id);

@@ -109,6 +109,27 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     })
   })
 
+  // Check if current inputs match any previous query (real-time duplicate detection)
+  const duplicateEntry = computed(() => {
+    if (!hasValidInputs.value) return null
+
+    // Parse current inputs
+    const parsedInputs: Record<string, unknown> = {}
+    for (const param of parameters.value) {
+      const rawValue = probeInputs[param.name]
+      parsedInputs[param.name] = parseInputValue(rawValue, param.type)
+    }
+
+    const inputKey = JSON.stringify(parsedInputs)
+    return probeHistory.value.find(
+      entry => JSON.stringify(entry.input) === inputKey
+    ) || null
+  })
+
+  const isDuplicate = computed(() => duplicateEntry.value !== null)
+
+  const cachedResult = computed(() => duplicateEntry.value?.output ?? null)
+
   // Initialize probe inputs when parameters change
   watch(parameters, (params) => {
     params.forEach(p => {
@@ -281,6 +302,8 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     probeStatusText,
     probeStatusClass,
     hasValidInputs,
+    isDuplicate,
+    cachedResult,
     // Methods
     executeProbe,
     loadProbeStatus,

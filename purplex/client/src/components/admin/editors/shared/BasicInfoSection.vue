@@ -15,12 +15,13 @@
     </div>
 
     <div class="form-group">
-      <label for="description">Description</label>
+      <label for="description">Description *</label>
       <textarea
         id="description"
         :value="editor.form.form.description || ''"
-        placeholder="Enter problem description (optional)"
+        placeholder="Enter problem description"
         rows="3"
+        required
         @input="updateField('description', ($event.target as HTMLTextAreaElement).value)"
       />
     </div>

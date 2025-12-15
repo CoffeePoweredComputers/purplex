@@ -7,17 +7,17 @@ Handlers are registered using the @register_handler decorator.
 
 from typing import Dict, List, Type
 
-from .base import ActivityHandler, ProcessingResult, ValidationResult, SubmissionOutcome
+from .base import ActivityHandler, ProcessingResult, SubmissionOutcome, ValidationResult
 
 __all__ = [
-    'ActivityHandler',
-    'ValidationResult',
-    'ProcessingResult',
-    'SubmissionOutcome',
-    'register_handler',
-    'get_handler',
-    'get_registered_types',
-    'is_registered',
+    "ActivityHandler",
+    "ValidationResult",
+    "ProcessingResult",
+    "SubmissionOutcome",
+    "register_handler",
+    "get_handler",
+    "get_registered_types",
+    "is_registered",
 ]
 
 _REGISTRY: Dict[str, Type[ActivityHandler]] = {}
@@ -32,11 +32,13 @@ def register_handler(type_name: str):
         class EiPLHandler(ActivityHandler):
             ...
     """
+
     def decorator(cls: Type[ActivityHandler]):
         if type_name in _REGISTRY:
             raise ValueError(f"Handler already registered for type: {type_name}")
         _REGISTRY[type_name] = cls
         return cls
+
     return decorator
 
 
@@ -66,10 +68,10 @@ def is_registered(type_name: str) -> bool:
 
 # Import handlers to trigger registration
 # This must be at the bottom to avoid circular imports
-from . import eipl  # noqa: E402, F401
-from . import mcq   # noqa: E402, F401
-from . import prompt  # noqa: E402, F401
-from . import refute  # noqa: E402, F401
 from . import debug_fix  # noqa: E402, F401
+from . import eipl  # noqa: E402, F401
+from . import mcq  # noqa: E402, F401
 from . import probeable_code  # noqa: E402, F401
 from . import probeable_spec  # noqa: E402, F401
+from . import prompt  # noqa: E402, F401
+from . import refute  # noqa: E402, F401

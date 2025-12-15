@@ -14,10 +14,10 @@ describe('useEditorHints composable', () => {
       setHintMarkers: vi.fn(),
       clearHintMarkers: vi.fn()
     })
-    
+
     // Original code
     originalCode = ref('def calculate(x, y):\n    result = x + y\n    return result')
-    
+
     // Initialize composable
     composable = useEditorHints(editorRef, originalCode)
   })
@@ -45,7 +45,7 @@ describe('useEditorHints composable', () => {
       }
 
       const result = await composable.applyHint('variable_fade', hintData)
-      
+
       expect(result).toBe(true)
       expect(composable.hasActiveHints.value).toBe(true)
       expect(composable.activeHints.value).toHaveLength(1)
@@ -70,7 +70,7 @@ describe('useEditorHints composable', () => {
       }
 
       const result = await composable.applyHint('subgoal_highlight', hintData)
-      
+
       expect(result).toBe(true)
       expect(composable.hasActiveHints.value).toBe(true)
       expect(composable.modifiedCode.value).toContain('# STEP 1: Addition step')
@@ -85,10 +85,10 @@ describe('useEditorHints composable', () => {
 
       // Apply once
       await composable.applyHint('variable_fade', hintData)
-      
+
       // Try to apply again
       const result = await composable.applyHint('variable_fade', hintData)
-      
+
       expect(result).toBe(false)
       expect(composable.errorState.value).toContain('already active')
       expect(composable.activeHints.value).toHaveLength(1)
@@ -96,14 +96,14 @@ describe('useEditorHints composable', () => {
 
     it('should handle invalid hint type', async () => {
       const result = await composable.applyHint('invalid_type', {})
-      
+
       expect(result).toBe(false)
       expect(composable.errorState.value).toContain('No processor found')
     })
 
     it('should handle missing hint data', async () => {
       const result = await composable.applyHint('', null as any)
-      
+
       expect(result).toBe(false)
       expect(composable.errorState.value).toContain('Invalid hint type or data')
     })
@@ -118,10 +118,10 @@ describe('useEditorHints composable', () => {
         }
       }
       await composable.applyHint('variable_fade', hintData)
-      
+
       // Then remove it
       const result = await composable.removeHint('variable_fade')
-      
+
       expect(result).toBe(true)
       expect(composable.hasActiveHints.value).toBe(false)
       expect(composable.activeHints.value).toHaveLength(0)
@@ -130,7 +130,7 @@ describe('useEditorHints composable', () => {
 
     it('should handle removing non-existent hint', async () => {
       const result = await composable.removeHint('variable_fade')
-      
+
       expect(result).toBe(false)
       expect(composable.errorState.value).toContain('is not active')
     })
@@ -146,7 +146,7 @@ describe('useEditorHints composable', () => {
       }
 
       const result = await composable.toggleHint(hintData)
-      
+
       expect(result).toBe(true)
       expect(composable.isHintActive('variable_fade')).toBe(true)
     })
@@ -162,10 +162,10 @@ describe('useEditorHints composable', () => {
       // Apply first
       await composable.toggleHint(hintData)
       expect(composable.isHintActive('variable_fade')).toBe(true)
-      
+
       // Toggle again to remove
       const result = await composable.toggleHint(hintData)
-      
+
       expect(result).toBe(true)
       expect(composable.isHintActive('variable_fade')).toBe(false)
     })
@@ -186,12 +186,12 @@ describe('useEditorHints composable', () => {
           }]
         }
       })
-      
+
       expect(composable.activeHints.value).toHaveLength(2)
-      
+
       // Remove all
       const result = await composable.removeAllHints()
-      
+
       expect(result).toBe(true)
       expect(composable.hasActiveHints.value).toBe(false)
       expect(composable.activeHints.value).toHaveLength(0)
@@ -204,10 +204,10 @@ describe('useEditorHints composable', () => {
       const hintData = {
         content: { mappings: [{ from: 'x', to: 'first' }] }
       }
-      
+
       await composable.applyHint('variable_fade', hintData)
       await composable.removeHint('variable_fade')
-      
+
       // Check history through stats
       const stats = composable.getHintStats()
       expect(stats.historyCount).toBeGreaterThan(0)
@@ -218,16 +218,16 @@ describe('useEditorHints composable', () => {
       await composable.applyHint('variable_fade', {
         content: { mappings: [{ from: 'x', to: 'first' }] }
       })
-      
+
       // Save state
       const state = composable.saveState()
       expect(state.hasHints).toBe(true)
       expect(state.activeHints).toHaveLength(1)
-      
+
       // Clear and restore
       await composable.removeAllHints()
       expect(composable.hasActiveHints.value).toBe(false)
-      
+
       await composable.restoreState(state)
       expect(composable.hasActiveHints.value).toBe(true)
       expect(composable.activeHints.value).toHaveLength(1)
@@ -242,9 +242,9 @@ describe('useEditorHints composable', () => {
           mappings: [{ from: 'result', to: 'sum' }]
         }
       })
-      
+
       expect(composable.modifiedCode.value).toContain('sum')
-      
+
       // Apply subgoal highlight on top
       await composable.applyHint('subgoal_highlight', {
         content: {
@@ -255,7 +255,7 @@ describe('useEditorHints composable', () => {
           }]
         }
       })
-      
+
       // Should have both modifications
       expect(composable.modifiedCode.value).toContain('sum')
       expect(composable.modifiedCode.value).toContain('# STEP 1: Calculate sum')
@@ -269,7 +269,7 @@ describe('useEditorHints composable', () => {
       const result = await composable.applyHint('variable_fade', {
         content: {} // Missing mappings
       })
-      
+
       expect(result).toBe(false)
       expect(composable.errorState.value).toBeTruthy()
       expect(composable.hasActiveHints.value).toBe(false)

@@ -5,7 +5,7 @@
       <h1 class="page-title">
         Problems Management
       </h1>
-      
+
       <div class="status-container">
         <div
           v-if="loading"
@@ -13,7 +13,7 @@
         >
           Loading problems...
         </div>
-        
+
         <div
           v-if="error"
           class="error-message"
@@ -21,7 +21,7 @@
           {{ error }}
         </div>
       </div>
-      
+
       <div
         v-if="!loading && !error"
         class="controls-container"
@@ -33,7 +33,7 @@
           Add New Problem
         </button>
       </div>
-      
+
       <div
         v-if="!loading && !error"
         class="table-responsive"
@@ -139,7 +139,7 @@ export default defineComponent({
       this.$router.push('/');
       return;
     }
-    
+
     this.fetchProblems();
     this.fetchProblemSets();
   },
@@ -160,7 +160,7 @@ export default defineComponent({
           status: axiosError.response?.status,
           data: axiosError.response?.data
         });
-        
+
         let errorMessage = 'Failed to load problems. ';
         if (axiosError.response) {
           if (axiosError.response.status === 401) {
@@ -179,12 +179,12 @@ export default defineComponent({
         } else {
           errorMessage += axiosError.message;
         }
-        
+
         this.error = errorMessage;
         this.loading = false;
       }
     },
-    
+
     async fetchProblemSets(): Promise<void> {
       try {
         const response = await axios.get('/api/admin/problem-sets/');
@@ -194,25 +194,25 @@ export default defineComponent({
         // Don't set error state here as it's not critical for the page to load
       }
     },
-    
-    
+
+
     getCategoryNames(problem: ProblemDetailed): string {
       if (!problem.categories || problem.categories.length === 0) {
         return 'None';
       }
       return problem.categories.map(cat => cat.name).join(', ');
     },
-    
+
     getProblemSetNames(problem: ProblemDetailed): string {
       // The problem_sets field contains the actual problem sets this problem belongs to
       if (!problem.problem_sets || problem.problem_sets.length === 0) {
         return 'None';
       }
-      
+
       // problem_sets is a list of problem set objects with their data
       return problem.problem_sets.map(ps => ps.title || 'Unknown').join(', ');
     },
-    
+
     difficultyClass(difficulty: string): string {
       switch(difficulty.toLowerCase()) {
         case 'easy':
@@ -227,7 +227,7 @@ export default defineComponent({
           return 'default-badge';
       }
     },
-    
+
     problemTypeClass(type: string): string {
       switch(type) {
         case 'eipl':
@@ -238,32 +238,32 @@ export default defineComponent({
     },
 
     getProblemTypeLabel(type: string): string {
-      switch(type) {
-        case 'eipl':
-          return 'EiPL';
-        case 'mcq':
-          return 'MCQ';
-        case 'prompt':
-          return 'Prompt';
-        default:
-          return type || 'Unknown';
-      }
+      const labels: Record<string, string> = {
+        mcq: 'Multiple Choice Question',
+        eipl: 'Explain in Plain Language',
+        prompt: 'Prompt Problem',
+        debug_fix: 'Debug and Fix Code',
+        probeable_code: 'Probeable Problem (Code)',
+        probeable_spec: 'Probeable Problem (Explanation)',
+        refute: 'Refute: Find Counterexample',
+      };
+      return labels[type] || type || 'Unknown';
     },
-    
+
     createNewProblem(): void {
       this.$router.push('/admin/problems/new');
     },
-    
+
     editProblem(problemSlug: string): void {
       this.$router.push(`/admin/problems/${problemSlug}/edit`);
     },
-    
+
     confirmDelete(problem: ProblemDetailed): void {
       if (confirm(`Are you sure you want to delete the problem "${problem.title}"? This action cannot be undone.`)) {
         this.deleteProblem(problem);
       }
     },
-    
+
     async deleteProblem(problem: ProblemDetailed): Promise<void> {
       try {
         await axios.delete(`/api/admin/problems/${problem.slug}/`);
@@ -519,21 +519,21 @@ export default defineComponent({
   .controls-container {
     flex-direction: column;
   }
-  
+
   .action-button {
     width: 100%;
     justify-content: center;
   }
-  
+
   .problems-table {
     font-size: var(--font-size-sm);
   }
-  
+
   .problems-table th,
   .problems-table td {
     padding: var(--spacing-md);
   }
-  
+
   .actions-cell {
     flex-direction: column;
   }

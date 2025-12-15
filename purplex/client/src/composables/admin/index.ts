@@ -108,3 +108,7 @@ export type {
   UseProbeableSpecConfigReturn,
   ProbeableSpecConfig,
 } from './useProbeableSpecConfig';
+
+// @internal - Problem type handlers registry
+export { problemTypeHandlers } from './problemTypeHandlers';
+export type { ProblemTypeHandler, ComposableBundle } from './problemTypeHandlers';

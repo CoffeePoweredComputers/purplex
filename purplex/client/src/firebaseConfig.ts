@@ -46,19 +46,19 @@ async function initializeFirebase() {
   if (environment.useMockFirebase) {
     // Use mock Firebase in development
     log.info('Using Mock Firebase for development');
-    
+
     // Import mock Firebase
     const mockModule = await import('./services/mockFirebase');
     firebaseAuth = mockModule.mockFirebaseAuth;
     provider = mockModule.mockGoogleProvider;
-    
+
     // Mock doesn't need an app instance
     firebaseApp = null;
-    
+
   } else {
     // Use real Firebase in staging/production
     log.info('Using Real Firebase');
-    
+
     try {
       // Import real Firebase dynamically
       const { initializeApp } = await import('firebase/app');

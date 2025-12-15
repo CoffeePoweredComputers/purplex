@@ -37,7 +37,7 @@
             class="course-divider"
             aria-hidden="true"
           >
-        
+
           <!-- Reuse existing gallery grid for problem sets -->
           <div
             v-if="loading.courses"
@@ -123,7 +123,7 @@
               </span>
             </button>
           </nav>
-        
+
           <div
             v-else
             class="empty-state"
@@ -193,22 +193,22 @@ export default defineComponent({
   setup() {
     const store = useStore()
     const router = useRouter()
-    
+
     // Computed properties
     const enrolledCourses = computed(() => store.state.courses.enrolledCourses)
     const loading = computed(() => store.state.courses.loading)
     const progressData = computed(() => store.state.courses.courseProgress)
-    
+
     // Methods
     const showEnrollmentModal = (): void => {
       store.dispatch('courses/showEnrollmentModal')
     }
-    
+
     const navigateToProblemSet = (courseId: string, problemSetSlug: string): void => {
       router.push(`/courses/${courseId}/problem-set/${problemSetSlug}`)
     }
-    
-    
+
+
     // Lifecycle
     onMounted(async () => {
       // Wait for auth state to be determined first
@@ -216,7 +216,7 @@ export default defineComponent({
       // Initialize courses data
       await store.dispatch('courses/initializeCourses')
     })
-    
+
     return {
       enrolledCourses,
       loading,
@@ -516,17 +516,17 @@ main {
   .home-container {
     padding: var(--spacing-lg);
   }
-  
+
   .gallery-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .course-header {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-sm);
   }
-  
+
   .add-course-btn.floating {
     bottom: var(--spacing-lg);
     right: var(--spacing-lg);

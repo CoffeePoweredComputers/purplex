@@ -293,7 +293,7 @@ export const auth: Module<AuthState, RootState> = {
                 role: 'user',
                 isAdmin: false
               };
-              
+
               // Check if it's a known test admin
               if (user.email === 'admin@test.local' || user.email === 'dhsmith2@illinois.edu') {
                 userData.role = 'admin';
@@ -302,7 +302,7 @@ export const auth: Module<AuthState, RootState> = {
                 userData.role = 'instructor';
                 userData.isAdmin = false;
               }
-              
+
               commit('loginSuccess', userData);
             }
             return;

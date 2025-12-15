@@ -6,8 +6,9 @@ StaticProblem is the abstract base for:
 - ShortAnswerProblem (future)
 - EssayProblem (future)
 """
-from django.db import models
+
 from django.core.exceptions import ValidationError
+from django.db import models
 
 from .base import Problem
 
@@ -19,18 +20,14 @@ class StaticProblem(Problem):
     """
 
     GRADING_MODES = [
-        ('deterministic', 'Deterministic'),
-        ('llm', 'LLM-graded'),
-        ('manual', 'Manual'),
+        ("deterministic", "Deterministic"),
+        ("llm", "LLM-graded"),
+        ("manual", "Manual"),
     ]
 
-    question_text = models.TextField(
-        help_text="The question/prompt shown to students"
-    )
+    question_text = models.TextField(help_text="The question/prompt shown to students")
     grading_mode = models.CharField(
-        max_length=20,
-        choices=GRADING_MODES,
-        default='deterministic'
+        max_length=20, choices=GRADING_MODES, default="deterministic"
     )
 
     class Meta:
@@ -39,9 +36,7 @@ class StaticProblem(Problem):
     def clean(self):
         super().clean()
         if not self.question_text:
-            raise ValidationError({
-                'question_text': 'Question text is required'
-            })
+            raise ValidationError({"question_text": "Question text is required"})
 
 
 class McqProblem(StaticProblem):
@@ -59,64 +54,53 @@ class McqProblem(StaticProblem):
     """
 
     options = models.JSONField(
-        default=list,
-        help_text="Array of {id, text, is_correct, explanation} objects"
+        default=list, help_text="Array of {id, text, is_correct, explanation} objects"
     )
     allow_multiple = models.BooleanField(
-        default=False,
-        help_text="Allow selecting multiple answers"
+        default=False, help_text="Allow selecting multiple answers"
     )
     shuffle_options = models.BooleanField(
-        default=False,
-        help_text="Randomize option order per attempt"
+        default=False, help_text="Randomize option order per attempt"
     )
 
     class Meta:
-        app_label = 'problems_app'
-        verbose_name = "MCQ Problem"
-        verbose_name_plural = "MCQ Problems"
+        app_label = "problems_app"
+        verbose_name = "Multiple Choice Question"
+        verbose_name_plural = "Multiple Choice Questions"
 
     @property
     def polymorphic_type(self) -> str:
         """Return type identifier for handler lookup."""
-        return 'mcq'
+        return "mcq"
 
     def clean(self):
         super().clean()
 
         # Validate options exist
         if not self.options or len(self.options) < 2:
-            raise ValidationError({
-                'options': 'At least 2 options required'
-            })
+            raise ValidationError({"options": "At least 2 options required"})
 
         # Validate option structure
         for i, opt in enumerate(self.options):
             if not isinstance(opt, dict):
-                raise ValidationError({
-                    'options': f'Option {i+1} must be an object'
-                })
-            if not opt.get('id'):
-                raise ValidationError({
-                    'options': f'Option {i+1} must have an id'
-                })
-            if not opt.get('text', '').strip():
-                raise ValidationError({
-                    'options': f'Option {i+1} must have text'
-                })
+                raise ValidationError({"options": f"Option {i+1} must be an object"})
+            if not opt.get("id"):
+                raise ValidationError({"options": f"Option {i+1} must have an id"})
+            if not opt.get("text", "").strip():
+                raise ValidationError({"options": f"Option {i+1} must have text"})
 
         # Validate correct answer count
-        correct_count = sum(1 for opt in self.options if opt.get('is_correct'))
+        correct_count = sum(1 for opt in self.options if opt.get("is_correct"))
 
         if correct_count == 0:
-            raise ValidationError({
-                'options': 'At least one correct answer required'
-            })
+            raise ValidationError({"options": "At least one correct answer required"})
 
         if not self.allow_multiple and correct_count != 1:
-            raise ValidationError({
-                'options': 'Exactly one correct answer required (or enable allow_multiple)'
-            })
+            raise ValidationError(
+                {
+                    "options": "Exactly one correct answer required (or enable allow_multiple)"
+                }
+            )
 
     def __str__(self):
         return f"[MCQ] {self.title}"
@@ -136,6 +120,12 @@ class RefuteProblem(StaticProblem):
     claim_text = models.TextField(
         help_text="The false claim about the function (e.g., 'f(x) always returns positive')"
     )
+    claim_predicate = models.TextField(
+        blank=True,
+        default="",
+        help_text="Python expression that's True when claim holds (e.g., 'result > 0'). "
+        "Available variables: result, and all input arguments.",
+    )
     reference_solution = models.TextField(
         help_text="The actual function code to execute against student input"
     )
@@ -145,39 +135,37 @@ class RefuteProblem(StaticProblem):
     expected_counterexample = models.JSONField(
         default=dict,
         blank=True,
-        help_text="Optional known counterexample for hints (e.g., {'x': -5})"
+        help_text="Optional known counterexample for hints (e.g., {'x': -5})",
     )
 
     class Meta:
-        app_label = 'problems_app'
-        verbose_name = "Refute Problem"
-        verbose_name_plural = "Refute Problems"
+        app_label = "problems_app"
+        verbose_name = "Refute: Find Counterexample"
+        verbose_name_plural = "Refute: Find Counterexample Problems"
 
     @property
     def polymorphic_type(self) -> str:
         """Return type identifier for handler lookup."""
-        return 'refute'
+        return "refute"
 
     def clean(self):
         super().clean()
 
         # Validate reference solution
         if not self.reference_solution or not self.reference_solution.strip():
-            raise ValidationError({
-                'reference_solution': 'Reference solution code is required'
-            })
+            raise ValidationError(
+                {"reference_solution": "Reference solution code is required"}
+            )
 
         # Validate claim text
         if not self.claim_text or not self.claim_text.strip():
-            raise ValidationError({
-                'claim_text': 'Claim text is required'
-            })
+            raise ValidationError({"claim_text": "Claim text is required"})
 
         # Validate function signature
         if not self.function_signature or not self.function_signature.strip():
-            raise ValidationError({
-                'function_signature': 'Function signature is required'
-            })
+            raise ValidationError(
+                {"function_signature": "Function signature is required"}
+            )
 
     def __str__(self):
         return f"[Refute] {self.title}"

@@ -4,8 +4,8 @@ Probe API views for Probeable Code problems.
 These endpoints handle synchronous oracle queries (probes).
 Code submission uses the standard async submission endpoint.
 """
+
 import logging
-from typing import Any, Dict
 
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
@@ -14,18 +14,19 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from purplex.problems_app.handlers import get_handler
 from purplex.problems_app.models import Problem
+from purplex.problems_app.services.course_service import CourseService
 from purplex.problems_app.services.probe_service import (
     ProbeService,
     parse_function_signature,
-    validate_probe_input
+    validate_probe_input,
 )
-from purplex.problems_app.services.course_service import CourseService
 
 logger = logging.getLogger(__name__)
 
 
-@method_decorator(ratelimit(key='user', rate='30/m', method='POST'), name='post')
+@method_decorator(ratelimit(key="user", rate="30/m", method="POST"), name="post")
 class ProbeOracleView(APIView):
     """
     Synchronous endpoint for probing the oracle (reference solution).
@@ -56,76 +57,93 @@ class ProbeOracleView(APIView):
         }
     }
     """
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request, slug: str) -> Response:
         """Execute a probe query against the oracle."""
         # Check rate limit
-        if getattr(request, 'limited', False):
-            return Response({
-                'error': 'Rate limit exceeded. Please wait a moment before probing again.',
-                'success': False,
-                'result': None,
-                'probe_status': None
-            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        if getattr(request, "limited", False):
+            return Response(
+                {
+                    "error": "Rate limit exceeded. Please wait a moment before probing again.",
+                    "success": False,
+                    "result": None,
+                    "probe_status": None,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
 
         # Get problem
         try:
             problem = Problem.objects.get(slug=slug)
         except Problem.DoesNotExist:
-            return Response({
-                'error': f'Problem not found: {slug}',
-                'success': False,
-                'result': None,
-                'probe_status': None
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {
+                    "error": f"Problem not found: {slug}",
+                    "success": False,
+                    "result": None,
+                    "probe_status": None,
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         # Verify this is a probeable_code or probeable_spec problem
-        if problem.problem_type not in ('probeable_code', 'probeable_spec'):
-            return Response({
-                'error': f'Problem type {problem.problem_type} does not support probing',
-                'success': False,
-                'result': None,
-                'probe_status': None
-            }, status=status.HTTP_400_BAD_REQUEST)
+        if problem.problem_type not in ("probeable_code", "probeable_spec"):
+            return Response(
+                {
+                    "error": f"Problem type {problem.problem_type} does not support probing",
+                    "success": False,
+                    "result": None,
+                    "probe_status": None,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Optional course validation
-        course_id = request.data.get('course_id')
+        course_id = request.data.get("course_id")
         if course_id:
             enrollment_result = CourseService.validate_course_enrollment(
-                request.user,
-                course_id
+                request.user, course_id
             )
-            if not enrollment_result['success']:
-                return Response({
-                    'error': enrollment_result['error'],
-                    'success': False,
-                    'result': None,
-                    'probe_status': None
-                }, status=enrollment_result['status_code'])
+            if not enrollment_result["success"]:
+                return Response(
+                    {
+                        "error": enrollment_result["error"],
+                        "success": False,
+                        "result": None,
+                        "probe_status": None,
+                    },
+                    status=enrollment_result["status_code"],
+                )
 
         # Validate probe input
-        probe_input = request.data.get('input', {})
+        probe_input = request.data.get("input", {})
         if not isinstance(probe_input, dict):
-            return Response({
-                'error': 'Probe input must be an object mapping parameter names to values',
-                'success': False,
-                'result': None,
-                'probe_status': None
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "error": "Probe input must be an object mapping parameter names to values",
+                    "success": False,
+                    "result": None,
+                    "probe_status": None,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Validate against function signature
         is_valid, error_msg = validate_probe_input(
-            problem.function_signature,
-            probe_input
+            problem.function_signature, probe_input
         )
         if not is_valid:
-            return Response({
-                'error': error_msg,
-                'success': False,
-                'result': None,
-                'probe_status': None
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "error": error_msg,
+                    "success": False,
+                    "result": None,
+                    "probe_status": None,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Execute probe
         logger.info(
@@ -134,9 +152,7 @@ class ProbeOracleView(APIView):
         )
 
         result = ProbeService.execute_probe(
-            problem=problem,
-            user_id=request.user.id,
-            probe_input=probe_input
+            problem=problem, user_id=request.user.id, probe_input=probe_input
         )
 
         return Response(result, status=status.HTTP_200_OK)
@@ -160,6 +176,7 @@ class ProbeStatusView(APIView):
         "parameters": [{"name": "x", "type": "int"}, ...]
     }
     """
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request, slug: str) -> Response:
@@ -168,33 +185,38 @@ class ProbeStatusView(APIView):
         try:
             problem = Problem.objects.get(slug=slug)
         except Problem.DoesNotExist:
-            return Response({
-                'error': f'Problem not found: {slug}'
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": f"Problem not found: {slug}"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         # Verify this is a probeable_code or probeable_spec problem
-        if problem.problem_type not in ('probeable_code', 'probeable_spec'):
-            return Response({
-                'error': f'Problem type {problem.problem_type} does not support probing'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        if problem.problem_type not in ("probeable_code", "probeable_spec"):
+            return Response(
+                {
+                    "error": f"Problem type {problem.problem_type} does not support probing"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Get probe status
         probe_status = ProbeService.get_probe_status(
-            problem=problem,
-            user_id=request.user.id
+            problem=problem, user_id=request.user.id
         )
 
         # Add function info
-        show_signature = getattr(problem, 'show_function_signature', True)
+        show_signature = getattr(problem, "show_function_signature", True)
 
         if show_signature:
-            probe_status['function_signature'] = problem.function_signature
-            probe_status['parameters'] = parse_function_signature(problem.function_signature)
+            probe_status["function_signature"] = problem.function_signature
+            probe_status["parameters"] = parse_function_signature(
+                problem.function_signature
+            )
         else:
-            probe_status['function_signature'] = None
-            probe_status['parameters'] = []
+            probe_status["function_signature"] = None
+            probe_status["parameters"] = []
 
-        probe_status['function_name'] = problem.function_name
+        probe_status["function_name"] = problem.function_name
 
         return Response(probe_status, status=status.HTTP_200_OK)
 
@@ -221,6 +243,7 @@ class ProbeHistoryView(APIView):
         "probe_status": {...}
     }
     """
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request, slug: str) -> Response:
@@ -229,36 +252,145 @@ class ProbeHistoryView(APIView):
         try:
             problem = Problem.objects.get(slug=slug)
         except Problem.DoesNotExist:
-            return Response({
-                'error': f'Problem not found: {slug}'
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": f"Problem not found: {slug}"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         # Verify this is a probeable_code or probeable_spec problem
-        if problem.problem_type not in ('probeable_code', 'probeable_spec'):
-            return Response({
-                'error': f'Problem type {problem.problem_type} does not support probing'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        if problem.problem_type not in ("probeable_code", "probeable_spec"):
+            return Response(
+                {
+                    "error": f"Problem type {problem.problem_type} does not support probing"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Get limit from query params
         try:
-            limit = min(int(request.query_params.get('limit', 50)), 100)
+            limit = min(int(request.query_params.get("limit", 50)), 100)
         except (ValueError, TypeError):
             limit = 50
 
         # Get history
         history = ProbeService.get_probe_history(
-            problem_id=problem.id,
-            user_id=request.user.id,
-            limit=limit
+            problem_id=problem.id, user_id=request.user.id, limit=limit
         )
 
         # Get current status
         probe_status = ProbeService.get_probe_status(
-            problem=problem,
-            user_id=request.user.id
+            problem=problem, user_id=request.user.id
         )
 
-        return Response({
-            'history': history,
-            'probe_status': probe_status
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {"history": history, "probe_status": probe_status},
+            status=status.HTTP_200_OK,
+        )
+
+
+@method_decorator(ratelimit(key="user", rate="60/m", method="POST"), name="post")
+class RefuteTestView(APIView):
+    """
+    Test counterexample input for Refute problems.
+
+    POST /api/problems/<slug>/test-counterexample/
+
+    Request body:
+    {
+        "input": {
+            "param1": value1,
+            "param2": value2,
+            ...
+        }
+    }
+
+    Response:
+    {
+        "success": true/false,
+        "result": <function output>,
+        "claim_disproven": true/false,
+        "error": null or "error message"
+    }
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, slug: str) -> Response:
+        """Test if input disproves the claim."""
+        # Check rate limit
+        if getattr(request, "limited", False):
+            return Response(
+                {
+                    "error": "Rate limit exceeded. Please wait before testing again.",
+                    "success": False,
+                    "result": None,
+                    "claim_disproven": False,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        # Get problem
+        try:
+            problem = Problem.objects.get(slug=slug)
+        except Problem.DoesNotExist:
+            return Response(
+                {
+                    "error": f"Problem not found: {slug}",
+                    "success": False,
+                    "result": None,
+                    "claim_disproven": False,
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Verify this is a refute problem
+        if problem.problem_type != "refute":
+            return Response(
+                {
+                    "error": f"Problem type {problem.problem_type} does not support counterexample testing",
+                    "success": False,
+                    "result": None,
+                    "claim_disproven": False,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate input
+        test_input = request.data.get("input", {})
+        if not isinstance(test_input, dict):
+            return Response(
+                {
+                    "error": "Input must be an object mapping parameter names to values",
+                    "success": False,
+                    "result": None,
+                    "claim_disproven": False,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate against function signature
+        is_valid, error_msg = validate_probe_input(
+            problem.function_signature, test_input
+        )
+        if not is_valid:
+            return Response(
+                {
+                    "error": error_msg,
+                    "success": False,
+                    "result": None,
+                    "claim_disproven": False,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Get handler and execute test
+        handler = get_handler(problem.problem_type)
+        result = handler.test_counterexample(problem, test_input)
+
+        logger.info(
+            f"Refute test: problem={slug}, user={request.user.username}, "
+            f"input={test_input}, result={result.get('result')}, "
+            f"disproven={result.get('claim_disproven')}"
+        )
+
+        return Response(result, status=status.HTTP_200_OK)

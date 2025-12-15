@@ -18,68 +18,72 @@ Model hierarchy:
     └── (Future) CodeProblem (abstract) - student code -> execute
 """
 
+# Base problem model (polymorphic)
+from .base import DEFAULT_COMPLETION_THRESHOLD, Problem
+
 # Category
 from .category import ProblemCategory
 
-# Base problem model (polymorphic)
-from .base import Problem, DEFAULT_COMPLETION_THRESHOLD
-
-# Static problem types (no code execution)
-from .static import StaticProblem, McqProblem, RefuteProblem
-
-# Spec problem types (NL -> LLM -> code -> test)
-from .spec import (
-    SpecProblem, EiplProblem, PromptProblem, DebugFixProblem,
-    ProbeableCodeProblem, ProbeableSpecProblem
-)
-
-# Test cases
-from .test_case import TestCase
-
-# Problem sets
-from .problem_set import ProblemSet, ProblemSetMembership
-
 # Courses
-from .course import Course, CourseProblemSet, CourseEnrollment
-
-# Progress tracking
-from .progress import UserProgress, UserProblemSetProgress, ProgressSnapshot
+from .course import Course, CourseEnrollment, CourseProblemSet
 
 # Hints
 from .hint import ProblemHint
 
+# Problem sets
+from .problem_set import ProblemSet, ProblemSetMembership
+
+# Progress tracking
+from .progress import ProgressSnapshot, UserProblemSetProgress, UserProgress
+
+# Spec problem types (NL -> LLM -> code -> test)
+from .spec import (
+    DebugFixProblem,
+    EiplProblem,
+    ProbeableCodeProblem,
+    ProbeableSpecProblem,
+    PromptProblem,
+    SpecProblem,
+)
+
+# Static problem types (no code execution)
+from .static import McqProblem, RefuteProblem, StaticProblem
+
+# Test cases
+from .test_case import TestCase
+
 # Re-export all for backward compatibility
 __all__ = [
     # Constants
-    'DEFAULT_COMPLETION_THRESHOLD',
+    "DEFAULT_COMPLETION_THRESHOLD",
     # Category
-    'ProblemCategory',
+    "ProblemCategory",
     # Problems - base
-    'Problem',
+    "Problem",
     # Problems - static (no code)
-    'StaticProblem',
-    'McqProblem',
-    'RefuteProblem',
+    "StaticProblem",
+    "McqProblem",
+    "RefuteProblem",
     # Problems - spec (NL -> LLM -> code)
-    'SpecProblem',
-    'EiplProblem',
-    'PromptProblem',
-    'DebugFixProblem',
-    'ProbeableCodeProblem',
-    'ProbeableSpecProblem',
+    "SpecProblem",
+    "EiplProblem",
+    "PromptProblem",
+    "DebugFixProblem",
+    "ProbeableCodeProblem",
+    "ProbeableSpecProblem",
     # Test cases
-    'TestCase',
+    "TestCase",
     # Problem sets
-    'ProblemSet',
-    'ProblemSetMembership',
+    "ProblemSet",
+    "ProblemSetMembership",
     # Courses
-    'Course',
-    'CourseProblemSet',
-    'CourseEnrollment',
+    "Course",
+    "CourseProblemSet",
+    "CourseEnrollment",
     # Progress
-    'UserProgress',
-    'UserProblemSetProgress',
-    'ProgressSnapshot',
+    "UserProgress",
+    "UserProblemSetProgress",
+    "ProgressSnapshot",
     # Hints
-    'ProblemHint',
+    "ProblemHint",
 ]

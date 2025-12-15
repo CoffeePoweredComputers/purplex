@@ -1,7 +1,15 @@
 <template>
+  <!-- Question Text -->
+  <div
+    v-if="questionText"
+    class="question-text"
+  >
+    {{ questionText }}
+  </div>
+
   <div class="section-header">
     <div class="section-label">
-      {{ problem?.display_config?.section_label || inputConfig?.label || 'Select the correct answer' }}
+      {{ problem?.display_config?.section_label || inputConfig?.label || 'Select your answer' }}
     </div>
   </div>
 
@@ -108,6 +116,12 @@ const emit = defineEmits<{
 // Get input config from problem
 const inputConfig = computed<InputConfig | undefined>(() => props.problem.input_config)
 
+// Get question text from problem (MCQ-specific field)
+const questionText = computed<string>(() => {
+  // Try question_text field first (MCQ problems), fallback to description
+  return (props.problem as Record<string, unknown>).question_text as string || ''
+})
+
 // Get options from input config
 const options = computed<McqOption[]>(() => {
   return inputConfig.value?.options || []
@@ -143,6 +157,15 @@ function getButtonAriaLabel(): string {
 </script>
 
 <style scoped>
+/* Question Text */
+.question-text {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  border-bottom: 1px solid var(--color-bg-border);
+}
+
 /* Section Header */
 .section-header {
   display: flex;

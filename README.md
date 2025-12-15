@@ -28,13 +28,13 @@ Development uses **mock Firebase authentication** - no external setup required! 
 Production uses real Firebase authentication:
 
 1. **Firebase Admin SDK Credentials**
-   
+
    a. Go to the Firebase Console: https://console.firebase.google.com/
    b. Select your project
    c. Go to Project Settings > Service accounts
    d. Click "Generate new private key" to download the credentials file
    e. Save this file as `firebase-credentials.json` in the project root directory
-   
+
    f. Set the environment variable:
    ```bash
    export FIREBASE_CREDENTIALS_PATH=/path/to/firebase-credentials.json
@@ -84,7 +84,7 @@ A complete `.env.development` file is already provided in the repository with al
 OPENAI_API_KEY="your-openai-api-key-here"
 
 # All other settings are pre-configured for development including:
-# - DATABASE_URL=postgresql://purplex_user:devpass@localhost:5432/purplex_dev  
+# - DATABASE_URL=postgresql://purplex_user:devpass@localhost:5432/purplex_dev
 # - REDIS_URL=redis://localhost:6379/0
 # - Mock Firebase authentication enabled
 # - Debug mode and development settings
@@ -108,7 +108,7 @@ chmod +x start.sh
 
 This script automatically starts and manages:
 - PostgreSQL database (Docker container)
-- Redis server (Docker container)  
+- Redis server (Docker container)
 - Django development server (port 8000)
 - Celery worker with proper configuration
 - Vue.js frontend (port 5173)
@@ -163,7 +163,7 @@ python manage.py populate_comprehensive
 # Terminal 1: Django server
 python manage.py runserver
 
-# Terminal 2: Celery worker  
+# Terminal 2: Celery worker
 celery -A purplex.celery_simple worker -l info
 
 # Terminal 3: Flower monitoring (optional)
@@ -217,7 +217,7 @@ npm run test
 - **OpenAI API** - AI-powered features
 - **Docker** - Container runtime
 
-### Frontend  
+### Frontend
 - **Vue 3** - Frontend framework
 - **TypeScript** - Type safety
 - **Vite 5** - Build tool and dev server
@@ -255,7 +255,7 @@ docker ps | grep purplex-redis
 # Test Redis connection
 docker exec purplex-redis redis-cli ping
 
-# Reset Redis container  
+# Reset Redis container
 docker stop purplex-redis && docker rm purplex-redis
 docker run -d --name purplex-redis -p 6379:6379 redis:7-alpine
 ```

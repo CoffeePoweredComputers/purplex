@@ -20,9 +20,10 @@ Usage:
     client.incr(key)
 """
 
-import redis
 import logging
 import socket
+
+import redis
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -64,9 +65,7 @@ class RedisClientManager:
 
         if _pubsub_client is None:
             _pubsub_client = cls._create_client(
-                db=0,
-                max_connections=10,
-                purpose="pub/sub (task events)"
+                db=0, max_connections=10, purpose="pub/sub (task events)"
             )
             logger.info("✅ Created Redis pub/sub client (db=0, max_connections=10)")
 
@@ -93,21 +92,16 @@ class RedisClientManager:
 
         if _rate_limit_client is None:
             _rate_limit_client = cls._create_client(
-                db=2,
-                max_connections=20,
-                purpose="rate limiting"
+                db=2, max_connections=20, purpose="rate limiting"
             )
-            logger.info("✅ Created Redis rate limiting client (db=2, max_connections=20)")
+            logger.info(
+                "✅ Created Redis rate limiting client (db=2, max_connections=20)"
+            )
 
         return _rate_limit_client
 
     @classmethod
-    def _create_client(
-        cls,
-        db: int,
-        max_connections: int,
-        purpose: str
-    ) -> redis.Redis:
+    def _create_client(cls, db: int, max_connections: int, purpose: str) -> redis.Redis:
         """
         Create a Redis client with proper connection pooling.
 
@@ -126,9 +120,9 @@ class RedisClientManager:
             - Max connections enforced to prevent pool exhaustion
         """
         client = redis.Redis(
-            host=getattr(settings, 'REDIS_HOST', 'localhost'),
-            port=getattr(settings, 'REDIS_PORT', 6379),
-            password=getattr(settings, 'REDIS_PASSWORD', None),
+            host=getattr(settings, "REDIS_HOST", "localhost"),
+            port=getattr(settings, "REDIS_PORT", 6379),
+            password=getattr(settings, "REDIS_PASSWORD", None),
             db=db,
             decode_responses=True,
             socket_connect_timeout=5,
@@ -137,14 +131,16 @@ class RedisClientManager:
             max_connections=max_connections,
             socket_keepalive=True,
             socket_keepalive_options={
-                socket.TCP_KEEPIDLE: 1,   # Seconds before keepalive probes start
+                socket.TCP_KEEPIDLE: 1,  # Seconds before keepalive probes start
                 socket.TCP_KEEPINTVL: 1,  # Seconds between keepalive probes
-                socket.TCP_KEEPCNT: 3,    # Number of keepalive probes
+                socket.TCP_KEEPCNT: 3,  # Number of keepalive probes
             },
-            health_check_interval=30  # Automatic health checks every 30 seconds
+            health_check_interval=30,  # Automatic health checks every 30 seconds
         )
 
-        logger.debug(f"Created Redis client for {purpose} (db={db}, max_conn={max_connections})")
+        logger.debug(
+            f"Created Redis client for {purpose} (db={db}, max_conn={max_connections})"
+        )
         return client
 
     @classmethod

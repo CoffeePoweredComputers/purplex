@@ -13,11 +13,11 @@ class Migration(migrations.Migration):
         # Add database-level default for comprehension_level
         migrations.RunSQL(
             "ALTER TABLE submissions_submission ALTER COLUMN comprehension_level SET DEFAULT 'not_evaluated';",
-            reverse_sql="ALTER TABLE submissions_submission ALTER COLUMN comprehension_level DROP DEFAULT;"
+            reverse_sql="ALTER TABLE submissions_submission ALTER COLUMN comprehension_level DROP DEFAULT;",
         ),
         # Add database-level default for is_correct
         migrations.RunSQL(
             "ALTER TABLE submissions_submission ALTER COLUMN is_correct SET DEFAULT false;",
-            reverse_sql="ALTER TABLE submissions_submission ALTER COLUMN is_correct DROP DEFAULT;"
+            reverse_sql="ALTER TABLE submissions_submission ALTER COLUMN is_correct DROP DEFAULT;",
         ),
     ]

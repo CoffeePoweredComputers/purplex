@@ -4,14 +4,14 @@ Polymorphic base Problem model.
 This module contains the base Problem class that all problem types inherit from.
 Uses django-polymorphic to enable true polymorphic queries.
 """
-from django.db import models
+
 from django.contrib.auth.models import User
-from django.utils.text import slugify
 from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils.text import slugify
 from polymorphic.models import PolymorphicModel
 
 from .category import ProblemCategory
-
 
 # Constants
 DEFAULT_COMPLETION_THRESHOLD = 100
@@ -33,36 +33,35 @@ class Problem(PolymorphicModel):
     """
 
     DIFFICULTY_CHOICES = [
-        ('easy', 'Easy'),
-        ('beginner', 'Beginner'),
-        ('intermediate', 'Intermediate'),
-        ('advanced', 'Advanced'),
+        ("easy", "Easy"),
+        ("beginner", "Beginner"),
+        ("intermediate", "Intermediate"),
+        ("advanced", "Advanced"),
     ]
 
     # Identity
     slug = models.SlugField(max_length=100, unique=True, blank=True)
     title = models.CharField(max_length=200)
 
+    description = models.TextField(
+        blank=True,
+        default="",
+        help_text="Problem description in markdown format",
+    )
+
     # Classification
     difficulty = models.CharField(
-        max_length=20,
-        choices=DIFFICULTY_CHOICES,
-        default='beginner'
+        max_length=20, choices=DIFFICULTY_CHOICES, default="beginner"
     )
     categories = models.ManyToManyField(
-        ProblemCategory,
-        related_name='problems',
-        blank=True
+        ProblemCategory, related_name="problems", blank=True
     )
-    tags = models.JSONField(default=list, blank=True, help_text='Array of tag strings')
+    tags = models.JSONField(default=list, blank=True, help_text="Array of tag strings")
 
     # Status
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
+        User, on_delete=models.SET_NULL, null=True, blank=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -71,29 +70,24 @@ class Problem(PolymorphicModel):
     # Completion configuration
     completion_threshold = models.IntegerField(
         default=DEFAULT_COMPLETION_THRESHOLD,
-        help_text='Minimum score required for completion'
+        help_text="Minimum score required for completion",
     )
     max_attempts = models.IntegerField(
-        null=True,
-        blank=True,
-        help_text="Maximum attempts allowed (null = unlimited)"
+        null=True, blank=True, help_text="Maximum attempts allowed (null = unlimited)"
     )
 
     # Prerequisites
     prerequisites = models.ManyToManyField(
-        'self',
-        symmetrical=False,
-        related_name='unlocks',
-        blank=True
+        "self", symmetrical=False, related_name="unlocks", blank=True
     )
 
     class Meta:
-        app_label = 'problems_app'
-        ordering = ['difficulty', 'title']
+        app_label = "problems_app"
+        ordering = ["difficulty", "title"]
         indexes = [
-            models.Index(fields=['is_active', '-created_at']),
-            models.Index(fields=['is_active', 'difficulty']),
-            models.Index(fields=['created_by', '-created_at']),
+            models.Index(fields=["is_active", "-created_at"]),
+            models.Index(fields=["is_active", "difficulty"]),
+            models.Index(fields=["created_by", "-created_at"]),
         ]
 
     @property
@@ -121,7 +115,7 @@ class Problem(PolymorphicModel):
 
     def clean(self):
         if self.tags and not isinstance(self.tags, list):
-            raise ValidationError('Tags must be a list of strings')
+            raise ValidationError("Tags must be a list of strings")
 
     def __str__(self):
         return f"{self.title} ({self.difficulty})"

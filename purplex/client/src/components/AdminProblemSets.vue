@@ -5,7 +5,7 @@
       <h1 class="page-title">
         Problem Sets Management
       </h1>
-      
+
       <div class="status-container">
         <div
           v-if="loading"
@@ -13,7 +13,7 @@
         >
           Loading problem sets...
         </div>
-        
+
         <div
           v-if="error"
           class="error-message"
@@ -21,7 +21,7 @@
           {{ error }}
         </div>
       </div>
-      
+
       <div
         v-if="!loading && !error"
         class="controls-container"
@@ -33,7 +33,7 @@
           Add New Problem Set
         </button>
       </div>
-      
+
       <div
         v-if="!loading && !error"
         class="table-responsive"
@@ -78,7 +78,7 @@
             </tr>
           </tbody>
         </table>
-        
+
         <p
           v-if="problemSets.length === 0"
           class="no-data"
@@ -96,9 +96,9 @@
       @problem-set-added="handleProblemSetAdded"
       @error="handleError"
     />
-    
+
     <!-- Edit Problem Set Modal -->
-    <AddEditProblemSetModal 
+    <AddEditProblemSetModal
       v-if="showEditModal"
       :edit-mode="true"
       :problem-set-data="selectedProblemSet"
@@ -155,7 +155,7 @@ export default defineComponent({
       this.$router.push('/');
       return;
     }
-    
+
     this.fetchData();
   },
   methods: {
@@ -163,12 +163,12 @@ export default defineComponent({
       try {
         this.loading = true;
         this.error = null;
-        
+
         const [setsResponse, problemsResponse] = await Promise.all([
           axios.get('/api/admin/problem-sets/'),
           axios.get('/api/admin/problems/')
         ]);
-        
+
         this.problemSets = setsResponse.data;
         this.problems = problemsResponse.data;
       } catch (error) {
@@ -179,18 +179,18 @@ export default defineComponent({
         this.loading = false;
       }
     },
-    
+
     editProblemSet(set: ProblemSet): void {
       this.selectedProblemSet = set;
       this.showEditModal = true;
     },
-    
+
     confirmDelete(set: ProblemSet): void {
       if (confirm(`Are you sure you want to delete the problem set "${set.title}"? This action cannot be undone.`)) {
         this.deleteProblemSet(set);
       }
     },
-    
+
     async deleteProblemSet(set: ProblemSet): Promise<void> {
       try {
         await axios.delete(`/api/admin/problem-sets/${set.slug}/`);
@@ -202,13 +202,13 @@ export default defineComponent({
         log.error('Error deleting problem set', axiosError);
       }
     },
-    
+
     // Modal event handlers
     handleProblemSetAdded(newProblemSet: ProblemSet): void {
       this.problemSets.push(newProblemSet);
       this.showAddModal = false;
     },
-    
+
     handleProblemSetUpdated(updatedProblemSet: ProblemSet): void {
       const index = this.problemSets.findIndex(s => s.slug === updatedProblemSet.slug);
       if (index !== -1) {
@@ -217,7 +217,7 @@ export default defineComponent({
       this.showEditModal = false;
       this.selectedProblemSet = null;
     },
-    
+
     handleError(errorMessage: string): void {
       this.error = errorMessage;
       // Clear error after 5 seconds
@@ -414,21 +414,21 @@ export default defineComponent({
   .controls-container {
     flex-direction: column;
   }
-  
+
   .action-button {
     width: 100%;
     justify-content: center;
   }
-  
+
   .problem-sets-table {
     font-size: var(--font-size-sm);
   }
-  
+
   .problem-sets-table th,
   .problem-sets-table td {
     padding: var(--spacing-md);
   }
-  
+
   .actions-cell {
     flex-direction: column;
   }

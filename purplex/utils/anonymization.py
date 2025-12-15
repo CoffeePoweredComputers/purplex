@@ -6,6 +6,7 @@ while maintaining referential integrity across datasets.
 """
 
 import hashlib
+
 from django.contrib.auth.models import User
 from django.core.cache import cache
 
@@ -16,7 +17,7 @@ class AnonymizationService:
     """
 
     # Cache key prefix for anonymization mappings
-    CACHE_PREFIX = 'anon_map'
+    CACHE_PREFIX = "anon_map"
     CACHE_TIMEOUT = 3600  # 1 hour
 
     @classmethod

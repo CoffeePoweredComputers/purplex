@@ -2,4 +2,4 @@
 
 from .handler import RefuteHandler
 
-__all__ = ['RefuteHandler']
+__all__ = ["RefuteHandler"]

@@ -31,7 +31,7 @@ export class PythonTutorService {
    * @returns Python Tutor embed URL
    */
   static generateEmbedUrl(code: string, testCase: string = ''): string {
-    const fullCode = testCase 
+    const fullCode = testCase
       ? `${code}\n\n# Test case\n${testCase}`
       : code;
 
@@ -50,7 +50,7 @@ export class PythonTutorService {
    * @returns Python Tutor regular URL
    */
   static generateRegularUrl(code: string, testCase: string = ''): string {
-    const fullCode = testCase 
+    const fullCode = testCase
       ? `${code}\n\n# Test case\n${testCase}`
       : code;
 

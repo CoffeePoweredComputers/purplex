@@ -1,5 +1,5 @@
 <template>
-  <div 
+  <div
     v-if="segmentation"
     class="comprehension-banner"
     :class="bannerClass"
@@ -55,7 +55,7 @@ export default defineComponent({
       type: Object as PropType<Segmentation>,
       required: true,
       validator: (value: Segmentation): boolean => {
-        return value && 
+        return value &&
                typeof value.segment_count === 'number' &&
                typeof value.comprehension_level === 'string';
       }

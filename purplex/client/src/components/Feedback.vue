@@ -5,7 +5,7 @@
   >
     <!-- Static Loading Message -->
     <div
-      v-if="isLoading && slides.length === 0"
+      v-if="isLoading && variants.length === 0"
       class="generating-feedback-panel"
     >
       <div class="generating-content">
@@ -20,7 +20,7 @@
 
     <!-- Navigation Skeleton - Shows during problem switching -->
     <div
-      v-else-if="isNavigating && slides.length === 0"
+      v-else-if="isNavigating && variants.length === 0"
       class="navigation-skeleton-panel"
     >
       <div class="skeleton-header">
@@ -31,340 +31,210 @@
         <div class="skeleton-section">
           <div class="skeleton-bar skeleton-label" />
           <div class="skeleton-bar skeleton-text" />
-          <div class="skeleton-bar skeleton-text short" />
         </div>
         <div class="skeleton-section">
-          <div class="skeleton-bar skeleton-label" />
-          <div class="skeleton-code-block" />
-        </div>
-        <div class="skeleton-section">
-          <div class="skeleton-bar skeleton-label" />
-          <div class="skeleton-test-item" />
-          <div class="skeleton-test-item" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Header Section -->
-    <div
-      v-if="slides.length > 0"
-      class="feedback-header"
-    >
-      <div class="section-label">
-        {{ title }}
-      </div>
-      <!-- Attempt Selector Dropdown -->
-      <div
-        v-if="submissionHistory && submissionHistory.length > 0"
-        class="attempt-selector"
-      >
-        <span class="attempt-header-label">Previous Submissions:</span>
-        <button
-          class="attempt-dropdown-trigger"
-          :class="{ 'is-active': showAttemptDropdown }"
-          :aria-label="`View previous submissions. Current: attempt ${currentAttemptNumber} of ${totalAttempts}, score ${currentAttemptScore}%`"
-          :aria-expanded="showAttemptDropdown"
-          :aria-haspopup="true"
-          @click="showAttemptDropdown = !showAttemptDropdown"
-          @keydown.escape="showAttemptDropdown = false"
-        >
-          <span class="attempt-text">
-            {{ currentAttemptNumber }}/{{ totalAttempts }}
-          </span>
-          <span
-            class="attempt-score-badge"
-            :class="getScoreClass(currentAttemptScore)"
-            :aria-label="`Score: ${currentAttemptScore} percent`"
-          >
-            <span aria-hidden="true">{{ getScoreIcon(currentAttemptScore) }}</span>
-            {{ currentAttemptScore }}%
-          </span>
-          <span
-            class="dropdown-arrow"
-            aria-hidden="true"
-          >{{ showAttemptDropdown ? '▾' : '▾' }}</span>
-        </button>
-
-        <!-- Dropdown Panel -->
-        <div
-          v-show="showAttemptDropdown"
-          ref="dropdownPanel"
-          class="attempt-dropdown-panel"
-          role="menu"
-          :aria-hidden="!showAttemptDropdown"
-        >
-          <div class="attempt-list-minimal">
-            <button
-              v-for="(attempt, index) in submissionHistory"
-              :key="attempt.id"
-              :ref="index === 0 ? 'firstMenuItem' : undefined"
-              class="attempt-item-minimal"
-              :class="{
-                'is-current': attempt.id === currentSubmissionId,
-                'is-best': attempt.is_best,
-                'is-passing': attempt.score >= 100
-              }"
-              role="menuitem"
-              :tabindex="showAttemptDropdown ? 0 : -1"
-              :aria-label="`Attempt ${attempt.attempt_number}: ${attempt.score}%, ${attempt.tests_passed} of ${attempt.total_tests} tests passed${attempt.is_best ? ', best attempt' : ''}`"
-              @click="loadAttempt(attempt)"
-              @keydown.escape="closeDropdownAndFocusTrigger"
-              @keydown.arrow-down.prevent="focusNextItem"
-              @keydown.arrow-up.prevent="focusPreviousItem"
-              @keydown.home="handleHomeKey"
-              @keydown.end="handleEndKey"
-            >
-              <span
-                class="attempt-indicator"
-                aria-hidden="true"
-              />
-              <span class="attempt-num">{{ attempt.attempt_number }}</span>
-              <span
-                class="attempt-score-minimal"
-                :class="getScoreClass(attempt.score)"
-              >{{ attempt.score }}%</span>
-              <span class="attempt-tests">{{ attempt.tests_passed }}/{{ attempt.total_tests }}</span>
-              <time
-                class="attempt-time"
-                :datetime="attempt.submitted_at"
-              >{{ formatTime(attempt.submitted_at) }}</time>
-              <span
-                v-if="attempt.is_best"
-                class="best-mark"
-                aria-hidden="true"
-              >★</span>
-            </button>
-          </div>
+          <div class="skeleton-bar skeleton-card" />
+          <div class="skeleton-bar skeleton-card" />
         </div>
       </div>
     </div>
 
     <!-- Main Content -->
-    <div
-      v-if="slides.length > 0"
-      class="feedback-content"
-    >
-      <!-- User Prompt Section -->
+    <template v-else-if="variants.length > 0">
+      <!-- Header Section -->
+      <div class="feedback-header">
+        <span class="header-title">{{ title }}</span>
+        <!-- Attempt Selector Dropdown -->
+        <div
+          v-if="submissionHistory && submissionHistory.length > 0"
+          class="attempt-selector"
+        >
+          <span class="attempt-header-label">Attempt:</span>
+          <button
+            class="attempt-dropdown-trigger"
+            :class="{ 'is-active': showAttemptDropdown }"
+            :aria-label="`View previous submissions. Current: attempt ${currentAttemptNumber} of ${totalAttempts}, score ${currentAttemptScore}%`"
+            :aria-expanded="showAttemptDropdown"
+            :aria-haspopup="true"
+            @click="showAttemptDropdown = !showAttemptDropdown"
+            @keydown.escape="showAttemptDropdown = false"
+          >
+            <span class="attempt-text">{{ currentAttemptNumber }}/{{ totalAttempts }}</span>
+            <span
+              class="attempt-score-badge"
+              :class="getScoreClass(currentAttemptScore)"
+            >
+              {{ currentAttemptScore }}%
+            </span>
+            <span class="dropdown-arrow" aria-hidden="true">▾</span>
+          </button>
+
+          <!-- Dropdown Panel -->
+          <div
+            v-show="showAttemptDropdown"
+            ref="dropdownPanel"
+            class="attempt-dropdown-panel"
+            role="menu"
+            :aria-hidden="!showAttemptDropdown"
+          >
+            <div class="attempt-list-minimal">
+              <button
+                v-for="(attempt, index) in submissionHistory"
+                :key="attempt.id"
+                class="attempt-item-minimal"
+                :class="{
+                  'is-current': attempt.id === currentSubmissionId,
+                  'is-best': attempt.is_best,
+                  'is-passing': attempt.score >= 100
+                }"
+                role="menuitem"
+                :tabindex="showAttemptDropdown ? 0 : -1"
+                :aria-label="`Attempt ${attempt.attempt_number}: ${attempt.score}%, ${attempt.tests_passed} of ${attempt.total_tests} tests passed${attempt.is_best ? ', best attempt' : ''}`"
+                @click="loadAttempt(attempt)"
+                @keydown.escape="closeDropdownAndFocusTrigger"
+                @keydown.arrow-down.prevent="focusNextItem"
+                @keydown.arrow-up.prevent="focusPreviousItem"
+              >
+                <span class="attempt-indicator" aria-hidden="true" />
+                <span class="attempt-num">{{ attempt.attempt_number }}</span>
+                <span
+                  class="attempt-score-minimal"
+                  :class="getScoreClass(attempt.score)"
+                >{{ attempt.score }}%</span>
+                <span class="attempt-tests">{{ attempt.tests_passed }}/{{ attempt.total_tests }}</span>
+                <span
+                  v-if="attempt.is_best"
+                  class="best-mark"
+                  aria-hidden="true"
+                >★</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Explanation Section -->
       <div
         v-if="userPrompt"
-        class="user-prompt-section"
+        class="explanation-section"
+        role="region"
+        aria-labelledby="explanation-heading"
       >
-        <div class="submission-header">
-          <span class="submission-icon">💭</span>
-          <span class="submission-label">Your response</span>
+        <div class="section-label">
+          <span class="label-icon" aria-hidden="true">💭</span>
+          <h3 id="explanation-heading" class="label-text">Your Explanation</h3>
         </div>
-        <div class="prompt-content">
-          {{ userPrompt }}
-        </div>
+        <p class="explanation-text">{{ userPrompt }}</p>
       </div>
 
-      <!-- Comprehension Level Section Divider -->
+      <!-- Correctness Metric Card -->
+      <button
+        class="metric-card"
+        :class="[correctnessClass, { 'expanded': showCorrectnessModal }]"
+        @click="openCorrectnessModal"
+        @keydown.enter="openCorrectnessModal"
+        @keydown.space.prevent="openCorrectnessModal"
+        :aria-expanded="showCorrectnessModal"
+        aria-haspopup="dialog"
+      >
+        <div class="card-content">
+          <div class="card-label" id="correctness-label">CORRECTNESS</div>
+
+          <div
+            class="progress-bar-container"
+            role="progressbar"
+            :aria-valuenow="correctnessFill"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-label="`Correctness: ${passingVariants} of ${totalVariants} versions passing`"
+          >
+            <div
+              class="progress-bar-fill"
+              :style="{ width: correctnessFill + '%' }"
+              :class="correctnessBarClass"
+            ></div>
+          </div>
+
+          <div class="card-status">
+            <span class="status-icon" aria-hidden="true">{{ correctnessStatus.icon }}</span>
+            <span class="status-label">{{ correctnessStatus.label }}</span>
+            <span class="status-metric">{{ passingVariants }}/{{ totalVariants }} pass</span>
+          </div>
+          <div class="card-description">{{ correctnessStatus.description }}</div>
+        </div>
+        <div class="card-action" :class="correctnessClass" title="View analysis">
+          <span class="action-icon">→</span>
+        </div>
+      </button>
+
+      <!-- Abstraction Metric Card -->
+      <button
+        class="metric-card"
+        :class="[abstractionClass, { 'expanded': showSegmentAnalysisModal && !isAbstractionLocked }]"
+        @click="handleAbstractionClick"
+        @keydown.enter="handleAbstractionClick"
+        @keydown.space.prevent="handleAbstractionClick"
+        :aria-expanded="showSegmentAnalysisModal"
+        :aria-disabled="isAbstractionLocked"
+        :aria-haspopup="isAbstractionLocked ? undefined : 'dialog'"
+      >
+        <div class="card-content">
+          <div class="card-label" id="abstraction-label">ABSTRACTION</div>
+
+          <div
+            class="progress-bar-container"
+            role="progressbar"
+            :aria-valuenow="abstractionFill"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-label="isAbstractionLocked ? 'Abstraction: locked' : `Abstraction: ${segmentCount} segments`"
+          >
+            <div
+              class="progress-bar-fill"
+              :style="{ width: abstractionFill + '%' }"
+              :class="abstractionBarClass"
+            ></div>
+          </div>
+
+          <div class="card-status">
+            <span class="status-icon" aria-hidden="true">{{ abstractionStatus.icon }}</span>
+            <span class="status-label">{{ abstractionStatus.label }}</span>
+            <span v-if="!isAbstractionLocked" class="status-metric">
+              {{ segmentCount }} segments
+              <span v-if="segmentCount > 2" class="metric-hint">(want 2)</span>
+            </span>
+          </div>
+          <div class="card-description">{{ abstractionStatus.description }}</div>
+        </div>
+        <div v-if="!isAbstractionLocked" class="card-action" :class="abstractionClass" title="View analysis">
+          <span class="action-icon">→</span>
+        </div>
+      </button>
+
+      <!-- Next Step Banner -->
       <div
-        v-if="shouldShowComprehensionSection"
-        class="section-divider"
+        v-if="nextStepAction"
+        class="next-step-banner"
+        :class="nextStepUrgency"
+        role="alert"
       >
-        <span class="divider-label">
-          <span class="divider-icon">🧠</span>
-          <span class="divider-title">Comprehension Level</span>
-          <span class="divider-separator">•</span>
-          <span class="divider-description">Shows how high-level vs. line-by-line your explanation is</span>
-        </span>
-        <span
-          class="info-icon"
-          title="Evaluates the abstraction level of your explanation by analyzing how you describe the code's purpose. HIGH-LEVEL (✓): Describes overall goals, algorithm choices, and problem-solving approach without step-by-step details (e.g., 'uses binary search to efficiently find the target'). LINE-BY-LINE (✗): Describes implementation details, variable operations, and control flow step-by-step (e.g., 'sets left to 0, right to length, calculates mid'). This measures understanding depth - can you explain the 'why' and 'what' without the 'how'? Only available after all code variations pass their tests."
-          aria-label="Info about comprehension level"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 14 14"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle
-              cx="7"
-              cy="7"
-              r="6.5"
-              stroke="currentColor"
-            />
-            <path
-              d="M7 10.5V6.5M7 4.5V4"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
-          </svg>
-        </span>
-      </div>
-
-      <!-- Locked Segmentation Banner (when not all variations pass) -->
-      <LockedSegmentationBanner
-        v-if="showLockedSegmentation"
-      />
-
-      <!-- Comprehension Banner (when segmentation data exists) -->
-      <ComprehensionBanner
-        v-if="shouldShowSegmentation && segmentation && Object.keys(segmentation).length > 0"
-        :segmentation="segmentation"
-        :reference-code="referenceCode"
-        @show-details="showSegmentAnalysisModal = true"
-      />
-
-      <!-- Correctness Section Divider -->
-      <div class="section-divider">
-        <span class="divider-label">
-          <span class="divider-icon">🔄</span>
-          <span class="divider-title">Correctness</span>
-          <span class="divider-separator">•</span>
-          <span class="divider-description">Multiple AI interpretations of your description tested against unit tests</span>
-        </span>
-        <span
-          class="info-icon"
-          title="Tests the clarity and completeness of your explanation by generating multiple independent code implementations from your description using AI, then running each against the problem's unit tests. Each variation represents a different interpretation of your words - if all variations pass, your explanation was unambiguous and captured all necessary logic. Failing variations reveal gaps, ambiguities, or missing details in how you described the solution. This evaluates whether someone could correctly implement the code from your explanation alone, without seeing the original."
-          aria-label="Info about correctness"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 14 14"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle
-              cx="7"
-              cy="7"
-              r="6.5"
-              stroke="currentColor"
-            />
-            <path
-              d="M7 10.5V6.5M7 4.5V4"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
-          </svg>
-        </span>
-      </div>
-
-      <!-- Solution Timeline -->
-      <nav
-        class="solution-timeline"
-        aria-label="Solution variations"
-      >
-        <button
-          v-for="(slide, index) in slides"
-          :key="index"
-          class="timeline-node"
-          :data-status="getSlideStatus(slide)"
-          :data-current="currentSlide === index"
-          :aria-label="`Solution ${index + 1}: ${slide.tests.filter(t => t.isSuccessful).length} of ${slide.tests.length} tests passing`"
-          :aria-current="currentSlide === index ? 'true' : 'false'"
-          @click="goToSlide(index)"
-        >
-          <span
-            class="node-number"
-            aria-hidden="true"
-          >{{ index + 1 }}</span>
-          <span
-            class="node-icon"
-            aria-hidden="true"
-          >{{ getSlideIcon(slide) }}</span>
+        <span class="banner-icon" aria-hidden="true">{{ nextStepUrgency === 'urgency-success' ? '🎉' : '💡' }}</span>
+        <span class="banner-text">{{ nextStepBannerText }}</span>
+        <button class="banner-button" @click="handleNextStepAction">
+          {{ nextStepAction }}
         </button>
-      </nav>
-
-      <!-- Code Editor -->
-      <section class="code-section">
-        <div class="code-header">
-          <span>Solution {{ currentSlide + 1 }} of {{ slides.length }}</span>
-        </div>
-        <Editor
-          :value="currentSlideContents"
-          height="300px"
-          width="100%"
-          :highlight-markers="currentComprehensionResults"
-          tab-target-id="promptEditor"
-          @update:value="updateSolutionCode"
-        />
-      </section>
-
-      <!-- Test Summary Bar -->
-      <div class="test-summary-bar">
-        <div class="summary-counts">
-          <span class="count-item passing">✓ {{ passingTestsForCurrentSlide.length }} Passing</span>
-          <span class="count-item failing">✗ {{ failingTestsForCurrentSlide.length }} Failing</span>
-        </div>
       </div>
 
-      <!-- Test Results -->
-      <section class="test-results">
-        <!-- Failing Tests (Expanded by default) -->
-        <details
-          v-if="failingTestsForCurrentSlide.length > 0"
-          open
-          class="test-group"
-        >
-          <summary class="test-group-header failing">
-            <span class="group-icon">▶</span>
-            Failing Tests ({{ failingTestsForCurrentSlide.length }})
-          </summary>
-          <div class="test-list">
-            <article 
-              v-for="(test, i) in failingTestsForCurrentSlide" 
-              :key="`fail-${i}`" 
-              class="test-item failing"
-            >
-              <div class="test-content">
-                <code class="test-call">{{ test.function_call }}</code>
-                <div class="test-diff">
-                  <div>Expected: <code class="expected">{{ formatTestValue(test.expected_output) }}</code></div>
-                  <div>
-                    Got: <code
-                      class="actual"
-                      :class="getValueDisplayClass(test.actual_output)"
-                    >{{
-                      formatTestValue(test.actual_output) }}</code>
-                  </div>
-                </div>
-              </div>
-              <button
-                class="debug-btn"
-                :aria-label="`Debug test case: ${test.function_call}`"
-                @click="openPyTutor(test)"
-              >
-                <span aria-hidden="true">🔍</span>
-              </button>
-            </article>
-          </div>
-        </details>
-
-        <!-- Passing Tests (Collapsed by default) -->
-        <details
-          v-if="passingTestsForCurrentSlide.length > 0"
-          class="test-group"
-        >
-          <summary
-            class="test-group-header passing"
-            tabindex="0"
-            role="button"
-            aria-expanded="false"
-          >
-            <span class="group-icon">▶</span>
-            Passing Tests ({{ passingTestsForCurrentSlide.length }})
-          </summary>
-          <div class="test-list">
-            <article 
-              v-for="(test, i) in passingTestsForCurrentSlide" 
-              :key="`pass-${i}`" 
-              class="test-item passing"
-            >
-              <div class="test-content">
-                <code class="test-call">{{ test.function_call }} → {{ formatTestValue(test.expected_output) }}</code>
-              </div>
-            </article>
-          </div>
-        </details>
-      </section>
-    </div>
+      <!-- Live region for announcements -->
+      <div
+        class="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {{ announcement }}
+      </div>
+    </template>
 
     <!-- Empty State - Only show when no data and not loading -->
     <div
@@ -375,13 +245,23 @@
       <p>Submit a prompt to start getting feedback!</p>
     </div>
 
+    <!-- Correctness Modal -->
+    <CorrectnessModal
+      :is-visible="showCorrectnessModal"
+      :variants="variants"
+      :selected-version="selectedVariant"
+      @close="showCorrectnessModal = false"
+      @update:selected-version="selectedVariant = $event"
+      @debug="handleDebug"
+    />
+
     <!-- PyTutor Modal -->
     <PyTutorModal
-      :is-visible="showModal"
+      :is-visible="showPyTutorModal"
       :python-tutor-url="pythonTutorUrl"
-      @close="showModal = false"
+      @close="showPyTutorModal = false"
     />
-    
+
     <!-- Segment Analysis Modal -->
     <SegmentAnalysisModal
       v-if="segmentation"
@@ -395,59 +275,71 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue'
-import Editor from '@/features/editor/Editor.vue';
-import PyTutorModal from '../modals/PyTutorModal.vue';
-import ComprehensionBanner from './segmentation/ComprehensionBanner.vue';
-import LockedSegmentationBanner from './segmentation/LockedSegmentationBanner.vue';
-import SegmentAnalysisModal from './segmentation/SegmentAnalysisModal.vue';
-import { PythonTutorService } from '@/services/pythonTutor.service';
-import { log } from '@/utils/logger';
-import { formatTestValue, getValueDisplayClass, isMissingValue } from '@/utils/testValueFormatter';
+import { defineComponent, PropType, nextTick } from 'vue'
+import CorrectnessModal from '../modals/CorrectnessModal.vue'
+import PyTutorModal from '../modals/PyTutorModal.vue'
+import SegmentAnalysisModal from './segmentation/SegmentAnalysisModal.vue'
+import { PythonTutorService } from '@/services/pythonTutor.service'
+import { formatTestValue } from '@/utils/testValueFormatter'
 
 interface TestCase {
-  function_call: string;
-  expected_output: string;
-  actual_output?: string;
-  pass: boolean;
-  isSuccessful?: boolean;
-  error?: string;
+  function_call: string
+  expected_output: string
+  actual_output?: string
+  pass?: boolean
+  isSuccessful?: boolean
+  error?: string
 }
 
 interface TestResult {
-  success?: boolean;
-  passed?: number;
-  total?: number;
-  results?: TestCase[];
+  success?: boolean
+  testsPassed?: number
+  totalTests?: number
+  results?: TestCase[]
+  test_results?: TestCase[]
 }
 
-interface Slide {
-  content: string;
-  correct: boolean;
-  tests: TestCase[];
+interface Variant {
+  code: string
+  passing: boolean
+  testsPassed: number
+  testsTotal: number
+  tests: Array<{
+    call: string
+    expected: string
+    actual?: string
+    passed: boolean
+  }>
+}
+
+interface SubmissionHistoryItem {
+  id: string
+  attempt_number: number
+  score: number
+  tests_passed: number
+  total_tests: number
+  is_best: boolean
+  submitted_at: string
 }
 
 interface ComponentData {
-  showModal: boolean;
-  pythonTutorUrl: string;
-  currentSlide: number;
-  currentSlideContents: string;
-  currentComprehensionResults: any[];
-  showSegmentAnalysisModal: boolean;
-  showAttemptDropdown: boolean;
-  currentSubmissionId: string | null;
-  currentAttemptNumber: number;
-  currentAttemptScore: number;
-  totalAttempts: number;
-  bestAttemptId: string | null;
+  showCorrectnessModal: boolean
+  showSegmentAnalysisModal: boolean
+  showPyTutorModal: boolean
+  pythonTutorUrl: string
+  selectedVariant: number
+  showAttemptDropdown: boolean
+  currentSubmissionId: string | null
+  currentAttemptNumber: number
+  currentAttemptScore: number
+  totalAttempts: number
+  announcement: string
 }
 
 export default defineComponent({
   components: {
-    Editor,
+    CorrectnessModal,
     PyTutorModal,
-    ComprehensionBanner,
-    LockedSegmentationBanner,
     SegmentAnalysisModal
   },
   props: {
@@ -461,7 +353,7 @@ export default defineComponent({
     },
     title: {
       type: String as PropType<string>,
-      default: '',
+      default: 'Feedback',
     },
     feedback: {
       type: String as PropType<string>,
@@ -512,386 +404,361 @@ export default defineComponent({
       default: false,
     },
     submissionHistory: {
-      type: Array as PropType<any[]>,
+      type: Array as PropType<SubmissionHistoryItem[]>,
       default: () => [],
     },
   },
+  emits: ['load-attempt', 'solution-changed', 'next-problem'],
   data(): ComponentData {
     return {
-      showModal: false,
-      pythonTutorUrl: '',
-      currentSlide: 0,
-      currentSlideContents: "",
-      currentComprehensionResults: [],
+      showCorrectnessModal: false,
       showSegmentAnalysisModal: false,
+      showPyTutorModal: false,
+      pythonTutorUrl: '',
+      selectedVariant: 0,
       showAttemptDropdown: false,
       currentSubmissionId: null,
       currentAttemptNumber: 1,
       currentAttemptScore: 0,
       totalAttempts: 0,
-      bestAttemptId: null,
-    };
+      announcement: '',
+    }
   },
   computed: {
-    // Segmentation support is determined by handler config (feedback_config.show_segmentation)
-    // passed via the segmentationEnabled prop, so no need for type-specific checks
-    shouldShowSegmentation(): boolean {
-      return this.segmentationEnabled === true &&
-             this.segmentation != null &&
-             typeof this.segmentation === 'object' &&
-             Object.keys(this.segmentation).length > 0;
-    },
-    allVariationsPass(): boolean {
-      // Check if ALL variations passed ALL test cases
-      return this.slides.length > 0 && this.slides.every(slide => slide.correct);
-    },
-    showLockedSegmentation(): boolean {
-      // Show locked banner when:
-      // 1. Segmentation is enabled for this problem (via handler config)
-      // 2. Not all variations have passed yet
-      // 3. We don't have segmentation data yet (because backend gates it on correctness)
-      return this.segmentationEnabled === true &&
-             !this.allVariationsPass &&
-             (this.segmentation == null || Object.keys(this.segmentation).length === 0);
-    },
-    shouldShowComprehensionSection(): boolean {
-      // Show comprehension section divider when problem has segmentation enabled (via handler config)
-      return this.segmentationEnabled === true;
-    },
-    slides(): Slide[] {
-      const slideResults = this.codeResults.map((code, index) => {
-        const testResult = this.testResults[index];
-        
-        // Handle different data structures from backend
-        let tests = [];
-        let correct = false;
-        
+    // Transform codeResults + testResults into variants structure
+    variants(): Variant[] {
+      return this.codeResults.map((code, index) => {
+        const testResult = this.testResults[index]
+        let tests: Array<{ call: string; expected: string; actual?: string; passed: boolean }> = []
+        let testsPassed = 0
+        let testsTotal = 0
+
         if (testResult) {
-          // Backend returns either { success, passed, total, test_results: [...] }
-          // or { success, passed, total, results: [...] }
-          const testArray = testResult.test_results || testResult.results || [];
-          
-          if (Array.isArray(testArray) && testArray.length > 0) {
-            // Map backend test format to component format
-            // Backend test has 'isSuccessful' field already from CodeExecutionService
-            tests = testArray.map(test => ({
-              ...test,
-              isSuccessful: test.isSuccessful !== undefined ? test.isSuccessful : (test.pass || false),
-              function_call: test.function_call || '',
-              expected_output: test.expected_output !== undefined && test.expected_output !== null
-                ? test.expected_output  // Preserve original type (don't convert to string)
-                : 'None',
-              actual_output: test.actual_output !== undefined && test.actual_output !== null
-                ? test.actual_output  // Preserve original type (don't convert to string)
-                : null,  // Keep null to let template handle it
-              error: test.error || null
-            }));
-            // Variation is correct if all tests passed (using backend field names)
-            correct = testResult.testsPassed === testResult.totalTests && testResult.totalTests > 0;
-          } 
-          // Handle direct array format (legacy or test data)
-          else if (Array.isArray(testResult)) {
-            // Legacy format - direct array of tests
-            tests = testResult.map(test => ({
-              ...test,
-              isSuccessful: test.isSuccessful || test.pass || false
-            }));
-            correct = tests.every(test => test.isSuccessful);
-          }
+          const testArray = testResult.test_results || testResult.results || []
+          testsTotal = testResult.totalTests ?? testArray.length
+          testsPassed = testResult.testsPassed ?? testArray.filter(t => t.isSuccessful ?? t.pass).length
+
+          tests = testArray.map(t => ({
+            call: t.function_call || '',
+            expected: formatTestValue(t.expected_output),
+            actual: t.actual_output !== undefined ? formatTestValue(t.actual_output) : undefined,
+            passed: t.isSuccessful ?? t.pass ?? false
+          }))
         }
-        
+
         return {
-          content: code,
-          correct: correct,
-          tests: tests
-        };
-      });
-      log.debug('SLIDES', { slideResults });
-      log.debug('Test Results Raw', { testResults: this.testResults });
-      if (this.testResults.length > 0) {
-        log.debug('First Test Result Structure', { 
-          firstResult: this.testResults[0],
-          hasResults: !!this.testResults[0].results,
-          hasTestResults: !!this.testResults[0].test_results
-        });
+          code,
+          passing: testsPassed === testsTotal && testsTotal > 0,
+          testsPassed,
+          testsTotal,
+          tests
+        }
+      })
+    },
+
+    totalVariants(): number {
+      return this.variants.length
+    },
+
+    passingVariants(): number {
+      return this.variants.filter(v => v.passing).length
+    },
+
+    allVariationsPass(): boolean {
+      return this.totalVariants > 0 && this.passingVariants === this.totalVariants
+    },
+
+    correctnessFill(): number {
+      if (this.totalVariants === 0) return 0
+      return (this.passingVariants / this.totalVariants) * 100
+    },
+
+    segmentCount(): number {
+      return this.segmentation?.segment_count ?? 0
+    },
+
+    isAbstractionLocked(): boolean {
+      // Lock abstraction when not all variants pass OR segmentation is disabled
+      return !this.allVariationsPass || !this.segmentationEnabled
+    },
+
+    abstractionFill(): number {
+      if (this.isAbstractionLocked) return 0
+      if (this.segmentCount <= 2) return 100
+      return Math.max(0, 100 - (this.segmentCount - 2) * 20)
+    },
+
+    correctnessStatus(): { icon: string; label: string; description: string } {
+      if (this.passingVariants === 0) {
+        return { icon: '✗', label: 'Not yet working', description: 'None of the versions passed the tests' }
       }
-      return slideResults;
+      if (this.passingVariants < this.totalVariants) {
+        return { icon: '~', label: 'Works, but ambiguous', description: 'One version interpreted it differently' }
+      }
+      return { icon: '✓', label: 'Clear', description: 'All versions produced working code' }
     },
-    overallProgressPercent(): number {
-      if (this.slides.length === 0) {return 0;}
-      const totalTests = this.slides.reduce((sum, slide) => sum + slide.tests.length, 0);
-      const passingTests = this.slides.reduce((sum, slide) => 
-        sum + slide.tests.filter(test => test.isSuccessful).length, 0);
-      return totalTests > 0 ? (passingTests / totalTests) * 100 : 0;
+
+    abstractionStatus(): { icon: string; label: string; description: string } {
+      if (this.isAbstractionLocked) {
+        return { icon: '🔒', label: 'Locked', description: 'Unlocks when all versions pass' }
+      }
+      if (this.segmentCount <= 2) {
+        return { icon: '✓', label: 'High-level', description: 'Focused on purpose, not implementation' }
+      }
+      return { icon: '✗', label: 'Too detailed', description: 'Describe the goal, not the steps' }
     },
-    passingTests(): number {
-      return this.slides.reduce((sum, slide) => 
-        sum + slide.tests.filter(test => test.isSuccessful).length, 0);
+
+    correctnessClass(): string {
+      if (this.passingVariants === 0) return 'status-error'
+      if (this.passingVariants < this.totalVariants) return 'status-warning'
+      return 'status-success'
     },
-    totalTests(): number {
-      return this.slides.reduce((sum, slide) => sum + slide.tests.length, 0);
+
+    abstractionClass(): string {
+      if (this.isAbstractionLocked) return 'status-locked'
+      if (this.segmentCount <= 2) return 'status-success'
+      return 'status-error'
     },
-    passingTestsForCurrentSlide(): TestCase[] {
-      if (this.slides.length === 0 || !this.slides[this.currentSlide]) {return [];}
-      return this.slides[this.currentSlide].tests.filter(test => test.isSuccessful);
+
+    correctnessBarClass(): string {
+      if (this.passingVariants === 0) return 'bar-error'
+      if (this.passingVariants < this.totalVariants) return 'bar-warning'
+      return 'bar-success'
     },
-    failingTestsForCurrentSlide(): TestCase[] {
-      if (this.slides.length === 0 || !this.slides[this.currentSlide]) {return [];}
-      return this.slides[this.currentSlide].tests.filter(test => !test.isSuccessful);
+
+    abstractionBarClass(): string {
+      if (this.isAbstractionLocked) return 'bar-locked'
+      if (this.segmentCount <= 2) return 'bar-success'
+      return 'bar-error'
     },
+
+    nextStepAction(): string | null {
+      if (this.passingVariants === 0) {
+        return 'View Analysis'
+      }
+      if (this.passingVariants < this.totalVariants) {
+        return 'See What Failed'
+      }
+      if (!this.isAbstractionLocked && this.segmentCount > 2) {
+        return 'Review Abstraction'
+      }
+      // Fully successful
+      if (this.allVariationsPass && !this.isAbstractionLocked && this.segmentCount <= 2) {
+        return 'Next Problem'
+      }
+      // All correct but abstraction not enabled/available
+      if (this.allVariationsPass) {
+        return 'Next Problem'
+      }
+      return null
+    },
+
+    nextStepBannerText(): string {
+      if (this.passingVariants === 0) {
+        return 'Your explanation didn\'t produce working code yet. Let\'s look at what the code tried to do and where it went wrong.'
+      }
+      if (this.passingVariants < this.totalVariants) {
+        return 'Your explanation could be read in different ways. One interpretation worked, but another didn\'t. Try being more specific.'
+      }
+      if (!this.isAbstractionLocked && this.segmentCount > 2) {
+        return 'Your explanation focuses on individual steps. Try describing what the code accomplishes overall instead of how it works line-by-line.'
+      }
+      // Fully successful
+      if (this.allVariationsPass) {
+        return 'Problem complete! Your explanation is clear and correct.'
+      }
+      return ''
+    },
+
+    nextStepUrgency(): string {
+      if (this.passingVariants === 0) return 'urgency-high'
+      if (this.passingVariants < this.totalVariants) return 'urgency-medium'
+      if (!this.isAbstractionLocked && this.segmentCount > 2) return 'urgency-low'
+      // Fully successful
+      return 'urgency-success'
+    }
   },
   watch: {
     showAttemptDropdown(newVal) {
       if (newVal) {
-        this.positionDropdown();
-        // Focus first menu item when dropdown opens
-        this.$nextTick(() => {
-          const firstMenuItem = this.$refs.firstMenuItem as HTMLElement | HTMLElement[] | undefined;
-          if (firstMenuItem) {
-            const element = Array.isArray(firstMenuItem) ? firstMenuItem[0] : firstMenuItem;
-            element?.focus();
-          }
-        });
+        this.positionDropdown()
+        nextTick(() => {
+          const firstItem = this.$el?.querySelector('.attempt-item-minimal') as HTMLElement
+          firstItem?.focus()
+        })
       }
     },
-    slides: {
-      handler() {
-        this.updateSolutionCode();
-      },
-      deep: true,
-    },
     submissionHistory: {
-      handler(newHistory) {
-        this.initializeSubmissionHistory();
+      handler() {
+        this.initializeSubmissionHistory()
       },
       deep: true,
       immediate: true
     }
   },
   mounted() {
-    this.initializeSubmissionHistory();
-    this.updateSolutionCode();
-
-    // Add click outside listener
-    document.addEventListener('click', this.handleClickOutside);
+    this.initializeSubmissionHistory()
+    document.addEventListener('click', this.handleClickOutside)
   },
-
   beforeUnmount() {
-    // Clean up event listener
-    document.removeEventListener('click', this.handleClickOutside);
+    document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
-    // Export utility functions to template
-    formatTestValue,
-    isMissingValue,
-    getValueDisplayClass,
+    announce(message: string) {
+      this.announcement = ''
+      nextTick(() => {
+        this.announcement = message
+      })
+    },
 
-    // Initialize submission history data
+    // Submission history methods
     initializeSubmissionHistory(): void {
-
       if (this.submissionHistory && this.submissionHistory.length > 0) {
-        this.totalAttempts = this.submissionHistory.length;
-        // Find current attempt (most recent by default)
-        const currentAttempt = this.submissionHistory[0];
+        this.totalAttempts = this.submissionHistory.length
+        const currentAttempt = this.submissionHistory[0]
         if (currentAttempt) {
-          this.currentSubmissionId = currentAttempt.id;
-          this.currentAttemptNumber = currentAttempt.attempt_number;
-          this.currentAttemptScore = currentAttempt.score;
-        }
-        // Find best attempt
-        const bestAttempt = this.submissionHistory.find(a => a.is_best);
-        if (bestAttempt) {
-          this.bestAttemptId = bestAttempt.id;
+          this.currentSubmissionId = currentAttempt.id
+          this.currentAttemptNumber = currentAttempt.attempt_number
+          this.currentAttemptScore = currentAttempt.score
         }
       }
     },
 
-    // Core navigation methods
-    updateSolutionCode(): void {
-      if (this.slides.length === 0) {
-        this.currentSlideContents = "";
-      } else {
-        this.currentSlideContents = this.slides[this.currentSlide].content;
-      }
-    },
-    goToSlide(index: number): void {
-      this.currentSlide = index;
-      this.updateSolutionCode();
-      this.$emit('solution-changed', index);
-    },
-    
-    // Status helpers
-    getSlideStatus(slide: Slide): string {
-      if (slide.tests.length === 0) {return 'pending';}
-      if (slide.correct) {return 'passing';}
-      return 'failing';
-    },
-    getSlideIcon(slide: Slide): string {
-      if (slide.tests.length === 0) {return '⏳';}
-      if (slide.correct) {return '✓';}
-      return '✗';
-    },
-    
-    // Debug functionality
-    openPyTutor(testCase: TestCase): void {
-      if (!testCase) {return;}
-      
-      const solutionCode = this.slides[this.currentSlide].content;
-      const formattedCode = PythonTutorService.formatCodeWithTest(solutionCode, testCase);
-      
-      // Generate embed URL using the service
-      this.pythonTutorUrl = PythonTutorService.generateEmbedUrl(formattedCode);
-      this.showModal = true;
-    },
-
-    // Attempt selector methods
-    loadAttempt(attempt: any): void {
-      this.showAttemptDropdown = false;
-      this.currentSubmissionId = attempt.id;
-      this.currentAttemptNumber = attempt.attempt_number;
-      this.currentAttemptScore = attempt.score;
-
-      // Emit event to parent to load this attempt's data
-      this.$emit('load-attempt', attempt);
+    loadAttempt(attempt: SubmissionHistoryItem): void {
+      this.showAttemptDropdown = false
+      this.currentSubmissionId = attempt.id
+      this.currentAttemptNumber = attempt.attempt_number
+      this.currentAttemptScore = attempt.score
+      this.$emit('load-attempt', attempt)
     },
 
     positionDropdown(): void {
-      this.$nextTick(() => {
-        const dropdown = this.$refs.dropdownPanel as HTMLElement;
-        if (!dropdown || !this.$el) {return;}
+      nextTick(() => {
+        const dropdown = this.$refs.dropdownPanel as HTMLElement
+        if (!dropdown || !this.$el) return
 
-        const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement;
-        if (!trigger) {return;}
+        const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement
+        if (!trigger) return
 
-        const rect = trigger.getBoundingClientRect();
-        dropdown.style.top = `${rect.bottom + 4}px`;
-        dropdown.style.left = `${rect.right - dropdown.offsetWidth}px`;
-      });
+        const rect = trigger.getBoundingClientRect()
+        dropdown.style.top = `${rect.bottom + 4}px`
+        dropdown.style.left = `${rect.right - dropdown.offsetWidth}px`
+      })
     },
 
     handleClickOutside(event: MouseEvent): void {
-      if (!this.showAttemptDropdown || !this.$el) {return;}
+      if (!this.showAttemptDropdown || !this.$el) return
 
-      const dropdown = this.$refs.dropdownPanel as HTMLElement;
-      const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement;
+      const dropdown = this.$refs.dropdownPanel as HTMLElement
+      const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement
 
-      // Check if click was outside both dropdown and trigger
       if (dropdown && trigger &&
           !dropdown.contains(event.target as Node) &&
           !trigger.contains(event.target as Node)) {
-        this.showAttemptDropdown = false;
+        this.showAttemptDropdown = false
       }
     },
 
-    jumpToBestAttempt(): void {
-      const bestAttempt = this.submissionHistory.find(a => a.is_best);
-      if (bestAttempt) {
-        this.loadAttempt(bestAttempt);
-      }
-    },
-
-    getScoreClass(score: number): string {
-      if (score >= 100) {return 'score-perfect';}
-      if (score >= 80) {return 'score-good';}
-      if (score >= 60) {return 'score-partial';}
-      return 'score-low';
-    },
-
-    formatTime(timestamp: string): string {
-      const date = new Date(timestamp);
-      const now = new Date();
-      const diff = now.getTime() - date.getTime();
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-
-      if (hours < 1) {
-        const minutes = Math.floor(diff / (1000 * 60));
-        return `${minutes}m ago`;
-      }
-      if (hours < 24) {
-        return `${hours}h ago`;
-      }
-      const days = Math.floor(hours / 24);
-      if (days < 7) {
-        return `${days}d ago`;
-      }
-
-      // Format as date for older attempts
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-      });
-    },
-
-    formatComprehensionLevel(level: string): string {
-      if (level === 'high-level') {return '🎯 High';}
-      if (level === 'low-level') {return '📚 Low';}
-      return level;
-    },
-
-    getScoreIcon(score: number): string {
-      if (score >= 100) {return '✓';}
-      if (score >= 80) {return '✓';}
-      if (score >= 60) {return '~';}
-      return '✗';
-    },
-
-    // Keyboard navigation for dropdown
     closeDropdownAndFocusTrigger(): void {
-      this.showAttemptDropdown = false;
-      this.$nextTick(() => {
-        if (!this.$el) {return;}
-        const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement;
-        trigger?.focus();
-      });
+      this.showAttemptDropdown = false
+      nextTick(() => {
+        const trigger = this.$el?.querySelector('.attempt-dropdown-trigger') as HTMLElement
+        trigger?.focus()
+      })
     },
 
     focusNextItem(event: KeyboardEvent): void {
-      const currentElement = event.target as HTMLElement;
-      const nextElement = currentElement.nextElementSibling as HTMLElement;
+      const currentElement = event.target as HTMLElement
+      const nextElement = currentElement.nextElementSibling as HTMLElement
       if (nextElement && nextElement.classList.contains('attempt-item-minimal')) {
-        nextElement.focus();
+        nextElement.focus()
       }
     },
 
     focusPreviousItem(event: KeyboardEvent): void {
-      const currentElement = event.target as HTMLElement;
-      const previousElement = currentElement.previousElementSibling as HTMLElement;
+      const currentElement = event.target as HTMLElement
+      const previousElement = currentElement.previousElementSibling as HTMLElement
       if (previousElement && previousElement.classList.contains('attempt-item-minimal')) {
-        previousElement.focus();
+        previousElement.focus()
       }
     },
 
-    handleHomeKey(event: KeyboardEvent): void {
-      event.preventDefault();
-      if (!this.$el) {return;}
-      const attemptList = this.$el.querySelectorAll('.attempt-item-minimal');
-      if (attemptList.length > 0) {
-        (attemptList[0] as HTMLElement).focus();
+    getScoreClass(score: number): string {
+      if (score >= 100) return 'score-perfect'
+      if (score >= 80) return 'score-good'
+      if (score >= 60) return 'score-partial'
+      return 'score-low'
+    },
+
+    // Modal handlers
+    openCorrectnessModal(): void {
+      this.showCorrectnessModal = true
+      this.announce('Correctness Analysis dialog opened')
+    },
+
+    handleAbstractionClick(): void {
+      if (this.isAbstractionLocked) {
+        this.announce('Abstraction is locked. Complete all correctness tests first.')
+        return
+      }
+      this.showSegmentAnalysisModal = true
+      this.announce('Abstraction Details dialog opened')
+    },
+
+    handleNextStepAction(): void {
+      if (this.passingVariants < this.totalVariants) {
+        // Open correctness modal for issues
+        this.openCorrectnessModal()
+      } else if (!this.isAbstractionLocked && this.segmentCount > 2) {
+        // Open abstraction modal
+        this.showSegmentAnalysisModal = true
+      } else {
+        // Navigate to next problem
+        this.$emit('next-problem')
       }
     },
 
-    handleEndKey(event: KeyboardEvent): void {
-      event.preventDefault();
-      if (!this.$el) {return;}
-      const attemptList = this.$el.querySelectorAll('.attempt-item-minimal');
-      if (attemptList.length > 0) {
-        (attemptList[attemptList.length - 1] as HTMLElement).focus();
+    handleDebug(variant: Variant): void {
+      // Find first failing test to debug
+      const failingTest = variant.tests.find(t => !t.passed)
+      if (!failingTest) return
+
+      const testCase = {
+        function_call: failingTest.call,
+        expected_output: failingTest.expected,
+        actual_output: failingTest.actual
       }
-    },
-  },
-});
+
+      const formattedCode = PythonTutorService.formatCodeWithTest(variant.code, testCase)
+      this.pythonTutorUrl = PythonTutorService.generateEmbedUrl(formattedCode)
+      this.showPyTutorModal = true
+    }
+  }
+})
 </script>
 
 <style scoped>
-/* Main Container - Simple Grid Layout */
+/* Screen reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Main Container */
 .feedback-container {
   background: var(--color-bg-panel);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   overflow: hidden;
   position: relative;
-  min-height: 600px; /* Prevent layout shifts during navigation */
+  min-height: 400px;
 }
 
 /* Generating Feedback Panel */
@@ -913,7 +780,7 @@ export default defineComponent({
 }
 
 .generating-icon {
-  font-size: 3rem; /* Large size for emphasis, similar to other empty states */
+  font-size: 3rem;
   animation: robotPulse 2s infinite;
 }
 
@@ -934,162 +801,101 @@ export default defineComponent({
   }
 }
 
-/* User Prompt Section */
-.user-prompt-section {
+/* Navigation Skeleton */
+.navigation-skeleton-panel {
+  padding: var(--spacing-lg);
   background: var(--color-bg-panel);
-  padding-top: var(--spacing-md);
+  min-height: 400px;
 }
 
-/* Section Dividers - Clean Header Bar Style */
-.section-divider {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  background: var(--color-bg-hover);
-  font-size: var(--font-size-sm);
-  font-family: Inter, system-ui, -apple-system, sans-serif;
-  gap: var(--spacing-md);
-}
-
-.divider-label {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  flex: 0 1 auto;
-}
-
-.divider-icon {
-  font-size: var(--font-size-sm);
-  opacity: 0.7;
-  flex-shrink: 0;
-}
-
-.divider-title {
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-}
-
-.divider-separator {
-  color: var(--color-text-muted);
-  opacity: 0.5;
-  flex-shrink: 0;
-}
-
-.divider-description {
-  font-weight: 400;
-  color: var(--color-text-muted);
-  opacity: 0.7;
-}
-
-.info-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-circle);
-  background: rgba(102, 126, 234, 0.15);
-  color: var(--color-text-primary);
-  cursor: help;
-  transition: var(--transition-fast);
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-.info-icon:hover {
-  background: rgba(102, 126, 234, 0.25);
-  transform: scale(1.1);
-}
-
-.info-icon svg {
-  display: block;
-  stroke-width: 2;
-}
-
-
-.submission-header {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  background: var(--color-bg-hover);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  font-weight: 600;
-  font-family: Inter, system-ui, -apple-system, sans-serif;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-}
-
-.submission-icon {
-  font-size: var(--font-size-sm);
-  opacity: 0.7;
-}
-
-.submission-label {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.prompt-content {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  background: var(--color-bg-input);
-  padding: var(--spacing-sm) var(--spacing-md);
-  margin: var(--spacing-sm) var(--spacing-lg) var(--spacing-md) var(--spacing-lg);
-  border-radius: var(--radius-xs);
-  border-left: 3px solid var(--color-bg-border);
-  max-height: 80px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-/* Subtle scrollbar */
-.prompt-content::-webkit-scrollbar {
-  width: 3px;
-}
-
-.prompt-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.prompt-content::-webkit-scrollbar-thumb {
-  background: var(--color-bg-border);
-  border-radius: 3px;
-  opacity: 0.5;
-}
-
-.prompt-content:hover::-webkit-scrollbar-thumb {
-  opacity: 1;
-}
-
-/* Header - Seamless Integration */
-.feedback-header {
-  background: var(--color-bg-hover);
+.skeleton-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: relative;
   padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-base);
+  margin-bottom: var(--spacing-lg);
+}
+
+.skeleton-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.skeleton-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.skeleton-bar {
+  height: 20px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-xs);
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+
+.skeleton-title {
+  width: 40%;
+  height: 24px;
+}
+
+.skeleton-button {
+  width: 100px;
+  height: 32px;
+}
+
+.skeleton-label {
+  width: 30%;
+  height: 16px;
+}
+
+.skeleton-text {
+  width: 90%;
+  height: 16px;
+}
+
+.skeleton-card {
+  height: 80px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Header */
+.feedback-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-hover);
   border-bottom: 1px solid var(--color-bg-input);
 }
 
-.section-label {
-  font-size: var(--font-size-base);
+.header-title {
   font-weight: 600;
   color: var(--color-text-secondary);
-  display: flex;
-  align-items: center;
-  flex: 1;
-  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: var(--font-size-base);
+  margin: 0;
 }
 
-/* Attempt Selector - Ultra-Minimal */
+/* Attempt Selector */
 .attempt-selector {
-  position: static;
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -1100,7 +906,6 @@ export default defineComponent({
   color: var(--color-text-secondary);
   font-weight: 600;
   padding: 0 var(--spacing-xs);
-  font-family: Inter, system-ui, -apple-system, sans-serif;
 }
 
 .attempt-dropdown-trigger {
@@ -1115,28 +920,18 @@ export default defineComponent({
   color: var(--color-text-muted);
   transition: var(--transition-fast);
   font-weight: 400;
+  font-family: inherit;
 }
 
 .attempt-dropdown-trigger:hover {
   color: var(--color-text-secondary);
-  background: transparent;
 }
 
 .attempt-dropdown-trigger.is-active {
   color: var(--color-text-primary);
-  background: transparent;
 }
 
 .attempt-dropdown-trigger:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
-  outline-offset: 2px;
-}
-
-.attempt-dropdown-trigger:focus:not(:focus-visible) {
-  outline: none;
-}
-
-.attempt-dropdown-trigger:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
 }
@@ -1183,24 +978,17 @@ export default defineComponent({
   transform: rotate(180deg);
 }
 
-/* Dropdown Panel - Ultra-Thin */
+/* Dropdown Panel */
 .attempt-dropdown-panel {
-  position: fixed; /* Fixed positioning to escape overflow:hidden */
+  position: fixed;
   width: 240px;
   max-height: 200px;
   background: var(--color-bg-panel);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 99999; /* Very high z-index */
+  z-index: 99999;
   overflow: hidden;
-  transition: opacity 0.15s ease, visibility 0.15s ease;
-}
-
-.attempt-dropdown-panel[aria-hidden="true"] {
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .attempt-list-minimal {
@@ -1209,7 +997,6 @@ export default defineComponent({
   padding: 4px;
 }
 
-/* Ultra-Thin Attempt Items */
 .attempt-item-minimal {
   display: flex;
   align-items: center;
@@ -1230,15 +1017,6 @@ export default defineComponent({
 }
 
 .attempt-item-minimal:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
-  outline-offset: 2px;
-}
-
-.attempt-item-minimal:focus:not(:focus-visible) {
-  outline: none;
-}
-
-.attempt-item-minimal:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
 }
@@ -1291,7 +1069,7 @@ export default defineComponent({
 }
 
 .attempt-score-minimal.score-partial {
-  color: var(--color-warning);
+  color: rgb(255, 193, 7);
 }
 
 .attempt-score-minimal.score-low {
@@ -1299,329 +1077,344 @@ export default defineComponent({
 }
 
 .attempt-tests {
-  font-size: 10px;
+  flex: 1;
+  text-align: right;
   opacity: 0.6;
-  min-width: 30px;
-}
-
-.attempt-time {
-  margin-left: auto;
-  font-size: 10px;
-  opacity: 0.5;
 }
 
 .best-mark {
   color: var(--color-warning);
   font-size: 10px;
-  margin-left: 4px;
 }
 
-/* Content Grid */
-.feedback-content {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-  position: relative; /* Create stacking context */
-  z-index: 1; /* Below dropdown */
+/* Explanation Section */
+.explanation-section {
+  margin: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-base);
+  border-left: 3px solid var(--color-primary);
 }
 
-/* Solution Timeline */
-.solution-timeline {
+.section-label {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-sm);
-  background: var(--color-bg-panel);
-  border-bottom: 1px solid var(--color-bg-input);
-  overflow-x: auto;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
-.timeline-node {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-xs);
+.label-icon {
+  font-size: var(--font-size-base);
+}
+
+.label-text {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.explanation-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  margin: 0;
   padding: var(--spacing-sm);
-  min-width: 50px;
+  background: var(--color-bg-dark);
+  border-radius: var(--radius-xs);
+  font-style: italic;
+}
+
+/* Metric Cards */
+.metric-card {
+  display: flex;
+  align-items: stretch;
+  width: calc(100% - calc(var(--spacing-lg) * 2));
+  margin: var(--spacing-md) var(--spacing-lg);
+  padding: 0;
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   transition: var(--transition-fast);
-  background: transparent;
   border: none;
+  border-left: 4px solid transparent;
+  text-align: left;
   font-family: inherit;
+  overflow: hidden;
 }
 
-.timeline-node:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
-  outline-offset: 2px;
+.card-content {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  min-width: 0;
 }
 
-.timeline-node:focus:not(:focus-visible) {
-  outline: none;
-}
-
-.timeline-node:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
-  outline-offset: 2px;
-}
-
-
-.node-number {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-circle);
+.metric-card:hover {
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
-  font-weight: 700;
-  font-size: var(--font-size-sm);
-  transition: var(--transition-fast);
 }
 
-.node-icon {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+.metric-card:focus {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
 }
 
-/* Timeline States */
-.timeline-node[data-current="true"] .node-number {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-text-primary);
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+.metric-card.status-error {
+  border-left-color: var(--color-error);
 }
 
-.timeline-node[data-status="passing"] .node-number {
-  background: var(--color-success-bg);
-  border-color: var(--color-success);
-  color: var(--color-success-text);
+.metric-card.status-warning {
+  border-left-color: var(--color-warning);
 }
 
-.timeline-node[data-status="failing"] .node-number {
-  background: var(--color-error-bg);
-  border-color: var(--color-error);
-  color: var(--color-error-text);
+.metric-card.status-success {
+  border-left-color: var(--color-success);
 }
 
-.timeline-node:hover .node-number {
-  transform: scale(1.1);
+.metric-card.status-locked {
+  border-left-color: var(--color-bg-disabled);
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-/* Code Section */
-.code-section {
-  background: var(--color-bg-panel);
-}
-
-.code-header {
-  padding: var(--spacing-md) var(--spacing-lg);
+.metric-card.status-locked:hover {
   background: var(--color-bg-hover);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+}
+
+.card-label {
+  font-size: 11px;
   font-weight: 600;
-  font-family: Inter, system-ui, -apple-system, sans-serif;
-}
-
-/* Test Summary Bar */
-.test-summary-bar {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
-  border-top: 1px solid var(--color-bg-input);
-  border-bottom: 1px solid var(--color-bg-input);
-}
-
-.summary-counts {
-  display: flex;
-  gap: var(--spacing-lg);
-}
-
-.count-item {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-}
-
-.count-item.passing {
-  color: var(--color-success);
-}
-
-.count-item.failing {
-  color: var(--color-error);
-}
-
-/* Test Results - Native Collapsible */
-.test-results {
-  padding: 0;
-  background: var(--color-bg-panel);
-}
-
-.test-group {
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
   margin-bottom: var(--spacing-md);
 }
 
-.test-group:last-child {
-  margin-bottom: 0;
+/* Progress Bar */
+.progress-bar-container {
+  height: 8px;
+  background: var(--color-bg-dark);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  margin-bottom: var(--spacing-md);
 }
 
-.test-group-header {
-  cursor: pointer;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg-hover);
+.progress-bar-fill {
+  height: 100%;
   border-radius: var(--radius-xs);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-  list-style: none;
+  transition: width 0.4s ease;
+}
+
+.progress-bar-fill.bar-error {
+  background: linear-gradient(90deg, var(--color-error), #c82333);
+}
+
+.progress-bar-fill.bar-warning {
+  background: linear-gradient(90deg, var(--color-warning), #e0a800);
+}
+
+.progress-bar-fill.bar-success {
+  background: linear-gradient(90deg, var(--color-success), #218838);
+}
+
+.progress-bar-fill.bar-locked {
+  background: var(--color-bg-border);
+}
+
+/* Card Status */
+.card-status {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  transition: var(--transition-fast);
+  margin-bottom: var(--spacing-xs);
 }
 
-.test-group-header:hover {
-  background: var(--color-bg-input);
+.status-icon {
+  font-size: var(--font-size-base);
 }
 
-.test-group-header:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
-  outline-offset: 2px;
-}
-
-.test-group-header:focus:not(:focus-visible) {
-  outline: none;
-}
-
-.test-group-header:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
-  outline-offset: 2px;
-}
-
-.test-group-header.failing {
-  border-left: 4px solid var(--color-error);
-}
-
-.test-group-header.passing {
-  border-left: 4px solid var(--color-success);
-}
-
-.group-icon {
-  transition: transform 0.2s;
-  font-size: var(--font-size-xs);
-}
-
-details[open] .group-icon {
-  transform: rotate(90deg);
-}
-
-details:not([open]) .group-icon {
-  transform: rotate(0);
-}
-
-.test-list {
-  padding: var(--spacing-sm) 0 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.test-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg-hover);
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--color-bg-input);
-  gap: var(--spacing-md);
-}
-
-.test-item.failing {
-  border-color: rgba(220, 53, 69, 0.3);
-}
-
-.test-item.passing {
-  border-color: rgba(76, 175, 80, 0.3);
-}
-
-.test-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.test-call {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: var(--font-size-sm);
-  background: var(--color-bg-input);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-xs);
+.status-label {
+  font-weight: 600;
   color: var(--color-text-primary);
-}
-
-.test-diff {
-  font-size: var(--font-size-xs);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.test-diff > div {
-  display: flex;
-  align-items: baseline;
-  gap: var(--spacing-sm);
-}
-
-.expected {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: monospace;
-}
-
-.actual {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: monospace;
-}
-
-.debug-btn {
-  background: var(--color-info);
-  color: var(--color-text-primary);
-  border: none;
-  padding: var(--spacing-xs);
-  border-radius: var(--radius-xs);
-  cursor: pointer;
   font-size: var(--font-size-sm);
-  min-width: 44px;
-  height: 32px;
+}
+
+.status-metric {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.metric-hint {
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.card-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Action Column */
+.card-action {
+  width: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
+  align-self: stretch;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.card-action.status-success {
+  background: rgba(76, 175, 80, 0.08);
+  border-left-color: rgba(76, 175, 80, 0.3);
+}
+
+.card-action.status-warning {
+  background: rgba(255, 193, 7, 0.08);
+  border-left-color: rgba(255, 193, 7, 0.3);
+}
+
+.card-action.status-error {
+  background: rgba(220, 53, 69, 0.08);
+  border-left-color: rgba(220, 53, 69, 0.3);
+}
+
+.action-icon {
+  font-size: 18px;
+  font-weight: 600;
+  transition: transform 0.2s ease;
+}
+
+.card-action.status-success .action-icon {
+  color: var(--color-success);
+}
+
+.card-action.status-warning .action-icon {
+  color: var(--color-warning);
+}
+
+.card-action.status-error .action-icon {
+  color: var(--color-error);
+}
+
+/* Hover effects */
+.metric-card:hover .card-action.status-success {
+  background: rgba(76, 175, 80, 0.2);
+}
+
+.metric-card:hover .card-action.status-warning {
+  background: rgba(255, 193, 7, 0.2);
+}
+
+.metric-card:hover .card-action.status-error {
+  background: rgba(220, 53, 69, 0.2);
+}
+
+.metric-card:hover .card-action .action-icon {
+  transform: translateX(3px);
+}
+
+/* Next Step Banner */
+.next-step-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  border-width: 2px;
+  border-style: solid;
+}
+
+.next-step-banner.urgency-high {
+  background: rgba(220, 53, 69, 0.15);
+  border-color: rgba(220, 53, 69, 0.5);
+  font-size: var(--font-size-sm);
+}
+
+.next-step-banner.urgency-medium {
+  background: rgba(255, 193, 7, 0.15);
+  border-color: rgba(255, 193, 7, 0.5);
+  font-size: var(--font-size-sm);
+}
+
+.next-step-banner.urgency-low {
+  background: rgba(33, 150, 243, 0.15);
+  border-color: rgba(33, 150, 243, 0.5);
+  font-size: var(--font-size-sm);
+}
+
+.next-step-banner.urgency-success {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.banner-icon {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+}
+
+.banner-text {
+  flex: 1;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.banner-button {
+  flex-shrink: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
   transition: var(--transition-fast);
+  font-family: inherit;
 }
 
-.debug-btn:hover {
+.urgency-high .banner-button {
+  background: var(--color-error);
+  color: white;
+}
+
+.urgency-high .banner-button:hover {
+  background: #c82333;
+}
+
+.urgency-medium .banner-button {
+  background: var(--color-warning);
+  color: #1a1a1a;
+}
+
+.urgency-medium .banner-button:hover {
+  background: #e0a800;
+}
+
+.urgency-low .banner-button {
+  background: var(--color-info);
+  color: white;
+}
+
+.urgency-low .banner-button:hover {
   background: #1976d2;
-  transform: translateY(-1px);
 }
 
-.debug-btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
-  outline-offset: 2px;
+.urgency-success .banner-button {
+  background: var(--color-success);
+  color: white;
 }
 
-.debug-btn:focus:not(:focus-visible) {
-  outline: none;
+.urgency-success .banner-button:hover {
+  background: #43a047;
 }
 
-.debug-btn:focus-visible {
+.banner-button:focus {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
 }
@@ -1649,180 +1442,31 @@ details:not([open]) .group-icon {
   margin: 0;
 }
 
-
 /* Responsive Design */
 @media (max-width: 768px) {
-  .header-title {
+  .feedback-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: var(--spacing-sm);
   }
-  
-  .solution-timeline {
-    padding: var(--spacing-md);
-    gap: var(--spacing-md);
+
+  .attempt-selector {
+    width: 100%;
+    justify-content: space-between;
   }
-  
-  .node-number {
-    width: 36px;
-    height: 36px;
-    font-size: var(--font-size-xs);
-  }
-  
-  .test-summary-bar {
-    padding: var(--spacing-sm) var(--spacing-md);
-  }
-  
-  .summary-counts {
-    justify-content: center;
-  }
-  
-  .test-item {
+
+  .next-step-banner {
     flex-direction: column;
+    text-align: center;
   }
-  
-  .debug-btn {
+
+  .banner-button {
     width: 100%;
   }
 }
 
-/* Comprehension Section - inherits all styling from parent test-results */
-
-.test-group-header.comprehension {
-  border-left: 4px solid var(--color-primary);
-}
-
-.comprehension-placeholder {
-  padding: var(--spacing-sm) 0 0 0;
-  text-align: center;
-}
-
-.placeholder-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-}
-
-.placeholder-icon {
-  font-size: var(--font-size-xl);
-  opacity: 0.6;
-}
-
-.placeholder-message {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-  margin: 0;
-}
-
-/* Navigation Skeleton Styles - match actual content dimensions to prevent shifts */
-.navigation-skeleton-panel {
-  padding: var(--spacing-lg);
-  background: var(--color-bg-panel);
-  min-height: 600px; /* Match feedback-container min-height */
-}
-
-.skeleton-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
-  border-radius: var(--radius-base);
-  margin-bottom: var(--spacing-lg);
-}
-
-.skeleton-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xl);
-}
-
-.skeleton-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-/* Skeleton elements with shimmer animation */
-.skeleton-bar {
-  height: 20px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
-  background-size: 200% 100%;
-  border-radius: var(--radius-xs);
-  animation: shimmer 2.5s ease-in-out infinite;
-}
-
-.skeleton-title {
-  width: 40%;
-  height: 24px;
-}
-
-.skeleton-button {
-  width: 100px;
-  height: 32px;
-}
-
-.skeleton-label {
-  width: 30%;
-  height: 16px;
-}
-
-.skeleton-text {
-  width: 90%;
-  height: 16px;
-}
-
-.skeleton-text.short {
-  width: 60%;
-}
-
-.skeleton-code-block {
-  height: 300px; /* Match actual Editor height */
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.03) 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.03) 100%
-  );
-  background-size: 200% 100%;
-  border-radius: var(--radius-base);
-  animation: shimmer 2.5s ease-in-out infinite;
-  border: 1px solid var(--color-bg-border);
-}
-
-.skeleton-test-item {
-  height: 60px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
-  background-size: 200% 100%;
-  border-radius: var(--radius-xs);
-  animation: shimmer 2.5s ease-in-out infinite;
-  border: 1px solid var(--color-bg-border);
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-/* Slower shimmer animation for subtlety */
-
-/* Navigation transition - removed opacity dimming for smoother UX */
+/* Navigation transition */
 .feedback-container.is-navigating {
-  /* Opacity removed - rely on skeleton/progress bar for loading indication */
+  /* Opacity removed - rely on skeleton for loading indication */
 }
 </style>

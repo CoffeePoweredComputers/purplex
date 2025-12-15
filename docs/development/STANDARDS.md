@@ -55,17 +55,17 @@ class ProblemListView(APIView):
     Thin controller - NO business logic here.
     """
     permission_classes = [IsAuthenticated]  # Always specify permissions
-    
+
     def get(self, request):
         # 1. Parse request
         filters = request.query_params
-        
+
         # 2. Call service
         problems = ProblemService.get_filtered_problems(
             user=request.user,
             filters=filters
         )
-        
+
         # 3. Return response
         serializer = ProblemSerializer(problems, many=True)
         return Response(serializer.data)
@@ -81,45 +81,45 @@ class ProblemListView(APIView):
 # services.py or services/problem_service.py
 class ProblemService:
     """All business logic goes here - NO EXCEPTIONS.
-    
+
     CURRENT STATE (Jan 2025):
     - ✅ Views NEVER access models directly (enforced)
     - ⚠️ Services SHOULD use repositories (not fully adopted)
     - ⚠️ Most services still have direct model queries
-    
+
     TARGET PATTERN:
     - Services use repositories for ALL data access
     - Services contain ONLY business logic
     - Repositories handle ALL database queries
     """
-    
+
     @staticmethod
     def get_filtered_problems(user, filters):
         # CURRENT: Direct model access (being phased out)
         # queryset = Problem.objects.select_related('category')
-        
+
         # TARGET: Use repository
         from ..repositories import ProblemRepository
         problems = ProblemRepository.get_active_problems()
-        
+
         if user.is_student:
             problems = problems.filter(is_published=True)
-            
+
         # Business logic here...
         return problems
-    
+
     @staticmethod
     def validate_course_enrollment(user, course_id):
         """Example: Course validation using repository (CORRECT)"""
         from ..repositories import CourseRepository
-        
+
         course = CourseRepository.get_active_course(course_id)
         if not course:
             return {'success': False, 'error': 'Course not found'}
-            
+
         if not CourseRepository.user_is_enrolled(user, course):
             return {'success': False, 'error': 'Not enrolled'}
-            
+
         return {'success': True, 'course': course}
 ```
 
@@ -128,14 +128,14 @@ class ProblemService:
 # repositories/course_repository.py
 class CourseRepository(BaseRepository):
     """Handle ALL database queries for Course model.
-    
+
     RULES:
     - Only place for .objects queries
     - No business logic, only data access
     - Return QuerySets or model instances
     - Used by services, NEVER by views
     """
-    
+
     @classmethod
     def get_active_course(cls, course_id: str):
         """Get active, non-deleted course."""
@@ -144,7 +144,7 @@ class CourseRepository(BaseRepository):
             is_active=True,
             is_deleted=False
         ).first()
-    
+
     @classmethod
     def user_is_enrolled(cls, user, course):
         """Check enrollment status."""
@@ -160,9 +160,9 @@ class CourseRepository(BaseRepository):
 # models.py
 class Problem(models.Model):
     """Only data definition and simple properties."""
-    
+
     title = models.CharField(max_length=200)
-    
+
     @property
     def is_active(self):
         """Simple property OK, complex logic goes in service."""
@@ -325,12 +325,12 @@ import pytest
 
 class TestProblemService:
     """Group related tests in classes."""
-    
+
     @pytest.fixture
     def sample_problem(self):
         """Use fixtures for test data."""
         return Problem.objects.create(...)
-    
+
     def test_calculate_score_returns_percentage(self, sample_problem):
         """Descriptive test names."""
         score = ProblemService.calculate_score(sample_problem)
