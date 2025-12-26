@@ -943,13 +943,15 @@ class AdminProblemSerializer(ProblemSerializer):
 
             # Perform basic validation instead
             if not attrs.get("title", "").strip():
-                raise serializers.ValidationError({"title": ["Title is required"]})
+                raise serializers.ValidationError(
+                    {"title": ["Title is required"]}
+                ) from None
 
             # Reference solution is required for EiPL/Prompt problems
             if not attrs.get("reference_solution", "").strip():
                 raise serializers.ValidationError(
                     {"reference_solution": ["Reference solution is required"]}
-                )
+                ) from None
 
             return attrs
 
@@ -1100,6 +1102,24 @@ class CourseListSerializer(serializers.ModelSerializer):
     def get_instructor_name(self, obj):
         """Get instructor's full name or username"""
         return obj.instructor.get_full_name() or obj.instructor.username
+
+
+class InstructorCourseListSerializer(serializers.Serializer):
+    """Serializer for instructor course list endpoint.
+
+    Works with dictionaries returned by CourseRepository.get_instructor_courses_with_stats().
+    Omits instructor_name since the instructor already knows who they are.
+    """
+
+    id = serializers.IntegerField()
+    course_id = serializers.CharField()
+    name = serializers.CharField()
+    description = serializers.CharField(allow_blank=True)
+    is_active = serializers.BooleanField()
+    enrollment_open = serializers.BooleanField()
+    problem_sets_count = serializers.IntegerField()
+    enrolled_students_count = serializers.IntegerField()
+    created_at = serializers.DateTimeField()
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):

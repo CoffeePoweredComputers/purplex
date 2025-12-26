@@ -12,7 +12,7 @@ EiPL uses asynchronous processing via Celery because it requires:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from .. import register_handler
 
@@ -165,14 +165,14 @@ class EiPLHandler(ActivityHandler):
 
     # ─── Data Extraction ────────────────────────────────────────
 
-    def extract_variations(self, submission: "Submission") -> List[str]:
+    def extract_variations(self, submission: "Submission") -> list[str]:
         """Extract code variations from EiPL submission."""
         variations = submission.code_variations.all().order_by("variation_index")
         return [v.generated_code for v in variations]
 
     def extract_test_results(
         self, submission: "Submission", problem: "Problem"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Transform TestExecution objects to frontend format for EiPL."""
         results = []
 
@@ -244,7 +244,7 @@ class EiPLHandler(ActivityHandler):
 
     # ─── API Configuration ──────────────────────────────────────
 
-    def get_problem_config(self, problem: "Problem") -> Dict[str, Any]:
+    def get_problem_config(self, problem: "Problem") -> dict[str, Any]:
         """Return configuration for frontend rendering of EiPL problems."""
         return {
             "display": {
@@ -271,7 +271,7 @@ class EiPLHandler(ActivityHandler):
             },
         }
 
-    def serialize_result(self, submission: "Submission") -> Dict[str, Any]:
+    def serialize_result(self, submission: "Submission") -> dict[str, Any]:
         """Serialize EiPL submission result for API response."""
         result = {
             "variations": [],
@@ -320,7 +320,7 @@ class EiPLHandler(ActivityHandler):
 
         return result
 
-    def get_admin_config(self) -> Dict[str, Any]:
+    def get_admin_config(self) -> dict[str, Any]:
         """Return admin UI configuration for EiPL problems."""
         return {
             "hidden_sections": [],
@@ -346,7 +346,7 @@ class EiPLHandler(ActivityHandler):
         submission: "Submission",
         raw_input: str,
         problem: "Problem",
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> SubmissionOutcome:
         """
         Execute EiPL submission asynchronously via Celery.

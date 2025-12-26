@@ -8,7 +8,7 @@ Processing is synchronous - no Celery needed since we execute code in-process.
 import json
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from .. import register_handler
 from ..base import (
@@ -47,7 +47,7 @@ def _ensure_refute_problem(problem: Any) -> "RefuteProblem":
     )
 
 
-def _parse_function_args(signature: str) -> List[Dict[str, str]]:
+def _parse_function_args(signature: str) -> list[dict[str, str]]:
     """
     Parse function signature to extract parameter names and types.
 
@@ -79,8 +79,8 @@ def _parse_function_args(signature: str) -> List[Dict[str, str]]:
 
 
 def _safe_execute(
-    code: str, function_name: str, args: Dict[str, Any]
-) -> Dict[str, Any]:
+    code: str, function_name: str, args: dict[str, Any]
+) -> dict[str, Any]:
     """
     Execute function code safely with provided arguments.
 
@@ -225,11 +225,8 @@ class RefuteHandler(ActivityHandler):
                 error=f"Missing parameter(s): {', '.join(sorted(missing))}",
             )
 
-        # Validate that values can be evaluated safely
-        for key, value in args.items():
-            # JSON already restricts to safe types (str, int, float, bool, None, list, dict)
-            # No additional validation needed
-            pass
+        # Note: JSON already restricts to safe types (str, int, float, bool, None, list, dict)
+        # No additional validation needed
 
         return ValidationResult(is_valid=True)
 
@@ -455,13 +452,13 @@ class RefuteHandler(ActivityHandler):
 
     # --- Data Extraction ---
 
-    def extract_variations(self, submission: "Submission") -> List[str]:
+    def extract_variations(self, submission: "Submission") -> list[str]:
         """Extract variations from refute submission (returns single input)."""
         return [submission.raw_input] if submission.raw_input else []
 
     def extract_test_results(
         self, submission: "Submission", problem: "RefuteProblem"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Extract test results for refute (single result)."""
         # Parse type-specific data if available
         try:
@@ -495,7 +492,7 @@ class RefuteHandler(ActivityHandler):
 
     # --- API Configuration ---
 
-    def get_problem_config(self, problem: "RefuteProblem") -> Dict[str, Any]:
+    def get_problem_config(self, problem: "RefuteProblem") -> dict[str, Any]:
         """Return configuration for frontend rendering of Refute problems."""
         refute = _ensure_refute_problem(problem)
 
@@ -532,7 +529,7 @@ class RefuteHandler(ActivityHandler):
             },
         }
 
-    def _generate_placeholder(self, params: List[Dict[str, str]]) -> str:
+    def _generate_placeholder(self, params: list[dict[str, str]]) -> str:
         """Generate a placeholder example for the input field."""
         if not params:
             return "{}"
@@ -559,7 +556,7 @@ class RefuteHandler(ActivityHandler):
 
         return "{" + ", ".join(examples) + "}"
 
-    def serialize_result(self, submission: "Submission") -> Dict[str, Any]:
+    def serialize_result(self, submission: "Submission") -> dict[str, Any]:
         """Serialize refute submission result for API response."""
         refute = _ensure_refute_problem(submission.problem)
 
@@ -586,8 +583,8 @@ class RefuteHandler(ActivityHandler):
         }
 
     def test_counterexample(
-        self, problem: "RefuteProblem", input_args: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, problem: "RefuteProblem", input_args: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Test if input values disprove the claim (for interactive frontend).
 
@@ -634,7 +631,7 @@ class RefuteHandler(ActivityHandler):
             "error": None,
         }
 
-    def get_admin_config(self) -> Dict[str, Any]:
+    def get_admin_config(self) -> dict[str, Any]:
         """Return admin UI configuration for Refute problems."""
         return {
             "hidden_sections": ["mcq_options", "segmentation"],
@@ -662,7 +659,7 @@ class RefuteHandler(ActivityHandler):
         submission: "Submission",
         raw_input: str,
         problem: "RefuteProblem",
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> SubmissionOutcome:
         """
         Execute refute submission synchronously.

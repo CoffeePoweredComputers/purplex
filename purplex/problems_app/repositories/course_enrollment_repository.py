@@ -3,7 +3,7 @@ Repository for CourseEnrollment model data access.
 """
 
 from datetime import timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.contrib.auth.models import User
 from django.db.models import Count, Q
@@ -26,14 +26,14 @@ class CourseEnrollmentRepository(BaseRepository):
     model_class = CourseEnrollment
 
     @classmethod
-    def get_enrollment(cls, user: User, course: Course) -> Optional[CourseEnrollment]:
+    def get_enrollment(cls, user: User, course: Course) -> CourseEnrollment | None:
         """Get a specific enrollment record for a user and course."""
         return CourseEnrollment.objects.filter(user=user, course=course).first()
 
     @classmethod
     def get_active_enrollment(
         cls, user: User, course: Course
-    ) -> Optional[CourseEnrollment]:
+    ) -> CourseEnrollment | None:
         """Get an active enrollment record for a user and course."""
         return CourseEnrollment.objects.filter(
             user=user, course=course, is_active=True
@@ -49,7 +49,7 @@ class CourseEnrollmentRepository(BaseRepository):
     @classmethod
     def get_user_enrollments(
         cls, user: User, active_only: bool = True
-    ) -> List[CourseEnrollment]:
+    ) -> list[CourseEnrollment]:
         """Get all enrollments for a user."""
         queryset = CourseEnrollment.objects.filter(user=user)
 
@@ -61,7 +61,7 @@ class CourseEnrollmentRepository(BaseRepository):
     @classmethod
     def get_course_enrollments(
         cls, course: Course, active_only: bool = True
-    ) -> List[CourseEnrollment]:
+    ) -> list[CourseEnrollment]:
         """Get all enrollments for a course."""
         queryset = CourseEnrollment.objects.filter(course=course)
 
@@ -114,8 +114,8 @@ class CourseEnrollmentRepository(BaseRepository):
 
     @classmethod
     def bulk_enroll_users(
-        cls, users: List[User], course: Course
-    ) -> List[CourseEnrollment]:
+        cls, users: list[User], course: Course
+    ) -> list[CourseEnrollment]:
         """Bulk enroll multiple users in a course."""
         enrollments = []
 
@@ -126,7 +126,7 @@ class CourseEnrollmentRepository(BaseRepository):
         return enrollments
 
     @classmethod
-    def bulk_deactivate_enrollments(cls, course: Course, user_ids: List[int]) -> int:
+    def bulk_deactivate_enrollments(cls, course: Course, user_ids: list[int]) -> int:
         """Bulk deactivate enrollments for specific users in a course."""
         updated = CourseEnrollment.objects.filter(
             course=course, user__id__in=user_ids, is_active=True
@@ -137,7 +137,7 @@ class CourseEnrollmentRepository(BaseRepository):
     @classmethod
     def get_recent_enrollments(
         cls, course: Course, days: int = 30
-    ) -> List[CourseEnrollment]:
+    ) -> list[CourseEnrollment]:
         """Get recent enrollments for a course within specified days."""
         since_date = timezone.now() - timedelta(days=days)
 
@@ -150,7 +150,7 @@ class CourseEnrollmentRepository(BaseRepository):
         )
 
     @classmethod
-    def get_enrollment_statistics(cls, course: Course) -> Dict[str, Any]:
+    def get_enrollment_statistics(cls, course: Course) -> dict[str, Any]:
         """Get enrollment statistics for a course."""
         enrollments = CourseEnrollment.objects.filter(course=course)
 
@@ -185,7 +185,7 @@ class CourseEnrollmentRepository(BaseRepository):
         return stats
 
     @classmethod
-    def get_instructor_enrollment_overview(cls, instructor: User) -> Dict[str, Any]:
+    def get_instructor_enrollment_overview(cls, instructor: User) -> dict[str, Any]:
         """Get enrollment overview for all courses taught by an instructor."""
         instructor_courses = Course.objects.filter(
             instructor=instructor, is_active=True
@@ -215,7 +215,7 @@ class CourseEnrollmentRepository(BaseRepository):
     @classmethod
     def get_student_coursemates(
         cls, user: User, course: Course
-    ) -> List[CourseEnrollment]:
+    ) -> list[CourseEnrollment]:
         """Get other students enrolled in the same course."""
         return list(
             CourseEnrollment.objects.filter(course=course, is_active=True)
@@ -225,7 +225,7 @@ class CourseEnrollmentRepository(BaseRepository):
         )
 
     @classmethod
-    def get_common_courses(cls, user1: User, user2: User) -> List[CourseEnrollment]:
+    def get_common_courses(cls, user1: User, user2: User) -> list[CourseEnrollment]:
         """Get courses where both users are enrolled."""
         user1_courses = CourseEnrollment.objects.filter(
             user=user1, is_active=True
@@ -240,7 +240,7 @@ class CourseEnrollmentRepository(BaseRepository):
     @classmethod
     def search_enrolled_students(
         cls, course: Course, query: str
-    ) -> List[CourseEnrollment]:
+    ) -> list[CourseEnrollment]:
         """Search for enrolled students by username, first name, or last name."""
         return list(
             CourseEnrollment.objects.filter(course=course, is_active=True)
@@ -257,7 +257,7 @@ class CourseEnrollmentRepository(BaseRepository):
     @classmethod
     def get_enrollment_timeline(
         cls, course: Course, days: int = 90
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get enrollment timeline data for a course."""
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=days)
@@ -287,7 +287,7 @@ class CourseEnrollmentRepository(BaseRepository):
         return timeline
 
     @classmethod
-    def get_dropout_analysis(cls, course: Course) -> Dict[str, Any]:
+    def get_dropout_analysis(cls, course: Course) -> dict[str, Any]:
         """Analyze dropout patterns for a course."""
         total_enrollments = CourseEnrollment.objects.filter(course=course).count()
         active_enrollments = CourseEnrollment.objects.filter(
@@ -309,7 +309,7 @@ class CourseEnrollmentRepository(BaseRepository):
             total_days = 0
             count = 0
 
-            for enrollment in inactive_enrollments:
+            for _enrollment in inactive_enrollments:
                 # Estimate dropout date as some time after enrollment
                 # This is simplified - in a real system, you might track actual dropout dates
                 days_enrolled = 30  # Placeholder - would need actual dropout tracking
@@ -328,8 +328,8 @@ class CourseEnrollmentRepository(BaseRepository):
 
     @classmethod
     def get_capacity_info(
-        cls, course: Course, max_capacity: Optional[int] = None
-    ) -> Dict[str, Any]:
+        cls, course: Course, max_capacity: int | None = None
+    ) -> dict[str, Any]:
         """Get capacity information for a course."""
         current_enrollment = cls.get_enrollment_count(course)
 
@@ -381,7 +381,7 @@ class CourseEnrollmentRepository(BaseRepository):
         return queryset
 
     @classmethod
-    def get_active_student_ids(cls, course: Course) -> List[int]:
+    def get_active_student_ids(cls, course: Course) -> list[int]:
         """
         Get list of active student user IDs for a course.
 

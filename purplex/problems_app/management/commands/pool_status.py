@@ -169,7 +169,9 @@ class Command(BaseCommand):
         health_symbol = (
             "✅"
             if data["health"] == "HEALTHY"
-            else "⚠️" if data["health"] == "WARNING" else "🚨"
+            else "⚠️"
+            if data["health"] == "WARNING"
+            else "🚨"
         )
 
         mem_str = (

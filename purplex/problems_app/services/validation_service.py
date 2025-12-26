@@ -1,7 +1,6 @@
 """Problem validation service."""
 
 import re
-from typing import Optional
 
 
 class ProblemValidationService:
@@ -57,7 +56,7 @@ class ProblemValidationService:
     INJECTION_PATTERNS = ["<script", "<?php", "<%", "<jsp"]
 
     @staticmethod
-    def validate_problem_data(data: dict) -> tuple[bool, Optional[str]]:
+    def validate_problem_data(data: dict) -> tuple[bool, str | None]:
         """
         Validate problem data before saving
 
@@ -192,7 +191,7 @@ class ProblemValidationService:
     @staticmethod
     def validate_test_case(
         test_case: dict, function_signature: str = None
-    ) -> tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """
         Validate a test case against the function signature
 
@@ -219,7 +218,7 @@ class ProblemValidationService:
         return True, None
 
     @staticmethod
-    def validate_user_prompt(prompt: str) -> tuple[bool, Optional[str]]:
+    def validate_user_prompt(prompt: str) -> tuple[bool, str | None]:
         """
         Validate user EiPL prompt for length and content
 
@@ -253,7 +252,7 @@ class ProblemValidationService:
         return True, None
 
     @staticmethod
-    def validate_user_code(code: str) -> tuple[bool, Optional[str]]:
+    def validate_user_code(code: str) -> tuple[bool, str | None]:
         """
         Validate user submitted code for length
 

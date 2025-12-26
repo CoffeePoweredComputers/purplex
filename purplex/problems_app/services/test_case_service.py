@@ -1,6 +1,6 @@
 """Service for managing test cases with proper abstraction."""
 
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from ..repositories import TestCaseRepository
 
@@ -15,7 +15,7 @@ class TestCaseService:
     @staticmethod
     def get_problem_test_cases(
         problem: "Problem", include_hidden: bool = True
-    ) -> List["TestCase"]:
+    ) -> list["TestCase"]:
         """
         Get all test cases for a problem.
 
@@ -33,7 +33,7 @@ class TestCaseService:
     @staticmethod
     def get_test_cases_for_testing(
         problem: "Problem", include_hidden: bool = True
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get test cases formatted for code execution.
 
@@ -59,7 +59,7 @@ class TestCaseService:
         ]
 
     @staticmethod
-    def get_visible_test_cases(problem: "Problem") -> List["TestCase"]:
+    def get_visible_test_cases(problem: "Problem") -> list["TestCase"]:
         """
         Get only visible (non-hidden) test cases for a problem.
 
@@ -72,7 +72,7 @@ class TestCaseService:
         return TestCaseRepository.get_visible_test_cases(problem)
 
     @staticmethod
-    def get_sample_test_cases(problem: "Problem") -> List["TestCase"]:
+    def get_sample_test_cases(problem: "Problem") -> list["TestCase"]:
         """
         Get only sample test cases for a problem.
 
@@ -104,7 +104,7 @@ class TestCaseService:
 
     @staticmethod
     def create_test_case(
-        problem: "Problem", inputs: List, expected_output: Any, **kwargs
+        problem: "Problem", inputs: list, expected_output: Any, **kwargs
     ) -> "TestCase":
         """
         Create a new test case for a problem.

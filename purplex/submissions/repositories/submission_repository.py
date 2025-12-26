@@ -3,7 +3,7 @@ Repository for Submission model operations.
 Handles all database queries related to submissions.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.core.paginator import Paginator
 from django.db.models import Prefetch, Q
@@ -26,7 +26,7 @@ class SubmissionRepository(BaseRepository[Submission]):
     @classmethod
     def get_paginated_submissions(
         cls, page: int = 1, page_size: int = 25, **filter_kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get paginated submissions with filters.
 
@@ -61,10 +61,18 @@ class SubmissionRepository(BaseRepository[Submission]):
         if status_filter:
             queryset = queryset.filter(completion_status=status_filter)
 
-        # Course filter - by course name
+        # Course filter - by course name or course_id
         course_filter = filter_kwargs.get("course_filter")
         if course_filter:
-            queryset = queryset.filter(course__name=course_filter)
+            # Support both name and course_id filtering
+            queryset = queryset.filter(
+                Q(course__name=course_filter) | Q(course__course_id=course_filter)
+            )
+
+        # Problem set filter - by slug
+        problem_set_filter = filter_kwargs.get("problem_set_filter")
+        if problem_set_filter:
+            queryset = queryset.filter(problem_set__slug=problem_set_filter)
 
         # Order by most recent
         queryset = queryset.order_by("-submitted_at")
@@ -84,7 +92,7 @@ class SubmissionRepository(BaseRepository[Submission]):
         }
 
     @classmethod
-    def export_submissions(cls, filters: Dict[str, Any]) -> List[Submission]:
+    def export_submissions(cls, filters: dict[str, Any]) -> list[Submission]:
         """
         Export submissions based on filters with optimized queries.
 
@@ -157,7 +165,7 @@ class SubmissionRepository(BaseRepository[Submission]):
         return list(queryset.order_by("-submitted_at"))
 
     @classmethod
-    def get_with_details(cls, submission_id: str) -> Optional[Submission]:
+    def get_with_details(cls, submission_id: str) -> Submission | None:
         """
         Get a submission with all related data pre-fetched.
 
@@ -200,7 +208,7 @@ class SubmissionRepository(BaseRepository[Submission]):
         hint_id: int,
         activation_order: int,
         trigger_type: str = "manual",
-        viewed_duration_seconds: Optional[int] = None,
+        viewed_duration_seconds: int | None = None,
     ) -> HintActivation:
         """
         Create a hint activation record for a submission.
@@ -239,7 +247,7 @@ class SubmissionRepository(BaseRepository[Submission]):
         return Submission.objects.filter(problem=problem).count()
 
     @classmethod
-    def get_recent_for_course(cls, course, user_ids: List[int], days: int = 7) -> int:
+    def get_recent_for_course(cls, course, user_ids: list[int], days: int = 7) -> int:
         """
         Count recent submissions for a course by enrolled students.
 
@@ -264,7 +272,7 @@ class SubmissionRepository(BaseRepository[Submission]):
     @classmethod
     def get_error_stats_for_problem(
         cls, course, problem, limit: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get common error statistics for a problem in a course.
 

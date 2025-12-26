@@ -1,7 +1,7 @@
 """Service for managing hint display and presentation logic."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +81,8 @@ class HintDisplayService:
 
     @classmethod
     def format_available_hints(
-        cls, hints: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        cls, hints: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Format available hints for API response.
 
@@ -110,7 +110,7 @@ class HintDisplayService:
         return available_hints
 
     @classmethod
-    def transform_hint_for_display(cls, hint: Dict[str, Any]) -> Dict[str, Any]:
+    def transform_hint_for_display(cls, hint: dict[str, Any]) -> dict[str, Any]:
         """
         Transform a raw hint into display format.
 
@@ -136,8 +136,8 @@ class HintDisplayService:
 
     @classmethod
     def transform_hints_for_display(
-        cls, hints: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        cls, hints: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Transform multiple hints for display.
 
@@ -151,8 +151,8 @@ class HintDisplayService:
 
     @classmethod
     def format_hint_availability_response(
-        cls, hints_data: Dict[str, Any], user_attempts: int
-    ) -> Dict[str, Any]:
+        cls, hints_data: dict[str, Any], user_attempts: int
+    ) -> dict[str, Any]:
         """
         Format the hint availability response for API.
 
@@ -213,8 +213,8 @@ class HintDisplayService:
 
     @classmethod
     def format_hint_content_response(
-        cls, hint_type: str, content: Any, additional_data: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+        cls, hint_type: str, content: Any, additional_data: dict | None = None
+    ) -> dict[str, Any]:
         """
         Format hint content for API response.
 
@@ -240,7 +240,7 @@ class HintDisplayService:
 
     @classmethod
     def should_show_hint(
-        cls, user_attempts: int, min_attempts: Optional[int] = None
+        cls, user_attempts: int, min_attempts: int | None = None
     ) -> bool:
         """
         Determine if hints should be shown based on attempts.
@@ -258,7 +258,7 @@ class HintDisplayService:
         return user_attempts >= min_required
 
     @classmethod
-    def get_hint_types_list(cls) -> List[Dict[str, str]]:
+    def get_hint_types_list(cls) -> list[dict[str, str]]:
         """
         Get a list of all hint types with their properties.
 

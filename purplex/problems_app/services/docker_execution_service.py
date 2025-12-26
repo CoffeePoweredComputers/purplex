@@ -8,7 +8,6 @@ import os
 import re
 import threading
 import time
-from typing import Dict, List, Optional
 
 # Gevent imports for greenlet-aware timeouts (prevents deadlocks with gevent workers)
 import gevent
@@ -19,9 +18,8 @@ from gevent import Timeout as GeventTimeout
 from gevent import lock as gevent_lock
 
 try:
-    from docker.errors import APIError, ContainerError, ImageNotFound
-
     import docker
+    from docker.errors import APIError, ContainerError, ImageNotFound
 except ImportError:
     docker = None
 
@@ -762,8 +760,8 @@ for item in os.listdir('/sandbox'):
             pass
 
     def test_solution(
-        self, user_code: str, function_name: str, test_cases: List[Dict]
-    ) -> Dict:
+        self, user_code: str, function_name: str, test_cases: list[dict]
+    ) -> dict:
         """
         Test a solution against provided test cases in a secure Docker container.
 
@@ -940,7 +938,7 @@ for item in os.listdir('/sandbox'):
                 raise ValueError(f"Suspicious code pattern detected: {pattern}")
 
     def _create_test_runner(
-        self, user_code: str, function_name: str, test_cases: List[Dict]
+        self, user_code: str, function_name: str, test_cases: list[dict]
     ) -> str:
         """Create a test runner script that executes test cases and returns JSON results."""
 
@@ -1050,7 +1048,7 @@ print(json.dumps(output))
 '''
         return test_runner
 
-    def _execute_in_container(self, code: str) -> Dict:
+    def _execute_in_container(self, code: str) -> dict:
         """Execute code in a Docker container with pooling support."""
 
         # Use pooled container if enabled
@@ -1059,7 +1057,7 @@ print(json.dumps(output))
         else:
             return self._execute_in_new_container(code)
 
-    def _execute_in_pooled_container(self, code: str) -> Dict:
+    def _execute_in_pooled_container(self, code: str) -> dict:
         """Execute code in a pooled container."""
         # Check if Docker is available
         if not self._docker_available:
@@ -1173,7 +1171,7 @@ print(json.dumps(output))
                 "error": "Unexpected execution error",
             }
 
-    def _execute_in_new_container(self, code: str) -> Dict:
+    def _execute_in_new_container(self, code: str) -> dict:
         """Execute code in a new Docker container (original implementation)."""
 
         # Container configuration with security restrictions
@@ -1271,7 +1269,7 @@ print(json.dumps(output))
                 except Exception as e:
                     logger.warning(f"Failed to remove container: {e}")
 
-    def _log_execution(self, user_id: str, code: str, result: Dict):
+    def _log_execution(self, user_id: str, code: str, result: dict):
         """Log code execution for security audit."""
         code_hash = hashlib.sha256(code.encode()).hexdigest()
 
@@ -1292,7 +1290,7 @@ print(json.dumps(output))
                 f"Suspicious code pattern detected for user {user_id}, hash: {code_hash}"
             )
 
-    def set_user_context(self, user_id: Optional[str]):
+    def set_user_context(self, user_id: str | None):
         """Set the current user context for rate limiting."""
         self._current_user_id = user_id or "anonymous"
         return self

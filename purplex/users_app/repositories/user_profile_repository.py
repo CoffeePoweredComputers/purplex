@@ -3,7 +3,7 @@ Repository for UserProfile model data access.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from django.contrib.auth.models import User
 from django.db import IntegrityError
@@ -27,7 +27,7 @@ class UserProfileRepository(BaseRepository):
     model_class = UserProfile
 
     @classmethod
-    def get_by_id(cls, profile_id: int) -> Optional[UserProfile]:
+    def get_by_id(cls, profile_id: int) -> UserProfile | None:
         """
         Get a user profile by its primary key.
 
@@ -43,7 +43,7 @@ class UserProfileRepository(BaseRepository):
             return None
 
     @classmethod
-    def get_by_user(cls, user: User) -> Optional[UserProfile]:
+    def get_by_user(cls, user: User) -> UserProfile | None:
         """
         Get a user profile by the associated user.
 
@@ -59,7 +59,7 @@ class UserProfileRepository(BaseRepository):
             return None
 
     @classmethod
-    def get_by_user_id(cls, user_id: int) -> Optional[UserProfile]:
+    def get_by_user_id(cls, user_id: int) -> UserProfile | None:
         """
         Get a user profile by the associated user's ID.
 
@@ -75,7 +75,7 @@ class UserProfileRepository(BaseRepository):
             return None
 
     @classmethod
-    def get_by_firebase_uid(cls, firebase_uid: str) -> Optional[UserProfile]:
+    def get_by_firebase_uid(cls, firebase_uid: str) -> UserProfile | None:
         """
         Get a user profile by Firebase UID.
 
@@ -91,7 +91,7 @@ class UserProfileRepository(BaseRepository):
             return None
 
     @classmethod
-    def get_by_firebase_with_user(cls, firebase_uid: str) -> Optional[UserProfile]:
+    def get_by_firebase_with_user(cls, firebase_uid: str) -> UserProfile | None:
         """
         Get a user profile by Firebase UID with the related User pre-fetched.
 
@@ -124,7 +124,7 @@ class UserProfileRepository(BaseRepository):
     @classmethod
     def get_or_create_with_user(
         cls, firebase_uid: str, email: str, display_name: str
-    ) -> Tuple[UserProfile, User]:
+    ) -> tuple[UserProfile, User]:
         """
         Get or create user profile with associated Django user.
 
@@ -293,7 +293,7 @@ class UserProfileRepository(BaseRepository):
                 raise e
 
     @classmethod
-    def update(cls, profile_id: int, **kwargs) -> Optional[UserProfile]:
+    def update(cls, profile_id: int, **kwargs) -> UserProfile | None:
         """
         Update a user profile's fields.
 
@@ -311,7 +311,7 @@ class UserProfileRepository(BaseRepository):
 
     @classmethod
     def get_or_create(
-        cls, user: User, defaults: Dict[str, Any] = None
+        cls, user: User, defaults: dict[str, Any] = None
     ) -> tuple[UserProfile, bool]:
         """
         Get or create a user profile for a user.
@@ -349,7 +349,7 @@ class UserProfileRepository(BaseRepository):
         return UserProfile.objects.all().select_related("user")
 
     @classmethod
-    def bulk_create(cls, profiles_data: List[Dict[str, Any]]) -> List[UserProfile]:
+    def bulk_create(cls, profiles_data: list[dict[str, Any]]) -> list[UserProfile]:
         """
         Bulk create multiple user profiles.
 
@@ -363,7 +363,7 @@ class UserProfileRepository(BaseRepository):
         return UserProfile.objects.bulk_create(profiles)
 
     @classmethod
-    def search(cls, query: Dict[str, Any]) -> QuerySet:
+    def search(cls, query: dict[str, Any]) -> QuerySet:
         """
         Search user profiles based on multiple criteria.
 

@@ -62,6 +62,15 @@
 
       <div class="nav-items">
         <router-link
+          v-if="isInstructor"
+          to="/instructor"
+          class="nav-item instructor-item"
+        >
+          <span class="nav-icon">📚</span>
+          <span>Instructor</span>
+        </router-link>
+
+        <router-link
           v-if="isAdmin"
           to="/admin/users"
           class="nav-item admin-item"
@@ -102,6 +111,7 @@ const showEtymology = ref(false);
 const etymologyContainer = ref<HTMLElement | null>(null);
 
 const isAdmin = computed(() => store.getters['auth/isAdmin']);
+const isInstructor = computed(() => store.getters['auth/isInstructor']);
 
 const brandName = computed(() => getBrandName(locale.value));
 const isNonLatinBrand = computed(() => usesNonLatinBrand(locale.value));
@@ -402,6 +412,24 @@ onUnmounted(() => {
 .nav-icon {
     font-size: var(--font-size-base);
     display: inline-block;
+}
+
+/* Instructor item styling */
+.instructor-item {
+    background: var(--color-primary);
+    color: var(--color-text-primary);
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.instructor-item:hover {
+    background: var(--color-primary-hover);
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+}
+
+.instructor-item.router-link-active {
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.6);
 }
 
 /* Admin item styling */

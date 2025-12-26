@@ -19,6 +19,7 @@ from .serializers import (
     CourseEnrollSerializer,
     CourseListSerializer,
     CourseLookupSerializer,
+    InstructorCourseListSerializer,
 )
 from .services.course_service import CourseService
 
@@ -162,7 +163,7 @@ class InstructorCourseListView(APIView):
     def get(self, request):
         """List instructor's courses"""
         courses = CourseService.get_instructor_courses(request.user)
-        serializer = CourseListSerializer(courses, many=True)
+        serializer = InstructorCourseListSerializer(courses, many=True)
         return Response(serializer.data)
 
 

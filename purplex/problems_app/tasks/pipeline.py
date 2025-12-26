@@ -9,7 +9,7 @@ import json
 import logging
 import time
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 import redis
 from celery import shared_task
@@ -138,8 +138,8 @@ def build_completion_result(
     submission: "Submission",
     handler: "ActivityHandler",
     user_input: str,
-    legacy_fields: Dict[str, Any] = None,
-) -> Dict[str, Any]:
+    legacy_fields: dict[str, Any] = None,
+) -> dict[str, Any]:
     """
     Build unified completion result using handler's serialize_result().
 
@@ -175,7 +175,7 @@ def build_completion_result(
     return envelope
 
 
-def _build_cached_eipl_result(submission: "Submission") -> Dict[str, Any]:
+def _build_cached_eipl_result(submission: "Submission") -> dict[str, Any]:
     """
     Build result dict from an existing submission for idempotent retries.
 
@@ -237,7 +237,7 @@ def _build_cached_eipl_result(submission: "Submission") -> Dict[str, Any]:
     )
 
 
-def _build_cached_mcq_result(submission: "Submission") -> Dict[str, Any]:
+def _build_cached_mcq_result(submission: "Submission") -> dict[str, Any]:
     """
     Build result dict from an existing MCQ submission for idempotent retries.
 
@@ -263,7 +263,7 @@ def _build_cached_mcq_result(submission: "Submission") -> Dict[str, Any]:
     )
 
 
-def generate_variations_helper(problem_id: int, user_prompt: str) -> List[str]:
+def generate_variations_helper(problem_id: int, user_prompt: str) -> list[str]:
     """Helper function to generate code variations using repository layer."""
     # Get problem through repository
     problem = ProblemRepository.get_by_id(problem_id)
@@ -281,7 +281,7 @@ def generate_variations_helper(problem_id: int, user_prompt: str) -> List[str]:
 
 def test_variation_helper(
     code: str, problem_id: int, variation_index: int
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Helper function to test a single variation using repository layer."""
     # Get problem through repository
     problem = ProblemRepository.get_by_id(problem_id)
@@ -355,9 +355,7 @@ def test_variation_helper(
     return ret
 
 
-def segment_prompt_helper(
-    user_prompt: str, problem_id: int
-) -> Optional[Dict[str, Any]]:
+def segment_prompt_helper(user_prompt: str, problem_id: int) -> dict[str, Any] | None:
     """Helper function for prompt segmentation using service layer."""
     # Get problem through service
     problem = ProblemRepository.get_problem_by_id(problem_id)
@@ -389,13 +387,13 @@ def save_submission_helper(
     user_id: int,
     problem_id: int,
     problem_set_id: int,
-    course_id: Optional[int],
+    course_id: int | None,
     user_prompt: str,
-    variations: List[str],
-    test_results: List[Dict],
-    segmentation: Optional[Dict],
-    task_id: Optional[str] = None,
-) -> Dict[str, Any]:
+    variations: list[str],
+    test_results: list[dict],
+    segmentation: dict | None,
+    task_id: str | None = None,
+) -> dict[str, Any]:
     """Helper function to save the submission using new service layer."""
     # Get objects through services/repositories
     user = UserService.get_user_by_id(user_id)
@@ -481,21 +479,16 @@ def save_submission_helper(
         raise  # Re-raise if it's not a celery_task_id uniqueness error
 
     with transaction.atomic():
-
         # Record code variations for EiPL
         variation_data = []
-        for idx, (code, result) in enumerate(zip(variations, test_results)):
+        for code, result in zip(variations, test_results, strict=False):
             variation_data.append(
                 {
                     "code": code,
                     "tests_passed": result.get("testsPassed", 0),
                     "tests_total": result.get("totalTests", 0),
                     "score": int(
-                        (
-                            result.get("testsPassed", 0)
-                            / result.get("totalTests", 1)
-                            * 100
-                        )
+                        result.get("testsPassed", 0) / result.get("totalTests", 1) * 100
                     ),
                     "model": "gpt-4o-mini",
                 }
@@ -531,7 +524,7 @@ def save_submission_helper(
 
         # Prepare test execution data for ALL variations
         variations_with_tests = []
-        for variation, result in zip(created_variations, test_results):
+        for variation, result in zip(created_variations, test_results, strict=False):
             test_execution_data = []
             for test_result in result.get("test_results", []):
                 test_case_id = test_result.get("test_case_id")
@@ -639,9 +632,9 @@ def execute_eipl_pipeline(
     problem_id: int,
     user_prompt: str,
     user_id: int,
-    problem_set_id: Optional[int] = None,
-    course_id: Optional[int] = None,
-) -> Dict[str, Any]:
+    problem_set_id: int | None = None,
+    course_id: int | None = None,
+) -> dict[str, Any]:
     """
     Single orchestrator task for the entire EiPL pipeline with Sentry monitoring.
 
@@ -1079,8 +1072,8 @@ def execute_mcq_pipeline(
     problem_id: int,
     selected_option: str,
     user_id: int,
-    problem_set_id: Optional[int] = None,
-    course_id: Optional[int] = None,
+    problem_set_id: int | None = None,
+    course_id: int | None = None,
 ):
     """
     Execute MCQ submission pipeline.
@@ -1288,7 +1281,7 @@ def execute_mcq_pipeline(
 # -----------------------------------------------------------------------------
 
 
-def _build_cached_debug_fix_result(existing: "Submission") -> Dict[str, Any]:
+def _build_cached_debug_fix_result(existing: "Submission") -> dict[str, Any]:
     """Build result from an existing debug fix submission (for idempotent retries)."""
     from purplex.problems_app.handlers import get_handler
 
@@ -1310,9 +1303,9 @@ def execute_debug_fix_pipeline(
     problem_id: int,
     fixed_code: str,
     user_id: int,
-    problem_set_id: Optional[int] = None,
-    course_id: Optional[int] = None,
-) -> Dict[str, Any]:
+    problem_set_id: int | None = None,
+    course_id: int | None = None,
+) -> dict[str, Any]:
     """
     Execute Debug Fix submission pipeline.
 
@@ -1614,7 +1607,7 @@ def execute_debug_fix_pipeline(
 # ==============================================================================
 
 
-def _build_cached_probeable_code_result(existing: "Submission") -> Dict[str, Any]:
+def _build_cached_probeable_code_result(existing: "Submission") -> dict[str, Any]:
     """Build result from an existing probeable code submission (for idempotent retries)."""
     from purplex.problems_app.handlers import get_handler
 
@@ -1636,9 +1629,9 @@ def execute_probeable_code_pipeline(
     problem_id: int,
     student_code: str,
     user_id: int,
-    problem_set_id: Optional[int] = None,
-    course_id: Optional[int] = None,
-) -> Dict[str, Any]:
+    problem_set_id: int | None = None,
+    course_id: int | None = None,
+) -> dict[str, Any]:
     """
     Execute Probeable Code submission pipeline.
 

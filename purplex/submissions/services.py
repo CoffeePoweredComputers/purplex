@@ -5,7 +5,7 @@ Handles all business logic for submissions.
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -37,9 +37,9 @@ class SubmissionService:
         submission_type: str,
         problem_set: Optional["ProblemSet"] = None,
         course: Optional["Course"] = None,
-        time_spent: Optional[timedelta] = None,
-        activated_hints: Optional[List[Dict]] = None,
-        celery_task_id: Optional[str] = None,
+        time_spent: timedelta | None = None,
+        activated_hints: list[dict] | None = None,
+        celery_task_id: str | None = None,
     ) -> Submission:
         """
         Create submission WITHOUT @transaction.atomic decorator.
@@ -121,9 +121,9 @@ class SubmissionService:
         submission_type: str,
         problem_set: Optional["ProblemSet"] = None,
         course: Optional["Course"] = None,
-        time_spent: Optional[timedelta] = None,
-        activated_hints: Optional[List[Dict]] = None,
-        celery_task_id: Optional[str] = None,
+        time_spent: timedelta | None = None,
+        activated_hints: list[dict] | None = None,
+        celery_task_id: str | None = None,
     ) -> Submission:
         """
         Create a new submission with all related data.
@@ -159,10 +159,10 @@ class SubmissionService:
     def record_test_results(
         cls,
         submission: Submission,
-        test_results: List[Dict],
+        test_results: list[dict],
         processed_code: str,
-        execution_time_ms: Optional[int] = None,
-        memory_used_mb: Optional[float] = None,
+        execution_time_ms: int | None = None,
+        memory_used_mb: float | None = None,
     ) -> None:
         """
         Record all test execution results for a submission.
@@ -225,7 +225,7 @@ class SubmissionService:
 
     @classmethod
     def _record_eipl_test_results_no_transaction(
-        cls, submission: Submission, variations_with_tests: List[Dict]
+        cls, submission: Submission, variations_with_tests: list[dict]
     ) -> None:
         """
         Record EiPL test results WITHOUT @transaction.atomic decorator.
@@ -332,7 +332,7 @@ class SubmissionService:
     @classmethod
     @transaction.atomic
     def record_eipl_test_results(
-        cls, submission: Submission, variations_with_tests: List[Dict]
+        cls, submission: Submission, variations_with_tests: list[dict]
     ) -> None:
         """
         Record test results for all EiPL variations.
@@ -345,7 +345,7 @@ class SubmissionService:
 
     @classmethod
     def _record_segmentation_no_transaction(
-        cls, submission: Submission, segmentation_data: Dict
+        cls, submission: Submission, segmentation_data: dict
     ) -> SegmentationAnalysis:
         """
         Record segmentation analysis WITHOUT @transaction.atomic decorator.
@@ -409,7 +409,7 @@ class SubmissionService:
     @classmethod
     @transaction.atomic
     def record_segmentation(
-        cls, submission: Submission, segmentation_data: Dict
+        cls, submission: Submission, segmentation_data: dict
     ) -> SegmentationAnalysis:
         """
         Record segmentation analysis for EiPL submissions.
@@ -424,7 +424,7 @@ class SubmissionService:
         return cls._record_segmentation_no_transaction(submission, segmentation_data)
 
     @classmethod
-    def get_submission_details(cls, submission_id: str) -> Dict:
+    def get_submission_details(cls, submission_id: str) -> dict:
         """
         Get complete submission details for display.
 

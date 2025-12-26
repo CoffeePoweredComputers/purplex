@@ -8,7 +8,7 @@ No authentication code - uses standard Django authentication.
 import json
 import logging
 import time
-from typing import Generator
+from collections.abc import Generator
 
 import redis
 from celery.result import AsyncResult

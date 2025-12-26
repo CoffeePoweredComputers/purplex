@@ -44,7 +44,6 @@ class DockerServiceFactory:
                 or self._service._closed
                 or self._worker_id != current_pid
             ):
-
                 # Clean up old service if switching workers
                 if self._service and not self._service._closed:
                     logger.info(f"Cleaning up service from worker {self._worker_id}")

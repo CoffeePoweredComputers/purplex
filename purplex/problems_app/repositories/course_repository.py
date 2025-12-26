@@ -2,7 +2,7 @@
 Repository for Course model data access.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.contrib.auth.models import User
 from django.db.models import Count, Q
@@ -23,7 +23,7 @@ class CourseRepository(BaseRepository):
     model_class = Course
 
     @classmethod
-    def get_active_course(cls, course_id: str) -> Optional[Course]:
+    def get_active_course(cls, course_id: str) -> Course | None:
         """
         Get an active, non-deleted course by course_id (case-insensitive).
 
@@ -38,22 +38,22 @@ class CourseRepository(BaseRepository):
         ).first()
 
     @classmethod
-    def get_course_by_slug(cls, slug: str) -> Optional[Course]:
+    def get_course_by_slug(cls, slug: str) -> Course | None:
         """Get a course by slug."""
         return Course.objects.filter(slug=slug, is_deleted=False).first()
 
     @classmethod
-    def get_course_by_id(cls, course_id: str) -> Optional[Course]:
+    def get_course_by_id(cls, course_id: str) -> Course | None:
         """Get a course by its course_id field (case-insensitive)."""
         return Course.objects.filter(course_id__iexact=course_id).first()
 
     @classmethod
-    def get_course_by_pk(cls, pk: int) -> Optional[Course]:
+    def get_course_by_pk(cls, pk: int) -> Course | None:
         """Get a course by its primary key (integer ID)."""
         return Course.objects.filter(pk=pk, is_deleted=False).first()
 
     @classmethod
-    def get_course_by_enrollment_code(cls, code: str) -> Optional[Course]:
+    def get_course_by_enrollment_code(cls, code: str) -> Course | None:
         """Get a course by its enrollment code."""
         return Course.objects.filter(
             enrollment_code=code, is_active=True, is_deleted=False
@@ -65,7 +65,7 @@ class CourseRepository(BaseRepository):
         return Course.objects.filter(course_id__iexact=course_id).exists()
 
     @classmethod
-    def get_course_problem_set_ids(cls, course: Course) -> List[int]:
+    def get_course_problem_set_ids(cls, course: Course) -> list[int]:
         """Get list of problem set IDs for a course."""
         return list(course.problem_sets.values_list("id", flat=True))
 
@@ -113,7 +113,7 @@ class CourseRepository(BaseRepository):
     @classmethod
     def get_instructor_courses_with_stats(
         cls, instructor_id: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get all courses for an instructor with statistics.
 
         Args:
@@ -149,7 +149,7 @@ class CourseRepository(BaseRepository):
         ]
 
     @classmethod
-    def get_user_enrolled_courses_with_data(cls, user_id: int) -> List[Dict[str, Any]]:
+    def get_user_enrolled_courses_with_data(cls, user_id: int) -> list[dict[str, Any]]:
         """
         Get all courses a user is enrolled in with full data.
 
@@ -224,14 +224,14 @@ class CourseRepository(BaseRepository):
         ).exists()
 
     @classmethod
-    def get_enrollment(cls, user: User, course: Course) -> Optional[CourseEnrollment]:
+    def get_enrollment(cls, user: User, course: Course) -> CourseEnrollment | None:
         """Get a specific enrollment record."""
         return CourseEnrollment.objects.filter(
             user=user, course=course, is_active=True
         ).first()
 
     @classmethod
-    def get_course_enrollments_with_users(cls, course_id: int) -> List[Dict[str, Any]]:
+    def get_course_enrollments_with_users(cls, course_id: int) -> list[dict[str, Any]]:
         """Get all active enrollments for a course with user data.
 
         Args:
@@ -297,7 +297,7 @@ class CourseRepository(BaseRepository):
         return updated > 0
 
     @classmethod
-    def get_course_problem_sets_with_data(cls, course_id: int) -> List[Dict[str, Any]]:
+    def get_course_problem_sets_with_data(cls, course_id: int) -> list[dict[str, Any]]:
         """Get all problem sets for a course with full data.
 
         Args:
@@ -336,7 +336,7 @@ class CourseRepository(BaseRepository):
     @classmethod
     def get_course_problem_set(
         cls, course: Course, problem_set_slug: str
-    ) -> Optional[CourseProblemSet]:
+    ) -> CourseProblemSet | None:
         """Get a specific course-problem set relationship."""
         return (
             CourseProblemSet.objects.filter(
@@ -388,7 +388,7 @@ class CourseRepository(BaseRepository):
     @classmethod
     def get_courses_containing_problem_set(
         cls, problem_set_id: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get all courses that contain a specific problem set.
 
         Args:
@@ -421,7 +421,7 @@ class CourseRepository(BaseRepository):
     @classmethod
     def get_unassigned_problem_sets_for_course(
         cls, course_id: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get problem sets not yet assigned to a course.
 
         Args:
@@ -456,7 +456,7 @@ class CourseRepository(BaseRepository):
         ]
 
     @classmethod
-    def search_courses(cls, query: str) -> List[Dict[str, Any]]:
+    def search_courses(cls, query: str) -> list[dict[str, Any]]:
         """Search for courses by name, description, or course_id.
 
         Args:
@@ -487,7 +487,7 @@ class CourseRepository(BaseRepository):
         ]
 
     @classmethod
-    def get_all_names(cls) -> List[str]:
+    def get_all_names(cls) -> list[str]:
         """
         Get all unique course names for filter dropdowns.
 

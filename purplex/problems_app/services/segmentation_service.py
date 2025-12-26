@@ -262,7 +262,7 @@ class SegmentationService:
 
         # Start with base prompt
         prompt_parts = [
-            """# Task:
+            f"""# Task:
 Analyze the student's explanation and map conceptual segments to corresponding code sections with STRICT one-to-one correspondence.
 
 # CRITICAL ONE-TO-ONE MAPPING RULES:
@@ -286,10 +286,8 @@ Analyze the student's explanation and map conceptual segments to corresponding c
 
 REFERENCE CODE:
 ```python
-{}
-```""".format(
-                reference_code
-            )
+{reference_code}
+```"""
         ]
 
         # Add examples if provided
@@ -360,7 +358,7 @@ CRITICAL: Each line number must appear in at most ONE segment. Overlapping line 
     def _format_example_segments(self, segments: list, code_lines: list) -> str:
         """Format example segments for the prompt"""
         formatted = []
-        for i, (segment, lines) in enumerate(zip(segments, code_lines)):
+        for i, (segment, lines) in enumerate(zip(segments, code_lines, strict=False)):
             formatted.append(f'  {i+1}. "{segment}" -> lines {lines}')
         return "\n".join(formatted)
 

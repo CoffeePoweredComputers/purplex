@@ -11,7 +11,7 @@ import os
 import sys
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class Environment(Enum):
@@ -41,7 +41,7 @@ class ConfigValidator:
         return bool(value)
 
     @staticmethod
-    def to_int(value: Any, default: Optional[int] = None) -> Optional[int]:
+    def to_int(value: Any, default: int | None = None) -> int | None:
         """Convert to integer with optional default"""
         if value is None or value == "":
             return default
@@ -50,10 +50,10 @@ class ConfigValidator:
         except (ValueError, TypeError):
             if default is not None:
                 return default
-            raise ConfigurationError(f"Invalid integer value: {value}")
+            raise ConfigurationError(f"Invalid integer value: {value}") from None
 
     @staticmethod
-    def to_float(value: Any, default: Optional[float] = None) -> Optional[float]:
+    def to_float(value: Any, default: float | None = None) -> float | None:
         """Convert to float with optional default"""
         if value is None or value == "":
             return default
@@ -62,10 +62,10 @@ class ConfigValidator:
         except (ValueError, TypeError):
             if default is not None:
                 return default
-            raise ConfigurationError(f"Invalid float value: {value}")
+            raise ConfigurationError(f"Invalid float value: {value}") from None
 
     @staticmethod
-    def to_list(value: Any, separator: str = ",") -> List[str]:
+    def to_list(value: Any, separator: str = ",") -> list[str]:
         """Convert comma-separated string to list"""
         if isinstance(value, list):
             return value
@@ -117,14 +117,14 @@ class Config:
         env_value = os.environ.get("PURPLEX_ENV", "development").lower()
         try:
             self.env = Environment(env_value)
-        except ValueError:
+        except ValueError as err:
             raise ConfigurationError(
                 f"Invalid PURPLEX_ENV value: '{env_value}'. "
                 f"Must be one of: development, staging, production"
-            )
+            ) from err
 
         # Cache for validated values
-        self._cache: Dict[str, Any] = {}
+        self._cache: dict[str, Any] = {}
 
         # Perform initial validation
         self._initial_validation()
@@ -195,8 +195,8 @@ class Config:
         return result
 
     def get_int(
-        self, key: str, default: Optional[int] = None, required: bool = False
-    ) -> Optional[int]:
+        self, key: str, default: int | None = None, required: bool = False
+    ) -> int | None:
         """Get integer configuration value"""
         if key in self._cache:
             return self._cache[key]
@@ -210,8 +210,8 @@ class Config:
         return result
 
     def get_float(
-        self, key: str, default: Optional[float] = None, required: bool = False
-    ) -> Optional[float]:
+        self, key: str, default: float | None = None, required: bool = False
+    ) -> float | None:
         """Get float configuration value"""
         if key in self._cache:
             return self._cache[key]
@@ -225,8 +225,8 @@ class Config:
         return result
 
     def get_list(
-        self, key: str, default: Optional[List[str]] = None, separator: str = ","
-    ) -> List[str]:
+        self, key: str, default: list[str] | None = None, separator: str = ","
+    ) -> list[str]:
         """Get list configuration value from comma-separated string"""
         if key in self._cache:
             return self._cache[key]
@@ -241,8 +241,8 @@ class Config:
         return result
 
     def get_path(
-        self, key: str, default: Optional[str] = None, must_exist: bool = False
-    ) -> Optional[str]:
+        self, key: str, default: str | None = None, must_exist: bool = False
+    ) -> str | None:
         """Get and validate file system path"""
         value = os.environ.get(key, default)
         if value is None:
@@ -250,8 +250,8 @@ class Config:
         return self.validator.validate_path(value, must_exist)
 
     def get_url(
-        self, key: str, default: Optional[str] = None, required: bool = False
-    ) -> Optional[str]:
+        self, key: str, default: str | None = None, required: bool = False
+    ) -> str | None:
         """Get and validate URL"""
         value = os.environ.get(key, default)
         if value is None:
@@ -279,7 +279,7 @@ class Config:
         return self.get("DJANGO_SECRET_KEY", required=True)
 
     @property
-    def allowed_hosts(self) -> List[str]:
+    def allowed_hosts(self) -> list[str]:
         """Django ALLOWED_HOSTS"""
         if self.is_development:
             return self.get_list(
@@ -395,7 +395,7 @@ class Config:
         return self.get("AI_PROVIDER", "openai").lower()
 
     @property
-    def openai_api_key(self) -> Optional[str]:
+    def openai_api_key(self) -> str | None:
         """OpenAI API key"""
         if self.use_mock_openai:
             return None
@@ -407,7 +407,7 @@ class Config:
         return self.get("OPENAI_API_KEY")
 
     @property
-    def llama_api_key(self) -> Optional[str]:
+    def llama_api_key(self) -> str | None:
         """Llama API key"""
         # In production, require Llama key if it's the configured provider
         if not self.is_development and self.ai_provider == "llama":
@@ -422,7 +422,7 @@ class Config:
         return self.get("LLAMA_MODEL", default)
 
     @property
-    def firebase_credentials_path(self) -> Optional[str]:
+    def firebase_credentials_path(self) -> str | None:
         """Firebase credentials file path"""
         if self.use_mock_firebase:
             return None
@@ -462,7 +462,7 @@ class Config:
     # =====================================================================
 
     @property
-    def cors_allowed_origins(self) -> List[str]:
+    def cors_allowed_origins(self) -> list[str]:
         """CORS allowed origins"""
         if self.is_development:
             default = [
@@ -543,7 +543,7 @@ class Config:
         return self.get("DJANGO_LOG_LEVEL", default)
 
     @property
-    def log_file_paths(self) -> Dict[str, str]:
+    def log_file_paths(self) -> dict[str, str]:
         """Log file paths"""
         if self.is_development:
             return {
@@ -677,7 +677,7 @@ class Config:
                 errors.append("Production cannot use development/test secret key")
 
         # Check log file paths are writable (if they exist)
-        for log_type, path in self.log_file_paths.items():
+        for _log_type, path in self.log_file_paths.items():
             path_obj = Path(path)
             if path_obj.exists() and not os.access(path_obj.parent, os.W_OK):
                 errors.append(f"Log directory not writable: {path_obj.parent}")

@@ -31,14 +31,16 @@ class TestSegmentationService(unittest.TestCase):
         # Test with different punctuation - should fail
         self.assertFalse(
             self.service._validate_segment_is_verbatim(
-                "adds two numbers together.", user_prompt  # Extra period
+                "adds two numbers together.",
+                user_prompt,  # Extra period
             )
         )
 
         # Test paraphrased text - should fail
         self.assertFalse(
             self.service._validate_segment_is_verbatim(
-                "combines two values", user_prompt  # Paraphrased
+                "combines two values",
+                user_prompt,  # Paraphrased
             )
         )
 

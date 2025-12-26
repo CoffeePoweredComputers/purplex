@@ -9,7 +9,7 @@ comparing the selected answer to the correct one.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from .. import register_handler
 from ..base import (
@@ -161,13 +161,13 @@ class MCQHandler(ActivityHandler):
 
     # ─── Data Extraction ────────────────────────────────────────
 
-    def extract_variations(self, submission: "Submission") -> List[str]:
+    def extract_variations(self, submission: "Submission") -> list[str]:
         """Extract variations from MCQ submission (returns single answer)."""
         return [submission.raw_input] if submission.raw_input else []
 
     def extract_test_results(
         self, submission: "Submission", problem: "McqProblem"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Extract test results for MCQ (single correct/incorrect result)."""
         mcq = _ensure_mcq_problem(problem)
         selected_id = submission.raw_input.strip() if submission.raw_input else ""
@@ -207,7 +207,7 @@ class MCQHandler(ActivityHandler):
 
     # ─── API Configuration ──────────────────────────────────────
 
-    def get_problem_config(self, problem: "McqProblem") -> Dict[str, Any]:
+    def get_problem_config(self, problem: "McqProblem") -> dict[str, Any]:
         """Return configuration for frontend rendering of MCQ problems."""
         # Ensure we have the actual McqProblem instance with MCQ-specific fields
         mcq = _ensure_mcq_problem(problem)
@@ -242,7 +242,7 @@ class MCQHandler(ActivityHandler):
             },
         }
 
-    def serialize_result(self, submission: "Submission") -> Dict[str, Any]:
+    def serialize_result(self, submission: "Submission") -> dict[str, Any]:
         """Serialize MCQ submission result for API response."""
         mcq = _ensure_mcq_problem(submission.problem)
         selected_id = submission.raw_input.strip() if submission.raw_input else ""
@@ -270,7 +270,7 @@ class MCQHandler(ActivityHandler):
             "is_correct": submission.passed_all_tests,
         }
 
-    def get_admin_config(self) -> Dict[str, Any]:
+    def get_admin_config(self) -> dict[str, Any]:
         """Return admin UI configuration for MCQ problems."""
         return {
             "hidden_sections": ["code_solution", "test_cases", "segmentation"],
@@ -296,7 +296,7 @@ class MCQHandler(ActivityHandler):
         submission: "Submission",
         raw_input: str,
         problem: "McqProblem",
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> SubmissionOutcome:
         """
         Execute MCQ submission synchronously.

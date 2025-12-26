@@ -1,7 +1,7 @@
 """AI-powered code generation service."""
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from django.conf import settings
 
@@ -120,7 +120,7 @@ class AITestGenerationService:
             logger.error(f"❌ {self.provider.upper()} API call failed: {str(e)}")
             raise  # Fail immediately - no fallback
 
-    def _generate_eipl_variations(self, problem, user_prompt: str) -> Dict[str, Any]:
+    def _generate_eipl_variations(self, problem, user_prompt: str) -> dict[str, Any]:
         """
         Generate code variations for EiPL problems.
         Uses synchronous client - gevent handles I/O concurrency automatically.
@@ -216,7 +216,7 @@ def {problem.function_name}(...):
                 "provider": self.provider,
             }
 
-    def generate_eipl_variations(self, problem, user_prompt: str) -> Dict[str, Any]:
+    def generate_eipl_variations(self, problem, user_prompt: str) -> dict[str, Any]:
         """
         Public entry point for EiPL variation generation.
 

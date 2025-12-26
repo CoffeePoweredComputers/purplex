@@ -1,7 +1,7 @@
 """Admin-specific service layer for problem management."""
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.core.exceptions import ValidationError
 
@@ -78,8 +78,8 @@ class AdminProblemService:
 
     @staticmethod
     def create_problem_with_relations(
-        problem: "Problem", problem_set_slugs: List[str]
-    ) -> Tuple[int, List[str]]:
+        problem: "Problem", problem_set_slugs: list[str]
+    ) -> tuple[int, list[str]]:
         """
         Create problem set memberships for a problem.
 
@@ -113,7 +113,7 @@ class AdminProblemService:
         return added_count, missing_slugs
 
     @staticmethod
-    def prepare_problem_data(request_data: dict) -> Tuple[dict, List[str]]:
+    def prepare_problem_data(request_data: dict) -> tuple[dict, list[str]]:
         """
         Prepare problem data for creation/update.
 
@@ -139,7 +139,7 @@ class AdminProblemService:
         return data, problem_set_slugs
 
     @staticmethod
-    def get_all_problem_sets() -> List:
+    def get_all_problem_sets() -> list:
         """
         Get all problem sets for admin view.
 
@@ -149,7 +149,7 @@ class AdminProblemService:
         return ProblemRepository.get_all_problem_sets()
 
     @staticmethod
-    def get_all_categories() -> List[Dict[str, Any]]:
+    def get_all_categories() -> list[dict[str, Any]]:
         """
         Get all problem categories for admin view.
 
@@ -159,7 +159,7 @@ class AdminProblemService:
         return ProblemRepository.get_all_categories()
 
     @staticmethod
-    def get_problem_sets_by_slugs(slugs: List[str]) -> List:
+    def get_problem_sets_by_slugs(slugs: list[str]) -> list:
         """
         Get problem sets by their slugs.
 
@@ -183,8 +183,8 @@ class AdminProblemService:
 
     @staticmethod
     def validate_problem_set_title(
-        title: str, current_slug: Optional[str] = None
-    ) -> Optional[str]:
+        title: str, current_slug: str | None = None
+    ) -> str | None:
         """
         Check if a problem set title would create a duplicate slug.
 
@@ -213,8 +213,8 @@ class AdminProblemService:
 
     @staticmethod
     def create_problem_set_with_problems(
-        problem_set: "ProblemSet", problem_slugs: List[str]
-    ) -> Dict[str, Any]:
+        problem_set: "ProblemSet", problem_slugs: list[str]
+    ) -> dict[str, Any]:
         """
         Create problem set with problem memberships.
 
@@ -234,7 +234,7 @@ class AdminProblemService:
             except json.JSONDecodeError:
                 raise ValidationError(
                     "Invalid problem_slugs format - must be a JSON array"
-                )
+                ) from None
 
         # Validate that problem_slugs is a list
         if not isinstance(problem_slugs, list):
@@ -267,8 +267,8 @@ class AdminProblemService:
 
     @staticmethod
     def update_problem_set_with_problems(
-        problem_set: "ProblemSet", problem_slugs: Optional[List[str]]
-    ) -> Dict[str, Any]:
+        problem_set: "ProblemSet", problem_slugs: list[str] | None
+    ) -> dict[str, Any]:
         """
         Update problem set with new problem memberships.
 
@@ -291,7 +291,7 @@ class AdminProblemService:
             except json.JSONDecodeError:
                 raise ValidationError(
                     "Invalid problem_slugs format - must be a JSON array"
-                )
+                ) from None
 
         # Validate that problem_slugs is a list
         if not isinstance(problem_slugs, list):
@@ -327,7 +327,7 @@ class AdminProblemService:
         }
 
     @staticmethod
-    def get_all_problems_optimized() -> List:
+    def get_all_problems_optimized() -> list:
         """
         Get all problems with optimized queries for admin interface.
 
@@ -390,7 +390,7 @@ class AdminProblemService:
         return ProblemRepository.update_problem(instance, **validated_data)
 
     @staticmethod
-    def get_categories_by_ids(category_ids: List[int]) -> List["ProblemCategory"]:
+    def get_categories_by_ids(category_ids: list[int]) -> list["ProblemCategory"]:
         """
         Get categories by their IDs.
 
@@ -562,7 +562,7 @@ class AdminProblemService:
 
     @staticmethod
     def update_problem_set_relations(
-        problem: "Problem", problem_sets: List["ProblemSet"]
+        problem: "Problem", problem_sets: list["ProblemSet"]
     ) -> None:
         """
         Update problem set relationships for a problem.

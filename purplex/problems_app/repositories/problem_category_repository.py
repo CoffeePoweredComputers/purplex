@@ -2,8 +2,6 @@
 Repository for ProblemCategory model data access.
 """
 
-from typing import List, Optional
-
 from django.db.models import Count
 
 from purplex.problems_app.models import ProblemCategory
@@ -22,7 +20,7 @@ class ProblemCategoryRepository(BaseRepository):
     model_class = ProblemCategory
 
     @classmethod
-    def get_all_categories(cls) -> List:
+    def get_all_categories(cls) -> list:
         """
         Get all problem categories ordered by order and name.
 
@@ -45,7 +43,7 @@ class ProblemCategoryRepository(BaseRepository):
         return ProblemCategory.objects.all()
 
     @classmethod
-    def get_category_by_slug(cls, slug: str) -> Optional[ProblemCategory]:
+    def get_category_by_slug(cls, slug: str) -> ProblemCategory | None:
         """
         Get a category by its slug.
 
@@ -58,7 +56,7 @@ class ProblemCategoryRepository(BaseRepository):
         return ProblemCategory.objects.filter(slug=slug).first()
 
     @classmethod
-    def get_category_by_name(cls, name: str) -> Optional[ProblemCategory]:
+    def get_category_by_name(cls, name: str) -> ProblemCategory | None:
         """
         Get a category by its name.
 
@@ -88,7 +86,7 @@ class ProblemCategoryRepository(BaseRepository):
         )
 
     @classmethod
-    def get_categories_with_problem_count(cls) -> List:
+    def get_categories_with_problem_count(cls) -> list:
         """
         Get all categories annotated with the number of problems in each.
 
@@ -132,7 +130,7 @@ class ProblemCategoryRepository(BaseRepository):
         return updated > 0
 
     @classmethod
-    def get_categories_by_ids(cls, category_ids: List[int]) -> List[ProblemCategory]:
+    def get_categories_by_ids(cls, category_ids: list[int]) -> list[ProblemCategory]:
         """
         Get categories by their IDs.
 
@@ -172,7 +170,7 @@ class ProblemCategoryRepository(BaseRepository):
         return ProblemCategory.objects.filter(name=name).exists()
 
     @classmethod
-    def search_categories(cls, query: str) -> List:
+    def search_categories(cls, query: str) -> list:
         """
         Search categories by name or description.
 
@@ -191,7 +189,7 @@ class ProblemCategoryRepository(BaseRepository):
         )
 
     @classmethod
-    def get_active_categories(cls) -> List:
+    def get_active_categories(cls) -> list:
         """
         Get categories that have at least one problem.
 

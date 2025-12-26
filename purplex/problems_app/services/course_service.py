@@ -1,7 +1,7 @@
 """Service for managing course-related business logic."""
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from rest_framework import status
 from users_app.repositories import UserRepository
@@ -22,7 +22,7 @@ class CourseService:
     """Handle all course-related business logic."""
 
     @staticmethod
-    def validate_course_enrollment(user, course_id: str) -> Dict[str, Any]:
+    def validate_course_enrollment(user, course_id: str) -> dict[str, Any]:
         """
         Validate user enrollment in a course.
 
@@ -66,7 +66,7 @@ class CourseService:
         }
 
     @staticmethod
-    def get_course_by_id(course_id: str, require_active: bool = True) -> Optional[Any]:
+    def get_course_by_id(course_id: str, require_active: bool = True) -> Any | None:
         """
         Get course by ID with validation.
 
@@ -83,7 +83,7 @@ class CourseService:
             return CourseRepository.get_course_by_id(course_id)
 
     @staticmethod
-    def get_course_by_pk(pk: int) -> Optional[Any]:
+    def get_course_by_pk(pk: int) -> Any | None:
         """
         Get course by primary key (integer ID).
 
@@ -98,7 +98,7 @@ class CourseService:
     @staticmethod
     def authorize_user_course_access(
         user, course_id: str
-    ) -> Tuple[bool, Optional[Any], Optional[str]]:
+    ) -> tuple[bool, Any | None, str | None]:
         """
         Authorize user access to a course.
 
@@ -121,7 +121,7 @@ class CourseService:
         return True, course, None
 
     @staticmethod
-    def get_user_courses(user) -> List[Dict[str, Any]]:
+    def get_user_courses(user) -> list[dict[str, Any]]:
         """
         Get all courses a user is enrolled in.
 
@@ -154,7 +154,7 @@ class CourseService:
     # Admin Course Management Methods
 
     @staticmethod
-    def get_all_courses_with_stats() -> List[Dict[str, Any]]:
+    def get_all_courses_with_stats() -> list[dict[str, Any]]:
         """
         Get all courses with problem sets and enrollment counts for admin view.
 
@@ -164,7 +164,7 @@ class CourseService:
         return CourseRepository.get_all_courses_with_stats()
 
     @staticmethod
-    def get_active_courses_with_stats() -> List[Dict[str, Any]]:
+    def get_active_courses_with_stats() -> list[dict[str, Any]]:
         """Get only active courses with statistics.
 
         Returns:
@@ -220,7 +220,7 @@ class CourseService:
     # Instructor Course Management Methods
 
     @staticmethod
-    def get_instructor_courses(instructor) -> List[Dict[str, Any]]:
+    def get_instructor_courses(instructor) -> list[dict[str, Any]]:
         """Get all courses for an instructor with statistics.
 
         Args:
@@ -232,7 +232,7 @@ class CourseService:
         return CourseRepository.get_instructor_courses_with_stats(instructor.id)
 
     @staticmethod
-    def get_instructor_course_students(course) -> List[Dict[str, Any]]:
+    def get_instructor_course_students(course) -> list[dict[str, Any]]:
         """Get all enrolled students for an instructor's course.
 
         Args:
@@ -244,7 +244,7 @@ class CourseService:
         return CourseRepository.get_course_enrollments_with_users(course.id)
 
     @staticmethod
-    def get_instructor_course_progress(course) -> List[Dict[str, Any]]:
+    def get_instructor_course_progress(course) -> list[dict[str, Any]]:
         """
         Get comprehensive progress data for all students in a course.
 
@@ -302,7 +302,7 @@ class CourseService:
 
     @staticmethod
     def reorder_course_problem_sets(
-        course, ordering_data: List[Dict[str, Any]]
+        course, ordering_data: list[dict[str, Any]]
     ) -> bool:
         """
         Update problem set ordering for a course.
@@ -320,7 +320,7 @@ class CourseService:
     # Course-Problem Set Management Methods
 
     @staticmethod
-    def get_course_problem_sets(course) -> List[Dict[str, Any]]:
+    def get_course_problem_sets(course) -> list[dict[str, Any]]:
         """Get all problem sets for a course with metadata.
 
         Args:
@@ -335,9 +335,9 @@ class CourseService:
     def add_problem_set_to_course(
         course,
         problem_set_slug: str,
-        order: Optional[int] = None,
+        order: int | None = None,
         is_required: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Add a problem set to a course.
 
@@ -379,7 +379,7 @@ class CourseService:
     @staticmethod
     def update_course_problem_set(
         course, problem_set_slug: str, **update_data
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Update problem set configuration in a course.
 
@@ -403,7 +403,6 @@ class CourseService:
             return {"success": False, "error": "Problem set not found in this course"}
 
         try:
-
             for field, value in update_data.items():
                 if hasattr(course_ps, field):
                     setattr(course_ps, field, value)
@@ -417,7 +416,7 @@ class CourseService:
             return {"success": False, "error": "Failed to update problem set"}
 
     @staticmethod
-    def remove_problem_set_from_course(course, problem_set_slug: str) -> Dict[str, Any]:
+    def remove_problem_set_from_course(course, problem_set_slug: str) -> dict[str, Any]:
         """
         Remove a problem set from a course.
 
@@ -441,8 +440,8 @@ class CourseService:
 
     @staticmethod
     def get_available_problem_sets(
-        exclude_course_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        exclude_course_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Get problem sets available to add to courses.
 
@@ -463,7 +462,7 @@ class CourseService:
     # Student Course Management Methods
 
     @staticmethod
-    def get_student_enrolled_courses_with_progress(user) -> List[Dict[str, Any]]:
+    def get_student_enrolled_courses_with_progress(user) -> list[dict[str, Any]]:
         """
         Get all enrolled courses for a student with comprehensive progress data.
 
@@ -550,7 +549,7 @@ class CourseService:
         return courses_data
 
     @staticmethod
-    def lookup_course_for_enrollment(course_id: str, user) -> Dict[str, Any]:
+    def lookup_course_for_enrollment(course_id: str, user) -> dict[str, Any]:
         """
         Lookup a course for enrollment by a student.
 
@@ -575,7 +574,7 @@ class CourseService:
         return {"success": True, "course": course, "already_enrolled": is_enrolled}
 
     @staticmethod
-    def enroll_user_in_course(user, course_id: str) -> Dict[str, Any]:
+    def enroll_user_in_course(user, course_id: str) -> dict[str, Any]:
         """
         Enroll a user in a course.
 
@@ -617,7 +616,7 @@ class CourseService:
         }
 
     @staticmethod
-    def get_student_course_progress(user, course_id: str) -> Dict[str, Any]:
+    def get_student_course_progress(user, course_id: str) -> dict[str, Any]:
         """
         Get a student's progress in a specific course.
 
@@ -677,7 +676,7 @@ class CourseService:
     # Admin Student Management Methods
 
     @staticmethod
-    def get_course_students_with_progress(course) -> List[Dict[str, Any]]:
+    def get_course_students_with_progress(course) -> list[dict[str, Any]]:
         """
         Get all students in a course with their progress information.
 
@@ -725,7 +724,7 @@ class CourseService:
         return response_data
 
     @staticmethod
-    def remove_student_from_course(course, user_id: int) -> Dict[str, Any]:
+    def remove_student_from_course(course, user_id: int) -> dict[str, Any]:
         """
         Remove a student from a course by deactivating enrollment.
 

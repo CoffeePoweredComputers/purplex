@@ -7,7 +7,6 @@ production behavior without requiring actual Firebase infrastructure.
 import os
 import secrets
 import time
-from typing import Dict, List, Optional
 
 import jwt
 
@@ -82,7 +81,7 @@ class MockFirebaseAuth:
         return mock_secret
 
     @classmethod
-    def verify_id_token(cls, token: str, check_revoked: bool = False) -> Dict:
+    def verify_id_token(cls, token: str, check_revoked: bool = False) -> dict:
         """
         Verify a mock Firebase ID token.
 
@@ -190,7 +189,7 @@ class MockFirebaseAuth:
 
     @classmethod
     def create_custom_token(
-        cls, uid: str, developer_claims: Optional[Dict] = None
+        cls, uid: str, developer_claims: dict | None = None
     ) -> bytes:
         """
         Create a custom token for the given user.
@@ -310,7 +309,7 @@ class MockFirebaseAuth:
 
     @classmethod
     def list_users(
-        cls, page_token: Optional[str] = None, max_results: int = 1000
+        cls, page_token: str | None = None, max_results: int = 1000
     ) -> "MockListUsersPage":
         """
         List users (mock implementation).
@@ -348,9 +347,7 @@ class MockUserRecord:
 class MockListUsersPage:
     """Mock implementation of Firebase ListUsersPage"""
 
-    def __init__(
-        self, users: List[MockUserRecord], next_page_token: Optional[str] = None
-    ):
+    def __init__(self, users: list[MockUserRecord], next_page_token: str | None = None):
         self.users = users
         self.next_page_token = next_page_token
 

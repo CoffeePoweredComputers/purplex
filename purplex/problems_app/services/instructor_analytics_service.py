@@ -6,7 +6,7 @@ actionable insights for instructors.
 """
 
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any
 
 from django.contrib.auth.models import User
 from django.db.models import Avg, Case, Count, FloatField, Q, Sum, When
@@ -21,7 +21,7 @@ class InstructorAnalyticsService:
     """
 
     @classmethod
-    def get_course_overview(cls, course: Course) -> Dict[str, Any]:
+    def get_course_overview(cls, course: Course) -> dict[str, Any]:
         """
         Get high-level course metrics.
 
@@ -114,7 +114,7 @@ class InstructorAnalyticsService:
     @classmethod
     def get_student_list(
         cls, course: Course, sort_by: str = "progress", order: str = "desc"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get list of students with their progress metrics.
 
@@ -203,7 +203,7 @@ class InstructorAnalyticsService:
         return students
 
     @classmethod
-    def get_student_detail(cls, course: Course, user: User) -> Dict[str, Any]:
+    def get_student_detail(cls, course: Course, user: User) -> dict[str, Any]:
         """
         Get detailed analytics for a specific student.
 
@@ -310,7 +310,7 @@ class InstructorAnalyticsService:
         }
 
     @classmethod
-    def get_problem_analytics(cls, course: Course, problem: Problem) -> Dict[str, Any]:
+    def get_problem_analytics(cls, course: Course, problem: Problem) -> dict[str, Any]:
         """
         Get analytics for a specific problem in a course.
 

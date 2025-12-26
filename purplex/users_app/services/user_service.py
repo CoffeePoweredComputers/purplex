@@ -2,7 +2,7 @@
 User management service - handles all user-related business logic.
 """
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import User
 
@@ -29,7 +29,7 @@ class UserService:
     """
 
     @classmethod
-    def get_user_by_id(cls, user_id: int) -> Optional[User]:
+    def get_user_by_id(cls, user_id: int) -> User | None:
         """
         Get user by ID.
 
@@ -42,7 +42,7 @@ class UserService:
         return UserRepository.get_with_profile(user_id)
 
     @classmethod
-    def get_user_profile(cls, user: User) -> Optional[UserProfile]:
+    def get_user_profile(cls, user: User) -> UserProfile | None:
         """
         Get user profile for a user.
 
@@ -56,7 +56,7 @@ class UserService:
         return UserProfileRepository.get_by_user(user)
 
     @classmethod
-    def search_users(cls, query: str) -> List[User]:
+    def search_users(cls, query: str) -> list[User]:
         """
         Search users by username, email, or name.
 
@@ -70,7 +70,7 @@ class UserService:
         return UserRepository.search_users(query, limit=20)
 
     @classmethod
-    def get_user_statistics(cls, user: User) -> Dict[str, Any]:
+    def get_user_statistics(cls, user: User) -> dict[str, Any]:
         """
         Get user statistics for display.
 

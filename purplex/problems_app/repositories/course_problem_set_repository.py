@@ -2,7 +2,7 @@
 Repository for CourseProblemSet model data access.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.db.models import Max, Q
 
@@ -24,7 +24,7 @@ class CourseProblemSetRepository(BaseRepository):
     @classmethod
     def get_by_course_and_problem_set(
         cls, course: Course, problem_set: ProblemSet
-    ) -> Optional[CourseProblemSet]:
+    ) -> CourseProblemSet | None:
         """Get a specific course-problem set relationship."""
         return (
             CourseProblemSet.objects.filter(course=course, problem_set=problem_set)
@@ -33,7 +33,7 @@ class CourseProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def get_course_problem_sets_ordered(cls, course: Course) -> List[CourseProblemSet]:
+    def get_course_problem_sets_ordered(cls, course: Course) -> list[CourseProblemSet]:
         """Get all problem sets for a course, ordered by their sequence."""
         return list(
             CourseProblemSet.objects.filter(course=course)
@@ -42,7 +42,7 @@ class CourseProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def get_problem_set_courses(cls, problem_set: ProblemSet) -> List[CourseProblemSet]:
+    def get_problem_set_courses(cls, problem_set: ProblemSet) -> list[CourseProblemSet]:
         """Get all courses that contain a specific problem set."""
         return list(
             CourseProblemSet.objects.filter(problem_set=problem_set)
@@ -52,7 +52,7 @@ class CourseProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def get_required_problem_sets(cls, course: Course) -> List[CourseProblemSet]:
+    def get_required_problem_sets(cls, course: Course) -> list[CourseProblemSet]:
         """Get all required problem sets for a course."""
         return list(
             CourseProblemSet.objects.filter(course=course, is_required=True)
@@ -61,7 +61,7 @@ class CourseProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def get_optional_problem_sets(cls, course: Course) -> List[CourseProblemSet]:
+    def get_optional_problem_sets(cls, course: Course) -> list[CourseProblemSet]:
         """Get all optional problem sets for a course."""
         return list(
             CourseProblemSet.objects.filter(course=course, is_required=False)
@@ -139,7 +139,7 @@ class CourseProblemSetRepository(BaseRepository):
 
     @classmethod
     def reorder_problem_sets(
-        cls, course: Course, problem_set_orders: List[Dict[str, Any]]
+        cls, course: Course, problem_set_orders: list[dict[str, Any]]
     ) -> bool:
         """
         Bulk update the order of multiple problem sets in a course.
@@ -178,7 +178,7 @@ class CourseProblemSetRepository(BaseRepository):
     @classmethod
     def get_course_problem_sets_with_stats(
         cls, course: Course
-    ) -> List[CourseProblemSet]:
+    ) -> list[CourseProblemSet]:
         """Get course problem sets with related statistics."""
         return list(
             CourseProblemSet.objects.filter(course=course)
@@ -190,7 +190,7 @@ class CourseProblemSetRepository(BaseRepository):
     @classmethod
     def search_course_problem_sets(
         cls, course: Course, query: str
-    ) -> List[CourseProblemSet]:
+    ) -> list[CourseProblemSet]:
         """Search problem sets within a course by title or description."""
         return list(
             CourseProblemSet.objects.filter(course=course)

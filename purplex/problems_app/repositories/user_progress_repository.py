@@ -3,7 +3,7 @@ Repository for UserProgress model data access.
 """
 
 from datetime import timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.contrib.auth.models import User
 from django.db.models import Avg, Count, Max, Q, Sum
@@ -29,9 +29,9 @@ class UserProgressRepository(BaseRepository):
         cls,
         user: User,
         problem: Problem,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
-    ) -> Optional[UserProgress]:
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
+    ) -> UserProgress | None:
         """Get progress for a specific user-problem combination."""
         return UserProgress.objects.filter(
             user=user, problem=problem, problem_set=problem_set, course=course
@@ -42,8 +42,8 @@ class UserProgressRepository(BaseRepository):
         cls,
         user: User,
         problem: Problem,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
     ) -> tuple:
         """Get or create progress record for a user-problem combination."""
         return UserProgress.objects.get_or_create(
@@ -56,8 +56,8 @@ class UserProgressRepository(BaseRepository):
 
     @classmethod
     def get_user_progress_in_problem_set(
-        cls, user: User, problem_set: ProblemSet, course: Optional[Course] = None
-    ) -> List:
+        cls, user: User, problem_set: ProblemSet, course: Course | None = None
+    ) -> list:
         """Get all progress records for a user in a specific problem set."""
         return list(
             UserProgress.objects.filter(
@@ -66,7 +66,7 @@ class UserProgressRepository(BaseRepository):
         )
 
     @classmethod
-    def get_user_progress_in_course(cls, user: User, course: Course) -> List:
+    def get_user_progress_in_course(cls, user: User, course: Course) -> list:
         """Get all progress records for a user in a specific course."""
         return list(
             UserProgress.objects.filter(user=user, course=course)
@@ -78,9 +78,9 @@ class UserProgressRepository(BaseRepository):
     def get_completed_problems(
         cls,
         user: User,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
-    ) -> List:
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
+    ) -> list:
         """Get all completed problems for a user."""
         filters = {"user": user, "is_completed": True}
         if problem_set:
@@ -94,9 +94,9 @@ class UserProgressRepository(BaseRepository):
     def get_in_progress_problems(
         cls,
         user: User,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
-    ) -> List:
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
+    ) -> list:
         """Get all in-progress problems for a user."""
         filters = {"user": user, "status": "in_progress"}
         if problem_set:
@@ -110,9 +110,9 @@ class UserProgressRepository(BaseRepository):
     def get_user_statistics(
         cls,
         user: User,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
-    ) -> Dict[str, Any]:
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
+    ) -> dict[str, Any]:
         """Get comprehensive statistics for a user's progress."""
         filters = {"user": user}
         if problem_set:
@@ -144,9 +144,9 @@ class UserProgressRepository(BaseRepository):
         cls,
         user: User,
         days: int = 7,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
-    ) -> List:
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
+    ) -> list:
         """Get user's recent progress activity."""
         since_date = timezone.now() - timedelta(days=days)
         filters = {"user": user, "last_attempt__gte": since_date}
@@ -167,9 +167,9 @@ class UserProgressRepository(BaseRepository):
         user: User,
         min_attempts: int = 5,
         max_score: int = 50,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
-    ) -> List:
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
+    ) -> list:
         """Get problems where user is struggling (many attempts, low scores)."""
         filters = {
             "user": user,
@@ -191,9 +191,9 @@ class UserProgressRepository(BaseRepository):
         cls,
         user: User,
         difficulty: str,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
-    ) -> List:
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
+    ) -> list:
         """Get user progress filtered by problem difficulty."""
         filters = {"user": user, "problem__difficulty": difficulty}
         if problem_set:
@@ -208,9 +208,9 @@ class UserProgressRepository(BaseRepository):
         cls,
         user: User,
         limit: int = 10,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
-    ) -> List:
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
+    ) -> list:
         """Get user's fastest problem completions."""
         filters = {
             "user": user,
@@ -231,9 +231,9 @@ class UserProgressRepository(BaseRepository):
         cls,
         problem: Problem,
         limit: int = 10,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
-    ) -> List:
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
+    ) -> list:
         """Get top scorers for a specific problem."""
         filters = {"problem": problem, "is_completed": True}
         if problem_set:
@@ -251,9 +251,9 @@ class UserProgressRepository(BaseRepository):
     def get_problem_statistics(
         cls,
         problem: Problem,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
-    ) -> Dict[str, Any]:
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
+    ) -> dict[str, Any]:
         """Get statistics for a specific problem across all users."""
         filters = {"problem": problem}
         if problem_set:
@@ -280,7 +280,7 @@ class UserProgressRepository(BaseRepository):
 
     @classmethod
     def bulk_update_completion_status(
-        cls, user: User, problem_set: ProblemSet, course: Optional[Course] = None
+        cls, user: User, problem_set: ProblemSet, course: Course | None = None
     ) -> int:
         """
         Bulk update completion status for all problems in a set with proper locking.
@@ -318,7 +318,7 @@ class UserProgressRepository(BaseRepository):
     @classmethod
     def get_learning_path_progress(
         cls, user: User, course: Course
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get structured progress data for learning path visualization."""
         progress_records = (
             UserProgress.objects.filter(user=user, course=course)
@@ -350,8 +350,8 @@ class UserProgressRepository(BaseRepository):
         cls,
         user: User,
         problem: Problem,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
     ) -> bool:
         """
         Reset progress for a specific user-problem combination with proper locking.
@@ -394,7 +394,7 @@ class UserProgressRepository(BaseRepository):
         return False
 
     @classmethod
-    def get_user_aggregate_statistics(cls, user: User) -> Dict[str, Any]:
+    def get_user_aggregate_statistics(cls, user: User) -> dict[str, Any]:
         """
         Get aggregate statistics for a user's progress across all problems.
 

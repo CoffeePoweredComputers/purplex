@@ -2,7 +2,7 @@
 Repository for ProblemSet model data access.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.contrib.auth.models import User
 from django.db.models import Count, Prefetch, Q
@@ -28,12 +28,12 @@ class ProblemSetRepository(BaseRepository):
     model_class = ProblemSet
 
     @classmethod
-    def get_problem_set_by_slug(cls, slug: str) -> Optional[ProblemSet]:
+    def get_problem_set_by_slug(cls, slug: str) -> ProblemSet | None:
         """Get a problem set by slug."""
         return ProblemSet.objects.filter(slug=slug).first()
 
     @classmethod
-    def get_all_problem_sets(cls) -> List:
+    def get_all_problem_sets(cls) -> list:
         """Get all problem sets with basic metadata."""
         return list(
             ProblemSet.objects.all()
@@ -43,7 +43,7 @@ class ProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def get_active_problem_sets(cls) -> List:
+    def get_active_problem_sets(cls) -> list:
         """Get all active (published) problem sets."""
         return list(
             ProblemSet.objects.filter(is_published=True)
@@ -53,7 +53,7 @@ class ProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def get_all_public_problem_sets(cls) -> List[Dict[str, Any]]:
+    def get_all_public_problem_sets(cls) -> list[dict[str, Any]]:
         """Get all public problem sets as structured data.
 
         Returns:
@@ -79,7 +79,7 @@ class ProblemSetRepository(BaseRepository):
         ]
 
     @classmethod
-    def get_problem_set_with_problems(cls, slug: str) -> Optional[ProblemSet]:
+    def get_problem_set_with_problems(cls, slug: str) -> ProblemSet | None:
         """Get a problem set with all its problems prefetched and ordered."""
         return (
             ProblemSet.objects.prefetch_related(
@@ -95,7 +95,7 @@ class ProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def get_problems_in_set_ordered(cls, problem_set: ProblemSet) -> List:
+    def get_problems_in_set_ordered(cls, problem_set: ProblemSet) -> list:
         """Get all problems in a problem set, ordered by membership order."""
         return list(
             Problem.objects.filter(problem_set_memberships__problem_set=problem_set)
@@ -104,14 +104,14 @@ class ProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def get_problem_sets_containing_problem(cls, problem: Problem) -> List:
+    def get_problem_sets_containing_problem(cls, problem: Problem) -> list:
         """Get all problem sets that contain a specific problem."""
         return list(
             ProblemSet.objects.filter(problems=problem).distinct().order_by("title")
         )
 
     @classmethod
-    def get_user_created_problem_sets(cls, user: User) -> List:
+    def get_user_created_problem_sets(cls, user: User) -> list:
         """Get all problem sets created by a specific user."""
         return list(
             ProblemSet.objects.filter(created_by=user)
@@ -120,7 +120,7 @@ class ProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def search_problem_sets(cls, query: str, include_unpublished: bool = False) -> List:
+    def search_problem_sets(cls, query: str, include_unpublished: bool = False) -> list:
         """Search problem sets by title or description."""
         queryset = ProblemSet.objects.filter(
             Q(title__icontains=query) | Q(description__icontains=query)
@@ -132,7 +132,7 @@ class ProblemSetRepository(BaseRepository):
         return list(queryset)
 
     @classmethod
-    def get_problem_sets_by_difficulty(cls, difficulty: str) -> List:
+    def get_problem_sets_by_difficulty(cls, difficulty: str) -> list:
         """Get problem sets that contain problems of a specific difficulty."""
         return list(
             ProblemSet.objects.filter(problems__difficulty=difficulty)
@@ -141,7 +141,7 @@ class ProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def get_problem_sets_by_category(cls, category) -> List:
+    def get_problem_sets_by_category(cls, category) -> list:
         """Get problem sets that contain problems from a specific category."""
         return list(
             ProblemSet.objects.filter(problems__categories=category)
@@ -155,7 +155,7 @@ class ProblemSetRepository(BaseRepository):
         return problem_set.problems.count()
 
     @classmethod
-    def get_problem_set_statistics(cls, problem_set: ProblemSet) -> Dict[str, Any]:
+    def get_problem_set_statistics(cls, problem_set: ProblemSet) -> dict[str, Any]:
         """Get comprehensive statistics for a problem set."""
         problems = Problem.objects.filter(
             problem_set_memberships__problem_set=problem_set
@@ -190,7 +190,7 @@ class ProblemSetRepository(BaseRepository):
         return stats
 
     @classmethod
-    def get_problem_sets_in_course(cls, course: Course) -> List:
+    def get_problem_sets_in_course(cls, course: Course) -> list:
         """Get all problem sets associated with a course."""
         return list(
             ProblemSet.objects.filter(courses=course).order_by(
@@ -199,7 +199,7 @@ class ProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def get_required_problem_sets_in_course(cls, course: Course) -> List:
+    def get_required_problem_sets_in_course(cls, course: Course) -> list:
         """Get required problem sets for a course."""
         return list(
             ProblemSet.objects.filter(
@@ -208,7 +208,7 @@ class ProblemSetRepository(BaseRepository):
         )
 
     @classmethod
-    def get_optional_problem_sets_in_course(cls, course: Course) -> List:
+    def get_optional_problem_sets_in_course(cls, course: Course) -> list:
         """Get optional problem sets for a course."""
         return list(
             ProblemSet.objects.filter(
@@ -266,7 +266,7 @@ class ProblemSetRepository(BaseRepository):
             return False
 
     @classmethod
-    def get_all_titles(cls) -> List[str]:
+    def get_all_titles(cls) -> list[str]:
         """
         Get all unique problem set titles for filter dropdowns.
 

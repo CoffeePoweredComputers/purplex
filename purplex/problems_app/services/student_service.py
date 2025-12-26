@@ -1,7 +1,7 @@
 """Service layer for student-related business logic."""
 
 import logging
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from django.http import Http404
 
@@ -25,7 +25,7 @@ class StudentService:
     """Handle all student-related business logic."""
 
     @staticmethod
-    def get_active_problems(user=None) -> List["Problem"]:
+    def get_active_problems(user=None) -> list["Problem"]:
         """
         Get all active problems visible to students.
 
@@ -103,7 +103,7 @@ class StudentService:
         return problem_set
 
     @staticmethod
-    def get_problem_set_problems(problem_set: "ProblemSet", user=None) -> List[dict]:
+    def get_problem_set_problems(problem_set: "ProblemSet", user=None) -> list[dict]:
         """
         Get ordered problems for a problem set with test cases and handler configs.
 

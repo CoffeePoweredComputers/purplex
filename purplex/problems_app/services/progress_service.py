@@ -3,7 +3,7 @@
 import logging
 import time
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.core.cache import cache
 from django.db import DatabaseError, IntegrityError, transaction
@@ -42,8 +42,8 @@ class ProgressService:
     def get_user_progress(
         user_id: int,
         problem_id: int,
-        problem_set_id: Optional[int] = None,
-        course_id: Optional[int] = None,
+        problem_set_id: int | None = None,
+        course_id: int | None = None,
     ) -> Optional["UserProgress"]:
         """
         Get user progress for a specific problem.
@@ -67,9 +67,9 @@ class ProgressService:
     @staticmethod
     def get_cached_progress(
         user_id: int,
-        problem_id: Optional[int] = None,
-        problem_set_id: Optional[int] = None,
-    ) -> Optional[Dict[str, Any]]:
+        problem_id: int | None = None,
+        problem_set_id: int | None = None,
+    ) -> dict[str, Any] | None:
         """
         Get cached progress data with fallback to database.
 
@@ -113,7 +113,7 @@ class ProgressService:
         return None
 
     @staticmethod
-    def get_all_user_progress(user_id: int) -> List[Dict[str, Any]]:
+    def get_all_user_progress(user_id: int) -> list[dict[str, Any]]:
         """
         Get all progress records for a user with caching.
 
@@ -139,7 +139,7 @@ class ProgressService:
         return progress_data
 
     @staticmethod
-    def get_problem_progress(user_id: int, problem_slug: str) -> Dict[str, Any]:
+    def get_problem_progress(user_id: int, problem_slug: str) -> dict[str, Any]:
         """
         Get progress for a specific problem.
 
@@ -183,8 +183,8 @@ class ProgressService:
                     "last_attempt": None,
                     "completed_at": None,
                 }
-        except Exception:
-            raise ValueError(f"Problem with slug {problem_slug} not found")
+        except Exception as e:
+            raise ValueError(f"Problem with slug {problem_slug} not found") from e
 
     @staticmethod
     def get_or_create_problem_set_progress(
@@ -261,8 +261,8 @@ class ProgressService:
 
     @staticmethod
     def format_problems_progress(
-        problems_with_progress: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
+        problems_with_progress: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         """
         Format problems progress data for API response.
 
@@ -293,8 +293,8 @@ class ProgressService:
 
     @staticmethod
     def format_course_progress_summary(
-        progresses: List,
-    ) -> Dict[str, List[Dict[str, Any]]]:
+        progresses: list,
+    ) -> dict[str, list[dict[str, Any]]]:
         """
         Format course progress summary data for API response.
 
@@ -330,8 +330,8 @@ class ProgressService:
     @staticmethod
     def _invalidate_progress_cache(
         user_id: int,
-        problem_id: Optional[int] = None,
-        problem_set_id: Optional[int] = None,
+        problem_id: int | None = None,
+        problem_set_id: int | None = None,
     ):
         """Invalidate relevant cache entries after progress update."""
         cache_keys = [
@@ -347,7 +347,7 @@ class ProgressService:
         cache.delete_many(cache_keys)
 
     @staticmethod
-    def get_user_summary(user_id: int) -> Dict[str, Any]:
+    def get_user_summary(user_id: int) -> dict[str, Any]:
         """
         Get comprehensive summary of user's progress across all courses.
         Uses caching to reduce database load.
@@ -410,9 +410,9 @@ class ProgressService:
     def get_progress_context(
         user_id: int,
         problem_slug: str,
-        problem_set_slug: Optional[str] = None,
-        course_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        problem_set_slug: str | None = None,
+        course_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Get complete progress context with validation.
 
@@ -483,12 +483,12 @@ class ProgressService:
             }
 
         except Exception as e:
-            raise ValueError(str(e))
+            raise ValueError(str(e)) from e
 
     @staticmethod
     def get_problem_set_progress_with_context(
-        user, problem_set_slug: str, course_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+        user, problem_set_slug: str, course_id: str | None = None
+    ) -> dict[str, Any]:
         """
         Get problem set progress with full context validation.
 
@@ -600,15 +600,15 @@ class ProgressService:
         except Exception as e:
             if "not found" in str(e):
                 raise
-            raise ValueError(f"Error getting problem set progress: {str(e)}")
+            raise ValueError(f"Error getting problem set progress: {str(e)}") from e
 
     @staticmethod
     def get_last_submission_with_context(
         user,
         problem_slug: str,
-        problem_set_slug: Optional[str] = None,
-        course_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        problem_set_slug: str | None = None,
+        course_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Get last submission with clean data transformation.
 
@@ -928,7 +928,7 @@ class ProgressService:
             )
             raise ValueError(
                 "Your progress is currently being updated by another submission. Please try again in a moment."
-            )
+            ) from e
         except Exception as e:
             logger.error(f"[ProgressService] Error getting/creating progress: {str(e)}")
             raise

@@ -16,7 +16,7 @@ Grading: Test pass rate
 
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from .. import register_handler
 from ..base import (
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _parse_function_params(signature: str) -> List[Dict[str, str]]:
+def _parse_function_params(signature: str) -> list[dict[str, str]]:
     """Parse function signature to extract parameter names and types."""
     match = re.search(r"\(([^)]*)\)", signature)
     if not match:
@@ -136,7 +136,7 @@ class ProbeableCodeHandler(ActivityHandler):
 
     # --- Data Extraction ---
 
-    def extract_variations(self, submission: "Submission") -> List[str]:
+    def extract_variations(self, submission: "Submission") -> list[str]:
         """
         Extract code from submission.
 
@@ -148,7 +148,7 @@ class ProbeableCodeHandler(ActivityHandler):
 
     def extract_test_results(
         self, submission: "Submission", problem: "Problem"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Transform test execution to frontend format."""
         results = []
 
@@ -199,7 +199,7 @@ class ProbeableCodeHandler(ActivityHandler):
 
     # --- API Configuration ---
 
-    def get_problem_config(self, problem: "Problem") -> Dict[str, Any]:
+    def get_problem_config(self, problem: "Problem") -> dict[str, Any]:
         """Return configuration for frontend rendering of Probeable Code problems."""
         # Get probe config from the problem model
         show_signature = getattr(problem, "show_function_signature", True)
@@ -250,7 +250,7 @@ class ProbeableCodeHandler(ActivityHandler):
             },
         }
 
-    def serialize_result(self, submission: "Submission") -> Dict[str, Any]:
+    def serialize_result(self, submission: "Submission") -> dict[str, Any]:
         """Serialize submission result for API response."""
         result = {
             "student_code": submission.processed_code or "",
@@ -265,7 +265,7 @@ class ProbeableCodeHandler(ActivityHandler):
 
         return result
 
-    def get_admin_config(self) -> Dict[str, Any]:
+    def get_admin_config(self) -> dict[str, Any]:
         """Return admin UI configuration for Probeable Code problems."""
         return {
             "hidden_sections": ["mcq_options", "image_config", "buggy_code"],
@@ -295,7 +295,7 @@ class ProbeableCodeHandler(ActivityHandler):
         submission: "Submission",
         raw_input: str,
         problem: "Problem",
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> SubmissionOutcome:
         """
         Execute Probeable Code submission asynchronously via Celery.

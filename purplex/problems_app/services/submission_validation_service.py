@@ -1,6 +1,6 @@
 """Submission validation service for centralizing submission validation logic."""
 
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING
 
 from ..handlers import get_handler, is_registered
 from ..repositories import CourseRepository, ProblemRepository
@@ -14,7 +14,7 @@ class SubmissionValidationService:
     """Service for validating submission requests"""
 
     @staticmethod
-    def validate_submission(data: dict) -> Tuple[bool, Optional[str], Optional[dict]]:
+    def validate_submission(data: dict) -> tuple[bool, str | None, dict | None]:
         """
         Generic submission validation that delegates type-specific validation to handlers.
 

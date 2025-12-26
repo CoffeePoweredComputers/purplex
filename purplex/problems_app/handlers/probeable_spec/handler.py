@@ -17,7 +17,7 @@ Grading: Test pass + comprehension level (reuses EiPL logic)
 
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from .. import register_handler
 from ..base import (
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _parse_function_params(signature: str) -> List[Dict[str, str]]:
+def _parse_function_params(signature: str) -> list[dict[str, str]]:
     """Parse function signature to extract parameter names and types."""
     match = re.search(r"\(([^)]*)\)", signature)
     if not match:
@@ -191,14 +191,14 @@ class ProbeableSpecHandler(ActivityHandler):
 
     # --- Data Extraction (reuses EiPL logic) ---
 
-    def extract_variations(self, submission: "Submission") -> List[str]:
+    def extract_variations(self, submission: "Submission") -> list[str]:
         """Extract code variations from submission."""
         variations = submission.code_variations.all().order_by("variation_index")
         return [v.generated_code for v in variations]
 
     def extract_test_results(
         self, submission: "Submission", problem: "Problem"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Transform TestExecution objects to frontend format."""
         results = []
 
@@ -270,7 +270,7 @@ class ProbeableSpecHandler(ActivityHandler):
 
     # --- API Configuration ---
 
-    def get_problem_config(self, problem: "Problem") -> Dict[str, Any]:
+    def get_problem_config(self, problem: "Problem") -> dict[str, Any]:
         """Return configuration for frontend rendering of Probeable Spec problems."""
         # Get probe config from the problem model
         show_signature = getattr(problem, "show_function_signature", True)
@@ -321,7 +321,7 @@ class ProbeableSpecHandler(ActivityHandler):
             },
         }
 
-    def serialize_result(self, submission: "Submission") -> Dict[str, Any]:
+    def serialize_result(self, submission: "Submission") -> dict[str, Any]:
         """Serialize submission result for API response (same as EiPL)."""
         result = {
             "variations": [],
@@ -370,7 +370,7 @@ class ProbeableSpecHandler(ActivityHandler):
 
         return result
 
-    def get_admin_config(self) -> Dict[str, Any]:
+    def get_admin_config(self) -> dict[str, Any]:
         """Return admin UI configuration for Probeable Spec problems."""
         return {
             "hidden_sections": ["mcq_options", "image_config", "buggy_code"],
@@ -401,7 +401,7 @@ class ProbeableSpecHandler(ActivityHandler):
         submission: "Submission",
         raw_input: str,
         problem: "Problem",
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> SubmissionOutcome:
         """
         Execute Probeable Spec submission asynchronously via Celery.

@@ -9,7 +9,7 @@ it requires LLM calls and Docker code execution.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from .. import register_handler
 
@@ -146,14 +146,14 @@ class PromptHandler(ActivityHandler):
 
     # --- Data Extraction (same as EiPL) ---
 
-    def extract_variations(self, submission: "Submission") -> List[str]:
+    def extract_variations(self, submission: "Submission") -> list[str]:
         """Extract code variations from prompt submission."""
         variations = submission.code_variations.all().order_by("variation_index")
         return [v.generated_code for v in variations]
 
     def extract_test_results(
         self, submission: "Submission", problem: "Problem"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Transform TestExecution objects to frontend format."""
         results = []
 
@@ -221,7 +221,7 @@ class PromptHandler(ActivityHandler):
 
     # --- API Configuration ---
 
-    def get_problem_config(self, problem: "Problem") -> Dict[str, Any]:
+    def get_problem_config(self, problem: "Problem") -> dict[str, Any]:
         """Return configuration for frontend rendering of prompt problems."""
         return {
             "display": {
@@ -252,7 +252,7 @@ class PromptHandler(ActivityHandler):
             },
         }
 
-    def serialize_result(self, submission: "Submission") -> Dict[str, Any]:
+    def serialize_result(self, submission: "Submission") -> dict[str, Any]:
         """Serialize prompt submission result for API response."""
         result = {
             "variations": [],
@@ -297,7 +297,7 @@ class PromptHandler(ActivityHandler):
 
         return result
 
-    def get_admin_config(self) -> Dict[str, Any]:
+    def get_admin_config(self) -> dict[str, Any]:
         """Return admin UI configuration for prompt problems."""
         return {
             "hidden_sections": [],
@@ -328,7 +328,7 @@ class PromptHandler(ActivityHandler):
         submission: "Submission",
         raw_input: str,
         problem: "Problem",
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> SubmissionOutcome:
         """
         Execute Prompt submission asynchronously via Celery.

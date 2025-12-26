@@ -5,8 +5,6 @@ This module provides the registry for activity type handlers.
 Handlers are registered using the @register_handler decorator.
 """
 
-from typing import Dict, List, Type
-
 from .base import ActivityHandler, ProcessingResult, SubmissionOutcome, ValidationResult
 
 __all__ = [
@@ -20,7 +18,7 @@ __all__ = [
     "is_registered",
 ]
 
-_REGISTRY: Dict[str, Type[ActivityHandler]] = {}
+_REGISTRY: dict[str, type[ActivityHandler]] = {}
 
 
 def register_handler(type_name: str):
@@ -33,7 +31,7 @@ def register_handler(type_name: str):
             ...
     """
 
-    def decorator(cls: Type[ActivityHandler]):
+    def decorator(cls: type[ActivityHandler]):
         if type_name in _REGISTRY:
             raise ValueError(f"Handler already registered for type: {type_name}")
         _REGISTRY[type_name] = cls
@@ -56,7 +54,7 @@ def get_handler(type_name: str) -> ActivityHandler:
     return _REGISTRY[type_name]()
 
 
-def get_registered_types() -> List[str]:
+def get_registered_types() -> list[str]:
     """Get all registered activity type names."""
     return list(_REGISTRY.keys())
 
@@ -68,10 +66,12 @@ def is_registered(type_name: str) -> bool:
 
 # Import handlers to trigger registration
 # This must be at the bottom to avoid circular imports
-from . import debug_fix  # noqa: E402, F401
-from . import eipl  # noqa: E402, F401
-from . import mcq  # noqa: E402, F401
-from . import probeable_code  # noqa: E402, F401
-from . import probeable_spec  # noqa: E402, F401
-from . import prompt  # noqa: E402, F401
-from . import refute  # noqa: E402, F401
+from . import (  # noqa: E402
+    debug_fix,
+    eipl,
+    mcq,
+    probeable_code,
+    probeable_spec,
+    prompt,
+    refute,
+)

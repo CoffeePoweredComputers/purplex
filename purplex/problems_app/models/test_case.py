@@ -39,8 +39,8 @@ class TestCase(models.Model):
 
         try:
             json.dumps(self.expected_output)
-        except (TypeError, ValueError):
-            raise ValidationError("Expected output must be JSON serializable")
+        except (TypeError, ValueError) as e:
+            raise ValidationError("Expected output must be JSON serializable") from e
 
     def __str__(self):
         inputs_str = ", ".join(str(arg) for arg in self.inputs)

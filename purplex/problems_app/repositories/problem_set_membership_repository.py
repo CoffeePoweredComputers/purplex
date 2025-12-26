@@ -2,7 +2,7 @@
 Repository for ProblemSetMembership model data access.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.db.models import Prefetch
 
@@ -41,7 +41,7 @@ class ProblemSetMembershipRepository(BaseRepository):
         )
 
     @classmethod
-    def get_problem_memberships(cls, problem: Problem) -> List[ProblemSetMembership]:
+    def get_problem_memberships(cls, problem: Problem) -> list[ProblemSetMembership]:
         """
         Get all problem set memberships for a specific problem.
 
@@ -60,7 +60,7 @@ class ProblemSetMembershipRepository(BaseRepository):
     @classmethod
     def get_problem_set_memberships(
         cls, problem_set: ProblemSet
-    ) -> List[ProblemSetMembership]:
+    ) -> list[ProblemSetMembership]:
         """
         Get all memberships for a specific problem set.
 
@@ -79,7 +79,7 @@ class ProblemSetMembershipRepository(BaseRepository):
     @classmethod
     def get_problem_set_memberships_with_categories(
         cls, problem_set: ProblemSet
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get all memberships for a specific problem set with problem categories and test cases.
 
@@ -238,7 +238,7 @@ class ProblemSetMembershipRepository(BaseRepository):
     @classmethod
     def get_membership(
         cls, problem_set: ProblemSet, problem: Problem
-    ) -> Optional[ProblemSetMembership]:
+    ) -> ProblemSetMembership | None:
         """
         Get a specific membership between a problem and problem set.
 
@@ -275,8 +275,8 @@ class ProblemSetMembershipRepository(BaseRepository):
 
     @classmethod
     def bulk_create_memberships(
-        cls, memberships: List[Dict[str, Any]]
-    ) -> List[ProblemSetMembership]:
+        cls, memberships: list[dict[str, Any]]
+    ) -> list[ProblemSetMembership]:
         """
         Bulk create multiple memberships.
 

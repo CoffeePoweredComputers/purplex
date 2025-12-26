@@ -5,7 +5,7 @@ This is the ONLY place that handles Firebase authentication.
 
 import hashlib
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -25,7 +25,6 @@ sys.path.append(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 from config.environment import config
-
 from purplex.users_app.models import UserProfile
 from purplex.users_app.repositories import UserProfileRepository, UserRepository
 
@@ -95,7 +94,7 @@ class AuthenticationService:
         return cls._firebase_auth
 
     @classmethod
-    def check_token_expiry(cls, decoded_token: Dict[str, Any]) -> Dict[str, Any]:
+    def check_token_expiry(cls, decoded_token: dict[str, Any]) -> dict[str, Any]:
         """
         Check if token needs refresh based on expiration time.
 
@@ -123,7 +122,7 @@ class AuthenticationService:
         }
 
     @classmethod
-    def authenticate_token(cls, token: str) -> Tuple[User, Dict[str, Any]]:
+    def authenticate_token(cls, token: str) -> tuple[User, dict[str, Any]]:
         """
         Authenticate a Firebase token and return user with caching.
 
@@ -458,7 +457,7 @@ class AuthenticationService:
             )
 
     @classmethod
-    def verify_service_account(cls, service_key: str) -> Optional[User]:
+    def verify_service_account(cls, service_key: str) -> User | None:
         """
         Verify service account authentication.
 
@@ -554,7 +553,7 @@ class AuthenticationService:
         return session_token
 
     @classmethod
-    def validate_sse_session(cls, session_token: str) -> Optional[User]:
+    def validate_sse_session(cls, session_token: str) -> User | None:
         """
         Validate an SSE session token and return the associated user.
         Uses Django cache (which already has correct Redis authentication).

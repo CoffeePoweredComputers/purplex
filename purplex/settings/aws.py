@@ -123,7 +123,8 @@ if os.environ.get("USE_SECRETS_MANAGER", "false").lower() == "true":
     if secrets:
         SECRET_KEY = secrets.get("django_secret_key", SECRET_KEY)  # noqa: F405
         DATABASES["default"]["PASSWORD"] = secrets.get(  # noqa: F405
-            "db_password", DATABASES["default"]["PASSWORD"]  # noqa: F405
+            "db_password",
+            DATABASES["default"]["PASSWORD"],  # noqa: F405
         )
         OPENAI_API_KEY = secrets.get("openai_api_key", OPENAI_API_KEY)  # noqa: F405
 
@@ -143,9 +144,7 @@ if os.environ.get("USE_ELASTICACHE", "false").lower() == "true":
 if os.environ.get("USE_XRAY", "false").lower() == "true":
     # AWS X-Ray for distributed tracing
     INSTALLED_APPS.append("aws_xray_sdk.ext.django")  # noqa: F405
-    MIDDLEWARE.insert(
-        0, "aws_xray_sdk.ext.django.middleware.XRayMiddleware"
-    )  # noqa: F405
+    MIDDLEWARE.insert(0, "aws_xray_sdk.ext.django.middleware.XRayMiddleware")  # noqa: F405
     XRAY_RECORDER = {
         "AWS_XRAY_TRACING_NAME": "purplex",
         "AWS_XRAY_CONTEXT_MISSING": "LOG_ERROR",

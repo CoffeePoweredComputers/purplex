@@ -6,7 +6,7 @@ No LLM involved - student directly edits and submits code.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from .. import register_handler
 from ..base import (
@@ -107,7 +107,7 @@ class DebugFixHandler(ActivityHandler):
 
     # --- Data Extraction ---
 
-    def extract_variations(self, submission: "Submission") -> List[str]:
+    def extract_variations(self, submission: "Submission") -> list[str]:
         """
         Extract code from Debug Fix submission.
 
@@ -120,7 +120,7 @@ class DebugFixHandler(ActivityHandler):
 
     def extract_test_results(
         self, submission: "Submission", problem: "Problem"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Transform test execution to frontend format for Debug Fix."""
         results = []
 
@@ -171,7 +171,7 @@ class DebugFixHandler(ActivityHandler):
 
     # --- API Configuration ---
 
-    def get_problem_config(self, problem: "Problem") -> Dict[str, Any]:
+    def get_problem_config(self, problem: "Problem") -> dict[str, Any]:
         """Return configuration for frontend rendering of Debug Fix problems."""
         return {
             "display": {
@@ -201,7 +201,7 @@ class DebugFixHandler(ActivityHandler):
             },
         }
 
-    def serialize_result(self, submission: "Submission") -> Dict[str, Any]:
+    def serialize_result(self, submission: "Submission") -> dict[str, Any]:
         """Serialize Debug Fix submission result for API response."""
         result = {
             "fixed_code": submission.processed_code or "",
@@ -216,7 +216,7 @@ class DebugFixHandler(ActivityHandler):
 
         return result
 
-    def get_admin_config(self) -> Dict[str, Any]:
+    def get_admin_config(self) -> dict[str, Any]:
         """Return admin UI configuration for Debug Fix problems."""
         return {
             "hidden_sections": ["mcq_options", "image_config"],
@@ -248,7 +248,7 @@ class DebugFixHandler(ActivityHandler):
         submission: "Submission",
         raw_input: str,
         problem: "Problem",
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> SubmissionOutcome:
         """
         Execute Debug Fix submission asynchronously via Celery.

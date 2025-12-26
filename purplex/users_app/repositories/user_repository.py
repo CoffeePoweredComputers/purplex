@@ -2,7 +2,7 @@
 Repository for User model data access.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.contrib.auth.models import User
 from django.db.models import Q, QuerySet
@@ -22,7 +22,7 @@ class UserRepository(BaseRepository):
     model_class = User
 
     @classmethod
-    def get_by_id(cls, user_id: int) -> Optional[User]:
+    def get_by_id(cls, user_id: int) -> User | None:
         """
         Get a user by their primary key ID.
 
@@ -38,7 +38,7 @@ class UserRepository(BaseRepository):
             return None
 
     @classmethod
-    def get_with_profile(cls, user_id: int) -> Optional[User]:
+    def get_with_profile(cls, user_id: int) -> User | None:
         """
         Get a user with their profile pre-fetched.
 
@@ -54,7 +54,7 @@ class UserRepository(BaseRepository):
             return None
 
     @classmethod
-    def get_by_username(cls, username: str) -> Optional[User]:
+    def get_by_username(cls, username: str) -> User | None:
         """
         Get a user by their username.
 
@@ -70,7 +70,7 @@ class UserRepository(BaseRepository):
             return None
 
     @classmethod
-    def get_service_account(cls) -> Optional[User]:
+    def get_service_account(cls) -> User | None:
         """
         Get the service account user.
 
@@ -142,7 +142,7 @@ class UserRepository(BaseRepository):
         return User.objects.filter(profile__role=role).select_related("profile")
 
     @classmethod
-    def search(cls, query: Dict[str, Any]) -> QuerySet:
+    def search(cls, query: dict[str, Any]) -> QuerySet:
         """
         Search users based on multiple criteria.
 
@@ -198,7 +198,7 @@ class UserRepository(BaseRepository):
         return User.objects.filter(is_active=True).select_related("profile")
 
     @classmethod
-    def update(cls, user_id: int, **kwargs) -> Optional[User]:
+    def update(cls, user_id: int, **kwargs) -> User | None:
         """
         Update a user's fields.
 
@@ -215,7 +215,7 @@ class UserRepository(BaseRepository):
         return None
 
     @classmethod
-    def search_users(cls, query: str, limit: int = 20) -> List[Dict[str, Any]]:
+    def search_users(cls, query: str, limit: int = 20) -> list[dict[str, Any]]:
         """
         Search users by username, email, first name, or last name.
 

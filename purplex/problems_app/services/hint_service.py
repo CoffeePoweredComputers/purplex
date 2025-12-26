@@ -1,7 +1,7 @@
 """Service layer for hint-related business logic."""
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from django.core.cache import cache
 from django.http import Http404
@@ -35,9 +35,9 @@ class HintService:
     def get_hint_availability(
         user,
         problem_slug: str,
-        course_id: Optional[str] = None,
-        problem_set_slug: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        course_id: str | None = None,
+        problem_set_slug: str | None = None,
+    ) -> dict[str, Any]:
         """
         Check hint availability for a user on a specific problem.
 
@@ -107,9 +107,9 @@ class HintService:
     def get_used_hints(
         user,
         problem_slug: str,
-        course_id: Optional[str] = None,
-        problem_set_slug: Optional[str] = None,
-    ) -> List[str]:
+        course_id: str | None = None,
+        problem_set_slug: str | None = None,
+    ) -> list[str]:
         """
         Get list of hint types the user has already activated for this problem.
 
@@ -162,9 +162,9 @@ class HintService:
         user,
         problem_slug: str,
         hint_type: str,
-        course_id: Optional[str] = None,
-        problem_set_slug: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        course_id: str | None = None,
+        problem_set_slug: str | None = None,
+    ) -> dict[str, Any]:
         """
         Get specific hint content if user has access.
 
@@ -292,9 +292,7 @@ class HintService:
             return False
 
     @staticmethod
-    def get_cached_hint_availability(
-        user, problem_slug: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_cached_hint_availability(user, problem_slug: str) -> dict[str, Any] | None:
         """
         Get cached hint availability or compute and cache it.
 
@@ -336,9 +334,9 @@ class HintService:
     def validate_hint_access_context(
         user,
         problem_slug: str,
-        course_id: Optional[str] = None,
-        problem_set_slug: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        course_id: str | None = None,
+        problem_set_slug: str | None = None,
+    ) -> dict[str, Any]:
         """
         Validate user's access to hints with course context.
 
@@ -434,7 +432,7 @@ class AdminHintService:
     """Handle hint administration business logic."""
 
     @staticmethod
-    def get_problem_hints_config(problem_slug: str) -> Dict[str, Any]:
+    def get_problem_hints_config(problem_slug: str) -> dict[str, Any]:
         """
         Get all hint configurations for a problem, including defaults for missing types.
 
@@ -488,8 +486,8 @@ class AdminHintService:
 
     @staticmethod
     def bulk_update_hints(
-        problem_slug: str, hints_data: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        problem_slug: str, hints_data: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """
         Bulk update all hint types for a problem.
 
@@ -566,11 +564,11 @@ class AdminHintService:
             return {"problem_slug": problem.slug, "hints": updated_hints}
 
         except ValidationError as e:
-            raise ValueError(str(e))
+            raise ValueError(str(e)) from e
         except ValueError:
             raise  # Re-raise ValueErrors (validation failures)
         except Exception as e:
             logger.error(f"Failed to update hints for problem {problem_slug}: {str(e)}")
             raise RuntimeError(
                 "Failed to update hints. Please check the hint configurations."
-            )
+            ) from e

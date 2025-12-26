@@ -4,7 +4,7 @@ Single authentication class for ALL endpoints.
 """
 
 import logging
-from typing import Any, Optional, Tuple
+from typing import Any
 
 from django.contrib.auth.models import User
 from rest_framework import authentication, exceptions
@@ -23,7 +23,7 @@ class PurplexAuthentication(authentication.BaseAuthentication):
     All Firebase logic is delegated to AuthenticationService.
     """
 
-    def authenticate(self, request) -> Optional[Tuple[User, Any]]:
+    def authenticate(self, request) -> tuple[User, Any] | None:
         """
         Authenticate the request using Firebase tokens.
 
@@ -101,7 +101,7 @@ class PurplexAuthentication(authentication.BaseAuthentication):
             )
             raise exceptions.AuthenticationFailed("Authentication failed")
 
-    def _extract_header_token(self, request) -> Optional[str]:
+    def _extract_header_token(self, request) -> str | None:
         """
         Extract token from Authorization header.
 
@@ -127,7 +127,7 @@ class PurplexAuthentication(authentication.BaseAuthentication):
 
         return None
 
-    def _extract_sse_session_token(self, request) -> Optional[str]:
+    def _extract_sse_session_token(self, request) -> str | None:
         """
         Extract SSE session token from request.
 
@@ -149,7 +149,7 @@ class PurplexAuthentication(authentication.BaseAuthentication):
         # This is still more secure than exposing Firebase tokens
         return request.GET.get("sse_token")
 
-    def _check_service_account(self, request) -> Optional[User]:
+    def _check_service_account(self, request) -> User | None:
         """
         Check for service account authentication.
 

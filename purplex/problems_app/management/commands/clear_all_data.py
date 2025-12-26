@@ -103,7 +103,7 @@ class Command(BaseCommand):
                     )
 
         except Exception as e:
-            raise CommandError(f"Error clearing database: {e}")
+            raise CommandError(f"Error clearing database: {e}") from e
 
     def _get_data_counts(self):
         """Get counts of all data that will be affected"""

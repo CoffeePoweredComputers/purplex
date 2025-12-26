@@ -6,9 +6,10 @@ Includes exponential backoff and circuit breaker patterns.
 import logging
 import random
 import time
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Tuple, Type
+from typing import Any
 
 from django.db import DatabaseError, OperationalError
 
@@ -33,7 +34,7 @@ class CircuitBreaker:
         self,
         failure_threshold: int = 5,
         recovery_timeout: int = 30,
-        expected_exception: Type[Exception] = OperationalError,
+        expected_exception: type[Exception] = OperationalError,
     ):
         """
         Initialize circuit breaker.
@@ -115,7 +116,7 @@ def retry_with_backoff(
     max_delay: float = 5.0,
     backoff_factor: float = 2.0,
     jitter: bool = True,
-    retriable_exceptions: Tuple[Type[Exception], ...] = (
+    retriable_exceptions: tuple[type[Exception], ...] = (
         OperationalError,
         DatabaseError,
     ),

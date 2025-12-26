@@ -103,7 +103,7 @@ if settings.DEBUG is False:  # Only in production
         """Serve the Vue.js frontend application"""
         index_path = os.path.join(settings.BASE_DIR, "purplex/client/dist/index.html")
         try:
-            with open(index_path, "r") as f:
+            with open(index_path) as f:
                 return HttpResponse(f.read(), content_type="text/html")
         except FileNotFoundError:
             return HttpResponse(

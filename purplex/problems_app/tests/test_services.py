@@ -62,9 +62,7 @@ class TestServiceIntegration(TestCase):
         # Mock API response - using non-overlapping lines for one-to-one mapping
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[
-            0
-        ].message.content = """
+        mock_response.choices[0].message.content = """
         {
             "segments": [
                 {"id": 1, "text": "calculates the sum", "code_lines": [1]},

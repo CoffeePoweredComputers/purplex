@@ -9,7 +9,7 @@ This service provides structured, research-grade data exports including:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -26,13 +26,13 @@ class ResearchExportService:
     @classmethod
     def export_complete_dataset(
         cls,
-        course: Optional[Course] = None,
-        problem_set: Optional[ProblemSet] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
+        course: Course | None = None,
+        problem_set: ProblemSet | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
         include_code: bool = False,
         anonymize: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Export complete research dataset with all metrics.
 
@@ -64,11 +64,11 @@ class ResearchExportService:
     @classmethod
     def _build_metadata(
         cls,
-        course: Optional[Course],
-        problem_set: Optional[ProblemSet],
-        start_date: Optional[datetime],
-        end_date: Optional[datetime],
-    ) -> Dict[str, Any]:
+        course: Course | None,
+        problem_set: ProblemSet | None,
+        start_date: datetime | None,
+        end_date: datetime | None,
+    ) -> dict[str, Any]:
         """Build export metadata."""
         return {
             "export_timestamp": timezone.now().isoformat(),
@@ -85,13 +85,13 @@ class ResearchExportService:
     @classmethod
     def _export_submissions(
         cls,
-        course: Optional[Course],
-        problem_set: Optional[ProblemSet],
-        start_date: Optional[datetime],
-        end_date: Optional[datetime],
+        course: Course | None,
+        problem_set: ProblemSet | None,
+        start_date: datetime | None,
+        end_date: datetime | None,
         include_code: bool,
         anonymize: bool,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Export detailed submission data."""
         from purplex.submissions.repositories import SubmissionRepository
 
@@ -152,10 +152,10 @@ class ResearchExportService:
     @classmethod
     def _export_progress(
         cls,
-        course: Optional[Course],
-        problem_set: Optional[ProblemSet],
+        course: Course | None,
+        problem_set: ProblemSet | None,
         anonymize: bool,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Export current progress state for all users."""
         from ..repositories import ProgressRepository
 
@@ -213,12 +213,12 @@ class ResearchExportService:
     @classmethod
     def _export_progress_history(
         cls,
-        course: Optional[Course],
-        problem_set: Optional[ProblemSet],
-        start_date: Optional[datetime],
-        end_date: Optional[datetime],
+        course: Course | None,
+        problem_set: ProblemSet | None,
+        start_date: datetime | None,
+        end_date: datetime | None,
         anonymize: bool,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Export historical progress snapshots."""
         from ..repositories import ProgressRepository
 
@@ -253,10 +253,10 @@ class ResearchExportService:
     @classmethod
     def _export_hint_usage(
         cls,
-        course: Optional[Course],
-        problem_set: Optional[ProblemSet],
+        course: Course | None,
+        problem_set: ProblemSet | None,
         anonymize: bool,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Export hint usage patterns and effectiveness."""
         from ..repositories import HintRepository
 
@@ -292,7 +292,7 @@ class ResearchExportService:
         return hint_usage
 
     @classmethod
-    def _format_test_results(cls, test_executions) -> List[Dict[str, Any]]:
+    def _format_test_results(cls, test_executions) -> list[dict[str, Any]]:
         """Format test execution results."""
         return [
             {
@@ -306,7 +306,7 @@ class ResearchExportService:
         ]
 
     @classmethod
-    def _format_hint_activations(cls, hint_activations) -> List[Dict[str, Any]]:
+    def _format_hint_activations(cls, hint_activations) -> list[dict[str, Any]]:
         """Format hint activation data."""
         return [
             {

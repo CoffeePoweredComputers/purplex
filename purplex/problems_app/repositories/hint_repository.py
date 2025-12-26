@@ -2,7 +2,7 @@
 Repository for ProblemHint model data access.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from purplex.problems_app.models import Problem, ProblemHint
 
@@ -20,7 +20,7 @@ class HintRepository(BaseRepository):
     model_class = ProblemHint
 
     @classmethod
-    def get_problem_hints(cls, problem: Problem) -> List:
+    def get_problem_hints(cls, problem: Problem) -> list:
         """
         Get all hints for a specific problem.
 
@@ -33,7 +33,7 @@ class HintRepository(BaseRepository):
         return list(ProblemHint.objects.filter(problem=problem).order_by("hint_type"))
 
     @classmethod
-    def get_problem_hints_by_type(cls, problem: Problem, hint_type: str) -> List:
+    def get_problem_hints_by_type(cls, problem: Problem, hint_type: str) -> list:
         """
         Get hints of a specific type for a problem.
 
@@ -47,14 +47,14 @@ class HintRepository(BaseRepository):
         return list(ProblemHint.objects.filter(problem=problem, hint_type=hint_type))
 
     @classmethod
-    def get_hint_by_id(cls, hint_id: int) -> Optional[ProblemHint]:
+    def get_hint_by_id(cls, hint_id: int) -> ProblemHint | None:
         """Get a specific hint by ID."""
         return ProblemHint.objects.filter(id=hint_id).first()
 
     @classmethod
     def get_hint_by_problem_and_type(
         cls, problem: Problem, hint_type: str
-    ) -> Optional[ProblemHint]:
+    ) -> ProblemHint | None:
         """
         Get a single hint by problem and type.
 
@@ -82,7 +82,7 @@ class HintRepository(BaseRepository):
         return ProblemHint.objects.filter(problem=problem, hint_type=hint_type).exists()
 
     @classmethod
-    def count_hints_for_problem(cls, problem: Problem) -> Dict[str, int]:
+    def count_hints_for_problem(cls, problem: Problem) -> dict[str, int]:
         """
         Count hints by type for a problem.
 
@@ -104,7 +104,7 @@ class HintRepository(BaseRepository):
         return result
 
     @classmethod
-    def get_all_hint_types(cls) -> List[str]:
+    def get_all_hint_types(cls) -> list[str]:
         """
         Get all unique hint types in the system.
 
@@ -138,7 +138,7 @@ class HintRepository(BaseRepository):
         )
 
     @classmethod
-    def bulk_create_hints(cls, hints: List[ProblemHint]) -> List[ProblemHint]:
+    def bulk_create_hints(cls, hints: list[ProblemHint]) -> list[ProblemHint]:
         """
         Bulk create multiple hints.
 
@@ -199,7 +199,7 @@ class HintRepository(BaseRepository):
 
     @classmethod
     def delete_problem_hints(
-        cls, problem: Problem, hint_type: Optional[str] = None
+        cls, problem: Problem, hint_type: str | None = None
     ) -> int:
         """
         Delete all hints for a problem, optionally filtered by type.
@@ -218,7 +218,7 @@ class HintRepository(BaseRepository):
         return deleted
 
     @classmethod
-    def get_problems_with_hints(cls, hint_type: Optional[str] = None) -> List:
+    def get_problems_with_hints(cls, hint_type: str | None = None) -> list:
         """
         Get all problems that have hints, optionally filtered by type.
 
@@ -237,7 +237,7 @@ class HintRepository(BaseRepository):
         )
 
     @classmethod
-    def get_hint_metadata(cls, hint_id: int) -> Optional[Dict[str, Any]]:
+    def get_hint_metadata(cls, hint_id: int) -> dict[str, Any] | None:
         """
         Get metadata for a hint (custom JSON field if exists).
 
@@ -253,7 +253,7 @@ class HintRepository(BaseRepository):
         return None
 
     @classmethod
-    def update_hint_metadata(cls, hint_id: int, metadata: Dict[str, Any]) -> bool:
+    def update_hint_metadata(cls, hint_id: int, metadata: dict[str, Any]) -> bool:
         """
         Update the metadata for a hint.
 
@@ -289,7 +289,7 @@ class HintRepository(BaseRepository):
         )
 
     @classmethod
-    def get_valid_hint_types(cls) -> List[str]:
+    def get_valid_hint_types(cls) -> list[str]:
         """
         Get list of valid hint type choices.
 
@@ -300,7 +300,7 @@ class HintRepository(BaseRepository):
 
     @classmethod
     def get_or_create_hint(
-        cls, problem: Problem, hint_type: str, defaults: Dict[str, Any]
+        cls, problem: Problem, hint_type: str, defaults: dict[str, Any]
     ) -> tuple:
         """
         Get or create a hint for a problem.
@@ -353,7 +353,7 @@ class HintRepository(BaseRepository):
         return queryset
 
     @classmethod
-    def get_activations_for_course_export(cls, course, user_ids: List[int]):
+    def get_activations_for_course_export(cls, course, user_ids: list[int]):
         """
         Get all hint activations for a course, optimized for export.
 

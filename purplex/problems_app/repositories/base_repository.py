@@ -2,7 +2,7 @@
 Base repository class with common database patterns.
 """
 
-from typing import Any, Dict, Generic, List, Optional, Tuple, Type, TypeVar
+from typing import Any, Generic, TypeVar
 
 from django.core.paginator import Paginator
 from django.db.models import Model, QuerySet
@@ -25,10 +25,10 @@ class BaseRepository(Generic[T]):
     All database logic must be encapsulated in repositories.
     """
 
-    model_class: Optional[Type[T]] = None
+    model_class: type[T] | None = None
 
     @classmethod
-    def get_by_id(cls, id: int) -> Optional[T]:
+    def get_by_id(cls, id: int) -> T | None:
         """Get a single record by primary key."""
         if not cls.model_class:
             raise NotImplementedError("model_class must be defined")
@@ -39,7 +39,7 @@ class BaseRepository(Generic[T]):
             return None
 
     @classmethod
-    def get_all(cls) -> List[T]:
+    def get_all(cls) -> list[T]:
         """Get all records as a list.
 
         WARNING: This loads all records into memory.
@@ -51,7 +51,7 @@ class BaseRepository(Generic[T]):
         return list(cls.model_class.objects.all())
 
     @classmethod
-    def filter(cls, **kwargs) -> List[T]:
+    def filter(cls, **kwargs) -> list[T]:
         """Filter records by given criteria and return as list.
 
         For complex queries with optimizations, create specific methods
@@ -87,7 +87,7 @@ class BaseRepository(Generic[T]):
         return cls.model_class.objects.create(**kwargs)
 
     @classmethod
-    def update_or_create(cls, defaults: Dict[str, Any], **kwargs) -> tuple[T, bool]:
+    def update_or_create(cls, defaults: dict[str, Any], **kwargs) -> tuple[T, bool]:
         """Update existing or create new record."""
         if not cls.model_class:
             raise NotImplementedError("model_class must be defined")
@@ -95,7 +95,7 @@ class BaseRepository(Generic[T]):
         return cls.model_class.objects.update_or_create(defaults=defaults, **kwargs)
 
     @classmethod
-    def bulk_create(cls, objects: List[T], **kwargs) -> List[T]:
+    def bulk_create(cls, objects: list[T], **kwargs) -> list[T]:
         """Bulk create records."""
         if not cls.model_class:
             raise NotImplementedError("model_class must be defined")
@@ -103,7 +103,7 @@ class BaseRepository(Generic[T]):
         return list(cls.model_class.objects.bulk_create(objects, **kwargs))
 
     @classmethod
-    def delete(cls, **kwargs) -> Tuple[int, Dict[str, int]]:
+    def delete(cls, **kwargs) -> tuple[int, dict[str, int]]:
         """Delete records matching criteria."""
         if not cls.model_class:
             raise NotImplementedError("model_class must be defined")
@@ -111,7 +111,7 @@ class BaseRepository(Generic[T]):
         return cls.model_class.objects.filter(**kwargs).delete()
 
     @classmethod
-    def filter_with_select_related(cls, select_fields: List[str], **kwargs) -> List[T]:
+    def filter_with_select_related(cls, select_fields: list[str], **kwargs) -> list[T]:
         """Filter with select_related optimization and return as list."""
         if not cls.model_class:
             raise NotImplementedError("model_class must be defined")
@@ -122,7 +122,7 @@ class BaseRepository(Generic[T]):
         return list(queryset)
 
     @classmethod
-    def filter_with_prefetch(cls, prefetch_fields: List[str], **kwargs) -> List[T]:
+    def filter_with_prefetch(cls, prefetch_fields: list[str], **kwargs) -> list[T]:
         """Filter with prefetch_related optimization and return as list."""
         if not cls.model_class:
             raise NotImplementedError("model_class must be defined")
@@ -133,7 +133,7 @@ class BaseRepository(Generic[T]):
         return list(queryset)
 
     @classmethod
-    def get_first(cls, **kwargs) -> Optional[T]:
+    def get_first(cls, **kwargs) -> T | None:
         """Get the first record matching criteria."""
         if not cls.model_class:
             raise NotImplementedError("model_class must be defined")
@@ -141,7 +141,7 @@ class BaseRepository(Generic[T]):
         return cls.model_class.objects.filter(**kwargs).first()
 
     @classmethod
-    def get_last(cls, **kwargs) -> Optional[T]:
+    def get_last(cls, **kwargs) -> T | None:
         """Get the last record matching criteria."""
         if not cls.model_class:
             raise NotImplementedError("model_class must be defined")
@@ -151,7 +151,7 @@ class BaseRepository(Generic[T]):
     @classmethod
     def paginate(
         cls, page: int = 1, per_page: int = 20, order_by: str = "-id", **filters
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Return paginated results as dict with items list.
 
         Returns:
@@ -198,8 +198,8 @@ class BaseRepository(Generic[T]):
     @classmethod
     def _build_optimized_queryset(
         cls,
-        select_related: List[str] = None,
-        prefetch_related: List[str] = None,
+        select_related: list[str] = None,
+        prefetch_related: list[str] = None,
         order_by: str = None,
         **filters,
     ) -> QuerySet:

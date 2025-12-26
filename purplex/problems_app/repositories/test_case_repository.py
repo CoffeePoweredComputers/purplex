@@ -2,7 +2,7 @@
 Repository for TestCase model data access.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from purplex.problems_app.models import Problem, TestCase
 
@@ -22,7 +22,7 @@ class TestCaseRepository(BaseRepository):
     @classmethod
     def get_problem_test_cases(
         cls, problem: Problem, include_hidden: bool = True
-    ) -> List[TestCase]:
+    ) -> list[TestCase]:
         """
         Get all test cases for a specific problem.
 
@@ -41,7 +41,7 @@ class TestCaseRepository(BaseRepository):
         return list(queryset.order_by("order", "id"))
 
     @classmethod
-    def get_visible_test_cases(cls, problem: Problem) -> List[TestCase]:
+    def get_visible_test_cases(cls, problem: Problem) -> list[TestCase]:
         """
         Get only visible (non-hidden) test cases for a problem.
 
@@ -58,7 +58,7 @@ class TestCaseRepository(BaseRepository):
         )
 
     @classmethod
-    def get_sample_test_cases(cls, problem: Problem) -> List[TestCase]:
+    def get_sample_test_cases(cls, problem: Problem) -> list[TestCase]:
         """
         Get only sample test cases for a problem.
 
@@ -75,13 +75,13 @@ class TestCaseRepository(BaseRepository):
         )
 
     @classmethod
-    def get_test_case_by_id(cls, test_case_id: int) -> Optional[TestCase]:
+    def get_test_case_by_id(cls, test_case_id: int) -> TestCase | None:
         """Get a specific test case by ID."""
         return TestCase.objects.filter(id=test_case_id).first()
 
     @classmethod
     def create_test_case(
-        cls, problem: Problem, inputs: List, expected_output: Any, **kwargs
+        cls, problem: Problem, inputs: list, expected_output: Any, **kwargs
     ) -> TestCase:
         """
         Create a new test case for a problem.
@@ -100,7 +100,7 @@ class TestCaseRepository(BaseRepository):
         )
 
     @classmethod
-    def bulk_create_test_cases(cls, test_cases: List[Dict[str, Any]]) -> List[TestCase]:
+    def bulk_create_test_cases(cls, test_cases: list[dict[str, Any]]) -> list[TestCase]:
         """
         Bulk create multiple test cases.
 

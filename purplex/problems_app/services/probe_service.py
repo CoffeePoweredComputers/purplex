@@ -10,7 +10,7 @@ Handles:
 import json
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from purplex.utils.redis_client import get_rate_limit_client
 
@@ -33,8 +33,8 @@ class ProbeService:
 
     @classmethod
     def execute_probe(
-        cls, problem: "ProbeableCodeProblem", user_id: int, probe_input: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        cls, problem: "ProbeableCodeProblem", user_id: int, probe_input: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Execute a probe query against the oracle (reference_solution).
 
@@ -78,7 +78,7 @@ class ProbeService:
     @classmethod
     def check_probe_limit(
         cls, problem: "ProbeableCodeProblem", user_id: int
-    ) -> Tuple[bool, Dict[str, Any]]:
+    ) -> tuple[bool, dict[str, Any]]:
         """
         Check if user can make another probe based on probe_mode.
 
@@ -193,7 +193,7 @@ class ProbeService:
     @classmethod
     def get_probe_history(
         cls, problem_id: int, user_id: int, limit: int = 50
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get the user's probe history for a problem.
 
@@ -225,7 +225,7 @@ class ProbeService:
     @classmethod
     def get_probe_status(
         cls, problem: "ProbeableCodeProblem", user_id: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get current probe status without executing a probe.
 
@@ -238,8 +238,8 @@ class ProbeService:
 
     @classmethod
     def _execute_oracle(
-        cls, reference_code: str, function_name: str, args: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        cls, reference_code: str, function_name: str, args: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Execute the oracle (reference_solution) with provided arguments.
 
@@ -357,7 +357,7 @@ class ProbeService:
         cls,
         problem: "ProbeableCodeProblem",
         user_id: int,
-        probe_input: Dict[str, Any],
+        probe_input: dict[str, Any],
         result: Any,
     ) -> None:
         """Record a successful probe in Redis."""
@@ -421,7 +421,7 @@ class ProbeService:
             return f"No probes remaining. Submit {submissions_to_next} more times to unlock more probes."
 
 
-def parse_function_signature(signature: str) -> List[Dict[str, str]]:
+def parse_function_signature(signature: str) -> list[dict[str, str]]:
     """
     Parse function signature to extract parameter names and types.
 
@@ -453,8 +453,8 @@ def parse_function_signature(signature: str) -> List[Dict[str, str]]:
 
 
 def validate_probe_input(
-    signature: str, probe_input: Dict[str, Any]
-) -> Tuple[bool, Optional[str]]:
+    signature: str, probe_input: dict[str, Any]
+) -> tuple[bool, str | None]:
     """
     Validate probe input against function signature.
 

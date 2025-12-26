@@ -9,7 +9,7 @@ this interface to handle its specific logic.
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from purplex.problems_app.models import Problem
@@ -21,7 +21,7 @@ class ValidationResult:
     """Result of input validation."""
 
     is_valid: bool
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
@@ -29,9 +29,9 @@ class ProcessingResult:
     """Result of submission processing."""
 
     success: bool
-    processed_code: Optional[str] = None
-    error: Optional[str] = None
-    type_specific_data: Optional[Dict[str, Any]] = None
+    processed_code: str | None = None
+    error: str | None = None
+    type_specific_data: dict[str, Any] | None = None
 
 
 @dataclass
@@ -50,9 +50,9 @@ class SubmissionOutcome:
 
     complete: bool
     submission: "Submission"
-    task_id: Optional[str] = None
-    error: Optional[str] = None
-    result_data: Dict[str, Any] = field(default_factory=dict)
+    task_id: str | None = None
+    error: str | None = None
+    result_data: dict[str, Any] = field(default_factory=dict)
 
 
 class ActivityHandler(ABC):
@@ -136,7 +136,7 @@ class ActivityHandler(ABC):
     # ─── Data Extraction ────────────────────────────────────────
 
     @abstractmethod
-    def extract_variations(self, submission: "Submission") -> List[str]:
+    def extract_variations(self, submission: "Submission") -> list[str]:
         """
         Extract code variations from a submission.
 
@@ -148,7 +148,7 @@ class ActivityHandler(ABC):
     @abstractmethod
     def extract_test_results(
         self, submission: "Submission", problem: "Problem"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Extract test results in frontend-compatible format.
         """
@@ -171,7 +171,7 @@ class ActivityHandler(ABC):
     # ─── API Configuration ──────────────────────────────────────
 
     @abstractmethod
-    def get_problem_config(self, problem: "Problem") -> Dict[str, Any]:
+    def get_problem_config(self, problem: "Problem") -> dict[str, Any]:
         """
         Return configuration for frontend rendering.
 
@@ -184,7 +184,7 @@ class ActivityHandler(ABC):
         pass
 
     @abstractmethod
-    def serialize_result(self, submission: "Submission") -> Dict[str, Any]:
+    def serialize_result(self, submission: "Submission") -> dict[str, Any]:
         """
         Serialize submission result for API response.
 
@@ -193,7 +193,7 @@ class ActivityHandler(ABC):
         pass
 
     @abstractmethod
-    def get_admin_config(self) -> Dict[str, Any]:
+    def get_admin_config(self) -> dict[str, Any]:
         """
         Return configuration for admin UI rendering.
 
@@ -214,7 +214,7 @@ class ActivityHandler(ABC):
         submission: "Submission",
         raw_input: str,
         problem: "Problem",
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> "SubmissionOutcome":
         """
         Execute the full submission lifecycle for this activity type.
@@ -247,9 +247,7 @@ class ActivityHandler(ABC):
     # ─── Shared Utilities ─────────────────────────────────────────
 
     @staticmethod
-    def _format_function_call(
-        function_name: str, input_values: Union[List[Any], Any]
-    ) -> str:
+    def _format_function_call(function_name: str, input_values: list[Any] | Any) -> str:
         """
         Format a function call string from function name and input values.
 

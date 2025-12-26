@@ -2,7 +2,7 @@
 Repository for Problem and ProblemSet model data access.
 """
 
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from django.db.models import Count, Prefetch, Q, QuerySet
 
@@ -44,17 +44,17 @@ class ProblemRepository(BaseRepository):
         )
 
     @classmethod
-    def get_problem_by_slug(cls, slug: str) -> Optional[Problem]:
+    def get_problem_by_slug(cls, slug: str) -> Problem | None:
         """Get a problem by its slug."""
         return Problem.objects.filter(slug=slug).first()
 
     @classmethod
-    def get_problem_by_id(cls, problem_id: int) -> Optional[Problem]:
+    def get_problem_by_id(cls, problem_id: int) -> Problem | None:
         """Get a problem by its ID."""
         return Problem.objects.filter(id=problem_id).first()
 
     @classmethod
-    def get_all_problems(cls) -> List[Problem]:
+    def get_all_problems(cls) -> list[Problem]:
         """Get all problems with optimizations."""
         queryset = (
             Problem.objects.all()
@@ -65,7 +65,7 @@ class ProblemRepository(BaseRepository):
         return list(cls._with_test_case_counts(queryset))
 
     @classmethod
-    def get_active_problems(cls) -> List[Problem]:
+    def get_active_problems(cls) -> list[Problem]:
         """Get all active (non-draft) problems."""
         queryset = (
             Problem.objects.filter(is_active=True)
@@ -76,7 +76,7 @@ class ProblemRepository(BaseRepository):
         return list(cls._with_test_case_counts(queryset))
 
     @classmethod
-    def get_problems_by_category(cls, category: ProblemCategory) -> List[Problem]:
+    def get_problems_by_category(cls, category: ProblemCategory) -> list[Problem]:
         """Get all problems in a specific category."""
         queryset = (
             Problem.objects.filter(categories=category)
@@ -86,7 +86,7 @@ class ProblemRepository(BaseRepository):
         return list(cls._with_test_case_counts(queryset))
 
     @classmethod
-    def get_problems_by_difficulty(cls, difficulty: int) -> List[Problem]:
+    def get_problems_by_difficulty(cls, difficulty: int) -> list[Problem]:
         """Get problems by difficulty level."""
         queryset = (
             Problem.objects.filter(difficulty=difficulty)
@@ -97,7 +97,7 @@ class ProblemRepository(BaseRepository):
         return list(cls._with_test_case_counts(queryset))
 
     @classmethod
-    def search_problems(cls, query: str) -> List[Problem]:
+    def search_problems(cls, query: str) -> list[Problem]:
         """Search problems by title or description."""
         queryset = (
             Problem.objects.filter(
@@ -110,13 +110,13 @@ class ProblemRepository(BaseRepository):
         return list(cls._with_test_case_counts(queryset))
 
     @classmethod
-    def get_problem_with_test_cases(cls, slug: str) -> Optional[Problem]:
+    def get_problem_with_test_cases(cls, slug: str) -> Problem | None:
         """Get a problem with all its test cases prefetched."""
         return Problem.objects.prefetch_related("test_cases").filter(slug=slug).first()
 
     # ProblemSet methods
     @classmethod
-    def get_all_problem_sets(cls) -> List[ProblemSet]:
+    def get_all_problem_sets(cls) -> list[ProblemSet]:
         """Get all problem sets."""
         return list(
             ProblemSet.objects.all()
@@ -126,17 +126,17 @@ class ProblemRepository(BaseRepository):
         )
 
     @classmethod
-    def get_problem_set_by_slug(cls, slug: str) -> Optional[ProblemSet]:
+    def get_problem_set_by_slug(cls, slug: str) -> ProblemSet | None:
         """Get a problem set by slug."""
         return ProblemSet.objects.filter(slug=slug).first()
 
     @classmethod
-    def get_problem_set_by_id(cls, problem_set_id: int) -> Optional[ProblemSet]:
+    def get_problem_set_by_id(cls, problem_set_id: int) -> ProblemSet | None:
         """Get a problem set by ID."""
         return ProblemSet.objects.filter(id=problem_set_id).first()
 
     @classmethod
-    def get_problem_set_with_problems(cls, slug: str) -> Optional[ProblemSet]:
+    def get_problem_set_with_problems(cls, slug: str) -> ProblemSet | None:
         """Get a problem set with all its problems prefetched."""
         return (
             ProblemSet.objects.prefetch_related(
@@ -152,7 +152,7 @@ class ProblemRepository(BaseRepository):
         )
 
     @classmethod
-    def get_problems_in_set(cls, problem_set: ProblemSet) -> List[Problem]:
+    def get_problems_in_set(cls, problem_set: ProblemSet) -> list[Problem]:
         """Get all problems in a problem set, ordered."""
         queryset = (
             Problem.objects.filter(problem_set_memberships__problem_set=problem_set)
@@ -170,7 +170,7 @@ class ProblemRepository(BaseRepository):
 
     # Category methods
     @classmethod
-    def get_all_categories(cls) -> List[ProblemCategory]:
+    def get_all_categories(cls) -> list[ProblemCategory]:
         """Get all problem categories."""
         return list(
             ProblemCategory.objects.all()
@@ -184,12 +184,12 @@ class ProblemRepository(BaseRepository):
         return ProblemCategory.objects.create(**kwargs)
 
     @classmethod
-    def find_category_by_exact_name(cls, name: str) -> Optional[ProblemCategory]:
+    def find_category_by_exact_name(cls, name: str) -> ProblemCategory | None:
         """Find a category by exact name (case-insensitive)."""
         return ProblemCategory.objects.filter(name__iexact=name).first()
 
     @classmethod
-    def get_user_created_problems(cls, user_id: int) -> List[Problem]:
+    def get_user_created_problems(cls, user_id: int) -> list[Problem]:
         """Get all problems created by a specific user."""
         queryset = (
             Problem.objects.filter(created_by_id=user_id)
@@ -199,7 +199,7 @@ class ProblemRepository(BaseRepository):
         return list(cls._with_test_case_counts(queryset))
 
     @classmethod
-    def count_problems_by_difficulty(cls) -> Dict[int, int]:
+    def count_problems_by_difficulty(cls) -> dict[int, int]:
         """Get count of problems grouped by difficulty."""
         counts = (
             Problem.objects.filter(is_active=True)
@@ -224,7 +224,7 @@ class ProblemRepository(BaseRepository):
     @classmethod
     def get_problem_test_case_by_id(
         cls, problem: Problem, test_case_id: int, include_hidden: bool = False
-    ) -> Optional[TestCase]:
+    ) -> TestCase | None:
         """Get a specific test case for a problem by ID."""
         queryset = TestCase.objects.filter(problem=problem, id=test_case_id)
         if not include_hidden:

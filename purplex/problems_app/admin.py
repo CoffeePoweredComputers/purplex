@@ -587,7 +587,9 @@ class UserProgressAdmin(admin.ModelAdmin):
         color = (
             "green"
             if obj.best_score >= 80
-            else "orange" if obj.best_score >= 50 else "red"
+            else "orange"
+            if obj.best_score >= 50
+            else "red"
         )
         return format_html(
             '<span style="color: {}; font-weight: bold;">{}%</span>',
@@ -711,7 +713,9 @@ class UserProblemSetProgressAdmin(admin.ModelAdmin):
         color = (
             "green"
             if obj.completion_percentage >= 80
-            else "orange" if obj.completion_percentage >= 50 else "red"
+            else "orange"
+            if obj.completion_percentage >= 50
+            else "red"
         )
         return format_html(
             '<span style="color: {}; font-weight: bold;">{}%</span>',

@@ -339,7 +339,7 @@ class AdminProblemSetListView(APIView):
         serializer = ProblemSetSerializer(problem_sets, many=True)
 
         # Add full URLs for icons
-        for problem_set, data in zip(problem_sets, serializer.data):
+        for problem_set, data in zip(problem_sets, serializer.data, strict=False):
             if problem_set.icon:
                 data["icon"] = SERVER_URL + problem_set.icon.url
 

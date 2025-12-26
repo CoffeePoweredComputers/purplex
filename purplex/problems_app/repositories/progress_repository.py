@@ -3,7 +3,7 @@ Repository for UserProgress and related model data access.
 """
 
 from datetime import timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.contrib.auth.models import User
 from django.db.models import Avg, Sum
@@ -36,9 +36,9 @@ class ProgressRepository(BaseRepository):
         cls,
         user: User,
         problem: Problem,
-        course: Optional[Course] = None,
-        problem_set: Optional[ProblemSet] = None,
-    ) -> Optional[UserProgress]:
+        course: Course | None = None,
+        problem_set: ProblemSet | None = None,
+    ) -> UserProgress | None:
         """
         Get a user's progress for a specific problem.
 
@@ -61,7 +61,7 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_or_create_user_progress(
-        cls, user: User, problem: Problem, course: Optional[Course] = None
+        cls, user: User, problem: Problem, course: Course | None = None
     ) -> tuple:
         """
         Get or create user progress for a problem.
@@ -80,15 +80,15 @@ class ProgressRepository(BaseRepository):
         cls,
         user: User,
         problem: Problem,
-        course: Optional[Course] = None,
-        problem_set: Optional[ProblemSet] = None,
+        course: Course | None = None,
+        problem_set: ProblemSet | None = None,
     ) -> int:
         """Get the number of attempts a user has made on a problem."""
         progress = cls.get_user_progress(user, problem, course, problem_set)
         return progress.attempts if progress else 0
 
     @classmethod
-    def get_user_all_progress(cls, user: User, course: Optional[Course] = None) -> List:
+    def get_user_all_progress(cls, user: User, course: Course | None = None) -> list:
         """Get all progress records for a user."""
         filters = {"user": user}
         if course:
@@ -102,8 +102,8 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_user_completed_problems(
-        cls, user: User, course: Optional[Course] = None
-    ) -> List:
+        cls, user: User, course: Course | None = None
+    ) -> list:
         """Get all problems completed by a user."""
         filters = {"user": user, "status": "completed"}
         if course:
@@ -113,8 +113,8 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_problem_set_progress(
-        cls, user: User, problem_set: ProblemSet, course: Optional[Course] = None
-    ) -> Optional[UserProblemSetProgress]:
+        cls, user: User, problem_set: ProblemSet, course: Course | None = None
+    ) -> UserProblemSetProgress | None:
         """Get user's progress for a problem set."""
         filters = {"user": user, "problem_set": problem_set}
         if course:
@@ -124,7 +124,7 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_or_create_problem_set_progress(
-        cls, user: User, problem_set: ProblemSet, course: Optional[Course] = None
+        cls, user: User, problem_set: ProblemSet, course: Course | None = None
     ) -> tuple:
         """Get or create problem set progress."""
         defaults = {"completed_problems": 0, "average_score": 0.0}
@@ -138,8 +138,8 @@ class ProgressRepository(BaseRepository):
         cls,
         user: User,
         problem_set: ProblemSet,
-        updates: Dict[str, Any],
-        course: Optional[Course] = None,
+        updates: dict[str, Any],
+        course: Course | None = None,
     ) -> bool:
         """Update problem set progress."""
         filters = {"user": user, "problem_set": problem_set}
@@ -151,8 +151,8 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_user_problem_set_progresses(
-        cls, user: User, course: Optional[Course] = None
-    ) -> List:
+        cls, user: User, course: Course | None = None
+    ) -> list:
         """Get all problem set progress records for a user."""
         filters = {"user": user}
         if course:
@@ -165,7 +165,7 @@ class ProgressRepository(BaseRepository):
         )
 
     @classmethod
-    def get_course_progress_summary(cls, user: User, course: Course) -> Dict[str, Any]:
+    def get_course_progress_summary(cls, user: User, course: Course) -> dict[str, Any]:
         """
         Get a summary of user's progress in a course.
 
@@ -190,7 +190,7 @@ class ProgressRepository(BaseRepository):
         }
 
     @classmethod
-    def get_recent_activity(cls, user: User, days: int = 7) -> List:
+    def get_recent_activity(cls, user: User, days: int = 7) -> list:
         """Get user's recent activity within specified days."""
         cutoff_date = timezone.now() - timedelta(days=days)
         return list(
@@ -203,10 +203,10 @@ class ProgressRepository(BaseRepository):
     def create_progress_snapshot(
         cls,
         user: User,
-        problem: Optional[Problem] = None,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
-        snapshot_data: Dict[str, Any] = None,
+        problem: Problem | None = None,
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
+        snapshot_data: dict[str, Any] = None,
     ) -> ProgressSnapshot:
         """Create a progress snapshot for tracking history."""
         return ProgressSnapshot.objects.create(
@@ -222,11 +222,11 @@ class ProgressRepository(BaseRepository):
     def get_progress_snapshots(
         cls,
         user: User,
-        problem: Optional[Problem] = None,
-        problem_set: Optional[ProblemSet] = None,
-        course: Optional[Course] = None,
+        problem: Problem | None = None,
+        problem_set: ProblemSet | None = None,
+        course: Course | None = None,
         days_back: int = 30,
-    ) -> List:
+    ) -> list:
         """Get progress snapshots for a user."""
         filters = {"user": user}
         if problem:
@@ -244,7 +244,7 @@ class ProgressRepository(BaseRepository):
         )
 
     @classmethod
-    def get_problem_statistics(cls, problem: Problem) -> Dict[str, Any]:
+    def get_problem_statistics(cls, problem: Problem) -> dict[str, Any]:
         """
         Get statistics for a specific problem across all users.
 
@@ -274,7 +274,7 @@ class ProgressRepository(BaseRepository):
         }
 
     @classmethod
-    def get_user_statistics(cls, user: User) -> Dict[str, Any]:
+    def get_user_statistics(cls, user: User) -> dict[str, Any]:
         """
         Get overall statistics for a user.
 
@@ -307,7 +307,7 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def reset_problem_progress(
-        cls, user: User, problem: Problem, course: Optional[Course] = None
+        cls, user: User, problem: Problem, course: Course | None = None
     ) -> bool:
         """Reset a user's progress for a specific problem."""
         filters = {"user": user, "problem": problem}
@@ -322,9 +322,9 @@ class ProgressRepository(BaseRepository):
         cls,
         user_id: int,
         problem_id: int,
-        problem_set_id: Optional[int] = None,
-        course_id: Optional[int] = None,
-    ) -> Optional[UserProgress]:
+        problem_set_id: int | None = None,
+        course_id: int | None = None,
+    ) -> UserProgress | None:
         """
         Get user progress by IDs.
 
@@ -343,9 +343,9 @@ class ProgressRepository(BaseRepository):
     def filter_by_ids(
         cls,
         user_id: int,
-        problem_id: Optional[int] = None,
-        problem_set_id: Optional[int] = None,
-        course_id: Optional[int] = None,
+        problem_id: int | None = None,
+        problem_set_id: int | None = None,
+        course_id: int | None = None,
     ):
         """
         Filter progress records by IDs.
@@ -367,9 +367,9 @@ class ProgressRepository(BaseRepository):
     def filter_problem_set_by_ids(
         cls,
         user_id: int,
-        problem_set_id: Optional[int] = None,
-        course_id: Optional[int] = None,
-    ) -> List:
+        problem_set_id: int | None = None,
+        course_id: int | None = None,
+    ) -> list:
         """
         Filter problem set progress by IDs.
 
@@ -387,7 +387,7 @@ class ProgressRepository(BaseRepository):
     @classmethod
     def get_problem_set_progress_with_relations(
         cls, user_id: int, problem_set_id: int
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Get problem set progress with related data.
 
@@ -417,7 +417,7 @@ class ProgressRepository(BaseRepository):
         }
 
     @classmethod
-    def get_course_progress_summary_data(cls, user_id: int) -> List[Dict[str, Any]]:
+    def get_course_progress_summary_data(cls, user_id: int) -> list[dict[str, Any]]:
         """
         Get all course progress data for user summary.
 
@@ -450,8 +450,8 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_problem_set_by_ids(
-        cls, user_id: int, problem_set_id: int, course_id: Optional[int] = None
-    ) -> Optional[UserProblemSetProgress]:
+        cls, user_id: int, problem_set_id: int, course_id: int | None = None
+    ) -> UserProblemSetProgress | None:
         """
         Get problem set progress by IDs.
 
@@ -465,7 +465,7 @@ class ProgressRepository(BaseRepository):
         return UserProblemSetProgress.objects.filter(**filters).first()
 
     @classmethod
-    def get_user_course_progress(cls, user: User, course: Course) -> List:
+    def get_user_course_progress(cls, user: User, course: Course) -> list:
         """
         Get all user progress records for a specific course.
 
@@ -484,8 +484,8 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_user_problem_set_progress_bulk(
-        cls, user: User, problem_set_ids: List[int], courses: List[Course]
-    ) -> List:
+        cls, user: User, problem_set_ids: list[int], courses: list[Course]
+    ) -> list:
         """
         Get user's progress for multiple problem sets across multiple courses.
 
@@ -507,7 +507,7 @@ class ProgressRepository(BaseRepository):
     @classmethod
     def get_user_course_progress_by_id(
         cls, user_id: int, course_id: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get user's progress for all problems in a course.
 
@@ -540,8 +540,8 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_user_problem_set_progress_for_course(
-        cls, user_id: int, problem_set_ids: List[int], course_id: int
-    ) -> List[Dict[str, Any]]:
+        cls, user_id: int, problem_set_ids: list[int], course_id: int
+    ) -> list[dict[str, Any]]:
         """
         Get user's progress for specific problem sets in a course.
 
@@ -574,8 +574,8 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_user_problem_set_progress_by_course(
-        cls, user: User, problem_set_ids: List[int], course: Course
-    ) -> List:
+        cls, user: User, problem_set_ids: list[int], course: Course
+    ) -> list:
         """
         Get user's progress for multiple problem sets within a specific course.
 
@@ -598,7 +598,7 @@ class ProgressRepository(BaseRepository):
     # =========================================================================
 
     @classmethod
-    def get_for_course_export(cls, course: Course, user_ids: List[int]):
+    def get_for_course_export(cls, course: Course, user_ids: list[int]):
         """
         Get all progress records for course export with optimized prefetch.
 
@@ -618,7 +618,7 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_for_research_export(
-        cls, course: Optional[Course] = None, problem_set: Optional[ProblemSet] = None
+        cls, course: Course | None = None, problem_set: ProblemSet | None = None
     ):
         """
         Get progress records for research export.
@@ -643,7 +643,7 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_snapshots_for_research_export(
-        cls, problem_set: Optional[ProblemSet] = None, start_date=None, end_date=None
+        cls, problem_set: ProblemSet | None = None, start_date=None, end_date=None
     ):
         """
         Get progress snapshots for research export.
@@ -670,7 +670,7 @@ class ProgressRepository(BaseRepository):
         return queryset
 
     @classmethod
-    def get_for_course_analytics(cls, course: Course, student_ids: List[int]):
+    def get_for_course_analytics(cls, course: Course, student_ids: list[int]):
         """
         Get progress records for course-level analytics.
 
@@ -685,7 +685,7 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_problem_set_for_course_analytics(
-        cls, course: Course, student_ids: List[int]
+        cls, course: Course, student_ids: list[int]
     ):
         """
         Get problem set progress for course-level analytics.
@@ -762,7 +762,7 @@ class ProgressRepository(BaseRepository):
 
     @classmethod
     def get_for_problem_analytics(
-        cls, course: Course, problem: Problem, student_ids: List[int]
+        cls, course: Course, problem: Problem, student_ids: list[int]
     ):
         """
         Get progress records for problem-level analytics.
@@ -788,8 +788,8 @@ class ProgressRepository(BaseRepository):
         cls,
         user: User,
         problem: Problem,
-        problem_set: Optional[ProblemSet],
-        course: Optional[Course],
+        problem_set: ProblemSet | None,
+        course: Course | None,
         nowait: bool = True,
     ):
         """
@@ -821,8 +821,8 @@ class ProgressRepository(BaseRepository):
         cls,
         user: User,
         problem: Problem,
-        problem_set: Optional[ProblemSet],
-        course: Optional[Course],
+        problem_set: ProblemSet | None,
+        course: Course | None,
         problem_version: int,
     ) -> UserProgress:
         """
@@ -851,8 +851,8 @@ class ProgressRepository(BaseRepository):
         cls,
         user: User,
         problem: Problem,
-        problem_set: Optional[ProblemSet],
-        course: Optional[Course],
+        problem_set: ProblemSet | None,
+        course: Course | None,
         nowait: bool = True,
     ):
         """
@@ -881,9 +881,7 @@ class ProgressRepository(BaseRepository):
         )
 
     @classmethod
-    def get_legacy_progress(
-        cls, user: User, problem: Problem, course: Optional[Course]
-    ):
+    def get_legacy_progress(cls, user: User, problem: Problem, course: Course | None):
         """
         Get legacy progress record without problem_set for migration.
 
@@ -907,9 +905,9 @@ class ProgressRepository(BaseRepository):
         cls,
         user: User,
         problem: Problem,
-        problem_set: Optional[ProblemSet],
+        problem_set: ProblemSet | None,
         snapshot_date,
-        defaults: Dict[str, Any],
+        defaults: dict[str, Any],
     ) -> tuple:
         """
         Update or create a progress snapshot.
