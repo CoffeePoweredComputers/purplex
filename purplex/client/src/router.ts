@@ -46,6 +46,31 @@ const routes: RouteRecordRaw[] = [
         }),
         meta: {requiresAuth: true}
     },
+    // Instructor routes (FERPA-compliant - instructors see only their courses)
+    {
+        path: "/instructor",
+        name: "InstructorDashboard",
+        component: () => import("./components/instructor/InstructorDashboard.vue"),
+        meta: {requiresAuth: true, requiresInstructor: true}
+    },
+    {
+        path: "/instructor/courses/:courseId",
+        name: "InstructorCourseDetail",
+        component: () => import("./components/instructor/InstructorCourseDetail.vue"),
+        meta: {requiresAuth: true, requiresInstructor: true}
+    },
+    {
+        path: "/instructor/courses/:courseId/students",
+        name: "InstructorStudents",
+        component: () => import("./components/instructor/InstructorStudents.vue"),
+        meta: {requiresAuth: true, requiresInstructor: true}
+    },
+    {
+        path: "/instructor/courses/:courseId/submissions",
+        name: "InstructorSubmissions",
+        component: () => import("./components/instructor/InstructorSubmissions.vue"),
+        meta: {requiresAuth: true, requiresInstructor: true}
+    },
     // Admin routes
     {
         path: "/admin/users",
@@ -99,6 +124,7 @@ const router = createRouter({
 router.beforeEach(async (to, _from, next) => {
     const requiresAuth = to.matched.some(record => record.meta?.requiresAuth);
     const requiresAdmin = to.matched.some(record => record.meta?.requiresAdmin);
+    const requiresInstructor = to.matched.some(record => record.meta?.requiresInstructor);
 
     // Use the debug mode from the Vuex store for consistency
     const debugBypassAuth = store.state.auth.debug;
@@ -110,6 +136,7 @@ router.beforeEach(async (to, _from, next) => {
     // Use persistent state from Vuex store
     const isAuthenticated = store.getters['auth/isLoggedIn'];
     const isAdmin = store.getters['auth/isAdmin'];
+    const isInstructor = store.getters['auth/isInstructor'];
 
     // If user is logged in and trying to access login page, redirect to home
     if (to.path === "/" && isAuthenticated) {
@@ -121,6 +148,10 @@ router.beforeEach(async (to, _from, next) => {
         next("/");
     } else if (requiresAdmin && !isAdmin && !debugBypassAuth) {
         // Redirect non-admin users trying to access admin routes
+        next("/");
+    } else if (requiresInstructor && !isInstructor && !debugBypassAuth) {
+        // Redirect non-instructor users trying to access instructor routes
+        // FERPA: Ensure only instructors can access instructor panel
         next("/");
     } else {
         next();

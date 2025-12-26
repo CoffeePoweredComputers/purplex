@@ -178,52 +178,34 @@
   </div>
 </template>
 
-<script lang="ts">
-import { computed, defineComponent, onMounted } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import CourseEnrollmentModal from '../modals/CourseEnrollmentModal.vue'
 import { waitForAuthState } from '../utils/auth-state'
 
-export default defineComponent({
-  name: 'Home',
-  components: {
-    CourseEnrollmentModal
-  },
-  setup() {
-    const store = useStore()
-    const router = useRouter()
+const store = useStore()
+const router = useRouter()
 
-    // Computed properties
-    const enrolledCourses = computed(() => store.state.courses.enrolledCourses)
-    const loading = computed(() => store.state.courses.loading)
-    const progressData = computed(() => store.state.courses.courseProgress)
+// Computed properties
+const enrolledCourses = computed(() => store.state.courses.enrolledCourses)
+const loading = computed(() => store.state.courses.loading)
 
-    // Methods
-    const showEnrollmentModal = (): void => {
-      store.dispatch('courses/showEnrollmentModal')
-    }
+function showEnrollmentModal(): void {
+  store.dispatch('courses/showEnrollmentModal')
+}
 
-    const navigateToProblemSet = (courseId: string, problemSetSlug: string): void => {
-      router.push(`/courses/${courseId}/problem-set/${problemSetSlug}`)
-    }
+function navigateToProblemSet(courseId: string, problemSetSlug: string): void {
+  router.push(`/courses/${courseId}/problem-set/${problemSetSlug}`)
+}
 
-
-    // Lifecycle
-    onMounted(async () => {
-      // Wait for auth state to be determined first
-      await waitForAuthState()
-      // Initialize courses data
-      await store.dispatch('courses/initializeCourses')
-    })
-
-    return {
-      enrolledCourses,
-      loading,
-      showEnrollmentModal,
-      navigateToProblemSet
-    }
-  }
+// Lifecycle
+onMounted(async () => {
+  // Wait for auth state to be determined first
+  await waitForAuthState()
+  // Initialize courses data
+  await store.dispatch('courses/initializeCourses')
 })
 </script>
 

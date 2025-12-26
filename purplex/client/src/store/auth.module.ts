@@ -585,6 +585,11 @@ export const auth: Module<AuthState, RootState> = {
   getters: {
     isLoggedIn: (state: AuthState): boolean => state.status.loggedIn,
     isAdmin: (state: AuthState): boolean => state.user?.isAdmin || false,
+    isInstructor: (state: AuthState): boolean => {
+      // Instructors and admins can access instructor features
+      const role = state.user?.role;
+      return role === 'instructor' || role === 'admin';
+    },
     getUser: (state: AuthState): User | null => state.user,
     getUserRole: (state: AuthState): string | null => state.user ? state.user.role : null,
     isAuthReady: (state: AuthState): boolean => state.authReady,

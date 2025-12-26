@@ -27,12 +27,8 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
-
-export default defineComponent({
-  name: 'LockedSegmentationBanner',
-});
+<script setup lang="ts">
+// Static component - no props or state needed
 </script>
 
 <style scoped>

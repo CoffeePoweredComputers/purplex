@@ -120,8 +120,8 @@
   </div>
 </template>
 
-<script lang="ts">
-import { computed, defineComponent, onMounted, Ref, ref } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import axios, { AxiosError } from 'axios'
@@ -129,56 +129,45 @@ import { log } from '@/utils/logger'
 import type { Course } from '@/types'
 import { waitForAuthState } from '@/utils/auth-state'
 
-export default defineComponent({
-  name: 'CourseDetail',
-  setup() {
-    const route = useRoute()
-    const router = useRouter()
-    const store = useStore()
+const route = useRoute()
+const router = useRouter()
+const store = useStore()
 
-    const course: Ref<Course | null> = ref(null)
-    const loading = ref(true)
-    const courseId = computed(() => route.params.courseId as string)
+const course = ref<Course | null>(null)
+const loading = ref(true)
+const courseId = computed(() => route.params.courseId as string)
 
-    const fetchCourseDetails = async (): Promise<void> => {
-      loading.value = true
-      try {
-        const response = await axios.get(`/api/courses/${courseId.value}/`)
-        course.value = response.data
+async function fetchCourseDetails(): Promise<void> {
+  loading.value = true
+  try {
+    const response = await axios.get(`/api/courses/${courseId.value}/`)
+    course.value = response.data
 
-        // Update current course in store
-        store.commit('courses/SET_CURRENT_COURSE', response.data)
-      } catch (error) {
-        const axiosError = error as AxiosError
-        log.error('Failed to fetch course details', { courseId: courseId.value, error: axiosError })
-        course.value = null
-      } finally {
-        loading.value = false
-      }
-    }
-
-    const navigateToProblemSet = (problemSetSlug: string): void => {
-      router.push({
-        name: 'CourseProblemSet',
-        params: {
-          courseId: courseId.value,
-          slug: problemSetSlug
-        }
-      })
-    }
-
-    onMounted(async () => {
-      // Wait for auth state to be determined first
-      await waitForAuthState()
-      fetchCourseDetails()
-    })
-
-    return {
-      course,
-      loading,
-      navigateToProblemSet
-    }
+    // Update current course in store
+    store.commit('courses/SET_CURRENT_COURSE', response.data)
+  } catch (error) {
+    const axiosError = error as AxiosError
+    log.error('Failed to fetch course details', { courseId: courseId.value, error: axiosError })
+    course.value = null
+  } finally {
+    loading.value = false
   }
+}
+
+function navigateToProblemSet(problemSetSlug: string): void {
+  router.push({
+    name: 'CourseProblemSet',
+    params: {
+      courseId: courseId.value,
+      slug: problemSetSlug
+    }
+  })
+}
+
+onMounted(async () => {
+  // Wait for auth state to be determined first
+  await waitForAuthState()
+  fetchCourseDetails()
 })
 </script>
 

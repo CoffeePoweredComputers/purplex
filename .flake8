@@ -1,0 +1,25 @@
+[flake8]
+max-line-length = 88
+# E501: Black handles line length (may produce lines slightly over 88 in edge cases)
+# E203: Black formats slices differently than PEP8
+# W503: Black prefers breaking before binary operators
+extend-ignore = E501,E203,W503
+exclude =
+    .git,
+    .venv,
+    env,
+    node_modules,
+    __pycache__,
+    build,
+    dist,
+per-file-ignores =
+    __init__.py:F401
+    */migrations/*:E501,W503
+    # Django settings use star imports (F403/F405) - this is standard Django pattern
+    purplex/settings/*.py:F403,F405,E402
+    # Files requiring setup before imports (E402)
+    purplex/celery_simple.py:E402
+    purplex/gevent_setup.py:E402
+    purplex/wsgi.py:E402
+    purplex/problems_app/tasks/pipeline.py:E402
+    purplex/users_app/services/authentication_service.py:E402

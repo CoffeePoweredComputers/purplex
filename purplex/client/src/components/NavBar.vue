@@ -12,10 +12,52 @@
             class="logo-icon"
           >
           <span
+            ref="etymologyContainer"
             class="logo-text"
             :class="{ 'non-latin': isNonLatinBrand }"
-          >{{ brandName }}</span>
+          >{{ brandName }}<button
+            v-if="hasEtymology"
+            class="etymology-superscript"
+            :aria-expanded="showEtymology"
+            aria-label="Learn about the meaning of this name"
+            @click.prevent.stop="showEtymology = !showEtymology"
+          >*</button></span>
         </router-link>
+        <!-- Etymology panel (outside router-link to avoid navigation on click) -->
+        <div
+          v-if="etymology && showEtymology"
+          class="etymology-panel"
+          role="dialog"
+          aria-labelledby="etymology-title"
+        >
+          <button
+            class="etymology-close"
+            aria-label="Close"
+            @click="showEtymology = false"
+          >
+            ×
+          </button>
+          <p
+            id="etymology-title"
+            class="etymology-translation"
+          >
+            "{{ etymology.translation }}"
+          </p>
+          <ul class="etymology-breakdown">
+            <li
+              v-for="(item, index) in etymology.breakdown"
+              :key="index"
+            >
+              {{ item }}
+            </li>
+          </ul>
+          <p
+            v-if="etymology.note"
+            class="etymology-note"
+          >
+            {{ etymology.note }}
+          </p>
+        </div>
       </div>
 
       <div class="nav-items">
@@ -46,21 +88,41 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import AccountModal from '../modals/AccountModal.vue';
-import { getBrandName, usesNonLatinBrand } from '../i18n/brand';
+import { type BrandEtymology, getBrandName, getEtymology, usesNonLatinBrand } from '../i18n/brand';
 
 const store = useStore();
 const { locale } = useI18n();
 
 const showAccountModal = ref(false);
+const showEtymology = ref(false);
+const etymologyContainer = ref<HTMLElement | null>(null);
 
 const isAdmin = computed(() => store.getters['auth/isAdmin']);
 
 const brandName = computed(() => getBrandName(locale.value));
 const isNonLatinBrand = computed(() => usesNonLatinBrand(locale.value));
+const etymology = computed<BrandEtymology | undefined>(() => getEtymology(locale.value));
+const hasEtymology = computed(() => !!etymology.value);
+
+// Click outside to close etymology panel
+function handleClickOutside(event: MouseEvent) {
+  if (showEtymology.value && etymologyContainer.value &&
+      !etymologyContainer.value.contains(event.target as Node)) {
+    showEtymology.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <style scoped>
@@ -156,6 +218,147 @@ const isNonLatinBrand = computed(() => usesNonLatinBrand(locale.value));
                  'Noto Sans Thai', 'Noto Sans JP', 'Noto Sans SC', system-ui, sans-serif;
     font-weight: 700;
     letter-spacing: 0;
+}
+
+/* Inline superscript for etymology */
+.etymology-superscript {
+    display: inline;
+    vertical-align: super;
+    font-size: 0.4em;
+    font-weight: 400;
+    padding: 0 0.15em;
+    margin-left: 0.1em;
+    background: none;
+    border: none;
+    color: rgba(167, 139, 250, 0.7);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    line-height: 1;
+    font-family: inherit;
+}
+
+.etymology-superscript:hover,
+.etymology-superscript:focus {
+    color: var(--color-text-primary);
+}
+
+.etymology-superscript:focus {
+    outline: none;
+    text-decoration: underline;
+}
+
+/* Etymology panel (click-to-reveal) */
+.etymology-panel {
+    position: absolute;
+    top: 100%;
+    left: var(--spacing-lg);
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    min-width: 280px;
+    max-width: 340px;
+    background: rgba(30, 27, 38, 0.98);
+    border: 1px solid rgba(139, 126, 200, 0.3);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(139, 126, 200, 0.1);
+    z-index: 1000;
+    animation: panelFadeIn 0.15s ease-out;
+}
+
+@keyframes panelFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Arrow/caret at top of panel */
+.etymology-panel::before {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: 24px;
+    width: 12px;
+    height: 12px;
+    background: rgba(30, 27, 38, 0.98);
+    border-left: 1px solid rgba(139, 126, 200, 0.3);
+    border-top: 1px solid rgba(139, 126, 200, 0.3);
+    transform: rotate(45deg);
+}
+
+/* Close button */
+.etymology-close {
+    position: absolute;
+    top: var(--spacing-xs);
+    right: var(--spacing-xs);
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.etymology-close:hover {
+    background: rgba(139, 126, 200, 0.2);
+    color: var(--color-text-primary);
+}
+
+/* Translation header */
+.etymology-translation {
+    margin: 0 0 var(--spacing-md) 0;
+    padding-right: var(--spacing-lg);
+    font-size: var(--font-size-md);
+    font-style: italic;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+/* Breakdown list */
+.etymology-breakdown {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.etymology-breakdown li {
+    position: relative;
+    padding-left: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.etymology-breakdown li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 6px;
+    height: 6px;
+    background: linear-gradient(135deg, #a78bfa, #8b7ec8);
+    border-radius: 50%;
+}
+
+/* Cultural note */
+.etymology-note {
+    margin: 0;
+    padding-top: var(--spacing-md);
+    border-top: 1px solid rgba(139, 126, 200, 0.2);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    line-height: 1.6;
+    font-style: italic;
 }
 
 /* Navigation items container */
@@ -281,6 +484,13 @@ const isNonLatinBrand = computed(() => usesNonLatinBrand(locale.value));
     .nav-icon {
         font-size: var(--font-size-sm);
     }
+
+    /* Smaller etymology panel on tablets */
+    .etymology-panel {
+        min-width: 240px;
+        max-width: 280px;
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
 }
 
 /* Smaller mobile - hide text, show icons only */
@@ -290,6 +500,10 @@ const isNonLatinBrand = computed(() => usesNonLatinBrand(locale.value));
     }
 
     .logo-text {
+        display: none;
+    }
+
+    .etymology-panel {
         display: none;
     }
 

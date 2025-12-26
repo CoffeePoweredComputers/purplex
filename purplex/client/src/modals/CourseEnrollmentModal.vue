@@ -100,60 +100,46 @@
   </Teleport>
 </template>
 
-<script>
+<script setup lang="ts">
 import { computed, ref, toRef } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 
-export default {
-  name: 'CourseEnrollmentModal',
-  setup() {
-    const store = useStore()
-    const router = useRouter()
-    const courseId = ref('')
+const store = useStore()
+const router = useRouter()
+const courseId = ref('')
 
-    const enrollmentModal = computed(() => store.state.courses.enrollmentModal)
+const enrollmentModal = computed(() => store.state.courses.enrollmentModal)
 
-    // Focus trap - visibility comes from store
-    const isVisible = computed(() => enrollmentModal.value?.visible ?? false)
-    const { modalContentRef } = useFocusTrap(toRef(isVisible, 'value'))
+// Focus trap - visibility comes from store
+const isVisible = computed(() => enrollmentModal.value?.visible ?? false)
+const { modalContentRef } = useFocusTrap(toRef(isVisible, 'value'))
 
-    const hideModal = () => {
-      store.dispatch('courses/hideEnrollmentModal')
-      courseId.value = ''
-    }
+function hideModal(): void {
+  store.dispatch('courses/hideEnrollmentModal')
+  courseId.value = ''
+}
 
-    const lookupCourse = async () => {
-      if (!courseId.value.trim()) {return}
+async function lookupCourse(): Promise<void> {
+  if (!courseId.value.trim()) { return }
 
-      try {
-        await store.dispatch('courses/lookupCourse', courseId.value.trim())
-      } catch (error) {
-        // Error is handled in the store
-      }
-    }
+  try {
+    await store.dispatch('courses/lookupCourse', courseId.value.trim())
+  } catch {
+    // Error is handled in the store
+  }
+}
 
-    const enrollInCourse = async () => {
-      if (!enrollmentModal.value.coursePreview) {return}
+async function enrollInCourse(): Promise<void> {
+  if (!enrollmentModal.value.coursePreview) { return }
 
-      try {
-        await store.dispatch('courses/enrollInCourse', enrollmentModal.value.coursePreview.course_id)
-        // Navigate to the course after successful enrollment
-        router.push(`/courses/${enrollmentModal.value.coursePreview.course_id}`)
-      } catch (error) {
-        // Error is handled in the store
-      }
-    }
-
-    return {
-      modalContentRef,
-      courseId,
-      enrollmentModal,
-      hideModal,
-      lookupCourse,
-      enrollInCourse
-    }
+  try {
+    await store.dispatch('courses/enrollInCourse', enrollmentModal.value.coursePreview.course_id)
+    // Navigate to the course after successful enrollment
+    router.push(`/courses/${enrollmentModal.value.coursePreview.course_id}`)
+  } catch {
+    // Error is handled in the store
   }
 }
 </script>

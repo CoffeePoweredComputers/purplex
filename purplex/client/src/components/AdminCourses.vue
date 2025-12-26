@@ -251,9 +251,9 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, onMounted, ref, Ref } from 'vue'
-import axios, { AxiosError } from 'axios'
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import axios, { type AxiosError } from 'axios'
 import AdminNavBar from './AdminNavBar.vue'
 import AdminCourseProblemSetsModal from './AdminCourseProblemSetsModal.vue'
 import AdminCourseStudentsModal from './AdminCourseStudentsModal.vue'
@@ -262,184 +262,157 @@ import { log } from '@/utils/logger'
 import type { Course } from '@/types'
 
 interface CourseForm {
-  course_id: string;
-  name: string;
-  description: string;
-  instructor_id: number | null;
-  is_active: boolean;
-  enrollment_open: boolean;
+  course_id: string
+  name: string
+  description: string
+  instructor_id: number | null
+  is_active: boolean
+  enrollment_open: boolean
 }
 
 interface Instructor {
-  id: number;
-  username: string;
-  email: string;
-  full_name: string;
-  is_staff: boolean;
+  id: number
+  username: string
+  email: string
+  full_name: string
+  is_staff: boolean
 }
 
-export default defineComponent({
-  name: 'AdminCourses',
-  components: {
-    AdminNavBar,
-    AdminCourseProblemSetsModal,
-    AdminCourseStudentsModal
-  },
-  setup() {
-    const { notify } = useNotification()
+interface APIErrorResponse {
+  error?: string
+}
 
-    // Data
-    const courses: Ref<Course[]> = ref([])
-    const instructors: Ref<Instructor[]> = ref([])
-    const loading = ref(true)
-    const saving = ref(false)
-    const showCreateModal = ref(false)
-    const showEditModal = ref(false)
-    const showProblemSetsModal = ref(false)
-    const showStudentsModal = ref(false)
-    const selectedCourse: Ref<Course | null> = ref(null)
+const { notify } = useNotification()
 
-    const courseForm: Ref<CourseForm> = ref({
-      course_id: '',
-      name: '',
-      description: '',
-      instructor_id: null,
-      is_active: true,
-      enrollment_open: true
-    })
+// Data
+const courses = ref<Course[]>([])
+const instructors = ref<Instructor[]>([])
+const loading = ref(true)
+const saving = ref(false)
+const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const showProblemSetsModal = ref(false)
+const showStudentsModal = ref(false)
+const selectedCourse = ref<Course | null>(null)
 
-    // Methods
-    const fetchCourses = async (): Promise<void> => {
-      loading.value = true
-      try {
-        const response = await axios.get('/api/admin/courses/')
-        courses.value = response.data
-      } catch (error) {
-        const axiosError = error as AxiosError
-        notify.error('Error', 'Failed to load courses')
-        log.error('Error fetching courses', { error: axiosError })
-      } finally {
-        loading.value = false
-      }
-    }
+const courseForm = ref<CourseForm>({
+  course_id: '',
+  name: '',
+  description: '',
+  instructor_id: null,
+  is_active: true,
+  enrollment_open: true
+})
 
-    const fetchInstructors = async (): Promise<void> => {
-      try {
-        const response = await axios.get('/api/admin/instructors/')
-        instructors.value = response.data
-      } catch (error) {
-        const axiosError = error as AxiosError
-        notify.error('Error', 'Failed to load instructors')
-        log.error('Error fetching instructors', { error: axiosError })
-      }
-    }
-
-    const saveCourse = async (): Promise<void> => {
-      saving.value = true
-      try {
-        if (showEditModal.value) {
-          // Update existing course
-          await axios.put(`/api/admin/courses/${selectedCourse.value.course_id}/`, courseForm.value)
-          notify.success('Success', 'Course updated successfully')
-        } else {
-          // Create new course
-          await axios.post('/api/admin/courses/', courseForm.value)
-          notify.success('Success', 'Course created successfully')
-        }
-
-        closeModals()
-        await fetchCourses()
-      } catch (error: unknown) {
-        const axiosError = error as { response?: { data?: { error?: string } } }
-        const errorMsg = axiosError.response?.data?.error || 'Failed to save course'
-        notify.error('Error', errorMsg)
-      } finally {
-        saving.value = false
-      }
-    }
-
-    const editCourse = (course: Course): void => {
-      selectedCourse.value = course
-      courseForm.value = {
-        course_id: course.course_id,
-        name: course.name,
-        description: course.description || '',
-        instructor_id: course.instructor_id,
-        is_active: course.is_active,
-        enrollment_open: course.enrollment_open
-      }
-      showEditModal.value = true
-    }
-
-    const deleteCourse = async (course: Course): Promise<void> => {
-      if (!confirm(`Are you sure you want to delete "${course.name}"? This action cannot be undone.`)) {
-        return
-      }
-
-      try {
-        await axios.delete(`/api/admin/courses/${course.course_id}/`)
-        notify.success('Success', 'Course deleted successfully')
-        await fetchCourses()
-      } catch (error) {
-        const axiosError = error as AxiosError
-        notify.error('Error', 'Failed to delete course')
-        log.error('Error deleting course', { error: axiosError })
-      }
-    }
-
-    const manageProblemSets = (course: Course): void => {
-      selectedCourse.value = course
-      showProblemSetsModal.value = true
-    }
-
-    const viewStudents = (course: Course): void => {
-      selectedCourse.value = course
-      showStudentsModal.value = true
-    }
-
-    const closeModals = (): void => {
-      showCreateModal.value = false
-      showEditModal.value = false
-      showProblemSetsModal.value = false
-      showStudentsModal.value = false
-      selectedCourse.value = null
-      courseForm.value = {
-        course_id: '',
-        name: '',
-        description: '',
-        instructor_id: null,
-        is_active: true,
-        enrollment_open: true
-      }
-    }
-
-    // Lifecycle
-    onMounted(() => {
-      fetchCourses()
-      fetchInstructors()
-    })
-
-    return {
-      courses,
-      instructors,
-      loading,
-      saving,
-      showCreateModal,
-      showEditModal,
-      showProblemSetsModal,
-      showStudentsModal,
-      selectedCourse,
-      courseForm,
-      fetchCourses,
-      fetchInstructors,
-      saveCourse,
-      editCourse,
-      deleteCourse,
-      manageProblemSets,
-      viewStudents,
-      closeModals
-    }
+// Methods
+async function fetchCourses(): Promise<void> {
+  loading.value = true
+  try {
+    const response = await axios.get<Course[]>('/api/admin/courses/')
+    courses.value = response.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    notify.error('Error', 'Failed to load courses')
+    log.error('Error fetching courses', { error: axiosError })
+  } finally {
+    loading.value = false
   }
+}
+
+async function fetchInstructors(): Promise<void> {
+  try {
+    const response = await axios.get<Instructor[]>('/api/admin/instructors/')
+    instructors.value = response.data
+  } catch (error) {
+    const axiosError = error as AxiosError
+    notify.error('Error', 'Failed to load instructors')
+    log.error('Error fetching instructors', { error: axiosError })
+  }
+}
+
+async function saveCourse(): Promise<void> {
+  saving.value = true
+  try {
+    if (showEditModal.value && selectedCourse.value) {
+      // Update existing course
+      await axios.put(`/api/admin/courses/${selectedCourse.value.course_id}/`, courseForm.value)
+      notify.success('Success', 'Course updated successfully')
+    } else {
+      // Create new course
+      await axios.post('/api/admin/courses/', courseForm.value)
+      notify.success('Success', 'Course created successfully')
+    }
+
+    closeModals()
+    await fetchCourses()
+  } catch (error) {
+    const axiosError = error as AxiosError<APIErrorResponse>
+    const errorMsg = axiosError.response?.data?.error || 'Failed to save course'
+    notify.error('Error', errorMsg)
+  } finally {
+    saving.value = false
+  }
+}
+
+function editCourse(course: Course): void {
+  selectedCourse.value = course
+  courseForm.value = {
+    course_id: course.course_id,
+    name: course.name,
+    description: course.description || '',
+    instructor_id: course.instructor_id,
+    is_active: course.is_active,
+    enrollment_open: course.enrollment_open
+  }
+  showEditModal.value = true
+}
+
+async function deleteCourse(course: Course): Promise<void> {
+  if (!confirm(`Are you sure you want to delete "${course.name}"? This action cannot be undone.`)) {
+    return
+  }
+
+  try {
+    await axios.delete(`/api/admin/courses/${course.course_id}/`)
+    notify.success('Success', 'Course deleted successfully')
+    await fetchCourses()
+  } catch (error) {
+    const axiosError = error as AxiosError
+    notify.error('Error', 'Failed to delete course')
+    log.error('Error deleting course', { error: axiosError })
+  }
+}
+
+function manageProblemSets(course: Course): void {
+  selectedCourse.value = course
+  showProblemSetsModal.value = true
+}
+
+function viewStudents(course: Course): void {
+  selectedCourse.value = course
+  showStudentsModal.value = true
+}
+
+function closeModals(): void {
+  showCreateModal.value = false
+  showEditModal.value = false
+  showProblemSetsModal.value = false
+  showStudentsModal.value = false
+  selectedCourse.value = null
+  courseForm.value = {
+    course_id: '',
+    name: '',
+    description: '',
+    instructor_id: null,
+    is_active: true,
+    enrollment_open: true
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  fetchCourses()
+  fetchInstructors()
 })
 </script>
 

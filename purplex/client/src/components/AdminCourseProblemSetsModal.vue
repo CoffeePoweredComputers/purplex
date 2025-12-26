@@ -171,226 +171,220 @@
   </Teleport>
 </template>
 
-<script lang="ts">
-import { defineComponent, type PropType, ref, toRef, watchEffect } from 'vue'
-import axios from 'axios'
+<script setup lang="ts">
+import { ref, toRef, watchEffect } from 'vue'
+import axios, { type AxiosError } from 'axios'
 import { useNotification } from '@/composables/useNotification'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 import { log } from '@/utils/logger'
 import type { Course } from '@/types'
 
-interface _ProblemSet {
+interface ProblemSetItem {
   slug: string
   title: string
   description?: string
   problems_count: number
 }
 
-export default defineComponent({
-  name: 'AdminCourseProblemSetsModal',
-  props: {
-    visible: {
-      type: Boolean,
-      required: true
-    },
-    course: {
-      type: Object as PropType<Course>,
-      required: true
-    }
-  },
-  emits: ['close', 'updated'] as const,
-  setup(props, { emit }) {
-    const { notify } = useNotification()
+interface CourseProblemSetItem {
+  id: number
+  order: number
+  is_required: boolean
+  problem_set: {
+    slug: string
+    title: string
+    problems_count: number
+  }
+}
 
-    // Focus trap composable
-    const { modalContentRef } = useFocusTrap(toRef(() => props.visible))
+interface APIErrorResponse {
+  error?: string
+}
 
-    const closeModal = () => {
-      emit('close')
-    }
+const props = defineProps<{
+  visible: boolean
+  course: Course
+}>()
 
-    // Data
-    const currentProblemSets = ref([])
-    const availableProblemSets = ref([])
-    const loading = ref({
-      current: false,
-      available: false,
-      adding: false
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'updated'): void
+}>()
+
+const { notify } = useNotification()
+
+// Focus trap composable
+const { modalContentRef } = useFocusTrap(toRef(() => props.visible))
+
+// Data
+const currentProblemSets = ref<CourseProblemSetItem[]>([])
+const availableProblemSets = ref<ProblemSetItem[]>([])
+const loading = ref({
+  current: false,
+  available: false,
+  adding: false
+})
+
+function closeModal(): void {
+  emit('close')
+}
+
+async function fetchCurrentProblemSets(): Promise<void> {
+  loading.value.current = true
+  try {
+    const response = await axios.get<CourseProblemSetItem[]>(`/api/admin/courses/${props.course.course_id}/problem-sets/`)
+    currentProblemSets.value = response.data
+  } catch (error) {
+    notify.error('Error', 'Failed to load current problem sets')
+    log.error('Error fetching current problem sets', { error, courseId: props.course.course_id })
+  } finally {
+    loading.value.current = false
+  }
+}
+
+async function fetchAvailableProblemSets(): Promise<void> {
+  loading.value.available = true
+  try {
+    const response = await axios.get<ProblemSetItem[]>('/api/admin/problem-sets/available/', {
+      params: { exclude_course: props.course.course_id }
+    })
+    availableProblemSets.value = response.data
+  } catch (error) {
+    notify.error('Error', 'Failed to load available problem sets')
+    log.error('Error fetching available problem sets', { error, courseId: props.course.course_id })
+  } finally {
+    loading.value.available = false
+  }
+}
+
+async function addProblemSet(problemSet: ProblemSetItem): Promise<void> {
+  loading.value.adding = true
+  try {
+    const response = await axios.post<CourseProblemSetItem>(`/api/admin/courses/${props.course.course_id}/problem-sets/`, {
+      problem_set_slug: problemSet.slug,
+      is_required: false
     })
 
-    // Methods
-    const fetchCurrentProblemSets = async () => {
-      loading.value.current = true
-      try {
-        const response = await axios.get(`/api/admin/courses/${props.course.course_id}/problem-sets/`)
-        currentProblemSets.value = response.data
-      } catch (error) {
-        notify.error('Error', 'Failed to load current problem sets')
-        log.error('Error fetching current problem sets', { error, courseId: props.course.course_id })
-      } finally {
-        loading.value.current = false
-      }
+    // Add to current list
+    currentProblemSets.value.push(response.data)
+
+    // Remove from available list
+    const index = availableProblemSets.value.findIndex(ps => ps.slug === problemSet.slug)
+    if (index > -1) {
+      availableProblemSets.value.splice(index, 1)
     }
 
-    const fetchAvailableProblemSets = async () => {
-      loading.value.available = true
-      try {
-        const response = await axios.get('/api/admin/problem-sets/available/', {
-          params: { exclude_course: props.course.course_id }
-        })
-        availableProblemSets.value = response.data
-      } catch (error) {
-        notify.error('Error', 'Failed to load available problem sets')
-        log.error('Error fetching available problem sets', { error, courseId: props.course.course_id })
-      } finally {
-        loading.value.available = false
-      }
+    notify.success('Success', 'Problem set added to course')
+    emit('updated')
+  } catch (error) {
+    const axiosError = error as AxiosError<APIErrorResponse>
+    const errorMsg = axiosError.response?.data?.error || 'Failed to add problem set'
+    notify.error('Error', errorMsg)
+  } finally {
+    loading.value.adding = false
+  }
+}
+
+async function removeProblemSet(item: CourseProblemSetItem): Promise<void> {
+  if (!confirm(`Remove "${item.problem_set.title}" from this course?`)) {
+    return
+  }
+
+  try {
+    await axios.delete(`/api/admin/courses/${props.course.course_id}/problem-sets/${item.problem_set.slug}/`)
+
+    // Remove from current list
+    const index = currentProblemSets.value.findIndex(ps => ps.id === item.id)
+    if (index > -1) {
+      currentProblemSets.value.splice(index, 1)
     }
 
-    const addProblemSet = async (problemSet) => {
-      loading.value.adding = true
-      try {
-        const response = await axios.post(`/api/admin/courses/${props.course.course_id}/problem-sets/`, {
-          problem_set_slug: problemSet.slug,
-          is_required: false
-        })
-
-        // Add to current list
-        currentProblemSets.value.push(response.data)
-
-        // Remove from available list
-        const index = availableProblemSets.value.findIndex(ps => ps.slug === problemSet.slug)
-        if (index > -1) {
-          availableProblemSets.value.splice(index, 1)
-        }
-
-        notify.success('Success', 'Problem set added to course')
-        emit('updated')
-      } catch (error) {
-        const errorMsg = error.response?.data?.error || 'Failed to add problem set'
-        notify.error('Error', errorMsg)
-      } finally {
-        loading.value.adding = false
-      }
-    }
-
-    const removeProblemSet = async (item) => {
-      if (!confirm(`Remove "${item.problem_set.title}" from this course?`)) {
-        return
-      }
-
-      try {
-        await axios.delete(`/api/admin/courses/${props.course.course_id}/problem-sets/${item.problem_set.slug}/`)
-
-        // Remove from current list
-        const index = currentProblemSets.value.findIndex(ps => ps.id === item.id)
-        if (index > -1) {
-          currentProblemSets.value.splice(index, 1)
-        }
-
-        // Add back to available list
-        availableProblemSets.value.push({
-          slug: item.problem_set.slug,
-          title: item.problem_set.title,
-          problems_count: item.problem_set.problems_count,
-          description: '' // We don't have description in current data
-        })
-
-        // Sort available list by title
-        availableProblemSets.value.sort((a, b) => a.title.localeCompare(b.title))
-
-        notify.success('Success', 'Problem set removed from course')
-        emit('updated')
-      } catch (error) {
-        notify.error('Error', 'Failed to remove problem set')
-      }
-    }
-
-    const updateRequired = async (item) => {
-      try {
-        await axios.put(`/api/admin/courses/${props.course.course_id}/problem-sets/${item.problem_set.slug}/`, {
-          is_required: item.is_required
-        })
-        notify.success('Success', 'Required status updated')
-      } catch (error) {
-        // Revert on error
-        item.is_required = !item.is_required
-        notify.error('Error', 'Failed to update required status')
-      }
-    }
-
-    const moveUp = async (index) => {
-      if (index === 0) {return}
-
-      const current = currentProblemSets.value[index]
-      const previous = currentProblemSets.value[index - 1]
-
-      // Swap orders
-      const currentOrder = current.order
-      current.order = previous.order
-      previous.order = currentOrder
-
-      // Swap positions in array
-      currentProblemSets.value.splice(index - 1, 2, current, previous)
-
-      // Update both items
-      await updateOrder(current)
-      await updateOrder(previous)
-    }
-
-    const moveDown = async (index) => {
-      if (index === currentProblemSets.value.length - 1) {return}
-
-      const current = currentProblemSets.value[index]
-      const next = currentProblemSets.value[index + 1]
-
-      // Swap orders
-      const currentOrder = current.order
-      current.order = next.order
-      next.order = currentOrder
-
-      // Swap positions in array
-      currentProblemSets.value.splice(index, 2, next, current)
-
-      // Update both items
-      await updateOrder(current)
-      await updateOrder(next)
-    }
-
-    const updateOrder = async (item) => {
-      try {
-        await axios.put(`/api/admin/courses/${props.course.course_id}/problem-sets/${item.problem_set.slug}/`, {
-          order: item.order
-        })
-      } catch (error) {
-        notify.error('Error', 'Failed to update order')
-        // Reload to get correct order
-        fetchCurrentProblemSets()
-      }
-    }
-
-    // Use watchEffect to reactively fetch data when both visible and course are available
-    watchEffect(() => {
-      if (props.visible && props.course && props.course.course_id) {
-        fetchCurrentProblemSets()
-        fetchAvailableProblemSets()
-      }
+    // Add back to available list
+    availableProblemSets.value.push({
+      slug: item.problem_set.slug,
+      title: item.problem_set.title,
+      problems_count: item.problem_set.problems_count,
+      description: '' // We don't have description in current data
     })
 
-    return {
-      modalContentRef,
-      closeModal,
-      currentProblemSets,
-      availableProblemSets,
-      loading,
-      fetchCurrentProblemSets,
-      fetchAvailableProblemSets,
-      addProblemSet,
-      removeProblemSet,
-      updateRequired,
-      moveUp,
-      moveDown
-    }
+    // Sort available list by title
+    availableProblemSets.value.sort((a, b) => a.title.localeCompare(b.title))
+
+    notify.success('Success', 'Problem set removed from course')
+    emit('updated')
+  } catch {
+    notify.error('Error', 'Failed to remove problem set')
+  }
+}
+
+async function updateRequired(item: CourseProblemSetItem): Promise<void> {
+  try {
+    await axios.put(`/api/admin/courses/${props.course.course_id}/problem-sets/${item.problem_set.slug}/`, {
+      is_required: item.is_required
+    })
+    notify.success('Success', 'Required status updated')
+  } catch {
+    // Revert on error
+    item.is_required = !item.is_required
+    notify.error('Error', 'Failed to update required status')
+  }
+}
+
+async function updateOrder(item: CourseProblemSetItem): Promise<void> {
+  try {
+    await axios.put(`/api/admin/courses/${props.course.course_id}/problem-sets/${item.problem_set.slug}/`, {
+      order: item.order
+    })
+  } catch {
+    notify.error('Error', 'Failed to update order')
+    // Reload to get correct order
+    fetchCurrentProblemSets()
+  }
+}
+
+async function moveUp(index: number): Promise<void> {
+  if (index === 0) { return }
+
+  const current = currentProblemSets.value[index]
+  const previous = currentProblemSets.value[index - 1]
+
+  // Swap orders
+  const currentOrder = current.order
+  current.order = previous.order
+  previous.order = currentOrder
+
+  // Swap positions in array
+  currentProblemSets.value.splice(index - 1, 2, current, previous)
+
+  // Update both items
+  await updateOrder(current)
+  await updateOrder(previous)
+}
+
+async function moveDown(index: number): Promise<void> {
+  if (index === currentProblemSets.value.length - 1) { return }
+
+  const current = currentProblemSets.value[index]
+  const next = currentProblemSets.value[index + 1]
+
+  // Swap orders
+  const currentOrder = current.order
+  current.order = next.order
+  next.order = currentOrder
+
+  // Swap positions in array
+  currentProblemSets.value.splice(index, 2, next, current)
+
+  // Update both items
+  await updateOrder(current)
+  await updateOrder(next)
+}
+
+// Use watchEffect to reactively fetch data when both visible and course are available
+watchEffect(() => {
+  if (props.visible && props.course && props.course.course_id) {
+    fetchCurrentProblemSets()
+    fetchAvailableProblemSets()
   }
 })
 </script>

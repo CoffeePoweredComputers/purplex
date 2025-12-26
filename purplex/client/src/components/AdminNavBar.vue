@@ -47,12 +47,8 @@
   </nav>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
-
-export default defineComponent({
-    name: "AdminNavBar"
-})
+<script setup lang="ts">
+// Static navigation component - no props or state needed
 </script>
 
 <style scoped>

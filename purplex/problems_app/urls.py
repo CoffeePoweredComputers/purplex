@@ -48,6 +48,12 @@ from .views.instructor_analytics_views import (
     InstructorStudentListView,
 )
 
+# Instructor FERPA-compliant views
+from .views.instructor_views import (
+    InstructorCourseProblemSetsView,
+    InstructorCourseSubmissionsView,
+)
+
 # Probe views for Probeable Code problems
 from .views.probe_views import (
     ProbeHistoryView,
@@ -288,9 +294,19 @@ urlpatterns = [
         name="instructor_course_progress",
     ),
     path(
+        "instructor/courses/<str:course_id>/problem-sets/",
+        InstructorCourseProblemSetsView.as_view(),
+        name="instructor_course_problemsets",
+    ),
+    path(
         "instructor/courses/<str:course_id>/problem-sets/order/",
         InstructorCourseProblemSetOrderView.as_view(),
         name="instructor_course_reorder",
+    ),
+    path(
+        "instructor/courses/<str:course_id>/submissions/",
+        InstructorCourseSubmissionsView.as_view(),
+        name="instructor_course_submissions",
     ),
     # Instructor Analytics Views
     path(

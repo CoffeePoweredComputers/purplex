@@ -112,8 +112,8 @@
   </Teleport>
 </template>
 
-<script lang="ts">
-import { defineComponent, type PropType, ref, toRef, watch } from 'vue'
+<script setup lang="ts">
+import { ref, toRef, watch } from 'vue'
 import axios, { type AxiosError } from 'axios'
 import { useNotification } from '@/composables/useNotification'
 import { useFocusTrap } from '@/composables/useFocusTrap'
@@ -144,106 +144,88 @@ interface APIErrorResponse {
   error?: string
 }
 
-export default defineComponent({
-  name: 'AdminCourseStudentsModal',
-  props: {
-    visible: {
-      type: Boolean,
-      required: true
-    },
-    course: {
-      type: Object as PropType<Course>,
-      required: true
-    }
-  },
-  emits: ['close', 'updated'] as const,
-  setup(props, { emit }) {
-    const { notify } = useNotification()
+const props = defineProps<{
+  visible: boolean
+  course: Course
+}>()
 
-    // Focus trap composable
-    const { modalContentRef } = useFocusTrap(toRef(() => props.visible))
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'updated'): void
+}>()
 
-    const closeModal = (): void => {
-      emit('close')
-    }
+const { notify } = useNotification()
 
-    // Data
-    const students = ref<CourseStudent[]>([])
-    const loading = ref<boolean>(false)
+// Focus trap composable
+const { modalContentRef } = useFocusTrap(toRef(() => props.visible))
 
-    // Methods
-    const fetchStudents = async (): Promise<void> => {
-      loading.value = true
-      try {
-        const response = await axios.get<CourseStudent[]>(`/api/admin/courses/${props.course.course_id}/students/`)
-        students.value = response.data
-      } catch (error) {
-        notify.error('Error', 'Failed to load students')
-        log.error('Error fetching students', { error, courseId: props.course.course_id })
-      } finally {
-        loading.value = false
-      }
-    }
+// Data
+const students = ref<CourseStudent[]>([])
+const loading = ref(false)
 
-    const removeStudent = async (student: CourseStudent): Promise<void> => {
-      const studentName = getStudentName(student.user)
-      if (!confirm(`Remove ${studentName} from this course?`)) {
-        return
-      }
+function closeModal(): void {
+  emit('close')
+}
 
-      try {
-        await axios.delete(`/api/admin/courses/${props.course.course_id}/students/${student.user.id}/`)
+async function fetchStudents(): Promise<void> {
+  loading.value = true
+  try {
+    const response = await axios.get<CourseStudent[]>(`/api/admin/courses/${props.course.course_id}/students/`)
+    students.value = response.data
+  } catch (error) {
+    notify.error('Error', 'Failed to load students')
+    log.error('Error fetching students', { error, courseId: props.course.course_id })
+  } finally {
+    loading.value = false
+  }
+}
 
-        // Remove from list
-        const index = students.value.findIndex(s => s.user.id === student.user.id)
-        if (index > -1) {
-          students.value.splice(index, 1)
-        }
+function getStudentName(user: User): string {
+  if (user.first_name || user.last_name) {
+    return `${user.first_name || ''} ${user.last_name || ''}`.trim()
+  }
+  return user.username
+}
 
-        notify.success('Success', 'Student removed from course')
-        emit('updated')
-      } catch (error) {
-        const axiosError = error as AxiosError<APIErrorResponse>
-        const errorMsg = axiosError.response?.data?.error || 'Failed to remove student'
-        notify.error('Error', errorMsg)
-      }
+async function removeStudent(student: CourseStudent): Promise<void> {
+  const studentName = getStudentName(student.user)
+  if (!confirm(`Remove ${studentName} from this course?`)) {
+    return
+  }
+
+  try {
+    await axios.delete(`/api/admin/courses/${props.course.course_id}/students/${student.user.id}/`)
+
+    // Remove from list
+    const index = students.value.findIndex(s => s.user.id === student.user.id)
+    if (index > -1) {
+      students.value.splice(index, 1)
     }
 
-    const getStudentName = (user: User): string => {
-      if (user.first_name || user.last_name) {
-        return `${user.first_name || ''} ${user.last_name || ''}`.trim()
-      }
-      return user.username
-    }
+    notify.success('Success', 'Student removed from course')
+    emit('updated')
+  } catch (error) {
+    const axiosError = error as AxiosError<APIErrorResponse>
+    const errorMsg = axiosError.response?.data?.error || 'Failed to remove student'
+    notify.error('Error', errorMsg)
+  }
+}
 
-    const formatDate = (dateString: string): string => {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    }
+function formatDate(dateString: string): string {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
 
-    // Watch for modal visibility changes
-    watch(() => props.visible, (newVal: boolean) => {
-      if (newVal) {
-        setTimeout(() => {
-          fetchStudents()
-        }, 50) // Small delay to ensure modal is rendered
-      }
-    })
-
-    return {
-      modalContentRef,
-      closeModal,
-      students,
-      loading,
-      fetchStudents,
-      removeStudent,
-      getStudentName,
-      formatDate
-    }
+// Watch for modal visibility changes
+watch(() => props.visible, (newVal: boolean) => {
+  if (newVal) {
+    setTimeout(() => {
+      fetchStudents()
+    }, 50) // Small delay to ensure modal is rendered
   }
 })
 </script>

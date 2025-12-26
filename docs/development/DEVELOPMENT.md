@@ -2,14 +2,11 @@
 
 ## Code Quality Checks
 
-```bash
-# Check for business logic violations (NEW)
-python scripts/check_business_logic.py
-
-# Run before committing to ensure no violations
-# Exit code 0 = no blocking violations
-# Exit code 1 = blocking violations found
-```
+Code quality is enforced through:
+- **Linting**: `make lint` runs flake8 (Python) and eslint (TypeScript)
+- **Formatting**: `make format` runs black and isort
+- **Pre-commit hooks**: See `.pre-commit-config.yaml`
+- **Code review**: Follow patterns in [STANDARDS.md](./STANDARDS.md) and [PATTERNS.md](./PATTERNS.md)
 
 ## Quick Start
 
