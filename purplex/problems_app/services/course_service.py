@@ -232,16 +232,102 @@ class CourseService:
         return CourseRepository.get_instructor_courses_with_stats(instructor.id)
 
     @staticmethod
-    def get_instructor_course_students(course) -> list[dict[str, Any]]:
-        """Get all enrolled students for an instructor's course.
+    def get_instructor_course_students(course) -> dict[str, Any]:
+        """Get all enrolled students with per-problem-set progress.
 
         Args:
             course: Course instance
 
         Returns:
-            List of dicts with enrollment and user data
+            Dict with 'problem_sets' list and 'students' list
         """
-        return CourseRepository.get_course_enrollments_with_users(course.id)
+        from ..repositories import CourseEnrollmentRepository
+
+        # Get problem sets for this course (ordered)
+        course_problem_sets = (
+            course.courseproblemset_set.select_related("problem_set")
+            .order_by("order")
+            .all()
+        )
+        problem_sets = [
+            {
+                "id": cps.problem_set.id,
+                "title": cps.problem_set.title,
+                "slug": cps.problem_set.slug,
+                "order": cps.order,
+            }
+            for cps in course_problem_sets
+        ]
+        problem_set_ids = [ps["id"] for ps in problem_sets]
+
+        # Get enrollments with aggregate progress stats
+        enrollments = CourseEnrollmentRepository.get_enrollments_with_progress_stats(
+            course
+        )
+
+        # Get per-problem-set progress for all students in one query
+        from ..models import UserProblemSetProgress
+
+        all_ps_progress = UserProblemSetProgress.objects.filter(
+            course=course, problem_set_id__in=problem_set_ids
+        ).select_related("problem_set")
+
+        # Index by user_id for fast lookup
+        ps_progress_by_user: dict[int, dict[int, dict]] = {}
+        for psp in all_ps_progress:
+            if psp.user_id not in ps_progress_by_user:
+                ps_progress_by_user[psp.user_id] = {}
+            ps_progress_by_user[psp.user_id][psp.problem_set_id] = {
+                "completed_problems": psp.completed_problems,
+                "total_problems": psp.total_problems,
+                "completion_percentage": round(psp.completion_percentage or 0, 1),
+                "average_score": round(psp.average_score or 0, 1),
+                "is_completed": psp.is_completed,
+            }
+
+        students = []
+        for enrollment in enrollments:
+            user = enrollment.user
+            user_ps_progress = ps_progress_by_user.get(user.id, {})
+
+            # Build problem set progress array in order
+            problem_set_progress = []
+            for ps in problem_sets:
+                ps_data = user_ps_progress.get(ps["id"], {})
+                problem_set_progress.append(
+                    {
+                        "problem_set_id": ps["id"],
+                        "problem_set_title": ps["title"],
+                        "problem_set_slug": ps["slug"],
+                        "completed_problems": ps_data.get("completed_problems", 0),
+                        "total_problems": ps_data.get("total_problems", 0),
+                        "completion_percentage": ps_data.get(
+                            "completion_percentage", 0
+                        ),
+                        "average_score": ps_data.get("average_score", 0),
+                        "is_completed": ps_data.get("is_completed", False),
+                    }
+                )
+
+            students.append(
+                {
+                    "user_id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "enrolled_at": enrollment.enrolled_at.isoformat(),
+                    # Overall progress
+                    "progress_percentage": round(enrollment.avg_completion or 0, 1),
+                    "problems_completed": enrollment.completed_problems or 0,
+                    "total_problems": enrollment.total_problems or 0,
+                    # Per-problem-set progress
+                    "problem_set_progress": problem_set_progress,
+                }
+            )
+
+        return {
+            "problem_sets": problem_sets,
+            "students": students,
+        }
 
     @staticmethod
     def get_instructor_course_progress(course) -> list[dict[str, Any]]:
@@ -593,18 +679,16 @@ class CourseService:
                 "error": "Course not found or enrollment is closed",
             }
 
-        # Use repository to handle enrollment
-        enrollment, created = CourseRepository.update_or_create_enrollment(
-            user, course, {"is_active": True}
-        )
+        # Use get_or_create to check existing state before modifying
+        enrollment, created = CourseRepository.get_or_create_enrollment(user, course)
 
-        if not created and enrollment.is_active:
-            return {
-                "success": False,
-                "error": "You are already enrolled in this course",
-            }
-        elif not created:
-            # Reactivate enrollment
+        if not created:
+            if enrollment.is_active:
+                return {
+                    "success": False,
+                    "error": "You are already enrolled in this course",
+                }
+            # Reactivate inactive enrollment
             enrollment.is_active = True
             enrollment.save()
 

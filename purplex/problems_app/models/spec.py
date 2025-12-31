@@ -75,9 +75,12 @@ class SpecProblem(Problem):
 
     @property
     def get_segmentation_threshold(self):
-        if self.segmentation_threshold and self.segmentation_threshold > 0:
-            return self.segmentation_threshold
-        return self.segmentation_config.get("threshold", 2)
+        """Return segmentation threshold from DB field only.
+
+        Single source of truth: uses segmentation_threshold DB field.
+        Falls back to default (2) if field is 0 or unset.
+        """
+        return self.segmentation_threshold if self.segmentation_threshold > 0 else 2
 
     def get_segmentation_examples(self):
         return self.segmentation_config.get("examples", {})

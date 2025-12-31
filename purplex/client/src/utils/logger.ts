@@ -165,5 +165,3 @@ export const log = {
   error: logger.error.bind(logger),
   createComponentLogger: logger.createComponentLogger.bind(logger)
 };
-
-export default logger;

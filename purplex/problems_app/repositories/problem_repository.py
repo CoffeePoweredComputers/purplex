@@ -199,6 +199,16 @@ class ProblemRepository(BaseRepository):
         return list(cls._with_test_case_counts(queryset))
 
     @classmethod
+    def get_by_creator(cls, user_id: int) -> list:
+        """Get all active problems created by a specific user."""
+        return list(
+            Problem.objects.filter(created_by_id=user_id, is_active=True)
+            .select_related("created_by")
+            .prefetch_related("categories")
+            .order_by("-created_at")
+        )
+
+    @classmethod
     def count_problems_by_difficulty(cls) -> dict[int, int]:
         """Get count of problems grouped by difficulty."""
         counts = (

@@ -70,8 +70,8 @@ print(dir(course))  # Shows all attributes including reverse relations
 - slug
 - name
 - description
-- instructor (ForeignKey to User)
-- problem_sets (ManyToMany through 'CourseProblemSet')
+- instructor (ForeignKey to User, related_name='instructed_courses')
+- problem_sets (ManyToMany through 'CourseProblemSet', related_name='courses')
 - is_active
 - enrollment_open
 - is_deleted
@@ -80,17 +80,14 @@ print(dir(course))  # Shows all attributes including reverse relations
 - updated_at
 
 # Reverse relations (for object access)
-- courseproblemset_set (from CourseProblemSet.course)
+- courseproblemset_set (from CourseProblemSet.course - NO related_name)
   ✅ Object access uses _set because no related_name specified
-- courseenrollment_set (from CourseEnrollment.course)
-- userprogress_set (from UserProgress.course)
-- userproblemsetprogress_set (from UserProblemSetProgress.course)
+- enrollments (from CourseEnrollment.course - related_name='enrollments')
+  ✅ Uses explicit related_name, NOT courseenrollment_set
 
-# Query field names (for annotations, no _set)
-- courseproblemset (for Count, filter operations)
-- courseenrollment (for Count, filter operations)
-- userprogress (for Count, filter operations)
-- userproblemsetprogress (for Count, filter operations)
+# Query field names (for annotations, no _set for defaults)
+- courseproblemset (for Count, filter operations - default reverse name)
+- enrollments (for Count, filter operations - explicit related_name)
 ```
 
 ### Problem Model
@@ -100,20 +97,21 @@ print(dir(course))  # Shows all attributes including reverse relations
 - title
 - description
 - difficulty
-- category (ForeignKey to ProblemCategory)
-- tags (ManyToMany to Tag)
-- test_cases_json
+- categories (ManyToMany to ProblemCategory, related_name='problems')
+  ⚠️ NOTE: This is ManyToMany, NOT ForeignKey - use prefetch_related, not select_related
+- tags (JSONField - list of tag strings, NOT ManyToMany)
+- is_active
 - created_by (ForeignKey to User)
 - created_at
 - updated_at
+- version
+- completion_threshold
+- max_attempts
+- prerequisites (ManyToMany to self, related_name='unlocks')
 
 # Reverse relations
-- problemsetmembership_set (from ProblemSetMembership.problem)
-- problem_sets (from ProblemSet.problems)
-- problemhint_set (from ProblemHint.problem)
-- testcase_set (from TestCase.problem)
-- promptsubmission_set (from PromptSubmission.problem)
-- userprogress_set (from UserProgress.problem)
+- problemsetmembership_set (from ProblemSetMembership.problem - NO related_name)
+- problem_sets (from ProblemSet.problems ManyToMany - related_name='problem_sets')
 ```
 
 ### User Model Extensions
@@ -225,22 +223,29 @@ Course.objects.prefetch_related(
 ## Model Field Mappings
 
 ### UserProfile Model
-- **Fields**: `user`, `firebase_uid`, `role`
+- **Fields**: `user` (OneToOneField, related_name='profile'), `firebase_uid`, `role`, `language_preference`
 - **Properties**: `is_admin`, `is_instructor`, `is_instructor_or_admin`
 
-### Problem Model
-- **Fields**: `slug`, `problem_type`, `title`, `description`, `difficulty`, `categories`, `function_name`, `function_signature`, `reference_solution`, `memory_limit`, `tags`, `is_active`, `created_by`, `created_at`, `updated_at`, `version`, `completion_threshold`, `completion_criteria`, `segmentation_config`, `max_attempts`, `prerequisites`
-- **Properties**: `test_cases_count`, `visible_test_cases_count`, `segmentation_enabled`, `segmentation_threshold`
+### Problem Model (Polymorphic Base)
+- **Fields**: `slug`, `title`, `description`, `difficulty`, `categories` (ManyToMany), `tags` (JSONField), `is_active`, `created_by`, `created_at`, `updated_at`, `version`, `completion_threshold`, `max_attempts`, `prerequisites` (ManyToMany to self)
+- **Properties**: `polymorphic_type`, `problem_type`
+- **Note**: Subclasses (EiplProblem, PromptProblem, etc.) add additional fields
 
 ### ProblemSet Model
-- **Fields**: `slug`, `title`, `description`, `problems`, `icon`, `is_public`, `created_by`, `created_at`, `updated_at`, `version`
+- **Fields**: `slug`, `title`, `description`, `problems` (ManyToMany through ProblemSetMembership), `icon`, `is_public`, `created_by`, `created_at`, `updated_at`, `version`
 - **Properties**: `problems_count`
+- **Note**: Field is `is_public`, NOT `is_published`
 
 ### UserProgress Model
-- **Fields**: `user`, `problem`, `problem_set`, `course`, `problem_version`, `status`, `best_score`, `average_score`, `attempts`, `successful_attempts`, `first_attempt`, `last_attempt`, `completed_at`, `total_time_spent`, `hints_used`, `consecutive_successes`, `days_to_complete`, `is_completed`, `completion_percentage`
+- **Fields**: `user`, `problem`, `problem_set`, `course`, `problem_version`, `status`, `grade`, `best_score`, `average_score`, `attempts`, `successful_attempts`, `first_attempt`, `last_attempt`, `completed_at`, `total_time_spent`, `hints_used`, `consecutive_successes`, `days_to_complete`, `is_completed`, `completion_percentage`
+- **Note**: Uses `best_score`/`average_score`, NOT `score`. Uses `last_attempt`, NOT `last_submission_at`
+
+### UserProblemSetProgress Model
+- **Fields**: `user`, `problem_set`, `course`, `total_problems`, `completed_problems`, `in_progress_problems`, `average_score`, `first_attempt`, `last_activity`, `completed_at`, `completion_percentage`, `is_completed`
+- **Note**: Uses `last_activity`, NOT `last_updated`
 
 ### Course Model
-- **Fields**: `course_id`, `slug`, `name`, `description`, `instructor`, `problem_sets`, `is_active`, `enrollment_open`, `is_deleted`, `deleted_at`, `created_at`, `updated_at`
+- **Fields**: `course_id`, `slug`, `name`, `description`, `instructor` (related_name='instructed_courses'), `problem_sets` (ManyToMany through CourseProblemSet), `is_active`, `enrollment_open`, `is_deleted`, `deleted_at`, `created_at`, `updated_at`
 
 ## Naming Rules
 
@@ -283,73 +288,77 @@ Course.objects.prefetch_related(
 
 ## Identified Inconsistencies
 
-### ✅ FIXED (Date: 2024-09-06)
-- **UserProfile Related Name**: Fixed 8 instances where code used `userprofile` instead of `profile`
-  - permissions.py: Lines 55, 73, 94, 110, 132, 328, 341 - All fixed to use `user.profile.role`
-  - user_service.py: Line 218 - Fixed to use `user.profile.delete()`
+### ✅ FIXED - UserProfile Related Name (2024-09-06)
+- **UserProfile Related Name**: Fixed all instances where code used `userprofile` instead of `profile`
+  - permissions.py: All instances now correctly use `user.profile.role`
+  - user_repository.py: All instances now correctly use `select_related("profile")` and `profile__role`
 - All permission checks now correctly use `user.profile.role`
-- Verified with Django shell tests - all patterns working correctly
-- **Production Status**: READY (after fixes)
+- **Production Status**: READY
 
-### COMPREHENSIVE AUDIT RESULTS (2024-09-06)
+### CURRENT AUDIT RESULTS (2024-12-26)
 
-#### 🚨 CRITICAL PRODUCTION BLOCKERS IDENTIFIED
-**Total Critical Issues: 18 locations causing runtime Django FieldError and AttributeError exceptions**
+#### 🚨 ACTIVE ISSUES REQUIRING FIXES
 
-#### ❌ AUTHENTICATION SYSTEM FAILURES (9 locations)
-**UserProfile Related_Name Field Access Errors**
-- **Files Affected**: user_service.py (2 locations), user_repository.py (6 locations), user_views.py (1 location)
-- **Status**: permissions.py ✅ FIXED (all instances now use correct `profile` field)
-- **Error Pattern**: Using `user.userprofile` instead of `user.profile`
-- **Runtime Risk**: `AttributeError: 'User' object has no attribute 'userprofile'` - **WILL BREAK AUTHENTICATION**
+#### ❌ ProblemSet Repository Field Name Errors
+**File**: `purplex/problems_app/repositories/problem_set_repository.py`
+- **Issue 1**: Uses `is_published` field (lines 49, 75, 130, 230, 252, 262) but `ProblemSet` model has `is_public`
+- **Issue 2**: Uses `select_related("category")` (line 102) but `Problem` has `categories` (ManyToMany)
+- **Issue 3**: Uses `weight` field in ProblemSetMembership creation (line 243) but model has no `weight` field
+- **Runtime Risk**: `FieldError` and `AttributeError` on these code paths
 
-#### ❌ PROBLEM MODEL ORM FAILURES (9 locations)
-**Invalid Field Names and ManyToMany Misuse**
-- **Files Affected**: problem_repository.py (9 locations)
-- **Issues**:
-  - Using `is_draft=False` when model has `is_active=True` (3 locations)
-  - Using `select_related('category')` on ManyToMany `categories` field (6 locations)
-- **Runtime Risk**: `FieldError: Cannot resolve keyword 'is_draft'` and `FieldError: Cannot use select_related on ManyToMany field`
+#### ❌ Progress Repository Field Name Errors
+**File**: `purplex/problems_app/repositories/progress_repository.py`
+- **Issue 1**: Uses `score` field (lines 186-188, 270-272, 299-301) but `UserProgress` has `best_score`/`average_score`
+- **Issue 2**: Uses `last_submission_at` (line 536) but `UserProgress` has `last_attempt`
+- **Issue 3**: Uses `order_by("-last_updated")` (line 165) but `UserProblemSetProgress` has `last_activity`
+- **Runtime Risk**: `FieldError` on these code paths
 
-#### 📊 UPDATED AUDIT STATISTICS
-- **Total Files Audited**: 25+ files (repositories, services, views, models)
-- **Django ORM Patterns Verified**: 50+ operations
-- **Critical Runtime Errors**: 18 locations
-- **Production Ready**: ❌ **BLOCKED** - Critical fixes required immediately
+#### 📊 CURRENT AUDIT STATISTICS
+- **UserProfile Field Access**: ✅ FIXED - All repositories/services use correct `profile` related_name
+- **ProblemSet Repository**: ❌ 6+ field name issues
+- **Progress Repository**: ❌ 6+ field name issues
+- **Production Ready**: ❌ **BLOCKED** - Repository field name fixes required
 
 #### 🔧 REQUIRED FIXES FOR PRODUCTION
 
-**Priority 1 - UserProfile Field Access (2+ locations found)**
-```python
-# ❌ INCORRECT (causes AttributeError)
-user.userprofile.role  # Found in user_service.py line 70
-User.objects.select_related('userprofile')
-User.objects.filter(userprofile__role=role)
-
-# ✅ CORRECT
-user.profile.role
-User.objects.select_related('profile')
-User.objects.filter(profile__role=role)
-```
-
-**Priority 2 - Problem Model Category Field Access (2+ locations found)**
+**Priority 1 - ProblemSet Repository `is_published` -> `is_public`**
 ```python
 # ❌ INCORRECT (causes FieldError)
-Problem.objects.select_related('problem__category')  # Found in progress_repository.py lines 133, 147
-# Problem has 'categories' (ManyToMany), not 'category' (ForeignKey)
+ProblemSet.objects.filter(is_published=True)
+ps.is_published
 
 # ✅ CORRECT
-Problem.objects.prefetch_related('problem__categories')  # Correct for ManyToMany
+ProblemSet.objects.filter(is_public=True)
+ps.is_public
 ```
 
-**Priority 3 - ProblemSet Field Name Issues (9+ locations found)**
+**Priority 2 - Problem Category Field (ManyToMany)**
 ```python
-# ❌ INCORRECT (causes FieldError)
-ProblemSet.objects.filter(is_published=True)  # Found in problem_set_repository.py multiple lines
-# ProblemSet has 'is_public', not 'is_published'
+# ❌ INCORRECT (causes FieldError - cannot use select_related on ManyToMany)
+Problem.objects.select_related('category')
 
 # ✅ CORRECT
-ProblemSet.objects.filter(is_public=True)  # Correct field name from model
+Problem.objects.prefetch_related('categories')
+```
+
+**Priority 3 - Progress Repository Score Field**
+```python
+# ❌ INCORRECT (causes FieldError)
+progress_qs.filter(score__isnull=False).aggregate(Avg("score"))
+
+# ✅ CORRECT
+progress_qs.filter(best_score__isnull=False).aggregate(Avg("best_score"))
+```
+
+**Priority 4 - Progress Repository Timestamp Fields**
+```python
+# ❌ INCORRECT
+order_by("-last_updated")  # UserProblemSetProgress
+p.last_submission_at       # UserProgress
+
+# ✅ CORRECT
+order_by("-last_activity")  # UserProblemSetProgress
+p.last_attempt              # UserProgress
 ```
 
 ### Field Access Patterns Summary
@@ -372,9 +381,9 @@ class TestFieldNames(TestCase):
         """Verify ProblemSet reverse relation names"""
         ps = ProblemSet.objects.create(title="Test")
 
-        # These should not raise AttributeError
-        self.assertTrue(hasattr(ps, 'problemsetmembership'))
-        self.assertFalse(hasattr(ps, 'problemsetmembership_set'))
+        # ProblemSetMembership.problem_set has NO related_name, so default _set suffix applies
+        self.assertTrue(hasattr(ps, 'problemsetmembership_set'))  # Object access uses _set
+        # Query annotations use lowercase without _set: Count('problemsetmembership')
 
     def test_course_reverse_relations(self):
         """Verify Course reverse relation names"""
@@ -384,9 +393,10 @@ class TestFieldNames(TestCase):
             instructor_id=1
         )
 
-        # These should not raise AttributeError
-        self.assertTrue(hasattr(course, 'courseproblemset_set'))
-        self.assertFalse(hasattr(course, 'courseproblemset'))
+        # CourseProblemSet.course has NO related_name, so default _set suffix applies
+        self.assertTrue(hasattr(course, 'courseproblemset_set'))  # Object access uses _set
+        # CourseEnrollment.course has related_name="enrollments"
+        self.assertTrue(hasattr(course, 'enrollments'))  # Explicit related_name
 ```
 
 ## Quick Reference Checklist
@@ -407,22 +417,14 @@ Before using a field name:
 - 2024-09-05: Fixed problemsetmembership field naming confusion - clarified object vs query patterns
 - 2024-09-05: CRITICAL - Repository code has mixed patterns that need fixing
 - 2024-09-05: Added testing guidelines and query patterns
-- 2024-09-05: **COMPREHENSIVE AUDIT COMPLETED** - Verified 42 ORM patterns across 19 repository files
-- 2024-09-05: CRITICAL FINDING - UserProfile field access errors in 9 locations (permissions.py, user_service.py)
-- 2024-09-05: Production readiness: BLOCKED until UserProfile fixes implemented
-- 2024-09-06: **DEEP MODEL-VIEW VALIDATION COMPLETED** - Identified 18 critical runtime errors across multiple files
-- 2024-09-06: ✅ FIXED - permissions.py now uses correct `profile` field (all instances corrected)
+- 2024-09-06: ✅ FIXED - permissions.py and user_repository.py now use correct `profile` field
 - 2024-09-06: ❌ CRITICAL DISCOVERY - Problem model field mismatches: `is_draft` vs `is_active`, `category` vs `categories`
 - 2024-09-06: ❌ CRITICAL DISCOVERY - ManyToMany misuse: `select_related('category')` on `categories` field
-- 2024-09-06: Production status: **BLOCKED** - 18 critical runtime errors require immediate fixes before deployment
-- 2024-09-06: **SECURITY AUDIT UPDATE** - Additional critical runtime errors found:
-  - user.userprofile field access (should be user.profile) - 1+ location
-  - problem__category ManyToMany misuse (should be problem__categories) - 2+ locations
-  - is_published field usage (should be is_public) - 9+ locations
-  - **TOTAL CRITICAL RUNTIME ERRORS NOW: 30+ locations**
-- 2024-09-07: **COMPREHENSIVE REPOSITORY VALIDATION** - Verified Django ORM patterns in all repositories:
-  - ✅ CONFIRMED: Repositories correctly use Django ORM patterns for filters (passing objects is valid)
-  - ✅ CONFIRMED: ManyToMany relationships properly defined with `through` tables and `related_name`
-  - ✅ CONFIRMED: Services correctly use IDs in method signatures (user_id, problem_id, etc.)
-  - ✅ CONFIRMED: `problem.problem_sets` and `course.problem_sets` are valid due to ManyToMany related_names
-  - **Production Status**: Repository layer is CORRECT - no field naming errors found in current implementation
+- 2024-12-26: **CODEBASE VERIFICATION** - Audited actual Django models vs repository code:
+  - ✅ FIXED: UserProfile access - all repositories now correctly use `profile` (not `userprofile`)
+  - ❌ ACTIVE: problem_set_repository.py uses `is_published` but model has `is_public`
+  - ❌ ACTIVE: problem_set_repository.py uses `select_related("category")` but Problem has `categories` (ManyToMany)
+  - ❌ ACTIVE: progress_repository.py uses `score` but model has `best_score`/`average_score`
+  - ❌ ACTIVE: progress_repository.py uses `last_submission_at` but model has `last_attempt`
+  - ❌ ACTIVE: progress_repository.py uses `order_by("-last_updated")` but model has `last_activity`
+  - **Production Status**: BLOCKED - Repository field name fixes required in problem_set_repository.py and progress_repository.py

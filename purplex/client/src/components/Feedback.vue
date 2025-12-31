@@ -62,9 +62,10 @@
             <span class="attempt-text">{{ currentAttemptNumber }}/{{ totalAttempts }}</span>
             <span
               class="attempt-score-badge"
-              :class="getScoreClass(currentAttemptScore)"
+              :class="[getScoreClass(currentAttemptScore), { 'is-partial': currentAttemptStatus === 'partial' }]"
             >
               {{ currentAttemptScore }}%
+              <span v-if="currentAttemptStatus === 'partial'" class="partial-indicator" title="Tests passed but abstraction needs work">⚠</span>
             </span>
             <span class="dropdown-arrow" aria-hidden="true">▾</span>
           </button>
@@ -201,7 +202,7 @@
             <span class="status-label">{{ abstractionStatus.label }}</span>
             <span v-if="!isAbstractionLocked" class="status-metric">
               {{ segmentCount }} segments
-              <span v-if="segmentCount > 2" class="metric-hint">(want 2)</span>
+              <span v-if="segmentCount > segmentThreshold" class="metric-hint">(want {{ segmentThreshold }})</span>
             </span>
           </div>
           <div class="card-description">{{ abstractionStatus.description }}</div>
@@ -320,6 +321,7 @@ interface SubmissionHistoryItem {
   total_tests: number
   is_best: boolean
   submitted_at: string
+  completion_status?: string
 }
 
 interface ComponentData {
@@ -332,6 +334,7 @@ interface ComponentData {
   currentSubmissionId: string | null
   currentAttemptNumber: number
   currentAttemptScore: number
+  currentAttemptStatus: string
   totalAttempts: number
   announcement: string
 }
@@ -420,6 +423,7 @@ export default defineComponent({
       currentSubmissionId: null,
       currentAttemptNumber: 1,
       currentAttemptScore: 0,
+      currentAttemptStatus: 'incomplete',
       totalAttempts: 0,
       announcement: '',
     }
@@ -477,6 +481,10 @@ export default defineComponent({
       return this.segmentation?.segment_count ?? 0
     },
 
+    segmentThreshold(): number {
+      return this.segmentation?.threshold ?? 2
+    },
+
     isAbstractionLocked(): boolean {
       // Lock abstraction when not all variants pass OR segmentation is disabled
       return !this.allVariationsPass || !this.segmentationEnabled
@@ -484,8 +492,8 @@ export default defineComponent({
 
     abstractionFill(): number {
       if (this.isAbstractionLocked) return 0
-      if (this.segmentCount <= 2) return 100
-      return Math.max(0, 100 - (this.segmentCount - 2) * 20)
+      if (this.segmentCount <= this.segmentThreshold) return 100
+      return Math.max(0, 100 - (this.segmentCount - this.segmentThreshold) * 20)
     },
 
     correctnessStatus(): { icon: string; label: string; description: string } {
@@ -502,7 +510,7 @@ export default defineComponent({
       if (this.isAbstractionLocked) {
         return { icon: '🔒', label: 'Locked', description: 'Unlocks when all versions pass' }
       }
-      if (this.segmentCount <= 2) {
+      if (this.segmentCount <= this.segmentThreshold) {
         return { icon: '✓', label: 'High-level', description: 'Focused on purpose, not implementation' }
       }
       return { icon: '✗', label: 'Too detailed', description: 'Describe the goal, not the steps' }
@@ -516,7 +524,7 @@ export default defineComponent({
 
     abstractionClass(): string {
       if (this.isAbstractionLocked) return 'status-locked'
-      if (this.segmentCount <= 2) return 'status-success'
+      if (this.segmentCount <= this.segmentThreshold) return 'status-success'
       return 'status-error'
     },
 
@@ -528,7 +536,7 @@ export default defineComponent({
 
     abstractionBarClass(): string {
       if (this.isAbstractionLocked) return 'bar-locked'
-      if (this.segmentCount <= 2) return 'bar-success'
+      if (this.segmentCount <= this.segmentThreshold) return 'bar-success'
       return 'bar-error'
     },
 
@@ -539,11 +547,11 @@ export default defineComponent({
       if (this.passingVariants < this.totalVariants) {
         return 'See What Failed'
       }
-      if (!this.isAbstractionLocked && this.segmentCount > 2) {
+      if (!this.isAbstractionLocked && this.segmentCount > this.segmentThreshold) {
         return 'Review Abstraction'
       }
       // Fully successful
-      if (this.allVariationsPass && !this.isAbstractionLocked && this.segmentCount <= 2) {
+      if (this.allVariationsPass && !this.isAbstractionLocked && this.segmentCount <= this.segmentThreshold) {
         return 'Next Problem'
       }
       // All correct but abstraction not enabled/available
@@ -560,7 +568,7 @@ export default defineComponent({
       if (this.passingVariants < this.totalVariants) {
         return 'Your explanation could be read in different ways. One interpretation worked, but another didn\'t. Try being more specific.'
       }
-      if (!this.isAbstractionLocked && this.segmentCount > 2) {
+      if (!this.isAbstractionLocked && this.segmentCount > this.segmentThreshold) {
         return 'Your explanation focuses on individual steps. Try describing what the code accomplishes overall instead of how it works line-by-line.'
       }
       // Fully successful
@@ -573,7 +581,7 @@ export default defineComponent({
     nextStepUrgency(): string {
       if (this.passingVariants === 0) return 'urgency-high'
       if (this.passingVariants < this.totalVariants) return 'urgency-medium'
-      if (!this.isAbstractionLocked && this.segmentCount > 2) return 'urgency-low'
+      if (!this.isAbstractionLocked && this.segmentCount > this.segmentThreshold) return 'urgency-low'
       // Fully successful
       return 'urgency-success'
     }
@@ -620,6 +628,7 @@ export default defineComponent({
           this.currentSubmissionId = currentAttempt.id
           this.currentAttemptNumber = currentAttempt.attempt_number
           this.currentAttemptScore = currentAttempt.score
+          this.currentAttemptStatus = currentAttempt.completion_status || 'incomplete'
         }
       }
     },
@@ -629,6 +638,7 @@ export default defineComponent({
       this.currentSubmissionId = attempt.id
       this.currentAttemptNumber = attempt.attempt_number
       this.currentAttemptScore = attempt.score
+      this.currentAttemptStatus = attempt.completion_status || 'incomplete'
       this.$emit('load-attempt', attempt)
     },
 
@@ -709,7 +719,7 @@ export default defineComponent({
       if (this.passingVariants < this.totalVariants) {
         // Open correctness modal for issues
         this.openCorrectnessModal()
-      } else if (!this.isAbstractionLocked && this.segmentCount > 2) {
+      } else if (!this.isAbstractionLocked && this.segmentCount > this.segmentThreshold) {
         // Open abstraction modal
         this.showSegmentAnalysisModal = true
       } else {
@@ -966,6 +976,16 @@ export default defineComponent({
 .attempt-score-badge.score-low {
   background: rgba(220, 53, 69, 0.1);
   color: var(--color-error);
+}
+
+.attempt-score-badge.is-partial {
+  background: rgba(255, 152, 0, 0.15);
+  border: 1px solid rgba(255, 152, 0, 0.5);
+}
+
+.partial-indicator {
+  margin-left: 2px;
+  font-size: 10px;
 }
 
 .dropdown-arrow {

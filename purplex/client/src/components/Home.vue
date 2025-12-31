@@ -81,6 +81,12 @@
                   <h3 class="card-title">
                     {{ psData.problem_set.title }}
                   </h3>
+                  <span
+                    v-if="psData.due_date"
+                    :class="['due-badge', getDueDateClass(psData)]"
+                  >
+                    {{ isLocked(psData) ? '🔒 Closed' : formatDueDate(psData.due_date) }}
+                  </span>
                 </div>
 
                 <div class="progress-section">
@@ -200,6 +206,53 @@ function navigateToProblemSet(courseId: string, problemSetSlug: string): void {
   router.push(`/courses/${courseId}/problem-set/${problemSetSlug}`)
 }
 
+// Due date helpers
+function formatDueDate(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = date.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    return 'Past due'
+  } else if (diffDays === 0) {
+    return 'Due today'
+  } else if (diffDays === 1) {
+    return 'Due tomorrow'
+  } else if (diffDays <= 7) {
+    return `Due in ${diffDays} days`
+  } else {
+    return `Due ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+  }
+}
+
+function getDueDateClass(psData: { due_date?: string; deadline_type?: string }): string {
+  if (!psData.due_date) {
+    return ''
+  }
+
+  const date = new Date(psData.due_date)
+  const now = new Date()
+  const diffMs = date.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    return psData.deadline_type === 'hard' ? 'due-locked' : 'due-past'
+  } else if (diffDays <= 2) {
+    return 'due-urgent'
+  } else if (diffDays <= 7) {
+    return 'due-soon'
+  }
+  return 'due-normal'
+}
+
+function isLocked(psData: { due_date?: string; deadline_type?: string }): boolean {
+  if (!psData.due_date || psData.deadline_type !== 'hard') {
+    return false
+  }
+  return new Date(psData.due_date) < new Date()
+}
+
 // Lifecycle
 onMounted(async () => {
   // Wait for auth state to be determined first
@@ -315,6 +368,41 @@ main {
   color: var(--color-text-primary);
   margin: 0;
   flex: 1;
+}
+
+/* Due date badges */
+.due-badge {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.due-badge.due-normal {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-muted);
+}
+
+.due-badge.due-soon {
+  background-color: rgba(234, 179, 8, 0.15);
+  color: #ca8a04;
+}
+
+.due-badge.due-urgent {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.due-badge.due-past {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.due-badge.due-locked {
+  background-color: rgba(107, 114, 128, 0.15);
+  color: var(--color-text-muted);
 }
 
 

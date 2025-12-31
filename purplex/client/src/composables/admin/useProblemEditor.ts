@@ -1,19 +1,24 @@
 /**
- * useProblemEditor - Orchestrator composable for the admin problem editor.
+ * useProblemEditor - Orchestrator composable for the problem editor.
  *
  * This composable wires together all feature composables and provides
- * the unified API for AdminProblemEditorShell.vue and type-specific editors.
+ * the unified API for problem editors across different roles (admin, instructor).
  *
  * It handles:
  * - Coordinating state between composables
  * - High-level operations (load, save, test)
  * - Activity type configuration from /api/activity-types/
+ *
+ * Supports API injection for role-aware usage:
+ * - Default: Uses admin problemService (backwards compatible)
+ * - With api option: Uses provided ContentApiService (for instructor, etc.)
  */
 
 import { computed, type ComputedRef, type Ref, ref, watch } from 'vue';
 import axios from 'axios';
 import type { ProblemDetailed, ProblemType, TestExecutionResult } from '@/types';
 import { problemService } from '@/services/problemService';
+import type { ContentApiService } from '@/services/contentService';
 import { log } from '@/utils/logger';
 
 // Import feature composables
@@ -86,9 +91,21 @@ export interface UseProblemEditorReturn {
   reset: () => void;
 }
 
+// ===== OPTIONS =====
+
+export interface UseProblemEditorOptions {
+  /**
+   * Optional API service for role-aware content management.
+   * If not provided, defaults to admin problemService.
+   */
+  api?: ContentApiService;
+}
+
 // ===== COMPOSABLE =====
 
-export const useProblemEditor = (): UseProblemEditorReturn => {
+export const useProblemEditor = (options?: UseProblemEditorOptions): UseProblemEditorReturn => {
+  // Use provided API or default to admin service
+  const api = options?.api;
   // Initialize feature composables
   const form = useProblemForm();
   const ui = useUIState();
@@ -185,7 +202,10 @@ export const useProblemEditor = (): UseProblemEditorReturn => {
 
   const loadProblem = async (slug: string): Promise<void> => {
     return ui.executeAction('load problem', async () => {
-      const problemData = await problemService.loadProblem(slug);
+      // Use injected API if provided, otherwise fall back to problemService
+      const problemData = api
+        ? await api.getProblem(slug)
+        : await problemService.loadProblem(slug);
 
       // Normalize and set form data (universal metadata)
       const normalized = form.normalizeFromLoad(problemData);
@@ -245,12 +265,16 @@ export const useProblemEditor = (): UseProblemEditorReturn => {
         Object.assign(problemData, typeHandler.save(composables));
       }
 
-      // Save
+      // Save - use injected API if provided
       let savedProblem: ProblemDetailed;
       if (isEditing.value && currentSlug.value) {
-        savedProblem = await problemService.updateProblem(currentSlug.value, problemData);
+        savedProblem = api
+          ? await api.updateProblem(currentSlug.value, problemData) as ProblemDetailed
+          : await problemService.updateProblem(currentSlug.value, problemData);
       } else {
-        savedProblem = await problemService.createProblem(problemData);
+        savedProblem = api
+          ? await api.createProblem(problemData) as ProblemDetailed
+          : await problemService.createProblem(problemData);
         currentSlug.value = savedProblem.slug;
       }
 
@@ -282,7 +306,10 @@ export const useProblemEditor = (): UseProblemEditorReturn => {
         test_cases: testCases.convertForBackend(),
       };
 
-      const results = await problemService.testProblem(testData);
+      // Use injected API if provided
+      const results = api
+        ? await api.testProblem(testData)
+        : await problemService.testProblem(testData);
       ui.setTestResults(results);
       return results;
     });

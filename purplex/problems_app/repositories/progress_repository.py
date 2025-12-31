@@ -706,6 +706,7 @@ class ProgressRepository(BaseRepository):
             .values("problem_set__slug", "problem_set__title", "problem_set_id")
             .annotate(
                 avg_completion=Avg("completion_percentage"),
+                avg_score=Avg("average_score"),
                 students_completed=Count("id", filter=Q(is_completed=True)),
                 students_started=Count("id"),
             )

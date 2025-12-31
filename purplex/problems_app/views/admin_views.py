@@ -15,12 +15,22 @@ from purplex.submissions.repositories import SubmissionRepository
 from purplex.submissions.services import SubmissionService
 from purplex.users_app.permissions import IsAdmin
 
-from ..models import McqProblem, ProbeableCodeProblem, RefuteProblem
+from ..models import (
+    DebugFixProblem,
+    McqProblem,
+    ProbeableCodeProblem,
+    ProbeableSpecProblem,
+    PromptProblem,
+    RefuteProblem,
+)
 from ..serializers import (
+    AdminDebugFixProblemSerializer,
     AdminMcqProblemSerializer,
     AdminProbeableCodeProblemSerializer,
+    AdminProbeableSpecProblemSerializer,
     AdminProblemSerializer,
     AdminProblemSetSerializer,
+    AdminPromptProblemSerializer,
     AdminRefuteProblemSerializer,
     McqProblemSerializer,
     ProbeableCodeProblemSerializer,
@@ -65,6 +75,12 @@ class AdminProblemListView(APIView):
             serializer = AdminProbeableCodeProblemSerializer(data=data)
         elif problem_type == "refute":
             serializer = AdminRefuteProblemSerializer(data=data)
+        elif problem_type == "prompt":
+            serializer = AdminPromptProblemSerializer(data=data)
+        elif problem_type == "debug_fix":
+            serializer = AdminDebugFixProblemSerializer(data=data)
+        elif problem_type == "probeable_spec":
+            serializer = AdminProbeableSpecProblemSerializer(data=data)
         else:
             serializer = AdminProblemSerializer(data=data)
 
@@ -86,6 +102,14 @@ class AdminProblemListView(APIView):
                         response_serializer = ProbeableCodeProblemSerializer(problem)
                     elif problem_type == "refute":
                         response_serializer = RefuteProblemSerializer(problem)
+                    elif problem_type == "prompt":
+                        response_serializer = AdminPromptProblemSerializer(problem)
+                    elif problem_type == "debug_fix":
+                        response_serializer = AdminDebugFixProblemSerializer(problem)
+                    elif problem_type == "probeable_spec":
+                        response_serializer = AdminProbeableSpecProblemSerializer(
+                            problem
+                        )
                     else:
                         response_serializer = AdminProblemSerializer(problem)
                     return Response(
@@ -124,6 +148,12 @@ class AdminProblemDetailView(APIView):
             serializer = ProbeableCodeProblemSerializer(problem)
         elif isinstance(problem, RefuteProblem):
             serializer = RefuteProblemSerializer(problem)
+        elif isinstance(problem, PromptProblem):
+            serializer = AdminPromptProblemSerializer(problem)
+        elif isinstance(problem, DebugFixProblem):
+            serializer = AdminDebugFixProblemSerializer(problem)
+        elif isinstance(problem, ProbeableSpecProblem):
+            serializer = AdminProbeableSpecProblemSerializer(problem)
         else:
             serializer = AdminProblemSerializer(problem)
         return Response(serializer.data)
@@ -145,6 +175,9 @@ class AdminProblemDetailView(APIView):
         is_mcq = isinstance(problem, McqProblem)
         is_probeable_code = isinstance(problem, ProbeableCodeProblem)
         is_refute = isinstance(problem, RefuteProblem)
+        is_prompt = isinstance(problem, PromptProblem)
+        is_debug_fix = isinstance(problem, DebugFixProblem)
+        is_probeable_spec = isinstance(problem, ProbeableSpecProblem)
         if is_mcq:
             serializer = AdminMcqProblemSerializer(problem, data=data, partial=True)
         elif is_probeable_code:
@@ -153,6 +186,16 @@ class AdminProblemDetailView(APIView):
             )
         elif is_refute:
             serializer = AdminRefuteProblemSerializer(problem, data=data, partial=True)
+        elif is_prompt:
+            serializer = AdminPromptProblemSerializer(problem, data=data, partial=True)
+        elif is_debug_fix:
+            serializer = AdminDebugFixProblemSerializer(
+                problem, data=data, partial=True
+            )
+        elif is_probeable_spec:
+            serializer = AdminProbeableSpecProblemSerializer(
+                problem, data=data, partial=True
+            )
         else:
             serializer = AdminProblemSerializer(problem, data=data, partial=True)
 
@@ -178,6 +221,14 @@ class AdminProblemDetailView(APIView):
                         return Response(ProbeableCodeProblemSerializer(problem).data)
                     elif is_refute:
                         return Response(RefuteProblemSerializer(problem).data)
+                    elif is_prompt:
+                        return Response(AdminPromptProblemSerializer(problem).data)
+                    elif is_debug_fix:
+                        return Response(AdminDebugFixProblemSerializer(problem).data)
+                    elif is_probeable_spec:
+                        return Response(
+                            AdminProbeableSpecProblemSerializer(problem).data
+                        )
                     return Response(AdminProblemSerializer(problem).data)
             except Exception as e:
                 logger.error(f"Failed to update problem {slug}: {str(e)}")
@@ -659,9 +710,9 @@ class AdminSubmissionListView(APIView):
 
                 # Get user progress for this problem/problem_set/course context
                 user_progress = None
-                if hasattr(submission.user, "userprogress_set"):
+                if hasattr(submission.user, "userprogress"):
                     # Find matching progress from prefetched data
-                    for prog in submission.user.userprogress_set.all():
+                    for prog in submission.user.userprogress.all():
                         if (
                             prog.problem_id == submission.problem_id
                             and prog.problem_set_id == submission.problem_set_id

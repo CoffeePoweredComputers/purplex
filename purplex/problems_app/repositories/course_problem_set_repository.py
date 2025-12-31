@@ -131,11 +131,15 @@ class CourseProblemSetRepository(BaseRepository):
 
     @classmethod
     def get_max_order_in_course(cls, course: Course) -> int:
-        """Get the maximum order value for problem sets in a course."""
+        """Get the maximum order value for problem sets in a course.
+
+        Returns -1 if no problem sets exist, so get_next_order returns 0.
+        """
         result = CourseProblemSet.objects.filter(course=course).aggregate(
             max_order=Max("order")
         )
-        return result["max_order"] or 0
+        # Return -1 when empty so next_order starts at 0
+        return result["max_order"] if result["max_order"] is not None else -1
 
     @classmethod
     def reorder_problem_sets(

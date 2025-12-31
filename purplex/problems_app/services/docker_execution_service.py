@@ -949,35 +949,55 @@ import sys
 import traceback
 
 def compare_results(actual, expected):
-    """Compare test results with JSON type coercion compatibility."""
-    # Direct equality check first
-    if actual == expected:
-        return True
+    """
+    Type-aware comparison for test results.
 
-    # Handle numeric comparisons (int vs float)
+    Design principles:
+    1. Booleans only equal booleans (prevents False==0, True==1 confusion)
+    2. Numbers (int/float) compare by value for flexibility
+    3. Lists and tuples are equivalent (JSON doesn't distinguish)
+    4. Recursive comparison for nested structures
+    """
+    # Rule 1: Boolean type strictness
+    # Python's bool is a subclass of int, so False==0 and True==1 in Python.
+    # For educational testing, we want type-strict comparison.
+    actual_is_bool = isinstance(actual, bool)
+    expected_is_bool = isinstance(expected, bool)
+
+    if actual_is_bool or expected_is_bool:
+        # If either is boolean, both must be boolean AND equal
+        return actual_is_bool and expected_is_bool and actual == expected
+
+    # Rule 2: Numeric equivalence (int/float) - after bool check since bool is int subclass
     if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
-        return float(actual) == float(expected)
+        return actual == expected
 
-    # Handle list/tuple equivalence (JSON converts tuples to lists)
+    # Rule 3: String comparison
+    if isinstance(actual, str) and isinstance(expected, str):
+        return actual == expected
+
+    # Rule 4: List/tuple equivalence (JSON converts tuples to lists)
     if isinstance(actual, (list, tuple)) and isinstance(expected, (list, tuple)):
         if len(actual) != len(expected):
             return False
         return all(compare_results(a, e) for a, e in zip(actual, expected))
 
-    # Handle dict comparison recursively
+    # Rule 5: Dict comparison (recursive)
     if isinstance(actual, dict) and isinstance(expected, dict):
         if set(actual.keys()) != set(expected.keys()):
             return False
-        return all(compare_results(actual[k], expected[k]) for k in actual.keys())
+        return all(compare_results(actual[k], expected[k]) for k in actual)
 
-    # Handle string representations of numbers
-    try:
-        if str(actual) == str(expected):
-            return True
-    except:
-        pass
+    # Rule 6: None comparison
+    if actual is None and expected is None:
+        return True
 
-    return False
+    # Rule 7: Type mismatch for everything else
+    if type(actual) != type(expected):
+        return False
+
+    # Rule 8: Direct equality fallback
+    return actual == expected
 
 # User's code
 {user_code}
@@ -996,14 +1016,16 @@ for i, test_case in enumerate(test_cases):
         # Call the function with unpacked arguments
         actual = {function_name}(*inputs)
 
-        # JSON serialize and deserialize to ensure consistent comparison
+        # Normalize via JSON (converts tuples to lists, etc.) then use type-aware comparison
         try:
-            actual_json = json.loads(json.dumps(actual))
-            expected_json = json.loads(json.dumps(expected))
-            test_passed = actual_json == expected_json
-        except:
-            # If JSON serialization fails, fall back to direct comparison
-            test_passed = compare_results(actual, expected)
+            actual_normalized = json.loads(json.dumps(actual))
+            expected_normalized = json.loads(json.dumps(expected))
+        except (TypeError, ValueError):
+            actual_normalized = actual
+            expected_normalized = expected
+
+        # Use type-aware comparison (handles bool vs int, nested structures, etc.)
+        test_passed = compare_results(actual_normalized, expected_normalized)
 
         if test_passed:
             passed_count += 1

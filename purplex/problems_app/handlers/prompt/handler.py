@@ -102,9 +102,7 @@ class PromptHandler(ActivityHandler):
             return "incomplete"
 
         segmentation = submission.segmentation
-        threshold = getattr(submission.problem, "segmentation_threshold", None)
-        if threshold is None:
-            threshold = submission.problem.segmentation_config.get("threshold", 2)
+        threshold = submission.problem.get_segmentation_threshold
 
         segment_count = segmentation.segment_count
 
@@ -279,9 +277,7 @@ class PromptHandler(ActivityHandler):
 
         if hasattr(submission, "segmentation") and submission.segmentation:
             seg = submission.segmentation
-            threshold = getattr(submission.problem, "segmentation_threshold", None)
-            if threshold is None:
-                threshold = submission.problem.segmentation_config.get("threshold", 2)
+            threshold = submission.problem.get_segmentation_threshold
 
             result["segmentation"] = {
                 "segment_count": seg.segment_count,
@@ -335,10 +331,13 @@ class PromptHandler(ActivityHandler):
 
         Prompt reuses the EiPL pipeline since the processing is identical
         (LLM code generation, Docker execution, segmentation).
+
+        IMPORTANT: We pass submission_id to the pipeline so it UPDATES the existing
+        submission created by the view, instead of creating a duplicate.
         """
         from purplex.problems_app.tasks.pipeline import execute_eipl_pipeline
 
-        # Queue the Celery task (reuses EiPL pipeline)
+        # Queue the Celery task with submission_id to prevent duplicates
         task = execute_eipl_pipeline.apply_async(
             args=[
                 problem.id,
@@ -346,13 +345,15 @@ class PromptHandler(ActivityHandler):
                 context["user_id"],
                 context.get("problem_set_id"),
                 context.get("course_id"),
+                str(submission.submission_id),  # CRITICAL: Pass existing submission ID
             ],
             task_id=context["request_id"],
         )
 
         logger.info(
             f"Prompt submission queued: task_id={task.id}, "
-            f"problem={problem.slug}, user={context['user_id']}"
+            f"problem={problem.slug}, user={context['user_id']}, "
+            f"submission_id={submission.submission_id}"
         )
 
         return SubmissionOutcome(complete=False, submission=submission, task_id=task.id)

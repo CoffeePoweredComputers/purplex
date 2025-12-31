@@ -2,12 +2,14 @@
 
 import logging
 
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from purplex.users_app.permissions import IsAuthenticated
 
+from ..models import CourseProblemSet
 from ..services.progress_service import ProgressService
 
 logger = logging.getLogger(__name__)
@@ -120,22 +122,38 @@ class ProblemSetProgressView(APIView):
                 problems_with_progress
             )
 
-            return Response(
-                {
-                    "problem_set": {
-                        "slug": problem_set.slug,
-                        "title": problem_set.title,
-                        "total_problems": set_progress.total_problems,
-                        "completed_problems": set_progress.completed_problems,
-                        "in_progress_problems": set_progress.in_progress_problems,
-                        "completion_percentage": set_progress.completion_percentage,
-                        "is_completed": set_progress.is_completed,
-                        "average_score": set_progress.average_score,
-                        "last_activity": set_progress.last_activity,
-                    },
-                    "problems_progress": problems_progress,
-                }
-            )
+            # Build response data
+            response_data = {
+                "problem_set": {
+                    "slug": problem_set.slug,
+                    "title": problem_set.title,
+                    "total_problems": set_progress.total_problems,
+                    "completed_problems": set_progress.completed_problems,
+                    "in_progress_problems": set_progress.in_progress_problems,
+                    "completion_percentage": set_progress.completion_percentage,
+                    "is_completed": set_progress.is_completed,
+                    "average_score": set_progress.average_score,
+                    "last_activity": set_progress.last_activity,
+                },
+                "problems_progress": problems_progress,
+            }
+
+            # Include deadline info if course context is provided
+            if course_id:
+                cps = CourseProblemSet.objects.filter(
+                    course__course_id=course_id, problem_set=problem_set
+                ).first()
+                if cps and cps.due_date:
+                    now = timezone.now()
+                    is_past_due = now > cps.due_date
+                    response_data["deadline"] = {
+                        "due_date": cps.due_date.isoformat(),
+                        "deadline_type": cps.deadline_type,
+                        "is_past_due": is_past_due,
+                        "is_locked": is_past_due and cps.deadline_type == "hard",
+                    }
+
+            return Response(response_data)
         except ValueError as e:
             error_msg = str(e)
             if "not found" in error_msg.lower():

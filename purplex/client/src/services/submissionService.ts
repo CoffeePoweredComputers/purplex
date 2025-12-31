@@ -164,4 +164,3 @@ class SubmissionService {
 
 // Export singleton instance
 export const submissionService = new SubmissionService();
-export default submissionService;

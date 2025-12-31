@@ -47,5 +47,3 @@ export function useLogger(componentName?: string) {
     }
   };
 }
-
-export default useLogger;

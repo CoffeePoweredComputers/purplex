@@ -166,11 +166,18 @@ class McqProblemSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("At least 2 options required")
 
         correct_count = 0
+        seen_ids = set()
         for i, opt in enumerate(value):
             if not isinstance(opt, dict):
                 raise serializers.ValidationError(f"Option {i+1} must be an object")
-            if not opt.get("id"):
+            opt_id = opt.get("id")
+            if not opt_id:
                 raise serializers.ValidationError(f"Option {i+1} must have an id")
+            if opt_id in seen_ids:
+                raise serializers.ValidationError(
+                    f"Duplicate option id '{opt_id}' - each option must have a unique id"
+                )
+            seen_ids.add(opt_id)
             if not opt.get("text", "").strip():
                 raise serializers.ValidationError(f"Option {i+1} must have text")
             if opt.get("is_correct"):
@@ -648,6 +655,289 @@ class AdminRefuteProblemSerializer(RefuteProblemSerializer):
             return instance
 
 
+class AdminPromptProblemSerializer(serializers.ModelSerializer):
+    """Admin serializer for Prompt problems with full CRUD support."""
+
+    categories = ProblemCategorySerializer(many=True, read_only=True)
+    category_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        allow_empty=True,
+    )
+    test_cases = TestCaseSerializer(many=True, required=False)
+
+    class Meta:
+        model = PromptProblem
+        fields = [
+            "slug",
+            "title",
+            "description",
+            "difficulty",
+            "problem_type",
+            "categories",
+            "category_ids",
+            "tags",
+            "is_active",
+            "created_by",
+            "created_at",
+            "updated_at",
+            "version",
+            # SpecProblem fields
+            "reference_solution",
+            "function_signature",
+            "function_name",
+            # Prompt-specific fields
+            "image_url",
+            "image_alt_text",
+            # Admin fields
+            "test_cases",
+            "completion_threshold",
+            "max_attempts",
+        ]
+        read_only_fields = ["slug", "problem_type", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        """Create Prompt problem."""
+        from django.db import transaction
+
+        test_cases_data = validated_data.pop("test_cases", [])
+        category_ids = validated_data.pop("category_ids", [])
+        validated_data.pop("problem_type", None)
+
+        with transaction.atomic():
+            problem = PromptProblem.objects.create(**validated_data)
+
+            if category_ids:
+                categories = ProblemCategoryRepository.get_categories_by_ids(
+                    category_ids
+                )
+                problem.categories.set(categories)
+
+            for order, test_case_data in enumerate(test_cases_data):
+                test_case_data["order"] = order
+                TestCase.objects.create(problem=problem, **test_case_data)
+
+            return problem
+
+    def update(self, instance, validated_data):
+        """Update Prompt problem."""
+        from django.db import transaction
+
+        test_cases_data = validated_data.pop("test_cases", None)
+        category_ids = validated_data.pop("category_ids", None)
+
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.version += 1
+            instance.save()
+
+            if category_ids is not None:
+                categories = ProblemCategoryRepository.get_categories_by_ids(
+                    category_ids
+                )
+                instance.categories.set(categories)
+
+            if test_cases_data is not None:
+                instance.test_cases.all().delete()
+                for order, test_case_data in enumerate(test_cases_data):
+                    test_case_data["order"] = order
+                    TestCase.objects.create(problem=instance, **test_case_data)
+
+            return instance
+
+
+class AdminDebugFixProblemSerializer(serializers.ModelSerializer):
+    """Admin serializer for Debug Fix problems with full CRUD support."""
+
+    categories = ProblemCategorySerializer(many=True, read_only=True)
+    category_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        allow_empty=True,
+    )
+    test_cases = TestCaseSerializer(many=True, required=False)
+
+    class Meta:
+        model = DebugFixProblem
+        fields = [
+            "slug",
+            "title",
+            "description",
+            "difficulty",
+            "problem_type",
+            "categories",
+            "category_ids",
+            "tags",
+            "is_active",
+            "created_by",
+            "created_at",
+            "updated_at",
+            "version",
+            # SpecProblem fields
+            "reference_solution",
+            "function_signature",
+            "function_name",
+            # DebugFix-specific fields
+            "buggy_code",
+            "bug_hints",
+            "allow_complete_rewrite",
+            # Admin fields
+            "test_cases",
+            "completion_threshold",
+            "max_attempts",
+        ]
+        read_only_fields = ["slug", "problem_type", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        """Create Debug Fix problem."""
+        from django.db import transaction
+
+        test_cases_data = validated_data.pop("test_cases", [])
+        category_ids = validated_data.pop("category_ids", [])
+        validated_data.pop("problem_type", None)
+
+        with transaction.atomic():
+            problem = DebugFixProblem.objects.create(**validated_data)
+
+            if category_ids:
+                categories = ProblemCategoryRepository.get_categories_by_ids(
+                    category_ids
+                )
+                problem.categories.set(categories)
+
+            for order, test_case_data in enumerate(test_cases_data):
+                test_case_data["order"] = order
+                TestCase.objects.create(problem=problem, **test_case_data)
+
+            return problem
+
+    def update(self, instance, validated_data):
+        """Update Debug Fix problem."""
+        from django.db import transaction
+
+        test_cases_data = validated_data.pop("test_cases", None)
+        category_ids = validated_data.pop("category_ids", None)
+
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.version += 1
+            instance.save()
+
+            if category_ids is not None:
+                categories = ProblemCategoryRepository.get_categories_by_ids(
+                    category_ids
+                )
+                instance.categories.set(categories)
+
+            if test_cases_data is not None:
+                instance.test_cases.all().delete()
+                for order, test_case_data in enumerate(test_cases_data):
+                    test_case_data["order"] = order
+                    TestCase.objects.create(problem=instance, **test_case_data)
+
+            return instance
+
+
+class AdminProbeableSpecProblemSerializer(serializers.ModelSerializer):
+    """Admin serializer for Probeable Spec problems with full CRUD support."""
+
+    categories = ProblemCategorySerializer(many=True, read_only=True)
+    category_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        allow_empty=True,
+    )
+    test_cases = TestCaseSerializer(many=True, required=False)
+
+    class Meta:
+        model = ProbeableSpecProblem
+        fields = [
+            "slug",
+            "title",
+            "description",
+            "difficulty",
+            "problem_type",
+            "categories",
+            "category_ids",
+            "tags",
+            "is_active",
+            "created_by",
+            "created_at",
+            "updated_at",
+            "version",
+            # SpecProblem fields
+            "reference_solution",
+            "function_signature",
+            "function_name",
+            # ProbeableSpec-specific fields
+            "show_function_signature",
+            "probe_mode",
+            "max_probes",
+            "cooldown_attempts",
+            "cooldown_refill",
+            # Admin fields
+            "test_cases",
+            "completion_threshold",
+            "max_attempts",
+        ]
+        read_only_fields = ["slug", "problem_type", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        """Create Probeable Spec problem."""
+        from django.db import transaction
+
+        test_cases_data = validated_data.pop("test_cases", [])
+        category_ids = validated_data.pop("category_ids", [])
+        validated_data.pop("problem_type", None)
+
+        with transaction.atomic():
+            problem = ProbeableSpecProblem.objects.create(**validated_data)
+
+            if category_ids:
+                categories = ProblemCategoryRepository.get_categories_by_ids(
+                    category_ids
+                )
+                problem.categories.set(categories)
+
+            for order, test_case_data in enumerate(test_cases_data):
+                test_case_data["order"] = order
+                TestCase.objects.create(problem=problem, **test_case_data)
+
+            return problem
+
+    def update(self, instance, validated_data):
+        """Update Probeable Spec problem."""
+        from django.db import transaction
+
+        test_cases_data = validated_data.pop("test_cases", None)
+        category_ids = validated_data.pop("category_ids", None)
+
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.version += 1
+            instance.save()
+
+            if category_ids is not None:
+                categories = ProblemCategoryRepository.get_categories_by_ids(
+                    category_ids
+                )
+                instance.categories.set(categories)
+
+            if test_cases_data is not None:
+                instance.test_cases.all().delete()
+                for order, test_case_data in enumerate(test_cases_data):
+                    test_case_data["order"] = order
+                    TestCase.objects.create(problem=instance, **test_case_data)
+
+            return instance
+
+
 class ProbeableCodeProblemListSerializer(serializers.ModelSerializer):
     """List serializer for Probeable Code problems."""
 
@@ -988,8 +1278,8 @@ class AdminProblemSerializer(ProblemSerializer):
                 validated_data["requires_highlevel_comprehension"] = False
 
         with transaction.atomic():
-            # Create the problem using service
-            problem = AdminProblemService.create_problem(validated_data)
+            # Create EiplProblem directly (not via service which uses base Problem)
+            problem = EiplProblem.objects.create(**validated_data)
 
             # Set categories using service
             if category_ids:

@@ -702,12 +702,14 @@ class ProgressService:
             and submission.problem.segmentation_enabled
         ):
             seg = submission.segmentation
+            threshold = submission.problem.get_segmentation_threshold
             return {
                 "segments": seg.segments,
                 "segment_count": seg.segment_count,
                 "comprehension_level": seg.comprehension_level,
                 "feedback": seg.feedback_message,
-                "passed": seg.passed,
+                "passed": seg.segment_count <= threshold,
+                "threshold": threshold,
             }
         return None
 

@@ -59,6 +59,7 @@ class ActivitySubmissionView(APIView):
         problem_set = validated_data.get("problem_set")
         course = validated_data.get("course")
         raw_input = validated_data["raw_input"]
+        is_late = validated_data.get("is_late", False)
         activated_hints = request.data.get("activated_hints", [])
 
         # Additional validation for problem set membership
@@ -127,6 +128,7 @@ class ActivitySubmissionView(APIView):
                 problem_set=problem_set,
                 course=course,
                 activated_hints=activated_hints,
+                is_late=is_late,
             )
 
             # Build context for handler
@@ -338,6 +340,7 @@ class SubmissionHistoryView(APIView):
                 and submission.problem.segmentation_enabled
             ):
                 seg = submission.segmentation
+                threshold = submission.problem.get_segmentation_threshold
                 segmentation_data = {
                     "segment_count": seg.segment_count,
                     "comprehension_level": seg.comprehension_level,
@@ -346,6 +349,8 @@ class SubmissionHistoryView(APIView):
                     "suggested_improvements": seg.suggested_improvements,
                     "segments": seg.segments,
                     "code_mappings": seg.code_mappings,
+                    "threshold": threshold,
+                    "passed": seg.segment_count <= threshold,
                 }
 
             submission_data = {

@@ -53,13 +53,6 @@ class CourseRepository(BaseRepository):
         return Course.objects.filter(pk=pk, is_deleted=False).first()
 
     @classmethod
-    def get_course_by_enrollment_code(cls, code: str) -> Course | None:
-        """Get a course by its enrollment code."""
-        return Course.objects.filter(
-            enrollment_code=code, is_active=True, is_deleted=False
-        ).first()
-
-    @classmethod
     def course_exists(cls, course_id: str) -> bool:
         """Check if a course exists by course_id (case-insensitive)."""
         return Course.objects.filter(course_id__iexact=course_id).exists()
@@ -273,6 +266,19 @@ class CourseRepository(BaseRepository):
     ) -> CourseEnrollment:
         """Create a new enrollment."""
         return CourseEnrollment.objects.create(user=user, course=course, **kwargs)
+
+    @classmethod
+    def get_or_create_enrollment(
+        cls, user: User, course: Course
+    ) -> tuple[CourseEnrollment, bool]:
+        """Get or create an enrollment without modifying existing records.
+
+        Returns:
+            Tuple of (enrollment, created) where created is True if new.
+        """
+        return CourseEnrollment.objects.get_or_create(
+            user=user, course=course, defaults={"is_active": True}
+        )
 
     @classmethod
     def update_or_create_enrollment(

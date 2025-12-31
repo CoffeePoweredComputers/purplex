@@ -6,11 +6,11 @@
 Before writing ANY code:
 - [ ] Using clean pattern, not legacy?
 - [ ] Business logic in service layer, not view?
-- [ ] Service using repository for data access (NEW)?
+- [ ] Service using repository for data access?
 - [ ] Following naming conventions below?
 - [ ] Using existing patterns from similar code?
 - [ ] NO direct model queries in views (ENFORCED)
-- [ ] NO direct model queries in services (SHOULD use repositories)
+- [ ] NO direct model queries in services (use repositories)
 
 ## Python Standards (Django Backend)
 
@@ -76,36 +76,29 @@ class ProblemListView(APIView):
 #     pass
 ```
 
-### Service Pattern (PARTIALLY ENFORCED)
+### Service Pattern (ENFORCED)
 ```python
 # services.py or services/problem_service.py
 class ProblemService:
     """All business logic goes here - NO EXCEPTIONS.
 
-    CURRENT STATE (Jan 2025):
-    - ✅ Views NEVER access models directly (enforced)
-    - ⚠️ Services SHOULD use repositories (not fully adopted)
-    - ⚠️ Most services still have direct model queries
-
-    TARGET PATTERN:
-    - Services use repositories for ALL data access
+    PATTERN:
+    - Views NEVER access models directly (enforced)
+    - Services use repositories for data access
     - Services contain ONLY business logic
     - Repositories handle ALL database queries
     """
 
     @staticmethod
     def get_filtered_problems(user, filters):
-        # CURRENT: Direct model access (being phased out)
-        # queryset = Problem.objects.select_related('category')
-
-        # TARGET: Use repository
+        # Use repository for all data access
         from ..repositories import ProblemRepository
         problems = ProblemRepository.get_active_problems()
 
         if user.is_student:
-            problems = problems.filter(is_published=True)
+            # Business logic here - services filter/transform data
+            problems = [p for p in problems if p.is_published]
 
-        # Business logic here...
         return problems
 
     @staticmethod
@@ -123,7 +116,7 @@ class ProblemService:
         return {'success': True, 'course': course}
 ```
 
-### Repository Pattern (NEW - Being Adopted)
+### Repository Pattern
 ```python
 # repositories/course_repository.py
 class CourseRepository(BaseRepository):
@@ -132,7 +125,7 @@ class CourseRepository(BaseRepository):
     RULES:
     - Only place for .objects queries
     - No business logic, only data access
-    - Return QuerySets or model instances
+    - Return model instances or Python data types (list, dict)
     - Used by services, NEVER by views
     """
 
@@ -190,9 +183,9 @@ problemCard.vue       ✗
 
 <script setup lang="ts">
 // New components should use Composition API with <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
-import { useProblemState } from '@/composables/useProblemState'
+import { useFeedbackState } from '@/composables/useFeedbackState'
 
 interface Props {
   problemId: number
@@ -202,7 +195,7 @@ const props = defineProps<Props>()
 const store = useStore()
 
 // Local state using composables (preferred)
-const { userCode, isSubmitting, handleSubmit } = useProblemState(props.problemId)
+const { feedback, clear, set } = useFeedbackState()
 
 // Global state access when needed
 const progressData = computed(() => store.state.progress.progressData)
@@ -251,19 +244,20 @@ export default {
 
 ### Component API Migration Strategy
 - **New Features**: Always use Composition API with `<script setup>` for new components
-- **Existing Components**: Keep Options API to avoid unnecessary refactoring unless doing major rework
-- **Logic Sharing**: Use composables (e.g., `useProblemState`, `useFeedbackState`) or services (e.g., `sseService`) instead of mixins
-- **Migration Timing**: Only migrate Options API components during significant feature additions or bug fixes
+- **Existing Components**: Most components now use Composition API; only 4 legacy Options API components remain (ProblemSet.vue, AddEditProblemSetModal.vue, HintButton.vue, Login.vue)
+- **Logic Sharing**: Use composables (e.g., `useFeedbackState`, `useSubmissionTracking`, `useNotification`) or services (e.g., `sseService`) instead of mixins
+- **Migration Timing**: Only migrate remaining Options API components during significant feature additions or bug fixes
 - **TypeScript**: Strongly encouraged for new Composition API components
 
 ### State Management Rules
 ```typescript
 // Composables for feature-specific state (PREFERRED)
-// composables/useProblemState.ts
-export function useProblemState() {
-  const problems = ref([])
-  // Local to this feature
-  return { problems }
+// composables/useFeedbackState.ts
+export function useFeedbackState() {
+  const feedback = reactive<FeedbackState>(createInitialState())
+  const clear = () => { /* reset state */ }
+  const set = (data: FeedbackSetData) => { /* update state */ }
+  return { feedback: readonly(feedback), clear, set }
 }
 
 // Vuex ONLY for true global state (user, auth, app-wide settings)
@@ -309,10 +303,16 @@ POST   /api/problems/{id}/submit-solution/ # Action endpoints
 
 ### Task Naming
 ```python
-# tasks/submission_tasks.py
-@shared_task(name='submission.process')  # Namespaced
-def process_submission(submission_id):
-    """Task names use dot notation."""
+# tasks/pipeline.py
+@shared_task(bind=True, name="pipeline.execute_eipl")  # Namespaced with module prefix
+def execute_eipl_pipeline(self, submission_id: str, **kwargs):
+    """Task names use dot notation: module.action_name."""
+    pass
+
+# tasks/cleanup.py
+@shared_task(name="cleanup.prune_orphaned_containers")
+def prune_orphaned_containers():
+    """Cleanup tasks follow same naming pattern."""
     pass
 ```
 
@@ -339,10 +339,10 @@ class TestProblemService:
 
 ## Clean Code Patterns
 
-### Using Clean Implementations
-- Check for `_clean.py` variants when working with existing code
-- Currently available: `sse.py` for Server-Sent Events
-- Prefer clean implementations when they exist
+### SSE (Server-Sent Events) Implementation
+- Use `CleanTaskSSEView` and `CleanBatchSSEView` from `views/sse.py`
+- These provide real-time task status updates via Redis pub/sub
+- Views use Django's standard `View` class with custom authentication
 
 ### Future Improvements
 - [ ] Enhance test coverage for all services
@@ -352,10 +352,11 @@ class TestProblemService:
 ## Enforcement
 
 ### Before Every PR/Commit
-1. Run: `pytest tests/standards/` (when created)
-2. Check: No new legacy patterns introduced
+1. Run: `pytest` to verify all tests pass
+2. Run: `make lint` to check code style
 3. Verify: Business logic is in services, not views
 4. Confirm: Naming conventions followed
+5. Check: No direct model access in views (use services/repositories)
 
 ### For Claude Code
-**INSTRUCTION**: Always check this file before writing code. Look for existing clean implementations (files ending in `_clean.py`) before modifying legacy code. If uncertain, ask for clarification rather than guessing.
+**INSTRUCTION**: Always check this file before writing code. Follow the established patterns for views, services, and repositories. If uncertain, ask for clarification rather than guessing.

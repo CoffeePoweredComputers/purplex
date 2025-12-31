@@ -9,7 +9,8 @@ from datetime import timedelta
 from typing import Any
 
 from django.contrib.auth.models import User
-from django.db.models import Avg, Case, Count, FloatField, Q, Sum, When
+from django.db.models import Avg, Count, Q, Sum
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from purplex.problems_app.models import Course, Problem
@@ -34,27 +35,46 @@ class InstructorAnalyticsService:
         from ..repositories import CourseEnrollmentRepository, ProgressRepository
 
         student_ids = CourseEnrollmentRepository.get_active_student_ids(course)
+        total_enrolled = len(student_ids)
 
         # Get all progress for this course via repository
         progress_records = ProgressRepository.get_for_course_analytics(
             course, student_ids
         )
 
-        # Calculate aggregates
+        # Get total number of problems in the course for proper denominator
+        total_problems_in_course = (
+            Problem.objects.filter(problem_sets__courses=course).distinct().count()
+        )
+
+        # Calculate basic aggregates from progress records
         stats = progress_records.aggregate(
-            total_students=Count("user", distinct=True),
             total_attempts=Sum("attempts"),
-            avg_score=Avg("best_score"),
-            completion_rate=Avg(
-                Case(
-                    When(is_completed=True, then=1),
-                    default=0,
-                    output_field=FloatField(),
-                )
-            )
-            * 100,
+            completed_count=Count("id", filter=Q(is_completed=True)),
             avg_time_per_problem=Avg("total_time_spent"),
         )
+
+        # Calculate per-student average scores, then average those
+        # This ensures each student is weighted equally regardless of problems attempted
+        per_student_scores = (
+            progress_records.values("user_id")
+            .annotate(student_avg=Avg("best_score"))
+            .values_list("student_avg", flat=True)
+        )
+        student_scores_list = [s for s in per_student_scores if s is not None]
+
+        if student_scores_list:
+            avg_score = sum(student_scores_list) / len(student_scores_list)
+        else:
+            avg_score = 0
+
+        # Calculate completion rate: completed problems / (enrolled students × total problems)
+        # This gives a true picture of course progress
+        total_possible = total_enrolled * total_problems_in_course
+        if total_possible > 0:
+            completion_rate = (stats["completed_count"] or 0) / total_possible * 100
+        else:
+            completion_rate = 0
 
         # Get problem set progress via repository
         # CRITICAL FIX: Use single annotated query instead of loop with aggregates
@@ -66,24 +86,40 @@ class InstructorAnalyticsService:
         # Build dict for O(1) lookup
         ps_stats_dict = {stat["problem_set_id"]: stat for stat in ps_stats}
 
-        problem_sets = course.problem_sets.all()
+        # Get CourseProblemSet objects to access due_date and ordering
+        from ..models import CourseProblemSet
+
+        course_problem_sets = (
+            CourseProblemSet.objects.filter(course=course)
+            .select_related("problem_set")
+            .order_by("order")
+        )
+
         problem_set_stats = []
 
-        for ps in problem_sets:
-            stats = ps_stats_dict.get(
+        for cps in course_problem_sets:
+            ps = cps.problem_set
+            stat = ps_stats_dict.get(
                 ps.id,
-                {"avg_completion": 0, "students_completed": 0, "students_started": 0},
+                {
+                    "avg_completion": 0,
+                    "students_completed": 0,
+                    "students_started": 0,
+                    "avg_score": 0,
+                },
             )
 
             problem_set_stats.append(
                 {
                     "problem_set_slug": ps.slug,
                     "problem_set_title": ps.title,
-                    "avg_completion": stats.get("avg_completion") or 0,
-                    "students_completed": stats.get("students_completed") or 0,
-                    "students_started": stats.get("students_started") or 0,
+                    "due_date": cps.due_date.isoformat() if cps.due_date else None,
+                    "avg_completion": stat.get("avg_completion") or 0,
+                    "students_completed": stat.get("students_completed") or 0,
+                    "students_started": stat.get("students_started") or 0,
+                    "avg_score": round(stat.get("avg_score") or 0, 1),
                     "completion_rate": (
-                        (stats.get("students_completed", 0) / len(student_ids) * 100)
+                        (stat.get("students_completed", 0) / len(student_ids) * 100)
                         if student_ids
                         else 0
                     ),
@@ -95,13 +131,19 @@ class InstructorAnalyticsService:
             course, student_ids
         )
 
+        # Get daily submission counts for activity chart (last 7 days)
+        activity_by_day = cls._get_activity_by_day(course, student_ids)
+
+        # Get student distribution (completed all / in progress / not started)
+        student_distribution = cls._get_student_distribution(course, student_ids)
+
         return {
             "course_id": course.course_id,
             "course_name": course.name,
-            "total_students": stats["total_students"] or 0,
+            "total_students": total_enrolled,
             "total_attempts": stats["total_attempts"] or 0,
-            "avg_score": round(stats["avg_score"] or 0, 2),
-            "completion_rate": round(stats["completion_rate"] or 0, 2),
+            "avg_score": round(avg_score, 2),
+            "completion_rate": round(completion_rate, 2),
             "avg_time_per_problem_seconds": (
                 stats["avg_time_per_problem"].total_seconds()
                 if stats["avg_time_per_problem"]
@@ -109,6 +151,8 @@ class InstructorAnalyticsService:
             ),
             "recent_submissions_7days": recent_submissions,
             "problem_set_stats": problem_set_stats,
+            "activity_by_day": activity_by_day,
+            "student_distribution": student_distribution,
         }
 
     @classmethod
@@ -394,4 +438,192 @@ class InstructorAnalyticsService:
                 {"error_type": e["error_type"], "count": e["count"]}
                 for e in error_stats
             ],
+        }
+
+    # =========================================================================
+    # PRIVATE HELPER METHODS FOR COURSE OVERVIEW
+    # =========================================================================
+
+    @classmethod
+    def _get_activity_by_day(
+        cls, course: Course, student_ids: list[int], days: int = 7
+    ) -> list[dict[str, Any]]:
+        """
+        Get daily submission counts for the activity sparkline.
+
+        Args:
+            course: Course instance
+            student_ids: List of enrolled student IDs
+            days: Number of days to look back
+
+        Returns:
+            List of dicts with date and count
+        """
+        from purplex.submissions.models import Submission
+
+        cutoff = timezone.now() - timedelta(days=days)
+
+        daily_counts = (
+            Submission.objects.filter(
+                course=course, user_id__in=student_ids, submitted_at__gte=cutoff
+            )
+            .annotate(date=TruncDate("submitted_at"))
+            .values("date")
+            .annotate(count=Count("id"))
+            .order_by("date")
+        )
+
+        # Build a complete list with zeros for missing days
+        result = []
+        for i in range(days):
+            day = (timezone.now() - timedelta(days=days - 1 - i)).date()
+            count = next(
+                (d["count"] for d in daily_counts if d["date"] == day),
+                0,
+            )
+            result.append({"date": day.isoformat(), "count": count})
+
+        return result
+
+    @classmethod
+    def _get_student_distribution(
+        cls, course: Course, student_ids: list[int]
+    ) -> dict[str, int]:
+        """
+        Get student distribution by completion status.
+
+        Args:
+            course: Course instance
+            student_ids: List of enrolled student IDs
+
+        Returns:
+            Dict with completed_all, in_progress, not_started counts
+            (always sums to len(student_ids))
+        """
+        from ..models import UserProblemSetProgress
+
+        # Ensure we have a deduplicated set of enrolled student IDs
+        enrolled_set = set(student_ids)
+        total_enrolled = len(enrolled_set)
+
+        if total_enrolled == 0:
+            return {"completed_all": 0, "in_progress": 0, "not_started": 0}
+
+        # Count how many problem sets in the course
+        total_problem_sets = course.problem_sets.count()
+
+        if total_problem_sets == 0:
+            return {
+                "completed_all": 0,
+                "in_progress": 0,
+                "not_started": total_enrolled,
+            }
+
+        # Get all problem set progress for enrolled students in this course
+        ps_progress = UserProblemSetProgress.objects.filter(
+            course=course, user_id__in=enrolled_set
+        )
+
+        # Get per-student completion counts
+        # This groups by user_id so each student appears once
+        student_completion = ps_progress.values("user_id").annotate(
+            completed_sets=Count("id", filter=Q(is_completed=True)),
+            started_sets=Count("id"),
+        )
+
+        # Track students by category using sets to prevent double-counting
+        completed_all_students = set()
+        in_progress_students = set()
+
+        for sc in student_completion:
+            user_id = sc["user_id"]
+            # Only count if this user is actually in our enrolled set
+            if user_id not in enrolled_set:
+                continue
+
+            if sc["completed_sets"] >= total_problem_sets:
+                completed_all_students.add(user_id)
+            else:
+                in_progress_students.add(user_id)
+
+        # Not started = enrolled students who have no progress records
+        students_with_any_progress = completed_all_students | in_progress_students
+        not_started_students = enrolled_set - students_with_any_progress
+
+        # Return counts that always sum to total_enrolled
+        completed_all = len(completed_all_students)
+        in_progress = len(in_progress_students)
+        not_started = len(not_started_students)
+
+        return {
+            "completed_all": completed_all,
+            "in_progress": in_progress,
+            "not_started": not_started,
+        }
+
+    # =========================================================================
+    # PER-PROBLEM-SET ANALYTICS
+    # =========================================================================
+
+    @classmethod
+    def get_problem_set_activity(
+        cls,
+        course: Course,
+        problem_set_slug: str,
+        student_ids: list[int],
+        days: int = 7,
+    ) -> dict[str, Any]:
+        """
+        Get activity data for a specific problem set.
+
+        Used by the instructor course overview when filtering by problem set.
+
+        Args:
+            course: Course instance
+            problem_set_slug: Slug of the problem set to filter by
+            student_ids: List of enrolled student IDs
+            days: Number of days to look back (default 7)
+
+        Returns:
+            Dict with activity_by_day and recent_submissions_7days
+        """
+        from purplex.submissions.models import Submission
+
+        from ..models import ProblemSet
+
+        # Get the problem set
+        problem_set = ProblemSet.objects.get(slug=problem_set_slug)
+
+        cutoff = timezone.now() - timedelta(days=days)
+
+        # Get daily submission counts filtered by problem set
+        # Filter submissions where the problem belongs to this problem set
+        daily_counts = (
+            Submission.objects.filter(
+                course=course,
+                user_id__in=student_ids,
+                problem__problem_sets=problem_set,
+                submitted_at__gte=cutoff,
+            )
+            .annotate(date=TruncDate("submitted_at"))
+            .values("date")
+            .annotate(count=Count("id"))
+            .order_by("date")
+        )
+
+        # Build a complete list with zeros for missing days
+        activity_by_day = []
+        for i in range(days):
+            day = (timezone.now() - timedelta(days=days - 1 - i)).date()
+            count = next(
+                (d["count"] for d in daily_counts if d["date"] == day),
+                0,
+            )
+            activity_by_day.append({"date": day.isoformat(), "count": count})
+
+        total_submissions = sum(d["count"] for d in activity_by_day)
+
+        return {
+            "activity_by_day": activity_by_day,
+            "recent_submissions_7days": total_submissions,
         }

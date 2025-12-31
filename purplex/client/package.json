@@ -15,7 +15,9 @@
     "lint:check": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --ignore-path .gitignore",
     "test": "vitest",
     "test:unit": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "dead-code": "knip",
+    "dead-code:fix": "knip --fix"
   },
   "dependencies": {
     "ace-builds": "^1.32.5",

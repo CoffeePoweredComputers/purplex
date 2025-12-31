@@ -58,3 +58,26 @@ exclude = ["migrations", "tests"]
 
 [tool.django-stubs]
 django_settings_module = "purplex.settings"
+
+[tool.vulture]
+min_confidence = 80
+paths = ["purplex/"]
+exclude = [
+    "migrations/",
+    "tests/",
+    "env/",
+    "**/node_modules/",
+]
+ignore_decorators = [
+    "@receiver",
+    "@pytest.fixture",
+    "@pytest.mark.*",
+    "@app.route",
+    "@api_view",
+]
+ignore_names = [
+    "_*",           # Private/unused parameters (convention)
+    "visit_*",      # Visitor pattern methods
+    "do_*",         # Command pattern methods
+    "test_*",       # Test methods (pytest discovers these)
+]

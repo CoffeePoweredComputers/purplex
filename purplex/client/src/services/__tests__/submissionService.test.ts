@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest'
 import axios from 'axios'
-import submissionService from '../submissionService'
+import { submissionService } from '../submissionService'
 import { log } from '../../utils/logger'
 
 // Mock dependencies

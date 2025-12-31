@@ -118,7 +118,7 @@ class SubmissionRepository(BaseRepository[Submission]):
             "segmentation",
             # Prefetch all user progress with related objects
             Prefetch(
-                "user__userprogress_set",
+                "user__userprogress",
                 queryset=UserProgress.objects.select_related(
                     "problem", "problem_set", "course"
                 ),

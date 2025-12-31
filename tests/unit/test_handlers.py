@@ -128,7 +128,7 @@ class TestEiPLGrading:
         problem = MagicMock()
         problem.segmentation_enabled = True
         problem.segmentation_threshold = 2
-        problem.segmentation_config = {"threshold": 2}
+        problem.get_segmentation_threshold = 2  # Property access for handlers
         return problem
 
     @pytest.fixture
@@ -380,7 +380,9 @@ class TestEiPLSerializeResult:
         submission = MagicMock()
         submission.problem = MagicMock()
         submission.problem.segmentation_threshold = 2
-        submission.problem.segmentation_config = {"threshold": 2}
+        submission.problem.get_segmentation_threshold = (
+            2  # Property access for handlers
+        )
         submission.problem.function_name = "fib"
 
         # Mock variations
@@ -547,7 +549,7 @@ class TestPromptGrading:
         problem = MagicMock()
         problem.segmentation_enabled = True
         problem.segmentation_threshold = 2
-        problem.segmentation_config = {"threshold": 2}
+        problem.get_segmentation_threshold = 2  # Property access for handlers
         return problem
 
     @pytest.fixture

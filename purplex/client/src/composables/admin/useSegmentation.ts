@@ -24,7 +24,19 @@ export interface SegmentationExample {
 
 export interface SegmentationConfig {
   enabled: boolean;
-  threshold: number;
+  threshold: number;  // Internal state only - NOT sent in formatForApi()
+  examples: {
+    relational: SegmentationExample;
+    multi_structural: SegmentationExample;
+  };
+}
+
+/**
+ * API output format for segmentation config.
+ * Note: threshold is NOT included here - it's saved separately via segmentation_threshold DB field.
+ */
+export interface SegmentationConfigApi {
+  enabled: boolean;
   examples: {
     relational: SegmentationExample;
     multi_structural: SegmentationExample;
@@ -83,8 +95,8 @@ export interface UseSegmentationReturn {
 
   /** Load config from problem data */
   loadConfig: (config: SegmentationConfig | null | undefined) => void;
-  /** Format config for API */
-  formatForApi: () => SegmentationConfig | null;
+  /** Format config for API (threshold excluded - saved via separate DB field) */
+  formatForApi: () => SegmentationConfigApi;
   /** Reset to initial state */
   reset: () => void;
 }
@@ -281,8 +293,11 @@ export const useSegmentation = (): UseSegmentationReturn => {
    * Format config for API.
    * Always returns a valid config object (never null) to avoid backend validation errors.
    * When disabled, returns a minimal config with enabled: false.
+   *
+   * Note: threshold is NOT included in the output - it's saved via the separate
+   * segmentation_threshold DB field (handled by problemTypeHandlers.ts).
    */
-  const formatForApi = (): SegmentationConfig => {
+  const formatForApi = (): SegmentationConfigApi => {
     // Filter out empty segments and their corresponding code_lines
     const filterExample = (example: SegmentationExample): SegmentationExample => {
       const filteredSegments: string[] = [];
@@ -302,10 +317,9 @@ export const useSegmentation = (): UseSegmentationReturn => {
       };
     };
 
-    // Always return a valid config object
+    // Always return a valid config object (threshold excluded - saved via DB field)
     return {
       enabled: state.enabled,
-      threshold: state.threshold,
       examples: state.enabled ? {
         relational: filterExample(state.examples.relational),
         multi_structural: filterExample(state.examples.multi_structural),

@@ -15,10 +15,16 @@ from rest_framework.test import APIClient
 
 from tests.factories import (
     CourseFactory,
+    CourseProblemSetFactory,
+    DebugFixProblemFactory,
     EiplProblemFactory,
     McqProblemFactory,
+    ProbeableCodeProblemFactory,
+    ProbeableSpecProblemFactory,
     ProblemSetFactory,
     PromptProblemFactory,
+    RefuteProblemFactory,
+    TestCaseFactory,
     UserFactory,
     UserProfileFactory,
 )
@@ -58,15 +64,18 @@ def user(db):
 def instructor(db):
     """Create an instructor user with profile."""
     user = UserFactory(username="instructor")
-    UserProfileFactory(user=user)
+    UserProfileFactory(user=user, role="instructor")
     return user
 
 
 @pytest.fixture
 def admin_user(db):
-    """Create an admin/superuser with profile."""
+    """Create an admin/superuser with profile.
+
+    Sets both Django admin flags AND profile role for full admin access.
+    """
     user = UserFactory(is_staff=True, is_superuser=True)
-    UserProfileFactory(user=user)
+    UserProfileFactory(user=user, role="admin")
     return user
 
 
@@ -108,3 +117,108 @@ def problem_set(db):
 def course(db, instructor):
     """Create a course with an instructor."""
     return CourseFactory(instructor=instructor)
+
+
+# =============================================================================
+# Additional Problem Type Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def debug_fix_problem(db):
+    """Create a standard Debug Fix problem."""
+    return DebugFixProblemFactory()
+
+
+@pytest.fixture
+def probeable_code_problem(db):
+    """Create a standard Probeable Code problem."""
+    return ProbeableCodeProblemFactory()
+
+
+@pytest.fixture
+def probeable_spec_problem(db):
+    """Create a standard Probeable Spec problem."""
+    return ProbeableSpecProblemFactory()
+
+
+@pytest.fixture
+def refute_problem(db):
+    """Create a standard Refute problem."""
+    return RefuteProblemFactory()
+
+
+# =============================================================================
+# CourseProblemSet Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def course_problem_set(db, course, problem_set):
+    """Create a CourseProblemSet linking a course and problem set."""
+    return CourseProblemSetFactory(course=course, problem_set=problem_set)
+
+
+@pytest.fixture
+def course_with_due_dates(db, instructor):
+    """Create a course with problem sets having various deadline types."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    course = CourseFactory(instructor=instructor)
+    ps1 = ProblemSetFactory(title="No Deadline Set")
+    ps2 = ProblemSetFactory(title="Soft Deadline Set")
+    ps3 = ProblemSetFactory(title="Hard Deadline Set")
+
+    CourseProblemSetFactory(
+        course=course,
+        problem_set=ps1,
+        order=0,
+        deadline_type="none",
+    )
+    CourseProblemSetFactory(
+        course=course,
+        problem_set=ps2,
+        order=1,
+        deadline_type="soft",
+        due_date=timezone.now() + timedelta(days=7),
+    )
+    CourseProblemSetFactory(
+        course=course,
+        problem_set=ps3,
+        order=2,
+        deadline_type="hard",
+        due_date=timezone.now() + timedelta(days=14),
+    )
+    return course
+
+
+# =============================================================================
+# TestCase Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def test_case(db, eipl_problem):
+    """Create a test case for an EiPL problem."""
+    return TestCaseFactory(problem=eipl_problem)
+
+
+# =============================================================================
+# Admin/Instructor Client Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def admin_client(api_client, admin_user):
+    """API client authenticated as admin."""
+    api_client.force_authenticate(user=admin_user)
+    return api_client
+
+
+@pytest.fixture
+def instructor_client(api_client, instructor):
+    """API client authenticated as instructor."""
+    api_client.force_authenticate(user=instructor)
+    return api_client

@@ -63,6 +63,12 @@ class Course(models.Model):
 class CourseProblemSet(models.Model):
     """Through model for Course-ProblemSet relationship with ordering."""
 
+    DEADLINE_TYPE_CHOICES = [
+        ("none", "No Deadline"),
+        ("soft", "Soft Deadline"),
+        ("hard", "Hard Deadline"),
+    ]
+
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     problem_set = models.ForeignKey(ProblemSet, on_delete=models.CASCADE)
     order = models.PositiveIntegerField(default=0)
@@ -70,6 +76,19 @@ class CourseProblemSet(models.Model):
     is_required = models.BooleanField(default=True)
     # Track the version of problem set membership when added
     problem_set_version = models.IntegerField(default=1)
+    # Optional due date for this problem set in this course
+    due_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Optional due date for this problem set in this course",
+    )
+    # Deadline enforcement type
+    deadline_type = models.CharField(
+        max_length=10,
+        choices=DEADLINE_TYPE_CHOICES,
+        default="none",
+        help_text="none: no enforcement, soft: allow late with flag, hard: block after due",
+    )
 
     class Meta:
         app_label = "problems_app"

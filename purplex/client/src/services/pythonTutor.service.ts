@@ -121,5 +121,3 @@ ${testCase.function_call}`;
     return options;
   }
 }
-
-export default PythonTutorService;

@@ -21,6 +21,8 @@ export const useNotification = (): UseNotificationReturn => {
           details,
           duration: 3000
         } as NotificationPayload);
+      } else {
+        console.warn('[Toast] window.$notify not available, toast skipped:', message);
       }
     },
 
@@ -32,6 +34,8 @@ export const useNotification = (): UseNotificationReturn => {
           details,
           duration: 5000
         } as NotificationPayload);
+      } else {
+        console.warn('[Toast] window.$notify not available, toast skipped:', message);
       }
     },
 

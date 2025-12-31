@@ -17,6 +17,30 @@ export interface ProblemCategory {
   readonly problems_count: number;
 }
 
+// ===== PROBLEM SET TYPES =====
+export interface ProblemSetProblem {
+  readonly slug: string;
+  readonly title: string;
+  readonly problem_type: ProblemType;
+  readonly difficulty: DifficultyLevel;
+  readonly order: number;
+}
+
+export interface ProblemSet {
+  readonly slug: string;
+  title: string;
+  description?: string;
+  icon?: string;
+  is_public?: boolean;
+  readonly problems_count?: number;
+  readonly problems?: ProblemSetProblem[];
+  readonly problems_detail?: ProblemSetProblem[];
+  readonly created_by?: number;
+  readonly created_by_name?: string;
+  readonly created_at?: string;
+  readonly updated_at?: string;
+}
+
 // ===== TEST CASE TYPES =====
 export interface TestCaseInput {
   inputs: unknown[];
@@ -88,7 +112,7 @@ export interface SegmentationExample {
 
 export interface SegmentationConfig {
   enabled?: boolean;
-  threshold?: number;
+  // Note: threshold is stored in segmentation_threshold DB field, not in this JSON config
   examples?: {
     relational?: SegmentationExample;
     multi_structural?: SegmentationExample;
@@ -652,6 +676,19 @@ export interface CourseProgress {
   last_activity: string | null;
 }
 
+export type DeadlineType = 'none' | 'soft' | 'hard';
+
+/**
+ * Deadline information for a problem set in a specific course context.
+ * Returned from progress API when course_id is provided.
+ */
+export interface Deadline {
+  due_date: string;
+  deadline_type: DeadlineType;
+  is_past_due: boolean;
+  is_locked: boolean;
+}
+
 export interface CourseProblemSet {
   id: number;
   name: string;
@@ -660,4 +697,42 @@ export interface CourseProblemSet {
   problems_count?: number;
   icon?: string;
   order?: number;
+  is_required?: boolean;
+  due_date?: string | null;
+  deadline_type?: DeadlineType;
+}
+
+/**
+ * Represents a student enrolled in a course with their progress.
+ * Used in admin/instructor course student management pages.
+ */
+export interface CourseStudent {
+  id: number; // enrollment ID
+  user: {
+    id: number;
+    email: string;
+    username: string;
+    first_name?: string;
+    last_name?: string;
+  };
+  enrolled_at: string;
+  progress: {
+    completion_percentage: number;
+    completed_problem_sets: number;
+    total_problem_sets: number;
+    last_activity?: string;
+  };
+}
+
+/**
+ * Represents an instructor for course assignment.
+ * Used in admin course creation/editing.
+ */
+export interface Instructor {
+  id: number;
+  username: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  full_name: string;
 }

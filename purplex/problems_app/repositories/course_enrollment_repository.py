@@ -418,36 +418,36 @@ class CourseEnrollmentRepository(BaseRepository):
             .annotate(
                 # Aggregate progress stats for each student
                 total_problems=Count(
-                    "user__userprogress_set",
-                    filter=Q(user__userprogress_set__course=course),
+                    "user__userprogress",
+                    filter=Q(user__userprogress__course=course),
                 ),
                 completed_problems=Count(
-                    "user__userprogress_set",
+                    "user__userprogress",
                     filter=Q(
-                        user__userprogress_set__course=course,
-                        user__userprogress_set__is_completed=True,
+                        user__userprogress__course=course,
+                        user__userprogress__is_completed=True,
                     ),
                 ),
                 avg_score=Avg(
-                    "user__userprogress_set__best_score",
-                    filter=Q(user__userprogress_set__course=course),
+                    "user__userprogress__best_score",
+                    filter=Q(user__userprogress__course=course),
                 ),
                 total_attempts=Sum(
-                    "user__userprogress_set__attempts",
-                    filter=Q(user__userprogress_set__course=course),
+                    "user__userprogress__attempts",
+                    filter=Q(user__userprogress__course=course),
                 ),
                 total_time_spent=Sum(
-                    "user__userprogress_set__total_time_spent",
-                    filter=Q(user__userprogress_set__course=course),
+                    "user__userprogress__total_time_spent",
+                    filter=Q(user__userprogress__course=course),
                 ),
                 last_activity=Max(
-                    "user__userprogress_set__last_attempt",
-                    filter=Q(user__userprogress_set__course=course),
+                    "user__userprogress__last_attempt",
+                    filter=Q(user__userprogress__course=course),
                 ),
                 # Problem set progress average
                 avg_completion=Avg(
-                    "user__userproblemsetprogress_set__completion_percentage",
-                    filter=Q(user__userproblemsetprogress_set__course=course),
+                    "user__userproblemsetprogress__completion_percentage",
+                    filter=Q(user__userproblemsetprogress__course=course),
                 ),
             )
         )

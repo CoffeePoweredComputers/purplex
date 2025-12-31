@@ -21,8 +21,9 @@ Copy these patterns exactly when implementing new features. All examples are fro
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.shortcuts import get_object_or_404
 from django.db import transaction
+
+from ..services.admin_service import AdminProblemService
 
 class AdminProblemListView(APIView):
     """Admin view for listing and creating problems."""
@@ -63,12 +64,23 @@ class AdminProblemDetailView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, slug):
-        problem = get_object_or_404(Problem, slug=slug)
+        # Use service layer to get problem (supports polymorphic types)
+        problem = AdminProblemService.get_problem_by_slug(slug)
+        if not problem:
+            return Response(
+                {"error": f"Problem with slug {slug} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         serializer = AdminProblemSerializer(problem)
         return Response(serializer.data)
 
     def put(self, request, slug):
-        problem = get_object_or_404(Problem, slug=slug)
+        problem = AdminProblemService.get_problem_by_slug(slug)
+        if not problem:
+            return Response(
+                {"error": f"Problem with slug {slug} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         # Use service layer to prepare data
         data, problem_sets_slugs = AdminProblemService.prepare_problem_data(request.data)
@@ -81,14 +93,14 @@ class AdminProblemDetailView(APIView):
 
                     # Only update problem sets if explicitly provided
                     if 'problem_sets' in request.data:
-                        problem_sets = ProblemSet.objects.filter(slug__in=problem_sets_slugs)
-                        problem.problem_sets.set(problem_sets)
+                        problem_sets = AdminProblemService.get_problem_sets_by_slugs(problem_sets_slugs)
+                        AdminProblemService.update_problem_set_relations(problem, problem_sets)
 
                     return Response(AdminProblemSerializer(problem).data)
             except Exception as e:
                 logger.error(f"Failed to update problem {slug}: {str(e)}")
                 return Response({
-                    'error': 'Failed to update problem. Please try again.'
+                    'error': f'Failed to update problem: {str(e)}'
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 ```
@@ -153,79 +165,94 @@ class CleanTaskSSEView(View):
             pubsub.close()
 ```
 
-## Service Layer Pattern (FULLY ENFORCED - ALL DATABASE QUERIES HERE)
+## Service Layer Pattern (Services Use Repositories for Database Access)
 
-### Student Service Pattern
+### Student Service Pattern (Using Repository Layer)
 
 ```python
 # From: purplex/problems_app/services/student_service.py
 import logging
-from typing import List, Optional
-from django.db.models import QuerySet
-from django.shortcuts import get_object_or_404
+from typing import TYPE_CHECKING
+
+from django.http import Http404
+
+from ..repositories import (
+    ProblemCategoryRepository,
+    ProblemRepository,
+    ProblemSetMembershipRepository,
+    TestCaseRepository,
+)
+
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
+    from ..models import Problem, ProblemSet
+
+logger = logging.getLogger(__name__)
+
 
 class StudentService:
     """Handle all student-related business logic.
 
     CRITICAL RULES:
-    - ALL database queries MUST be in service methods
-    - Views NEVER access models directly
-    - Query optimizations (select_related, prefetch_related) go here
-    - Business logic and validation in services, not views
+    - Services use REPOSITORIES for all database access
+    - Views call services, services call repositories
+    - Business logic and validation in services, not views or repositories
     """
 
     @staticmethod
-    def get_active_problems(user=None) -> QuerySet:
+    def get_active_problems(user=None) -> list["Problem"]:
         """Get all active problems visible to students."""
-        return Problem.objects.filter(is_active=True).select_related(
-            'created_by'
-        ).prefetch_related(
-            'categories',
-            'test_cases',
-            'problem_sets'
-        ).only(
-            'slug', 'title', 'description', 'difficulty', 'problem_type',
-            'function_name', 'tags', 'is_active', 'created_at', 'created_by_id'
-        )
+        return ProblemRepository.get_active_problems()
 
     @staticmethod
-    def get_problem_detail(slug: str) -> Problem:
+    def get_problem_detail(slug: str) -> "Problem":
         """Get detailed problem information for students."""
-        return get_object_or_404(Problem, slug=slug, is_active=True)
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem or not problem.is_active:
+            raise Http404("Problem not found")
+        return problem
 
     @staticmethod
-    def get_visible_test_cases(problem: Problem) -> QuerySet:
+    def get_visible_test_cases(problem: "Problem") -> "QuerySet":
         """Get only non-hidden test cases for a problem."""
-        return problem.test_cases.filter(is_hidden=False)
+        return TestCaseRepository.get_visible_test_cases(problem)
 
     @staticmethod
-    def get_problem_set_problems(problem_set: ProblemSet, user=None) -> List[dict]:
-        """Get ordered problems for a problem set."""
-        # Get problems through membership table to preserve order
-        memberships = problem_set.problemsetmembership_set.select_related(
-            'problem'
-        ).prefetch_related(
-            'problem__categories',
-            'problem__test_cases'
-        ).order_by('order')
+    def get_problem_set_problems(problem_set: "ProblemSet", user=None) -> list[dict]:
+        """Get ordered problems for a problem set with handler configs.
+
+        Uses repository layer for optimized queries.
+        Enriches with handler-provided configs for frontend rendering.
+        """
+        from ..handlers import get_handler, is_registered
+
+        # Get problems through membership repository (optimized queries)
+        memberships_data = ProblemSetMembershipRepository.get_problem_set_memberships_with_categories(problem_set)
 
         problems_data = []
-        for membership in memberships:
-            problem = membership.problem
-            if problem.is_active:
+        for membership in memberships_data:
+            problem = membership["problem"]
+            problem_obj = membership["problem_obj"]
+
+            if problem["is_active"]:
                 problem_data = {
-                    'slug': problem.slug,
-                    'title': problem.title,
-                    'description': problem.description,
-                    'difficulty': problem.difficulty,
-                    'problem_type': problem.problem_type,
-                    'segmentation_enabled': problem.segmentation_enabled,
-                    'reference_solution': problem.reference_solution,
-                    'order': membership.order,
-                    'categories': [cat.name for cat in problem.categories.all()],
-                    'test_case_count': problem.test_cases.count(),
-                    'visible_test_case_count': problem.test_cases.filter(is_hidden=False).count()
+                    "slug": problem["slug"],
+                    "title": problem["title"],
+                    "difficulty": problem["difficulty"],
+                    "problem_type": problem["problem_type"],
+                    "order": membership["order"],
+                    "categories": problem["categories"],
+                    "test_cases": problem["test_cases"],
                 }
+
+                # Enrich with handler-provided configs
+                problem_type = problem["problem_type"]
+                if is_registered(problem_type):
+                    handler = get_handler(problem_type)
+                    config = handler.get_problem_config(problem_obj)
+                    problem_data["display_config"] = config.get("display", {})
+                    problem_data["input_config"] = config.get("input", {})
+
                 problems_data.append(problem_data)
 
         return problems_data
@@ -318,13 +345,62 @@ class HintService:
 
 ## Repository Pattern
 
-### Basic Repository Structure (NEW - Jan 2025)
+### Base Repository (Provides Common CRUD Operations)
+
+```python
+# From: purplex/problems_app/repositories/base_repository.py
+from typing import Any, Generic, TypeVar
+from django.core.paginator import Paginator
+from django.db.models import Model, QuerySet
+
+T = TypeVar("T", bound=Model)
+
+
+class BaseRepository(Generic[T]):
+    """
+    Base repository with common database operations.
+
+    IMPORTANT: All public methods return domain objects (Model instances) or
+    Python data types (list, dict, etc), NEVER QuerySets.
+
+    Services should NEVER import django.db.models or perform ORM operations.
+    All database logic must be encapsulated in repositories.
+    """
+
+    model_class: type[T] | None = None
+
+    @classmethod
+    def get_by_id(cls, id: int) -> T | None:
+        """Get a single record by primary key."""
+        if not cls.model_class:
+            raise NotImplementedError("model_class must be defined")
+        try:
+            return cls.model_class.objects.get(pk=id)
+        except cls.model_class.DoesNotExist:
+            return None
+
+    @classmethod
+    def get_all(cls) -> list[T]:
+        """Get all records as a list."""
+        return list(cls.model_class.objects.all())
+
+    @classmethod
+    def create(cls, **kwargs) -> T:
+        """Create a new record."""
+        return cls.model_class.objects.create(**kwargs)
+```
+
+### Domain-Specific Repository
 
 ```python
 # From: purplex/problems_app/repositories/course_repository.py
-from typing import Optional, List
-from django.db.models import QuerySet
+from typing import Any
+from django.contrib.auth.models import User
+from django.db.models import Count, Q
+
+from purplex.problems_app.models import Course, CourseEnrollment, CourseProblemSet
 from .base_repository import BaseRepository
+
 
 class CourseRepository(BaseRepository):
     """
@@ -333,17 +409,17 @@ class CourseRepository(BaseRepository):
     RULES:
     - ONLY place for .objects queries for this model
     - NO business logic, only data access
-    - Return QuerySets or model instances
+    - Return model instances or Python data types (list, dict)
     - Used by services, NEVER by views directly
     """
 
     model_class = Course
 
     @classmethod
-    def get_active_course(cls, course_id: str) -> Optional[Course]:
-        """Get an active, non-deleted course by course_id."""
+    def get_active_course(cls, course_id: str) -> Course | None:
+        """Get an active, non-deleted course by course_id (case-insensitive)."""
         return Course.objects.filter(
-            course_id=course_id,
+            course_id__iexact=course_id,
             is_active=True,
             is_deleted=False
         ).first()
@@ -356,6 +432,18 @@ class CourseRepository(BaseRepository):
             course=course,
             is_active=True
         ).exists()
+
+    @classmethod
+    def get_all_courses_with_stats(cls):
+        """Get all courses with statistics for admin view."""
+        return (
+            Course.objects.select_related("instructor")
+            .annotate(
+                problem_sets_count=Count("problem_sets"),
+                enrolled_students_count=Count("enrollments", filter=Q(enrollments__is_active=True)),
+            )
+            .order_by("-created_at")
+        )
 ```
 
 ### Service Using Repository (CORRECT PATTERN)
@@ -754,108 +842,161 @@ const disconnect = await sseService.connectToSubmission(
 
 ## Model Pattern
 
-### Core Model with Business Logic in Properties
+### Polymorphic Base Model Pattern
+
+The codebase uses django-polymorphic for problem types. Models are organized in a subdirectory.
 
 ```python
-# From: purplex/problems_app/models.py
+# From: purplex/problems_app/models/base.py
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
+from polymorphic.models import PolymorphicModel
 
-class Problem(models.Model):
+from .category import ProblemCategory
+
+class Problem(PolymorphicModel):
+    """
+    Polymorphic base class for all problem types.
+
+    Problem.objects.all() returns correct subtypes automatically.
+
+    Hierarchy:
+    - Problem (this class)
+      - StaticProblem (abstract) - no code execution
+        - McqProblem
+      - SpecProblem - has code specification fields
+        - EiplProblem - NL -> LLM -> code -> test
+        - PromptProblem - image-based variant of EiPL
+        - ProbeableCodeProblem
+        - DebugFixProblem
+      - (Future) CodeProblem - student code -> execute
+    """
+
     DIFFICULTY_CHOICES = [
-        ('easy', 'Easy'),
-        ('beginner', 'Beginner'),
-        ('intermediate', 'Intermediate'),
-        ('advanced', 'Advanced'),
+        ("easy", "Easy"),
+        ("beginner", "Beginner"),
+        ("intermediate", "Intermediate"),
+        ("advanced", "Advanced"),
     ]
 
-    PROBLEM_TYPE_CHOICES = [
-        ('eipl', 'Explain in Plain Language (EiPL)'),
-        ('function_redefinition', 'Function Redefinition'),
-    ]
-
+    # Identity
     slug = models.SlugField(max_length=100, unique=True, blank=True)
-    problem_type = models.CharField(max_length=30, choices=PROBLEM_TYPE_CHOICES, default='eipl')
     title = models.CharField(max_length=200)
-    description = models.TextField(help_text='Problem description in markdown format')
-    difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='beginner')
-    categories = models.ManyToManyField(ProblemCategory, related_name='problems', blank=True)
-    function_name = models.CharField(max_length=50, help_text='Name of the function students implement')
-    function_signature = models.TextField(help_text='Function signature with parameter names and types')
-    reference_solution = models.TextField(help_text='Reference implementation')
-    memory_limit = models.PositiveIntegerField(default=128, help_text='Memory limit in MB')
-    tags = models.JSONField(default=list, blank=True, help_text='Array of tag strings')
+    description = models.TextField(blank=True, default="", help_text="Problem description in markdown format")
+
+    # Classification
+    difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default="beginner")
+    categories = models.ManyToManyField(ProblemCategory, related_name="problems", blank=True)
+    tags = models.JSONField(default=list, blank=True, help_text="Array of tag strings")
+
+    # Status
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     version = models.PositiveIntegerField(default=1)
 
-    # Configuration fields
-    completion_threshold = models.IntegerField(default=100, help_text='Minimum score required for completion')
-    completion_criteria = models.JSONField(default=dict, blank=True)
-    segmentation_config = models.JSONField(default=dict, blank=True)
+    # Completion configuration
+    completion_threshold = models.IntegerField(default=100, help_text="Minimum score required for completion")
     max_attempts = models.IntegerField(null=True, blank=True)
 
     class Meta:
-        ordering = ['difficulty', 'title']
+        app_label = "problems_app"
+        ordering = ["difficulty", "title"]
+
+    @property
+    def polymorphic_type(self) -> str:
+        """Return the problem type identifier for handler lookup."""
+        raise NotImplementedError("Subclasses must define polymorphic_type")
+
+    @property
+    def problem_type(self) -> str:
+        """Alias for polymorphic_type for backward compatibility."""
+        return self.polymorphic_type
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.title)
+            base_slug = slugify(self.title)
+            self.slug = base_slug
+            counter = 1
+            while Problem.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                self.slug = f"{base_slug}-{counter}"
+                counter += 1
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.title} ({self.difficulty})"
-
-    @property
-    def segmentation_enabled(self):
-        """Check if segmentation is enabled for this problem."""
-        return bool(self.segmentation_config.get('enabled', False))
 ```
 
-### Submission Model with Relationships
+### Unified Submission Model
 
 ```python
-# From: purplex/submissions_app/models.py
+# From: purplex/submissions/models.py
+import uuid
 from django.db import models
 from django.contrib.auth.models import User
-from purplex.problems_app.models import Problem, ProblemSet, Course
 
-class PromptSubmission(models.Model):
-    # Core relationships - INCLUDING COURSE
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submissions')
-    problem = models.ForeignKey(Problem, on_delete=models.CASCADE, related_name='submissions')
-    problem_set = models.ForeignKey(ProblemSet, on_delete=models.CASCADE, related_name='submissions')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='submissions', null=True, blank=True)
 
-    # Submission data
-    prompt = models.TextField()
-    score = models.IntegerField(default=0)
-    submitted_at = models.DateTimeField(auto_now_add=True, null=True)
+class Submission(models.Model):
+    """
+    Unified submission model for all submission types.
+    Single source of truth for student work.
+    """
 
-    # EiPL specific fields
-    code_variations = models.JSONField(default=list, help_text="List of generated code variations")
-    test_results = models.JSONField(default=list, help_text="Test results for each variation")
-    passing_variations = models.IntegerField(default=0, help_text="Number of variations that passed all tests")
-    total_variations = models.IntegerField(default=0, help_text="Total number of variations generated")
+    # Unique identifier for external references
+    submission_id = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
 
-    # Performance tracking
-    execution_time = models.FloatField(null=True, blank=True, help_text="Total execution time in seconds")
-    time_spent = models.DurationField(null=True, blank=True, help_text="Time user spent on this attempt")
+    # Core relationships
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="new_submissions")
+    problem = models.ForeignKey("problems_app.Problem", on_delete=models.PROTECT, related_name="new_submissions")
+    problem_set = models.ForeignKey("problems_app.ProblemSet", on_delete=models.PROTECT, related_name="new_submissions")
+    course = models.ForeignKey("problems_app.Course", on_delete=models.PROTECT, null=True, blank=True, related_name="new_submissions")
+
+    # Submission metadata
+    submitted_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    submission_type = models.CharField(
+        max_length=20,
+        choices=[
+            ("eipl", "Explain in Plain Language"),
+            ("mcq", "Multiple Choice Question"),
+            ("prompt", "Prompt (Image-based)"),
+            ("refute", "Refute (Counterexample)"),
+            ("debug_fix", "Debug Fix"),
+            ("probeable_code", "Probeable Code"),
+            ("probeable_spec", "Probeable Spec"),
+        ],
+        db_index=True,
+    )
+
+    # Submission content
+    raw_input = models.TextField(help_text="Original user input (code or natural language)")
+    processed_code = models.TextField(help_text="Final code that was executed", blank=True)
+
+    # Results
+    score = models.IntegerField(default=0, db_index=True, help_text="Overall score (0-100)")
+    passed_all_tests = models.BooleanField(default=False, db_index=True)
+    is_correct = models.BooleanField(default=False, help_text="Whether the submission passes all test cases")
+    completion_status = models.CharField(
+        max_length=20,
+        choices=[("incomplete", "Incomplete"), ("partial", "Partial Success"), ("complete", "Complete Success")],
+        default="incomplete",
+    )
+
+    # Async processing - unique constraint prevents duplicate submissions on task retry
+    celery_task_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
 
     class Meta:
         indexes = [
-            models.Index(fields=['user', 'problem', 'course', '-submitted_at']),
-            models.Index(fields=['user', 'problem_set', 'course', '-submitted_at']),
-            models.Index(fields=['course', 'problem_set', 'problem', '-score']),
+            models.Index(fields=["user", "problem", "course", "-submitted_at"]),
+            models.Index(fields=["user", "problem_set", "course", "-submitted_at"]),
+            models.Index(fields=["course", "problem_set", "-score"]),
         ]
-        ordering = ['-submitted_at']
+        ordering = ["-submitted_at"]
 
     def __str__(self):
         course_context = f" ({self.course.course_id})" if self.course else ""
-        return f"{self.user.username} - {self.problem_set.title}{course_context} - {self.problem.title} - {self.score}%"
+        return f"{self.user.username} - {self.problem.title}{course_context} - {self.score}%"
 ```
 
 ## Authentication Pattern
@@ -1172,15 +1313,15 @@ class ProblemServiceImpl {
     }
   }
 
-  async testProblem(slug: string, data: TestProblemRequest): Promise<TestExecutionResult> {
+  async testProblem(data: TestProblemRequest): Promise<TestExecutionResult> {
     try {
       const response: AxiosResponse<TestExecutionResult> = await axios.post(
-        `${this.baseURL}/${slug}/test/`,
+        '/api/admin/test-problem/',
         data
       );
       return response.data;
     } catch (error) {
-      throw this._handleError(error, 'Failed to test problem');
+      throw this._handleError(error, 'Failed to test problem solution');
     }
   }
 

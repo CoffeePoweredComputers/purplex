@@ -186,7 +186,7 @@
                           <code
                             class="value-content"
                             :class="{ mismatch: !test.passed }"
-                          >{{ test.passed ? test.expected : test.actual }}</code>
+                          >{{ test.actual ?? test.expected }}</code>
                         </span>
                       </div>
                     </div>

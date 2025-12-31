@@ -72,6 +72,7 @@ export const problemTypeHandlers: Record<string, ProblemTypeHandler> = {
     },
     save: (c) => ({
       segmentation_config: c.segmentation.formatForApi(),
+      segmentation_threshold: c.segmentation.threshold.value,
       requires_highlevel_comprehension: c.segmentation.isEnabled.value,
     }),
   },
@@ -133,6 +134,7 @@ export const problemTypeHandlers: Record<string, ProblemTypeHandler> = {
     save: (c) => ({
       ...c.probeableSpecConfig.getConfigForApi(),
       segmentation_config: c.segmentation.formatForApi(),
+      segmentation_threshold: c.segmentation.threshold.value,
       requires_highlevel_comprehension: c.segmentation.isEnabled.value,
     }),
   },

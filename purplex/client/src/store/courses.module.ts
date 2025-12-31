@@ -23,6 +23,8 @@ export interface CourseProblemSet {
   problems_count?: number;
   icon?: string;
   order?: number;
+  is_required?: boolean;
+  due_date?: string | null;
 }
 
 export interface CourseEnrollment {

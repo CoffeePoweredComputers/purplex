@@ -154,6 +154,36 @@ class IsCourseInstructor(permissions.BasePermission):
         return False
 
 
+class IsInstructorAndOwner(permissions.BasePermission):
+    """
+    Combined permission: Must be instructor AND own the resource.
+    Checks created_by field for problems/problem sets, instructor field for courses.
+    Admins bypass ownership checks.
+    """
+
+    def has_permission(self, request, view) -> bool:
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if hasattr(request.user, "profile"):
+            return request.user.profile.role in ["instructor", "admin"]
+        return request.user.is_staff or request.user.is_superuser
+
+    def has_object_permission(self, request, view, obj) -> bool:
+        # Admins get full access
+        if hasattr(request.user, "profile") and request.user.profile.role == "admin":
+            return True
+        if request.user.is_superuser:
+            return True
+
+        # Instructors only access their own resources
+        if hasattr(obj, "created_by"):
+            return obj.created_by_id == request.user.id
+        if hasattr(obj, "instructor"):
+            return obj.instructor_id == request.user.id
+
+        return False
+
+
 class IsEnrolledInCourse(permissions.BasePermission):
     """
     Allow access only to students enrolled in a course.

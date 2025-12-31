@@ -78,7 +78,7 @@
                       Excellent! Your <span class="segment-badge segment-badge-success">{{ segmentation.segment_count }} segment{{ segmentation.segment_count > 1 ? 's' : '' }}</span> show{{ segmentation.segment_count === 1 ? 's' : '' }} high-level understanding.
                     </template>
                     <template v-else-if="segmentation.comprehension_level === 'multi_structural'">
-                      Your <span class="segment-badge segment-badge-warning">{{ segmentation.segment_count }} segments</span> are too detailed. Try to describe the overall purpose in <span class="segment-badge segment-badge-goal">2 or fewer segments</span>.
+                      Your <span class="segment-badge segment-badge-warning">{{ segmentation.segment_count }} segments</span> are too detailed. Try to describe the overall purpose in <span class="segment-badge segment-badge-goal">{{ segmentThreshold === 1 ? '1 segment' : `${segmentThreshold} or fewer segments` }}</span>.
                     </template>
                     <template v-else>
                       {{ segmentation.feedback }}
@@ -126,6 +126,7 @@ interface Segmentation {
   comprehension_level: ComprehensionLevel
   feedback: string
   user_prompt?: string
+  threshold?: number
 }
 
 interface SizePresetConfig {
@@ -175,6 +176,10 @@ const modalStyle = computed(() => {
 
 const levelBadgeClass = computed(() => {
   return `badge-${props.segmentation.comprehension_level.replace('_', '-')}`
+})
+
+const segmentThreshold = computed(() => {
+  return props.segmentation.threshold ?? 2
 })
 
 // Methods

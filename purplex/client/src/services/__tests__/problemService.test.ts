@@ -234,6 +234,7 @@ describe('ProblemService', () => {
         await expect(problemService.deleteProblem('two-sum'))
           .rejects.toEqual({
             error: 'Cannot delete',
+            details: { error: 'Cannot delete' },
             status: 400
           })
       })
@@ -263,12 +264,13 @@ describe('ProblemService', () => {
       })
 
       it('should handle test execution errors', async () => {
+        const errorData = {
+          error: 'Syntax error in solution',
+          details: 'Line 1: invalid syntax'
+        };
         const error = {
           response: {
-            data: {
-              error: 'Syntax error in solution',
-              details: 'Line 1: invalid syntax'
-            },
+            data: errorData,
             status: 400
           }
         };
@@ -277,7 +279,7 @@ describe('ProblemService', () => {
         await expect(problemService.testProblem(testData))
           .rejects.toEqual({
             error: 'Syntax error in solution',
-            details: 'Line 1: invalid syntax',
+            details: errorData,
             status: 400
           })
       })
@@ -325,9 +327,10 @@ describe('ProblemService', () => {
       })
 
       it('should handle category creation errors', async () => {
+        const errorData = { error: 'Category already exists' };
         const error = {
           response: {
-            data: { error: 'Category already exists' },
+            data: errorData,
             status: 400
           }
         };
@@ -336,6 +339,7 @@ describe('ProblemService', () => {
         await expect(problemService.createCategory(categoryData))
           .rejects.toEqual({
             error: 'Category already exists',
+            details: errorData,
             status: 400
           })
       })

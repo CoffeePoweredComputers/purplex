@@ -120,6 +120,20 @@ class ProblemSetRepository(BaseRepository):
         )
 
     @classmethod
+    def get_by_creator(cls, user_id: int) -> list:
+        """Get all problem sets created by a specific user."""
+        return list(
+            ProblemSet.objects.filter(created_by_id=user_id)
+            .prefetch_related("problems")
+            .order_by("-created_at")
+        )
+
+    @classmethod
+    def get_by_slug(cls, slug: str) -> ProblemSet | None:
+        """Alias for get_problem_set_by_slug for consistency."""
+        return cls.get_problem_set_by_slug(slug)
+
+    @classmethod
     def search_problem_sets(cls, query: str, include_unpublished: bool = False) -> list:
         """Search problem sets by title or description."""
         queryset = ProblemSet.objects.filter(

@@ -95,6 +95,33 @@
       </div>
     </div>
 
+    <!-- Deadline Banner -->
+    <div
+      v-if="deadline"
+      class="deadline-banner"
+      :class="{
+        'deadline-locked': deadline.is_locked,
+        'deadline-past': deadline.is_past_due && !deadline.is_locked,
+        'deadline-urgent': !deadline.is_past_due && isDeadlineUrgent,
+        'deadline-soft': deadline.deadline_type === 'soft' && deadline.is_past_due
+      }"
+      role="alert"
+    >
+      <span class="deadline-icon">{{ deadline.is_locked ? '🔒' : deadline.is_past_due ? '⚠️' : '⏰' }}</span>
+      <span class="deadline-text">
+        <template v-if="deadline.is_locked">
+          <strong>Submissions Closed</strong> — This problem set closed on {{ formatDeadline(deadline.due_date) }}
+        </template>
+        <template v-else-if="deadline.is_past_due && deadline.deadline_type === 'soft'">
+          <strong>Late Submission</strong> — Due date was {{ formatDeadline(deadline.due_date) }}. Submissions will be marked as late.
+        </template>
+        <template v-else>
+          <strong>Due {{ formatDeadline(deadline.due_date) }}</strong>
+          <span v-if="isDeadlineUrgent" class="urgency-note">— Submit soon!</span>
+        </template>
+      </span>
+    </div>
+
     <!-- Main workspace -->
     <div
       id="main-workspace"
@@ -477,6 +504,9 @@ export default {
             problemStatuses: {},
             problemSetProgress: null,
 
+            /* Deadline Info */
+            deadline: null,
+
             /* Editor Settings */
             editorFontSize: 14,
             codeCopied: false,
@@ -500,12 +530,22 @@ export default {
             /* Current Attempt Hint Tracking - NEW: Two-level tracking system */
             currentAttemptHints: new Set(),  // Tracks hints used in current attempt only
 
-            /* Submission History */
-            submissionHistory: []
+            /* Submission History - keyed by problem slug for isolation */
+            submissionHistoryMap: {}
         };
     },
 
     computed: {
+        /**
+         * Current problem's submission history.
+         * Uses keyed map pattern to prevent cross-problem contamination
+         * when async callbacks complete after navigation.
+         */
+        submissionHistory() {
+            const currentSlug = this.getCurrentProblem()?.slug;
+            return currentSlug ? (this.submissionHistoryMap[currentSlug] || []) : [];
+        },
+
         solutionCode() {
             return this.getCurrentProblem().reference_solution || '';
         },
@@ -536,6 +576,17 @@ export default {
             const inProgress = this.inProgressCount;
             const remaining = totalProblems - completed - inProgress;
             return remaining;
+        },
+
+        isDeadlineUrgent() {
+            if (!this.deadline || this.deadline.is_past_due) {
+                return false;
+            }
+            const dueDate = new Date(this.deadline.due_date);
+            const now = new Date();
+            const diffMs = dueDate.getTime() - now.getTime();
+            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+            return diffDays <= 2;
         },
 
         currentTheme() {
@@ -606,6 +657,27 @@ export default {
         renderMarkdown(text) {
             if (!text) {return '';}
             return marked(text, { breaks: true });
+        },
+
+        formatDeadline(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = date.getTime() - now.getTime();
+            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+            // Format date with time
+            const dateOptions = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
+            const formatted = date.toLocaleDateString('en-US', dateOptions);
+
+            // Add relative indicator for upcoming deadlines
+            if (diffDays > 0 && diffDays <= 7) {
+                if (diffDays === 1) {
+                    return `Tomorrow (${formatted})`;
+                }
+                return `in ${diffDays} days (${formatted})`;
+            }
+
+            return formatted;
         },
 
         async nextProblem() {
@@ -684,7 +756,7 @@ export default {
                     // Apply all loaded data atomically
                     const { submissionHistory, submissionData, draftText } = batchData;
 
-                    this.submissionHistory = submissionHistory;
+                    this.submissionHistoryMap[problem.slug] = submissionHistory;
 
                     // Only set segmentation data if the problem has segmentation enabled (use handler config)
                     const currentProblem = this.getCurrentProblem();
@@ -854,7 +926,7 @@ export default {
                     await this.loadProblemDataBatch(problem.slug);
 
                 // Apply all data atomically
-                this.submissionHistory = submissionHistory;
+                this.submissionHistoryMap[problem.slug] = submissionHistory;
                 this.setFeedback({
                     codeResults: submissionData.variations || [],
                     testResults: submissionData.results || [],
@@ -956,17 +1028,17 @@ export default {
                     50 // limit to last 50 attempts
                 );
 
-                this.submissionHistory = historyResponse.submissions || [];
+                this.submissionHistoryMap[problemSlug] = historyResponse.submissions || [];
                 this.logger.info('Loaded submission history', {
                     problemSlug,
                     problemSetSlug: this.$route.params.slug,
                     totalAttempts: historyResponse.total_attempts,
                     bestScore: historyResponse.best_score,
-                    submissions: this.submissionHistory
+                    submissions: this.submissionHistoryMap[problemSlug]
                 });
             } catch (error) {
                 this.logger.error('Error loading submission history', error);
-                this.submissionHistory = [];
+                this.submissionHistoryMap[problemSlug] = [];
             }
         },
 
@@ -1505,10 +1577,12 @@ export default {
                             // feedback_config.show_segmentation comes from ActivityHandler.get_problem_config()
                             if (submittedProblem?.feedback_config?.show_segmentation && segmentation) {
                                 const segmentCount = segmentation.segment_count || 0;
-                                const threshold = submittedProblem.segmentation_config?.threshold || 2;
+                                // Read threshold from segmentation result (backend uses DB field as single source of truth)
+                                const threshold = segmentation.threshold ?? 2;
+                                const thresholdText = threshold === 1 ? 'need 1' : `need ≤${threshold}`;
                                 const highLevelText = segmentationPassed
-                                    ? `✓ High-level (${segmentCount} segments)`
-                                    : `✗ High-level (${segmentCount} segments, need ≤${threshold})`;
+                                    ? `✓ High-level (${segmentCount} segment${segmentCount !== 1 ? 's' : ''})`
+                                    : `✗ High-level (${segmentCount} segments, ${thresholdText})`;
                                 message += `Variations: ${perfectVariations}/${variations.length} passing, ${highLevelText}`;
                                 notificationType = (perfectVariations === variations.length && segmentationPassed) ? 'success' : 'warning';
                             } else {
@@ -1533,7 +1607,7 @@ export default {
 
                         this.currentAttemptHints = new Set();
 
-                        // Refresh submission history
+                        // Refresh submission history (uses keyed map - safe even if user navigated away)
                         this.loadSubmissionHistory(currentProblemSlug).then(() => {
                             this.logger.info('Submission history refreshed');
                         }).catch(error => {
@@ -1686,7 +1760,7 @@ export default {
             // Clear current attempt hints
             this.currentAttemptHints = new Set();
 
-            // Refresh submission history
+            // Refresh submission history (uses keyed map - safe even if user navigated away)
             this.loadSubmissionHistory(problemSlug).then(() => {
                 this.logger.info('Submission history refreshed after sync submission');
             }).catch(error => {
@@ -1776,6 +1850,11 @@ export default {
                 // Store problem set progress first
                 if (response.data.problem_set) {
                     this.problemSetProgress = response.data.problem_set;
+                }
+
+                // Store deadline info if provided
+                if (response.data.deadline) {
+                    this.deadline = response.data.deadline;
                 }
 
                 // Force Vue 3 reactivity by creating a completely new object
@@ -2059,6 +2138,50 @@ export default {
     100% {
         transform: translateX(100%) scaleX(0.3);
     }
+}
+
+/* Deadline Banner */
+.deadline-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    margin: 0 1rem 1rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: var(--color-surface-elevated, #2a2d3a);
+    border: 1px solid var(--color-border, #3a3d4a);
+}
+
+.deadline-banner .deadline-icon {
+    font-size: 1.1rem;
+}
+
+.deadline-banner .deadline-text {
+    flex: 1;
+}
+
+.deadline-banner .urgency-note {
+    color: var(--color-warning, #f5a623);
+    font-weight: 500;
+}
+
+.deadline-banner.deadline-locked {
+    background: rgba(220, 53, 69, 0.15);
+    border-color: rgba(220, 53, 69, 0.4);
+    color: #ff6b6b;
+}
+
+.deadline-banner.deadline-past,
+.deadline-banner.deadline-soft {
+    background: rgba(245, 166, 35, 0.15);
+    border-color: rgba(245, 166, 35, 0.4);
+    color: #f5a623;
+}
+
+.deadline-banner.deadline-urgent {
+    background: rgba(245, 166, 35, 0.1);
+    border-color: rgba(245, 166, 35, 0.3);
 }
 
 /* No transitions - keep content completely static during navigation */

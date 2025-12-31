@@ -11,14 +11,15 @@ Code quality is enforced through:
 ## Quick Start
 
 ```bash
-# Start everything with one command
+# Start everything with one command (recommended)
 ./start.sh
 
 # Or manually:
 source env/bin/activate
+source .env.development
 
-# Start PostgreSQL for development (if not using start.sh)
-docker run -d --name purplex-postgres \
+# Start PostgreSQL via Docker (if not using start.sh)
+docker run -d --name purplex-postgres-dev \
   -e POSTGRES_DB=purplex_dev \
   -e POSTGRES_USER=purplex_user \
   -e POSTGRES_PASSWORD=devpass \
@@ -26,10 +27,14 @@ docker run -d --name purplex-postgres \
   -v purplex_postgres_dev_data:/var/lib/postgresql/data \
   postgres:15-alpine
 
+# Start Redis via Docker (if not using start.sh)
+docker run -d --name purplex-redis-dev \
+  -p 6379:6379 \
+  redis:7-alpine
+
 python manage.py runserver          # Terminal 1
-cd purplex/client && npm run dev    # Terminal 2
-redis-server                        # Terminal 3
-celery -A purplex.celery_simple worker -l info  # Terminal 4
+cd purplex/client && yarn dev       # Terminal 2
+celery -A purplex.celery_simple worker -l info  # Terminal 3
 ```
 
 ## Adding New Features
@@ -285,7 +290,7 @@ test: add service layer tests
 
 ### Pre-Commit Checklist
 - [ ] Tests pass: `pytest`
-- [ ] Linting passes: `npm run lint`
+- [ ] Linting passes: `make lint` (or `cd purplex/client && yarn lint` for frontend)
 - [ ] Migrations created if needed
 - [ ] Documentation updated
 - [ ] Following STANDARDS.md
@@ -310,24 +315,39 @@ purplex/config/
 The correct settings module is automatically loaded based on the `PURPLEX_ENV` environment variable.
 
 ### Required Environment Variables
+
+See `.env.example` for a complete template with all variables.
+
 ```bash
 # .env.development file (for development)
 PURPLEX_ENV=development
-DJANGO_SECRET_KEY=development-secret-key-do-not-use-in-production
+DJANGO_SECRET_KEY=dev-secret-key-change-in-production
+DJANGO_DEBUG=true
 DATABASE_URL=postgresql://purplex_user:devpass@localhost:5432/purplex_dev
-OPENAI_API_KEY=your-openai-key-here
-GPT_MODEL=gpt-4o-mini
+
+# Redis (Docker container from start.sh)
 REDIS_HOST=localhost
 REDIS_PORT=6379
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/1
 
-# .env.production file (for production)
+# AI Provider Configuration
+AI_PROVIDER=llama                      # 'openai' or 'llama'
+OPENAI_API_KEY=your-openai-key-here    # Required if using OpenAI
+GPT_MODEL=gpt-4o-mini
+LLAMA_API_KEY=your-llama-key-here      # Required if using Llama
+
+# Mock services (development only)
+USE_MOCK_FIREBASE=true
+USE_MOCK_OPENAI=false
+
+# .env.production file (see .env.example for full template)
 PURPLEX_ENV=production
 DJANGO_SECRET_KEY=<generated-production-key>
+DJANGO_DEBUG=False
 DATABASE_URL=<production-database-url>
-OPENAI_API_KEY=<production-openai-key>
-FIREBASE_CREDENTIALS_PATH=/path/to/firebase-credentials.json
-REDIS_HOST=<production-redis-host>
-REDIS_PORT=6379
+FIREBASE_CREDENTIALS_PATH=/app/firebase-credentials.json
+# ... see .env.example for all production variables
 ```
 
 ### VS Code Recommended Extensions
@@ -348,11 +368,17 @@ REDIS_PORT=6379
 
 #### Redis Connection Error
 ```bash
-# Check Redis is running
-redis-cli ping
+# Check Redis Docker container is running
+docker ps | grep purplex-redis-dev
 
-# Start Redis
-redis-server
+# Check Redis is responding
+docker exec purplex-redis-dev redis-cli ping
+
+# Restart Redis container
+docker restart purplex-redis-dev
+
+# Or start if not running
+docker run -d --name purplex-redis-dev -p 6379:6379 redis:7-alpine
 ```
 
 #### Celery Tasks Not Processing
@@ -382,13 +408,13 @@ python manage.py migrate
 #### PostgreSQL Connection Issues
 ```bash
 # Check PostgreSQL container is running
-docker ps | grep postgres
+docker ps | grep purplex-postgres-dev
 
 # Restart PostgreSQL development container
-docker restart purplex-postgres
+docker restart purplex-postgres-dev
 
 # Check PostgreSQL logs
-docker logs purplex-postgres
+docker logs purplex-postgres-dev
 ```
 
 #### Authentication Issues
@@ -525,15 +551,15 @@ LOGGING = {
 
 ### Performance Testing
 ```bash
-# Simple local test
-python manage.py test tests.test_database_performance
-
 # Check current connections
 psql -c "SELECT count(*) FROM pg_stat_activity WHERE state = 'active'"
 
-# Find slow queries
+# Find slow queries (requires pg_stat_statements extension)
 psql -c "SELECT query, mean_exec_time FROM pg_stat_statements
          WHERE mean_exec_time > 50 ORDER BY mean_exec_time DESC LIMIT 10"
+
+# Django Debug Toolbar (enable in .env.development)
+# ENABLE_DEBUG_TOOLBAR=true
 ```
 
 **Expected Results**: < 200ms for 95% of requests, easily handle 2,000 students
@@ -767,7 +793,7 @@ This section standardizes field naming across models, serializers, and view anno
 ### Before Deploying
 - [ ] Set `DJANGO_DEBUG=False`
 - [ ] Run `python manage.py collectstatic`
-- [ ] Run `npm run build` in client/
+- [ ] Run `cd purplex/client && yarn build`
 - [ ] Update environment variables
 - [ ] Run migrations on production DB
 - [ ] Test with production settings locally
@@ -775,7 +801,7 @@ This section standardizes field naming across models, serializers, and view anno
 ### Production Commands
 ```bash
 # Using Docker
-docker-compose -f docker-compose.production.yml up -d
+docker-compose -f config/docker/production.yml up -d
 
 # Manual deployment
 gunicorn purplex.wsgi:application

@@ -129,6 +129,14 @@ class Submission(models.Model):
         null=True, blank=True, help_text="Time spent on this attempt"
     )
 
+    # Deadline tracking
+    is_late = models.BooleanField(
+        default=False,
+        db_default=False,  # Database-level default ensures NOT NULL even if Python passes None
+        db_index=True,
+        help_text="True if submitted after soft deadline",
+    )
+
     # Async processing - unique constraint prevents duplicate submissions on task retry
     celery_task_id = models.CharField(
         max_length=255, null=True, blank=True, unique=True

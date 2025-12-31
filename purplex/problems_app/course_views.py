@@ -15,7 +15,6 @@ from purplex.users_app.repositories.user_repository import UserRepository
 from .serializers import (
     CourseCreateUpdateSerializer,
     CourseDetailSerializer,
-    CourseEnrollmentSerializer,
     CourseEnrollSerializer,
     CourseListSerializer,
     CourseLookupSerializer,
@@ -188,12 +187,12 @@ class InstructorCourseDetailView(APIView):
 
 
 class InstructorCourseStudentsView(APIView):
-    """View enrolled students for a course"""
+    """View enrolled students for a course with per-problem-set progress"""
 
     permission_classes = [IsCourseInstructor]
 
     def get(self, request, course_id):
-        """List enrolled students"""
+        """List enrolled students with problem set progress"""
         course = CourseService.get_course_by_id(course_id, require_active=True)
         if not course:
             return Response(
@@ -202,9 +201,9 @@ class InstructorCourseStudentsView(APIView):
 
         self.check_object_permissions(request, course)
 
-        enrollments = CourseService.get_instructor_course_students(course)
-        serializer = CourseEnrollmentSerializer(enrollments, many=True)
-        return Response(serializer.data)
+        # Returns dict with 'problem_sets' and 'students' keys
+        data = CourseService.get_instructor_course_students(course)
+        return Response(data)
 
 
 class InstructorCourseProgressView(APIView):
@@ -546,6 +545,63 @@ class AdminAvailableProblemSetsView(APIView):
                     "description": ps["description"],
                 }
             )
+
+        return Response(response_data)
+
+
+class AdminCourseAvailableProblemSetsView(APIView):
+    """Get problem sets not yet assigned to a specific course (path param version)."""
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request, course_id):
+        """List problem sets available to add to this course."""
+        available_problem_sets = CourseService.get_available_problem_sets(
+            exclude_course_id=course_id
+        )
+
+        response_data = [
+            {
+                "slug": ps["slug"],
+                "title": ps["title"],
+                "problems_count": ps["problems_count"],
+                "description": ps["description"],
+            }
+            for ps in available_problem_sets
+        ]
+
+        return Response(response_data)
+
+
+class InstructorCourseAvailableProblemSetsView(APIView):
+    """Get problem sets not yet assigned to an instructor's course."""
+
+    permission_classes = [IsCourseInstructor]
+
+    def get(self, request, course_id):
+        """List problem sets available to add to this course."""
+        # Verify instructor owns this course
+        course = CourseService.get_course_by_id(course_id)
+        if not course:
+            return Response(
+                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        self.check_object_permissions(request, course)
+
+        available_problem_sets = CourseService.get_available_problem_sets(
+            exclude_course_id=course_id
+        )
+
+        response_data = [
+            {
+                "slug": ps["slug"],
+                "title": ps["title"],
+                "problems_count": ps["problems_count"],
+                "description": ps["description"],
+            }
+            for ps in available_problem_sets
+        ]
 
         return Response(response_data)
 

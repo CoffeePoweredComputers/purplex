@@ -40,6 +40,7 @@ class SubmissionService:
         time_spent: timedelta | None = None,
         activated_hints: list[dict] | None = None,
         celery_task_id: str | None = None,
+        is_late: bool = False,
     ) -> Submission:
         """
         Create submission WITHOUT @transaction.atomic decorator.
@@ -73,6 +74,8 @@ class SubmissionService:
             is_correct=False,
             # IDEMPOTENCY: Set celery_task_id atomically with creation
             celery_task_id=celery_task_id,
+            # Deadline tracking
+            is_late=is_late,
         )
 
         # Track hint activations
@@ -124,6 +127,7 @@ class SubmissionService:
         time_spent: timedelta | None = None,
         activated_hints: list[dict] | None = None,
         celery_task_id: str | None = None,
+        is_late: bool = False,
     ) -> Submission:
         """
         Create a new submission with all related data.
@@ -138,6 +142,7 @@ class SubmissionService:
             time_spent: Time spent on this attempt
             activated_hints: List of dicts with hint_id and trigger_type
             celery_task_id: Optional Celery task ID for idempotency
+            is_late: Whether the submission is past the soft deadline
 
         Returns:
             Created Submission instance
@@ -152,6 +157,7 @@ class SubmissionService:
             time_spent=time_spent,
             activated_hints=activated_hints,
             celery_task_id=celery_task_id,
+            is_late=is_late,
         )
 
     @classmethod
@@ -201,9 +207,7 @@ class SubmissionService:
                 passed_count += 1
 
         # Update submission with results
-        submission.score = int(
-            (passed_count / total_count * 100) if total_count > 0 else 0
-        )
+        test_score = int((passed_count / total_count * 100) if total_count > 0 else 0)
         submission.passed_all_tests = passed_count == total_count
         submission.is_correct = submission.passed_all_tests  # Set new field
         submission.execution_status = "completed"
@@ -213,6 +217,12 @@ class SubmissionService:
 
         # Map grade to legacy completion_status for backward compatibility
         submission.completion_status = cls._map_grade_to_completion_status(grade)
+
+        # Apply abstraction penalty: 50% score if tests pass but abstraction fails
+        if grade == "partial":
+            submission.score = int(test_score * 0.5)
+        else:
+            submission.score = test_score
 
         submission.save()
 
@@ -306,9 +316,7 @@ class SubmissionService:
             variation.save()
 
         # Update submission with overall results
-        submission.score = int(
-            (total_passed / total_tests * 100) if total_tests > 0 else 0
-        )
+        test_score = int((total_passed / total_tests * 100) if total_tests > 0 else 0)
         submission.passed_all_tests = total_passed == total_tests
         submission.is_correct = submission.passed_all_tests  # Set new field
         submission.execution_status = "completed"
@@ -319,6 +327,12 @@ class SubmissionService:
 
         # Map grade to legacy completion_status for backward compatibility
         submission.completion_status = cls._map_grade_to_completion_status(grade)
+
+        # Apply abstraction penalty: 50% score if tests pass but abstraction fails
+        if grade == "partial":
+            submission.score = int(test_score * 0.5)
+        else:
+            submission.score = test_score
 
         submission.save()
 
@@ -357,11 +371,10 @@ class SubmissionService:
         - record_segmentation() = Wraps this method with @transaction.atomic
         - _record_segmentation_no_transaction() = Raw operation, caller manages transaction
         """
-        # Calculate passed status based on threshold
-        # Get threshold from submission's problem config or use default
-        threshold = 2  # Default threshold
-        if submission.problem and hasattr(submission.problem, "segmentation_config"):
-            threshold = submission.problem.segmentation_config.get("threshold", 2)
+        # Calculate passed status based on threshold (DB field is single source of truth)
+        threshold = (
+            submission.problem.get_segmentation_threshold if submission.problem else 2
+        )
 
         # Use passed from segmentation_data if available, otherwise calculate
         passed = segmentation_data.get(
@@ -393,6 +406,11 @@ class SubmissionService:
 
         # Map grade to legacy completion_status for backward compatibility
         submission.completion_status = cls._map_grade_to_completion_status(grade)
+
+        # Apply abstraction penalty: 50% score if tests pass but abstraction fails
+        # Score was previously set from test results; now adjust for segmentation
+        if grade == "partial" and submission.score == 100:
+            submission.score = 50  # Tests passed (100%) but abstraction failed
 
         submission.save()
 
@@ -511,6 +529,7 @@ class SubmissionService:
             # Add segmentation if exists
             if hasattr(submission, "segmentation"):
                 seg = submission.segmentation
+                threshold = submission.problem.get_segmentation_threshold
                 details["segmentation"] = {
                     "comprehension_level": seg.comprehension_level,
                     "segment_count": seg.segment_count,
@@ -518,6 +537,8 @@ class SubmissionService:
                     "feedback_message": seg.feedback_message,
                     "suggested_improvements": seg.suggested_improvements,
                     "confidence_score": seg.confidence_score,
+                    "threshold": threshold,
+                    "passed": seg.segment_count <= threshold,
                 }
 
             # Add code variations for EiPL

@@ -220,11 +220,13 @@ def _build_cached_eipl_result(submission: "Submission") -> dict[str, Any]:
     # Check for segmentation data
     if hasattr(submission, "segmentation") and submission.segmentation:
         seg = submission.segmentation
+        threshold = submission.problem.get_segmentation_threshold
         legacy_fields["segmentation"] = {
             "segment_count": seg.segment_count,
             "comprehension_level": seg.comprehension_level,
             "segments": seg.segments,
-            "passed": seg.passed,
+            "passed": seg.segment_count <= threshold,
+            "threshold": threshold,
             "feedback": seg.feedback_message,
             "improvements": seg.suggested_improvements,
         }
@@ -365,19 +367,24 @@ def segment_prompt_helper(user_prompt: str, problem_id: int) -> dict[str, Any] |
     if not problem.segmentation_enabled:
         return None
 
+    # Build config with threshold from authoritative source (DB field takes priority)
+    problem_config = (
+        problem.segmentation_config.copy() if problem.segmentation_config else {}
+    )
+    problem_config["threshold"] = problem.get_segmentation_threshold
+
     service = SegmentationService()
     segmentation_result = service.segment_prompt(
         user_prompt=user_prompt,
         reference_code=problem.reference_solution,
-        problem_config=problem.segmentation_config or {},
+        problem_config=problem_config,
     )
 
-    # Add the 'passed' field based on segment count <= threshold
+    # Add threshold and 'passed' field to result for frontend display
     if segmentation_result:
-        # Defensive: handle None segmentation_config
-        config = problem.segmentation_config or {}
-        threshold = config.get("threshold", 2)
+        threshold = problem.get_segmentation_threshold
         segment_count = segmentation_result.get("segment_count", 0)
+        segmentation_result["threshold"] = threshold
         segmentation_result["passed"] = segment_count <= threshold
 
     return segmentation_result
@@ -393,8 +400,31 @@ def save_submission_helper(
     test_results: list[dict],
     segmentation: dict | None,
     task_id: str | None = None,
+    submission_id: str | None = None,
 ) -> dict[str, Any]:
-    """Helper function to save the submission using new service layer."""
+    """
+    Helper function to save/update the submission using new service layer.
+
+    Args:
+        user_id: ID of the user making the submission
+        problem_id: Database ID of the problem
+        problem_set_id: Optional problem set ID
+        course_id: Optional course ID
+        user_prompt: User's explanation/code input
+        variations: List of code variations generated
+        test_results: Test results for each variation
+        segmentation: Segmentation analysis results (if applicable)
+        task_id: Celery task ID for idempotency
+        submission_id: UUID of existing submission to UPDATE instead of creating new
+                       (CRITICAL: prevents duplicate submission bug)
+
+    Returns:
+        Complete submission result dictionary
+    """
+    from django.db import IntegrityError
+
+    from purplex.submissions.models import Submission
+
     # Get objects through services/repositories
     user = UserService.get_user_by_id(user_id)
     if not user:
@@ -442,41 +472,55 @@ def save_submission_helper(
     # PERFORMANCE: Single atomic transaction to reduce DB overhead
     # Previously: 3 separate transactions caused ~60% extra DB load
     # IDEMPOTENCY: Handle race condition where another worker beat us to creating the submission
-    from django.db import IntegrityError
 
-    from purplex.submissions.models import Submission
+    # FIX: If submission_id is provided, UPDATE existing submission instead of creating new
+    # This prevents the duplicate submission bug where view creates one and pipeline creates another
+    if submission_id:
+        try:
+            submission = Submission.objects.get(submission_id=submission_id)
+            logger.info(f"✅ Updating existing submission {submission_id}")
+            # Update celery_task_id for tracking
+            submission.celery_task_id = task_id
+            submission.save(update_fields=["celery_task_id"])
+        except Submission.DoesNotExist:
+            logger.warning(
+                f"⚠️ Submission {submission_id} not found, creating new submission"
+            )
+            submission_id = None  # Fall through to create new
 
-    try:
-        with transaction.atomic():
-            # Create submission using _no_transaction method to avoid nested transactions
-            # The outer transaction.atomic() manages the entire pipeline as one unit
-            # IDEMPOTENCY: Pass celery_task_id atomically with submission creation
-            # This eliminates the race window where submission exists without task_id
-            submission = SubmissionService._create_submission_no_transaction(
-                user=user,
-                problem=problem,
-                raw_input=user_prompt,
-                submission_type="eipl",
-                problem_set=problem_set,
-                course=course,
-                time_spent=None,  # Could be passed from frontend in future
-                activated_hints=activated_hints,  # Now tracking hints from frontend
-                celery_task_id=task_id,  # For idempotency on task retry
-            )
-    except IntegrityError as e:
-        # Another worker beat us - fetch and return existing submission
-        if "celery_task_id" in str(e):
-            logger.info(
-                f"🔄 Race condition: another worker already created submission for task {task_id}"
-            )
-            existing = Submission.objects.get(celery_task_id=task_id)
-            # Return minimal result that signals to use cached result
-            return {
-                "submission_id": str(existing.submission_id),
-                "score": existing.score,
-                "idempotent_hit": True,
-            }
-        raise  # Re-raise if it's not a celery_task_id uniqueness error
+    if not submission_id:
+        # Create new submission (legacy path or when submission_id not provided)
+        try:
+            with transaction.atomic():
+                # Create submission using _no_transaction method to avoid nested transactions
+                # The outer transaction.atomic() manages the entire pipeline as one unit
+                # IDEMPOTENCY: Pass celery_task_id atomically with submission creation
+                # This eliminates the race window where submission exists without task_id
+                submission = SubmissionService._create_submission_no_transaction(
+                    user=user,
+                    problem=problem,
+                    raw_input=user_prompt,
+                    submission_type="eipl",
+                    problem_set=problem_set,
+                    course=course,
+                    time_spent=None,  # Could be passed from frontend in future
+                    activated_hints=activated_hints,  # Now tracking hints from frontend
+                    celery_task_id=task_id,  # For idempotency on task retry
+                )
+        except IntegrityError as e:
+            # Another worker beat us - fetch and return existing submission
+            if "celery_task_id" in str(e):
+                logger.info(
+                    f"🔄 Race condition: another worker already created submission for task {task_id}"
+                )
+                existing = Submission.objects.get(celery_task_id=task_id)
+                # Return minimal result that signals to use cached result
+                return {
+                    "submission_id": str(existing.submission_id),
+                    "score": existing.score,
+                    "idempotent_hit": True,
+                }
+            raise  # Re-raise if it's not a celery_task_id uniqueness error
 
     with transaction.atomic():
         # Record code variations for EiPL
@@ -634,6 +678,7 @@ def execute_eipl_pipeline(
     user_id: int,
     problem_set_id: int | None = None,
     course_id: int | None = None,
+    submission_id: str | None = None,
 ) -> dict[str, Any]:
     """
     Single orchestrator task for the entire EiPL pipeline with Sentry monitoring.
@@ -647,6 +692,8 @@ def execute_eipl_pipeline(
         user_id: ID of the user making the submission
         problem_set_id: Optional problem set ID
         course_id: Optional course ID
+        submission_id: UUID of existing submission created by the view
+                       (CRITICAL: pass this to prevent duplicate submissions)
 
     Returns:
         Complete submission result
@@ -959,6 +1006,7 @@ def execute_eipl_pipeline(
                 test_results=test_results,
                 segmentation=segmentation,
                 task_id=task_id,
+                submission_id=submission_id,  # Pass existing submission to update (no duplicates)
             )
             logger.info(
                 f"✅ STEP 5 COMPLETE: Submission {submission_result['submission_id']} saved successfully (task {task_id})"
@@ -1305,6 +1353,7 @@ def execute_debug_fix_pipeline(
     user_id: int,
     problem_set_id: int | None = None,
     course_id: int | None = None,
+    submission_id: str | None = None,
 ) -> dict[str, Any]:
     """
     Execute Debug Fix submission pipeline.
@@ -1318,6 +1367,8 @@ def execute_debug_fix_pipeline(
         user_id: ID of the user making the submission
         problem_set_id: Optional problem set ID
         course_id: Optional course ID
+        submission_id: UUID of existing submission created by the view
+                       (CRITICAL: pass this to prevent duplicate submissions)
 
     Returns:
         Complete submission result
@@ -1453,27 +1504,44 @@ def execute_debug_fix_pipeline(
         # Create submission
         from django.db import IntegrityError
 
-        try:
-            with transaction.atomic():
-                submission = SubmissionService._create_submission_no_transaction(
-                    user=user,
-                    problem=problem,
-                    raw_input=fixed_code,
-                    submission_type="debug_fix",
-                    problem_set=problem_set,
-                    course=course,
-                    time_spent=None,
-                    activated_hints=None,
-                    celery_task_id=task_id,
+        # FIX: If submission_id is provided, UPDATE existing submission instead of creating new
+        # This prevents the duplicate submission bug where view creates one and pipeline creates another
+        if submission_id:
+            try:
+                submission = Submission.objects.get(submission_id=submission_id)
+                logger.info(f"✅ Updating existing submission {submission_id}")
+                # Update celery_task_id for tracking
+                submission.celery_task_id = task_id
+                submission.save(update_fields=["celery_task_id"])
+            except Submission.DoesNotExist:
+                logger.warning(
+                    f"⚠️ Submission {submission_id} not found, creating new submission"
                 )
-        except IntegrityError as e:
-            if "celery_task_id" in str(e):
-                logger.info(
-                    f"Race condition: another worker already created submission for task {task_id}"
-                )
-                existing = Submission.objects.get(celery_task_id=task_id)
-                return _build_cached_debug_fix_result(existing)
-            raise
+                submission_id = None  # Fall through to create new
+
+        if not submission_id:
+            # Create new submission (legacy path or when submission_id not provided)
+            try:
+                with transaction.atomic():
+                    submission = SubmissionService._create_submission_no_transaction(
+                        user=user,
+                        problem=problem,
+                        raw_input=fixed_code,
+                        submission_type="debug_fix",
+                        problem_set=problem_set,
+                        course=course,
+                        time_spent=None,
+                        activated_hints=None,
+                        celery_task_id=task_id,
+                    )
+            except IntegrityError as e:
+                if "celery_task_id" in str(e):
+                    logger.info(
+                        f"Race condition: another worker already created submission for task {task_id}"
+                    )
+                    existing = Submission.objects.get(celery_task_id=task_id)
+                    return _build_cached_debug_fix_result(existing)
+                raise
 
         # Use regular transaction.atomic for the rest
         with transaction.atomic():
@@ -1631,6 +1699,7 @@ def execute_probeable_code_pipeline(
     user_id: int,
     problem_set_id: int | None = None,
     course_id: int | None = None,
+    submission_id: str | None = None,
 ) -> dict[str, Any]:
     """
     Execute Probeable Code submission pipeline.
@@ -1645,6 +1714,8 @@ def execute_probeable_code_pipeline(
         user_id: ID of the user making the submission
         problem_set_id: Optional problem set ID
         course_id: Optional course ID
+        submission_id: UUID of existing submission created by the view
+                       (CRITICAL: pass this to prevent duplicate submissions)
 
     Returns:
         Complete submission result
@@ -1781,27 +1852,44 @@ def execute_probeable_code_pipeline(
         # Create submission
         from django.db import IntegrityError
 
-        try:
-            with transaction.atomic():
-                submission = SubmissionService._create_submission_no_transaction(
-                    user=user,
-                    problem=problem,
-                    raw_input=student_code,
-                    submission_type="probeable_code",
-                    problem_set=problem_set,
-                    course=course,
-                    time_spent=None,
-                    activated_hints=None,
-                    celery_task_id=task_id,
+        # FIX: If submission_id is provided, UPDATE existing submission instead of creating new
+        # This prevents the duplicate submission bug where view creates one and pipeline creates another
+        if submission_id:
+            try:
+                submission = Submission.objects.get(submission_id=submission_id)
+                logger.info(f"✅ Updating existing submission {submission_id}")
+                # Update celery_task_id for tracking
+                submission.celery_task_id = task_id
+                submission.save(update_fields=["celery_task_id"])
+            except Submission.DoesNotExist:
+                logger.warning(
+                    f"⚠️ Submission {submission_id} not found, creating new submission"
                 )
-        except IntegrityError as e:
-            if "celery_task_id" in str(e):
-                logger.info(
-                    f"Race condition: another worker already created submission for task {task_id}"
-                )
-                existing = Submission.objects.get(celery_task_id=task_id)
-                return _build_cached_probeable_code_result(existing)
-            raise
+                submission_id = None  # Fall through to create new
+
+        if not submission_id:
+            # Create new submission (legacy path or when submission_id not provided)
+            try:
+                with transaction.atomic():
+                    submission = SubmissionService._create_submission_no_transaction(
+                        user=user,
+                        problem=problem,
+                        raw_input=student_code,
+                        submission_type="probeable_code",
+                        problem_set=problem_set,
+                        course=course,
+                        time_spent=None,
+                        activated_hints=None,
+                        celery_task_id=task_id,
+                    )
+            except IntegrityError as e:
+                if "celery_task_id" in str(e):
+                    logger.info(
+                        f"Race condition: another worker already created submission for task {task_id}"
+                    )
+                    existing = Submission.objects.get(celery_task_id=task_id)
+                    return _build_cached_probeable_code_result(existing)
+                raise
 
         # Use regular transaction.atomic for the rest
         with transaction.atomic():

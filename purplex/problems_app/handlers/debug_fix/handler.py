@@ -256,10 +256,13 @@ class DebugFixHandler(ActivityHandler):
         Debug Fix requires async because it involves:
         - Docker containers for code execution
         - Test case execution
+
+        IMPORTANT: We pass submission_id to the pipeline so it UPDATES the existing
+        submission created by the view, instead of creating a duplicate.
         """
         from purplex.problems_app.tasks.pipeline import execute_debug_fix_pipeline
 
-        # Queue the Celery task
+        # Queue the Celery task with submission_id to prevent duplicates
         task = execute_debug_fix_pipeline.apply_async(
             args=[
                 problem.id,
@@ -267,13 +270,15 @@ class DebugFixHandler(ActivityHandler):
                 context["user_id"],
                 context.get("problem_set_id"),
                 context.get("course_id"),
+                str(submission.submission_id),  # CRITICAL: Pass existing submission ID
             ],
             task_id=context["request_id"],
         )
 
         logger.info(
             f"Debug Fix submission queued: task_id={task.id}, "
-            f"problem={problem.slug}, user={context['user_id']}"
+            f"problem={problem.slug}, user={context['user_id']}, "
+            f"submission_id={submission.submission_id}"
         )
 
         return SubmissionOutcome(complete=False, submission=submission, task_id=task.id)

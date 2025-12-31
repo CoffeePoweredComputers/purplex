@@ -11,6 +11,7 @@ from .docker_service_factory import (
 )
 from .hint_display_service import HintDisplayService
 from .hint_service import AdminHintService, HintService
+from .instructor_content_service import InstructorContentService
 from .probe_service import ProbeService
 from .progress_service import ProgressService
 from .segmentation_service import SegmentationService
@@ -38,4 +39,5 @@ __all__ = [
     "AdminProblemService",
     "CourseService",
     "ProbeService",
+    "InstructorContentService",
 ]

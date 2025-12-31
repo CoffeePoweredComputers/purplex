@@ -139,10 +139,8 @@ class ProbeableSpecHandler(ActivityHandler):
 
         segmentation = submission.segmentation
 
-        # Get threshold from problem configuration
-        threshold = getattr(submission.problem, "segmentation_threshold", None)
-        if threshold is None:
-            threshold = submission.problem.segmentation_config.get("threshold", 2)
+        # Get threshold (DB field is single source of truth)
+        threshold = submission.problem.get_segmentation_threshold
 
         # Apply threshold-based grading
         segment_count = segmentation.segment_count
@@ -351,9 +349,7 @@ class ProbeableSpecHandler(ActivityHandler):
         # Serialize segmentation (full data for modal display)
         if hasattr(submission, "segmentation") and submission.segmentation:
             seg = submission.segmentation
-            threshold = getattr(submission.problem, "segmentation_threshold", None)
-            if threshold is None:
-                threshold = submission.problem.segmentation_config.get("threshold", 2)
+            threshold = submission.problem.get_segmentation_threshold
 
             result["segmentation"] = {
                 "segment_count": seg.segment_count,
@@ -408,10 +404,13 @@ class ProbeableSpecHandler(ActivityHandler):
 
         Reuses the EiPL pipeline since the NL -> code -> test flow is identical.
         The difference is how the student discovered what to describe (probing).
+
+        IMPORTANT: We pass submission_id to the pipeline so it UPDATES the existing
+        submission created by the view, instead of creating a duplicate.
         """
         from purplex.problems_app.tasks.pipeline import execute_eipl_pipeline
 
-        # Queue the Celery task (same as EiPL)
+        # Queue the Celery task with submission_id to prevent duplicates
         task = execute_eipl_pipeline.apply_async(
             args=[
                 problem.id,
@@ -419,13 +418,15 @@ class ProbeableSpecHandler(ActivityHandler):
                 context["user_id"],
                 context.get("problem_set_id"),
                 context.get("course_id"),
+                str(submission.submission_id),  # CRITICAL: Pass existing submission ID
             ],
             task_id=context["request_id"],
         )
 
         logger.info(
             f"Probeable Spec submission queued: task_id={task.id}, "
-            f"problem={problem.slug}, user={context['user_id']}"
+            f"problem={problem.slug}, user={context['user_id']}, "
+            f"submission_id={submission.submission_id}"
         )
 
         return SubmissionOutcome(complete=False, submission=submission, task_id=task.id)

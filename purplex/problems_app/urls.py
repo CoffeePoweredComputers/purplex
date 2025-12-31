@@ -2,6 +2,7 @@ from django.urls import path
 
 from .course_views import (  # Admin course views; Instructor course views; Student course views
     AdminAvailableProblemSetsView,
+    AdminCourseAvailableProblemSetsView,
     AdminCourseDetailView,
     AdminCourseListCreateView,
     AdminCourseProblemSetsView,
@@ -9,6 +10,7 @@ from .course_views import (  # Admin course views; Instructor course views; Stud
     AdminInstructorsListView,
     CourseEnrollView,
     CourseLookupView,
+    InstructorCourseAvailableProblemSetsView,
     InstructorCourseDetailView,
     InstructorCourseListView,
     InstructorCourseProblemSetOrderView,
@@ -44,8 +46,22 @@ from .views.instructor_analytics_views import (
     InstructorCourseAnalyticsView,
     InstructorCourseExportView,
     InstructorProblemAnalyticsView,
+    InstructorProblemExportView,
+    InstructorProblemSetActivityView,
+    InstructorProblemSetExportView,
     InstructorStudentDetailView,
     InstructorStudentListView,
+)
+
+# Instructor Content Management views
+from .views.instructor_content_views import (
+    InstructorCourseCreateView,
+    InstructorCourseProblemSetManageView,
+    InstructorProblemDetailView,
+    InstructorProblemListView,
+    InstructorProblemSetDetailView,
+    InstructorProblemSetListView,
+    InstructorTestProblemView,
 )
 
 # Instructor FERPA-compliant views
@@ -263,6 +279,11 @@ urlpatterns = [
         name="admin_course_problemset_detail",
     ),
     path(
+        "admin/courses/<str:course_id>/available-problem-sets/",
+        AdminCourseAvailableProblemSetsView.as_view(),
+        name="admin_course_available_problemsets",
+    ),
+    path(
         "admin/courses/<str:course_id>/students/",
         AdminCourseStudentsView.as_view(),
         name="admin_course_students",
@@ -277,6 +298,12 @@ urlpatterns = [
         "instructor/courses/",
         InstructorCourseListView.as_view(),
         name="instructor_course_list",
+    ),
+    # IMPORTANT: create must come BEFORE <str:course_id> to avoid matching "create" as a course_id
+    path(
+        "instructor/courses/create/",
+        InstructorCourseCreateView.as_view(),
+        name="instructor_course_create",
     ),
     path(
         "instructor/courses/<str:course_id>/",
@@ -302,6 +329,11 @@ urlpatterns = [
         "instructor/courses/<str:course_id>/problem-sets/order/",
         InstructorCourseProblemSetOrderView.as_view(),
         name="instructor_course_reorder",
+    ),
+    path(
+        "instructor/courses/<str:course_id>/available-problem-sets/",
+        InstructorCourseAvailableProblemSetsView.as_view(),
+        name="instructor_course_available_problemsets",
     ),
     path(
         "instructor/courses/<str:course_id>/submissions/",
@@ -333,6 +365,63 @@ urlpatterns = [
         "instructor/courses/<str:course_id>/export/",
         InstructorCourseExportView.as_view(),
         name="instructor_course_export",
+    ),
+    path(
+        "instructor/courses/<str:course_id>/problem-sets/<slug:problem_set_slug>/activity/",
+        InstructorProblemSetActivityView.as_view(),
+        name="instructor_problem_set_activity",
+    ),
+    path(
+        "instructor/courses/<str:course_id>/problem-sets/<slug:problem_set_slug>/export/",
+        InstructorProblemSetExportView.as_view(),
+        name="instructor_problem_set_export",
+    ),
+    path(
+        "instructor/courses/<str:course_id>/problems/<slug:problem_slug>/export/",
+        InstructorProblemExportView.as_view(),
+        name="instructor_problem_export",
+    ),
+    # Instructor Content Management
+    path(
+        "instructor/problems/",
+        InstructorProblemListView.as_view(),
+        name="instructor_problem_list",
+    ),
+    path(
+        "instructor/problems/<slug:slug>/",
+        InstructorProblemDetailView.as_view(),
+        name="instructor_problem_detail",
+    ),
+    path(
+        "instructor/test-problem/",
+        InstructorTestProblemView.as_view(),
+        name="instructor_test_problem",
+    ),
+    path(
+        "instructor/problem-sets/",
+        InstructorProblemSetListView.as_view(),
+        name="instructor_problem_set_list",
+    ),
+    path(
+        "instructor/problem-sets/<slug:slug>/",
+        InstructorProblemSetDetailView.as_view(),
+        name="instructor_problem_set_detail",
+    ),
+    path(
+        "instructor/courses/<str:course_id>/problem-sets/manage/",
+        InstructorCourseProblemSetManageView.as_view(),
+        name="instructor_course_problemset_manage",
+    ),
+    path(
+        "instructor/courses/<str:course_id>/problem-sets/manage/<slug:problem_set_slug>/",
+        InstructorCourseProblemSetManageView.as_view(),
+        name="instructor_course_problemset_remove",
+    ),
+    # PATCH/DELETE by membership ID (for frontend compatibility)
+    path(
+        "instructor/courses/<str:course_id>/problem-sets/<int:membership_id>/",
+        InstructorCourseProblemSetManageView.as_view(),
+        name="instructor_course_problemset_by_id",
     ),
     # Student Course Views
     path(

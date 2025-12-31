@@ -19,9 +19,12 @@ Before starting the migration, backup your existing configuration files:
 ```bash
 # Backup existing .env files
 cp .env .env.backup
-cp .env.production .env.production.backup
-cp .env.development .env.development.backup
+
+# If you have a production environment file
+cp .env.production .env.production.backup 2>/dev/null || true
 ```
+
+**Note**: `.env.development` is now a committed template file with safe defaults.
 
 ### Step 2: Choose Your Environment
 
@@ -42,16 +45,24 @@ export PURPLEX_ENV=production  # or development, staging
 #### For Development
 
 1. Use the consolidated `.env.development` file as your base
-2. Create `.env.local` for any personal overrides (gitignored)
+2. Create `.env` for any personal overrides (gitignored)
 3. The system will use sensible defaults for most settings
 
 ```bash
-# Copy the development template
+# Option 1: Copy the development template
 cp .env.development .env
+
+# Option 2: Source the development file directly
+export $(cat .env.development | grep -v '^#' | xargs)
 
 # Edit with your specific values (especially API keys)
 nano .env
 ```
+
+**Key settings to customize in development**:
+- `OPENAI_API_KEY` - Your OpenAI API key (or set `USE_MOCK_OPENAI=true`)
+- `LLAMA_API_KEY` - Your Llama API key if using Llama as AI provider
+- `AI_PROVIDER` - Set to `openai` or `llama`
 
 #### For Production
 
@@ -61,30 +72,61 @@ cp .env.production.template .env.production
 ```
 
 2. Fill in ALL required values:
-   - Generate a new `DJANGO_SECRET_KEY`
-   - Set proper `DJANGO_ALLOWED_HOSTS`
-   - Configure database credentials
-   - Add API keys (OpenAI, Firebase)
-   - Set SSL certificate paths
+   - Generate a new `DJANGO_SECRET_KEY`:
+     ```bash
+     python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+     ```
+   - Set `DJANGO_ALLOWED_HOSTS` with your domain/IP (no wildcards)
+   - Configure `DATABASE_URL` with PostgreSQL connection string
+   - Configure `REDIS_URL` with Redis connection string
+   - Set `REDIS_PASSWORD` for production Redis authentication
+   - Add `OPENAI_API_KEY` or `LLAMA_API_KEY` based on your AI provider
+   - Set `FIREBASE_CREDENTIALS_PATH` to your credentials JSON file
+   - Configure `POSTGRES_PASSWORD` for the database container
 
 3. Validate your configuration:
 ```bash
+# Set environment and load config
+export PURPLEX_ENV=production
+export $(cat .env.production | grep -v '^#' | xargs)
+
+# Run Django deployment checks
+python manage.py check --deploy
+
 # Test configuration loading
 python manage.py shell -c "from purplex.config.environment import config; print(config.get_config_summary())"
 ```
 
 ### Step 4: Update Docker Compose Files
 
-If using Docker, update your compose files to use the new environment variables:
+If using Docker, the compose files use profiles to separate development and production:
 
+```bash
+# Development profile (uses .env.docker.development)
+COMPOSE_PROFILES=development docker-compose up -d
+
+# Production profile (uses .env.production)
+COMPOSE_PROFILES=production docker-compose up -d
+```
+
+The Docker Compose file automatically:
+- Uses `.env.production` for production services
+- Uses `.env.docker.development` for development services
+- Overrides database and Redis URLs with container hostnames
+- Sets up Docker-in-Docker for secure code execution
+
+Example production service configuration from `docker-compose.yml`:
 ```yaml
-# docker-compose.yml
 services:
   web:
+    profiles:
+      - production
     env_file:
-      - .env.production  # or .env.development
+      - .env.production
     environment:
-      - PURPLEX_ENV=${PURPLEX_ENV}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-prod:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis-prod:6379/0
+      - DOCKER_HOST=tcp://dind:2375
 ```
 
 ### Step 5: Update CI/CD Pipelines
@@ -111,6 +153,8 @@ env:
 | `ALLOWED_HOSTS` | `DJANGO_ALLOWED_HOSTS` | No wildcards in production |
 | `OPENAI_KEY` | `OPENAI_API_KEY` | Consistent naming |
 | `FIREBASE_CREDS` | `FIREBASE_CREDENTIALS_PATH` | Full path required |
+| `AI_PROVIDER` | `AI_PROVIDER` | New: Choose between `openai` or `llama` |
+| `LLAMA_API_KEY` | `LLAMA_API_KEY` | New: Required if AI_PROVIDER=llama |
 
 ### New Required Variables (Production)
 
@@ -118,10 +162,12 @@ These variables MUST be set in production:
 
 - `PURPLEX_ENV=production`
 - `DJANGO_SECRET_KEY` (newly generated)
+- `DJANGO_ALLOWED_HOSTS` (comma-separated list of domains/IPs, no wildcards)
 - `DATABASE_URL` (PostgreSQL connection string)
 - `REDIS_URL` (Redis connection string)
-- `OPENAI_API_KEY` (unless using mock)
-- `FIREBASE_CREDENTIALS_PATH` (unless using mock)
+- `OPENAI_API_KEY` (required if `AI_PROVIDER=openai`)
+- `LLAMA_API_KEY` (required if `AI_PROVIDER=llama`)
+- `FIREBASE_CREDENTIALS_PATH` (path to credentials JSON file)
 
 ### New Optional Variables
 
@@ -140,9 +186,17 @@ These variables have sensible defaults but can be customized:
 - `RATE_LIMIT_AUTH_PER_MINUTE` (default: 5 prod, 100 dev)
 
 #### Logging
-- `DJANGO_LOG_FILE` (default: /var/log/purplex/django.log)
-- `ERROR_LOG_FILE` (default: /var/log/purplex/errors.log)
+- `DJANGO_LOG_FILE` (default: `/app/logs/django.log` prod, `logs/django.log` dev)
+- `ERROR_LOG_FILE` (default: `/app/logs/errors.log` prod, `logs/errors.log` dev)
+- `ACCESS_LOG_FILE` (default: `/app/logs/access.log` prod, `logs/access.log` dev)
 - `LOG_LEVEL` (default: INFO prod, DEBUG dev)
+- `DJANGO_LOG_LEVEL` (default: WARNING prod, DEBUG dev)
+
+#### Docker Pool Health Monitoring
+- `DOCKER_POOL_SIZE` (default: 30 prod, 3 dev)
+- `DOCKER_POOL_HEALTH_CHECK_INTERVAL` (default: 60s prod, 120s dev)
+- `DOCKER_POOL_CONTAINER_MAX_AGE` (default: 3600s prod, 7200s dev)
+- `DOCKER_POOL_MAX_RESTART_ATTEMPTS` (default: 3)
 
 ## Validation and Testing
 
@@ -178,10 +232,34 @@ python manage.py check --deploy
 
 In production, the system will automatically:
 - Reject development/test secret keys
-- Require HTTPS/SSL settings
+- Require HTTPS/SSL settings (if `ENFORCE_SSL_IN_PRODUCTION=true`)
 - Disable debug mode
 - Enforce rate limiting
-- Validate Firebase and OpenAI credentials
+- Validate Firebase and AI provider credentials (OpenAI or Llama)
+- Reject wildcard allowed hosts
+
+## SSL/HTTPS Configuration
+
+The new configuration system has flexible SSL settings. Configure based on your deployment:
+
+### With HTTPS (Recommended)
+```bash
+SECURE_SSL_REDIRECT=true
+SESSION_COOKIE_SECURE=true
+CSRF_COOKIE_SECURE=true
+ENFORCE_SSL_IN_PRODUCTION=true
+```
+
+### Without HTTPS (Not Recommended for Production)
+If deploying with HTTP only (e.g., internal network or behind a load balancer handling SSL):
+```bash
+SECURE_SSL_REDIRECT=false
+SESSION_COOKIE_SECURE=false
+CSRF_COOKIE_SECURE=false
+ENFORCE_SSL_IN_PRODUCTION=false
+```
+
+**Important**: The `ENFORCE_SSL_IN_PRODUCTION` flag controls whether SSL validation is strict. When set to `true`, configuration validation will fail if SSL settings are not enabled.
 
 ## Troubleshooting
 
@@ -214,14 +292,46 @@ Mock Firebase or OpenAI is enabled in production.
 
 **Solution**: Set `USE_MOCK_FIREBASE=false` and `USE_MOCK_OPENAI=false`
 
-#### 4. Log directory not writable
+#### 4. "OpenAI/Llama API key required"
+
+The configured AI provider requires an API key.
+
+**Solution**: Either set the API key or switch providers:
+```bash
+# For OpenAI
+AI_PROVIDER=openai
+OPENAI_API_KEY=your-key-here
+
+# For Llama
+AI_PROVIDER=llama
+LLAMA_API_KEY=your-key-here
+```
+
+#### 5. "ALLOWED_HOSTS must be properly configured"
+
+Production requires explicit allowed hosts.
+
+**Solution**: Set specific domains/IPs (no wildcards):
+```bash
+# Correct
+DJANGO_ALLOWED_HOSTS=purplex.org,www.purplex.org,54.123.45.67
+
+# Wrong - wildcards not allowed in production
+DJANGO_ALLOWED_HOSTS=*
+```
+
+#### 6. Log directory not writable
 
 The application cannot write to the configured log paths.
 
 **Solution**: Create the directories and set permissions:
 ```bash
-sudo mkdir -p /var/log/purplex
-sudo chown -R www-data:www-data /var/log/purplex
+# For local development
+mkdir -p logs
+
+# For Docker production (logs are mounted from host)
+mkdir -p logs
+# In Docker, logs are written to /app/logs which maps to ./logs on host
 ```
 
 ### Rollback Procedure
@@ -234,13 +344,15 @@ cp .env.backup .env
 cp .env.production.backup .env.production
 ```
 
-2. Revert the code changes:
+2. Restart your application:
 ```bash
-git checkout -- purplex/config/environment.py
-git checkout -- purplex/settings/
-```
+# For Docker
+COMPOSE_PROFILES=production docker-compose down
+COMPOSE_PROFILES=production docker-compose up -d
 
-3. Restart your application
+# For local development
+# Stop and restart ./start.sh
+```
 
 ## Best Practices
 
@@ -257,9 +369,23 @@ git checkout -- purplex/settings/
 If you encounter issues during migration:
 
 1. Check the error messages - they're now more descriptive
-2. Review the `CONFIGURATION_SECURITY_CHECKLIST.md`
-3. Test in development environment first
-4. Use `python manage.py shell` to debug configuration issues
+2. Review the [Configuration Security Checklist](../security/CONFIGURATION_SECURITY_CHECKLIST.md)
+3. See the full [Configuration Guide](./CONFIGURATION.md) for variable reference
+4. Test in development environment first
+5. Use `python manage.py shell` to debug configuration issues
+
+### Quick Validation Commands
+
+```bash
+# Validate Django deployment settings
+python manage.py check --deploy
+
+# Test configuration in Django shell
+python manage.py shell -c "from purplex.config.environment import config; config.validate_configuration(); print('OK')"
+
+# View current configuration summary
+python manage.py shell -c "from purplex.config.environment import config; print(config.get_config_summary())"
+```
 
 ## Next Steps
 

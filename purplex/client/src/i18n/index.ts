@@ -106,5 +106,3 @@ export function isValidLocale(locale: string): locale is SupportedLocale {
 export function useI18nInstance(): I18n<[MessageSchema], object, object, SupportedLocale, false> {
   return i18n as I18n<[MessageSchema], object, object, SupportedLocale, false>;
 }
-
-export default i18n;
