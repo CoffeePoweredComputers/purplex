@@ -25,8 +25,14 @@ stop: ## Stop development environment
 
 .PHONY: install
 install: ## Install all dependencies
-	pip install -r requirements/development.txt
-	cd purplex/client && yarn install
+	pip install -r requirements.txt
+	pip install pre-commit bandit pip-audit
+	cd purplex/client && npm install
+
+.PHONY: install-hooks
+install-hooks: ## Install pre-commit hooks for security scanning
+	pre-commit install
+	@echo "Pre-commit hooks installed. Security checks will run on every commit."
 
 .PHONY: migrate
 migrate: ## Run database migrations
@@ -50,8 +56,7 @@ createsuperuser: ## Create superuser account
 
 .PHONY: populate
 populate: ## Populate sample data
-	python manage.py populate_sample_data
-	python manage.py populate_comprehensive_data
+	python manage.py populate_comprehensive
 
 # =====================================================================================
 # TESTING COMMANDS
@@ -164,7 +169,7 @@ db-restore: ## Restore database from backup
 db-reset: ## Reset database (WARNING: Deletes all data!)
 	python manage.py flush --noinput
 	python manage.py migrate
-	python manage.py populate_sample_data
+	python manage.py populate_comprehensive
 
 # =====================================================================================
 # UTILITY COMMANDS
@@ -188,9 +193,40 @@ requirements: ## Update requirements files
 	@echo "Review and update base.txt, development.txt, and production.txt as needed"
 
 .PHONY: check-security
-check-security: ## Check for security vulnerabilities
-	safety check
-	bandit -r purplex/
+check-security: ## Check for security vulnerabilities (Python + frontend)
+	@echo "=== Python Dependency Scan (pip-audit) ==="
+	pip-audit --strict --desc on
+	@echo ""
+	@echo "=== Python SAST Scan (Bandit) ==="
+	bandit -r purplex/ -ll
+	@echo ""
+	@echo "=== Frontend Dependency Scan (npm audit) ==="
+	cd purplex/client && npm audit --audit-level=high
+
+.PHONY: check-security-full
+check-security-full: ## Full security scan including container images
+	@echo "=== Running full security scan ==="
+	$(MAKE) check-security
+	@echo ""
+	@echo "=== Secrets Scan (if trufflehog installed) ==="
+	@which trufflehog > /dev/null && trufflehog filesystem . --only-verified || echo "trufflehog not installed, skipping"
+	@echo ""
+	@echo "=== Container Scan (if trivy installed) ==="
+	@which trivy > /dev/null && trivy config docker/ || echo "trivy not installed, skipping"
+
+.PHONY: check-dead-code
+check-dead-code: ## Detect unused code with vulture
+	vulture purplex/ vulture_whitelist.py \
+		--min-confidence 80 \
+		--exclude "**/migrations/**,**/tests/**,**/node_modules/**" \
+		--ignore-names "view,exc_type,exc_val,exc_tb,check_revoked,page_token,schema_editor,application,beat_schedule"
+
+.PHONY: check-dead-code-deep
+check-dead-code-deep: ## Deep dead code scan (more false positives, needs manual review)
+	vulture purplex/ vulture_whitelist.py \
+		--min-confidence 60 \
+		--exclude "**/migrations/**,**/tests/**,**/node_modules/**,**/admin.py" \
+		--ignore-names "view,exc_type,exc_val,exc_tb,check_revoked,page_token,schema_editor,application,beat_schedule"
 
 .PHONY: version
 version: ## Show version

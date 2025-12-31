@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { firebaseAuth } from '../firebaseConfig';
-import { 
+import {
   getIdToken,
   signOut,
   User
@@ -27,21 +27,22 @@ class AuthService {
       if (!user) {
         return { authenticated: false };
       }
-      
+
       // Get the ID token
       const token = await getIdToken(user);
-      
+
       // Send the token to our backend for validation
       const response = await axios.post<AuthResponse>(API_URL, {}, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-      
+
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error('Token validation error', error);
-      return { authenticated: false, error: error.message };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { authenticated: false, error: errorMessage };
     }
   }
 

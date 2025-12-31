@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest'
 import axios from 'axios'
 import { problemService } from '../problemService'
-import type { 
-  HintConfig, 
-  ProblemCategory, 
+import type {
+  HintConfig,
+  ProblemCategory,
   ProblemCreateRequest,
   ProblemDetailed,
   ProblemUpdateRequest,
@@ -234,6 +234,7 @@ describe('ProblemService', () => {
         await expect(problemService.deleteProblem('two-sum'))
           .rejects.toEqual({
             error: 'Cannot delete',
+            details: { error: 'Cannot delete' },
             status: 400
           })
       })
@@ -263,21 +264,22 @@ describe('ProblemService', () => {
       })
 
       it('should handle test execution errors', async () => {
-        const error = { 
-          response: { 
-            data: { 
-              error: 'Syntax error in solution',
-              details: 'Line 1: invalid syntax'
-            }, 
-            status: 400 
-          } 
+        const errorData = {
+          error: 'Syntax error in solution',
+          details: 'Line 1: invalid syntax'
+        };
+        const error = {
+          response: {
+            data: errorData,
+            status: 400
+          }
         };
         (axios.post as Mock).mockRejectedValue(error)
 
         await expect(problemService.testProblem(testData))
           .rejects.toEqual({
             error: 'Syntax error in solution',
-            details: 'Line 1: invalid syntax',
+            details: errorData,
             status: 400
           })
       })
@@ -325,17 +327,19 @@ describe('ProblemService', () => {
       })
 
       it('should handle category creation errors', async () => {
-        const error = { 
-          response: { 
-            data: { error: 'Category already exists' }, 
-            status: 400 
-          } 
+        const errorData = { error: 'Category already exists' };
+        const error = {
+          response: {
+            data: errorData,
+            status: 400
+          }
         };
         (axios.post as Mock).mockRejectedValue(error)
 
         await expect(problemService.createCategory(categoryData))
           .rejects.toEqual({
             error: 'Category already exists',
+            details: errorData,
             status: 400
           })
       })
@@ -379,7 +383,7 @@ describe('ProblemService', () => {
 
         expect(axios.get).toHaveBeenCalledWith(
           '/api/problems/two-sum/hints/',
-          { 
+          {
             params: {
               course_id: 'cs101',
               problem_set_slug: 'week-1'

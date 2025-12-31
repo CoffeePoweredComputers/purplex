@@ -1,108 +1,130 @@
 <template>
-  <div
-    v-if="isVisible"
-    class="modal-overlay"
-    @click.self="closeModal"
-  >
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">
-          Account Settings
-        </h3>
-        <button
-          class="close-button"
-          @click="closeModal"
-        >
-          &times;
-        </button>
-      </div>
-            
-      <div class="user-profile">
-        <div class="avatar">
-          {{ getInitials() }}
-        </div>
-        <div class="user-info">
-          <h4 class="user-name">
-            {{ $store.state.auth.user.name || 'User' }}
-          </h4>
-          <p class="user-email">
-            {{ $store.state.auth.user.email }}
-          </p>
-        </div>
-      </div>
-            
-      <div class="info-section">
-        <div class="info-item">
-          <span class="info-label">Account Type</span>
-          <span
-            class="role-badge"
-            :class="$store.state.auth.user.role"
+  <Teleport to="body">
+    <div
+      v-if="isVisible"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="account-modal-title"
+      @click.self="closeModal"
+    >
+      <div
+        ref="modalContentRef"
+        class="modal-content"
+        @keydown.esc="closeModal"
+      >
+        <div class="modal-header">
+          <h3
+            id="account-modal-title"
+            class="modal-title"
           >
-            {{ $store.state.auth.user.role }}
-          </span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Member Since</span>
-          <span class="info-value">{{ getMemberSince() }}</span>
-        </div>
-      </div>
-            
-      <div class="modal-footer">
-        <button
-          class="logout-button"
-          @click="logout"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
+            Account Settings
+          </h3>
+          <button
+            class="close-button"
+            @click="closeModal"
           >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line
-              x1="21"
-              y1="12"
-              x2="9"
-              y2="12"
-            />
-          </svg>
-          Sign Out
-        </button>
+            &times;
+          </button>
+        </div>
+
+        <div class="user-profile">
+          <div class="avatar">
+            {{ getInitials() }}
+          </div>
+          <div class="user-info">
+            <h4 class="user-name">
+              {{ store.state.auth.user.name || 'User' }}
+            </h4>
+            <p class="user-email">
+              {{ store.state.auth.user.email }}
+            </p>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <div class="info-item">
+            <span class="info-label">Account Type</span>
+            <span
+              class="role-badge"
+              :class="store.state.auth.user.role"
+            >
+              {{ store.state.auth.user.role }}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Member Since</span>
+            <span class="info-value">{{ getMemberSince() }}</span>
+          </div>
+
+          <LanguageSwitcher />
+        </div>
+
+        <div class="modal-footer">
+          <button
+            class="logout-button"
+            @click="logout"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line
+                x1="21"
+                y1="12"
+                x2="9"
+                y2="12"
+              />
+            </svg>
+            Sign Out
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
-<script lang="ts">
-export default {
-    name: 'AccountModal',
-    props: {
-        isVisible: {
-            type: Boolean,
-            required: true
-        }
-    },
-    methods: {
-        logout() {
-            this.$store.dispatch('auth/logout');
-        },
-        closeModal() {
-            this.$emit('close');
-        },
-        getInitials() {
-            const name = this.$store.state.auth.user.name || this.$store.state.auth.user.email || 'User';
-            return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
-        },
-        getMemberSince() {
-            // This would typically come from user data
-            // For now, return a placeholder
-            return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        }
-    }
-};
+<script setup lang="ts">
+import { toRef } from 'vue'
+import { useStore } from 'vuex'
+import LanguageSwitcher from '../components/LanguageSwitcher.vue'
+import { useFocusTrap } from '@/composables/useFocusTrap'
+
+const props = defineProps<{
+  isVisible: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'close'): void
+}>()
+
+const store = useStore()
+
+// Focus trap composable
+const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
+
+function logout(): void {
+  store.dispatch('auth/logout')
+}
+
+function closeModal(): void {
+  emit('close')
+}
+
+function getInitials(): string {
+  const name = store.state.auth.user.name || store.state.auth.user.email || 'User'
+  return name.split(' ').map((word: string) => word[0]).join('').toUpperCase().slice(0, 2)
+}
+
+function getMemberSince(): string {
+  return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
 </script>
 
 <style scoped>
@@ -328,37 +350,37 @@ export default {
     .modal-content {
         max-width: 95%;
     }
-    
+
     .modal-header {
         padding: var(--spacing-md) var(--spacing-lg);
     }
-    
+
     .modal-title {
         font-size: var(--font-size-md);
     }
-    
+
     .user-profile {
         padding: var(--spacing-lg);
     }
-    
+
     .avatar {
         width: 56px;
         height: 56px;
         font-size: var(--font-size-lg);
     }
-    
+
     .user-name {
         font-size: var(--font-size-base);
     }
-    
+
     .info-section {
         padding: var(--spacing-lg);
     }
-    
+
     .modal-footer {
         padding: var(--spacing-lg);
     }
-    
+
     .logout-button {
         width: 100%;
     }

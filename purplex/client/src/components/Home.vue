@@ -10,119 +10,134 @@
         v-if="enrolledCourses.length > 0"
         class="courses-section"
       >
-      <section
-        v-for="enrollment in enrolledCourses"
-        :key="enrollment.course.course_id"
-        class="course-section"
-        :aria-labelledby="`course-title-${enrollment.course.course_id}`"
-        :aria-describedby="`course-progress-${enrollment.course.course_id}`"
-      >
-        <div class="course-header">
-          <h2
-            class="course-title"
-            :id="`course-title-${enrollment.course.course_id}`"
-          >
-            {{ enrollment.course.name }}
-          </h2>
-          <span
-            class="progress-indicator"
-            :id="`course-progress-${enrollment.course.course_id}`"
-            role="status"
-            :aria-label="`Course progress: ${enrollment.progress.completed_sets} of ${enrollment.progress.total_sets} problem sets completed`"
-          >
-            {{ enrollment.progress.completed_sets }} / {{ enrollment.progress.total_sets }} completed
-          </span>
-        </div>
-        <hr class="course-divider" aria-hidden="true">
-        
-        <!-- Reuse existing gallery grid for problem sets -->
-        <div
-          v-if="loading.courses"
-          class="gallery-grid"
-          role="status"
-          aria-label="Loading problem sets"
+        <section
+          v-for="enrollment in enrolledCourses"
+          :key="enrollment.course.course_id"
+          class="course-section"
+          :aria-labelledby="`course-title-${enrollment.course.course_id}`"
+          :aria-describedby="`course-progress-${enrollment.course.course_id}`"
         >
-          <!-- Skeleton cards -->
-          <div
-            v-for="n in 3"
-            :key="`skeleton-${n}`"
-            class="problem-set-card skeleton"
+          <div class="course-header">
+            <h2
+              :id="`course-title-${enrollment.course.course_id}`"
+              class="course-title"
+            >
+              {{ enrollment.course.name }}
+            </h2>
+            <span
+              :id="`course-progress-${enrollment.course.course_id}`"
+              class="progress-indicator"
+              role="status"
+              :aria-label="`Course progress: ${enrollment.progress.completed_sets} of ${enrollment.progress.total_sets} problem sets completed`"
+            >
+              {{ enrollment.progress.completed_sets }} / {{ enrollment.progress.total_sets }} completed
+            </span>
+          </div>
+          <hr
+            class="course-divider"
             aria-hidden="true"
           >
-            <div class="card-content">
-              <div class="card-header">
-                <div class="skeleton-title" />
-              </div>
-              <div class="progress-section">
-                <div class="skeleton-progress-bar" />
-                <div class="skeleton-progress-text" />
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <nav
-          v-else-if="enrollment.course.problem_sets && enrollment.course.problem_sets.length > 0"
-          class="gallery-grid"
-          :aria-label="`${enrollment.course.name} problem sets`"
-        >
-          <button
-            v-for="psData in enrollment.course.problem_sets"
-            :key="psData.problem_set.slug"
-            class="problem-set-card"
-            :aria-label="`${psData.problem_set.title}: ${psData.progress.completed_problems} of ${psData.progress.total_problems} completed`"
-            @click="navigateToProblemSet(enrollment.course.course_id, psData.problem_set.slug)"
+          <!-- Reuse existing gallery grid for problem sets -->
+          <div
+            v-if="loading.courses"
+            class="gallery-grid"
+            role="status"
+            aria-label="Loading problem sets"
           >
-            <div class="card-content">
-              <div class="card-header">
-                <h3 class="card-title">
-                  {{ psData.problem_set.title }}
-                </h3>
-              </div>
-
-              <div class="progress-section">
-                <div class="progress-bar-container">
-                  <div
-                    class="progress-bar-background"
-                    role="progressbar"
-                    :aria-valuenow="psData.progress.percentage"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    :aria-label="`Progress: ${psData.progress.percentage}%`"
-                    aria-live="polite"
-                  >
-                    <div
-                      class="progress-bar-fill"
-                      :style="{ width: psData.progress.percentage + '%' }"
-                    />
-                  </div>
-                  <span class="progress-text" aria-live="polite">
-                    <template v-if="psData.progress.total_problems === 0">
-                      No problems yet
-                    </template>
-                    <template v-else>
-                      {{ psData.progress.completed_problems }} /
-                      {{ psData.progress.total_problems }} completed
-                    </template>
-                  </span>
+            <!-- Skeleton cards -->
+            <div
+              v-for="n in 3"
+              :key="`skeleton-${n}`"
+              class="problem-set-card skeleton"
+              aria-hidden="true"
+            >
+              <div class="card-content">
+                <div class="card-header">
+                  <div class="skeleton-title" />
+                </div>
+                <div class="progress-section">
+                  <div class="skeleton-progress-bar" />
+                  <div class="skeleton-progress-text" />
                 </div>
               </div>
             </div>
-            <span class="card-hover-text" aria-hidden="true">
-              {{ psData.progress.percentage === 100 ? 'Review →' :
-                psData.progress.completed_problems > 0 ? 'Continue →' : 'Start →' }}
-            </span>
-          </button>
-        </nav>
-        
-        <div
-          v-else
-          class="empty-state"
-          role="status"
-        >
-          <p>No problem sets available in this course yet.</p>
-        </div>
-      </section>
+          </div>
+
+          <nav
+            v-else-if="enrollment.course.problem_sets && enrollment.course.problem_sets.length > 0"
+            class="gallery-grid"
+            :aria-label="`${enrollment.course.name} problem sets`"
+          >
+            <button
+              v-for="psData in enrollment.course.problem_sets"
+              :key="psData.problem_set.slug"
+              class="problem-set-card"
+              :aria-label="`${psData.problem_set.title}: ${psData.progress.completed_problems} of ${psData.progress.total_problems} completed`"
+              @click="navigateToProblemSet(enrollment.course.course_id, psData.problem_set.slug)"
+            >
+              <div class="card-content">
+                <div class="card-header">
+                  <h3 class="card-title">
+                    {{ psData.problem_set.title }}
+                  </h3>
+                  <span
+                    v-if="psData.due_date"
+                    :class="['due-badge', getDueDateClass(psData)]"
+                  >
+                    {{ isLocked(psData) ? '🔒 Closed' : formatDueDate(psData.due_date) }}
+                  </span>
+                </div>
+
+                <div class="progress-section">
+                  <div class="progress-bar-container">
+                    <div
+                      class="progress-bar-background"
+                      role="progressbar"
+                      :aria-valuenow="psData.progress.percentage"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      :aria-label="`Progress: ${psData.progress.percentage}%`"
+                      aria-live="polite"
+                    >
+                      <div
+                        class="progress-bar-fill"
+                        :style="{ width: psData.progress.percentage + '%' }"
+                      />
+                    </div>
+                    <span
+                      class="progress-text"
+                      aria-live="polite"
+                    >
+                      <template v-if="psData.progress.total_problems === 0">
+                        No problems yet
+                      </template>
+                      <template v-else>
+                        {{ psData.progress.completed_problems }} /
+                        {{ psData.progress.total_problems }} completed
+                      </template>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <span
+                class="card-hover-text"
+                aria-hidden="true"
+              >
+                {{ psData.progress.percentage === 100 ? 'Review →' :
+                  psData.progress.completed_problems > 0 ? 'Continue →' : 'Start →' }}
+              </span>
+            </button>
+          </nav>
+
+          <div
+            v-else
+            class="empty-state"
+            role="status"
+          >
+            <p>No problem sets available in this course yet.</p>
+          </div>
+        </section>
       </div>
 
       <!-- Empty State -->
@@ -131,7 +146,10 @@
         class="empty-state-container"
       >
         <div class="empty-state-content">
-          <div class="empty-icon" aria-hidden="true">
+          <div
+            class="empty-icon"
+            aria-hidden="true"
+          >
             🎓
           </div>
           <h1>Welcome to Purplex!</h1>
@@ -141,7 +159,10 @@
             aria-label="Join a new course to access problem sets"
             @click="showEnrollmentModal"
           >
-            <span class="btn-icon" aria-hidden="true">+</span>
+            <span
+              class="btn-icon"
+              aria-hidden="true"
+            >+</span>
             Join a Course
           </button>
         </div>
@@ -155,57 +176,89 @@
       aria-label="Join a Course"
       @click="showEnrollmentModal"
     >
-      <span class="btn-icon" aria-hidden="true">+</span>
+      <span
+        class="btn-icon"
+        aria-hidden="true"
+      >+</span>
     </button>
   </div>
 </template>
 
-<script lang="ts">
-import { computed, defineComponent, onMounted } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import CourseEnrollmentModal from '../modals/CourseEnrollmentModal.vue'
 import { waitForAuthState } from '../utils/auth-state'
 
-export default defineComponent({
-  name: 'Home',
-  components: {
-    CourseEnrollmentModal
-  },
-  setup() {
-    const store = useStore()
-    const router = useRouter()
-    
-    // Computed properties
-    const enrolledCourses = computed(() => store.state.courses.enrolledCourses)
-    const loading = computed(() => store.state.courses.loading)
-    const progressData = computed(() => store.state.courses.courseProgress)
-    
-    // Methods
-    const showEnrollmentModal = (): void => {
-      store.dispatch('courses/showEnrollmentModal')
-    }
-    
-    const navigateToProblemSet = (courseId: string, problemSetSlug: string): void => {
-      router.push(`/courses/${courseId}/problem-set/${problemSetSlug}`)
-    }
-    
-    
-    // Lifecycle
-    onMounted(async () => {
-      // Wait for auth state to be determined first
-      await waitForAuthState()
-      // Initialize courses data
-      await store.dispatch('courses/initializeCourses')
-    })
-    
-    return {
-      enrolledCourses,
-      loading,
-      showEnrollmentModal,
-      navigateToProblemSet
-    }
+const store = useStore()
+const router = useRouter()
+
+// Computed properties
+const enrolledCourses = computed(() => store.state.courses.enrolledCourses)
+const loading = computed(() => store.state.courses.loading)
+
+function showEnrollmentModal(): void {
+  store.dispatch('courses/showEnrollmentModal')
+}
+
+function navigateToProblemSet(courseId: string, problemSetSlug: string): void {
+  router.push(`/courses/${courseId}/problem-set/${problemSetSlug}`)
+}
+
+// Due date helpers
+function formatDueDate(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = date.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    return 'Past due'
+  } else if (diffDays === 0) {
+    return 'Due today'
+  } else if (diffDays === 1) {
+    return 'Due tomorrow'
+  } else if (diffDays <= 7) {
+    return `Due in ${diffDays} days`
+  } else {
+    return `Due ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
   }
+}
+
+function getDueDateClass(psData: { due_date?: string; deadline_type?: string }): string {
+  if (!psData.due_date) {
+    return ''
+  }
+
+  const date = new Date(psData.due_date)
+  const now = new Date()
+  const diffMs = date.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    return psData.deadline_type === 'hard' ? 'due-locked' : 'due-past'
+  } else if (diffDays <= 2) {
+    return 'due-urgent'
+  } else if (diffDays <= 7) {
+    return 'due-soon'
+  }
+  return 'due-normal'
+}
+
+function isLocked(psData: { due_date?: string; deadline_type?: string }): boolean {
+  if (!psData.due_date || psData.deadline_type !== 'hard') {
+    return false
+  }
+  return new Date(psData.due_date) < new Date()
+}
+
+// Lifecycle
+onMounted(async () => {
+  // Wait for auth state to be determined first
+  await waitForAuthState()
+  // Initialize courses data
+  await store.dispatch('courses/initializeCourses')
 })
 </script>
 
@@ -315,6 +368,41 @@ main {
   color: var(--color-text-primary);
   margin: 0;
   flex: 1;
+}
+
+/* Due date badges */
+.due-badge {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.due-badge.due-normal {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-muted);
+}
+
+.due-badge.due-soon {
+  background-color: rgba(234, 179, 8, 0.15);
+  color: #ca8a04;
+}
+
+.due-badge.due-urgent {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.due-badge.due-past {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.due-badge.due-locked {
+  background-color: rgba(107, 114, 128, 0.15);
+  color: var(--color-text-muted);
 }
 
 
@@ -498,17 +586,17 @@ main {
   .home-container {
     padding: var(--spacing-lg);
   }
-  
+
   .gallery-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .course-header {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-sm);
   }
-  
+
   .add-course-btn.floating {
     bottom: var(--spacing-lg);
     right: var(--spacing-lg);

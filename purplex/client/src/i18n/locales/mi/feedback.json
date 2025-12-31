@@ -1,0 +1,38 @@
+{
+  "loading": "E whakaputa urupare ana...",
+  "emptyState": "Tukuna he tono kia tīmata te whiwhi urupare!",
+  "yourResponse": "Tō whakautu",
+  "comprehension": {
+    "sectionTitle": "Taumata Māramatanga",
+    "sectionDescription": "E whakaatu ana he pēhea te teitei o tō whakamāramatanga",
+    "level": {
+      "relational": "Ka rawe!",
+      "multiStructural": "He tino taipitopito",
+      "default": "Kua tātarihia"
+    },
+    "description": {
+      "relational": "Māramatanga teitei",
+      "multiStructural": "Tirohia ngā whakapaitanga e tūtohua ana",
+      "default": "Tirohia te tātaritanga"
+    }
+  },
+  "correctness": {
+    "sectionTitle": "Tika",
+    "sectionDescription": "He maha ngā whakamāoritanga AI o tō whakamāramatanga kua whakamātauria ki ngā whakamātautau ā-wae"
+  },
+  "tests": {
+    "passing": "{count} E Tutuki Ana",
+    "failing": "{count} E Rahua Ana",
+    "failingGroup": "Ngā Whakamātautau E Rahua Ana ({count})",
+    "passingGroup": "Ngā Whakamātautau E Tutuki Ana ({count})",
+    "expected": "I Tūmanakohia:",
+    "got": "I Riro Mai:"
+  },
+  "solution": {
+    "title": "Otinga {current} o {total}"
+  },
+  "attempts": {
+    "label": "Ngā Tukutanga o Mua:",
+    "ariaLabel": "Tirohia ngā tukutanga o mua. Ināianei: ngana {current} o {total}, kaute {score}%"
+  }
+}

@@ -23,7 +23,8 @@ monkey.patch_all()
 
 # Verification logging (will appear in container startup logs)
 import sys
-if 'gevent.monkey' in sys.modules:
+
+if "gevent.monkey" in sys.modules:
     # Verify specific modules are patched
     print("✓ Gevent monkey-patching ACTIVE")
     print(f"  - socket: {monkey.is_module_patched('socket')}")

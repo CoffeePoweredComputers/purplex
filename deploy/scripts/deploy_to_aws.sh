@@ -123,7 +123,7 @@ GPT_MODEL=gpt-4o-mini
 # Firebase
 FIREBASE_CREDENTIALS_PATH=/home/ubuntu/purplex/firebase-credentials.json
 EOF
-    
+
     warning "Please edit $PROJECT_DIR/.env with your actual configuration values"
     read -p "Press enter when you've updated the .env file..."
 fi

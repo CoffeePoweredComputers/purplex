@@ -41,7 +41,7 @@
           </span>
         </div>
       </div>
-      
+
       <!-- Right: Code with Highlights -->
       <div class="code-panel">
         <h4 class="panel-title">
@@ -131,7 +131,7 @@ export default defineComponent({
       // Don't filter out empty lines to maintain line numbering
       return this.referenceCode.split('\n');
     },
-    
+
     parsedResponse(): ParsedResponsePart[] {
 
       if (!this.userPrompt) {
@@ -228,15 +228,15 @@ export default defineComponent({
       const segment = this.segments.find(s => s.text === text);
       return segment ? segment.id : null;
     },
-    
+
     setActiveSegment(segmentId: number): void {
       this.activeSegment = segmentId;
     },
-    
+
     clearActiveSegment(): void {
       this.activeSegment = null;
     },
-    
+
     getSegmentColor(segmentId: number): string {
       // Get color for segment (cycling through palette)
       const index = (segmentId - 1) % this.segmentColors.length;
@@ -478,13 +478,13 @@ export default defineComponent({
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
   }
-  
+
   .response-panel,
   .code-panel {
     border: none;
     border-bottom: 1px solid var(--color-bg-input);
   }
-  
+
   .code-panel {
     border-bottom: none;
   }

@@ -37,14 +37,19 @@ export default defineConfig({
           // Editor chunk - only loaded when needed
           'editor': ['ace-builds', 'vue3-ace-editor'],
 
-          // Admin components - lazy loaded for admin users only
+          // Admin-only components - lazy loaded for admin users only
           'admin': [
-            './src/components/AdminProblems.vue',
-            './src/components/AdminProblemEditor.vue',
-            './src/components/AdminSubmissions.vue',
-            './src/components/AdminCourses.vue',
             './src/components/AdminUsers.vue',
-            './src/components/AdminProblemSets.vue'
+          ],
+          // Unified content management components (used by both admin and instructor)
+          'content': [
+            './src/components/content/ProblemList.vue',
+            './src/components/content/ProblemEditorShell.vue',
+            './src/components/content/ProblemSetManager.vue',
+            './src/components/content/ProblemSetEditorShell.vue',
+            './src/components/content/CourseList.vue',
+            './src/components/content/CourseEditorShell.vue',
+            './src/components/content/SubmissionsPage.vue',
           ],
         },
 

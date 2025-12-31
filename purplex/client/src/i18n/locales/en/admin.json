@@ -1,0 +1,24 @@
+{
+  "nav": {
+    "users": "Users",
+    "problems": "Problems",
+    "problemSets": "Problem Sets",
+    "submissions": "Submissions",
+    "courses": "Courses"
+  },
+  "users": {
+    "title": "User Management",
+    "searchPlaceholder": "Search users...",
+    "role": "Role",
+    "email": "Email",
+    "username": "Username",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "problems": {
+    "title": "Problem Management",
+    "create": "Create Problem",
+    "edit": "Edit Problem",
+    "delete": "Delete Problem"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "nav": {
+    "users": "Ngā Kaiwhakamahi",
+    "problems": "Ngā Raru",
+    "problemSets": "Ngā Huinga Raru",
+    "submissions": "Ngā Tukutanga",
+    "courses": "Ngā Akoranga"
+  },
+  "users": {
+    "title": "Whakahaere Kaiwhakamahi",
+    "searchPlaceholder": "Rapua ngā kaiwhakamahi...",
+    "role": "Tūranga",
+    "email": "Īmēra",
+    "username": "Ingoa Kaiwhakamahi",
+    "status": "Āhua",
+    "actions": "Ngā Mahi"
+  },
+  "problems": {
+    "title": "Whakahaere Raru",
+    "create": "Waihanga Raru",
+    "edit": "Whakatika Raru",
+    "delete": "Muku Raru"
+  }
+}

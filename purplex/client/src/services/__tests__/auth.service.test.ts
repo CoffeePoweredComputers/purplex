@@ -22,6 +22,24 @@ vi.mock('../../utils/logger', () => ({
   }
 }))
 
+// Mock localStorage for happy-dom environment
+const localStorageMock = (() => {
+  let store: Record<string, string> = {}
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => { store[key] = value },
+    removeItem: (key: string) => { delete store[key] },
+    clear: () => { store = {} },
+    get length() { return Object.keys(store).length },
+    key: (index: number) => Object.keys(store)[index] || null
+  }
+})()
+
+Object.defineProperty(globalThis, 'localStorage', {
+  value: localStorageMock,
+  writable: true
+})
+
 // Mock user object
 const mockUser: Partial<User> = {
   uid: 'test-uid',
@@ -90,9 +108,9 @@ describe('AuthService', () => {
 
       const result = await authService.validateToken()
 
-      expect(result).toEqual({ 
-        authenticated: false, 
-        error: 'Token retrieval failed' 
+      expect(result).toEqual({
+        authenticated: false,
+        error: 'Token retrieval failed'
       })
       expect(log.error).toHaveBeenCalledWith('Token validation error', mockError)
     })
@@ -107,9 +125,9 @@ describe('AuthService', () => {
 
       const result = await authService.validateToken()
 
-      expect(result).toEqual({ 
-        authenticated: false, 
-        error: 'Backend validation failed' 
+      expect(result).toEqual({
+        authenticated: false,
+        error: 'Backend validation failed'
       })
       expect(log.error).toHaveBeenCalledWith('Token validation error', mockError)
     })
@@ -125,9 +143,9 @@ describe('AuthService', () => {
 
       const result = await authService.validateToken()
 
-      expect(result).toEqual({ 
-        authenticated: false, 
-        error: 'Network error' 
+      expect(result).toEqual({
+        authenticated: false,
+        error: 'Network error'
       })
     })
   })

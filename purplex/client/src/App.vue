@@ -1,41 +1,56 @@
 <template>
-  <!-- Skip to main content link - MUST be first for keyboard users -->
-  <a :href="skipLinkTarget" class="skip-link" @click.prevent="handleSkipLink">Skip to main content</a>
+  <!-- Wrapper for inert attribute when modals are open -->
+  <div id="app-content">
+    <!-- Skip to main content link - MUST be first for keyboard users -->
+    <a
+      :href="skipLinkTarget"
+      class="skip-link"
+      @click.prevent="handleSkipLink"
+    >Skip to main content</a>
 
-  <!-- Loading state while determining auth -->
-  <div v-if="!authReady" class="auth-loading">
-    <div class="loading-spinner"></div>
-  </div>
-
-  <!-- Login page when not authenticated -->
-  <Login v-else-if="!loggedIn" />
-
-  <!-- Main app when authenticated -->
-  <div v-else>
-    <NavBar />
-    <div id="main-content" class="main-content" tabindex="-1" aria-label="Main content">
-      <router-view />
+    <!-- Loading state while determining auth -->
+    <div
+      v-if="!authReady"
+      class="auth-loading"
+    >
+      <div class="loading-spinner" />
     </div>
-  </div>
 
-  <NotificationToast />
-  <footer class="app-footer">
-    <div class="footer-content">
-      <div class="footer-left">
-        <span class="copyright">© 2025 Purplex. All rights reserved.</span>
-      </div>
-      <div class="footer-right">
-        <span class="sponsor">Sponsored by Meta</span>
-        <img
-          class="meta-logo"
-          src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/2560px-Meta_Platforms_Inc._logo.svg.png"
-          alt=""
-          aria-hidden="true"
-          height="20"
-        >
+    <!-- Login page when not authenticated -->
+    <Login v-else-if="!loggedIn" />
+
+    <!-- Main app when authenticated -->
+    <div v-else>
+      <NavBar />
+      <div
+        id="main-content"
+        class="main-content"
+        tabindex="-1"
+        aria-label="Main content"
+      >
+        <router-view />
       </div>
     </div>
-  </footer>
+
+    <NotificationToast />
+    <footer class="app-footer">
+      <div class="footer-content">
+        <div class="footer-left">
+          <span class="copyright">© 2025 Purplex. All rights reserved.</span>
+        </div>
+        <div class="footer-right">
+          <span class="sponsor">Sponsored by Meta</span>
+          <img
+            class="meta-logo"
+            src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/2560px-Meta_Platforms_Inc._logo.svg.png"
+            alt=""
+            aria-hidden="true"
+            height="20"
+          >
+        </div>
+      </div>
+    </footer>
+  </div>
 </template>
 
 <script lang="ts">
@@ -122,7 +137,7 @@ export default defineComponent({
             if (firebaseAuth && firebaseAuth.onAuthStateChanged) {
                 // Create a promise that resolves when auth state is determined
                 await new Promise<void>((resolve) => {
-                    const unsubscribe = firebaseAuth.onAuthStateChanged((user: any) => {
+                    const unsubscribe = firebaseAuth.onAuthStateChanged((user: unknown) => {
                         // Auth state has been determined (user is either signed in or null)
                         unsubscribe(); // Stop listening after first update
                         resolve();
@@ -148,7 +163,7 @@ export default defineComponent({
     --color-primary-hover: #9b009b;
     --color-primary-gradient-start: #667eea;
     --color-primary-gradient-end: #764ba2;
-    
+
     /* Background Colors */
     --color-bg-main: #242424;
     --color-bg-dark: #1a1a1a;
@@ -160,14 +175,14 @@ export default defineComponent({
     --color-bg-input: #333;
     --color-bg-border: #444;
     --color-bg-disabled: #555;
-    
+
     /* Text Colors */
     --color-text-primary: #ffffff;
     --color-text-secondary: #e0e0e0;
     --color-text-tertiary: #ddd;
     --color-text-muted: #999;
     --color-text-default: rgba(255, 255, 255, 0.87);
-    
+
     /* Status Colors */
     --color-success: #4CAF50;
     --color-success-bg: #2d4d3a;
@@ -181,11 +196,11 @@ export default defineComponent({
     --color-info: #2196F3;
     --color-info-bg: #2d3a4d;
     --color-info-text: #a3c9e9;
-    
+
     /* Admin Colors */
     --color-admin: #673ab7;
     --color-admin-hover: #5e35b1;
-    
+
     /* Spacing */
     --spacing-xs: 4px;
     --spacing-sm: 8px;
@@ -194,7 +209,7 @@ export default defineComponent({
     --spacing-lg: 20px;
     --spacing-xl: 30px;
     --spacing-xxl: 50px;
-    
+
     /* Border Radius */
     --radius-xs: 4px;
     --radius-sm: 5px;
@@ -203,24 +218,24 @@ export default defineComponent({
     --radius-xl: 20px;
     --radius-round: 30px;
     --radius-circle: 50%;
-    
+
     /* Shadows */
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
     --shadow-base: 0 4px 12px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.3);
     --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.4);
     --shadow-colored: 0 4px 15px rgba(102, 126, 234, 0.3);
-    
+
     /* Transitions */
     --transition-fast: all 0.2s ease;
     --transition-base: all 0.3s ease;
     --transition-slow: all 0.5s ease;
-    
+
     /* Layout */
     --max-width-app: 1280px;
     --max-width-content: 1200px;
     --max-width-panel: 1000px;
-    
+
     /* Typography */
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.85rem;

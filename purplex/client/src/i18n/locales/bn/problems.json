@@ -1,0 +1,41 @@
+{
+  "status": {
+    "completed": "Completed",
+    "inProgress": "In Progress",
+    "remaining": "Remaining",
+    "notStarted": "Not Started"
+  },
+  "problemSet": {
+    "title": "Problem Set",
+    "progress": "Progress",
+    "problems": "Problems"
+  },
+  "editor": {
+    "copy": "Copy",
+    "copied": "Copied",
+    "lines": "Lines",
+    "noLines": "No Lines",
+    "theme": {
+      "dark": "Dark",
+      "light": "Light"
+    },
+    "size": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    }
+  },
+  "submission": {
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "runTests": "Run Tests",
+    "running": "Running...",
+    "placeholder": "Describe what this code does in your own words..."
+  },
+  "hints": {
+    "title": "Hints",
+    "showHint": "Show Hint",
+    "hideHint": "Hide Hint",
+    "noHints": "No hints available"
+  }
+}

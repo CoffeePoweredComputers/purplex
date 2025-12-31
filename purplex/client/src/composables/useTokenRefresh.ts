@@ -9,7 +9,7 @@
  * 5. Emit events for monitoring
  */
 
-import { ref, onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { ensureFirebaseInitialized, firebaseAuth } from '../firebaseConfig';
 import { log } from '../utils/logger';
 
@@ -178,7 +178,7 @@ export function useTokenRefresh() {
    * Parse JWT without verification (for client-side expiry reading only)
    * Handles both mock tokens (MOCK.payload.development) and real JWTs (header.payload.signature)
    */
-  function parseJwt(token: string): any {
+  function parseJwt(token: string): { exp: number; [key: string]: unknown } {
     try {
       let payloadPart: string;
 
@@ -217,7 +217,7 @@ export function useTokenRefresh() {
   async function initialize(): Promise<void> {
     await ensureFirebaseInitialized();
 
-    if (!firebaseAuth) return;
+    if (!firebaseAuth) {return;}
 
     // Initial token fetch
     if (firebaseAuth.currentUser) {
@@ -226,7 +226,7 @@ export function useTokenRefresh() {
 
     // Listen for token changes (handles sign-in/sign-out)
     if (firebaseAuth.onIdTokenChanged) {
-      firebaseAuth.onIdTokenChanged(async (user: any) => {
+      firebaseAuth.onIdTokenChanged(async (user: unknown) => {
         if (user) {
           log.debug('ID token changed, updating...');
           await getValidToken(true);

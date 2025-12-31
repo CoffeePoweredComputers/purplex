@@ -1,112 +1,115 @@
 <template>
-  <transition name="modal-fade">
-    <div 
-      v-if="isVisible" 
-      class="modal-overlay" 
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-      aria-describedby="modal-description"
-      @click.self="closeModal"
-    >
+  <Teleport to="body">
+    <transition name="modal-fade">
       <div
-        ref="modalContent"
-        class="modal-content"
-        :style="modalStyle"
-        @keydown.esc="closeModal"
+        v-if="isVisible"
+        class="modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+        @click.self="closeModal"
       >
-        <div class="modal-header">
-          <div class="header-content">
-            <h3
-              id="modal-title"
-              class="modal-title"
-            >
-              Comprehension Level Analysis
-            </h3>
-            <div class="header-badges">
-              <span
-                class="badge-level"
-                :class="levelBadgeClass"
+        <div
+          ref="modalContentRef"
+          class="modal-content"
+          :style="modalStyle"
+          @keydown.esc="closeModal"
+        >
+          <div class="modal-header">
+            <div class="header-content">
+              <h3
+                id="modal-title"
+                class="modal-title"
               >
-                {{ formatLevel(segmentation.comprehension_level) }} Understanding
-              </span>
-            </div>
-          </div>
-          <div class="modal-actions">
-            <div class="size-controls-group">
-              <span class="size-label">Size</span>
-              <div class="size-controls">
-                <button 
-                  v-for="size in sizePresets" 
-                  :key="size.name"
-                  :class="['size-btn', { active: currentSize === size.name }]"
-                  :title="`${size.label} view`"
-                  :aria-label="`Set ${size.label.toLowerCase()} window size`"
-                  @click="setModalSize(size.name)"
+                Comprehension Level Analysis
+              </h3>
+              <div class="header-badges">
+                <span
+                  class="badge-level"
+                  :class="levelBadgeClass"
                 >
-                  {{ size.icon }}
-                </button>
+                  {{ formatLevel(segmentation.comprehension_level) }} Understanding
+                </span>
               </div>
             </div>
-            <button
-              class="action-button"
-              title="Open in new tab"
-              aria-label="Open understanding analysis in new tab"
-              @click="openInNewTab"
-            >
-              <span class="icon">⬈</span>
-            </button>
-            <button
-              class="close-button"
-              title="Close (ESC)"
-              aria-label="Close modal"
-              @click="closeModal"
-            >
-              &times;
-            </button>
-          </div>
-        </div>
-        
-        <div class="modal-body">
-          <div class="analysis-header">
-            <div class="feedback-content">
-              <span class="feedback-icon">{{ getFeedbackIcon() }}</span>
-              <div class="feedback-text">
-                <p class="feedback-message">
-                  <template v-if="segmentation.comprehension_level === 'relational'">
-                    Excellent! Your <span class="segment-badge segment-badge-success">{{ segmentation.segment_count }} segment{{ segmentation.segment_count > 1 ? 's' : '' }}</span> show{{ segmentation.segment_count === 1 ? 's' : '' }} high-level understanding.
-                  </template>
-                  <template v-else-if="segmentation.comprehension_level === 'multi_structural'">
-                    Your <span class="segment-badge segment-badge-warning">{{ segmentation.segment_count }} segments</span> are too detailed. Try to describe the overall purpose in <span class="segment-badge segment-badge-goal">2 or fewer segments</span>.
-                  </template>
-                  <template v-else>
-                    {{ segmentation.feedback }}
-                  </template>
-                </p>
-                <p class="feedback-explanation">
-                  {{ getExplanation() }}
-                </p>
+            <div class="modal-actions">
+              <div class="size-controls-group">
+                <span class="size-label">Size</span>
+                <div class="size-controls">
+                  <button
+                    v-for="size in sizePresets"
+                    :key="size.name"
+                    :class="['size-btn', { active: currentSize === size.name }]"
+                    :title="`${size.label} view`"
+                    :aria-label="`Set ${size.label.toLowerCase()} window size`"
+                    @click="setModalSize(size.name)"
+                  >
+                    {{ size.icon }}
+                  </button>
+                </div>
               </div>
+              <button
+                class="action-button"
+                title="Open in new tab"
+                aria-label="Open understanding analysis in new tab"
+                @click="openInNewTab"
+              >
+                <span class="icon">⬈</span>
+              </button>
+              <button
+                class="close-button"
+                title="Close (ESC)"
+                aria-label="Close modal"
+                @click="closeModal"
+              >
+                &times;
+              </button>
             </div>
           </div>
-          
-          <div class="analysis-content">
-            <SegmentMapping 
-              :segments="segmentation.segments"
-              :reference-code="referenceCode"
-              :user-prompt="segmentation.user_prompt || userPrompt || ''"
-              class="segment-mapping-modal"
-            />
+
+          <div class="modal-body">
+            <div class="analysis-header">
+              <div class="feedback-content">
+                <span class="feedback-icon">{{ getFeedbackIcon() }}</span>
+                <div class="feedback-text">
+                  <p class="feedback-message">
+                    <template v-if="segmentation.comprehension_level === 'relational'">
+                      Excellent! Your <span class="segment-badge segment-badge-success">{{ segmentation.segment_count }} segment{{ segmentation.segment_count > 1 ? 's' : '' }}</span> show{{ segmentation.segment_count === 1 ? 's' : '' }} high-level understanding.
+                    </template>
+                    <template v-else-if="segmentation.comprehension_level === 'multi_structural'">
+                      Your <span class="segment-badge segment-badge-warning">{{ segmentation.segment_count }} segments</span> are too detailed. Try to describe the overall purpose in <span class="segment-badge segment-badge-goal">{{ segmentThreshold === 1 ? '1 segment' : `${segmentThreshold} or fewer segments` }}</span>.
+                    </template>
+                    <template v-else>
+                      {{ segmentation.feedback }}
+                    </template>
+                  </p>
+                  <p class="feedback-explanation">
+                    {{ getExplanation() }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="analysis-content">
+              <SegmentMapping
+                :segments="segmentation.segments"
+                :reference-code="referenceCode"
+                :user-prompt="segmentation.user_prompt || userPrompt || ''"
+                class="segment-mapping-modal"
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </transition>
+    </transition>
+  </Teleport>
 </template>
 
-<script lang="ts">
-import { defineComponent, type PropType } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted, ref, toRef } from 'vue'
 import SegmentMapping from './SegmentMapping.vue'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 
 type ComprehensionLevel = 'relational' | 'multi_structural'
 type SizePreset = 'small' | 'medium' | 'large' | 'fullscreen'
@@ -123,6 +126,7 @@ interface Segmentation {
   comprehension_level: ComprehensionLevel
   feedback: string
   user_prompt?: string
+  threshold?: number
 }
 
 interface SizePresetConfig {
@@ -133,267 +137,154 @@ interface SizePresetConfig {
   height: string
 }
 
-export default defineComponent({
-  name: 'SegmentAnalysisModal',
-  components: {
-    SegmentMapping
-  },
-  props: {
-    isVisible: {
-      type: Boolean,
-      required: true
-    },
-    segmentation: {
-      type: Object as PropType<Segmentation>,
-      required: true,
-      validator: (value: Segmentation): boolean => {
-        return value && 
-               typeof value.segment_count === 'number' &&
-               typeof value.comprehension_level === 'string' &&
-               Array.isArray(value.segments)
-      }
-    },
-    referenceCode: {
-      type: String,
-      required: true
-    },
-    userPrompt: {
-      type: String,
-      default: ''
-    }
-  },
-  emits: ['close'] as const,
-  data() {
-    return {
-      lastFocusedElement: null as Element | null,
-      escListenerAdded: false,
-      currentSize: 'medium' as SizePreset,
-      sizePresets: [
-        { name: 'small', label: 'Small', icon: '◻', width: '800px', height: 'auto' },
-        { name: 'medium', label: 'Medium', icon: '◼', width: '1000px', height: 'auto' },
-        { name: 'large', label: 'Large', icon: '⬛', width: '1200px', height: 'auto' },
-        { name: 'fullscreen', label: 'Fullscreen', icon: '⛶', width: '100%', height: '100vh' }
-      ] as SizePresetConfig[],
-      _focusTrapHandler: null as ((e: KeyboardEvent) => void) | null
-    }
-  },
+const props = defineProps<{
+  isVisible: boolean
+  segmentation: Segmentation
+  referenceCode: string
+  userPrompt?: string
+}>()
 
-  computed: {
-    modalStyle(): Record<string, string> {
-      const preset = this.sizePresets.find(s => s.name === this.currentSize)
-      if (!preset) {return {}}
-      
-      return {
-        '--modal-width': preset.width,
-        '--modal-height': preset.height,
-        '--modal-max-width': preset.name === 'fullscreen' ? '100%' : preset.width,
-        '--modal-max-height': preset.name === 'fullscreen' ? '100%' : preset.height,
-      }
-    },
+const emit = defineEmits<{
+  (e: 'close'): void
+}>()
 
-    levelBadgeClass(): string {
-      return `badge-${this.segmentation.comprehension_level.replace('_', '-')}`
-    }
-  },
+// Focus trap composable
+const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
 
-  watch: {
-    isVisible(newVal: boolean) {
-      if (newVal) {
-        // Add ESC key listener only if not already added
-        if (!this.escListenerAdded) {
-          document.addEventListener('keydown', this.handleEscKey)
-          this.escListenerAdded = true
-        }
-        // Focus management
-        this.$nextTick(() => {
-          this.trapFocus()
-          this.focusFirstElement()
-        })
-      } else {
-        // Remove ESC key listener if it was added
-        if (this.escListenerAdded) {
-          document.removeEventListener('keydown', this.handleEscKey)
-          this.escListenerAdded = false
-        }
-        // Restore focus to trigger element
-        if (this.lastFocusedElement && 'focus' in this.lastFocusedElement) {
-          (this.lastFocusedElement as HTMLElement).focus()
-        }
-      }
-    }
-  },
+// Size state
+const currentSize = ref<SizePreset>('medium')
+const sizePresets: SizePresetConfig[] = [
+  { name: 'small', label: 'Small', icon: '◻', width: '800px', height: 'auto' },
+  { name: 'medium', label: 'Medium', icon: '◼', width: '1000px', height: 'auto' },
+  { name: 'large', label: 'Large', icon: '⬛', width: '1200px', height: 'auto' },
+  { name: 'fullscreen', label: 'Fullscreen', icon: '⛶', width: '100%', height: '100vh' }
+]
 
-  created() {
-    // Store the currently focused element before modal opens
-    this.lastFocusedElement = document.activeElement
-    // Load size preference
-    const savedSize = localStorage.getItem('segment-analysis-modal-size') as SizePreset | null
-    if (savedSize && this.sizePresets.find(s => s.name === savedSize)) {
-      this.currentSize = savedSize
-    }
-  },
+// Computed
+const modalStyle = computed(() => {
+  const preset = sizePresets.find(s => s.name === currentSize.value)
+  if (!preset) {
+    return {}
+  }
+  return {
+    '--modal-width': preset.width,
+    '--modal-height': preset.height,
+    '--modal-max-width': preset.name === 'fullscreen' ? '100%' : preset.width,
+    '--modal-max-height': preset.name === 'fullscreen' ? '100%' : preset.height,
+  }
+})
 
-  beforeUnmount() {
-    // Clean up ESC key listener if it was added
-    if (this.escListenerAdded) {
-      document.removeEventListener('keydown', this.handleEscKey)
-      this.escListenerAdded = false
-    }
-    // Clean up focus trap
-    if (this._focusTrapHandler && this.$refs.modalContent) {
-      const modalContent = this.$refs.modalContent as HTMLElement
-      modalContent.removeEventListener('keydown', this._focusTrapHandler)
-    }
-  },
+const levelBadgeClass = computed(() => {
+  return `badge-${props.segmentation.comprehension_level.replace('_', '-')}`
+})
 
-  methods: {
-    closeModal(): void {
-      this.$emit('close')
-    },
+const segmentThreshold = computed(() => {
+  return props.segmentation.threshold ?? 2
+})
 
-    handleEscKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape') {
-        this.closeModal()
-      }
-    },
+// Methods
+function closeModal(): void {
+  emit('close')
+}
 
-    openInNewTab(): void {
-      // Create a new window with the segment analysis
-      const newWindow = window.open('', '_blank', 'width=1200,height=800')
-      if (newWindow) {
-        newWindow.document.write(`
-          <html>
-            <head>
-              <title>Understanding Analysis - ${this.formatLevel(this.segmentation.comprehension_level)}</title>
-              <style>
-                body { font-family: Inter, system-ui, sans-serif; margin: 20px; }
-                .header { margin-bottom: 20px; }
-                .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px; }
-                .segments { margin: 20px 0; }
-                .segment { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-                .code { font-family: Monaco, monospace; background: #f5f5f5; padding: 10px; border-radius: 4px; }
-              </style>
-            </head>
-            <body>
-              <div class="header">
-                <h1>🔍 Understanding Analysis</h1>
-                <span class="badge">${this.formatLevel(this.segmentation.comprehension_level)} Understanding</span>
-                <p><strong>Feedback:</strong> ${this.segmentation.feedback}</p>
-                <p><strong>Explanation:</strong> ${this.getExplanation()}</p>
+function setModalSize(sizeName: SizePreset): void {
+  currentSize.value = sizeName
+  localStorage.setItem('segment-analysis-modal-size', sizeName)
+
+  // Handle fullscreen mode classes
+  const modalContent = modalContentRef.value
+  const modalOverlay = document.querySelector('.modal-overlay') as HTMLElement
+
+  if (sizeName === 'fullscreen') {
+    modalContent?.classList.add('fullscreen-mode')
+    modalOverlay?.classList.add('fullscreen-overlay')
+  } else {
+    modalContent?.classList.remove('fullscreen-mode')
+    modalOverlay?.classList.remove('fullscreen-overlay')
+  }
+}
+
+function openInNewTab(): void {
+  const newWindow = window.open('', '_blank', 'width=1200,height=800')
+  if (newWindow) {
+    newWindow.document.write(`
+      <html>
+        <head>
+          <title>Understanding Analysis - ${formatLevel(props.segmentation.comprehension_level)}</title>
+          <style>
+            body { font-family: Inter, system-ui, sans-serif; margin: 20px; }
+            .header { margin-bottom: 20px; }
+            .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px; }
+            .segments { margin: 20px 0; }
+            .segment { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+            .code { font-family: Monaco, monospace; background: #f5f5f5; padding: 10px; border-radius: 4px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Understanding Analysis</h1>
+            <span class="badge">${formatLevel(props.segmentation.comprehension_level)} Understanding</span>
+            <p><strong>Feedback:</strong> ${props.segmentation.feedback}</p>
+            <p><strong>Explanation:</strong> ${getExplanation()}</p>
+          </div>
+          <div class="segments">
+            <h2>Segments</h2>
+            ${props.segmentation.segments.map(segment => `
+              <div class="segment">
+                <strong>Segment ${segment.id}:</strong> ${segment.text}
+                <br><small>Lines: ${segment.code_lines.join(', ')}</small>
               </div>
-              <div class="segments">
-                <h2>Segments</h2>
-                ${this.segmentation.segments.map(segment => `
-                  <div class="segment">
-                    <strong>Segment ${segment.id}:</strong> ${segment.text}
-                    <br><small>Lines: ${segment.code_lines.join(', ')}</small>
-                  </div>
-                `).join('')}
-              </div>
-              <div class="code">
-                <h2>Reference Code</h2>
-                <pre>${this.referenceCode}</pre>
-              </div>
-            </body>
-          </html>
-        `)
-      }
-      this.closeModal()
-    },
+            `).join('')}
+          </div>
+          <div class="code">
+            <h2>Reference Code</h2>
+            <pre>${props.referenceCode}</pre>
+          </div>
+        </body>
+      </html>
+    `)
+  }
+  closeModal()
+}
 
-    focusFirstElement(): void {
-      const modalContent = this.$refs.modalContent as HTMLElement
-      if (!modalContent) {return}
-      
-      // Find first focusable element
-      const focusableElements = modalContent.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      )
-      
-      if (focusableElements.length > 0) {
-        (focusableElements[0] as HTMLElement).focus()
-      }
-    },
+function getFeedbackIcon(): string {
+  switch (props.segmentation.comprehension_level) {
+    case 'relational':
+      return '🎯'
+    case 'multi_structural':
+      return '🔍'
+    default:
+      return '📝'
+  }
+}
 
-    trapFocus(): void {
-      const modalContent = this.$refs.modalContent as HTMLElement
-      if (!modalContent) {return}
-      
-      const handleTabKey = (e: KeyboardEvent): void => {
-        const focusableElements = modalContent.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )
-        
-        const firstElement = focusableElements[0] as HTMLElement
-        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
-        
-        if (e.key === 'Tab') {
-          if (e.shiftKey && document.activeElement === firstElement) {
-            e.preventDefault()
-            lastElement.focus()
-          } else if (!e.shiftKey && document.activeElement === lastElement) {
-            e.preventDefault()
-            firstElement.focus()
-          }
-        }
-      }
-      
-      modalContent.addEventListener('keydown', handleTabKey)
-      
-      // Store the handler for cleanup
-      this._focusTrapHandler = handleTabKey
-    },
+function formatLevel(level: ComprehensionLevel): string {
+  switch (level) {
+    case 'relational':
+      return 'Excellent'
+    case 'multi_structural':
+      return 'Detailed'
+    default:
+      return 'Unknown'
+  }
+}
 
-    setModalSize(sizeName: SizePreset): void {
-      this.currentSize = sizeName
-      // Save preference
-      localStorage.setItem('segment-analysis-modal-size', sizeName)
-      
-      // Handle fullscreen mode
-      const modalContent = this.$refs.modalContent as HTMLElement
-      const modalOverlay = document.querySelector('.modal-overlay') as HTMLElement
-      
-      if (sizeName === 'fullscreen') {
-        modalContent?.classList.add('fullscreen-mode')
-        modalOverlay?.classList.add('fullscreen-overlay')
-      } else {
-        modalContent?.classList.remove('fullscreen-mode')
-        modalOverlay?.classList.remove('fullscreen-overlay')
-      }
-    },
+function getExplanation(): string {
+  switch (props.segmentation.comprehension_level) {
+    case 'relational':
+      return 'You focused on the overall purpose. This shows strong conceptual understanding.'
+    case 'multi_structural':
+      return 'You provided line-by-line detail. Try focusing on the main goal instead.'
+    default:
+      return ''
+  }
+}
 
-    getFeedbackIcon(): string {
-      switch (this.segmentation.comprehension_level) {
-        case 'relational':
-          return '🎯'
-        case 'multi_structural':
-          return '🔍'
-        default:
-          return '📝'
-      }
-    },
-    
-    formatLevel(level: ComprehensionLevel): string {
-      switch (level) {
-        case 'relational':
-          return 'Excellent'
-        case 'multi_structural':
-          return 'Detailed'
-        default:
-          return 'Unknown'
-      }
-    },
-    
-    getExplanation(): string {
-      switch (this.segmentation.comprehension_level) {
-        case 'relational':
-          return `You focused on the overall purpose. This shows strong conceptual understanding.`
-        case 'multi_structural':
-          return `You provided line-by-line detail. Try focusing on the main goal instead.`
-        default:
-          return ''
-      }
-    }
+// Load saved size preference on mount
+onMounted(() => {
+  const savedSize = localStorage.getItem('segment-analysis-modal-size') as SizePreset | null
+  if (savedSize && sizePresets.find(s => s.name === savedSize)) {
+    currentSize.value = savedSize
   }
 })
 </script>
@@ -703,14 +594,14 @@ export default defineComponent({
   .modal-overlay {
     padding: var(--spacing-md);
   }
-  
+
   .modal-content {
     width: 100%;
     height: 100%;
     max-width: 100%;
     max-height: 100%;
   }
-  
+
   .size-controls-group {
     display: none; /* Hide size controls on tablet */
   }
@@ -720,31 +611,31 @@ export default defineComponent({
   .modal-overlay {
     padding: 0;
   }
-  
+
   .modal-content {
     border-radius: 0;
   }
-  
+
   .modal-header {
     padding: var(--spacing-sm) var(--spacing-md);
     flex-wrap: wrap;
     gap: var(--spacing-sm);
   }
-  
+
   .header-content {
     flex: 1;
     min-width: 0;
   }
-  
+
   .header-badges {
     flex-wrap: wrap;
   }
-  
-  
+
+
   .modal-actions {
     gap: var(--spacing-sm);
   }
-  
+
   .analysis-header {
     padding: var(--spacing-md);
   }

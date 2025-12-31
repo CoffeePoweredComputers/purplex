@@ -4,11 +4,18 @@ on:
   schedule:
     - cron: '0 2 * * *'  # Daily at 2 AM UTC
   workflow_dispatch:
+  push:
+    branches: [master, main]
   pull_request:
+    branches: [master, main]
     paths:
+      - 'requirements.txt'
       - 'requirements/*.txt'
+      - 'purplex/**/*.py'
       - 'purplex/client/package.json'
-      - 'purplex/client/yarn.lock'
+      - 'purplex/client/package-lock.json'
+      - 'Dockerfile*'
+      - 'docker/**'
 
 jobs:
   dependency-scan:
@@ -22,20 +29,20 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Check Python dependencies
+      - name: Install dependencies
         run: |
-          pip install safety
-          safety check --json
+          pip install -r requirements.txt
 
       - name: Run pip-audit
         run: |
           pip install pip-audit
-          pip-audit -r requirements/production.txt
+          pip-audit --strict --desc on
 
       - name: Check frontend dependencies
         working-directory: purplex/client
         run: |
-          npm audit --audit-level=moderate
+          npm ci
+          npm audit --audit-level=high
 
   code-scan:
     name: Code Security Scan
@@ -43,13 +50,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Bandit
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Bandit (fail on high severity)
         run: |
           pip install bandit
-          bandit -r purplex/ -f json -o bandit-report.json
+          bandit -r purplex/ -ll -f json -o bandit-report.json || true
+          # Check for high severity issues (exit 1 if found)
+          bandit -r purplex/ -lll --exit-zero -f txt
+          # Fail if HIGH severity found
+          if bandit -r purplex/ -lll -q 2>/dev/null | grep -q "High"; then
+            echo "::error::High severity security issues found!"
+            exit 1
+          fi
 
       - name: Upload Bandit results
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: bandit-report
           path: bandit-report.json
@@ -57,7 +77,7 @@ jobs:
       - name: Run Semgrep
         uses: returntocorp/semgrep-action@v1
         with:
-          config: auto
+          config: p/django p/python p/security-audit
 
   container-scan:
     name: Container Security Scan

@@ -21,35 +21,36 @@ Copy these patterns exactly when implementing new features. All examples are fro
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.shortcuts import get_object_or_404
 from django.db import transaction
+
+from ..services.admin_service import AdminProblemService
 
 class AdminProblemListView(APIView):
     """Admin view for listing and creating problems."""
     permission_classes = [IsAdmin]
-    
+
     def get(self, request):
         # Use service layer - NEVER query models directly
         problems = AdminProblemService.get_all_problems_optimized()
         serializer = AdminProblemSerializer(problems, many=True)
         return Response(serializer.data)
-    
+
     def post(self, request):
         # Use service layer to prepare data
         data, problem_set_slugs = AdminProblemService.prepare_problem_data(request.data)
-        
+
         serializer = AdminProblemSerializer(data=data)
         if serializer.is_valid():
             try:
                 with transaction.atomic():
                     problem = serializer.save(created_by=request.user)
-                    
+
                     # Use service layer to handle relations
                     if problem_set_slugs:
                         AdminProblemService.create_problem_with_relations(
                             problem, problem_set_slugs
                         )
-                    
+
                     return Response(AdminProblemSerializer(problem).data, status=status.HTTP_201_CREATED)
             except Exception as e:
                 logger.error(f"Failed to create problem: {str(e)}")
@@ -61,34 +62,45 @@ class AdminProblemListView(APIView):
 class AdminProblemDetailView(APIView):
     """Admin view for getting, updating, and deleting specific problems."""
     permission_classes = [IsAdmin]
-    
+
     def get(self, request, slug):
-        problem = get_object_or_404(Problem, slug=slug)
+        # Use service layer to get problem (supports polymorphic types)
+        problem = AdminProblemService.get_problem_by_slug(slug)
+        if not problem:
+            return Response(
+                {"error": f"Problem with slug {slug} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         serializer = AdminProblemSerializer(problem)
         return Response(serializer.data)
-    
+
     def put(self, request, slug):
-        problem = get_object_or_404(Problem, slug=slug)
-        
+        problem = AdminProblemService.get_problem_by_slug(slug)
+        if not problem:
+            return Response(
+                {"error": f"Problem with slug {slug} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         # Use service layer to prepare data
         data, problem_sets_slugs = AdminProblemService.prepare_problem_data(request.data)
-        
+
         serializer = AdminProblemSerializer(problem, data=data, partial=True)
         if serializer.is_valid():
             try:
                 with transaction.atomic():
                     problem = serializer.save()
-                    
+
                     # Only update problem sets if explicitly provided
                     if 'problem_sets' in request.data:
-                        problem_sets = ProblemSet.objects.filter(slug__in=problem_sets_slugs)
-                        problem.problem_sets.set(problem_sets)
-                    
+                        problem_sets = AdminProblemService.get_problem_sets_by_slugs(problem_sets_slugs)
+                        AdminProblemService.update_problem_set_relations(problem, problem_sets)
+
                     return Response(AdminProblemSerializer(problem).data)
             except Exception as e:
                 logger.error(f"Failed to update problem {slug}: {str(e)}")
                 return Response({
-                    'error': 'Failed to update problem. Please try again.'
+                    'error': f'Failed to update problem: {str(e)}'
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 ```
@@ -106,14 +118,14 @@ from django.views.decorators.cache import never_cache
 
 class CleanTaskSSEView(View):
     """Stream task status updates via Server-Sent Events."""
-    
+
     @method_decorator(never_cache)
     def get(self, request, task_id):
         """Stream SSE events for a specific task."""
         # Handle authentication for SSE (EventSource cannot send custom headers)
         token = request.GET.get('token')
         user = None
-        
+
         if token:
             try:
                 decoded_token = auth.verify_id_token(token)
@@ -123,7 +135,7 @@ class CleanTaskSSEView(View):
             except (auth.InvalidIdTokenError, auth.ExpiredIdTokenError) as e:
                 if not settings.DEBUG:
                     return HttpResponseForbidden('Invalid authentication token')
-        
+
         # Create streaming response
         response = StreamingHttpResponse(
             self._event_stream(task_id),
@@ -133,101 +145,116 @@ class CleanTaskSSEView(View):
         response['Connection'] = 'keep-alive'
         response['Access-Control-Allow-Origin'] = '*'
         return response
-    
+
     def _event_stream(self, task_id):
         """Generate SSE events."""
         redis_client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=0)
         pubsub = redis_client.pubsub()
         channel = f'task:{task_id}'
-        
+
         try:
             pubsub.subscribe(channel)
-            
+
             for message in pubsub.listen():
                 if message['type'] == 'message':
                     yield f"data: {message['data']}\n\n"
-                    
+
         except Exception as e:
             logger.error(f"SSE stream error: {e}")
         finally:
             pubsub.close()
 ```
 
-## Service Layer Pattern (FULLY ENFORCED - ALL DATABASE QUERIES HERE)
+## Service Layer Pattern (Services Use Repositories for Database Access)
 
-### Student Service Pattern
+### Student Service Pattern (Using Repository Layer)
 
 ```python
 # From: purplex/problems_app/services/student_service.py
 import logging
-from typing import List, Optional
-from django.db.models import QuerySet
-from django.shortcuts import get_object_or_404
+from typing import TYPE_CHECKING
+
+from django.http import Http404
+
+from ..repositories import (
+    ProblemCategoryRepository,
+    ProblemRepository,
+    ProblemSetMembershipRepository,
+    TestCaseRepository,
+)
+
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
+    from ..models import Problem, ProblemSet
+
+logger = logging.getLogger(__name__)
+
 
 class StudentService:
     """Handle all student-related business logic.
-    
+
     CRITICAL RULES:
-    - ALL database queries MUST be in service methods
-    - Views NEVER access models directly
-    - Query optimizations (select_related, prefetch_related) go here
-    - Business logic and validation in services, not views
+    - Services use REPOSITORIES for all database access
+    - Views call services, services call repositories
+    - Business logic and validation in services, not views or repositories
     """
-    
+
     @staticmethod
-    def get_active_problems(user=None) -> QuerySet:
+    def get_active_problems(user=None) -> list["Problem"]:
         """Get all active problems visible to students."""
-        return Problem.objects.filter(is_active=True).select_related(
-            'created_by'
-        ).prefetch_related(
-            'categories',
-            'test_cases',
-            'problem_sets'
-        ).only(
-            'slug', 'title', 'description', 'difficulty', 'problem_type', 
-            'function_name', 'tags', 'is_active', 'created_at', 'created_by_id'
-        )
-    
+        return ProblemRepository.get_active_problems()
+
     @staticmethod
-    def get_problem_detail(slug: str) -> Problem:
+    def get_problem_detail(slug: str) -> "Problem":
         """Get detailed problem information for students."""
-        return get_object_or_404(Problem, slug=slug, is_active=True)
-    
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem or not problem.is_active:
+            raise Http404("Problem not found")
+        return problem
+
     @staticmethod
-    def get_visible_test_cases(problem: Problem) -> QuerySet:
+    def get_visible_test_cases(problem: "Problem") -> "QuerySet":
         """Get only non-hidden test cases for a problem."""
-        return problem.test_cases.filter(is_hidden=False)
-    
+        return TestCaseRepository.get_visible_test_cases(problem)
+
     @staticmethod
-    def get_problem_set_problems(problem_set: ProblemSet, user=None) -> List[dict]:
-        """Get ordered problems for a problem set."""
-        # Get problems through membership table to preserve order
-        memberships = problem_set.problemsetmembership_set.select_related(
-            'problem'
-        ).prefetch_related(
-            'problem__categories',
-            'problem__test_cases'
-        ).order_by('order')
-        
+    def get_problem_set_problems(problem_set: "ProblemSet", user=None) -> list[dict]:
+        """Get ordered problems for a problem set with handler configs.
+
+        Uses repository layer for optimized queries.
+        Enriches with handler-provided configs for frontend rendering.
+        """
+        from ..handlers import get_handler, is_registered
+
+        # Get problems through membership repository (optimized queries)
+        memberships_data = ProblemSetMembershipRepository.get_problem_set_memberships_with_categories(problem_set)
+
         problems_data = []
-        for membership in memberships:
-            problem = membership.problem
-            if problem.is_active:
+        for membership in memberships_data:
+            problem = membership["problem"]
+            problem_obj = membership["problem_obj"]
+
+            if problem["is_active"]:
                 problem_data = {
-                    'slug': problem.slug,
-                    'title': problem.title,
-                    'description': problem.description,
-                    'difficulty': problem.difficulty,
-                    'problem_type': problem.problem_type,
-                    'segmentation_enabled': problem.segmentation_enabled,
-                    'reference_solution': problem.reference_solution,
-                    'order': membership.order,
-                    'categories': [cat.name for cat in problem.categories.all()],
-                    'test_case_count': problem.test_cases.count(),
-                    'visible_test_case_count': problem.test_cases.filter(is_hidden=False).count()
+                    "slug": problem["slug"],
+                    "title": problem["title"],
+                    "difficulty": problem["difficulty"],
+                    "problem_type": problem["problem_type"],
+                    "order": membership["order"],
+                    "categories": problem["categories"],
+                    "test_cases": problem["test_cases"],
                 }
+
+                # Enrich with handler-provided configs
+                problem_type = problem["problem_type"]
+                if is_registered(problem_type):
+                    handler = get_handler(problem_type)
+                    config = handler.get_problem_config(problem_obj)
+                    problem_data["display_config"] = config.get("display", {})
+                    problem_data["input_config"] = config.get("input", {})
+
                 problems_data.append(problem_data)
-        
+
         return problems_data
 ```
 
@@ -241,33 +268,33 @@ from django.core.cache import cache
 
 class HintService:
     """Handle all hint-related business logic."""
-    
+
     @staticmethod
     def get_hint_availability(
-        user, 
+        user,
         problem_slug: str,
         course_id: Optional[str] = None,
         problem_set_slug: Optional[str] = None
     ) -> Dict[str, Any]:
         """Check hint availability for a user on a specific problem."""
         problem = get_object_or_404(Problem, slug=problem_slug)
-        
+
         # Get context objects
         problem_set = None
         course = None
-        
+
         if problem_set_slug:
             problem_set = get_object_or_404(ProblemSet, slug=problem_set_slug)
         if course_id:
             # Use CourseService for course operations
             from .course_service import CourseService
             course = CourseService.get_course_by_id(course_id)
-        
+
         # Get user progress with context
         try:
             if problem_set:
                 progress = UserProgress.objects.get(
-                    user=user, 
+                    user=user,
                     problem=problem,
                     problem_set=problem_set,
                     course=course
@@ -277,20 +304,20 @@ class HintService:
             attempts = progress.attempts
         except UserProgress.DoesNotExist:
             attempts = 0
-        
+
         # Get enabled hints
         hints = ProblemHint.objects.filter(
             problem=problem,
             is_enabled=True
         ).values('id', 'hint_type', 'min_attempts')
-        
+
         # Build availability response
         availability = {
             'problem_slug': problem_slug,
             'user_attempts': attempts,
             'hints': []
         }
-        
+
         for hint in hints:
             hint_info = {
                 'id': hint['id'],
@@ -300,54 +327,103 @@ class HintService:
                 'attempts_needed': max(0, hint['min_attempts'] - attempts)
             }
             availability['hints'].append(hint_info)
-        
+
         return availability
-    
+
     @staticmethod
     def get_cached_hint_availability(user, problem_slug: str) -> Optional[Dict[str, Any]]:
         """Get cached hint availability or compute and cache it."""
         cache_key = f'hint_availability:{user.id}:{problem_slug}'
         availability = cache.get(cache_key)
-        
+
         if availability is None:
             availability = HintService.get_hint_availability(user, problem_slug)
             cache.set(cache_key, availability, 300)  # Cache for 5 minutes
-        
+
         return availability
 ```
 
 ## Repository Pattern
 
-### Basic Repository Structure (NEW - Jan 2025)
+### Base Repository (Provides Common CRUD Operations)
+
+```python
+# From: purplex/problems_app/repositories/base_repository.py
+from typing import Any, Generic, TypeVar
+from django.core.paginator import Paginator
+from django.db.models import Model, QuerySet
+
+T = TypeVar("T", bound=Model)
+
+
+class BaseRepository(Generic[T]):
+    """
+    Base repository with common database operations.
+
+    IMPORTANT: All public methods return domain objects (Model instances) or
+    Python data types (list, dict, etc), NEVER QuerySets.
+
+    Services should NEVER import django.db.models or perform ORM operations.
+    All database logic must be encapsulated in repositories.
+    """
+
+    model_class: type[T] | None = None
+
+    @classmethod
+    def get_by_id(cls, id: int) -> T | None:
+        """Get a single record by primary key."""
+        if not cls.model_class:
+            raise NotImplementedError("model_class must be defined")
+        try:
+            return cls.model_class.objects.get(pk=id)
+        except cls.model_class.DoesNotExist:
+            return None
+
+    @classmethod
+    def get_all(cls) -> list[T]:
+        """Get all records as a list."""
+        return list(cls.model_class.objects.all())
+
+    @classmethod
+    def create(cls, **kwargs) -> T:
+        """Create a new record."""
+        return cls.model_class.objects.create(**kwargs)
+```
+
+### Domain-Specific Repository
 
 ```python
 # From: purplex/problems_app/repositories/course_repository.py
-from typing import Optional, List
-from django.db.models import QuerySet
+from typing import Any
+from django.contrib.auth.models import User
+from django.db.models import Count, Q
+
+from purplex.problems_app.models import Course, CourseEnrollment, CourseProblemSet
 from .base_repository import BaseRepository
+
 
 class CourseRepository(BaseRepository):
     """
     Repository for all Course-related database queries.
-    
+
     RULES:
     - ONLY place for .objects queries for this model
     - NO business logic, only data access
-    - Return QuerySets or model instances
+    - Return model instances or Python data types (list, dict)
     - Used by services, NEVER by views directly
     """
-    
+
     model_class = Course
-    
+
     @classmethod
-    def get_active_course(cls, course_id: str) -> Optional[Course]:
-        """Get an active, non-deleted course by course_id."""
+    def get_active_course(cls, course_id: str) -> Course | None:
+        """Get an active, non-deleted course by course_id (case-insensitive)."""
         return Course.objects.filter(
-            course_id=course_id,
+            course_id__iexact=course_id,
             is_active=True,
             is_deleted=False
         ).first()
-    
+
     @classmethod
     def user_is_enrolled(cls, user: User, course: Course) -> bool:
         """Check if a user is enrolled in a specific course."""
@@ -356,6 +432,18 @@ class CourseRepository(BaseRepository):
             course=course,
             is_active=True
         ).exists()
+
+    @classmethod
+    def get_all_courses_with_stats(cls):
+        """Get all courses with statistics for admin view."""
+        return (
+            Course.objects.select_related("instructor")
+            .annotate(
+                problem_sets_count=Count("problem_sets"),
+                enrolled_students_count=Count("enrollments", filter=Q(enrollments__is_active=True)),
+            )
+            .order_by("-created_at")
+        )
 ```
 
 ### Service Using Repository (CORRECT PATTERN)
@@ -366,7 +454,7 @@ from ..repositories import CourseRepository
 
 class CourseService:
     """Service using repository for data access."""
-    
+
     @staticmethod
     def validate_course_enrollment(user, course_id: str) -> Dict[str, Any]:
         """
@@ -375,20 +463,20 @@ class CourseService:
         """
         # Use repository for data access
         course = CourseRepository.get_active_course(course_id)
-        
+
         if not course:
             return {
                 'success': False,
                 'error': 'Course not found'
             }
-        
+
         # Use repository for enrollment check
         if not CourseRepository.user_is_enrolled(user, course):
             return {
                 'success': False,
                 'error': 'Not enrolled'
             }
-        
+
         return {'success': True, 'course': course}
 ```
 
@@ -419,7 +507,7 @@ def publish_progress(task_id: str, progress: float, message: str, extra_data: di
     }
     if extra_data:
         event_data.update(extra_data)
-    
+
     try:
         redis_client.publish(channel, json.dumps(event_data))
         logger.debug(f"Published progress {progress}%: {message}")
@@ -438,32 +526,32 @@ def execute_eipl_pipeline(
     """Single orchestrator task for the entire EiPL pipeline."""
     task_id = self.request.id
     logger.info(f"Starting EiPL pipeline {task_id} for problem {problem_id}")
-    
+
     try:
         # Initialize
         publish_progress(task_id, 0, "Starting pipeline...")
-        
+
         # Step 1: Generate variations (0-20% progress)
         publish_progress(task_id, 5, "Generating code variations from your prompt...")
         variations = generate_variations_helper(problem_id, user_prompt)
         variation_count = len(variations)
         publish_progress(task_id, 20, f"Generated {variation_count} code variations")
-        
+
         # Step 2: Test each variation (20-70% progress)
         test_results = []
         for i, code in enumerate(variations):
             test_progress = 20 + (50 * i / variation_count)
             publish_progress(task_id, test_progress, f"Testing variation {i+1} of {variation_count}...")
-            
+
             result = test_variation_helper(code, problem_id, i)
             test_results.append(result)
-        
+
         # Step 3: Calculate score (70-80% progress)
         publish_progress(task_id, 70, "Aggregating test results...")
         successful_variations = sum(1 for r in test_results if r.get('success', False))
         score = int((successful_variations / variation_count * 100) if variation_count > 0 else 0)
         publish_progress(task_id, 80, f"Score calculated: {score}%")
-        
+
         # Step 4: Save submission (90-100% progress)
         publish_progress(task_id, 95, "Saving submission...")
         submission_result = save_submission_helper(
@@ -476,12 +564,12 @@ def execute_eipl_pipeline(
             test_results=test_results,
             segmentation=None
         )
-        
+
         publish_progress(task_id, 100, f"Submission complete! Score: {score}%")
         publish_completion(task_id, submission_result)
-        
+
         return submission_result
-        
+
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Pipeline failed: {error_msg}", exc_info=True)
@@ -519,11 +607,11 @@ def execute_eipl_pipeline(
           <div class="problem-progress">
             <div
               v-for="(problem, index) in problems"
-              :key="problem.slug" 
-              :class="['progress-bar', 
+              :key="problem.slug"
+              :class="['progress-bar',
                        { 'active': index === currentProblem },
                        { 'completed': getProblemStatus(problem.slug) === 'completed' }
-              ]" 
+              ]"
               @click="setProblem(index)"
             >
             </div>
@@ -555,7 +643,7 @@ export default {
       return this.problems.filter(p => this.getProblemStatus(p.slug) === 'completed').length
     },
     inProgressCount() {
-      return this.problems.filter(p => this.getProblemStatus(p.slug) === 'in_progress').length  
+      return this.problems.filter(p => this.getProblemStatus(p.slug) === 'in_progress').length
     },
     remainingCount() {
       return this.problems.filter(p => this.getProblemStatus(p.slug) === 'not_started').length
@@ -566,7 +654,7 @@ export default {
     getProblemStatus(slug) {
       const progress = this.progressData[slug]
       if (!progress) return 'not_started'
-      return progress.best_score >= 100 ? 'completed' : 
+      return progress.best_score >= 100 ? 'completed' :
              progress.attempts > 0 ? 'in_progress' : 'not_started'
     },
     prevProblem() {
@@ -610,11 +698,11 @@ export default {
           <div class="problem-progress">
             <div
               v-for="(problem, index) in problems"
-              :key="problem.slug" 
-              :class="['progress-bar', 
+              :key="problem.slug"
+              :class="['progress-bar',
                        { 'active': index === currentProblem },
                        { 'completed': getProblemStatus(problem.slug) === 'completed' }
-              ]" 
+              ]"
               @click="setProblem(index)"
             >
             </div>
@@ -653,15 +741,15 @@ const problems = ref<Problem[]>([])
 // Computed properties
 const progressData = computed(() => store.state.progress.progressData)
 
-const completedCount = computed(() => 
+const completedCount = computed(() =>
   problems.value.filter(p => getProblemStatus(p.slug) === 'completed').length
 )
 
-const inProgressCount = computed(() => 
+const inProgressCount = computed(() =>
   problems.value.filter(p => getProblemStatus(p.slug) === 'in_progress').length
 )
 
-const remainingCount = computed(() => 
+const remainingCount = computed(() =>
   problems.value.filter(p => getProblemStatus(p.slug) === 'not_started').length
 )
 
@@ -669,7 +757,7 @@ const remainingCount = computed(() =>
 const getProblemStatus = (slug: string): string => {
   const progress = progressData.value[slug]
   if (!progress) return 'not_started'
-  return progress.best_score >= 100 ? 'completed' : 
+  return progress.best_score >= 100 ? 'completed' :
          progress.attempts > 0 ? 'in_progress' : 'not_started'
 }
 
@@ -694,249 +782,221 @@ const fetchProgress = () => store.dispatch('progress/fetchProgress')
 </script>
 ```
 
-### Composable Pattern
+### Service Pattern (SSE)
 
 ```typescript
-// From: purplex/client/src/composables/useSSE.ts
-import { ref, onUnmounted, Ref } from 'vue';
+// From: purplex/client/src/services/sseService.ts
+// Singleton service for SSE connections - caller manages cleanup via returned disconnect function
+
+import { log } from '../utils/logger';
 import { firebaseAuth } from '../firebaseConfig';
-import { getIdToken } from 'firebase/auth';
+import type { UnifiedSubmissionResult } from '../types';
 
-export interface SSEOptions {
-  onProgress?: (progress: { current: number; total: number; description: string }) => void;
-  onError?: (error: any) => void;
-  onTimeout?: () => void;
-  reconnectAttempts?: number;
-  reconnectDelay?: number;
-}
+class SSEService {
+  private completedTasks: Set<string> = new Set();
 
-export interface TaskResult {
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'retrying';
-  result?: any;
-  error?: string;
-  progress?: {
-    current: number;
-    total: number;
-    description: string;
-  };
-}
-
-export function useSSE() {
-  const isConnected = ref(false);
-  const currentStatus = ref<TaskResult | null>(null);
-  const error = ref<string | null>(null);
-  
-  let eventSource: EventSource | null = null;
-  let reconnectCount = 0;
-  let reconnectTimer: NodeJS.Timeout | null = null;
-
-  const connectToTask = async (
-    taskId: string,
-    onComplete: (result: TaskResult) => void,
+  /**
+   * Unified submission SSE handler for all activity types.
+   * Returns a disconnect function - caller must call it for cleanup.
+   */
+  connectToSubmission(
+    requestId: string,
+    onSuccess: (result: UnifiedSubmissionResult) => void,
     options: SSEOptions = {}
-  ) => {
-    const {
-      onProgress,
-      onError,
-      onTimeout,
-      reconnectAttempts = 3,
-      reconnectDelay = 1000
-    } = options;
-
-    try {
-      // Get Firebase auth token
-      const currentUser = firebaseAuth.currentUser;
-      if (!currentUser) {
-        throw new Error('User not authenticated');
-      }
-      
-      const token = await getIdToken(currentUser);
-      const url = `/api/tasks/${taskId}/stream/?token=${encodeURIComponent(token)}`;
-      
-      eventSource = new EventSource(url);
-      
-      eventSource.onopen = () => {
-        isConnected.value = true;
-        reconnectCount = 0;
-        error.value = null;
-      };
-      
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          currentStatus.value = data;
-          
-          if (data.type === 'update' && onProgress) {
-            onProgress({
-              current: data.progress * 100,
-              total: 100,
-              description: data.message
-            });
+  ): Promise<() => void> {
+    return this.connectToTask(
+      requestId,
+      (taskResult) => {
+        if (taskResult.status === 'completed' && taskResult.result) {
+          const unified = taskResult.result as UnifiedSubmissionResult;
+          if (unified.submission_id) {
+            onSuccess(unified);
+          } else if (options.onError) {
+            options.onError({ error: 'Submission failed' });
           }
-          
-          if (data.type === 'completed') {
-            onComplete(data);
-            disconnect();
-          }
-          
-          if (data.type === 'failed') {
-            error.value = data.error;
-            if (onError) onError(data.error);
-            disconnect();
-          }
-        } catch (e) {
-          console.error('Error parsing SSE data:', e);
         }
-      };
-      
-      eventSource.onerror = () => {
-        isConnected.value = false;
-        if (reconnectCount < reconnectAttempts) {
-          reconnectCount++;
-          reconnectTimer = setTimeout(() => {
-            connectToTask(taskId, onComplete, options);
-          }, reconnectDelay);
-        } else if (onError) {
-          onError(new Error('Failed to connect after multiple attempts'));
-        }
-      };
-      
-    } catch (err) {
-      error.value = err.message;
-      if (onError) onError(err);
-    }
-  };
-
-  const disconnect = () => {
-    if (eventSource) {
-      eventSource.close();
-      eventSource = null;
-    }
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
-    isConnected.value = false;
-  };
-
-  onUnmounted(() => {
-    disconnect();
-  });
-
-  return {
-    isConnected,
-    currentStatus,
-    error,
-    connectToTask,
-    disconnect
-  };
+      },
+      options
+    );
+  }
 }
+
+export const sseService = new SSEService();
+
+// Usage in component:
+const disconnect = await sseService.connectToSubmission(
+  taskId,
+  (result) => {
+    // Handle unified result - dispatch on result.problem_type
+    if (result.problem_type === 'mcq') {
+      // MCQ handling
+    } else {
+      // EiPL handling
+    }
+  },
+  { onError: (err) => console.error(err) }
+);
+
+// Important: Call disconnect() on component unmount or when done
 ```
 
 ## Model Pattern
 
-### Core Model with Business Logic in Properties
+### Polymorphic Base Model Pattern
+
+The codebase uses django-polymorphic for problem types. Models are organized in a subdirectory.
 
 ```python
-# From: purplex/problems_app/models.py
+# From: purplex/problems_app/models/base.py
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
+from polymorphic.models import PolymorphicModel
 
-class Problem(models.Model):
+from .category import ProblemCategory
+
+class Problem(PolymorphicModel):
+    """
+    Polymorphic base class for all problem types.
+
+    Problem.objects.all() returns correct subtypes automatically.
+
+    Hierarchy:
+    - Problem (this class)
+      - StaticProblem (abstract) - no code execution
+        - McqProblem
+      - SpecProblem - has code specification fields
+        - EiplProblem - NL -> LLM -> code -> test
+        - PromptProblem - image-based variant of EiPL
+        - ProbeableCodeProblem
+        - DebugFixProblem
+      - (Future) CodeProblem - student code -> execute
+    """
+
     DIFFICULTY_CHOICES = [
-        ('easy', 'Easy'),
-        ('beginner', 'Beginner'),
-        ('intermediate', 'Intermediate'),
-        ('advanced', 'Advanced'),
+        ("easy", "Easy"),
+        ("beginner", "Beginner"),
+        ("intermediate", "Intermediate"),
+        ("advanced", "Advanced"),
     ]
-    
-    PROBLEM_TYPE_CHOICES = [
-        ('eipl', 'Explain in Plain Language (EiPL)'),
-        ('function_redefinition', 'Function Redefinition'),
-    ]
-    
+
+    # Identity
     slug = models.SlugField(max_length=100, unique=True, blank=True)
-    problem_type = models.CharField(max_length=30, choices=PROBLEM_TYPE_CHOICES, default='eipl')
     title = models.CharField(max_length=200)
-    description = models.TextField(help_text='Problem description in markdown format')
-    difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='beginner')
-    categories = models.ManyToManyField(ProblemCategory, related_name='problems', blank=True)
-    function_name = models.CharField(max_length=50, help_text='Name of the function students implement')
-    function_signature = models.TextField(help_text='Function signature with parameter names and types')
-    reference_solution = models.TextField(help_text='Reference implementation')
-    memory_limit = models.PositiveIntegerField(default=128, help_text='Memory limit in MB')
-    tags = models.JSONField(default=list, blank=True, help_text='Array of tag strings')
+    description = models.TextField(blank=True, default="", help_text="Problem description in markdown format")
+
+    # Classification
+    difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default="beginner")
+    categories = models.ManyToManyField(ProblemCategory, related_name="problems", blank=True)
+    tags = models.JSONField(default=list, blank=True, help_text="Array of tag strings")
+
+    # Status
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     version = models.PositiveIntegerField(default=1)
-    
-    # Configuration fields
-    completion_threshold = models.IntegerField(default=100, help_text='Minimum score required for completion')
-    completion_criteria = models.JSONField(default=dict, blank=True)
-    segmentation_config = models.JSONField(default=dict, blank=True)
+
+    # Completion configuration
+    completion_threshold = models.IntegerField(default=100, help_text="Minimum score required for completion")
     max_attempts = models.IntegerField(null=True, blank=True)
-    
+
     class Meta:
-        ordering = ['difficulty', 'title']
+        app_label = "problems_app"
+        ordering = ["difficulty", "title"]
+
+    @property
+    def polymorphic_type(self) -> str:
+        """Return the problem type identifier for handler lookup."""
+        raise NotImplementedError("Subclasses must define polymorphic_type")
+
+    @property
+    def problem_type(self) -> str:
+        """Alias for polymorphic_type for backward compatibility."""
+        return self.polymorphic_type
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.title)
+            base_slug = slugify(self.title)
+            self.slug = base_slug
+            counter = 1
+            while Problem.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                self.slug = f"{base_slug}-{counter}"
+                counter += 1
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.title} ({self.difficulty})"
-    
-    @property
-    def segmentation_enabled(self):
-        """Check if segmentation is enabled for this problem."""
-        return bool(self.segmentation_config.get('enabled', False))
 ```
 
-### Submission Model with Relationships
+### Unified Submission Model
 
 ```python
-# From: purplex/submissions_app/models.py
+# From: purplex/submissions/models.py
+import uuid
 from django.db import models
 from django.contrib.auth.models import User
-from purplex.problems_app.models import Problem, ProblemSet, Course
 
-class PromptSubmission(models.Model):
-    # Core relationships - INCLUDING COURSE
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submissions')
-    problem = models.ForeignKey(Problem, on_delete=models.CASCADE, related_name='submissions')
-    problem_set = models.ForeignKey(ProblemSet, on_delete=models.CASCADE, related_name='submissions')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='submissions', null=True, blank=True)
-    
-    # Submission data
-    prompt = models.TextField()
-    score = models.IntegerField(default=0)
-    submitted_at = models.DateTimeField(auto_now_add=True, null=True)
-    
-    # EiPL specific fields
-    code_variations = models.JSONField(default=list, help_text="List of generated code variations")
-    test_results = models.JSONField(default=list, help_text="Test results for each variation")
-    passing_variations = models.IntegerField(default=0, help_text="Number of variations that passed all tests")
-    total_variations = models.IntegerField(default=0, help_text="Total number of variations generated")
-    
-    # Performance tracking
-    execution_time = models.FloatField(null=True, blank=True, help_text="Total execution time in seconds")
-    time_spent = models.DurationField(null=True, blank=True, help_text="Time user spent on this attempt")
+
+class Submission(models.Model):
+    """
+    Unified submission model for all submission types.
+    Single source of truth for student work.
+    """
+
+    # Unique identifier for external references
+    submission_id = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
+
+    # Core relationships
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="new_submissions")
+    problem = models.ForeignKey("problems_app.Problem", on_delete=models.PROTECT, related_name="new_submissions")
+    problem_set = models.ForeignKey("problems_app.ProblemSet", on_delete=models.PROTECT, related_name="new_submissions")
+    course = models.ForeignKey("problems_app.Course", on_delete=models.PROTECT, null=True, blank=True, related_name="new_submissions")
+
+    # Submission metadata
+    submitted_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    submission_type = models.CharField(
+        max_length=20,
+        choices=[
+            ("eipl", "Explain in Plain Language"),
+            ("mcq", "Multiple Choice Question"),
+            ("prompt", "Prompt (Image-based)"),
+            ("refute", "Refute (Counterexample)"),
+            ("debug_fix", "Debug Fix"),
+            ("probeable_code", "Probeable Code"),
+            ("probeable_spec", "Probeable Spec"),
+        ],
+        db_index=True,
+    )
+
+    # Submission content
+    raw_input = models.TextField(help_text="Original user input (code or natural language)")
+    processed_code = models.TextField(help_text="Final code that was executed", blank=True)
+
+    # Results
+    score = models.IntegerField(default=0, db_index=True, help_text="Overall score (0-100)")
+    passed_all_tests = models.BooleanField(default=False, db_index=True)
+    is_correct = models.BooleanField(default=False, help_text="Whether the submission passes all test cases")
+    completion_status = models.CharField(
+        max_length=20,
+        choices=[("incomplete", "Incomplete"), ("partial", "Partial Success"), ("complete", "Complete Success")],
+        default="incomplete",
+    )
+
+    # Async processing - unique constraint prevents duplicate submissions on task retry
+    celery_task_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
 
     class Meta:
         indexes = [
-            models.Index(fields=['user', 'problem', 'course', '-submitted_at']),
-            models.Index(fields=['user', 'problem_set', 'course', '-submitted_at']),
-            models.Index(fields=['course', 'problem_set', 'problem', '-score']),
+            models.Index(fields=["user", "problem", "course", "-submitted_at"]),
+            models.Index(fields=["user", "problem_set", "course", "-submitted_at"]),
+            models.Index(fields=["course", "problem_set", "-score"]),
         ]
-        ordering = ['-submitted_at']
-    
+        ordering = ["-submitted_at"]
+
     def __str__(self):
         course_context = f" ({self.course.course_id})" if self.course else ""
-        return f"{self.user.username} - {self.problem_set.title}{course_context} - {self.problem.title} - {self.score}%"
+        return f"{self.user.username} - {self.problem.title}{course_context} - {self.score}%"
 ```
 
 ## Authentication Pattern
@@ -956,34 +1016,34 @@ logger = logging.getLogger(__name__)
 class PurplexAuthentication(authentication.BaseAuthentication):
     """
     Single authentication class for ALL endpoints.
-    
+
     Handles both header and query parameter tokens (for SSE).
     All Firebase logic is delegated to AuthenticationService.
     """
-    
+
     def authenticate(self, request) -> Optional[Tuple[User, Any]]:
         """
         Authenticate the request using Firebase tokens.
-        
+
         Tries header first, then query parameter (for SSE).
         """
         # Try header first
         token = self._extract_header_token(request)
-        
+
         # Try query parameter if no header (for SSE)
         if not token:
             token = self._extract_query_token(request)
-        
+
         # Try service account if no user token
         if not token:
             service_user = self._check_service_account(request)
             if service_user:
                 return (service_user, None)
-        
+
         # No authentication attempted
         if not token:
             return None
-        
+
         # Authenticate the token
         try:
             user, auth_data = AuthenticationService.authenticate_token(token)
@@ -994,29 +1054,29 @@ class PurplexAuthentication(authentication.BaseAuthentication):
         except Exception as e:
             logger.error(f"Unexpected authentication error: {e}")
             raise exceptions.AuthenticationFailed('Authentication failed')
-    
+
     def _extract_header_token(self, request) -> Optional[str]:
         """Extract token from Authorization header."""
         auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-        
+
         if not auth_header:
             return None
-        
+
         # Support both 'Bearer' and 'Token' prefixes
         parts = auth_header.split()
         if len(parts) != 2:
             return None
-        
+
         auth_type, token = parts
         if auth_type.lower() in ['bearer', 'token']:
             return token
-        
+
         return None
-    
+
     def _extract_query_token(self, request) -> Optional[str]:
         """Extract token from query parameter (for SSE/EventSource)."""
         return request.GET.get('token')
-    
+
     def _check_service_account(self, request) -> Optional[User]:
         """Check for service account authentication."""
         service_key = request.META.get('HTTP_X_SERVICE_KEY', '')
@@ -1041,46 +1101,46 @@ logger = logging.getLogger(__name__)
 class AuthenticationService:
     """
     Central authentication service - single source of truth.
-    
+
     This service handles:
     - Token verification (Firebase or mock)
     - User creation and updates
     - Profile management
     - All authentication-related logic
     """
-    
+
     # Cache for Firebase initialization
     _firebase_initialized = False
     _firebase_auth = None
-    
+
     @classmethod
     def authenticate_token(cls, token: str) -> Tuple[User, Dict[str, Any]]:
         """
         Authenticate a Firebase token and return user.
-        
+
         This is the ONLY method that verifies Firebase tokens.
         Handles both mock (dev) and real (prod) Firebase.
         """
         if not token:
             raise ValueError("No token provided")
-        
+
         # Get Firebase auth module (mock or real)
         auth_module = cls._initialize_firebase()
-        
+
         try:
             # Verify the token (same interface for mock and real)
             decoded_token = auth_module.verify_id_token(token)
-            
+
             # Extract user information
             firebase_uid = decoded_token['uid']
             email = decoded_token.get('email', '')
             display_name = decoded_token.get('name', '')
-            
+
             # Get or create the user
             user = cls.get_or_create_user(firebase_uid, email, display_name)
-            
+
             return (user, decoded_token)
-            
+
         except Exception as e:
             # Handle different exception types
             error_name = e.__class__.__name__
@@ -1091,40 +1151,40 @@ class AuthenticationService:
             else:
                 logger.error(f"Authentication error: {e}")
                 raise ValueError(f"Authentication failed: {str(e)}")
-    
+
     @classmethod
     @transaction.atomic
     def get_or_create_user(cls, firebase_uid: str, email: str, display_name: str) -> User:
         """
         Get existing user or create new one.
-        
+
         Uses database transaction to prevent race conditions.
         """
         # Try to get existing user profile
         try:
             user_profile = UserProfile.objects.select_for_update().get(firebase_uid=firebase_uid)
             user = user_profile.user
-            
+
             # Update user info if changed
             cls._update_user_if_needed(user, email, display_name)
-            
+
             return user
-            
+
         except UserProfile.DoesNotExist:
             # Create new user
             user = cls._create_django_user(firebase_uid, email, display_name)
-            
+
             # Create user profile
             user_profile = UserProfile.objects.create(
                 user=user,
                 firebase_uid=firebase_uid,
                 role='user'
             )
-            
+
             # Apply test user permissions in development
             if config.is_development and email:
                 cls._apply_test_user_permissions(user, user_profile, email)
-            
+
             logger.info(f"Created new user: {user.username} (Firebase UID: {firebase_uid})")
             return user
 ```
@@ -1146,53 +1206,53 @@ logger = logging.getLogger(__name__)
 class SSETokenView(APIView):
     """
     View for exchanging Firebase tokens for short-lived SSE session tokens.
-    
+
     This demonstrates the consolidated authentication pattern:
     - Class-based view (no function-based views)
     - Thin controller delegating to services
     - Multiple HTTP methods in one class
     """
     permission_classes = [IsAuthenticated]
-    
+
     def post(self, request):
         """Create a new SSE session token"""
         try:
             user = request.user
-            
+
             # Delegate to service for rate limiting
             if not RateLimitService.check_sse_token_rate_limit(user.id):
                 logger.warning(f"SSE token rate limit exceeded for user {user.username}")
                 return Response({
                     'error': 'Rate limit exceeded. Please wait before requesting another token.'
                 }, status=status.HTTP_429_TOO_MANY_REQUESTS)
-            
+
             # Delegate to service for token creation
             session_token = AuthenticationService.create_sse_session(user)
-            
+
             return Response({
                 'sse_token': session_token,
                 'expires_in': 300  # 5 minutes
             }, status=status.HTTP_200_OK)
-            
+
         except Exception as e:
             logger.error(f"Failed to create SSE token: {e}")
             return Response({
                 'error': 'Failed to create session token'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
     def delete(self, request):
         """Revoke an SSE session token"""
         try:
             sse_token = request.data.get('sse_token')
-            
+
             if not sse_token:
                 return Response({
                     'error': 'SSE token required'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            
+
             # Delegate to service for token revocation
             revoked = AuthenticationService.revoke_sse_session(sse_token)
-            
+
             if revoked:
                 return Response({
                     'message': 'Session revoked successfully'
@@ -1201,7 +1261,7 @@ class SSETokenView(APIView):
                 return Response({
                     'message': 'Session not found or already expired'
                 }, status=status.HTTP_404_NOT_FOUND)
-                
+
         except Exception as e:
             logger.error(f"Failed to revoke SSE token: {e}")
             return Response({
@@ -1242,7 +1302,7 @@ class ProblemServiceImpl {
     try {
       // Validate data before sending
       this._validateProblemData(data);
-      
+
       const response: AxiosResponse<ProblemDetailed> = await axios.post(
         this.baseURL + '/',
         data
@@ -1253,15 +1313,15 @@ class ProblemServiceImpl {
     }
   }
 
-  async testProblem(slug: string, data: TestProblemRequest): Promise<TestExecutionResult> {
+  async testProblem(data: TestProblemRequest): Promise<TestExecutionResult> {
     try {
       const response: AxiosResponse<TestExecutionResult> = await axios.post(
-        `${this.baseURL}/${slug}/test/`,
+        '/api/admin/test-problem/',
         data
       );
       return response.data;
     } catch (error) {
-      throw this._handleError(error, 'Failed to test problem');
+      throw this._handleError(error, 'Failed to test problem solution');
     }
   }
 

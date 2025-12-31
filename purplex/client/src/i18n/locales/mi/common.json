@@ -1,0 +1,31 @@
+{
+  "brand": {
+    "name": "Pāpuraruraru",
+    "tagline": "Ngā Raru Hōtaka Reo Māori mō te Wā o te GenAI"
+  },
+  "nav": {
+    "home": "Kāinga",
+    "admin": "Whakahaere",
+    "account": "Pūkete",
+    "signOut": "Takiputa"
+  },
+  "common": {
+    "loading": "E uta ana...",
+    "error": "Hapa",
+    "success": "Angitu",
+    "cancel": "Whakakore",
+    "save": "Tiaki",
+    "submit": "Tuku",
+    "close": "Kati",
+    "back": "Hoki",
+    "next": "Panuku",
+    "delete": "Muku",
+    "edit": "Whakatika",
+    "view": "Tirohia",
+    "search": "Rapu",
+    "filter": "Tātari",
+    "clear": "Ūkui",
+    "copy": "Tārua",
+    "copied": "Kua tāruatia"
+  }
+}

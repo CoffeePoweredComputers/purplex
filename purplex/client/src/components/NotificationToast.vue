@@ -54,8 +54,10 @@ export default defineComponent({
   mounted() {
     // Make this component globally accessible
     window.$notify = this.addNotification.bind(this);
+    console.log('[NotificationToast] Mounted, window.$notify set');
   },
   beforeUnmount() {
+    console.log('[NotificationToast] Unmounting, deleting window.$notify');
     delete window.$notify;
   },
   methods: {
@@ -65,7 +67,7 @@ export default defineComponent({
         id,
         ...notification
       });
-      
+
       // Auto-remove after duration
       setTimeout(() => {
         this.removeNotification(id);

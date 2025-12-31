@@ -5,7 +5,7 @@
       <h1 class="page-title">
         User Management Console
       </h1>
-      
+
       <div class="status-container">
         <div
           v-if="loading"
@@ -13,7 +13,7 @@
         >
           Loading users...
         </div>
-        
+
         <div
           v-if="error"
           class="error-message"
@@ -21,7 +21,7 @@
           {{ error }}
         </div>
       </div>
-    
+
       <div
         v-if="!loading && !error"
         class="table-responsive"
@@ -53,8 +53,8 @@
               </td>
               <td>
                 <div class="role-dropdown-container">
-                  <select 
-                    class="role-dropdown" 
+                  <select
+                    class="role-dropdown"
                     :value="user.role"
                     :disabled="updatingUsers[user.id] || user.email === $store.state.auth.user.email"
                     :title="user.email === $store.state.auth.user.email ? 'You cannot change your own role' : 'Select a role'"
@@ -125,33 +125,33 @@ export default defineComponent({
       this.$router.push('/');
       return;
     }
-    
+
     this.fetchUsers();
   },
   methods: {
     async fetchUsers(): Promise<void> {
       try {
         this.loading = true;
-        
+
         // Get CSRF token from cookie if present
         function getCookie(name: string): string | undefined {
           const value = `; ${document.cookie}`;
           const parts = value.split(`; ${name}=`);
           if (parts.length === 2) {return parts.pop()?.split(';').shift();}
         }
-        
+
         // First make a GET request to get the CSRF token
         await axios.get('/api/csrf/', { withCredentials: true });
-        
+
         const csrfToken = getCookie('csrftoken');
-        
-        const response = await axios.get('/api/admin/users/', { 
+
+        const response = await axios.get('/api/admin/users/', {
           headers: {
             'X-CSRFToken': csrfToken
           },
-          withCredentials: true 
+          withCredentials: true
         });
-        
+
         this.users = response.data;
         this.loading = false;
       } catch (error) {
@@ -161,7 +161,7 @@ export default defineComponent({
         log.error('Error fetching users', { error: axiosError });
       }
     },
-    
+
     getBadgeClass(role: string): string {
       switch (role) {
         case 'admin':
@@ -173,7 +173,7 @@ export default defineComponent({
           return 'user-badge';
       }
     },
-    
+
     async changeRole(userId: number, newRole: string): Promise<void> {
       log.debug('Changing role for user', { userId, newRole });
       try {
@@ -182,26 +182,26 @@ export default defineComponent({
           ...this.updatingUsers,
           [userId]: true
         };
-        
+
         // Get CSRF token from cookie if present
         function getCookie(name: string): string | undefined {
           const value = `; ${document.cookie}`;
           const parts = value.split(`; ${name}=`);
           if (parts.length === 2) {return parts.pop()?.split(';').shift();}
         }
-        
+
         const csrfToken = getCookie('csrftoken');
-        
+
         // Send the request to the server
         await axios.post(`/api/admin/user/${userId}/`, {
           role: newRole
-        }, { 
+        }, {
           headers: {
             'X-CSRFToken': csrfToken
           },
-          withCredentials: true 
+          withCredentials: true
         });
-        
+
         // Update the user role locally instead of refetching all users
         const userIndex = this.users.findIndex(user => user.id === userId);
         if (userIndex !== -1) {
@@ -417,17 +417,17 @@ export default defineComponent({
   .users-table {
     font-size: var(--font-size-sm);
   }
-  
+
   .users-table th,
   .users-table td {
     padding: var(--spacing-md);
   }
-  
+
   .role-dropdown-container {
     min-width: auto;
     width: 100%;
   }
-  
+
   .role-dropdown {
     font-size: var(--font-size-xs);
   }

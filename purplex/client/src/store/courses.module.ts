@@ -23,6 +23,8 @@ export interface CourseProblemSet {
   problems_count?: number;
   icon?: string;
   order?: number;
+  is_required?: boolean;
+  due_date?: string | null;
 }
 
 export interface CourseEnrollment {
@@ -69,14 +71,14 @@ export interface CoursesState {
   enrolledCourses: CourseEnrollment[];
   availableProblemSets: CourseProblemSet[];
   currentCourse: Course | null;
-  
+
   // UI state
   enrollmentModal: EnrollmentModal;
-  
+
   // Instructor-specific state
   instructorCourses: Course[];
   studentProgress: Record<string, StudentProgress>;
-  
+
   // Loading states
   loading: LoadingStates;
 }
@@ -114,7 +116,7 @@ const initialState: CoursesState = {
   enrolledCourses: [],        // Array of courses user is enrolled in
   availableProblemSets: [],   // Problem sets for browsing when adding to course
   currentCourse: null,        // Active course being viewed
-  
+
   // UI state
   enrollmentModal: {
     visible: false,
@@ -122,11 +124,11 @@ const initialState: CoursesState = {
     coursePreview: null,
     error: null
   },
-  
+
   // Instructor-specific state
   instructorCourses: [],      // Courses where user is instructor
   studentProgress: {},        // Student progress data for instructor view
-  
+
   // Loading states
   loading: {
     courses: false,
@@ -138,27 +140,27 @@ const initialState: CoursesState = {
 
 export const courses: Module<CoursesState, RootState> = {
   namespaced: true,
-  
+
   state: initialState,
-  
+
   getters: {
     // Check enrollment status
     isEnrolledInCourse: (state: CoursesState) => (courseId: string): boolean => {
       return state.enrolledCourses.some(c => c.course.course_id === courseId);
     },
-    
+
     // Get problem sets for current course
     getCurrentCourseProblemSets: (state: CoursesState): CourseProblemSet[] => {
       if (!state.currentCourse) {return [];}
       return state.currentCourse.problem_sets || [];
     },
-    
+
     // Check if user is instructor of any course
-    isInstructor: (_state: CoursesState, _getters: any, rootState: RootState): boolean => {
-      return rootState.auth.user?.role === 'instructor' || 
+    isInstructor: (_state: CoursesState, _getters: unknown, rootState: RootState): boolean => {
+      return rootState.auth.user?.role === 'instructor' ||
              rootState.auth.user?.role === 'admin';
     },
-    
+
     // Get organized courses by completion status
     organizedCourses: (state: CoursesState): OrganizedCourses => {
       return {
@@ -171,26 +173,26 @@ export const courses: Module<CoursesState, RootState> = {
       };
     }
   },
-  
+
   mutations: {
     // Course data mutations
     SET_ENROLLED_COURSES(state: CoursesState, courses: CourseEnrollment[]): void {
       state.enrolledCourses = courses;
     },
-    
+
     ADD_ENROLLED_COURSE(state: CoursesState, courseData: CourseEnrollment): void {
       state.enrolledCourses.push(courseData);
     },
-    
+
     SET_CURRENT_COURSE(state: CoursesState, course: Course | null): void {
       state.currentCourse = course;
     },
-    
+
     // Enrollment modal mutations
     SET_ENROLLMENT_MODAL(state: CoursesState, data: Partial<EnrollmentModal>): void {
       state.enrollmentModal = { ...state.enrollmentModal, ...data };
     },
-    
+
     RESET_ENROLLMENT_MODAL(state: CoursesState): void {
       state.enrollmentModal = {
         visible: false,
@@ -199,37 +201,37 @@ export const courses: Module<CoursesState, RootState> = {
         error: null
       };
     },
-    
+
     // Instructor mutations
     SET_INSTRUCTOR_COURSES(state: CoursesState, courses: Course[]): void {
       state.instructorCourses = courses;
     },
-    
+
     SET_STUDENT_PROGRESS(state: CoursesState, { courseId, progress }: { courseId: string; progress: StudentProgress }): void {
       state.studentProgress = {
         ...state.studentProgress,
         [courseId]: progress
       };
     },
-    
+
     // Loading state mutations
     SET_LOADING(state: CoursesState, { key, value }: { key: keyof LoadingStates; value: boolean }): void {
       state.loading[key] = value;
     }
   },
-  
+
   actions: {
     // Initialize course data on app load
     async initializeCourses({ dispatch, rootGetters }: CoursesActionContext): Promise<void> {
       if (rootGetters['auth/isLoggedIn']) {
         await dispatch('fetchEnrolledCourses');
-        
+
         if (rootGetters['auth/isInstructor']) {
           await dispatch('fetchInstructorCourses');
         }
       }
     },
-    
+
     // Fetch user's enrolled courses
     async fetchEnrolledCourses({ commit }: CoursesActionContext): Promise<CourseEnrollment[]> {
       commit('SET_LOADING', { key: 'courses', value: true });
@@ -244,23 +246,24 @@ export const courses: Module<CoursesState, RootState> = {
         commit('SET_LOADING', { key: 'courses', value: false });
       }
     },
-    
+
     // Course enrollment flow
     async lookupCourse({ commit }: CoursesActionContext, courseId: string): Promise<CourseLookupResponse> {
       commit('SET_ENROLLMENT_MODAL', { loading: true, error: null });
-      
+
       try {
-        const response = await axios.post<CourseLookupResponse>('/api/courses/lookup/', { 
-          course_id: courseId 
+        const response = await axios.post<CourseLookupResponse>('/api/courses/lookup/', {
+          course_id: courseId
         });
-        commit('SET_ENROLLMENT_MODAL', { 
+        commit('SET_ENROLLMENT_MODAL', {
           coursePreview: response.data.course,
-          loading: false 
+          loading: false
         });
         return response.data;
-      } catch (error: any) {
-        const errorMsg = error.response?.data?.error || 'Course not found';
-        commit('SET_ENROLLMENT_MODAL', { 
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { data?: { error?: string } } };
+        const errorMsg = axiosError.response?.data?.error || 'Course not found';
+        commit('SET_ENROLLMENT_MODAL', {
           error: errorMsg,
           loading: false,
           coursePreview: null
@@ -268,29 +271,30 @@ export const courses: Module<CoursesState, RootState> = {
         throw error;
       }
     },
-    
+
     async enrollInCourse({ commit, dispatch }: CoursesActionContext, courseId: string): Promise<CourseEnrollmentResponse> {
       commit('SET_ENROLLMENT_MODAL', { loading: true });
-      
+
       try {
-        const response = await axios.post<CourseEnrollmentResponse>('/api/courses/enroll/', { 
-          course_id: courseId 
+        const response = await axios.post<CourseEnrollmentResponse>('/api/courses/enroll/', {
+          course_id: courseId
         });
-        
+
         // Refresh enrolled courses (which now includes progress)
         await dispatch('fetchEnrolledCourses');
-        
+
         // Reset modal
         commit('RESET_ENROLLMENT_MODAL');
-        
+
         return response.data;
-      } catch (error: any) {
-        const errorMsg = error.response?.data?.error || 'Enrollment failed';
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { data?: { error?: string } } };
+        const errorMsg = axiosError.response?.data?.error || 'Enrollment failed';
         commit('SET_ENROLLMENT_MODAL', { error: errorMsg, loading: false });
         throw error;
       }
     },
-    
+
     // Navigate to course context
     async enterCourseContext({ commit }: CoursesActionContext, courseId: string): Promise<Course> {
       try {
@@ -302,12 +306,12 @@ export const courses: Module<CoursesState, RootState> = {
         throw error;
       }
     },
-    
+
     // Leave course context (back to home)
     leaveCourseContext({ commit }: CoursesActionContext): void {
       commit('SET_CURRENT_COURSE', null);
     },
-    
+
     // Instructor actions
     async fetchInstructorCourses({ commit }: CoursesActionContext): Promise<Course[]> {
       try {
@@ -319,7 +323,7 @@ export const courses: Module<CoursesState, RootState> = {
         throw error;
       }
     },
-    
+
     async fetchStudentProgress({ commit }: CoursesActionContext, courseId: string): Promise<StudentProgress> {
       try {
         const response = await axios.get<StudentProgress>(
@@ -332,12 +336,12 @@ export const courses: Module<CoursesState, RootState> = {
         throw error;
       }
     },
-    
+
     // Show/hide enrollment modal
     showEnrollmentModal({ commit }: CoursesActionContext): void {
       commit('SET_ENROLLMENT_MODAL', { visible: true });
     },
-    
+
     hideEnrollmentModal({ commit }: CoursesActionContext): void {
       commit('RESET_ENROLLMENT_MODAL');
     }

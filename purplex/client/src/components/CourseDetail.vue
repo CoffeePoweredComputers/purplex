@@ -7,7 +7,7 @@
       <div class="loading-spinner" />
       <p>Loading course...</p>
     </div>
-    
+
     <div
       v-else-if="course"
       class="course-content"
@@ -21,7 +21,7 @@
           <span class="back-arrow">←</span>
           Back to Courses
         </router-link>
-        
+
         <div class="course-info">
           <h1>{{ course.name }}</h1>
           <p class="course-id">
@@ -33,7 +33,7 @@
           >
             {{ course.description }}
           </p>
-          
+
           <div class="course-meta">
             <div class="meta-item">
               <span class="label">Instructor:</span>
@@ -50,26 +50,26 @@
           </div>
         </div>
       </div>
-      
+
       <hr class="divider">
-      
+
       <!-- Problem Sets -->
       <div class="problem-sets-section">
         <h2>Problem Sets</h2>
-        
+
         <div
           v-if="course.problem_sets.length === 0"
           class="empty-state"
         >
           <p>No problem sets have been added to this course yet.</p>
         </div>
-        
+
         <div
           v-else
           class="problem-sets-grid"
         >
-          <div 
-            v-for="psData in course.problem_sets" 
+          <div
+            v-for="psData in course.problem_sets"
             :key="psData.problem_set.slug"
             class="problem-set-card"
             @click="navigateToProblemSet(psData.problem_set.slug)"
@@ -77,19 +77,27 @@
             <div class="card-content">
               <div class="card-header">
                 <h3>{{ psData.problem_set.title }}</h3>
-                <span
-                  v-if="psData.is_required"
-                  class="required-badge"
-                >Required</span>
+                <div class="badges">
+                  <span
+                    v-if="psData.due_date"
+                    :class="['due-badge', getDueDateClass(psData)]"
+                  >
+                    {{ isLocked(psData) ? '🔒 Closed' : formatDueDate(psData.due_date) }}
+                  </span>
+                  <span
+                    v-if="psData.is_required"
+                    class="required-badge"
+                  >Required</span>
+                </div>
               </div>
-              
+
               <p
                 v-if="psData.problem_set.description"
                 class="card-description"
               >
                 {{ psData.problem_set.description }}
               </p>
-              
+
               <div class="card-footer">
                 <span class="problems-count">
                   {{ psData.problem_set.problems_count }} problems
@@ -103,7 +111,7 @@
         </div>
       </div>
     </div>
-    
+
     <div
       v-else
       class="error-container"
@@ -120,8 +128,8 @@
   </div>
 </template>
 
-<script lang="ts">
-import { computed, defineComponent, onMounted, Ref, ref } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import axios, { AxiosError } from 'axios'
@@ -129,56 +137,92 @@ import { log } from '@/utils/logger'
 import type { Course } from '@/types'
 import { waitForAuthState } from '@/utils/auth-state'
 
-export default defineComponent({
-  name: 'CourseDetail',
-  setup() {
-    const route = useRoute()
-    const router = useRouter()
-    const store = useStore()
-    
-    const course: Ref<Course | null> = ref(null)
-    const loading = ref(true)
-    const courseId = computed(() => route.params.courseId as string)
-    
-    const fetchCourseDetails = async (): Promise<void> => {
-      loading.value = true
-      try {
-        const response = await axios.get(`/api/courses/${courseId.value}/`)
-        course.value = response.data
-        
-        // Update current course in store
-        store.commit('courses/SET_CURRENT_COURSE', response.data)
-      } catch (error) {
-        const axiosError = error as AxiosError
-        log.error('Failed to fetch course details', { courseId: courseId.value, error: axiosError })
-        course.value = null
-      } finally {
-        loading.value = false
-      }
-    }
-    
-    const navigateToProblemSet = (problemSetSlug: string): void => {
-      router.push({
-        name: 'CourseProblemSet',
-        params: {
-          courseId: courseId.value,
-          slug: problemSetSlug
-        }
-      })
-    }
-    
-    onMounted(async () => {
-      // Wait for auth state to be determined first
-      await waitForAuthState()
-      fetchCourseDetails()
-    })
-    
-    return {
-      course,
-      loading,
-      navigateToProblemSet
-    }
+const route = useRoute()
+const router = useRouter()
+const store = useStore()
+
+const course = ref<Course | null>(null)
+const loading = ref(true)
+const courseId = computed(() => route.params.courseId as string)
+
+async function fetchCourseDetails(): Promise<void> {
+  loading.value = true
+  try {
+    const response = await axios.get(`/api/courses/${courseId.value}/`)
+    course.value = response.data
+
+    // Update current course in store
+    store.commit('courses/SET_CURRENT_COURSE', response.data)
+  } catch (error) {
+    const axiosError = error as AxiosError
+    log.error('Failed to fetch course details', { courseId: courseId.value, error: axiosError })
+    course.value = null
+  } finally {
+    loading.value = false
   }
+}
+
+function navigateToProblemSet(problemSetSlug: string): void {
+  router.push({
+    name: 'CourseProblemSet',
+    params: {
+      courseId: courseId.value,
+      slug: problemSetSlug
+    }
+  })
+}
+
+// Due date helpers
+function formatDueDate(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = date.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    return 'Past due'
+  } else if (diffDays === 0) {
+    return 'Due today'
+  } else if (diffDays === 1) {
+    return 'Due tomorrow'
+  } else if (diffDays <= 7) {
+    return `Due in ${diffDays} days`
+  } else {
+    return `Due ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+  }
+}
+
+function getDueDateClass(psData: { due_date?: string; deadline_type?: string }): string {
+  if (!psData.due_date) {
+    return ''
+  }
+
+  const date = new Date(psData.due_date)
+  const now = new Date()
+  const diffMs = date.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    return psData.deadline_type === 'hard' ? 'due-locked' : 'due-past'
+  } else if (diffDays <= 2) {
+    return 'due-urgent'
+  } else if (diffDays <= 7) {
+    return 'due-soon'
+  }
+  return 'due-normal'
+}
+
+function isLocked(psData: { due_date?: string; deadline_type?: string }): boolean {
+  if (!psData.due_date || psData.deadline_type !== 'hard') {
+    return false
+  }
+  return new Date(psData.due_date) < new Date()
+}
+
+onMounted(async () => {
+  // Wait for auth state to be determined first
+  await waitForAuthState()
+  fetchCourseDetails()
 })
 </script>
 
@@ -329,6 +373,13 @@ export default defineComponent({
   flex: 1;
 }
 
+.badges {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .required-badge {
   background-color: var(--color-error-bg);
   color: var(--color-error);
@@ -338,6 +389,41 @@ export default defineComponent({
   font-weight: 600;
   white-space: nowrap;
   border: 1px solid var(--color-error);
+}
+
+/* Due date badges */
+.due-badge {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.due-badge.due-normal {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-muted);
+}
+
+.due-badge.due-soon {
+  background-color: rgba(234, 179, 8, 0.15);
+  color: #ca8a04;
+}
+
+.due-badge.due-urgent {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.due-badge.due-past {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.due-badge.due-locked {
+  background-color: rgba(107, 114, 128, 0.15);
+  color: var(--color-text-muted);
 }
 
 .card-description {
@@ -419,16 +505,16 @@ export default defineComponent({
   .course-detail {
     padding: var(--spacing-lg);
   }
-  
+
   .course-info h1 {
     font-size: var(--font-size-xxl);
   }
-  
+
   .course-meta {
     flex-direction: column;
     gap: var(--spacing-lg);
   }
-  
+
   .problem-sets-grid {
     grid-template-columns: 1fr;
   }

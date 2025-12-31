@@ -1,212 +1,224 @@
 """
-Pytest configuration and fixtures for Purplex test suite.
+Pytest configuration for Purplex test suite.
+
+Shared fixtures are defined here using factory_boy for consistent test data.
+These fixtures are available to all tests in both unit/ and integration/ directories.
+
+Usage:
+    def test_something(user, eipl_problem):
+        # user and eipl_problem are automatically injected
+        assert user.username.startswith('user_')
 """
+
 import pytest
-from unittest.mock import patch, MagicMock
-from django.test import Client
-from django.contrib.auth.models import User
-from purplex.problems_app.models import Problem, ProblemSet, TestCase, Course
+from rest_framework.test import APIClient
 
+from tests.factories import (
+    CourseFactory,
+    CourseProblemSetFactory,
+    DebugFixProblemFactory,
+    EiplProblemFactory,
+    McqProblemFactory,
+    ProbeableCodeProblemFactory,
+    ProbeableSpecProblemFactory,
+    ProblemSetFactory,
+    PromptProblemFactory,
+    RefuteProblemFactory,
+    TestCaseFactory,
+    UserFactory,
+    UserProfileFactory,
+)
 
-# Counter for unique test users
-_user_counter = 0
+# =============================================================================
+# API Client Fixtures
+# =============================================================================
 
 
 @pytest.fixture
 def api_client():
-    """Provide a Django test client for API testing."""
-    return Client()
+    """Provide a DRF API client for API testing."""
+    return APIClient()
 
 
 @pytest.fixture
-def test_user(db):
-    """Create a test user for authentication with unique username."""
-    global _user_counter
-    _user_counter += 1
-    return User.objects.create_user(
-        username=f'testuser{_user_counter}',
-        email=f'test{_user_counter}@example.com',
-        password='testpass123'
+def authenticated_client(api_client, user):
+    """API client authenticated as a regular user."""
+    api_client.force_authenticate(user=user)
+    return api_client
+
+
+# =============================================================================
+# User Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def user(db):
+    """Create a standard test user with profile."""
+    user = UserFactory()
+    UserProfileFactory(user=user)
+    return user
+
+
+@pytest.fixture
+def instructor(db):
+    """Create an instructor user with profile."""
+    user = UserFactory(username="instructor")
+    UserProfileFactory(user=user, role="instructor")
+    return user
+
+
+@pytest.fixture
+def admin_user(db):
+    """Create an admin/superuser with profile.
+
+    Sets both Django admin flags AND profile role for full admin access.
+    """
+    user = UserFactory(is_staff=True, is_superuser=True)
+    UserProfileFactory(user=user, role="admin")
+    return user
+
+
+# =============================================================================
+# Problem Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def eipl_problem(db):
+    """Create a standard EiPL problem."""
+    return EiplProblemFactory()
+
+
+@pytest.fixture
+def mcq_problem(db):
+    """Create a standard MCQ problem."""
+    return McqProblemFactory()
+
+
+@pytest.fixture
+def prompt_problem(db):
+    """Create a standard Prompt problem."""
+    return PromptProblemFactory()
+
+
+# =============================================================================
+# Container Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def problem_set(db):
+    """Create an empty problem set."""
+    return ProblemSetFactory()
+
+
+@pytest.fixture
+def course(db, instructor):
+    """Create a course with an instructor."""
+    return CourseFactory(instructor=instructor)
+
+
+# =============================================================================
+# Additional Problem Type Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def debug_fix_problem(db):
+    """Create a standard Debug Fix problem."""
+    return DebugFixProblemFactory()
+
+
+@pytest.fixture
+def probeable_code_problem(db):
+    """Create a standard Probeable Code problem."""
+    return ProbeableCodeProblemFactory()
+
+
+@pytest.fixture
+def probeable_spec_problem(db):
+    """Create a standard Probeable Spec problem."""
+    return ProbeableSpecProblemFactory()
+
+
+@pytest.fixture
+def refute_problem(db):
+    """Create a standard Refute problem."""
+    return RefuteProblemFactory()
+
+
+# =============================================================================
+# CourseProblemSet Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def course_problem_set(db, course, problem_set):
+    """Create a CourseProblemSet linking a course and problem set."""
+    return CourseProblemSetFactory(course=course, problem_set=problem_set)
+
+
+@pytest.fixture
+def course_with_due_dates(db, instructor):
+    """Create a course with problem sets having various deadline types."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    course = CourseFactory(instructor=instructor)
+    ps1 = ProblemSetFactory(title="No Deadline Set")
+    ps2 = ProblemSetFactory(title="Soft Deadline Set")
+    ps3 = ProblemSetFactory(title="Hard Deadline Set")
+
+    CourseProblemSetFactory(
+        course=course,
+        problem_set=ps1,
+        order=0,
+        deadline_type="none",
     )
+    CourseProblemSetFactory(
+        course=course,
+        problem_set=ps2,
+        order=1,
+        deadline_type="soft",
+        due_date=timezone.now() + timedelta(days=7),
+    )
+    CourseProblemSetFactory(
+        course=course,
+        problem_set=ps3,
+        order=2,
+        deadline_type="hard",
+        due_date=timezone.now() + timedelta(days=14),
+    )
+    return course
+
+
+# =============================================================================
+# TestCase Fixtures
+# =============================================================================
 
 
 @pytest.fixture
-def authenticated_client(api_client, test_user, mock_firebase_auth):
-    """Provide an authenticated test client with proper Firebase auth mocking."""
-    # Force login for Django session
-    api_client.force_login(test_user)
+def test_case(db, eipl_problem):
+    """Create a test case for an EiPL problem."""
+    return TestCaseFactory(problem=eipl_problem)
 
-    # Mock Firebase authentication to return the test user
-    mock_firebase_auth.return_value = (test_user, {'uid': f'test-uid-{test_user.id}'})
 
+# =============================================================================
+# Admin/Instructor Client Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def admin_client(api_client, admin_user):
+    """API client authenticated as admin."""
+    api_client.force_authenticate(user=admin_user)
     return api_client
 
 
 @pytest.fixture
-def mock_firebase_auth(monkeypatch):
-    """Mock Firebase authentication service globally."""
-    mock = MagicMock()
-    monkeypatch.setattr(
-        'purplex.users_app.services.authentication_service.AuthenticationService.authenticate_token',
-        mock
-    )
-    return mock
-
-
-@pytest.fixture
-def mock_docker_execution(monkeypatch):
-    """Mock Docker execution service to avoid actual container creation."""
-    def mock_execute(*args, **kwargs):
-        return {
-            'success': True,
-            'results': [
-                {
-                    'test_number': 1,
-                    'isSuccessful': True,
-                    'actual_output': [0, 1],
-                    'expected_output': [0, 1],
-                    'inputs': {'nums': [2, 7, 11, 15], 'target': 9}
-                }
-            ],
-            'testsPassed': 1,
-            'totalTests': 1
-        }
-
-    mock = MagicMock(side_effect=mock_execute)
-    monkeypatch.setattr(
-        'purplex.problems_app.services.docker_execution_service.DockerExecutionService.execute_code_safely',
-        mock
-    )
-    return mock
-
-
-@pytest.fixture
-def test_problem(db):
-    """Create a test problem."""
-    problem = Problem.objects.create(
-        title="Two Sum",
-        slug="two-sum",
-        description="Find two numbers that add to target",
-        difficulty="easy",
-        function_name="two_sum",
-        function_signature="def two_sum(nums: List[int], target: int) -> List[int]:",
-        reference_solution="""def two_sum(nums, target):
-    for i in range(len(nums)):
-        for j in range(i + 1, len(nums)):
-            if nums[i] + nums[j] == target:
-                return [i, j]
-    return []""",
-        problem_type="function_redefinition",
-        is_active=True
-    )
-    
-    # Add test cases
-    TestCase.objects.create(
-        problem=problem,
-        inputs={"nums": [2, 7, 11, 15], "target": 9},
-        expected_output=[0, 1],
-        description="Basic test case",
-        is_hidden=False,
-        order=1
-    )
-    
-    TestCase.objects.create(
-        problem=problem,
-        inputs={"nums": [3, 2, 4], "target": 6},
-        expected_output=[1, 2],
-        description="Another test case",
-        is_hidden=True,
-        order=2
-    )
-    
-    return problem
-
-
-@pytest.fixture
-def test_problem_set(db, test_problem):
-    """Create a test problem set."""
-    problem_set = ProblemSet.objects.create(
-        title="Arrays and Hashing",
-        slug="arrays-hashing",
-        description="Basic array problems"
-    )
-    problem_set.problems.add(test_problem)
-    return problem_set
-
-
-@pytest.fixture
-def test_course(db):
-    """Create a test course."""
-    return Course.objects.create(
-        course_id="CS101",
-        name="Introduction to Programming",
-        description="Learn the basics of programming",
-        is_active=True
-    )
-
-
-@pytest.fixture
-def mock_openai(monkeypatch):
-    """Mock OpenAI API calls to avoid external dependencies."""
-    mock_response = MagicMock()
-    mock_response.choices = [
-        MagicMock(
-            message=MagicMock(
-                content="""def two_sum(nums, target):
-    for i in range(len(nums)):
-        for j in range(i + 1, len(nums)):
-            if nums[i] + nums[j] == target:
-                return [i, j]
-    return []"""
-            )
-        )
-    ]
-
-    mock_client = MagicMock()
-    mock_client.chat.completions.create.return_value = mock_response
-
-    # Mock both old and new OpenAI client formats
-    monkeypatch.setattr("openai.ChatCompletion.create", lambda *args, **kwargs: mock_response)
-    monkeypatch.setattr("openai.OpenAI", lambda *args, **kwargs: mock_client)
-
-    return mock_client
-
-
-@pytest.fixture(autouse=True)
-def setup_test_environment(monkeypatch, db):
-    """Auto-setup test environment variables and mocks for all tests."""
-    # Set test environment variables
-    monkeypatch.setenv('USE_MOCK_FIREBASE', 'true')
-    monkeypatch.setenv('USE_MOCK_OPENAI', 'true')
-    monkeypatch.setenv('DJANGO_SETTINGS_MODULE', 'purplex.settings')
-    monkeypatch.setenv('PURPLEX_ENV', 'development')
-
-    # Create a default test user for authentication
-    from django.contrib.auth.models import User
-    test_user, _ = User.objects.get_or_create(
-        username='default_test_user',
-        defaults={'email': 'default@test.com'}
-    )
-
-    # Mock Firebase authentication globally to return the test user
-    def mock_authenticate(self, request):
-        return (test_user, {'uid': f'test-uid-{test_user.id}'})
-
-    monkeypatch.setattr(
-        'purplex.users_app.authentication.PurplexAuthentication.authenticate',
-        mock_authenticate
-    )
-
-
-@pytest.fixture
-def bypass_authentication(monkeypatch):
-    """Bypass authentication entirely for validation-focused tests."""
-    def mock_auth(*args, **kwargs):
-        # Return a mock user without actual authentication
-        from django.contrib.auth.models import AnonymousUser
-        return (AnonymousUser(), None)
-
-    monkeypatch.setattr(
-        'purplex.users_app.authentication.PurplexAuthentication.authenticate',
-        mock_auth
-    )
+def instructor_client(api_client, instructor):
+    """API client authenticated as instructor."""
+    api_client.force_authenticate(user=instructor)
+    return api_client

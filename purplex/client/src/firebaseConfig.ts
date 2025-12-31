@@ -3,10 +3,12 @@
  * based on the environment configuration.
  */
 import { environment } from './services/environment';
+import { log } from './utils/logger';
 
 // Import types
 import type { FirebaseApp } from 'firebase/app';
-import type { Auth } from 'firebase/auth';
+import type { Auth, AuthProvider } from 'firebase/auth';
+import type { MockGoogleAuthProvider } from './services/mockFirebase';
 
 // Firebase configuration interface
 interface FirebaseConfig {
@@ -19,34 +21,44 @@ interface FirebaseConfig {
   measurementId?: string;
 }
 
+// Auth type that supports both real Firebase and mock
+type FirebaseAuthType = Auth | {
+  currentUser: unknown;
+  onAuthStateChanged: (callback: (user: unknown) => void) => () => void;
+  onIdTokenChanged: (callback: (user: unknown) => void) => () => void;
+};
+
+// Provider type that supports both real and mock
+type ProviderType = AuthProvider | MockGoogleAuthProvider | null;
+
 // Variables that will be exported
 let firebaseApp: FirebaseApp | null = null;
-let firebaseAuth: Auth | any = null;
-let provider: any = null;
+let firebaseAuth: FirebaseAuthType | null = null;
+let provider: ProviderType = null;
 
 // Initialize based on environment
 async function initializeFirebase() {
-  console.log('🔥 Initializing Firebase...', {
+  log.info('Initializing Firebase', {
     environment: environment.current,
     useMockFirebase: environment.useMockFirebase
   });
-  
+
   if (environment.useMockFirebase) {
     // Use mock Firebase in development
-    console.log('🔥 Using Mock Firebase for development');
-    
+    log.info('Using Mock Firebase for development');
+
     // Import mock Firebase
     const mockModule = await import('./services/mockFirebase');
     firebaseAuth = mockModule.mockFirebaseAuth;
     provider = mockModule.mockGoogleProvider;
-    
+
     // Mock doesn't need an app instance
     firebaseApp = null;
-    
+
   } else {
     // Use real Firebase in staging/production
-    console.log('🔥 Using Real Firebase');
-    
+    log.info('Using Real Firebase');
+
     try {
       // Import real Firebase dynamically
       const { initializeApp } = await import('firebase/app');
@@ -84,17 +96,17 @@ async function initializeFirebase() {
         access_type: 'online',
       });
 
-      console.log('✅ Google Auth Provider configured with custom parameters');
+      log.info('Google Auth Provider configured with custom parameters');
 
       // ⚠️ CRITICAL: Enable persistence for production
       // This keeps users logged in across page refreshes
       await setPersistence(firebaseAuth, browserLocalPersistence);
-      console.log('✅ Firebase persistence enabled (browserLocalPersistence)');
+      log.info('Firebase persistence enabled (browserLocalPersistence)');
     } catch (error) {
-      console.error('Failed to initialize Firebase:', error);
+      log.error('Failed to initialize Firebase', error);
       // Fall back to mock in case of error during development
       if (environment.isDevelopment) {
-        console.log('Falling back to mock Firebase due to initialization error');
+        log.warn('Falling back to mock Firebase due to initialization error');
         const mockModule = await import('./services/mockFirebase');
         firebaseAuth = mockModule.mockFirebaseAuth;
         provider = mockModule.mockGoogleProvider;

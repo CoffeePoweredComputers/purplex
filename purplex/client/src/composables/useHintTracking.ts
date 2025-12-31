@@ -57,7 +57,7 @@ export function useHintTracking() {
    */
   const trackHintUsage = (problemSlug: string, hintType: string, metadata: TrackingMetadata = {}): void => {
     const key = `${problemSlug}_${metadata.courseId || 'standalone'}_${metadata.problemSetSlug || 'default'}`
-    
+
     if (!hintUsageData.value.has(key)) {
       hintUsageData.value.set(key, {
         problemSlug,
@@ -68,10 +68,10 @@ export function useHintTracking() {
         lastHintTime: null
       })
     }
-    
+
     const problemData = hintUsageData.value.get(key)!
     const timestamp = new Date().toISOString()
-    
+
     // Add hint usage if not already tracked
     if (!problemData.hintsUsed.find(h => h.type === hintType)) {
       problemData.hintsUsed.push({
@@ -79,17 +79,17 @@ export function useHintTracking() {
         timestamp,
         attemptNumber: metadata.attemptNumber || 0
       })
-      
+
       if (!problemData.firstHintTime) {
         problemData.firstHintTime = timestamp
       }
       problemData.lastHintTime = timestamp
     }
-    
+
     // Persist to localStorage for research data
     persistHintData()
   }
-  
+
   /**
    * Get hint usage for a specific problem
    * @param {string} problemSlug - The problem identifier
@@ -102,7 +102,7 @@ export function useHintTracking() {
     const problemData = hintUsageData.value.get(key)
     return problemData?.hintsUsed.map(h => h.type) || []
   }
-  
+
   /**
    * Check if a specific hint has been used
    * @param {string} problemSlug - The problem identifier
@@ -115,7 +115,7 @@ export function useHintTracking() {
     const hintsUsed = getHintsUsed(problemSlug, courseId, problemSetSlug)
     return hintsUsed.includes(hintType)
   }
-  
+
   /**
    * Get hint usage statistics for research
    * @returns {Object} Aggregated hint usage statistics
@@ -132,16 +132,16 @@ export function useHintTracking() {
       averageHintsPerProblem: 0,
       problems: []
     }
-    
+
     hintUsageData.value.forEach((data, key) => {
       stats.totalHintsUsed += data.hintsUsed.length
-      
+
       data.hintsUsed.forEach(hint => {
         if (stats.hintTypeDistribution[hint.type] !== undefined) {
           stats.hintTypeDistribution[hint.type]++
         }
       })
-      
+
       stats.problems.push({
         key,
         problemSlug: data.problemSlug,
@@ -153,14 +153,14 @@ export function useHintTracking() {
         lastHintTime: data.lastHintTime
       })
     })
-    
+
     if (stats.totalProblemsWithHints > 0) {
       stats.averageHintsPerProblem = stats.totalHintsUsed / stats.totalProblemsWithHints
     }
-    
+
     return stats
   }
-  
+
   /**
    * Clear hint usage data (for testing or reset)
    */
@@ -168,7 +168,7 @@ export function useHintTracking() {
     hintUsageData.value.clear()
     localStorage.removeItem('purplex_hint_usage_data')
   }
-  
+
   /**
    * Persist hint data to localStorage
    */
@@ -176,7 +176,7 @@ export function useHintTracking() {
     const dataArray = Array.from(hintUsageData.value.entries())
     localStorage.setItem('purplex_hint_usage_data', JSON.stringify(dataArray))
   }
-  
+
   /**
    * Load hint data from localStorage
    */
@@ -191,10 +191,10 @@ export function useHintTracking() {
       log.error('Error loading hint data', error)
     }
   }
-  
+
   // Load data on initialization
   loadHintData()
-  
+
   return {
     trackHintUsage,
     getHintsUsed,

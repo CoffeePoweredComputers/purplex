@@ -1,7 +1,11 @@
 #!/bin/bash
 
-# Purplex Complete Startup Script
-# Starts all services: Redis, Celery, Django, and Vue
+# ============================================================================
+# Purplex Local Development Environment Startup Script
+# ============================================================================
+# Starts all services using local processes with Docker only for databases
+# Uses .env.development for configuration
+# ============================================================================
 
 set -e  # Exit on error
 
@@ -9,309 +13,400 @@ set -e  # Exit on error
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}═══════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}     Starting Purplex Development Environment          ${NC}"
-echo -e "${GREEN}═══════════════════════════════════════════════════════${NC}"
+# PIDs for cleanup
+DJANGO_PID=""
+CELERY_PID=""
+CELERY_BEAT_PID=""
+VUE_PID=""
+FLOWER_PID=""
+
+# Cleanup flag
+CLEANING_UP=0
+
+# ============================================================================
+# Display Banner
+# ============================================================================
+echo -e "${CYAN}╔═══════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║                                                       ║${NC}"
+echo -e "${CYAN}║         ${GREEN}Purplex Development Environment${CYAN}               ║${NC}"
+echo -e "${CYAN}║              ${YELLOW}Local Process Mode${CYAN}                       ║${NC}"
+echo -e "${CYAN}║                                                       ║${NC}"
+echo -e "${CYAN}╚═══════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Load environment variables from unified .env file
-if [ -f .env ]; then
-    echo -e "${YELLOW}Loading environment variables from .env file...${NC}"
-    # Export all variables properly for subprocesses
-    set -a
-    source .env
-    set +a
-    # Ensure Django settings module is set
-    export DJANGO_SETTINGS_MODULE=purplex.settings
-    echo -e "${GREEN}✓ Environment variables loaded and exported${NC}"
-else
-    echo -e "${RED}✗ No .env file found!${NC}"
-    echo -e "${YELLOW}Please create a .env file with at least:${NC}"
-    echo "  PURPLEX_ENV=development"
-    echo "  OPENAI_API_KEY=your-key-here"
-    exit 1
-fi
-echo ""
-
-# Function to cleanup on exit
+# ============================================================================
+# Cleanup Function
+# ============================================================================
 cleanup() {
+    if [ $CLEANING_UP -eq 1 ]; then
+        return
+    fi
+
+    CLEANING_UP=1
     echo ""
-    echo -e "${YELLOW}Shutting down services...${NC}"
-    
-    # Kill Django if running
-    if [ ! -z "$DJANGO_PID" ]; then
-        kill -TERM $DJANGO_PID 2>/dev/null || true
-        sleep 1
-        kill -9 $DJANGO_PID 2>/dev/null || true
-    fi
-    # Also kill any Django on port 8000
-    lsof -t -i:8000 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-    
-    # Kill Vue dev server
-    if [ ! -z "$VUE_PID" ]; then
-        kill -TERM $VUE_PID 2>/dev/null || true
-        sleep 1
-        kill -9 $VUE_PID 2>/dev/null || true
-    fi
-    # Also kill any process on port 5173
-    lsof -t -i:5173 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-    
-    # Kill Celery worker
-    if [ ! -z "$WORKER_PID" ]; then
-        kill -TERM $WORKER_PID 2>/dev/null || true
-        sleep 1
-        kill -9 $WORKER_PID 2>/dev/null || true
-    fi
-    
-    # Kill Flower
-    if [ ! -z "$FLOWER_PID" ]; then
-        kill -TERM $FLOWER_PID 2>/dev/null || true
-        sleep 1
-        kill -9 $FLOWER_PID 2>/dev/null || true
-    fi
-    lsof -t -i:5555 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-    
-    # Kill all Celery processes
+    echo -e "${YELLOW}╔═══════════════════════════════════════════════════════╗${NC}"
+    echo -e "${YELLOW}║           Shutting down services...                  ║${NC}"
+    echo -e "${YELLOW}╚═══════════════════════════════════════════════════════╝${NC}"
+    echo ""
+
+    # Kill processes gracefully
+    echo -e "${BLUE}→ Stopping Django...${NC}"
+    [ ! -z "$DJANGO_PID" ] && kill -TERM $DJANGO_PID 2>/dev/null || true
+    lsof -ti:8000 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+
+    echo -e "${BLUE}→ Stopping Vue...${NC}"
+    [ ! -z "$VUE_PID" ] && kill -TERM $VUE_PID 2>/dev/null || true
+    lsof -ti:5173 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+
+    echo -e "${BLUE}→ Stopping Celery worker...${NC}"
+    [ ! -z "$CELERY_PID" ] && kill -TERM $CELERY_PID 2>/dev/null || true
+
+    echo -e "${BLUE}→ Stopping Celery beat...${NC}"
+    [ ! -z "$CELERY_BEAT_PID" ] && kill -TERM $CELERY_BEAT_PID 2>/dev/null || true
+
+    echo -e "${BLUE}→ Stopping Flower...${NC}"
+    [ ! -z "$FLOWER_PID" ] && kill -TERM $FLOWER_PID 2>/dev/null || true
+    lsof -ti:5555 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+
+    # Kill any remaining Celery processes
     pkill -f "celery.*purplex" 2>/dev/null || true
-    
-    # Kill any remaining Python manage.py processes
     pkill -f "python.*manage.py" 2>/dev/null || true
-    
-    # Stop Redis
-    docker stop purplex-redis 2>/dev/null || true
-    
-    echo -e "${GREEN}All services stopped.${NC}"
+
+    sleep 2
+
+    echo ""
+    echo -e "${GREEN}✓ All services stopped successfully${NC}"
+    echo ""
     exit 0
 }
 
-# Variable to track if we're already cleaning up
-CLEANING_UP=0
-
-# Enhanced cleanup with force quit on double Ctrl+C
+# ============================================================================
+# Force Cleanup (Double Ctrl+C)
+# ============================================================================
 handle_interrupt() {
     if [ $CLEANING_UP -eq 1 ]; then
         echo ""
-        echo -e "${RED}Force quitting...${NC}"
-        # Force kill everything immediately
+        echo -e "${RED}╔═══════════════════════════════════════════════════════╗${NC}"
+        echo -e "${RED}║              Force Quitting...                        ║${NC}"
+        echo -e "${RED}╚═══════════════════════════════════════════════════════╝${NC}"
+
         pkill -9 -f "celery.*purplex" 2>/dev/null || true
         pkill -9 -f "python.*manage.py" 2>/dev/null || true
         pkill -9 -f "yarn.*vite" 2>/dev/null || true
-        lsof -t -i:8000 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-        lsof -t -i:5173 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-        lsof -t -i:5555 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-        docker stop purplex-redis 2>/dev/null || true
+        lsof -ti:8000 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+        lsof -ti:5173 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+        lsof -ti:5555 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+
         exit 1
     fi
-    
-    CLEANING_UP=1
+
     echo ""
     echo -e "${YELLOW}Gracefully shutting down... (Press Ctrl+C again to force quit)${NC}"
     cleanup
 }
 
-# Set trap for cleanup on script exit
-trap handle_interrupt INT
-trap cleanup EXIT TERM
+# Set traps
+trap handle_interrupt INT TERM
+trap cleanup EXIT
 
-# 1. Check prerequisites
-echo -e "${YELLOW}Checking prerequisites...${NC}"
+# ============================================================================
+# Prerequisites Check
+# ============================================================================
+echo -e "${BLUE}→ Checking prerequisites...${NC}"
 
 if ! command -v docker &> /dev/null; then
-    echo -e "${RED}✗ Docker is not installed. Please install Docker first.${NC}"
+    echo -e "${RED}✗ Docker is not installed${NC}"
+    exit 1
+fi
+
+if ! command -v python &> /dev/null; then
+    echo -e "${RED}✗ Python is not installed${NC}"
     exit 1
 fi
 
 if ! command -v node &> /dev/null; then
-    echo -e "${RED}✗ Node.js is not installed. Please install Node.js first.${NC}"
+    echo -e "${RED}✗ Node.js is not installed${NC}"
     exit 1
 fi
 
 if [ ! -d "env" ]; then
-    echo -e "${RED}✗ Virtual environment not found. Please create it first:${NC}"
-    echo "  python -m venv env"
-    echo "  source env/bin/activate"
-    echo "  pip install -r requirements.txt"
+    echo -e "${RED}✗ Virtual environment not found${NC}"
+    echo -e "${YELLOW}  Please create it:${NC}"
+    echo "    python -m venv env"
+    echo "    source env/bin/activate"
+    echo "    pip install -r requirements.txt"
     exit 1
 fi
 
-echo -e "${GREEN}✓ Prerequisites check passed${NC}"
-
-# 2. Start PostgreSQL for development
-echo -e "${YELLOW}Starting PostgreSQL for development...${NC}"
-# Check if PostgreSQL is running
-if docker ps | grep -q purplex-postgres-dev; then
-    echo -e "${GREEN}✓ PostgreSQL is already running${NC}"
-else
-    # Stop and remove any old container
-    docker stop purplex-postgres-dev 2>/dev/null || true
-    docker rm purplex-postgres-dev 2>/dev/null || true
-    
-    echo -e "${YELLOW}Starting fresh PostgreSQL container...${NC}"
-    docker run -d \
-      --name purplex-postgres-dev \
-      -e POSTGRES_DB=purplex_dev \
-      -e POSTGRES_USER=purplex_user \
-      -e POSTGRES_PASSWORD=devpass \
-      -p 5432:5432 \
-      -v purplex_postgres_dev_data:/var/lib/postgresql/data \
-      postgres:15-alpine > /dev/null 2>&1
-    sleep 5
-    echo -e "${GREEN}✓ PostgreSQL started for development${NC}"
+if [ ! -f .env.development ]; then
+    echo -e "${RED}✗ .env.development file not found${NC}"
+    exit 1
 fi
 
-# 3. Start Redis
-echo -e "${YELLOW}Starting Redis...${NC}"
-if docker ps | grep -q purplex-redis; then
-    echo -e "${GREEN}✓ Redis is already running${NC}"
+echo -e "${GREEN}✓ All prerequisites met${NC}"
+echo ""
+
+# ============================================================================
+# Load Environment Variables
+# ============================================================================
+echo -e "${BLUE}→ Loading environment variables...${NC}"
+set -a
+source .env.development
+set +a
+export DJANGO_SETTINGS_MODULE=purplex.settings
+export REDIS_HOST=localhost
+echo -e "${GREEN}✓ Environment loaded${NC}"
+echo ""
+
+# ============================================================================
+# Create Required Directories
+# ============================================================================
+echo -e "${BLUE}→ Creating required directories...${NC}"
+mkdir -p logs staticfiles media
+echo -e "${GREEN}✓ Directories created${NC}"
+echo ""
+
+# ============================================================================
+# Start PostgreSQL
+# ============================================================================
+echo -e "${BLUE}→ Starting PostgreSQL...${NC}"
+
+if docker ps | grep -q purplex-postgres-dev; then
+    echo -e "${GREEN}✓ PostgreSQL already running${NC}"
 else
-    docker rm -f purplex-redis 2>/dev/null || true
-    docker run -d --name purplex-redis -p 6379:6379 --network host redis:7-alpine > /dev/null 2>&1
+    docker rm -f purplex-postgres-dev 2>/dev/null || true
+
+    docker run -d \
+        --name purplex-postgres-dev \
+        -e POSTGRES_DB=purplex_dev \
+        -e POSTGRES_USER=purplex_user \
+        -e POSTGRES_PASSWORD=devpass \
+        -p 5432:5432 \
+        -v purplex_postgres_dev_data:/var/lib/postgresql/data \
+        postgres:15-alpine > /dev/null 2>&1
+
+    sleep 5
+    echo -e "${GREEN}✓ PostgreSQL started${NC}"
+fi
+echo ""
+
+# ============================================================================
+# Start Redis
+# ============================================================================
+echo -e "${BLUE}→ Starting Redis...${NC}"
+
+if docker ps | grep -q purplex-redis-dev; then
+    echo -e "${GREEN}✓ Redis already running${NC}"
+else
+    docker rm -f purplex-redis-dev 2>/dev/null || true
+
+    docker run -d \
+        --name purplex-redis-dev \
+        -p 6379:6379 \
+        redis:7-alpine > /dev/null 2>&1
+
     sleep 2
+    echo -e "${GREEN}✓ Redis started${NC}"
 fi
 
 # Test Redis
-if docker exec purplex-redis redis-cli ping > /dev/null 2>&1; then
+if docker exec purplex-redis-dev redis-cli ping > /dev/null 2>&1; then
     echo -e "${GREEN}✓ Redis is ready${NC}"
 else
     echo -e "${RED}✗ Redis failed to start${NC}"
     exit 1
 fi
+echo ""
 
-# 4. Setup Python environment and migrations
-echo -e "${YELLOW}Setting up Django...${NC}"
+# ============================================================================
+# Activate Virtual Environment & Run Migrations
+# ============================================================================
+echo -e "${BLUE}→ Activating Python virtual environment...${NC}"
 source env/bin/activate
+echo -e "${GREEN}✓ Virtual environment activated${NC}"
+echo ""
 
-# Create logs directory if it doesn't exist
-mkdir -p logs
-
-# Run migrations (allow warnings to pass)
+echo -e "${BLUE}→ Running database migrations...${NC}"
 python manage.py migrate --noinput > logs/migrate.log 2>&1 || true
-echo -e "${GREEN}✓ Database migrations complete${NC}"
+echo -e "${GREEN}✓ Migrations complete${NC}"
+echo ""
 
-# 5. Kill any existing Celery processes
+# ============================================================================
+# Kill Existing Processes
+# ============================================================================
+echo -e "${BLUE}→ Cleaning up old processes...${NC}"
 pkill -f "celery.*purplex" 2>/dev/null || true
-sleep 1
+lsof -ti:8000 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+lsof -ti:5173 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+lsof -ti:5555 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+sleep 2
+echo -e "${GREEN}✓ Cleanup complete${NC}"
+echo ""
 
-# 6. Start Celery Worker with increased concurrency
-echo -e "${YELLOW}Starting Celery Worker...${NC}"
-# Celery will inherit all exported environment variables from above
-nohup celery -A purplex.celery_simple worker \
+# ============================================================================
+# Start Celery Worker
+# ============================================================================
+echo -e "${BLUE}→ Starting Celery worker...${NC}"
+CELERY_WORKER=1 nohup celery -A purplex.celery_simple worker \
     -l info \
     --concurrency=4 \
-    --pool=prefork \
+    --pool=gevent \
     > logs/celery_worker.log 2>&1 &
-WORKER_PID=$!
-sleep 2
-if ps -p $WORKER_PID > /dev/null; then
-    echo -e "${GREEN}✓ Celery Worker started (PID: $WORKER_PID)${NC}"
+CELERY_PID=$!
+sleep 3
+
+if ps -p $CELERY_PID > /dev/null; then
+    echo -e "${GREEN}✓ Celery worker started (PID: $CELERY_PID)${NC}"
 else
-    echo -e "${RED}✗ Celery Worker failed to start${NC}"
+    echo -e "${RED}✗ Celery worker failed to start${NC}"
+    echo -e "${YELLOW}  Check logs/celery_worker.log for details${NC}"
     exit 1
 fi
+echo ""
 
-# 7. Start Flower (optional monitoring)
-echo -e "${YELLOW}Starting Flower (monitoring)...${NC}"
+# ============================================================================
+# Start Celery Beat
+# ============================================================================
+echo -e "${BLUE}→ Starting Celery beat scheduler...${NC}"
+nohup celery -A purplex.celery_simple beat \
+    -l info \
+    --scheduler django_celery_beat.schedulers:DatabaseScheduler \
+    > logs/celery_beat.log 2>&1 &
+CELERY_BEAT_PID=$!
+sleep 2
+
+if ps -p $CELERY_BEAT_PID > /dev/null; then
+    echo -e "${GREEN}✓ Celery beat started (PID: $CELERY_BEAT_PID)${NC}"
+else
+    echo -e "${YELLOW}⚠ Celery beat failed to start (non-critical)${NC}"
+fi
+echo ""
+
+# ============================================================================
+# Start Flower (Optional)
+# ============================================================================
+echo -e "${BLUE}→ Starting Flower monitoring...${NC}"
 nohup celery -A purplex.celery_simple flower \
     --port=5555 \
     --broker=redis://localhost:6379/0 \
     > logs/flower.log 2>&1 &
 FLOWER_PID=$!
 sleep 2
+
 if ps -p $FLOWER_PID > /dev/null; then
     echo -e "${GREEN}✓ Flower started (PID: $FLOWER_PID)${NC}"
 else
     echo -e "${YELLOW}⚠ Flower failed to start (non-critical)${NC}"
 fi
+echo ""
 
-# 8. Start Django development server
-echo -e "${YELLOW}Starting Django server...${NC}"
-# Kill any existing Django process on port 8000
-lsof -i :8000 | grep LISTEN | awk '{print $2}' | xargs kill -9 2>/dev/null || true
-sleep 1
+# ============================================================================
+# Start Django Development Server
+# ============================================================================
+echo -e "${BLUE}→ Starting Django development server...${NC}"
 nohup python manage.py runserver > logs/django.log 2>&1 &
 DJANGO_PID=$!
 sleep 3
+
 if ps -p $DJANGO_PID > /dev/null; then
     echo -e "${GREEN}✓ Django server started (PID: $DJANGO_PID)${NC}"
 else
     echo -e "${RED}✗ Django server failed to start${NC}"
-    echo "Check logs/django.log for details"
+    echo -e "${YELLOW}  Check logs/django.log for details${NC}"
     exit 1
 fi
+echo ""
 
-# 10. Install npm dependencies if needed and start Vue
-echo -e "${YELLOW}Starting Vue.js frontend...${NC}"
+# ============================================================================
+# Start Vue.js Frontend
+# ============================================================================
+echo -e "${BLUE}→ Starting Vue.js frontend...${NC}"
 cd purplex/client
 
-# Install dependencies if node_modules doesn't exist
+# Install dependencies if needed
 if [ ! -d "node_modules" ]; then
-    echo -e "${YELLOW}Installing npm dependencies...${NC}"
-    npm install > /dev/null 2>&1
+    echo -e "${YELLOW}  Installing npm dependencies...${NC}"
+    yarn install > ../../logs/yarn_install.log 2>&1
 fi
 
-# Start Vue dev server (using vite directly to avoid duplicate Django)
+# Start Vite dev server
 nohup yarn vite --mode development > ../../logs/vue.log 2>&1 &
 VUE_PID=$!
 cd ../..
 sleep 5
 
-# Check if Vue started successfully
 if ps -p $VUE_PID > /dev/null; then
     echo -e "${GREEN}✓ Vue dev server started (PID: $VUE_PID)${NC}"
 else
     echo -e "${RED}✗ Vue dev server failed to start${NC}"
-    echo "Check logs/vue.log for details"
+    echo -e "${YELLOW}  Check logs/vue.log for details${NC}"
     exit 1
 fi
+echo ""
 
-# 11. Show status
+# ============================================================================
+# Display Status
+# ============================================================================
 echo ""
-echo -e "${GREEN}═══════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}     All Services Started Successfully! 🚀             ${NC}"
-echo -e "${GREEN}═══════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}╔═══════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║                                                       ║${NC}"
+echo -e "${CYAN}║        ${GREEN}All Services Started Successfully! 🚀${CYAN}        ║${NC}"
+echo -e "${CYAN}║                                                       ║${NC}"
+echo -e "${CYAN}╚═══════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${GREEN}Access Points:${NC}"
-echo -e "  • Frontend:        ${GREEN}http://localhost:5173${NC}"
-echo -e "  • Django API:      ${GREEN}http://localhost:8000${NC}"
-echo -e "  • Django Admin:    ${GREEN}http://localhost:8000/admin${NC}"
-echo -e "  • Flower Monitor:  ${GREEN}http://localhost:5555${NC}"
+
+echo -e "${GREEN}📍 Access Points:${NC}"
+echo -e "   ${CYAN}Frontend (Vue.js):${NC}     http://localhost:5173"
+echo -e "   ${CYAN}Backend API:${NC}           http://localhost:8000/api"
+echo -e "   ${CYAN}Django Admin:${NC}          http://localhost:8000/admin"
+echo -e "   ${CYAN}Flower Monitor:${NC}        http://localhost:5555"
 echo ""
-echo -e "${GREEN}Service PIDs:${NC}"
-echo -e "  • Celery Worker:   $WORKER_PID"
-echo -e "  • Flower:          $FLOWER_PID"
-echo -e "  • Django:          $DJANGO_PID"
-echo -e "  • Vue:             $VUE_PID"
+
+echo -e "${GREEN}🔧 Service PIDs:${NC}"
+echo -e "   ${CYAN}Django:${NC}                $DJANGO_PID"
+echo -e "   ${CYAN}Celery Worker:${NC}         $CELERY_PID"
+echo -e "   ${CYAN}Celery Beat:${NC}           $CELERY_BEAT_PID"
+echo -e "   ${CYAN}Flower:${NC}                $FLOWER_PID"
+echo -e "   ${CYAN}Vue.js:${NC}                $VUE_PID"
 echo ""
-echo -e "${GREEN}Logs:${NC}"
-echo -e "  • tail -f logs/celery_worker.log"
-echo -e "  • tail -f logs/django.log"
-echo -e "  • tail -f logs/vue.log"
+
+echo -e "${GREEN}📊 Docker Containers:${NC}"
+docker ps --filter "name=purplex" --format "   ${CYAN}{{.Names}}:${NC} {{.Status}}"
 echo ""
+
+echo -e "${GREEN}📝 View Logs:${NC}"
+echo -e "   ${CYAN}Django:${NC}                tail -f logs/django.log"
+echo -e "   ${CYAN}Celery Worker:${NC}         tail -f logs/celery_worker.log"
+echo -e "   ${CYAN}Celery Beat:${NC}           tail -f logs/celery_beat.log"
+echo -e "   ${CYAN}Vue.js:${NC}                tail -f logs/vue.log"
+echo -e "   ${CYAN}Flower:${NC}                tail -f logs/flower.log"
+echo ""
+
 echo -e "${YELLOW}Press Ctrl+C to stop all services (Press twice to force quit)${NC}"
 echo ""
+echo -e "${CYAN}╔═══════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║            Showing combined logs...                   ║${NC}"
+echo -e "${CYAN}╚═══════════════════════════════════════════════════════╝${NC}"
+echo ""
 
-# Keep script running and show combined logs
-echo -e "${GREEN}Showing combined logs (Ctrl+C to stop all services):${NC}"
-echo -e "${GREEN}═══════════════════════════════════════════════════════${NC}"
-
-# Function to display logs with prefixes
+# ============================================================================
+# Stream Logs
+# ============================================================================
 show_logs() {
-    # Kill any existing tail processes first
     pkill -f "tail -f logs/" 2>/dev/null || true
-    
-    # Start fresh tail processes
+
     tail -f logs/django.log 2>/dev/null | sed 's/^/[Django] /' &
     TAIL_DJANGO=$!
     tail -f logs/celery_worker.log 2>/dev/null | sed 's/^/[Celery] /' &
     TAIL_CELERY=$!
     tail -f logs/vue.log 2>/dev/null | sed 's/^/[Vue] /' &
     TAIL_VUE=$!
-    
-    # Wait for any of them to exit (which happens on Ctrl+C)
+
     wait $TAIL_DJANGO $TAIL_CELERY $TAIL_VUE
 }
 
-# Show logs until interrupted
 show_logs

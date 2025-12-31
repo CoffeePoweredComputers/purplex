@@ -1,142 +1,145 @@
 <template>
-  <div
-    v-if="enrollmentModal.visible"
-    class="modal-overlay"
-    @click.self="hideModal"
-  >
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Join a Course</h3>
-        <button
-          class="close-btn"
-          @click="hideModal"
-        >
-          ×
-        </button>
-      </div>
-      
-      <div class="enrollment-form">
-        <label for="course-id">Course ID</label>
-        <div class="input-group">
-          <input 
-            id="course-id"
-            v-model="courseId" 
-            placeholder="Enter Course ID (e.g., CS101-FALL2024)" 
-            :disabled="enrollmentModal.loading"
-            class="course-input"
-            @keyup.enter="lookupCourse"
+  <Teleport to="body">
+    <div
+      v-if="enrollmentModal.visible"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="enrollment-modal-title"
+      @click.self="hideModal"
+    >
+      <div
+        ref="modalContentRef"
+        class="modal-content"
+        @keydown.esc="hideModal"
+      >
+        <div class="modal-header">
+          <h3 id="enrollment-modal-title">
+            Join a Course
+          </h3>
+          <button
+            class="close-btn"
+            @click="hideModal"
           >
-          <button 
-            :disabled="!courseId || enrollmentModal.loading" 
-            class="lookup-btn"
-            @click="lookupCourse"
-          >
-            {{ enrollmentModal.loading ? 'Looking up...' : 'Lookup Course' }}
+            ×
           </button>
         </div>
-      </div>
-      
-      <div
-        v-if="enrollmentModal.coursePreview"
-        class="course-preview"
-      >
-        <h4>{{ enrollmentModal.coursePreview.name }}</h4>
-        <p class="description">
-          {{ enrollmentModal.coursePreview.description }}
-        </p>
-        <div class="course-meta">
-          <div class="meta-item">
-            <span class="label">Instructor:</span>
-            <span class="value">{{ enrollmentModal.coursePreview.instructor }}</span>
-          </div>
-          <div class="meta-item">
-            <span class="label">Problem Sets:</span>
-            <span class="value">{{ enrollmentModal.coursePreview.problem_sets_count }}</span>
-          </div>
-          <div
-            v-if="enrollmentModal.coursePreview.enrollment_open"
-            class="meta-item"
-          >
-            <span class="label">Status:</span>
-            <span class="value status-open">Open for Enrollment</span>
+
+        <div class="enrollment-form">
+          <label for="course-id">Course ID</label>
+          <div class="input-group">
+            <input
+              id="course-id"
+              v-model="courseId"
+              placeholder="Enter Course ID (e.g., CS101-FALL2024)"
+              :disabled="enrollmentModal.loading"
+              class="course-input"
+              @keyup.enter="lookupCourse"
+            >
+            <button
+              :disabled="!courseId || enrollmentModal.loading"
+              class="lookup-btn"
+              @click="lookupCourse"
+            >
+              {{ enrollmentModal.loading ? 'Looking up...' : 'Lookup Course' }}
+            </button>
           </div>
         </div>
-        
+
         <div
-          v-if="enrollmentModal.coursePreview.is_enrolled"
-          class="already-enrolled"
+          v-if="enrollmentModal.coursePreview"
+          class="course-preview"
         >
-          <p>✓ You are already enrolled in this course</p>
+          <h4>{{ enrollmentModal.coursePreview.name }}</h4>
+          <p class="description">
+            {{ enrollmentModal.coursePreview.description }}
+          </p>
+          <div class="course-meta">
+            <div class="meta-item">
+              <span class="label">Instructor:</span>
+              <span class="value">{{ enrollmentModal.coursePreview.instructor }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="label">Problem Sets:</span>
+              <span class="value">{{ enrollmentModal.coursePreview.problem_sets_count }}</span>
+            </div>
+            <div
+              v-if="enrollmentModal.coursePreview.enrollment_open"
+              class="meta-item"
+            >
+              <span class="label">Status:</span>
+              <span class="value status-open">Open for Enrollment</span>
+            </div>
+          </div>
+
+          <div
+            v-if="enrollmentModal.coursePreview.is_enrolled"
+            class="already-enrolled"
+          >
+            <p>✓ You are already enrolled in this course</p>
+          </div>
+
+          <button
+            v-else
+            class="enroll-btn"
+            :disabled="enrollmentModal.loading || !enrollmentModal.coursePreview.enrollment_open"
+            @click="enrollInCourse"
+          >
+            {{ enrollmentModal.loading ? 'Enrolling...' : 'Join Course' }}
+          </button>
         </div>
-        
-        <button 
-          v-else
-          class="enroll-btn" 
-          :disabled="enrollmentModal.loading || !enrollmentModal.coursePreview.enrollment_open"
-          @click="enrollInCourse"
+
+        <div
+          v-if="enrollmentModal.error"
+          class="error-message"
         >
-          {{ enrollmentModal.loading ? 'Enrolling...' : 'Join Course' }}
-        </button>
-      </div>
-      
-      <div
-        v-if="enrollmentModal.error"
-        class="error-message"
-      >
-        <p>{{ enrollmentModal.error }}</p>
+          <p>{{ enrollmentModal.error }}</p>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
-<script>
-import { computed, ref } from 'vue'
+<script setup lang="ts">
+import { computed, ref, toRef } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 
-export default {
-  name: 'CourseEnrollmentModal',
-  setup() {
-    const store = useStore()
-    const router = useRouter()
-    const courseId = ref('')
-    
-    const enrollmentModal = computed(() => store.state.courses.enrollmentModal)
-    
-    const hideModal = () => {
-      store.dispatch('courses/hideEnrollmentModal')
-      courseId.value = ''
-    }
-    
-    const lookupCourse = async () => {
-      if (!courseId.value.trim()) {return}
-      
-      try {
-        await store.dispatch('courses/lookupCourse', courseId.value.trim())
-      } catch (error) {
-        // Error is handled in the store
-      }
-    }
-    
-    const enrollInCourse = async () => {
-      if (!enrollmentModal.value.coursePreview) {return}
-      
-      try {
-        await store.dispatch('courses/enrollInCourse', enrollmentModal.value.coursePreview.course_id)
-        // Navigate to the course after successful enrollment
-        router.push(`/courses/${enrollmentModal.value.coursePreview.course_id}`)
-      } catch (error) {
-        // Error is handled in the store
-      }
-    }
-    
-    return {
-      courseId,
-      enrollmentModal,
-      hideModal,
-      lookupCourse,
-      enrollInCourse
-    }
+const store = useStore()
+const router = useRouter()
+const courseId = ref('')
+
+const enrollmentModal = computed(() => store.state.courses.enrollmentModal)
+
+// Focus trap - visibility comes from store
+const isVisible = computed(() => enrollmentModal.value?.visible ?? false)
+const { modalContentRef } = useFocusTrap(toRef(isVisible, 'value'))
+
+function hideModal(): void {
+  store.dispatch('courses/hideEnrollmentModal')
+  courseId.value = ''
+}
+
+async function lookupCourse(): Promise<void> {
+  if (!courseId.value.trim()) { return }
+
+  try {
+    await store.dispatch('courses/lookupCourse', courseId.value.trim())
+  } catch {
+    // Error is handled in the store
+  }
+}
+
+async function enrollInCourse(): Promise<void> {
+  if (!enrollmentModal.value.coursePreview) { return }
+
+  try {
+    await store.dispatch('courses/enrollInCourse', enrollmentModal.value.coursePreview.course_id)
+    // Navigate to the course after successful enrollment
+    router.push(`/courses/${enrollmentModal.value.coursePreview.course_id}`)
+  } catch {
+    // Error is handled in the store
   }
 }
 </script>
@@ -379,11 +382,11 @@ export default {
     width: 95%;
     max-height: 90vh;
   }
-  
+
   .input-group {
     flex-direction: column;
   }
-  
+
   .lookup-btn {
     width: 100%;
   }

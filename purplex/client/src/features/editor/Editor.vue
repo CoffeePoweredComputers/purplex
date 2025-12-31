@@ -3,7 +3,7 @@
     :lang="lang"
     :theme="theme"
     :mode="mode"
-    :style="{ height: height, width: width }"
+    :style="editorStyle"
     :value="value"
     :options="{ readOnly: readOnly }"
     @init="editorInit"
@@ -11,244 +11,268 @@
   />
 </template>
 
-<script lang="ts">
-  import { defineComponent, ref, watch } from 'vue';
-  import { VAceEditor } from 'vue3-ace-editor';
-  import 'ace-builds/src-noconflict/mode-python';
-  import 'ace-builds/src-noconflict/theme-clouds_midnight';
-  import 'ace-builds/src-noconflict/theme-chrome';
-  import 'ace-builds/src-noconflict/theme-monokai';
-  import 'ace-builds/src-noconflict/theme-github';
-  import 'ace-builds/src-noconflict/theme-solarized_dark';
-  import 'ace-builds/src-noconflict/theme-solarized_light';
-  import 'ace-builds/src-noconflict/theme-dracula';
-  import 'ace-builds/src-noconflict/theme-tomorrow_night';
+<script setup lang="ts">
+import { ref, watch, computed } from 'vue'
+import { VAceEditor } from 'vue3-ace-editor'
+import 'ace-builds/src-noconflict/mode-python'
+import 'ace-builds/src-noconflict/theme-clouds_midnight'
+import 'ace-builds/src-noconflict/theme-chrome'
+import 'ace-builds/src-noconflict/theme-monokai'
+import 'ace-builds/src-noconflict/theme-github'
+import 'ace-builds/src-noconflict/theme-solarized_dark'
+import 'ace-builds/src-noconflict/theme-solarized_light'
+import 'ace-builds/src-noconflict/theme-dracula'
+import 'ace-builds/src-noconflict/theme-tomorrow_night'
 
-  export default defineComponent({
-    name: "Editor",
-    components: {
-      VAceEditor,
-    },
-    props: {
-      lang: {
-        type: String,
-        default: 'python',
-      },
-      theme: {
-        type: String,
-        default: 'tomorrow_night',
-      },
-      mode: {
-        type: String,
-        default: 'python',
-      },
-      height: {
-        type: String,
-        default: '300px',
-      },
-      width: {
-        type: String,
-        default: '500px',
-      },
-      showGutter: {
-        type: Boolean,
-        default: true,
-      },
-      characterLimit: {
-        type: Number,
-        default: null,
-      },
-      value: {
-        type: String,
-        default: '',
-      },
-      readOnly: {
-        type: Boolean,
-        default: false,
-      },
-      tabTargetId: {
-        type: String,
-        default: null,
-      },
-    },
-    emits: ['update:value'],
-    setup(props, { emit, expose }) {
-      const editor = ref(null);
-      
-      /* Simple editor initialization */
-      const editorInit = (editorInstance: any) => {
-        editor.value = editorInstance;
-        editorInstance.setOptions({
-          showGutter: props.showGutter,
-          maxLines: props.characterLimit,
-          readOnly: props.readOnly,
-          highlightActiveLine: false,
-          highlightGutterLine: false,
-          showPrintMargin: false,
-          wrap: true,
-          indentedSoftWrap: false
-        });
+// Ace Editor instance type - minimal interface for what we use
+interface AceEditor {
+  setOptions(options: Record<string, unknown>): void
+  container: HTMLElement
+  renderer: {
+    $cursorLayer: { element: { style: { display: string } } }
+    container: { style: { pointerEvents: string; userSelect: string } }
+    freeze(): void
+    unfreeze(): void
+  }
+  setOption(name: string, value: unknown): void
+  getOption(name: string): unknown
+  getValue(): string
+  setValue(value: string, cursorPos?: number): void
+  commands: { addCommand(command: { name: string; bindKey: { win: string; mac: string }; exec: (editor: AceEditor) => void }): void }
+  blur(): void
+}
 
-        // Make editor container tabbable
-        editorInstance.container.setAttribute('tabindex', '0');
+const props = withDefaults(defineProps<{
+  lang?: string
+  theme?: string
+  mode?: string
+  height?: string
+  width?: string
+  showGutter?: boolean
+  characterLimit?: number | null
+  minLines?: number | null
+  maxLines?: number | null
+  extraLines?: number
+  value?: string
+  readOnly?: boolean
+  tabTargetId?: string | null
+}>(), {
+  lang: 'python',
+  theme: 'tomorrow_night',
+  mode: 'python',
+  height: '300px',
+  width: '500px',
+  showGutter: true,
+  characterLimit: null,
+  minLines: null,
+  maxLines: null,
+  extraLines: 0,
+  value: '',
+  readOnly: false,
+  tabTargetId: null
+})
 
-        // Disable cursor visibility when read-only
-        if (props.readOnly) {
-          editorInstance.renderer.$cursorLayer.element.style.display = 'none';
-          editorInstance.setOption('showCursor', false);
-          editorInstance.renderer.container.style.pointerEvents = 'none';
-          editorInstance.renderer.container.style.userSelect = 'text';
-        }
+const emit = defineEmits<{
+  (e: 'update:value', value: string): void
+}>()
 
-        // CRITICAL ACCESSIBILITY FIX: Override Tab key behavior to allow tabbing out
-        // By default, ACE captures Tab for indentation, creating a keyboard trap
+const editor = ref<AceEditor | null>(null)
+let lastMinLines: number | null = null
 
-        // Helper function to get all focusable elements (excluding ACE editor internals)
-        const getFocusableElements = () => {
-          return Array.from(document.querySelectorAll(
-            'button:not([disabled]):not([tabindex="-1"]), ' +
-            '[href]:not([tabindex="-1"]), ' +
-            'input:not([disabled]):not([tabindex="-1"]), ' +
-            'select:not([disabled]):not([tabindex="-1"]), ' +
-            'textarea:not([disabled]):not([tabindex="-1"]), ' +
-            '[tabindex]:not([tabindex="-1"])'
-          )).filter((el: any) => {
-            // Filter out hidden elements and ACE editor internal elements
-            const isVisible = el.offsetParent !== null &&
-                   getComputedStyle(el).visibility !== 'hidden' &&
-                   getComputedStyle(el).display !== 'none';
+// When using minLines/maxLines, don't set a fixed height - let Ace manage it
+const editorStyle = computed(() => {
+  const useAutoHeight = props.minLines !== null || props.maxLines !== null
+  return {
+    height: useAutoHeight ? undefined : props.height,
+    width: props.width
+  }
+})
 
-            // Exclude elements inside ACE editor (except the container itself)
-            const isAceInternal = el.classList.contains('ace_text-input') ||
-                                 el.classList.contains('ace_content');
+/* Simple editor initialization */
+function editorInit(editorInstance: AceEditor): void {
+  editor.value = editorInstance
+  const baseMaxLines = props.maxLines ?? props.characterLimit ?? undefined
 
-            return isVisible && !isAceInternal;
-          });
-        };
-
-        editorInstance.commands.addCommand({
-          name: 'overrideTab',
-          bindKey: { win: 'Tab', mac: 'Tab' },
-          exec: function(editor: any) {
-            // Temporarily remove tabindex to prevent re-focusing
-            const container = editor.container;
-            const originalTabIndex = container.getAttribute('tabindex');
-            container.setAttribute('tabindex', '-1');
-
-            editor.blur();
-
-            setTimeout(() => {
-              // Restore tabindex
-              container.setAttribute('tabindex', originalTabIndex);
-
-              const focusableElements = getFocusableElements();
-              const currentIndex = focusableElements.indexOf(container);
-
-              console.log('Tab pressed - Current index:', currentIndex, 'Total focusable:', focusableElements.length);
-
-              if (currentIndex !== -1 && currentIndex < focusableElements.length - 1) {
-                const nextElement = focusableElements[currentIndex + 1] as HTMLElement;
-                console.log('Focusing next element:', nextElement);
-                nextElement.focus();
-              } else {
-                // Use custom tab target if provided, otherwise fall back to submit button
-                const targetId = props.tabTargetId || 'submitButton';
-                const targetElement = document.getElementById(targetId);
-                if (targetElement) {
-                  console.log(`Fallback: focusing ${targetId}`);
-                  // If target is a wrapper with an editor inside, focus the editor
-                  const innerEditor = targetElement.querySelector('.ace_text-input');
-                  if (innerEditor) {
-                    (innerEditor as HTMLElement).focus();
-                  } else {
-                    targetElement.focus();
-                  }
-                }
-              }
-            }, 10);
-          }
-        });
-
-        // Shift+Tab to move focus backward
-        editorInstance.commands.addCommand({
-          name: 'overrideShiftTab',
-          bindKey: { win: 'Shift-Tab', mac: 'Shift-Tab' },
-          exec: function(editor: any) {
-            // Temporarily remove tabindex to prevent re-focusing
-            const container = editor.container;
-            const originalTabIndex = container.getAttribute('tabindex');
-            container.setAttribute('tabindex', '-1');
-
-            editor.blur();
-
-            setTimeout(() => {
-              // Restore tabindex
-              container.setAttribute('tabindex', originalTabIndex);
-
-              const focusableElements = getFocusableElements();
-              const currentIndex = focusableElements.indexOf(container);
-
-              console.log('Shift+Tab pressed - Current index:', currentIndex, 'Total focusable:', focusableElements.length);
-
-              if (currentIndex > 0) {
-                const prevElement = focusableElements[currentIndex - 1] as HTMLElement;
-                console.log('Focusing previous element:', prevElement);
-                prevElement.focus();
-              } else {
-                console.log('Already at first element');
-              }
-            }, 10);
-          }
-        });
-
-        // Keep Escape key handler as alternative exit method
-        editorInstance.commands.addCommand({
-          name: 'exitEditor',
-          bindKey: { win: 'Esc', mac: 'Esc' },
-          exec: function(editor: any) {
-            editor.blur();
-
-            // Try to focus submit button after escaping
-            setTimeout(() => {
-              const submitBtn = document.getElementById('submitButton');
-              if (submitBtn) {
-                submitBtn.focus();
-              }
-            }, 10);
-          }
-        });
-      };
-      
-      /* Handle input changes */
-      const handleInput = (value: string) => {
-        emit('update:value', value);
-      };
-
-
-
-      /* Simple value update - just replace the entire content */
-      watch(() => props.value, (newValue) => {
-        if (editor.value && newValue !== undefined) {
-          const currentValue = editor.value.getValue();
-          if (currentValue !== newValue) {
-            // Simple full replacement
-            editor.value.setValue(newValue, 1);
-          }
-        }
-      });
-      
-      // Expose editor instance if needed
-      expose({
-        editor
-      });
-
-      return {
-        editor,
-        editorInit,
-        handleInput
-      };
+  // Calculate minLines: use prop value, but if extraLines is set and content
+  // exceeds minLines, add buffer lines
+  let effectiveMinLines = props.minLines ?? undefined
+  if (props.extraLines > 0 && effectiveMinLines !== undefined) {
+    const contentLines = (props.value?.split('\n').length ?? 0)
+    if (contentLines > effectiveMinLines) {
+      effectiveMinLines = contentLines + props.extraLines
     }
-  });
+  }
+
+  editorInstance.setOptions({
+    showGutter: props.showGutter,
+    minLines: effectiveMinLines,
+    maxLines: baseMaxLines ? baseMaxLines + props.extraLines : undefined,
+    readOnly: props.readOnly,
+    highlightActiveLine: false,
+    highlightGutterLine: false,
+    showPrintMargin: false,
+    wrap: true,
+    indentedSoftWrap: false
+  })
+
+  // Make editor container tabbable
+  editorInstance.container.setAttribute('tabindex', '0')
+
+  // Disable cursor visibility when read-only
+  if (props.readOnly) {
+    editorInstance.renderer.$cursorLayer.element.style.display = 'none'
+    editorInstance.setOption('showCursor', false)
+    editorInstance.renderer.container.style.pointerEvents = 'none'
+    editorInstance.renderer.container.style.userSelect = 'text'
+  }
+
+  // CRITICAL ACCESSIBILITY FIX: Override Tab key behavior to allow tabbing out
+  // By default, ACE captures Tab for indentation, creating a keyboard trap
+
+  // Helper function to get all focusable elements (excluding ACE editor internals)
+  const getFocusableElements = () => {
+    return Array.from(document.querySelectorAll(
+      'button:not([disabled]):not([tabindex="-1"]), ' +
+      '[href]:not([tabindex="-1"]), ' +
+      'input:not([disabled]):not([tabindex="-1"]), ' +
+      'select:not([disabled]):not([tabindex="-1"]), ' +
+      'textarea:not([disabled]):not([tabindex="-1"]), ' +
+      '[tabindex]:not([tabindex="-1"])'
+    )).filter((el) => {
+      // Filter out hidden elements and ACE editor internal elements
+      const htmlEl = el as HTMLElement
+      const isVisible = htmlEl.offsetParent !== null &&
+             getComputedStyle(htmlEl).visibility !== 'hidden' &&
+             getComputedStyle(htmlEl).display !== 'none'
+
+      // Exclude elements inside ACE editor (except the container itself)
+      const isAceInternal = htmlEl.classList.contains('ace_text-input') ||
+                           htmlEl.classList.contains('ace_content')
+
+      return isVisible && !isAceInternal
+    })
+  }
+
+  editorInstance.commands.addCommand({
+    name: 'overrideTab',
+    bindKey: { win: 'Tab', mac: 'Tab' },
+    exec: function(aceEditor: AceEditor) {
+      // Temporarily remove tabindex to prevent re-focusing
+      const container = aceEditor.container
+      const originalTabIndex = container.getAttribute('tabindex')
+      container.setAttribute('tabindex', '-1')
+
+      aceEditor.blur()
+
+      setTimeout(() => {
+        // Restore tabindex
+        container.setAttribute('tabindex', originalTabIndex || '0')
+
+        const focusableElements = getFocusableElements()
+        const currentIndex = focusableElements.indexOf(container)
+
+        if (currentIndex !== -1 && currentIndex < focusableElements.length - 1) {
+          const nextElement = focusableElements[currentIndex + 1] as HTMLElement
+          nextElement.focus()
+        } else {
+          // Use custom tab target if provided, otherwise fall back to submit button
+          const targetId = props.tabTargetId || 'submitButton'
+          const targetElement = document.getElementById(targetId)
+          if (targetElement) {
+            // If target is a wrapper with an editor inside, focus the editor
+            const innerEditor = targetElement.querySelector('.ace_text-input')
+            if (innerEditor) {
+              (innerEditor as HTMLElement).focus()
+            } else {
+              targetElement.focus()
+            }
+          }
+        }
+      }, 10)
+    }
+  })
+
+  // Shift+Tab to move focus backward
+  editorInstance.commands.addCommand({
+    name: 'overrideShiftTab',
+    bindKey: { win: 'Shift-Tab', mac: 'Shift-Tab' },
+    exec: function(aceEditor: AceEditor) {
+      // Temporarily remove tabindex to prevent re-focusing
+      const container = aceEditor.container
+      const originalTabIndex = container.getAttribute('tabindex')
+      container.setAttribute('tabindex', '-1')
+
+      aceEditor.blur()
+
+      setTimeout(() => {
+        // Restore tabindex
+        container.setAttribute('tabindex', originalTabIndex || '0')
+
+        const focusableElements = getFocusableElements()
+        const currentIndex = focusableElements.indexOf(container)
+
+        if (currentIndex > 0) {
+          const prevElement = focusableElements[currentIndex - 1] as HTMLElement
+          prevElement.focus()
+        }
+      }, 10)
+    }
+  })
+
+  // Keep Escape key handler as alternative exit method
+  editorInstance.commands.addCommand({
+    name: 'exitEditor',
+    bindKey: { win: 'Esc', mac: 'Esc' },
+    exec: function(aceEditor: AceEditor) {
+      aceEditor.blur()
+
+      // Try to focus submit button after escaping
+      setTimeout(() => {
+        const submitBtn = document.getElementById('submitButton')
+        if (submitBtn) {
+          submitBtn.focus()
+        }
+      }, 10)
+    }
+  })
+}
+
+/* Handle input changes */
+function handleInput(value: string): void {
+  emit('update:value', value)
+}
+
+/* Simple value update - just replace the entire content */
+watch(() => props.value, (newValue) => {
+  if (editor.value && newValue !== undefined) {
+    const currentValue = editor.value.getValue()
+    if (currentValue !== newValue) {
+      // Freeze renderer completely during setValue to prevent flicker
+      // setValue() clears content then inserts, causing layout recalculation
+      editor.value.renderer.freeze()
+      editor.value.setValue(newValue, 1)
+      editor.value.renderer.unfreeze()
+    }
+
+    // Update minLines if extraLines is set - only when value actually changes
+    if (props.extraLines > 0 && props.minLines !== null) {
+      const contentLines = newValue.split('\n').length
+      const effectiveMinLines = contentLines > props.minLines
+        ? contentLines + props.extraLines
+        : props.minLines
+      // Only update if the value changed to avoid layout thrashing
+      if (effectiveMinLines !== lastMinLines) {
+        lastMinLines = effectiveMinLines
+        editor.value.setOption('minLines', effectiveMinLines)
+      }
+    }
+  }
+}, { immediate: true })
+
+// Expose editor instance if needed
+defineExpose({
+  editor
+})
 </script>
 
 <style scoped>
@@ -260,6 +284,11 @@
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     font-size: var(--font-size-sm);
     transition: var(--transition-base);
+  }
+
+  /* Remove extra padding at bottom when using auto-height (minLines/maxLines) */
+  :deep(.ace_scroller) {
+    padding-bottom: 0 !important;
   }
 
   /* Fix text wrapping - ensure wrapped lines maintain proper indentation */
@@ -383,32 +412,32 @@
   /* Hint System Styles */
   /* Variable fade has no visual styling - just transforms variable names */
   /* Subgoal highlighting styles moved to global styles block below */
-  
+
   /* Hide cursor only for read-only editors */
   :deep(.ace_editor.ace_read-only .ace_cursor-layer) {
     display: none !important;
   }
-  
+
   :deep(.ace_editor.ace_read-only .ace_cursor) {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
   }
-  
+
   /* Remove active line highlighting only for read-only editors */
   :deep(.ace_editor.ace_read-only .ace_active-line) {
     background: transparent !important;
   }
-  
+
   /* Make editor truly read-only visually */
   :deep(.ace_editor.ace_read-only) {
     cursor: default !important;
   }
-  
+
   :deep(.ace_editor.ace_read-only .ace_cursor-layer) {
     display: none !important;
   }
-  
+
   :deep(.ace_editor.ace_read-only .ace_content) {
     cursor: text !important;
   }
@@ -460,4 +489,3 @@
     margin: 1px 0;
   }
 </style>
-

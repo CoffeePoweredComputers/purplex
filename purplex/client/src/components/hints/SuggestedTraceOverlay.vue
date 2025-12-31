@@ -14,58 +14,36 @@
   </div>
 </template>
 
-<script lang="ts">
-import { computed, defineComponent } from 'vue'
+<script setup lang="ts">
+import { computed } from 'vue'
 import { PythonTutorService } from '@/services/pythonTutor.service'
 
-export default defineComponent({
-  name: 'SuggestedTraceOverlay',
-  props: {
-    suggestedCall: {
-      type: String,
-      required: true
-    },
-    explanation: {
-      type: String,
-      default: ''
-    },
-    expectedOutput: {
-      type: [String, Number, Boolean, Object, Array],
-      default: undefined
-    },
-    solutionCode: {
-      type: String,
-      default: ''
-    }
-  },
-  emits: ['open-pytutor', 'close'],
-  setup(props, { emit }) {
-    const functionCall = computed(() => {
-      return props.suggestedCall
-    })
+const props = defineProps<{
+  suggestedCall: string
+  explanation?: string
+  expectedOutput?: string | number | boolean | object | unknown[]
+  solutionCode?: string
+}>()
 
-    const canTrace = computed(() => {
-      return props.solutionCode && functionCall.value
-    })
+const emit = defineEmits<{
+  (e: 'open-pytutor', url: string): void
+  (e: 'close'): void
+}>()
 
-    const openInPyTutor = () => {
-      if (!canTrace.value) {return}
+const functionCall = computed(() => props.suggestedCall)
 
-      // Generate Python Tutor URL with the solution code and suggested call
-      const testCode = `# Suggested trace\nprint(${functionCall.value})`
-      const formattedCode = `${props.solutionCode}\n\n${testCode}`
-      const pytutorUrl = PythonTutorService.generateEmbedUrl(formattedCode)
-      
-      emit('open-pytutor', pytutorUrl)
-    }
+const canTrace = computed(() => props.solutionCode && functionCall.value)
 
-    return {
-      functionCall,
-      canTrace,
-      openInPyTutor
-    }
-  }
-})
+function openInPyTutor(): void {
+  if (!canTrace.value) { return }
+
+  // Generate Python Tutor URL with the solution code and suggested call
+  const testCode = `# Suggested trace\nprint(${functionCall.value})`
+  const formattedCode = `${props.solutionCode}\n\n${testCode}`
+  const pytutorUrl = PythonTutorService.generateEmbedUrl(formattedCode)
+
+  emit('open-pytutor', pytutorUrl)
+}
 </script>
 
 <style scoped>
@@ -144,13 +122,13 @@ export default defineComponent({
   .suggested-trace {
     margin: var(--spacing-md);
   }
-  
+
   .trace-content {
     flex-direction: column;
     align-items: stretch;
     gap: var(--spacing-sm);
   }
-  
+
   .trace-function {
     min-width: auto;
   }

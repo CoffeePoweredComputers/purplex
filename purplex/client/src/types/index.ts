@@ -1,7 +1,9 @@
 // ===== CORE DOMAIN TYPES =====
 
 export type DifficultyLevel = 'easy' | 'beginner' | 'intermediate' | 'advanced';
-export type ProblemType = 'eipl' | 'function_redefinition';
+// NOTE: Problem types are extensible via the activity type system.
+// See docs/architecture/ACTIVITY_TYPE_EXTENSIBILITY.md
+export type ProblemType = 'eipl' | 'mcq' | 'prompt' | string;
 
 // ===== PROBLEM CATEGORY TYPES =====
 export interface ProblemCategory {
@@ -13,6 +15,30 @@ export interface ProblemCategory {
   readonly color: string;
   readonly order: number;
   readonly problems_count: number;
+}
+
+// ===== PROBLEM SET TYPES =====
+export interface ProblemSetProblem {
+  readonly slug: string;
+  readonly title: string;
+  readonly problem_type: ProblemType;
+  readonly difficulty: DifficultyLevel;
+  readonly order: number;
+}
+
+export interface ProblemSet {
+  readonly slug: string;
+  title: string;
+  description?: string;
+  icon?: string;
+  is_public?: boolean;
+  readonly problems_count?: number;
+  readonly problems?: ProblemSetProblem[];
+  readonly problems_detail?: ProblemSetProblem[];
+  readonly created_by?: number;
+  readonly created_by_name?: string;
+  readonly created_at?: string;
+  readonly updated_at?: string;
 }
 
 // ===== TEST CASE TYPES =====
@@ -27,15 +53,78 @@ export interface TestCaseInput {
 
 export interface TestCaseDisplay extends TestCaseInput {
   readonly id?: number;
-  inputsString: string;
-  expectedString: string;
   error?: string | null;
 }
 
-export interface TestCaseValidation {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
+// ===== HANDLER CONFIG TYPES =====
+// These are returned by ActivityHandler.get_problem_config() on the backend
+
+export interface DisplayConfig {
+  show_reference_code?: boolean;
+  code_read_only?: boolean;
+  show_function_signature?: boolean;
+  /** Label for the input section header (e.g., "Describe the code here") */
+  section_label?: string;
+  /** Prompt-specific: show an image instead of code */
+  show_image?: boolean;
+  /** Prompt-specific: URL of the image to display */
+  image_url?: string;
+  /** Prompt-specific: alt text for the image */
+  image_alt_text?: string;
+  /** Refute-specific: show the claim to disprove */
+  show_claim?: boolean;
+  /** Refute-specific: the claim text */
+  claim_text?: string;
+  /** Refute-specific: function signature */
+  function_signature?: string;
+  /** Refute-specific: function name */
+  function_name?: string;
+}
+
+export interface InputConfig {
+  type?: 'textarea' | 'code' | 'radio' | 'checkbox' | 'json';
+  label?: string;
+  placeholder?: string;
+  min_length?: number;
+  max_length?: number;
+  options?: Array<{ id: string; text: string }>;
+  /** Refute-specific: function parameters for JSON input */
+  parameters?: Array<{ name: string; type: string }>;
+}
+
+export interface HintsHandlerConfig {
+  available?: string[];
+  enabled?: boolean;
+}
+
+export interface FeedbackConfig {
+  show_variations?: boolean;
+  show_segmentation?: boolean;
+  show_test_results?: boolean;
+  show_correct_answer?: boolean;
+}
+
+export interface SegmentationExample {
+  prompt: string;
+  segments: string[];
+  code_lines: number[][];
+}
+
+export interface SegmentationConfig {
+  enabled?: boolean;
+  // Note: threshold is stored in segmentation_threshold DB field, not in this JSON config
+  examples?: {
+    relational?: SegmentationExample;
+    multi_structural?: SegmentationExample;
+  };
+}
+
+// ===== MCQ TYPES =====
+export interface McqOption {
+  id: string;
+  text: string;
+  is_correct?: boolean;
+  explanation?: string;
 }
 
 // ===== PROBLEM TYPES =====
@@ -55,6 +144,26 @@ export interface BaseProblem {
   readonly created_at: string;
   readonly updated_at: string;
   readonly version: number;
+  // Handler-provided configuration (from get_problem_config)
+  display_config?: DisplayConfig;
+  input_config?: InputConfig;
+  hints_config?: HintsHandlerConfig;
+  feedback_config?: FeedbackConfig;
+  // Segmentation settings (model fields)
+  segmentation_enabled?: boolean;
+  segmentation_config?: SegmentationConfig;
+  // Prompt config (model field for prompt type)
+  prompt_config?: { image_url?: string; image_alt_text?: string };
+}
+
+// MCQ-specific problem interface (polymorphic McqProblem)
+export interface McqProblem extends Omit<BaseProblem, 'function_name' | 'function_signature' | 'reference_solution'> {
+  problem_type: 'mcq';
+  question_text: string;
+  grading_mode: 'deterministic' | 'llm' | 'manual';
+  options: McqOption[];
+  allow_multiple: boolean;
+  shuffle_options: boolean;
 }
 
 export interface ProblemDetailed extends BaseProblem {
@@ -65,22 +174,48 @@ export interface ProblemDetailed extends BaseProblem {
   visible_test_cases_count: number;
   readonly created_by?: number;
   readonly created_by_name?: string;
+  // MCQ-specific fields (present when problem_type is 'mcq')
+  question_text?: string;
+  options?: McqOption[];
+  grading_mode?: 'deterministic' | 'llm' | 'manual';
+  allow_multiple?: boolean;
+  shuffle_options?: boolean;
 }
 
 export interface ProblemCreateRequest {
   title: string;
-  description: string;
+  description?: string;
   difficulty: DifficultyLevel;
   problem_type: ProblemType;
   category_ids: number[];
-  function_name: string;
-  function_signature: string;
-  reference_solution: string;
+  function_name?: string;
+  function_signature?: string;
+  reference_solution?: string;
   hints?: string;
-  memory_limit: number;
+  memory_limit?: number;
   tags: string[];
   is_active: boolean;
-  test_cases: TestCaseInput[];
+  test_cases?: TestCaseInput[];
+  // Type-specific fields
+  segmentation_config?: SegmentationConfig | null;
+  requires_highlevel_comprehension?: boolean;
+  prompt_config?: { image_url?: string; image_alt_text?: string };
+}
+
+// MCQ-specific create request
+export interface McqProblemCreateRequest {
+  title: string;
+  difficulty: DifficultyLevel;
+  problem_type: 'mcq';
+  category_ids?: number[];
+  tags?: string[];
+  is_active?: boolean;
+  // MCQ-specific fields
+  question_text: string;
+  grading_mode?: 'deterministic' | 'llm' | 'manual';
+  options: McqOption[];
+  allow_multiple?: boolean;
+  shuffle_options?: boolean;
 }
 
 export interface ProblemUpdateRequest extends Partial<ProblemCreateRequest> {
@@ -88,12 +223,6 @@ export interface ProblemUpdateRequest extends Partial<ProblemCreateRequest> {
 }
 
 // ===== API RESPONSE TYPES =====
-export interface APIResponse<T> {
-  data: T;
-  success: boolean;
-  message?: string;
-}
-
 export interface APIError {
   error: string;
   details?: Record<string, string[]>;
@@ -129,43 +258,6 @@ export interface TestExecutionResult {
   memory_used?: number;
 }
 
-// ===== EIPL SUBMISSION TYPES =====
-export interface VariationTestResult {
-  success: boolean;
-  error?: string;
-  results: TestResult[];
-  testsPassed: number;  // Clear count property name - was "passed"
-  totalTests: number;   // Clear count property name - was "total"
-  score: number;
-}
-
-export interface EiPLSubmissionResponse {
-  submission_id: number;
-  score: number;
-  variations: string[];
-  results: VariationTestResult[];
-  passing_variations: number;
-  total_variations: number;
-  progress: {
-    status: ProgressStatus;
-    best_score: number;
-    attempts: number;
-    is_completed: boolean;
-  };
-  segmentation?: {
-    segments: Array<{
-      id: number;
-      text: string;
-      code_lines: number[];
-    }>;
-    segment_count: number;
-    comprehension_level: 'relational' | 'multi_structural';
-    feedback: string;
-    passed?: boolean;  // Whether segmentation passed the threshold
-  };
-}
-
-
 // ===== LOADING STATES =====
 export interface LoadingStates {
   problem: boolean;
@@ -174,33 +266,8 @@ export interface LoadingStates {
   saving: boolean;
 }
 
-export interface ErrorStates {
-  load: string | null;
-  save: string | null;
-  test: string | null;
-  validation: ValidationError[];
-}
-
 // ===== NOTIFICATION TYPES =====
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
-
-export interface Notification {
-  show: boolean;
-  message: string;
-  type: NotificationType;
-  duration?: number;
-}
-
-// ===== ROUTE PARAMETERS =====
-export interface RouteParams {
-  slug?: string;
-}
-
-export interface RouterMeta {
-  requiresAuth: boolean;
-  requiresAdmin: boolean;
-  title?: string;
-}
 
 // ===== SERVICE TYPES =====
 export interface TestProblemRequest {
@@ -305,7 +372,7 @@ export interface HintRequest {
 
 export interface HintResponse {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
 }
 
@@ -391,13 +458,13 @@ export interface BaseSubmission {
   prompt: string;
   execution_time?: number;
   time_spent?: string;
-  
+
   // New submission fields
   code_variations: CodeVariation[] | string[];
   test_results: SubmissionTestResult[];
   passing_variations: number;
   total_variations: number;
-  
+
 }
 
 export interface SubmissionDetailed extends BaseSubmission {
@@ -420,14 +487,6 @@ export interface SubmissionDetailed extends BaseSubmission {
   };
 }
 
-export interface SubmissionCreateRequest {
-  problem_slug: string;
-  prompt: string;
-  code_variations?: CodeVariation[];
-  time_spent?: number;
-  user_code?: string; // For backward compatibility
-}
-
 export interface SubmissionListResponse {
   count: number;
   next?: string;
@@ -443,6 +502,81 @@ export interface SubmissionStats {
   completion_rate: number;
 }
 
+// ===== UNIFIED SSE SUBMISSION RESULT =====
+// Common envelope for all activity types from SSE completion events
+
+/**
+ * EiPL-specific result data from handler.serialize_result()
+ */
+export interface EiplResultData {
+  variations: Array<{
+    code: string;
+    score: number;
+    tests_passed: number;
+    tests_total: number;
+    is_selected: boolean;
+  }>;
+  test_results: Array<{
+    success: boolean;
+    testsPassed: number;
+    totalTests: number;
+    test_results: Array<{
+      isSuccessful: boolean;
+      function_call: string;
+      expected_output: string;
+      actual_output: string;
+      error: string;
+    }>;
+    results?: unknown[];
+  }>;
+  segmentation: {
+    segment_count: number;
+    comprehension_level: string;
+    passed: boolean;
+    threshold: number;
+    // Full data for SegmentAnalysisModal
+    segments: Array<{ id: number; text: string; code_lines: number[] }>;
+    code_mappings: unknown;
+    feedback_message: string;
+    confidence_score: number;
+    suggested_improvements: string[];
+  } | null;
+}
+
+/**
+ * MCQ-specific result data from handler.serialize_result()
+ */
+export interface McqResultData {
+  selected_option: { id: string; text: string };
+  correct_option: { id: string; text: string; explanation?: string };
+  is_correct: boolean;
+}
+
+/**
+ * Unified submission result envelope from SSE completion events.
+ * All activity types share this structure - type-specific data is in `result`.
+ */
+export interface UnifiedSubmissionResult {
+  // Common metadata (all types)
+  submission_id: string;
+  problem_type: ProblemType;
+  score: number;
+  is_correct: boolean;
+  completion_status: string;
+  problem_slug: string;
+  user_input: string;
+
+  // Type-specific payload from handler.serialize_result()
+  result: EiplResultData | McqResultData;
+
+  // Legacy fields (for backward compatibility during migration)
+  variations?: string[];
+  test_results?: unknown[];
+  segmentation?: unknown;
+  selected_option?: { id: string; text: string };
+  correct_option?: { id: string; text: string; explanation?: string };
+}
+
 // ===== SUBMISSION HISTORY TYPES =====
 export interface SubmissionHistoryItem {
   id: string;
@@ -452,7 +586,7 @@ export interface SubmissionHistoryItem {
   passed_all_tests: boolean;
   completion_status: 'incomplete' | 'partial' | 'complete';
   execution_status: string;
-  submission_type: 'direct_code' | 'eipl' | 'function_redef';
+  submission_type: 'eipl' | 'mcq' | 'prompt';
   tests_passed: number;
   total_tests: number;
   execution_time_ms: number | null;
@@ -542,6 +676,19 @@ export interface CourseProgress {
   last_activity: string | null;
 }
 
+export type DeadlineType = 'none' | 'soft' | 'hard';
+
+/**
+ * Deadline information for a problem set in a specific course context.
+ * Returned from progress API when course_id is provided.
+ */
+export interface Deadline {
+  due_date: string;
+  deadline_type: DeadlineType;
+  is_past_due: boolean;
+  is_locked: boolean;
+}
+
 export interface CourseProblemSet {
   id: number;
   name: string;
@@ -550,5 +697,42 @@ export interface CourseProblemSet {
   problems_count?: number;
   icon?: string;
   order?: number;
+  is_required?: boolean;
+  due_date?: string | null;
+  deadline_type?: DeadlineType;
 }
 
+/**
+ * Represents a student enrolled in a course with their progress.
+ * Used in admin/instructor course student management pages.
+ */
+export interface CourseStudent {
+  id: number; // enrollment ID
+  user: {
+    id: number;
+    email: string;
+    username: string;
+    first_name?: string;
+    last_name?: string;
+  };
+  enrolled_at: string;
+  progress: {
+    completion_percentage: number;
+    completed_problem_sets: number;
+    total_problem_sets: number;
+    last_activity?: string;
+  };
+}
+
+/**
+ * Represents an instructor for course assignment.
+ * Used in admin course creation/editing.
+ */
+export interface Instructor {
+  id: number;
+  username: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  full_name: string;
+}

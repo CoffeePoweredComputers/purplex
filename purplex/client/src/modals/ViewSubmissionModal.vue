@@ -1,348 +1,359 @@
 <template>
-  <div
-    v-if="isVisible"
-    class="modal-overlay"
-    @click="$emit('close')"
-  >
+  <Teleport to="body">
     <div
-      class="modal-content"
-      @click.stop
+      v-if="isVisible"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="submission-modal-title"
+      @click.self="closeModal"
     >
-      <!-- Header -->
-      <div class="modal-header">
-        <div class="header-info">
-          <h2 class="modal-title">
-            Submission Details
-          </h2>
-          <div class="header-meta">
-            <span class="meta-item">{{ submission?.user || 'Unknown User' }}</span>
-            <span class="meta-separator">•</span>
-            <span class="meta-item">{{ submission?.problem?.title || submission?.problem || 'Unknown Problem' }}</span>
-            <span class="meta-separator">•</span>
-            <span class="meta-item">ID: {{ submission?.submission_id || submission?.id || 'N/A' }}</span>
-            <span class="meta-separator">•</span>
-            <span class="meta-item">{{ formatDate(submission?.submitted_at) }}</span>
+      <div
+        ref="modalContentRef"
+        class="modal-content"
+        @keydown.esc="closeModal"
+      >
+        <!-- Header -->
+        <div class="modal-header">
+          <div class="header-info">
+            <h2
+              id="submission-modal-title"
+              class="modal-title"
+            >
+              Submission Details
+            </h2>
+            <div class="header-meta">
+              <span class="meta-item">{{ submission?.user || 'Unknown User' }}</span>
+              <span class="meta-separator">•</span>
+              <span class="meta-item">{{ submission?.problem?.title || submission?.problem || 'Unknown Problem' }}</span>
+              <span class="meta-separator">•</span>
+              <span class="meta-item">ID: {{ submission?.submission_id || submission?.id || 'N/A' }}</span>
+              <span class="meta-separator">•</span>
+              <span class="meta-item">{{ formatDate(submission?.submitted_at) }}</span>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button
+              class="download-btn"
+              :disabled="!submission"
+              title="Download Data"
+              @click="downloadSubmission"
+            >
+              Download
+            </button>
+            <button
+              class="close-btn"
+              aria-label="Close"
+              @click="closeModal"
+            >
+              ✕
+            </button>
           </div>
         </div>
-        <div class="header-actions">
-          <button
-            class="download-btn"
-            :disabled="!submission"
-            title="Download Data"
-            @click="$emit('download', submission)"
-          >
-            Download
-          </button>
-          <button
-            class="close-btn"
-            aria-label="Close"
-            @click="$emit('close')"
-          >
-            ✕
-          </button>
-        </div>
-      </div>
 
-      <!-- Key Metrics Bar -->
-      <div class="metrics-bar">
-        <div class="metric">
-          <span class="metric-label">Score:</span>
-          <span
-            class="metric-value"
-            :class="getScoreClass(submission?.score)"
+        <!-- Key Metrics Bar -->
+        <div class="metrics-bar">
+          <div class="metric">
+            <span class="metric-label">Score:</span>
+            <span
+              class="metric-value"
+              :class="getScoreClass(submission?.score)"
+            >
+              {{ submission?.score || 0 }}%
+            </span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Status:</span>
+            <span
+              class="metric-value"
+              :class="getStatusClass(submission?.completion_status || submission?.status)"
+            >
+              {{ submission?.completion_status || submission?.status || 'Unknown' }}
+            </span>
+          </div>
+          <div
+            v-if="hasVariations"
+            class="metric"
           >
-            {{ submission?.score || 0 }}%
-          </span>
-        </div>
-        <div class="metric">
-          <span class="metric-label">Status:</span>
-          <span
-            class="metric-value"
-            :class="getStatusClass(submission?.completion_status || submission?.status)"
+            <span class="metric-label">Variations:</span>
+            <span class="metric-value">
+              {{ passingVariationsCount }}/{{ totalVariationsCount }} passed all tests
+            </span>
+          </div>
+          <div
+            v-if="currentVariationData"
+            class="metric"
           >
-            {{ submission?.completion_status || submission?.status || 'Unknown' }}
-          </span>
+            <span class="metric-label">Current Variation:</span>
+            <span class="metric-value">
+              {{ currentVariationData.testsPassed }}/{{ currentVariationData.totalTests }} tests passed
+            </span>
+          </div>
+          <div
+            v-if="submission?.execution_time_ms"
+            class="metric"
+          >
+            <span class="metric-label">Time:</span>
+            <span class="metric-value">{{ submission.execution_time_ms }}ms</span>
+          </div>
         </div>
+
+        <!-- Variation Navigation (only show for EiPL submissions) -->
         <div
           v-if="hasVariations"
-          class="metric"
+          class="variation-nav"
         >
-          <span class="metric-label">Variations:</span>
-          <span class="metric-value">
-            {{ passingVariationsCount }}/{{ totalVariationsCount }} passed all tests
-          </span>
-        </div>
-        <div
-          v-if="currentVariationData"
-          class="metric"
-        >
-          <span class="metric-label">Current Variation:</span>
-          <span class="metric-value">
-            {{ currentVariationData.testsPassed }}/{{ currentVariationData.totalTests }} tests passed
-          </span>
-        </div>
-        <div
-          v-if="submission?.execution_time_ms"
-          class="metric"
-        >
-          <span class="metric-label">Time:</span>
-          <span class="metric-value">{{ submission.execution_time_ms }}ms</span>
-        </div>
-      </div>
-
-      <!-- Variation Navigation (only show for EiPL submissions) -->
-      <div
-        v-if="hasVariations"
-        class="variation-nav"
-      >
-        <div class="nav-info">
-          <span class="variation-label">Variation {{ currentVariationIndex + 1 }} of {{ totalVariationsCount }}</span>
-          <div
-            class="variation-status"
-            :class="currentVariationStatusClass"
-          >
-            {{ currentVariationData?.success ? 'All tests passed' : `${currentVariationData?.testsPassed || 0}/${currentVariationData?.totalTests || 0} tests passed` }}
+          <div class="nav-info">
+            <span class="variation-label">Variation {{ currentVariationIndex + 1 }} of {{ totalVariationsCount }}</span>
+            <div
+              class="variation-status"
+              :class="currentVariationStatusClass"
+            >
+              {{ currentVariationData?.success ? 'All tests passed' : `${currentVariationData?.testsPassed || 0}/${currentVariationData?.totalTests || 0} tests passed` }}
+            </div>
+          </div>
+          <div class="nav-controls">
+            <button
+              class="nav-btn"
+              :disabled="currentVariationIndex === 0"
+              title="Previous variation"
+              @click="prevVariation"
+            >
+              ← Previous
+            </button>
+            <button
+              class="nav-btn"
+              :disabled="currentVariationIndex >= totalVariationsCount - 1"
+              title="Next variation"
+              @click="nextVariation"
+            >
+              Next →
+            </button>
           </div>
         </div>
-        <div class="nav-controls">
-          <button
-            class="nav-btn"
-            :disabled="currentVariationIndex === 0"
-            title="Previous variation"
-            @click="prevVariation"
-          >
-            ← Previous
-          </button>
-          <button
-            class="nav-btn"
-            :disabled="currentVariationIndex >= totalVariationsCount - 1"
-            title="Next variation"
-            @click="nextVariation"
-          >
-            Next →
-          </button>
-        </div>
-      </div>
 
-      <!-- Main Content Area -->
-      <div class="main-content">
-        <!-- Two Column Layout -->
-        <div class="two-column-layout">
-          <!-- Left Column: Code -->
-          <div class="code-column">
-            <!-- EiPL Prompt if applicable -->
-            <div
-              v-if="submission?.submission_type === 'eipl' && submission?.raw_input"
-              class="code-section"
-            >
-              <div class="section-header">
-                <span class="section-title">Natural Language Prompt</span>
+        <!-- Main Content Area -->
+        <div class="main-content">
+          <!-- Two Column Layout -->
+          <div class="two-column-layout">
+            <!-- Left Column: Code -->
+            <div class="code-column">
+              <!-- Natural Language Prompt (EiPL/Prompt types) - show if raw_input exists -->
+              <div
+                v-if="submission?.raw_input"
+                class="code-section"
+              >
+                <div class="section-header">
+                  <span class="section-title">Natural Language Prompt</span>
+                </div>
+                <div class="prompt-box">
+                  {{ submission.raw_input }}
+                </div>
               </div>
-              <div class="prompt-box">
-                {{ submission.raw_input }}
+
+              <!-- Code -->
+              <div class="code-section">
+                <div class="section-header">
+                  <span class="section-title">
+                    {{ hasVariations ? `Generated Code - Variation ${currentVariationIndex + 1}` : (submission?.raw_input ? 'Generated Code' : 'Submitted Code') }}
+                  </span>
+                  <button
+                    class="copy-btn"
+                    @click="copyCode(currentCodeToDisplay)"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <Editor
+                  :value="currentCodeToDisplay || '# No code available'"
+                  :read-only="true"
+                  height="400px"
+                  width="100%"
+                  theme="tomorrow_night"
+                />
               </div>
             </div>
 
-            <!-- Code -->
-            <div class="code-section">
+            <!-- Right Column: Tests -->
+            <div class="tests-column">
               <div class="section-header">
                 <span class="section-title">
-                  {{ hasVariations ? `Generated Code - Variation ${currentVariationIndex + 1}` : (submission?.submission_type === 'eipl' ? 'Generated Code' : 'Submitted Code') }}
-                </span>
-                <button
-                  class="copy-btn"
-                  @click="copyCode(currentCodeToDisplay)"
-                >
-                  Copy
-                </button>
-              </div>
-              <Editor
-                :value="currentCodeToDisplay || '# No code available'"
-                :read-only="true"
-                height="400px"
-                width="100%"
-                theme="tomorrow_night"
-              />
-            </div>
-          </div>
-
-          <!-- Right Column: Tests -->
-          <div class="tests-column">
-            <div class="section-header">
-              <span class="section-title">
-                Test Results
-                <span
-                  v-if="currentTestResults.length > 0"
-                  class="test-count"
-                >
-                  ({{ currentPassingTests }}/{{ currentTestResults.length }} passing)
-                </span>
-              </span>
-            </div>
-
-            <div
-              v-if="!currentTestResults || currentTestResults.length === 0"
-              class="empty-state"
-            >
-              No test results available{{ hasVariations ? ' for current variation' : '' }}
-            </div>
-            <div
-              v-else
-              class="test-results"
-            >
-              <!-- Test Summary Bar -->
-              <div class="test-summary-bar">
-                <div class="summary-counts">
-                  <span class="count-item passing">✓ {{ currentPassingTests }} Passing</span>
-                  <span class="count-item failing">✗ {{ currentFailingTests }} Failing</span>
-                </div>
-              </div>
-
-              <!-- Failing Tests (Expanded by default) -->
-              <details
-                v-if="currentFailingTests > 0"
-                open
-                class="test-group"
-              >
-                <summary class="test-group-header failing">
-                  <span class="group-icon">▶</span>
-                  Failing Tests ({{ currentFailingTests }})
-                </summary>
-                <div class="test-list">
-                  <article
-                    v-for="(test, i) in currentFailingTestsList"
-                    :key="`fail-${i}`"
-                    class="test-item failing"
+                  Test Results
+                  <span
+                    v-if="currentTestResults.length > 0"
+                    class="test-count"
                   >
-                    <div class="test-content">
-                      <code class="test-call">{{ formatTestCall(test) }}</code>
-                      <div class="test-diff">
-                        <div>Expected: <code class="expected">{{ formatValue(test.expected_output || test.expected) }}</code></div>
-                        <div>
-                          Got: <code
-                            class="actual"
-                            :class="getValueDisplayClass(test.actual_output || test.actual)"
-                          >{{ formatTestValue(test.actual_output || test.actual) }}</code>
+                    ({{ currentPassingTests }}/{{ currentTestResults.length }} passing)
+                  </span>
+                </span>
+              </div>
+
+              <div
+                v-if="!currentTestResults || currentTestResults.length === 0"
+                class="empty-state"
+              >
+                No test results available{{ hasVariations ? ' for current variation' : '' }}
+              </div>
+              <div
+                v-else
+                class="test-results"
+              >
+                <!-- Test Summary Bar -->
+                <div class="test-summary-bar">
+                  <div class="summary-counts">
+                    <span class="count-item passing">✓ {{ currentPassingTests }} Passing</span>
+                    <span class="count-item failing">✗ {{ currentFailingTests }} Failing</span>
+                  </div>
+                </div>
+
+                <!-- Failing Tests (Expanded by default) -->
+                <details
+                  v-if="currentFailingTests > 0"
+                  open
+                  class="test-group"
+                >
+                  <summary class="test-group-header failing">
+                    <span class="group-icon">▶</span>
+                    Failing Tests ({{ currentFailingTests }})
+                  </summary>
+                  <div class="test-list">
+                    <article
+                      v-for="(test, i) in currentFailingTestsList"
+                      :key="`fail-${i}`"
+                      class="test-item failing"
+                    >
+                      <div class="test-content">
+                        <code class="test-call">{{ formatTestCall(test) }}</code>
+                        <div class="test-diff">
+                          <div>Expected: <code class="expected">{{ formatValue(test.expected_output || test.expected) }}</code></div>
+                          <div>
+                            Got: <code
+                              class="actual"
+                              :class="getValueDisplayClass(test.actual_output || test.actual)"
+                            >{{ formatTestValue(test.actual_output || test.actual) }}</code>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </article>
-                </div>
-              </details>
+                    </article>
+                  </div>
+                </details>
 
-              <!-- Passing Tests (Collapsed by default) -->
-              <details
-                v-if="currentPassingTests > 0"
-                class="test-group"
-              >
-                <summary class="test-group-header passing">
-                  <span class="group-icon">▶</span>
-                  Passing Tests ({{ currentPassingTests }})
-                </summary>
-                <div class="test-list">
-                  <article
-                    v-for="(test, i) in currentPassingTestsList"
-                    :key="`pass-${i}`"
-                    class="test-item passing"
-                  >
-                    <div class="test-content">
-                      <code class="test-call">{{ formatTestCall(test) }} → {{ formatValue(test.expected_output || test.expected) }}</code>
-                    </div>
-                  </article>
-                </div>
-              </details>
+                <!-- Passing Tests (Collapsed by default) -->
+                <details
+                  v-if="currentPassingTests > 0"
+                  class="test-group"
+                >
+                  <summary class="test-group-header passing">
+                    <span class="group-icon">▶</span>
+                    Passing Tests ({{ currentPassingTests }})
+                  </summary>
+                  <div class="test-list">
+                    <article
+                      v-for="(test, i) in currentPassingTestsList"
+                      :key="`pass-${i}`"
+                      class="test-item passing"
+                    >
+                      <div class="test-content">
+                        <code class="test-call">{{ formatTestCall(test) }} → {{ formatValue(test.expected_output || test.expected) }}</code>
+                      </div>
+                    </article>
+                  </div>
+                </details>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Analysis Section - Always Visible Below -->
-        <div
-          v-if="submission?.segmentation || hasHintsActivated"
-          class="analysis-section-static"
-        >
-          <div class="section-header">
-            <h3 class="section-title">
-              Analysis & Hints
-            </h3>
-          </div>
+          <!-- Analysis Section - Always Visible Below -->
+          <div
+            v-if="submission?.segmentation || hasHintsActivated"
+            class="analysis-section-static"
+          >
+            <div class="section-header">
+              <h3 class="section-title">
+                Analysis & Hints
+              </h3>
+            </div>
 
-          <div class="analysis-content">
-            <!-- Hints Activated Section -->
-            <div
-              v-if="hasHintsActivated"
-              class="analysis-section hints-section"
-            >
-              <h4 class="section-title">
-                Hints Used ({{ hintsActivatedCount }})
-              </h4>
-              <div class="hints-list">
-                <div
-                  v-for="(hint, idx) in submission.hints_activated"
-                  :key="idx"
-                  class="hint-item"
-                >
-                  <span class="hint-icon">{{ getHintIcon(hint.hint_type) }}</span>
-                  <div class="hint-details">
-                    <div class="hint-type-name">{{ formatHintType(hint.hint_type) }}</div>
-                    <div class="hint-meta">
-                      <span class="hint-trigger">{{ formatTriggerType(hint.trigger_type) }}</span>
-                      <span class="hint-time">{{ formatHintTime(hint.activated_at) }}</span>
+            <div class="analysis-content">
+              <!-- Hints Activated Section -->
+              <div
+                v-if="hasHintsActivated"
+                class="analysis-section hints-section"
+              >
+                <h4 class="section-title">
+                  Hints Used ({{ hintsActivatedCount }})
+                </h4>
+                <div class="hints-list">
+                  <div
+                    v-for="(hint, idx) in submission.hints_activated"
+                    :key="idx"
+                    class="hint-item"
+                  >
+                    <span class="hint-icon">{{ getHintIcon(hint.hint_type) }}</span>
+                    <div class="hint-details">
+                      <div class="hint-type-name">
+                        {{ formatHintType(hint.hint_type) }}
+                      </div>
+                      <div class="hint-meta">
+                        <span class="hint-trigger">{{ formatTriggerType(hint.trigger_type) }}</span>
+                        <span class="hint-time">{{ formatHintTime(hint.activated_at) }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div
-              v-if="submission.segmentation.confidence_score"
-              class="info-item"
-            >
-              <span class="info-label">Confidence:</span>
-              <span class="info-value">{{ Math.round(submission.segmentation.confidence_score * 100) }}%</span>
-            </div>
+              <div
+                v-if="submission.segmentation.confidence_score"
+                class="info-item"
+              >
+                <span class="info-label">Confidence:</span>
+                <span class="info-value">{{ Math.round(submission.segmentation.confidence_score * 100) }}%</span>
+              </div>
 
-            <div
-              v-if="submission.segmentation.feedback_message"
-              class="analysis-section"
-            >
-              <h4 class="section-title">
-                Feedback
-              </h4>
-              <p class="feedback-text">
-                {{ submission.segmentation.feedback_message }}
-              </p>
-            </div>
+              <div
+                v-if="submission.segmentation.feedback_message"
+                class="analysis-section"
+              >
+                <h4 class="section-title">
+                  Feedback
+                </h4>
+                <p class="feedback-text">
+                  {{ submission.segmentation.feedback_message }}
+                </p>
+              </div>
 
-            <div
-              v-if="submission.segmentation.suggested_improvements?.length"
-              class="analysis-section"
-            >
-              <h4 class="section-title">
-                Suggested Improvements
-              </h4>
-              <ul class="improvements-list">
-                <li
-                  v-for="(improvement, idx) in submission.segmentation.suggested_improvements"
-                  :key="idx"
-                >
-                  {{ improvement }}
-                </li>
-              </ul>
-            </div>
+              <div
+                v-if="submission.segmentation.suggested_improvements?.length"
+                class="analysis-section"
+              >
+                <h4 class="section-title">
+                  Suggested Improvements
+                </h4>
+                <ul class="improvements-list">
+                  <li
+                    v-for="(improvement, idx) in submission.segmentation.suggested_improvements"
+                    :key="idx"
+                  >
+                    {{ improvement }}
+                  </li>
+                </ul>
+              </div>
 
-            <div
-              v-if="submission.segmentation.segments?.length"
-              class="analysis-section"
-            >
-              <h4 class="section-title">
-                Code Segments (<span class="segment-count-highlight">{{ submission.segmentation.segment_count || submission.segmentation.segments.length }}</span>)
-              </h4>
-              <div class="segments-list">
-                <div
-                  v-for="(segment, idx) in submission.segmentation.segments"
-                  :key="idx"
-                  class="segment-item"
-                >
-                  {{ segment }}
+              <div
+                v-if="submission.segmentation.segments?.length"
+                class="analysis-section"
+              >
+                <h4 class="section-title">
+                  Code Segments (<span class="segment-count-highlight">{{ submission.segmentation.segment_count || submission.segmentation.segments.length }}</span>)
+                </h4>
+                <div class="segments-list">
+                  <div
+                    v-for="(segment, idx) in submission.segmentation.segments"
+                    :key="idx"
+                    class="segment-item"
+                  >
+                    {{ segment }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -350,352 +361,402 @@
         </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
-<script>
-import Editor from '@/features/editor/Editor.vue';
-import { formatTestValue, getValueDisplayClass, isMissingValue } from '@/utils/testValueFormatter';
-import { log } from '@/utils/logger';
+<script setup lang="ts">
+import { computed, ref, toRef, watch } from 'vue'
+import Editor from '@/features/editor/Editor.vue'
+import { formatTestValue, getValueDisplayClass } from '@/utils/testValueFormatter'
+import { log } from '@/utils/logger'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 
-export default {
-  name: 'ViewSubmissionModal',
-  components: {
-    Editor
-  },
-  props: {
-    isVisible: {
-      type: Boolean,
-      default: false
-    },
-    submission: {
-      type: Object,
-      default: null
+interface TestResult {
+  passed?: boolean
+  isSuccessful?: boolean
+  function_call?: string
+  description?: string
+  inputs?: unknown
+  expected_output?: unknown
+  expected?: unknown
+  actual_output?: unknown
+  actual?: unknown
+}
+
+interface Variation {
+  code?: string
+  passed_all_tests?: boolean
+  tests_passed?: number
+  total_tests?: number
+  tests_total?: number
+  test_results?: TestResult[]
+}
+
+interface HintActivated {
+  hint_type: string
+  trigger_type: string
+  activated_at?: string
+}
+
+interface Segmentation {
+  confidence_score?: number
+  feedback_message?: string
+  suggested_improvements?: string[]
+  segments?: string[]
+  segment_count?: number
+}
+
+interface Submission {
+  id?: string
+  submission_id?: string
+  user?: string
+  problem?: { title?: string } | string
+  submitted_at?: string
+  score?: number
+  completion_status?: string
+  status?: string
+  execution_time_ms?: number
+  raw_input?: string
+  processed_code?: string
+  test_results?: TestResult[]
+  hints_activated?: HintActivated[]
+  segmentation?: Segmentation
+  data?: {
+    variations?: Variation[]
+    test_results?: TestResult[]
+    processed_code?: string
+  }
+  code_variations?: Variation[]
+  results?: Array<{ success?: boolean; test_results?: TestResult[]; results?: TestResult[] }>
+  variations?: string[]
+  total_variations?: number
+  passing_variations?: number
+}
+
+const props = defineProps<{
+  isVisible: boolean
+  submission: Submission | null
+}>()
+
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'download', submission: Submission | null): void
+}>()
+
+// Focus trap composable
+const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
+
+// State
+const currentVariationIndex = ref(0)
+
+// Computed
+const hasVariations = computed(() => {
+  if (props.submission?.data?.variations?.length && props.submission.data.variations.length >= 1) {
+    return true
+  }
+  if (props.submission?.code_variations?.length && props.submission.code_variations.length > 1) {
+    return true
+  }
+  return (props.submission?.results?.length ?? 0) > 1 ||
+         (props.submission?.variations?.length ?? 0) > 1 ||
+         (props.submission?.total_variations ?? 0) > 1
+})
+
+const totalVariationsCount = computed(() => {
+  if (props.submission?.data?.variations?.length) {
+    return props.submission.data.variations.length
+  }
+  if (props.submission?.code_variations?.length) {
+    return props.submission.code_variations.length
+  }
+  return props.submission?.total_variations ||
+         props.submission?.results?.length ||
+         props.submission?.variations?.length ||
+         1
+})
+
+const passingVariationsCount = computed(() => {
+  if (props.submission?.data?.variations?.length) {
+    return props.submission.data.variations.filter(v =>
+      v.passed_all_tests || (v.tests_passed === v.total_tests && (v.total_tests ?? 0) > 0)
+    ).length
+  }
+  if (props.submission?.code_variations?.length) {
+    return props.submission.code_variations.filter(cv =>
+      cv.tests_passed === cv.tests_total && (cv.tests_total ?? 0) > 0
+    ).length
+  }
+  return props.submission?.passing_variations ||
+         (props.submission?.results?.filter(r => r.success)?.length) ||
+         0
+})
+
+const currentVariationData = computed(() => {
+  if (!hasVariations.value) {
+    if (props.submission?.test_results) {
+      const passed = props.submission.test_results.filter(t => t.passed || t.isSuccessful).length
+      return {
+        testsPassed: passed,
+        totalTests: props.submission.test_results.length,
+        success: passed === props.submission.test_results.length
+      }
     }
-  },
-  emits: ['close', 'download'],
-  data() {
-    return {
-      currentVariationIndex: 0
-    };
-  },
-  computed: {
-    hasVariations() {
-      // For submission history endpoint: check data.variations
-      // Consider it has variations if there's at least 1 variation (EiPL submissions)
-      if (this.submission?.data?.variations?.length >= 1) {
-        return true;
+    return null
+  }
+
+  if (props.submission?.data?.variations?.length) {
+    const variation = props.submission.data.variations[currentVariationIndex.value]
+    if (variation) {
+      return {
+        testsPassed: variation.tests_passed,
+        totalTests: variation.total_tests,
+        success: variation.passed_all_tests || (variation.tests_passed === variation.total_tests && (variation.total_tests ?? 0) > 0)
       }
-
-      // For admin endpoint: check code_variations array
-      if (this.submission?.code_variations?.length > 1) {
-        return true;
-      }
-
-      // For progress endpoint: check results/variations arrays
-      return this.submission?.results?.length > 1 ||
-             (this.submission?.variations?.length > 1) ||
-             (this.submission?.total_variations > 1);
-    },
-
-    totalVariationsCount() {
-      // Submission history endpoint: count data.variations
-      if (this.submission?.data?.variations?.length) {
-        return this.submission.data.variations.length;
-      }
-
-      // Admin endpoint: count code_variations
-      if (this.submission?.code_variations?.length) {
-        return this.submission.code_variations.length;
-      }
-
-      // Progress endpoint: use existing fields
-      return this.submission?.total_variations ||
-             this.submission?.results?.length ||
-             this.submission?.variations?.length ||
-             1;
-    },
-
-    passingVariationsCount() {
-      // Submission history endpoint: count data.variations with all tests passed
-      if (this.submission?.data?.variations?.length) {
-        return this.submission.data.variations.filter(v =>
-          v.passed_all_tests || (v.tests_passed === v.total_tests && v.total_tests > 0)
-        ).length;
-      }
-
-      // Admin endpoint: count code_variations with perfect scores
-      if (this.submission?.code_variations?.length) {
-        return this.submission.code_variations.filter(cv =>
-          cv.tests_passed === cv.tests_total && cv.tests_total > 0
-        ).length;
-      }
-
-      // Progress endpoint: use existing fields
-      return this.submission?.passing_variations ||
-             (this.submission?.results?.filter(r => r.success)?.length) ||
-             0;
-    },
-
-    currentVariationData() {
-      if (!this.hasVariations) {
-        // For single submissions, aggregate all test results
-        if (this.submission?.test_results) {
-          const passed = this.submission.test_results.filter(t => t.passed || t.isSuccessful).length;
-          return {
-            testsPassed: passed,
-            totalTests: this.submission.test_results.length,
-            success: passed === this.submission.test_results.length
-          };
-        }
-        return null;
-      }
-
-      // Submission history endpoint: get from data.variations
-      if (this.submission?.data?.variations?.length) {
-        const variation = this.submission.data.variations[this.currentVariationIndex];
-        if (variation) {
-          return {
-            testsPassed: variation.tests_passed,
-            totalTests: variation.total_tests,
-            success: variation.passed_all_tests || (variation.tests_passed === variation.total_tests && variation.total_tests > 0)
-          };
-        }
-      }
-
-      // Admin endpoint: get from code_variations
-      if (this.submission?.code_variations?.length) {
-        const variation = this.submission.code_variations[this.currentVariationIndex];
-        if (variation) {
-          return {
-            testsPassed: variation.tests_passed,
-            totalTests: variation.tests_total,
-            success: variation.tests_passed === variation.tests_total && variation.tests_total > 0
-          };
-        }
-      }
-
-      // Progress endpoint: get from results array
-      return this.submission?.results?.[this.currentVariationIndex] || null;
-    },
-
-    currentVariationStatusClass() {
-      if (!this.currentVariationData) {return '';}
-      return this.currentVariationData.success ? 'success' : 'partial';
-    },
-
-    currentCodeToDisplay() {
-      if (this.hasVariations) {
-        // Submission history endpoint: get from data.variations
-        if (this.submission?.data?.variations?.length) {
-          const variation = this.submission.data.variations[this.currentVariationIndex];
-          return variation?.code || '';
-        }
-
-        // Admin endpoint: get from code_variations
-        if (this.submission?.code_variations?.length) {
-          const variation = this.submission.code_variations[this.currentVariationIndex];
-          return variation?.code || '';
-        }
-
-        // Progress endpoint: get from variations array
-        if (this.submission?.variations) {
-          return this.submission.variations[this.currentVariationIndex];
-        }
-      }
-
-      // Check for submission history endpoint data structure
-      if (this.submission?.data?.processed_code) {
-        return this.submission.data.processed_code;
-      }
-
-      return this.submission?.processed_code || this.submission?.raw_input || '';
-    },
-
-    currentTestResults() {
-      if (!this.hasVariations) {
-        // For single submissions, return the test_results directly
-        // First check if it's from submission history endpoint
-        if (this.submission?.data?.test_results) {
-          return this.submission.data.test_results;
-        }
-        return this.submission?.test_results || [];
-      }
-
-      // Submission history endpoint: get test results from variation data
-      if (this.submission?.data?.variations?.length) {
-        const variation = this.submission.data.variations[this.currentVariationIndex];
-        return variation?.test_results || [];
-      }
-
-      // Admin endpoint: get per-variation test results
-      if (this.submission?.code_variations?.length) {
-        const variation = this.submission.code_variations[this.currentVariationIndex];
-        return variation?.test_results || [];
-      }
-
-      // Progress endpoint: get test results for current variation
-      const variationData = this.submission?.results?.[this.currentVariationIndex];
-      return variationData?.test_results || variationData?.results || [];
-    },
-
-    currentPassingTests() {
-      return this.currentTestResults.filter(t => t.passed || t.isSuccessful).length;
-    },
-
-    currentFailingTests() {
-      return this.currentTestResults.filter(t => !(t.passed || t.isSuccessful)).length;
-    },
-
-    currentPassingTestsList() {
-      return this.currentTestResults.filter(t => t.passed || t.isSuccessful);
-    },
-
-    currentFailingTestsList() {
-      return this.currentTestResults.filter(t => !(t.passed || t.isSuccessful));
-    },
-
-    hasHintsActivated() {
-      return this.submission?.hints_activated?.length > 0;
-    },
-
-    hintsActivatedCount() {
-      return this.submission?.hints_activated?.length || 0;
-    },
-
-  },
-  watch: {
-    submission(newVal) {
-      // Reset variation index when submission changes
-      this.currentVariationIndex = 0;
-    }
-  },
-  methods: {
-    getScoreClass(score) {
-      if (score >= 100) {return 'success';}
-      if (score >= 60) {return 'warning';}
-      return 'error';
-    },
-
-    getStatusClass(status) {
-      const s = status?.toLowerCase();
-      if (s === 'passed' || s === 'complete') {return 'success';}
-      if (s === 'partial') {return 'warning';}
-      if (s === 'failed' || s === 'error') {return 'error';}
-      return '';
-    },
-
-    formatDate(dateString) {
-      if (!dateString) {return 'Unknown';}
-      const date = new Date(dateString);
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    },
-
-    formatComprehension(level) {
-      if (!level) {return 'Not evaluated';}
-      if (level === 'high_level' || level === 'high-level') {return 'High Level';}
-      if (level === 'low_level' || level === 'low-level') {return 'Low Level';}
-      return level;
-    },
-
-    formatTimeSpent(seconds) {
-      if (!seconds) {return 'N/A';}
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-    },
-
-    formatValue(value) {
-      return formatTestValue(value);
-    },
-
-    formatTestValue,
-    isMissingValue,
-    getValueDisplayClass,
-
-    prevVariation() {
-      if (this.currentVariationIndex > 0) {
-        this.currentVariationIndex--;
-      }
-    },
-
-    nextVariation() {
-      if (this.currentVariationIndex < this.totalVariationsCount - 1) {
-        this.currentVariationIndex++;
-      }
-    },
-
-    formatTestCall(test) {
-      // Format the test description as a function call if possible
-      if (test.function_call) {
-        return test.function_call;
-      }
-      if (test.description) {
-        // Try to extract function call from description
-        const match = test.description.match(/([a-zA-Z_][a-zA-Z0-9_]*\([^)]*\))/);
-        if (match) {return match[1];}
-        return test.description;
-      }
-      if (test.inputs !== undefined) {
-        return `test(${this.formatValue(test.inputs)})`;
-      }
-      return `Test Case`;
-    },
-
-    async copyCode(code) {
-      if (!code) {
-        code = this.currentCodeToDisplay;
-      }
-      if (!code) {return;}
-
-      try {
-        await navigator.clipboard.writeText(code);
-        // Could show a toast notification here
-      } catch (err) {
-        log.error('Failed to copy to clipboard', { error: err });
-      }
-    },
-
-    formatHintType(hintType) {
-      const typeMap = {
-        'variable_fade': 'Variable Fade',
-        'subgoal_highlight': 'Subgoal Highlighting',
-        'suggested_trace': 'Suggested Trace'
-      };
-      return typeMap[hintType] || hintType;
-    },
-
-    formatTriggerType(triggerType) {
-      const triggerMap = {
-        'manual': 'Manually activated',
-        'auto_attempts': 'Auto (attempts)',
-        'auto_time': 'Auto (time)',
-        'instructor': 'Instructor provided'
-      };
-      return triggerMap[triggerType] || triggerType;
-    },
-
-    getHintIcon(hintType) {
-      const iconMap = {
-        'variable_fade': '🔤',
-        'subgoal_highlight': '🎯',
-        'suggested_trace': '🔍'
-      };
-      return iconMap[hintType] || '💡';
-    },
-
-    formatHintTime(timestamp) {
-      if (!timestamp) {return 'Unknown';}
-      return this.formatDate(timestamp);
     }
   }
-};
+
+  if (props.submission?.code_variations?.length) {
+    const variation = props.submission.code_variations[currentVariationIndex.value]
+    if (variation) {
+      return {
+        testsPassed: variation.tests_passed,
+        totalTests: variation.tests_total,
+        success: variation.tests_passed === variation.tests_total && (variation.tests_total ?? 0) > 0
+      }
+    }
+  }
+
+  return props.submission?.results?.[currentVariationIndex.value] || null
+})
+
+const currentVariationStatusClass = computed(() => {
+  if (!currentVariationData.value) {
+    return ''
+  }
+  return currentVariationData.value.success ? 'success' : 'partial'
+})
+
+const currentCodeToDisplay = computed(() => {
+  if (hasVariations.value) {
+    if (props.submission?.data?.variations?.length) {
+      const variation = props.submission.data.variations[currentVariationIndex.value]
+      return variation?.code || ''
+    }
+    if (props.submission?.code_variations?.length) {
+      const variation = props.submission.code_variations[currentVariationIndex.value]
+      return variation?.code || ''
+    }
+    if (props.submission?.variations) {
+      return props.submission.variations[currentVariationIndex.value]
+    }
+  }
+  if (props.submission?.data?.processed_code) {
+    return props.submission.data.processed_code
+  }
+  return props.submission?.processed_code || props.submission?.raw_input || ''
+})
+
+const currentTestResults = computed(() => {
+  if (!hasVariations.value) {
+    if (props.submission?.data?.test_results) {
+      return props.submission.data.test_results
+    }
+    return props.submission?.test_results || []
+  }
+
+  if (props.submission?.data?.variations?.length) {
+    const variation = props.submission.data.variations[currentVariationIndex.value]
+    return variation?.test_results || []
+  }
+  if (props.submission?.code_variations?.length) {
+    const variation = props.submission.code_variations[currentVariationIndex.value]
+    return variation?.test_results || []
+  }
+  const variationData = props.submission?.results?.[currentVariationIndex.value]
+  return variationData?.test_results || variationData?.results || []
+})
+
+const currentPassingTests = computed(() =>
+  currentTestResults.value.filter(t => t.passed || t.isSuccessful).length
+)
+
+const currentFailingTests = computed(() =>
+  currentTestResults.value.filter(t => !(t.passed || t.isSuccessful)).length
+)
+
+const currentPassingTestsList = computed(() =>
+  currentTestResults.value.filter(t => t.passed || t.isSuccessful)
+)
+
+const currentFailingTestsList = computed(() =>
+  currentTestResults.value.filter(t => !(t.passed || t.isSuccessful))
+)
+
+const hasHintsActivated = computed(() =>
+  (props.submission?.hints_activated?.length ?? 0) > 0
+)
+
+const hintsActivatedCount = computed(() =>
+  props.submission?.hints_activated?.length || 0
+)
+
+// Methods
+function closeModal(): void {
+  emit('close')
+}
+
+function downloadSubmission(): void {
+  emit('download', props.submission)
+}
+
+function getScoreClass(score: number | undefined): string {
+  if (!score) {
+    return 'error'
+  }
+  if (score >= 100) {
+    return 'success'
+  }
+  if (score >= 60) {
+    return 'warning'
+  }
+  return 'error'
+}
+
+function getStatusClass(status: string | undefined): string {
+  const s = status?.toLowerCase()
+  if (s === 'passed' || s === 'complete') {
+    return 'success'
+  }
+  if (s === 'partial') {
+    return 'warning'
+  }
+  if (s === 'failed' || s === 'error') {
+    return 'error'
+  }
+  return ''
+}
+
+function formatDate(dateString: string | undefined): string {
+  if (!dateString) {
+    return 'Unknown'
+  }
+  const date = new Date(dateString)
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+function _formatComprehension(level: string | undefined): string {
+  if (!level) {
+    return 'Not evaluated'
+  }
+  if (level === 'high_level' || level === 'high-level') {
+    return 'High Level'
+  }
+  if (level === 'low_level' || level === 'low-level') {
+    return 'Low Level'
+  }
+  return level
+}
+
+function _formatTimeSpent(seconds: number | undefined): string {
+  if (!seconds) {
+    return 'N/A'
+  }
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
+}
+
+function formatValue(value: unknown): string {
+  return formatTestValue(value)
+}
+
+function prevVariation(): void {
+  if (currentVariationIndex.value > 0) {
+    currentVariationIndex.value--
+  }
+}
+
+function nextVariation(): void {
+  if (currentVariationIndex.value < totalVariationsCount.value - 1) {
+    currentVariationIndex.value++
+  }
+}
+
+function formatTestCall(test: TestResult): string {
+  if (test.function_call) {
+    return test.function_call
+  }
+  if (test.description) {
+    const match = test.description.match(/([a-zA-Z_][a-zA-Z0-9_]*\([^)]*\))/)
+    if (match) {
+      return match[1]
+    }
+    return test.description
+  }
+  if (test.inputs !== undefined) {
+    return `test(${formatValue(test.inputs)})`
+  }
+  return 'Test Case'
+}
+
+async function copyCode(code?: string): Promise<void> {
+  const codeToCopy = code || currentCodeToDisplay.value
+  if (!codeToCopy) {
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(codeToCopy)
+  } catch (err) {
+    log.error('Failed to copy to clipboard', { error: err })
+  }
+}
+
+function formatHintType(hintType: string): string {
+  const typeMap: Record<string, string> = {
+    'variable_fade': 'Variable Fade',
+    'subgoal_highlight': 'Subgoal Highlighting',
+    'suggested_trace': 'Suggested Trace'
+  }
+  return typeMap[hintType] || hintType
+}
+
+function formatTriggerType(triggerType: string): string {
+  const triggerMap: Record<string, string> = {
+    'manual': 'Manually activated',
+    'auto_attempts': 'Auto (attempts)',
+    'auto_time': 'Auto (time)',
+    'instructor': 'Instructor provided'
+  }
+  return triggerMap[triggerType] || triggerType
+}
+
+function getHintIcon(hintType: string): string {
+  const iconMap: Record<string, string> = {
+    'variable_fade': '🔤',
+    'subgoal_highlight': '🎯',
+    'suggested_trace': '🔍'
+  }
+  return iconMap[hintType] || '💡'
+}
+
+function formatHintTime(timestamp: string | undefined): string {
+  if (!timestamp) {
+    return 'Unknown'
+  }
+  return formatDate(timestamp)
+}
+
+// Watchers
+watch(() => props.submission, () => {
+  currentVariationIndex.value = 0
+})
 </script>
 
 <style scoped>

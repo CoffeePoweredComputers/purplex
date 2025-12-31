@@ -3,6 +3,7 @@
  * This service provides consistent environment detection and configuration
  * across the entire Vue application.
  */
+import { log } from '../utils/logger';
 
 export enum Environment {
   DEVELOPMENT = 'development',
@@ -12,11 +13,11 @@ export enum Environment {
 
 class EnvironmentService {
   private env: Environment;
-  
+
   constructor() {
     // Detect environment from Vite env variables
     const viteEnv = import.meta.env.VITE_PURPLEX_ENV || import.meta.env.MODE;
-    
+
     // Validate and set environment
     switch (viteEnv) {
       case 'development':
@@ -29,13 +30,13 @@ class EnvironmentService {
         this.env = Environment.PRODUCTION;
         break;
       default:
-        console.warn(`Unknown environment: ${viteEnv}, defaulting to development`);
+        log.warn(`Unknown environment: ${viteEnv}, defaulting to development`);
         this.env = Environment.DEVELOPMENT;
     }
-    
+
     // Debug log for troubleshooting
     if (this.isDevelopment) {
-      console.log('Environment variables:', {
+      log.debug('Environment variables', {
         MODE: import.meta.env.MODE,
         VITE_PURPLEX_ENV: import.meta.env.VITE_PURPLEX_ENV,
         VITE_FIREBASE_MOCK: import.meta.env.VITE_FIREBASE_MOCK,
@@ -43,35 +44,35 @@ class EnvironmentService {
       });
     }
   }
-  
+
   /**
    * Get the current environment
    */
   get current(): Environment {
     return this.env;
   }
-  
+
   /**
    * Check if running in development
    */
   get isDevelopment(): boolean {
     return this.env === Environment.DEVELOPMENT;
   }
-  
+
   /**
    * Check if running in staging
    */
   get isStaging(): boolean {
     return this.env === Environment.STAGING;
   }
-  
+
   /**
    * Check if running in production
    */
   get isProduction(): boolean {
     return this.env === Environment.PRODUCTION;
   }
-  
+
   /**
    * Get the API base URL
    * Returns empty string in production (use relative URLs via nginx proxy)
@@ -86,7 +87,7 @@ class EnvironmentService {
     // In development, default to localhost
     return envUrl || 'http://localhost:8000';
   }
-  
+
   /**
    * Check if mock Firebase should be used
    */
@@ -98,7 +99,7 @@ class EnvironmentService {
     // Vite env variables are always strings
     return mockFlag === 'true' || mockFlag === true || mockFlag === '1';
   }
-  
+
   /**
    * Get Firebase configuration
    * Returns null if using mock Firebase
@@ -107,7 +108,7 @@ class EnvironmentService {
     if (this.useMockFirebase) {
       return null; // Mock doesn't need config
     }
-    
+
     // Real Firebase config from environment variables
     return {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -118,7 +119,7 @@ class EnvironmentService {
       appId: import.meta.env.VITE_FIREBASE_APP_ID
     };
   }
-  
+
   /**
    * Get CORS configuration
    */
@@ -128,14 +129,14 @@ class EnvironmentService {
       withCredentials: true
     };
   }
-  
+
   /**
    * Check if debug mode is enabled
    */
   get isDebugMode(): boolean {
     return this.isDevelopment && import.meta.env.VITE_DEBUG === 'true';
   }
-  
+
   /**
    * Get feature flags
    */
@@ -147,7 +148,7 @@ class EnvironmentService {
       debugToolbar: this.isDevelopment && import.meta.env.VITE_SHOW_DEBUG_TOOLBAR === 'true'
     };
   }
-  
+
   /**
    * Get logging configuration
    */
@@ -159,18 +160,18 @@ class EnvironmentService {
       remoteUrl: import.meta.env.VITE_LOG_REMOTE_URL
     };
   }
-  
+
   /**
    * Log environment information (useful for debugging)
    */
   logEnvironmentInfo(): void {
-    console.group('🌍 Environment Configuration');
-    console.log('Environment:', this.env);
-    console.log('API URL:', this.apiUrl);
-    console.log('Mock Firebase:', this.useMockFirebase);
-    console.log('Debug Mode:', this.isDebugMode);
-    console.log('Feature Flags:', this.getFeatureFlags());
-    console.groupEnd();
+    log.info('Environment Configuration', {
+      environment: this.env,
+      apiUrl: this.apiUrl,
+      mockFirebase: this.useMockFirebase,
+      debugMode: this.isDebugMode,
+      featureFlags: this.getFeatureFlags()
+    });
   }
 }
 

@@ -26,8 +26,7 @@ User Submits Code
        ▼
 Vue Component (ProblemSet.vue)
        │
-       ├──▶ Regular: /api/submit-solution/
-       └──▶ EiPL: /api/submit-eipl/
+       └──▶ Unified: /api/submit/
               │
               ▼
         Django View (thin)
@@ -109,54 +108,109 @@ Progress Tracked per Course
 ```
 purplex/
 ├── problems_app/
-│   ├── models.py          # Data models
+│   ├── models/            # Data models (modular structure)
+│   │   ├── __init__.py
+│   │   ├── base.py       # Base problem model
+│   │   ├── spec.py       # Problem specifications
+│   │   ├── static.py     # Static problem types
+│   │   ├── category.py   # Problem categories
+│   │   ├── course.py     # Course models
+│   │   ├── hint.py       # Hint models
+│   │   ├── problem_set.py # Problem set models
+│   │   ├── progress.py   # Progress models
+│   │   └── test_case.py  # Test case models
 │   ├── views/             # HTTP endpoints (thin)
 │   │   ├── admin_views.py
 │   │   ├── student_views.py
 │   │   ├── submission_views.py
 │   │   ├── progress_views.py
 │   │   ├── hint_views.py
-│   │   └── sse.py  # Server-sent events implementation
-│   ├── services/          # Business logic layer (PARTIALLY enforced)
+│   │   ├── health_views.py
+│   │   ├── instructor_views.py
+│   │   ├── instructor_analytics_views.py
+│   │   ├── probe_views.py
+│   │   ├── research_views.py
+│   │   └── sse.py        # Server-sent events implementation
+│   ├── handlers/          # Problem type handlers (polymorphic pattern)
+│   │   ├── base.py       # Base handler class
+│   │   ├── eipl/         # EiPL problem handler
+│   │   ├── mcq/          # Multiple choice handler
+│   │   ├── prompt/       # Prompt-based handler
+│   │   ├── debug_fix/    # Debug/fix problem handler
+│   │   ├── refute/       # Refutation handler
+│   │   ├── probeable_code/ # Probeable code handler
+│   │   └── probeable_spec/ # Probeable spec handler
+│   ├── services/          # Business logic layer
 │   │   ├── admin_service.py              # Admin problem management
 │   │   ├── ai_generation_service.py      # AI test generation
-│   │   ├── code_execution_service.py     # Docker code execution
-│   │   ├── course_service.py             # Course validation & enrollment (✅ uses repositories)
+│   │   ├── docker_execution_service.py   # Docker code execution
+│   │   ├── docker_service_factory.py     # Docker service factory
+│   │   ├── course_service.py             # Course validation & enrollment
+│   │   ├── course_export_service.py      # Course export functionality
 │   │   ├── hint_service.py               # Hint system logic
-│   │   ├── hint_display_service.py       # Hint display transformations (NEW)
+│   │   ├── hint_display_service.py       # Hint display transformations
+│   │   ├── instructor_analytics_service.py # Instructor analytics
+│   │   ├── probe_service.py              # Probe functionality
 │   │   ├── progress_service.py           # Progress tracking
+│   │   ├── research_export_service.py    # Research data export
 │   │   ├── segmentation_service.py       # Prompt segmentation
 │   │   ├── student_service.py            # Student operations
 │   │   ├── submission_validation_service.py  # Submission validation
+│   │   ├── test_case_service.py          # Test case management
 │   │   ├── validation_service.py         # General validation
 │   │   └── __init__.py
-│   ├── repositories/      # Data access layer (NEW - Jan 2025)
+│   ├── repositories/      # Data access layer
 │   │   ├── base_repository.py            # Base repository pattern
 │   │   ├── course_repository.py          # Course data access
+│   │   ├── course_enrollment_repository.py # Enrollment data access
+│   │   ├── course_problem_set_repository.py # Course-problem set relations
 │   │   ├── problem_repository.py         # Problem data access
+│   │   ├── problem_category_repository.py # Category data access
+│   │   ├── problem_set_repository.py     # Problem set data access
+│   │   ├── problem_set_membership_repository.py # Problem set membership
 │   │   ├── hint_repository.py            # Hint data access
 │   │   ├── progress_repository.py        # Progress data access
-│   │   ├── submission_repository.py      # Submission data access
+│   │   ├── user_progress_repository.py   # User progress data access
+│   │   ├── test_case_repository.py       # Test case data access
 │   │   └── __init__.py
-│   ├── serializers.py     # API serialization
+│   ├── signals/           # Django signals
+│   │   └── celery_signals.py
+│   ├── tests/             # Unit tests
 │   └── tasks/             # Async Celery tasks
-│       └── pipeline.py    # Main EiPL pipeline
+│       ├── pipeline.py    # Main EiPL pipeline
+│       └── cleanup.py     # Cleanup tasks
 │
-├── submissions_app/       # Code execution domain
+├── submissions/          # Code execution domain
+│   ├── models.py         # Submission models
+│   ├── services.py       # Submission services
+│   ├── grading_service.py # Grading logic
+│   └── repositories/     # Submission data access
+│       └── submission_repository.py
 ├── users_app/            # Authentication domain
 │   ├── authentication.py         # Single PurplexAuthentication class
 │   ├── user_views.py            # All user/auth views (class-based)
+│   ├── permissions.py           # Permission classes
 │   ├── services/                 # Authentication business logic
 │   │   ├── authentication_service.py  # Central Firebase authentication service
 │   │   ├── user_service.py            # User management service
 │   │   └── rate_limit_service.py      # Rate limiting for auth operations
+│   ├── repositories/             # User data access
+│   │   ├── user_repository.py
+│   │   └── user_profile_repository.py
+│   ├── utils/                    # Utility functions
 │   └── mock_firebase.py          # Mock Firebase for development
 ├── settings/             # Modular settings structure
 │   ├── base.py          # Shared settings
 │   ├── development.py   # Development environment
-│   └── production.py    # Production environment
+│   ├── production.py    # Production environment
+│   ├── aws.py           # AWS-specific settings
+│   └── security.py      # Security settings
 ├── config/              # Environment configuration
 │   └── environment.py   # Configuration management
+├── utils/               # Shared utilities
+│   ├── language_utils.py
+│   ├── anonymization.py
+│   └── redis_client.py
 └── celery_simple.py     # Celery configuration
 ```
 
@@ -164,12 +218,39 @@ purplex/
 ```
 client/src/
 ├── components/           # Reusable UI components
+│   ├── activities/      # Activity-related components
+│   │   ├── feedback/    # Feedback display components
+│   │   ├── inputs/      # Input components
+│   │   └── styles/      # Activity styles
+│   ├── admin/           # Admin panel components
+│   │   └── editors/     # Problem editors
+│   ├── hints/           # Hint display components
+│   ├── instructor/      # Instructor-specific components
+│   ├── segmentation/    # Prompt segmentation components
+│   └── ui/              # Generic UI components
 ├── features/            # Feature-specific components
+│   ├── auth/            # Authentication features
+│   ├── editor/          # Code editor features
 │   └── problems/        # Problem-related features
 ├── composables/         # Vue composition functions
-├── services/           # API communication layer
-├── store/              # Vuex global state
-└── types/              # TypeScript definitions
+│   ├── admin/           # Admin-specific composables
+│   ├── useSubmissionTracking.ts
+│   ├── useSubmissionCache.ts
+│   ├── useOptimisticProgress.ts
+│   ├── useEditorHints.ts
+│   ├── useFeedbackState.ts
+│   ├── useHintTracking.ts
+│   └── useNotification.ts
+├── modals/              # Modal dialog components
+├── services/            # API communication layer
+│   ├── hintProcessors/  # Hint processing utilities
+│   └── __tests__/       # Service tests
+├── store/               # Vuex global state
+├── i18n/                # Internationalization
+│   └── locales/         # Language files (en, es, fr, de, zh, etc.)
+├── types/               # TypeScript definitions
+├── utils/               # Utility functions
+└── styles/              # Global styles
 ```
 
 ## Configuration Management
@@ -181,7 +262,9 @@ client/src/
 settings/
 ├── base.py         # Shared configuration
 ├── development.py  # Development overrides
-└── production.py   # Production overrides
+├── production.py   # Production overrides
+├── aws.py          # AWS-specific configuration
+└── security.py     # Security-related settings
 
 config/
 └── environment.py  # Environment detection and configuration
@@ -194,26 +277,24 @@ config/
 
 ## Key Architectural Decisions
 
-### 1. Service Layer Pattern ✅ COMPLETE
+### 1. Service Layer Pattern
 **Decision**: All business logic in service classes, views are thin controllers
-**Status**: ✅ 100% Complete (Jan 2025)
-- ✅ Views: No direct model queries - all use services
-- ✅ Services: Business logic properly encapsulated
-- ✅ Tasks: No direct model queries - all use repositories
-- ✅ Repository layer fully implemented for data access
+**Status**: Implemented (Dec 2024)
+- Views: Thin controllers delegating to services
+- Services: Business logic properly encapsulated
+- Tasks: Use repositories for data access
+- Repository layer implemented for data access
 
 **Current Architecture**:
 ```python
-# Achieved Architecture:
+# Architecture Pattern:
 View → Service → Repository → Model (for data operations)
 View → Service → Business Logic (for complex operations)
 Task → Repository → Model (for async operations)
 ```
 
-**Enforcement**: 
-- Business logic checker script (`scripts/check_business_logic.py`) validates compliance
-- 0 violations in views, services, or tasks
-- Repository pattern fully adopted for all data access in views/tasks
+**Enforcement**:
+- Repository pattern adopted for data access in views/tasks
 - Services retain direct model access for complex business operations
 
 ### 2. Async Task Processing
@@ -238,8 +319,10 @@ Models: Data persistence only
 **Decision**: Composables for local, Vuex for global
 **Rationale**: Avoid unnecessary global state complexity
 ```typescript
-// Feature state → Composable
-useProblemSubmission()
+// Feature state → Composables
+useSubmissionTracking()
+useSubmissionCache()
+useOptimisticProgress()
 
 // Global state → Vuex
 user, auth, app settings
@@ -252,7 +335,7 @@ user, auth, app settings
 # ✅ CORRECT: Class-based views
 class ResourceView(APIView):
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request):
         # Thin controller - delegate to service
         return Response(Service.process())
@@ -268,7 +351,7 @@ def resource_view(request):
 ```
 User
  ├── UserProgress (per problem, per course)
- ├── PromptSubmission (in submissions_app)
+ ├── PromptSubmission (in submissions/)
  └── CourseEnrollment
       └── Course
            └── CourseProblemSet
@@ -285,10 +368,10 @@ User
 - Plural nouns for collections: `/api/problems/`
 - Kebab-case for multi-word: `/api/problem-sets/`
 - Nested for relationships: `/api/courses/{id}/students/`
-- Action endpoints for operations: `/api/submit-solution/`, `/api/submit-eipl/`
+- Action endpoints for operations: `/api/submit/` (unified submission endpoint)
 
 ### Key API Endpoints (Actual Implementation)
-- **Authentication Endpoints**: 
+- **Authentication Endpoints**:
   - `/api/users/auth/status/` - Check auth status (POST)
   - `/api/users/auth/sse-token/` - Create/revoke SSE tokens (POST/DELETE)
   - `/api/users/user/me/` - Get current user info (GET)
@@ -352,6 +435,7 @@ User
 - `SSETokenView` - Create/revoke SSE session tokens (POST/DELETE)
 - `UserRoleView` - Get current user role and permissions
 - `AdminUserManagementView` - Admin user management
+- `LanguagePreferenceView` - User language preference management
 
 ### Authorization
 - Role-based: Admin, Instructor, Student

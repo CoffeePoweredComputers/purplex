@@ -17,7 +17,7 @@ echo ""
 kill_port() {
     local port=$1
     local name=$2
-    
+
     pids=$(lsof -t -i:$port 2>/dev/null)
     if [ ! -z "$pids" ]; then
         echo -e "${YELLOW}Stopping $name (port $port)...${NC}"

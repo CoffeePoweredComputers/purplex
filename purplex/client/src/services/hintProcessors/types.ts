@@ -18,25 +18,25 @@ export interface HintMetadata {
 
 export interface HintResult {
   success: boolean;
-  
+
   // For MODIFY_CODE and ANNOTATE_CODE strategies
   code?: string;                  // Modified code (if applicable)
-  
+
   // For OVERLAY_UI strategy
   overlayComponent?: string;      // Component name to render
-  overlayProps?: Record<string, any>;  // Props for the overlay component
-  
+  overlayProps?: Record<string, unknown>;  // Props for the overlay component
+
   // Metadata for all strategies
   metadata?: HintMetadata;
-  
+
   // Error handling
   error?: string;                 // Error message if success is false
-  
+
   // Line number adjustments (for ANNOTATE_CODE)
   lineAdjustments?: Map<number, number>;  // Original line -> New line mapping
 }
 
-export interface HintProcessor<T = any> {
+export interface HintProcessor<T = unknown> {
   strategy: HintRenderStrategy;
   processHint(hintData: T): HintResult;
   validateHintData?(hintData: T): boolean;
@@ -65,5 +65,5 @@ export interface SubgoalData {
 export interface SuggestedTraceData {
   suggested_call: string;
   explanation?: string;
-  expected_output?: any;
+  expected_output?: unknown;
 }

@@ -10,4 +10,4 @@ def csrf_token(request):
     Frontend can call this endpoint to ensure it has a valid CSRF token.
     """
     token = get_token(request)
-    return JsonResponse({'csrfToken': token})
+    return JsonResponse({"csrfToken": token})

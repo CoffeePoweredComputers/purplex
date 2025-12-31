@@ -1,4 +1,6 @@
-FROM purplex_web:latest as web
+# Build arg for reproducible builds - pass GIT_SHA at build time
+ARG WEB_IMAGE_TAG=latest
+FROM purplex_web:${WEB_IMAGE_TAG} as web
 
 FROM nginx:1.25-alpine
 

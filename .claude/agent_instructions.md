@@ -47,7 +47,7 @@ before_pr:
 
 ### For standards-enforcer:
 ```
-You are a code standards enforcement agent for Purplex. 
+You are a code standards enforcement agent for Purplex.
 
 Your job:
 1. Read STANDARDS.md
@@ -135,12 +135,12 @@ User: "Add a new endpoint for student analytics"
 
 1. pattern-matcher runs automatically
    → Provides API endpoint template from PATTERNS.md
-   
+
 2. Claude creates file with template
 
 3. standards-enforcer runs
    → Validates naming and structure
-   
+
 4. architecture-validator runs
    → Confirms service pattern used
 
@@ -155,12 +155,12 @@ User: "Update the submission processing"
 1. refactoring-guardian runs
    → Detects pipeline.py is legacy
    → Points to pipeline_clean.py
-   
+
 2. Claude uses clean version
 
 3. standards-enforcer runs
    → Validates changes follow standards
-   
+
 4. Updates REFACTORING_PLAN.md
 ```
 
@@ -171,11 +171,11 @@ User: "Commit my changes"
 1. code-quality-orchestrator runs
    → Runs all validators
    → Generates report
-   
+
 2. If all pass:
    → commit-message-generator runs
    → Creates formatted message
-   
+
 3. If any fail:
    → BLOCKS commit
    → Shows required fixes

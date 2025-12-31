@@ -7,7 +7,7 @@
  * Check if a value is truly missing (null or undefined)
  * as opposed to being a legitimate falsy value like false, 0, "", [], {}
  */
-export function isMissingValue(value: any): boolean {
+export function isMissingValue(value: unknown): boolean {
   return value === null || value === undefined;
 }
 
@@ -15,7 +15,7 @@ export function isMissingValue(value: any): boolean {
  * Format a test value as a Python literal for display
  * Shows values exactly as they would appear in Python code
  */
-export function formatTestValueAsPython(value: any): string {
+export function formatTestValueAsPython(value: unknown): string {
   // Handle truly missing values
   if (value === null || value === undefined) {
     return 'None';
@@ -59,13 +59,14 @@ export function formatTestValueAsPython(value: any): string {
 
   // Handle objects/dicts
   if (typeof value === 'object' && value !== null) {
-    const keys = Object.keys(value);
+    const obj = value as Record<string, unknown>;
+    const keys = Object.keys(obj);
     if (keys.length === 0) {return '{}';}
 
     // Format as Python dict with single-quoted keys
     const pairs = keys.map(key => {
       const formattedKey = formatTestValueAsPython(key);
-      const formattedValue = formatTestValueAsPython(value[key]);
+      const formattedValue = formatTestValueAsPython(obj[key]);
       return `${formattedKey}: ${formattedValue}`;
     });
     return `{${pairs.join(', ')}}`;
@@ -80,7 +81,7 @@ export function formatTestValueAsPython(value: any): string {
  * and making them visually clear to students
  * Now uses Python formatting for consistency with Python problems
  */
-export function formatTestValue(value: any): string {
+export function formatTestValue(value: unknown): string {
   return formatTestValueAsPython(value);
 }
 
@@ -88,7 +89,7 @@ export function formatTestValue(value: any): string {
  * Get a semantic label for the value type to help students understand
  * what their function returned
  */
-export function getValueTypeLabel(value: any): string {
+export function getValueTypeLabel(value: unknown): string {
   if (isMissingValue(value)) {return 'none';}
   if (value === false || value === true) {return 'boolean';}
   if (value === '') {return 'empty-string';}
@@ -103,34 +104,9 @@ export function getValueTypeLabel(value: any): string {
 }
 
 /**
- * Check if the actual output matches the expected output,
- * handling type conversions appropriately for educational contexts
- */
-export function testValuesMatch(actual: any, expected: any): boolean {
-  // First try strict equality
-  if (actual === expected) {return true;}
-
-  // Handle null/undefined cases
-  if (isMissingValue(actual) && isMissingValue(expected)) {return true;}
-  if (isMissingValue(actual) || isMissingValue(expected)) {return false;}
-
-  // For objects and arrays, use JSON comparison
-  try {
-    if (typeof actual === 'object' && typeof expected === 'object') {
-      return JSON.stringify(actual) === JSON.stringify(expected);
-    }
-  } catch {
-    // If JSON stringify fails, fall back to string comparison
-  }
-
-  // Try string comparison as fallback
-  return String(actual) === String(expected);
-}
-
-/**
  * Get a CSS class for styling based on value type
  */
-export function getValueDisplayClass(value: any): string {
+export function getValueDisplayClass(value: unknown): string {
   const type = getValueTypeLabel(value);
   return `test-value-${type}`;
 }

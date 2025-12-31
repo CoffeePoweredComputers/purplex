@@ -1,0 +1,83 @@
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+exclude = [
+    ".git",
+    ".venv",
+    "env",
+    "migrations",
+    "node_modules",
+    ".eggs",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "DJ",     # flake8-django
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B027",   # empty method in ABC without abstractmethod (intentional for optional hooks)
+    "UP038",  # isinstance(x, (A, B)) -> isinstance(x, A | B) - less readable
+    "DJ012",  # Django model method ordering - existing codebase uses different convention
+    "DJ001",  # null=True on string fields - existing data model, changing risks data loss
+    "B017",   # assertRaises(Exception) - acceptable in test code
+    "C403",   # list(set([...])) - minor optimization
+    "B904",   # raise ... from err - existing codebase pattern, fix incrementally
+    "B018",   # useless expression - used intentionally in vulture_whitelist.py
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"*/migrations/*" = ["E501"]
+"purplex/settings/*.py" = ["F403", "F405", "E402"]
+"purplex/celery_simple.py" = ["E402"]
+"purplex/gevent_setup.py" = ["E402"]
+"purplex/wsgi.py" = ["E402"]
+"purplex/problems_app/tasks/pipeline.py" = ["E402"]
+"purplex/users_app/services/authentication_service.py" = ["E402"]
+"purplex/problems_app/handlers/__init__.py" = ["E402"]
+"purplex/problems_app/views/submission_views.py" = ["B023"]  # Immediately-invoked lambdas
+
+[tool.ruff.lint.isort]
+known-first-party = ["purplex"]
+
+[tool.mypy]
+python_version = "3.11"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+ignore_missing_imports = true
+exclude = ["migrations", "tests"]
+
+[tool.django-stubs]
+django_settings_module = "purplex.settings"
+
+[tool.vulture]
+min_confidence = 80
+paths = ["purplex/"]
+exclude = [
+    "migrations/",
+    "tests/",
+    "env/",
+    "**/node_modules/",
+]
+ignore_decorators = [
+    "@receiver",
+    "@pytest.fixture",
+    "@pytest.mark.*",
+    "@app.route",
+    "@api_view",
+]
+ignore_names = [
+    "_*",           # Private/unused parameters (convention)
+    "visit_*",      # Visitor pattern methods
+    "do_*",         # Command pattern methods
+    "test_*",       # Test methods (pytest discovers these)
+]
