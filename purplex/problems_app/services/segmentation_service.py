@@ -22,57 +22,49 @@ class SegmentationService:
         # Determine which provider to use
         self.provider = getattr(settings, "AI_PROVIDER", "openai").lower()
 
-        # Initialize OpenAI
-        self.openai_api_key = getattr(settings, "OPENAI_API_KEY", None)
-        self.openai_model = getattr(settings, "GPT_MODEL", "gpt-4o-mini")
-        if self.openai_api_key:
-            import openai
+        # Only initialize the client for the selected provider (avoid unnecessary imports/connections)
+        self.client = None
+        self.model_name = None
 
-            self.openai_client = openai.OpenAI(api_key=self.openai_api_key)
-        else:
-            self.openai_client = None
+        if self.provider == "llama":
+            # Initialize Llama only
+            llama_api_key = getattr(settings, "LLAMA_API_KEY", None)
+            llama_model = getattr(
+                settings, "LLAMA_MODEL", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+            )
+            if llama_api_key:
+                try:
+                    from llama_api_client import LlamaAPIClient
 
-        # Initialize Llama
-        self.llama_api_key = getattr(settings, "LLAMA_API_KEY", None)
-        self.llama_model = getattr(
-            settings, "LLAMA_MODEL", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-        )
-        if self.llama_api_key:
-            try:
-                from llama_api_client import LlamaAPIClient
+                    self.client = LlamaAPIClient(api_key=llama_api_key)
+                    self.model_name = llama_model
+                    logger.info(
+                        f"✅ Using Llama API provider for segmentation (model: {llama_model})"
+                    )
+                except ImportError:
+                    logger.warning(
+                        "llama-api-client not installed, Llama provider unavailable"
+                    )
+            else:
+                logger.warning("⚠️  LLAMA_API_KEY not configured but AI_PROVIDER=llama")
 
-                self.llama_client = LlamaAPIClient(api_key=self.llama_api_key)
-            except ImportError:
-                logger.warning(
-                    "llama-api-client not installed, Llama provider unavailable"
+        elif self.provider == "openai":
+            # Initialize OpenAI only
+            openai_api_key = getattr(settings, "OPENAI_API_KEY", None)
+            openai_model = getattr(settings, "GPT_MODEL", "gpt-4o-mini")
+            if openai_api_key:
+                import openai
+
+                self.client = openai.OpenAI(api_key=openai_api_key)
+                self.model_name = openai_model
+                logger.info(
+                    f"✅ Using OpenAI API provider for segmentation (model: {openai_model})"
                 )
-                self.llama_client = None
-        else:
-            self.llama_client = None
+            else:
+                logger.warning("⚠️  OPENAI_API_KEY not configured but AI_PROVIDER=openai")
 
-        # Select active client based on provider setting
-        self._select_client()
-
-    def _select_client(self):
-        """Select which client to use based on configuration"""
-        if self.provider == "llama" and self.llama_client:
-            self.client = self.llama_client
-            self.model_name = self.llama_model
-            logger.info(
-                f"✅ Using Llama API provider for segmentation (model: {self.llama_model})"
-            )
-        elif self.provider == "openai" and self.openai_client:
-            self.client = self.openai_client
-            self.model_name = self.openai_model
-            logger.info(
-                f"✅ Using OpenAI API provider for segmentation (model: {self.openai_model})"
-            )
         else:
-            self.client = None
-            self.model_name = None
-            logger.warning(
-                f"⚠️  No valid AI provider configured for segmentation (provider={self.provider})"
-            )
+            logger.warning(f"⚠️  Unknown AI_PROVIDER: {self.provider}")
 
     def _call_ai(self, messages, max_tokens=1500, temperature=0.3):
         """
@@ -87,6 +79,7 @@ class SegmentationService:
                     model=self.model_name,
                     messages=messages,
                     temperature=temperature,
+                    max_completion_tokens=max_tokens,
                     response_format={
                         "type": "json_schema",
                         "json_schema": {

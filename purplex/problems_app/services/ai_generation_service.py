@@ -24,54 +24,45 @@ class AITestGenerationService:
         # Determine which provider to use
         self.provider = getattr(settings, "AI_PROVIDER", "openai").lower()
 
-        # Initialize OpenAI (sync client only)
-        self.openai_api_key = getattr(settings, "OPENAI_API_KEY", None)
-        self.openai_model = getattr(settings, "GPT_MODEL", "gpt-4o-mini")
-        if self.openai_api_key:
-            import openai
+        # Only initialize the client for the selected provider (avoid unnecessary imports/connections)
+        self.client = None
+        self.model_name = None
 
-            self.openai_client = openai.OpenAI(api_key=self.openai_api_key)
-        else:
-            self.openai_client = None
-
-        # Initialize Llama (sync client only)
-        self.llama_api_key = getattr(settings, "LLAMA_API_KEY", None)
-        self.llama_model = getattr(
-            settings, "LLAMA_MODEL", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-        )
-        if self.llama_api_key:
-            try:
-                from llama_api_client import LlamaAPIClient
-
-                self.llama_client = LlamaAPIClient(api_key=self.llama_api_key)
-            except ImportError:
-                logger.warning(
-                    "llama-api-client not installed, Llama provider unavailable"
-                )
-                self.llama_client = None
-        else:
-            self.llama_client = None
-
-        # Select active client based on provider setting
-        self._select_clients()
-
-    def _select_clients(self):
-        """Select which client to use based on configuration"""
-        if self.provider == "llama" and self.llama_client:
-            self.client = self.llama_client
-            self.model_name = self.llama_model
-            logger.info(f"✅ Using Llama API provider (model: {self.llama_model})")
-        elif self.provider == "openai" and self.openai_client:
-            self.client = self.openai_client
-            self.model_name = self.openai_model
-            logger.info(f"✅ Using OpenAI API provider (model: {self.openai_model})")
-        else:
-            # Fallback or no provider available
-            self.client = None
-            self.model_name = None
-            logger.warning(
-                f"⚠️  No valid AI provider configured (provider={self.provider})"
+        if self.provider == "llama":
+            # Initialize Llama only
+            llama_api_key = getattr(settings, "LLAMA_API_KEY", None)
+            llama_model = getattr(
+                settings, "LLAMA_MODEL", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
             )
+            if llama_api_key:
+                try:
+                    from llama_api_client import LlamaAPIClient
+
+                    self.client = LlamaAPIClient(api_key=llama_api_key)
+                    self.model_name = llama_model
+                    logger.info(f"✅ Using Llama API provider (model: {llama_model})")
+                except ImportError:
+                    logger.warning(
+                        "llama-api-client not installed, Llama provider unavailable"
+                    )
+            else:
+                logger.warning("⚠️  LLAMA_API_KEY not configured but AI_PROVIDER=llama")
+
+        elif self.provider == "openai":
+            # Initialize OpenAI only
+            openai_api_key = getattr(settings, "OPENAI_API_KEY", None)
+            openai_model = getattr(settings, "GPT_MODEL", "gpt-4o-mini")
+            if openai_api_key:
+                import openai
+
+                self.client = openai.OpenAI(api_key=openai_api_key)
+                self.model_name = openai_model
+                logger.info(f"✅ Using OpenAI API provider (model: {openai_model})")
+            else:
+                logger.warning("⚠️  OPENAI_API_KEY not configured but AI_PROVIDER=openai")
+
+        else:
+            logger.warning(f"⚠️  Unknown AI_PROVIDER: {self.provider}")
 
     def _call_ai(self, messages, max_tokens=2000, temperature=0):
         """
@@ -83,9 +74,12 @@ class AITestGenerationService:
         """
         try:
             if self.provider == "llama":
-                # Llama API call (max_tokens not supported in llama-api-client 0.1.0)
+                # Llama API call (uses max_completion_tokens, not max_tokens)
                 response = self.client.chat.completions.create(
-                    model=self.model_name, messages=messages, temperature=temperature
+                    model=self.model_name,
+                    messages=messages,
+                    temperature=temperature,
+                    max_completion_tokens=max_tokens,
                 )
                 content = response.completion_message.content.text
                 logger.info(f"🦙 Llama API call successful (model: {self.model_name})")
@@ -177,7 +171,8 @@ def {problem.function_name}(...):
             ]
 
             # Make synchronous API call - gevent yields during I/O automatically
-            content = self._call_ai(messages=messages, max_tokens=2000, temperature=0)
+            # Use 4000 tokens to allow complex algorithms (~40 lines per variation)
+            content = self._call_ai(messages=messages, max_tokens=4000, temperature=0)
 
             # Extract code blocks
             import re
@@ -198,9 +193,27 @@ def {problem.function_name}(...):
                 if f"def {problem.function_name}" in code:
                     valid_variations.append(code.strip())
 
+            # Require exactly 5 variations for a successful generation
+            if len(valid_variations) < 5:
+                logger.warning(
+                    f"Insufficient variations generated: {len(valid_variations)}/5. "
+                    f"User prompt length: {len(user_prompt)} chars"
+                )
+                return {
+                    "success": False,
+                    "error": (
+                        f"Could not generate enough code variations from your description "
+                        f"({len(valid_variations)}/5 generated). Please try again with a more "
+                        "detailed explanation of the code's behavior."
+                    ),
+                    "variations": valid_variations,
+                    "model": self.model_name,
+                    "provider": self.provider,
+                }
+
             return {
                 "success": True,
-                "variations": valid_variations[:5],  # Return up to 5 variations
+                "variations": valid_variations[:5],
                 "error": None,
                 "model": self.model_name,
                 "provider": self.provider,

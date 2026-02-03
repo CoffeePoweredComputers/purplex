@@ -11,7 +11,7 @@ export const BRAND_TRANSLITERATIONS: Record<string, string> = {
   bn: 'পার্পলেক্স',     // Bengali
   te: 'పర్ప్లెక్స్',   // Telugu
   pa: 'ਪਰਪਲੈਕਸ',      // Gurmukhi
-  mr: 'पूरप्ळेक्स',     // Devanagari (Marathi-specific ळ)
+  mr: 'पर्प्लेक्स',     // Devanagari (Marathi)
   kn: 'ಪರ್ಪ್ಲೆಕ್ಸ್',   // Kannada
   ta: 'பர்ப்லெக்ஸ்',   // Tamil
   ja: 'パープレックス',   // Katakana
@@ -43,7 +43,7 @@ export const SUPPORTED_LANGUAGES: LanguageInfo[] = [
   { code: 'bn', name: 'Bengali', native: 'বাংলা', brand: 'পার্পলেক্স' },
   { code: 'te', name: 'Telugu', native: 'తెలుగు', brand: 'పర్ప్లెక్స్' },
   { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', brand: 'ਪਰਪਲੈਕਸ' },
-  { code: 'mr', name: 'Marathi', native: 'मराठी', brand: 'पूरप्ळेक्स' },
+  { code: 'mr', name: 'Marathi', native: 'मराठी', brand: 'पर्प्लेक्स' },
   { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', brand: 'ಪರ್ಪ್ಲೆಕ್ಸ್' },
   { code: 'ta', name: 'Tamil', native: 'தமிழ்', brand: 'பர்ப்லெக்ஸ்' },
   { code: 'ja', name: 'Japanese', native: '日本語', brand: 'パープレックス' },

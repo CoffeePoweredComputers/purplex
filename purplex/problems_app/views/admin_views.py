@@ -69,20 +69,29 @@ class AdminProblemListView(APIView):
 
         # Route to correct serializer based on problem_type
         problem_type = data.get("problem_type", "eipl")
-        if problem_type == "mcq":
-            serializer = AdminMcqProblemSerializer(data=data)
-        elif problem_type == "probeable_code":
-            serializer = AdminProbeableCodeProblemSerializer(data=data)
-        elif problem_type == "refute":
-            serializer = AdminRefuteProblemSerializer(data=data)
-        elif problem_type == "prompt":
-            serializer = AdminPromptProblemSerializer(data=data)
-        elif problem_type == "debug_fix":
-            serializer = AdminDebugFixProblemSerializer(data=data)
-        elif problem_type == "probeable_spec":
-            serializer = AdminProbeableSpecProblemSerializer(data=data)
-        else:
-            serializer = AdminProblemSerializer(data=data)
+
+        # Map problem types to their serializers - explicit, no silent fallback
+        PROBLEM_TYPE_SERIALIZERS = {
+            "eipl": AdminProblemSerializer,
+            "mcq": AdminMcqProblemSerializer,
+            "probeable_code": AdminProbeableCodeProblemSerializer,
+            "refute": AdminRefuteProblemSerializer,
+            "prompt": AdminPromptProblemSerializer,
+            "debug_fix": AdminDebugFixProblemSerializer,
+            "probeable_spec": AdminProbeableSpecProblemSerializer,
+        }
+
+        if problem_type not in PROBLEM_TYPE_SERIALIZERS:
+            valid_types = ", ".join(sorted(PROBLEM_TYPE_SERIALIZERS.keys()))
+            return Response(
+                {
+                    "error": f"Invalid problem_type: '{problem_type}'",
+                    "details": f"Valid types are: {valid_types}",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = PROBLEM_TYPE_SERIALIZERS[problem_type](data=data)
 
         if serializer.is_valid():
             try:
@@ -96,22 +105,8 @@ class AdminProblemListView(APIView):
                         )
 
                     # Return the serialized problem with correct serializer
-                    if problem_type == "mcq":
-                        response_serializer = McqProblemSerializer(problem)
-                    elif problem_type == "probeable_code":
-                        response_serializer = ProbeableCodeProblemSerializer(problem)
-                    elif problem_type == "refute":
-                        response_serializer = RefuteProblemSerializer(problem)
-                    elif problem_type == "prompt":
-                        response_serializer = AdminPromptProblemSerializer(problem)
-                    elif problem_type == "debug_fix":
-                        response_serializer = AdminDebugFixProblemSerializer(problem)
-                    elif problem_type == "probeable_spec":
-                        response_serializer = AdminProbeableSpecProblemSerializer(
-                            problem
-                        )
-                    else:
-                        response_serializer = AdminProblemSerializer(problem)
+                    # Use same mapping - already validated above
+                    response_serializer = PROBLEM_TYPE_SERIALIZERS[problem_type](problem)
                     return Response(
                         response_serializer.data, status=status.HTTP_201_CREATED
                     )

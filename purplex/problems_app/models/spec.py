@@ -154,8 +154,8 @@ class PromptProblem(SpecProblem):
 
     # Image display (Prompt-specific fields)
     image_url = models.URLField(help_text="URL of the problem image")
-    image_alt_text = models.CharField(
-        max_length=500, blank=True, help_text="Alt text for accessibility"
+    image_alt_text = models.TextField(
+        blank=True, help_text="Alt text for accessibility (up to 1500 characters)"
     )
 
     class Meta:

@@ -9,6 +9,8 @@ django-cors-headers==4.4.0
 django-redis==5.4.0
 django-ratelimit==4.1.0
 django-csp==3.8  # Content Security Policy headers
+django-polymorphic==3.1.0  # Polymorphic model inheritance for Problem types
+django-rest-polymorphic==0.1.10  # DRF serializer support for polymorphic models
 
 # Database
 psycopg2-binary==2.9.9
@@ -27,7 +29,7 @@ django-celery-beat==2.7.0
 # External Services
 openai==1.40.6
 firebase-admin==6.5.0
-llama-api-client==0.1.0
+llama-api-client>=0.6.0  # Must be >=0.6.0 for httpx 0.28+ compatibility
 
 # HTTP & Networking
 # SECURITY: Updated for CVE-2024-47081

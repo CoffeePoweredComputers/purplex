@@ -180,6 +180,9 @@ export interface ProblemDetailed extends BaseProblem {
   grading_mode?: 'deterministic' | 'llm' | 'manual';
   allow_multiple?: boolean;
   shuffle_options?: boolean;
+  // Prompt-specific fields (present when problem_type is 'prompt')
+  image_url?: string;
+  image_alt_text?: string;
 }
 
 export interface ProblemCreateRequest {

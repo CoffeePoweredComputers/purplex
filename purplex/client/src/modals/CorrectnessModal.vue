@@ -185,8 +185,8 @@
                           <span class="value-label">Got</span>
                           <code
                             class="value-content"
-                            :class="{ mismatch: !test.passed }"
-                          >{{ test.actual ?? test.expected }}</code>
+                            :class="{ mismatch: !test.passed, 'is-error': test.error }"
+                          >{{ test.error || (test.actual ?? test.expected) }}</code>
                         </span>
                       </div>
                     </div>
@@ -212,6 +212,7 @@ interface Test {
   call: string
   expected: string
   actual?: string
+  error?: string
   passed: boolean
 }
 
@@ -872,6 +873,10 @@ onMounted(() => {
 .value-content.mismatch {
   color: var(--color-error);
   background: rgba(220, 53, 69, 0.2);
+}
+
+.value-content.is-error {
+  font-style: italic;
 }
 
 /* Responsive */

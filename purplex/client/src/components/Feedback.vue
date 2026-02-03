@@ -433,7 +433,7 @@ export default defineComponent({
     variants(): Variant[] {
       return this.codeResults.map((code, index) => {
         const testResult = this.testResults[index]
-        let tests: Array<{ call: string; expected: string; actual?: string; passed: boolean }> = []
+        let tests: Array<{ call: string; expected: string; actual?: string; error?: string; passed: boolean }> = []
         let testsPassed = 0
         let testsTotal = 0
 
@@ -446,6 +446,7 @@ export default defineComponent({
             call: t.function_call || '',
             expected: formatTestValue(t.expected_output),
             actual: t.actual_output !== undefined ? formatTestValue(t.actual_output) : undefined,
+            error: t.error || t.error_message,
             passed: t.isSuccessful ?? t.pass ?? false
           }))
         }

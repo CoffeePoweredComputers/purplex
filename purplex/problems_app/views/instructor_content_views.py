@@ -19,17 +19,23 @@ from purplex.users_app.permissions import (
 
 from ..models import (
     CourseProblemSet,
+    DebugFixProblem,
     McqProblem,
     ProbeableCodeProblem,
+    ProbeableSpecProblem,
     ProblemSet,
+    PromptProblem,
     RefuteProblem,
 )
 from ..repositories import CourseRepository
 from ..serializers import (
+    AdminDebugFixProblemSerializer,
     AdminMcqProblemSerializer,
     AdminProbeableCodeProblemSerializer,
+    AdminProbeableSpecProblemSerializer,
     AdminProblemSerializer,
     AdminProblemSetSerializer,
+    AdminPromptProblemSerializer,
     AdminRefuteProblemSerializer,
     CourseCreateUpdateSerializer,
     CourseDetailSerializer,
@@ -45,8 +51,37 @@ from ..services.instructor_content_service import InstructorContentService
 logger = logging.getLogger(__name__)
 
 
+# Valid problem types - used for validation
+VALID_PROBLEM_TYPES = frozenset([
+    "eipl", "mcq", "probeable_code", "refute",
+    "prompt", "debug_fix", "probeable_spec"
+])
+
+
+class InvalidProblemTypeError(ValueError):
+    """Raised when an invalid problem_type is provided."""
+
+    def __init__(self, problem_type: str):
+        self.problem_type = problem_type
+        valid_types = ", ".join(sorted(VALID_PROBLEM_TYPES))
+        super().__init__(
+            f"Invalid problem_type: '{problem_type}'. Valid types are: {valid_types}"
+        )
+
+
 def get_serializer_for_problem(problem, for_write=False):
-    """Get the appropriate serializer class for a problem type."""
+    """Get the appropriate serializer class for a problem instance.
+
+    For types with student serializers (MCQ, Refute, ProbeableCode):
+      - Returns student serializer for read, admin for write
+    For types with only admin serializers (Prompt, DebugFix, ProbeableSpec):
+      - Returns admin serializer for both read and write
+
+    Raises:
+        InvalidProblemTypeError: If problem is not a recognized type
+    """
+    from ..models import EiplProblem  # Import here to avoid circular imports
+
     if isinstance(problem, McqProblem):
         return AdminMcqProblemSerializer if for_write else McqProblemSerializer
     elif isinstance(problem, ProbeableCodeProblem):
@@ -57,13 +92,34 @@ def get_serializer_for_problem(problem, for_write=False):
         )
     elif isinstance(problem, RefuteProblem):
         return AdminRefuteProblemSerializer if for_write else RefuteProblemSerializer
-    else:
+    # Types with only admin serializers - use admin for both read and write
+    elif isinstance(problem, PromptProblem):
+        return AdminPromptProblemSerializer
+    elif isinstance(problem, DebugFixProblem):
+        return AdminDebugFixProblemSerializer
+    elif isinstance(problem, ProbeableSpecProblem):
+        return AdminProbeableSpecProblemSerializer
+    elif isinstance(problem, EiplProblem):
         return AdminProblemSerializer
+    else:
+        # Unknown problem type - raise error instead of silent fallback
+        raise InvalidProblemTypeError(type(problem).__name__)
 
 
 def get_serializer_for_problem_type(problem_type, for_write=False):
-    """Get the appropriate serializer class for a problem type string."""
-    if problem_type == "mcq":
+    """Get the appropriate serializer class for a problem type string.
+
+    For types with student serializers (mcq, refute, probeable_code):
+      - Returns student serializer for read, admin for write
+    For types with only admin serializers (prompt, debug_fix, probeable_spec):
+      - Returns admin serializer for both read and write
+
+    Raises:
+        InvalidProblemTypeError: If problem_type is not recognized
+    """
+    if problem_type == "eipl":
+        return AdminProblemSerializer
+    elif problem_type == "mcq":
         return AdminMcqProblemSerializer if for_write else McqProblemSerializer
     elif problem_type == "probeable_code":
         return (
@@ -73,8 +129,16 @@ def get_serializer_for_problem_type(problem_type, for_write=False):
         )
     elif problem_type == "refute":
         return AdminRefuteProblemSerializer if for_write else RefuteProblemSerializer
+    # Types with only admin serializers - use admin for both read and write
+    elif problem_type == "prompt":
+        return AdminPromptProblemSerializer
+    elif problem_type == "debug_fix":
+        return AdminDebugFixProblemSerializer
+    elif problem_type == "probeable_spec":
+        return AdminProbeableSpecProblemSerializer
     else:
-        return AdminProblemSerializer
+        # Unknown problem type - raise error instead of silent fallback
+        raise InvalidProblemTypeError(problem_type)
 
 
 class InstructorCourseCreateView(APIView):
@@ -109,7 +173,15 @@ class InstructorProblemListView(APIView):
         data, problem_set_slugs = AdminProblemService.prepare_problem_data(request.data)
         problem_type = data.get("problem_type", "eipl")
 
-        SerializerClass = get_serializer_for_problem_type(problem_type, for_write=True)
+        # Validate problem_type before proceeding
+        try:
+            SerializerClass = get_serializer_for_problem_type(problem_type, for_write=True)
+        except InvalidProblemTypeError as e:
+            return Response(
+                {"error": str(e), "details": f"Received problem_type: '{problem_type}'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = SerializerClass(data=data)
 
         if serializer.is_valid():
