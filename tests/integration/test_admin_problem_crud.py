@@ -64,9 +64,9 @@ class TestEiplProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
         assert response.data["function_name"] == "add"
         assert response.data["function_signature"] == "def add(a: int, b: int) -> int"
 
@@ -89,9 +89,9 @@ class TestEiplProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
         problem = EiplProblem.objects.get(title="Regression EiPL Minimal")
         assert problem.function_name == "foo"
 
@@ -129,9 +129,9 @@ class TestPromptProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = PromptProblem.objects.get(title="Regression Prompt Image")
         assert problem.image_url == "https://example.com/regression-test.png"
@@ -175,9 +175,9 @@ class TestDebugFixProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = DebugFixProblem.objects.get(title="Regression DebugFix")
         assert "return a - b" in problem.buggy_code
@@ -217,9 +217,9 @@ class TestMcqProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = McqProblem.objects.get(title="Regression MCQ")
         assert problem.question_text == "What is 2 + 2?"
@@ -258,9 +258,9 @@ class TestRefuteProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = RefuteProblem.objects.get(title="Regression Refute")
         assert problem.claim_text == "The function always returns a positive number"
@@ -301,9 +301,9 @@ class TestProbeableCodeProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = ProbeableCodeProblem.objects.get(title="Regression ProbeableCode")
         assert problem.probe_mode == "cooldown"
@@ -347,9 +347,9 @@ class TestProbeableSpecProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = ProbeableSpecProblem.objects.get(title="Regression ProbeableSpec")
         assert problem.probe_mode == "explore"

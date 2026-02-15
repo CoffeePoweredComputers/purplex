@@ -179,7 +179,7 @@ class PromptHandler(ActivityHandler):
                     var_results.append(
                         {
                             "isSuccessful": is_passed,
-                            "function_call": f"{problem.function_name}(test_case_{i+1})",
+                            "function_call": f"{problem.function_name}(test_case_{i + 1})",
                             "expected_output": "Test details not available",
                             "actual_output": "Passed" if is_passed else "Failed",
                             "error": (

@@ -43,9 +43,9 @@ class TestHandlerRegistryConsistency:
     def test_all_expected_types_are_registered(self):
         """All expected problem types should have registered handlers."""
         for type_key in EXPECTED_PROBLEM_TYPES:
-            assert is_registered(
-                type_key
-            ), f"Expected problem type '{type_key}' has no registered handler"
+            assert is_registered(type_key), (
+                f"Expected problem type '{type_key}' has no registered handler"
+            )
 
     def test_no_unexpected_handlers_registered(self):
         """All registered handlers should be in expected types list."""
@@ -76,12 +76,12 @@ class TestHandlerSubmitMethod:
 
         for handler_type in registered_types:
             handler = get_handler(handler_type)
-            assert hasattr(
-                handler, "submit"
-            ), f"Handler '{handler_type}' has no submit() method"
-            assert callable(
-                handler.submit
-            ), f"Handler '{handler_type}' submit is not callable"
+            assert hasattr(handler, "submit"), (
+                f"Handler '{handler_type}' has no submit() method"
+            )
+            assert callable(handler.submit), (
+                f"Handler '{handler_type}' submit is not callable"
+            )
 
     def test_submit_method_signature(self):
         """All handler submit() methods should have consistent signature."""
@@ -97,9 +97,9 @@ class TestHandlerSubmitMethod:
             # Expected params: self, submission, raw_input, problem, context
             expected_params = ["submission", "raw_input", "problem", "context"]
             for param in expected_params:
-                assert (
-                    param in params
-                ), f"Handler '{handler_type}' submit() missing parameter '{param}'"
+                assert param in params, (
+                    f"Handler '{handler_type}' submit() missing parameter '{param}'"
+                )
 
 
 class TestHandlerTypeNames:
@@ -111,9 +111,9 @@ class TestHandlerTypeNames:
 
         for type_key in registered_types:
             handler = get_handler(type_key)
-            assert (
-                handler.type_name == type_key
-            ), f"Handler registered as '{type_key}' has type_name '{handler.type_name}'"
+            assert handler.type_name == type_key, (
+                f"Handler registered as '{type_key}' has type_name '{handler.type_name}'"
+            )
 
 
 class TestHandlerConfigConsistency:
@@ -167,12 +167,12 @@ class TestHandlerConfigConsistency:
             config = handler.get_admin_config()
 
             # Should have required structure
-            assert (
-                "hidden_sections" in config
-            ), f"{type_key} admin config missing 'hidden_sections'"
-            assert (
-                "required_fields" in config
-            ), f"{type_key} admin config missing 'required_fields'"
+            assert "hidden_sections" in config, (
+                f"{type_key} admin config missing 'hidden_sections'"
+            )
+            assert "required_fields" in config, (
+                f"{type_key} admin config missing 'required_fields'"
+            )
             assert "supports" in config, f"{type_key} admin config missing 'supports'"
 
     def test_feedback_config_has_show_segmentation(self, all_handlers):
@@ -204,9 +204,9 @@ class TestHandlerConfigConsistency:
 
             config = handler.get_problem_config(mock_problem)
 
-            assert (
-                "show_segmentation" in config["feedback"]
-            ), f"{type_key} feedback config missing 'show_segmentation'"
+            assert "show_segmentation" in config["feedback"], (
+                f"{type_key} feedback config missing 'show_segmentation'"
+            )
 
     def test_admin_config_supports_structure(self, all_handlers):
         """All handler admin configs should have consistent supports structure."""
@@ -217,9 +217,9 @@ class TestHandlerConfigConsistency:
             supports = config["supports"]
 
             for key in expected_keys:
-                assert (
-                    key in supports
-                ), f"{type_key} admin config 'supports' missing '{key}'"
-                assert isinstance(
-                    supports[key], bool
-                ), f"{type_key} admin config 'supports.{key}' should be boolean"
+                assert key in supports, (
+                    f"{type_key} admin config 'supports' missing '{key}'"
+                )
+                assert isinstance(supports[key], bool), (
+                    f"{type_key} admin config 'supports.{key}' should be boolean"
+                )

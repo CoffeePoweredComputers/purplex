@@ -257,7 +257,7 @@ class ProgressHistoryExportView(APIView):
         # Create response
         output.seek(0)
         response = HttpResponse(output.getvalue(), content_type="text/csv")
-        filename = f'progress_history_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        filename = f"progress_history_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
         return response

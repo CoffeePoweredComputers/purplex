@@ -30,7 +30,9 @@ class SegmentationService:
             # Initialize Llama only
             llama_api_key = getattr(settings, "LLAMA_API_KEY", None)
             llama_model = getattr(
-                settings, "LLAMA_MODEL", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+                settings,
+                "LLAMA_MODEL",
+                "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
             )
             if llama_api_key:
                 try:
@@ -61,7 +63,9 @@ class SegmentationService:
                     f"✅ Using OpenAI API provider for segmentation (model: {openai_model})"
                 )
             else:
-                logger.warning("⚠️  OPENAI_API_KEY not configured but AI_PROVIDER=openai")
+                logger.warning(
+                    "⚠️  OPENAI_API_KEY not configured but AI_PROVIDER=openai"
+                )
 
         else:
             logger.warning(f"⚠️  Unknown AI_PROVIDER: {self.provider}")
@@ -352,7 +356,7 @@ CRITICAL: Each line number must appear in at most ONE segment. Overlapping line 
         """Format example segments for the prompt"""
         formatted = []
         for i, (segment, lines) in enumerate(zip(segments, code_lines, strict=False)):
-            formatted.append(f'  {i+1}. "{segment}" -> lines {lines}')
+            formatted.append(f'  {i + 1}. "{segment}" -> lines {lines}')
         return "\n".join(formatted)
 
     def _validate_segment_is_verbatim(
@@ -505,7 +509,7 @@ CRITICAL: Each line number must appear in at most ONE segment. Overlapping line 
             level = "relational"
             feedback = custom_feedback.get(
                 "relational",
-                f'Excellent! Your {segment_count} segment{"s" if segment_count > 1 else ""} shows high-level understanding.',
+                f"Excellent! Your {segment_count} segment{'s' if segment_count > 1 else ''} shows high-level understanding.",
             )
         else:
             level = "multi_structural"

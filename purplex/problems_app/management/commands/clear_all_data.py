@@ -141,44 +141,44 @@ class Command(BaseCommand):
         self.stdout.write("\n📊 Data that will be DELETED:")
 
         self.stdout.write("\n🔸 Submission Data:")
-        self.stdout.write(f'  • Submissions: {counts["submissions"]}')
-        self.stdout.write(f'  • Test Executions: {counts["test_executions"]}')
-        self.stdout.write(f'  • Hint Activations: {counts["hint_activations"]}')
-        self.stdout.write(f'  • Code Variations: {counts["code_variations"]}')
+        self.stdout.write(f"  • Submissions: {counts['submissions']}")
+        self.stdout.write(f"  • Test Executions: {counts['test_executions']}")
+        self.stdout.write(f"  • Hint Activations: {counts['hint_activations']}")
+        self.stdout.write(f"  • Code Variations: {counts['code_variations']}")
         self.stdout.write(
-            f'  • Segmentation Analyses: {counts["segmentation_analyses"]}'
+            f"  • Segmentation Analyses: {counts['segmentation_analyses']}"
         )
-        self.stdout.write(f'  • Submission Feedback: {counts["submission_feedback"]}')
+        self.stdout.write(f"  • Submission Feedback: {counts['submission_feedback']}")
 
         self.stdout.write("\n🔸 Progress Data:")
-        self.stdout.write(f'  • User Progress Records: {counts["user_progress"]}')
-        self.stdout.write(f'  • Problem Set Progress: {counts["problem_set_progress"]}')
-        self.stdout.write(f'  • Progress Snapshots: {counts["progress_snapshots"]}')
+        self.stdout.write(f"  • User Progress Records: {counts['user_progress']}")
+        self.stdout.write(f"  • Problem Set Progress: {counts['problem_set_progress']}")
+        self.stdout.write(f"  • Progress Snapshots: {counts['progress_snapshots']}")
 
         self.stdout.write("\n🔸 Course Data:")
-        self.stdout.write(f'  • Course Problem Sets: {counts["course_problem_sets"]}')
-        self.stdout.write(f'  • Course Enrollments: {counts["course_enrollments"]}')
-        self.stdout.write(f'  • Courses: {counts["courses"]}')
+        self.stdout.write(f"  • Course Problem Sets: {counts['course_problem_sets']}")
+        self.stdout.write(f"  • Course Enrollments: {counts['course_enrollments']}")
+        self.stdout.write(f"  • Courses: {counts['courses']}")
 
         self.stdout.write("\n🔸 Problem Data:")
-        self.stdout.write(f'  • Problem Hints: {counts["problem_hints"]}')
-        self.stdout.write(f'  • Test Cases: {counts["test_cases"]}')
+        self.stdout.write(f"  • Problem Hints: {counts['problem_hints']}")
+        self.stdout.write(f"  • Test Cases: {counts['test_cases']}")
         self.stdout.write(
-            f'  • Problem Set Memberships: {counts["problem_set_memberships"]}'
+            f"  • Problem Set Memberships: {counts['problem_set_memberships']}"
         )
-        self.stdout.write(f'  • Problem Sets: {counts["problem_sets"]}')
-        self.stdout.write(f'  • Problem Categories: {counts["problem_categories"]}')
-        self.stdout.write(f'  • Problems: {counts["problems"]}')
+        self.stdout.write(f"  • Problem Sets: {counts['problem_sets']}")
+        self.stdout.write(f"  • Problem Categories: {counts['problem_categories']}")
+        self.stdout.write(f"  • Problems: {counts['problems']}")
 
         self.stdout.write("\n🔸 User Data:")
-        self.stdout.write(f'  • User Profiles: {counts["user_profiles"]}')
+        self.stdout.write(f"  • User Profiles: {counts['user_profiles']}")
         if preserve_superuser:
             regular_users = counts["users"] - counts["superusers"]
             self.stdout.write(f"  • Regular Users: {regular_users}")
-            self.stdout.write(f'  • Superusers (PRESERVED): {counts["superusers"]}')
+            self.stdout.write(f"  • Superusers (PRESERVED): {counts['superusers']}")
         else:
             self.stdout.write(
-                f'  • All Users: {counts["users"]} (including {counts["superusers"]} superusers)'
+                f"  • All Users: {counts['users']} (including {counts['superusers']} superusers)"
             )
 
     def _clear_all_data(self, dry_run, preserve_superuser):
@@ -358,7 +358,7 @@ class Command(BaseCommand):
         total_deleted = sum(deleted_counts.values())
         self.stdout.write(f"\n📈 Total: {total_deleted} records deleted")
         self.stdout.write(
-            f'⏰ Completed at: {timezone.now().strftime("%Y-%m-%d %H:%M:%S")}'
+            f"⏰ Completed at: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}"
         )
         self.stdout.write(
             '\n💡 Tip: Run "python manage.py migrate" to ensure schema is intact'

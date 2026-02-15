@@ -83,11 +83,11 @@ class McqProblem(StaticProblem):
         # Validate option structure
         for i, opt in enumerate(self.options):
             if not isinstance(opt, dict):
-                raise ValidationError({"options": f"Option {i+1} must be an object"})
+                raise ValidationError({"options": f"Option {i + 1} must be an object"})
             if not opt.get("id"):
-                raise ValidationError({"options": f"Option {i+1} must have an id"})
+                raise ValidationError({"options": f"Option {i + 1} must have an id"})
             if not opt.get("text", "").strip():
-                raise ValidationError({"options": f"Option {i+1} must have text"})
+                raise ValidationError({"options": f"Option {i + 1} must have text"})
 
         # Validate correct answer count
         correct_count = sum(1 for opt in self.options if opt.get("is_correct"))

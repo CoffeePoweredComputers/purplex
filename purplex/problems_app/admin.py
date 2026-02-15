@@ -603,7 +603,7 @@ class UserProgressAdmin(admin.ModelAdmin):
         """Export selected progress records as CSV."""
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = (
-            f'attachment; filename=user_progress_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+            f"attachment; filename=user_progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         )
 
         writer = csv.writer(response)
@@ -730,7 +730,7 @@ class UserProblemSetProgressAdmin(admin.ModelAdmin):
 
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = (
-            f'attachment; filename=problem_set_progress_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+            f"attachment; filename=problem_set_progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         )
 
         writer = csv.writer(response)

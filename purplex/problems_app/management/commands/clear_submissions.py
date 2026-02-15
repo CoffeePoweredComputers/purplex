@@ -112,25 +112,25 @@ class Command(BaseCommand):
     def _display_summary(self, counts, preserve_progress):
         """Display what will be affected"""
         self.stdout.write("\n📊 Data Summary:")
-        self.stdout.write(f'  • Submissions: {counts["submissions"]}')
-        self.stdout.write(f'  • Test Executions: {counts["test_executions"]}')
-        self.stdout.write(f'  • Hint Activations: {counts["hint_activations"]}')
-        self.stdout.write(f'  • Code Variations: {counts["code_variations"]}')
+        self.stdout.write(f"  • Submissions: {counts['submissions']}")
+        self.stdout.write(f"  • Test Executions: {counts['test_executions']}")
+        self.stdout.write(f"  • Hint Activations: {counts['hint_activations']}")
+        self.stdout.write(f"  • Code Variations: {counts['code_variations']}")
         self.stdout.write(
-            f'  • Segmentation Analyses: {counts["segmentation_analyses"]}'
+            f"  • Segmentation Analyses: {counts['segmentation_analyses']}"
         )
-        self.stdout.write(f'  • Submission Feedback: {counts["submission_feedback"]}')
+        self.stdout.write(f"  • Submission Feedback: {counts['submission_feedback']}")
 
         if not preserve_progress:
-            self.stdout.write(f'  • User Progress Records: {counts["user_progress"]}')
+            self.stdout.write(f"  • User Progress Records: {counts['user_progress']}")
             self.stdout.write(
-                f'  • Problem Set Progress: {counts["problem_set_progress"]}'
+                f"  • Problem Set Progress: {counts['problem_set_progress']}"
             )
-            self.stdout.write(f'  • Progress Snapshots: {counts["progress_snapshots"]}')
+            self.stdout.write(f"  • Progress Snapshots: {counts['progress_snapshots']}")
         else:
             self.stdout.write("  • Progress data will be PRESERVED")
 
-        self.stdout.write(f'\n👥 Users will be preserved: {counts["users"]}')
+        self.stdout.write(f"\n👥 Users will be preserved: {counts['users']}")
         self.stdout.write("🎯 Problems, courses, and problem sets will be preserved")
 
     def _clear_submissions(self, dry_run, preserve_progress):
@@ -221,5 +221,5 @@ class Command(BaseCommand):
         self.stdout.write(f"\n📈 Summary: {total_deleted} records deleted")
         self.stdout.write("🎯 Core educational structure preserved")
         self.stdout.write(
-            f'⏰ Completed at: {timezone.now().strftime("%Y-%m-%d %H:%M:%S")}'
+            f"⏰ Completed at: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}"
         )

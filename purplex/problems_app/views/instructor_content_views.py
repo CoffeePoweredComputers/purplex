@@ -52,10 +52,9 @@ logger = logging.getLogger(__name__)
 
 
 # Valid problem types - used for validation
-VALID_PROBLEM_TYPES = frozenset([
-    "eipl", "mcq", "probeable_code", "refute",
-    "prompt", "debug_fix", "probeable_spec"
-])
+VALID_PROBLEM_TYPES = frozenset(
+    ["eipl", "mcq", "probeable_code", "refute", "prompt", "debug_fix", "probeable_spec"]
+)
 
 
 class InvalidProblemTypeError(ValueError):
@@ -175,10 +174,15 @@ class InstructorProblemListView(APIView):
 
         # Validate problem_type before proceeding
         try:
-            SerializerClass = get_serializer_for_problem_type(problem_type, for_write=True)
+            SerializerClass = get_serializer_for_problem_type(
+                problem_type, for_write=True
+            )
         except InvalidProblemTypeError as e:
             return Response(
-                {"error": str(e), "details": f"Received problem_type: '{problem_type}'"},
+                {
+                    "error": str(e),
+                    "details": f"Received problem_type: '{problem_type}'",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

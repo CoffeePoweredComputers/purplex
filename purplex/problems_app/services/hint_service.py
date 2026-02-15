@@ -188,7 +188,7 @@ class HintService:
         if hint_type not in valid_hint_types:
             return {
                 "error": "invalid_type",
-                "message": f'Invalid hint type. Must be one of: {", ".join(valid_hint_types)}',
+                "message": f"Invalid hint type. Must be one of: {', '.join(valid_hint_types)}",
             }
 
         # Validate course and problem set if provided
@@ -521,7 +521,7 @@ class AdminHintService:
 
                 if hint_type not in valid_hint_types:
                     raise ValueError(
-                        f'Invalid hint type: {hint_type}. Must be one of: {", ".join(valid_hint_types)}'
+                        f"Invalid hint type: {hint_type}. Must be one of: {', '.join(valid_hint_types)}"
                     )
 
                 # Validate content structure before creating/updating

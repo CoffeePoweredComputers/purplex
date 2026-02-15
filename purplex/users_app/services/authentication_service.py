@@ -25,6 +25,7 @@ sys.path.append(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 from config.environment import config
+
 from purplex.users_app.models import UserProfile
 from purplex.users_app.repositories import UserProfileRepository, UserRepository
 

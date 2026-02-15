@@ -18,8 +18,9 @@ from gevent import Timeout as GeventTimeout
 from gevent import lock as gevent_lock
 
 try:
-    import docker
     from docker.errors import APIError, ContainerError, ImageNotFound
+
+    import docker
 except ImportError:
     docker = None
 
@@ -147,9 +148,9 @@ class DockerExecutionService:
                 container = self._create_pool_container()
                 if container:
                     self.container_pool.append(container)
-                    logger.debug(f"Created pool container {i+1}/{self.pool_size}")
+                    logger.debug(f"Created pool container {i + 1}/{self.pool_size}")
             except Exception as e:
-                logger.warning(f"Failed to create pool container {i+1}: {e}")
+                logger.warning(f"Failed to create pool container {i + 1}: {e}")
 
         self._pool_initialized = True
         logger.info(
@@ -428,7 +429,7 @@ while True:
                                 self.container_pool.append(container)
                         except Exception as e:
                             logger.error(
-                                f"Failed to replenish container {i+1}/{needed}: {e}"
+                                f"Failed to replenish container {i + 1}/{needed}: {e}"
                             )
                             break  # Don't overwhelm on repeated failures
 
