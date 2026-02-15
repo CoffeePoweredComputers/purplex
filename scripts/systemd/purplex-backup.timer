@@ -1,0 +1,17 @@
+[Unit]
+Description=Purplex PostgreSQL Backup Timer
+Requires=purplex-backup.service
+
+[Timer]
+# Run daily at 2:00 AM UTC
+OnCalendar=daily
+OnCalendar=*-*-* 02:00:00
+
+# If system was powered off, run backup on next boot
+Persistent=true
+
+# Add randomization to avoid conflicts if multiple servers
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

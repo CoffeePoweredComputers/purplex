@@ -1,5 +1,7 @@
 # Purplex - Educational Coding Challenge Platform
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 A modern educational platform for coding challenges with AI-powered problem generation, real-time code execution, and comprehensive progress tracking.
 
 ## Documentation
@@ -15,8 +17,6 @@ Essential documentation for developers working on Purplex:
 ### Specialized Guides
 - **[tests/TESTING_FRAMEWORK.md](./tests/TESTING_FRAMEWORK.md)** - Comprehensive testing guide and patterns
 - **[SIMPLE_AWS_DEPLOYMENT.md](./SIMPLE_AWS_DEPLOYMENT.md)** - Production deployment guide
-- **[CLAUDE.md](./CLAUDE.md)** - AI assistant configuration and project instructions
-
 **Before writing any code**, consult STANDARDS.md and PATTERNS.md for required implementation patterns.
 
 ## Authentication Setup
@@ -76,18 +76,16 @@ sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE purplex_dev TO purple
 
 ### Environment Configuration
 
-A complete `.env.development` file is already provided in the repository with all necessary development settings. You only need to update the OpenAI API key:
+Copy the example environment file and configure it for your setup:
 
 ```bash
-# Edit .env.development and set your OpenAI API key
-# Change this line:
-OPENAI_API_KEY="your-openai-api-key-here"
+# Create your local environment file from the template
+cp .env.example .env.development
 
-# All other settings are pre-configured for development including:
-# - DATABASE_URL=postgresql://purplex_user:devpass@localhost:5432/purplex_dev
-# - REDIS_URL=redis://localhost:6379/0
-# - Mock Firebase authentication enabled
-# - Debug mode and development settings
+# Edit .env.development and set your API keys:
+# - OPENAI_API_KEY (required for AI features)
+# - LLAMA_API_KEY (optional, alternative AI provider)
+# All other settings have sensible development defaults.
 
 # Load environment variables
 export $(cat .env.development | grep -v '^#' | xargs)
@@ -318,3 +316,13 @@ echo $OPENAI_API_KEY
 ✅ **Mock Authentication**: Development uses mock Firebase authentication - no real Firebase setup required for development.
 
 ✅ **Auto-Reload**: Both Django and Vue development servers automatically reload on code changes.
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to get started.
+
+For security vulnerabilities, please see [SECURITY.md](SECURITY.md) for our responsible disclosure policy.
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 — see the [LICENSE](LICENSE) file for details.
