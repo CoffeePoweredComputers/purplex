@@ -56,7 +56,7 @@ Each task below is scoped for an independent branch. Context-gathering instructi
 ### TASK 1: Transaction Boundaries on Pipeline Writes
 
 **Branch name:** `fix/pipeline-transaction-boundaries`
-**Severity:** High | **Effort:** Low | **Status:** TODO — next priority
+**Severity:** High | **Effort:** Low | **Status:** DONE (2026-02-15)
 
 **Problem:** The pipeline's multi-model writes (Submission + CodeVariations + TestExecutions) are not wrapped in `transaction.atomic()`. Worker crash between steps = orphaned records.
 
@@ -141,7 +141,7 @@ Each task below is scoped for an independent branch. Context-gathering instructi
 ### TASK 5: Standardize Pagination Across All Endpoints
 
 **Branch name:** `fix/pagination-standard`
-**Severity:** Medium | **Effort:** Low-Medium | **Status:** TODO
+**Severity:** Medium | **Effort:** Low-Medium | **Status:** DONE (2026-02-15)
 
 **Problem:** Frontend `useDataTable` expects `total_pages` and `current_page`. DRF's default `PageNumberPagination` doesn't return these. Some endpoints manually add them, others don't.
 
