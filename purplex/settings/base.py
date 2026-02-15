@@ -53,6 +53,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "purplex.users_app.middleware.audit_middleware.AuditMiddleware",
 ]
 
 ROOT_URLCONF = "purplex.urls"
@@ -314,5 +315,27 @@ ENABLE_COURSES = config.enable_courses
 USE_MOCK_FIREBASE = config.use_mock_firebase
 USE_MOCK_OPENAI = config.use_mock_openai
 PURPLEX_ENVIRONMENT = config.env.value
+
+# ============================================================================
+# DATA RETENTION & PRIVACY CONFIGURATION
+# ============================================================================
+# Controls for GDPR Art. 5(1)(e) storage limitation, DPDPA Sec. 9,
+# and general data lifecycle management.
+
+DATA_RETENTION = {
+    "SUBMISSIONS_YEARS": 3,  # After course completion
+    "PROGRESS_SNAPSHOTS_YEARS": 2,
+    "LOGS_DAYS": 90,
+    "INACTIVE_ACCOUNT_WARNING_MONTHS": 12,
+    "INACTIVE_ACCOUNT_DELETION_MONTHS": 24,
+    "DELETION_GRACE_PERIOD_DAYS": 30,
+    "AUDIT_LOG_RETENTION_YEARS": 7,  # FERPA requires 3+ years
+}
+
+# Privacy feature flags
+PRIVACY_REQUIRE_CONSENT_AT_REGISTRATION = True
+PRIVACY_REQUIRE_AGE_VERIFICATION = True
+PRIVACY_ENABLE_AI_CONSENT_GATE = True  # Block AI calls without consent
+PRIVACY_CURRENT_POLICY_VERSION = "1.0"
 
 # Import security configuration

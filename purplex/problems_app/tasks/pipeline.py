@@ -265,8 +265,33 @@ def _build_cached_mcq_result(submission: "Submission") -> dict[str, Any]:
     )
 
 
-def generate_variations_helper(problem_id: int, user_prompt: str) -> list[str]:
+def generate_variations_helper(
+    problem_id: int, user_prompt: str, user_id: int | None = None
+) -> list[str]:
     """Helper function to generate code variations using repository layer."""
+    # AI consent gate: block generation if user hasn't consented
+    if user_id is not None:
+        from django.conf import settings as django_settings
+
+        if getattr(django_settings, "PRIVACY_ENABLE_AI_CONSENT_GATE", False):
+            from django.contrib.auth.models import User
+
+            from purplex.users_app.services.consent_service import (
+                AIConsentNotGrantedError,
+                ConsentService,
+            )
+
+            try:
+                user = User.objects.get(id=user_id)
+                ConsentService.check_ai_consent(user)
+            except User.DoesNotExist:
+                pass
+            except AIConsentNotGrantedError:
+                logger.info(
+                    f"Blocking AI generation for user {user_id}: AI consent not granted"
+                )
+                raise Exception("AI processing consent not granted")
+
     # Get problem through repository
     problem = ProblemRepository.get_by_id(problem_id)
     if not problem or not problem.is_active:
@@ -357,8 +382,33 @@ def test_variation_helper(
     return ret
 
 
-def segment_prompt_helper(user_prompt: str, problem_id: int) -> dict[str, Any] | None:
+def segment_prompt_helper(
+    user_prompt: str, problem_id: int, user_id: int | None = None
+) -> dict[str, Any] | None:
     """Helper function for prompt segmentation using service layer."""
+    # AI consent gate: skip segmentation if user hasn't consented
+    if user_id is not None:
+        from django.conf import settings
+
+        if getattr(settings, "PRIVACY_ENABLE_AI_CONSENT_GATE", False):
+            from django.contrib.auth.models import User
+
+            from purplex.users_app.services.consent_service import (
+                AIConsentNotGrantedError,
+                ConsentService,
+            )
+
+            try:
+                user = User.objects.get(id=user_id)
+                ConsentService.check_ai_consent(user)
+            except User.DoesNotExist:
+                pass  # Anonymized user — allow processing
+            except AIConsentNotGrantedError:
+                logger.info(
+                    f"Skipping segmentation for user {user_id}: AI consent not granted"
+                )
+                return None
+
     # Get problem through service
     problem = ProblemRepository.get_problem_by_id(problem_id)
     if not problem:
@@ -771,7 +821,9 @@ def execute_eipl_pipeline(
             span = None
 
         try:
-            variations = generate_variations_helper(problem_id, user_prompt)
+            variations = generate_variations_helper(
+                problem_id, user_prompt, user_id=user_id
+            )
             variation_count = len(variations)
             logger.info(
                 f"✅ STEP 1 COMPLETE: Generated {variation_count} variations for task {task_id}"
@@ -851,7 +903,7 @@ def execute_eipl_pipeline(
                         publish_progress(
                             task_id,
                             test_progress,
-                            f"Variation {i+1}: ✓ Passed all tests ({completed}/{variation_count} complete)",
+                            f"Variation {i + 1}: ✓ Passed all tests ({completed}/{variation_count} complete)",
                         )
                     else:
                         # Include error message if present
@@ -860,14 +912,14 @@ def execute_eipl_pipeline(
                             publish_progress(
                                 task_id,
                                 test_progress,
-                                f"Variation {i+1}: ERROR - {error_msg[:80]} ({completed}/{variation_count} complete)",
+                                f"Variation {i + 1}: ERROR - {error_msg[:80]} ({completed}/{variation_count} complete)",
                             )
-                            logger.warning(f"Variation {i+1} failed: {error_msg}")
+                            logger.warning(f"Variation {i + 1} failed: {error_msg}")
                         else:
                             publish_progress(
                                 task_id,
                                 test_progress,
-                                f"Variation {i+1}: {result['testsPassed']}/{result['totalTests']} tests passed ({completed}/{variation_count} complete)",
+                                f"Variation {i + 1}: {result['testsPassed']}/{result['totalTests']} tests passed ({completed}/{variation_count} complete)",
                             )
 
                 except Exception as e:
@@ -876,7 +928,7 @@ def execute_eipl_pipeline(
 
                     error_details = traceback.format_exc()
                     logger.error(
-                        f"❌ Variation {i+1} testing FAILED with exception\n"
+                        f"❌ Variation {i + 1} testing FAILED with exception\n"
                         f"Problem ID: {problem_id}\n"
                         f"Variation Index: {i}\n"
                         f"Error: {str(e)}\n"
@@ -887,7 +939,7 @@ def execute_eipl_pipeline(
                     publish_progress(
                         task_id,
                         20 + (50 * completed / max(variation_count, 1)),
-                        f"⚠️ Variation {i+1}: Testing failed - {str(e)[:100]} ({completed}/{variation_count} complete)",
+                        f"⚠️ Variation {i + 1}: Testing failed - {str(e)[:100]} ({completed}/{variation_count} complete)",
                     )
 
                     results_by_index[i] = {
@@ -953,7 +1005,9 @@ def execute_eipl_pipeline(
                 else:
                     seg_span = None
 
-                segmentation = segment_prompt_helper(user_prompt, problem_id)
+                segmentation = segment_prompt_helper(
+                    user_prompt, problem_id, user_id=user_id
+                )
 
                 if SENTRY_AVAILABLE and seg_span:
                     if segmentation:

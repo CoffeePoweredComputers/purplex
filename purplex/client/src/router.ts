@@ -231,6 +231,24 @@ const routes: RouteRecordRaw[] = [
         name: "AdminCourseProblemSets",
         component: () => import("./components/content/CourseProblemSetsPage.vue"),
         meta: {requiresAuth: true, requiresAdmin: true}
+    },
+    // Privacy & compliance routes (public — no auth required for policy pages)
+    {
+        path: "/privacy",
+        name: "PrivacyPolicy",
+        component: () => import("./components/privacy/PrivacyPolicy.vue"),
+    },
+    {
+        path: "/terms",
+        name: "TermsOfService",
+        component: () => import("./components/privacy/TermsOfService.vue"),
+    },
+    // Authenticated privacy settings
+    {
+        path: "/settings/privacy",
+        name: "PrivacySettings",
+        component: () => import("./components/privacy/PrivacySettings.vue"),
+        meta: {requiresAuth: true}
     }
 ];
 

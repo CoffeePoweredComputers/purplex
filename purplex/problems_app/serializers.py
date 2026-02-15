@@ -169,17 +169,17 @@ class McqProblemSerializer(serializers.ModelSerializer):
         seen_ids = set()
         for i, opt in enumerate(value):
             if not isinstance(opt, dict):
-                raise serializers.ValidationError(f"Option {i+1} must be an object")
+                raise serializers.ValidationError(f"Option {i + 1} must be an object")
             opt_id = opt.get("id")
             if not opt_id:
-                raise serializers.ValidationError(f"Option {i+1} must have an id")
+                raise serializers.ValidationError(f"Option {i + 1} must have an id")
             if opt_id in seen_ids:
                 raise serializers.ValidationError(
                     f"Duplicate option id '{opt_id}' - each option must have a unique id"
                 )
             seen_ids.add(opt_id)
             if not opt.get("text", "").strip():
-                raise serializers.ValidationError(f"Option {i+1} must have text")
+                raise serializers.ValidationError(f"Option {i + 1} must have text")
             if opt.get("is_correct"):
                 correct_count += 1
 
@@ -1551,13 +1551,18 @@ class CourseCreateUpdateSerializer(serializers.ModelSerializer):
 
 
 class CourseEnrollmentSerializer(serializers.ModelSerializer):
-    """Serializer for displaying course enrollments (students in a course)"""
+    """
+    Serializer for displaying course enrollments (students in a course).
+    Data minimization (GDPR Art. 25): Only shows username by default.
+    Email/name only included if the student hasn't opted out of
+    directory information (FERPA opt-out).
+    """
 
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
-    email = serializers.EmailField(source="user.email", read_only=True)
-    first_name = serializers.CharField(source="user.first_name", read_only=True)
-    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    email = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
 
     class Meta:
         model = CourseEnrollment
@@ -1572,6 +1577,28 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
             "is_active",
         ]
         read_only_fields = fields
+
+    def _is_directory_visible(self, obj):
+        """Check if user has opted into directory information visibility."""
+        profile = getattr(obj.user, "profile", None)
+        if profile is None:
+            return True  # Default to visible if no profile
+        return profile.directory_info_visible
+
+    def get_email(self, obj):
+        if self._is_directory_visible(obj):
+            return obj.user.email
+        return None
+
+    def get_first_name(self, obj):
+        if self._is_directory_visible(obj):
+            return obj.user.first_name
+        return None
+
+    def get_last_name(self, obj):
+        if self._is_directory_visible(obj):
+            return obj.user.last_name
+        return None
 
 
 class CourseLookupSerializer(serializers.Serializer):

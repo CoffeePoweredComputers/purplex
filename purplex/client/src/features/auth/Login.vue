@@ -16,7 +16,8 @@
       </p>
     </div>
 
-    <div id="login-form">
+    <!-- Step 1: Credentials (login or start registration) -->
+    <div v-if="registrationStep === 'credentials'" id="login-form">
       <form>
         <div class="form-field">
           <label
@@ -66,7 +67,7 @@
           <button
             type="button"
             :disabled="isLoading"
-            @click="createAccount"
+            @click="startRegistration"
           >
             New Account
           </button>
@@ -103,23 +104,73 @@
           Having trouble? Redirect mode works better with slow connections or strict network policies.
         </div>
       </form>
+
+      <div class="login-footer-links">
+        <router-link to="/privacy">Privacy Policy</router-link>
+        <span class="link-separator">|</span>
+        <router-link to="/terms">Terms of Service</router-link>
+      </div>
+    </div>
+
+    <!-- Step 2: Age Verification (registration flow) -->
+    <div v-else-if="registrationStep === 'age-gate'" class="registration-step">
+      <button class="back-btn" @click="registrationStep = 'credentials'">Back</button>
+      <AgeGate
+        @age-verified="onAgeVerified"
+        @under-age="onUnderAge"
+      />
+    </div>
+
+    <!-- Step 3: Consent Form (registration flow) -->
+    <div v-else-if="registrationStep === 'consent'" class="registration-step">
+      <button class="back-btn" @click="registrationStep = 'age-gate'">Back</button>
+      <ConsentForm @consent-granted="onConsentGranted" />
+      <div
+        v-if="errorMessage"
+        class="error-message registration-error"
+      >
+        {{ errorMessage }}
+      </div>
+    </div>
+
+    <!-- Under-age block (COPPA) -->
+    <div v-else-if="registrationStep === 'under-age'" class="registration-step">
+      <div class="under-age-notice">
+        <h3>Parental Consent Required</h3>
+        <p>
+          Users under 13 require verifiable parental or guardian consent before
+          creating an account (COPPA). Please ask a parent or guardian to create
+          an account on your behalf.
+        </p>
+        <button class="back-btn" @click="registrationStep = 'credentials'">Back to Login</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { GoogleAuthProvider } from 'firebase/auth/web-extension';
+import { GoogleAuthProvider } from 'firebase/auth';
+import ConsentForm from '../../components/privacy/ConsentForm.vue';
+import AgeGate from '../../components/privacy/AgeGate.vue';
+import privacyService, { type ConsentType } from '../../services/privacyService';
 
 
 export default {
   name: "Login",
+  components: {
+    ConsentForm,
+    AgeGate,
+  },
   data() {
     return {
       email: '',
       password: '',
       errorMessage: '',
       isLoading: false,
-      showRedirectOption: false
+      showRedirectOption: false,
+      // Registration flow state
+      registrationStep: 'credentials' as 'credentials' | 'age-gate' | 'consent' | 'under-age',
+      ageData: null as { date_of_birth: string; is_minor: boolean; is_child: boolean } | null,
     };
   },
   methods: {
@@ -169,21 +220,75 @@ export default {
         this.errorMessage = '';
         await this.loginWithGoogle(true);
       },
-      createAccount: async function () {
-        const { email, password } = this;
-        this.$store.dispatch('auth/createAccount', { email, password })
-          .then(() => {
-            this.$router.push({ name: "Home" });
-          })
-          .catch((error) => {
-            const message = this.mapFirebaseErrorToMessage(error);
-            this.displayErrorMessage(message);
-          });
+      // Step 1: Validate credentials before entering consent flow
+      startRegistration: function () {
+        if (!this.email || !this.password) {
+          this.displayErrorMessage('Please enter an email and password.');
+          return;
+        }
+        if (this.password.length < 6) {
+          this.displayErrorMessage('Password must be at least 6 characters.');
+          return;
+        }
+        this.errorMessage = '';
+        this.registrationStep = 'age-gate';
+      },
+      // Step 2: Age verification completed
+      onAgeVerified: function (data: { date_of_birth: string; is_minor: boolean; is_child: boolean }) {
+        this.ageData = data;
+        this.registrationStep = 'consent';
+      },
+      onUnderAge: function () {
+        this.registrationStep = 'under-age';
+      },
+      // Step 3: Consent granted — now create the account
+      onConsentGranted: async function (consents: Record<string, boolean>) {
+        this.isLoading = true;
+        this.errorMessage = '';
+
+        try {
+          // Create the Firebase account
+          const { email, password } = this;
+          await this.$store.dispatch('auth/createAccount', { email, password });
+
+          // Submit age verification
+          if (this.ageData) {
+            try {
+              await privacyService.submitAgeVerification({
+                date_of_birth: this.ageData.date_of_birth,
+                is_minor: this.ageData.is_minor,
+                is_child: this.ageData.is_child,
+              });
+            } catch {
+              // Age verification submission failed — non-blocking
+            }
+          }
+
+          // Submit each granted consent to the backend
+          const consentTypes = Object.entries(consents)
+            .filter(([, granted]) => granted)
+            .map(([type]) => type as ConsentType);
+
+          for (const consentType of consentTypes) {
+            try {
+              await privacyService.grantConsent(consentType);
+            } catch {
+              // Individual consent grant failed — non-blocking
+            }
+          }
+
+          // Registration complete — navigate to Home
+          this.$router.push({ name: "Home" });
+        } catch (error) {
+          const message = this.mapFirebaseErrorToMessage(error);
+          this.displayErrorMessage(message);
+        } finally {
+          this.isLoading = false;
+        }
       },
       mapFirebaseErrorToMessage: function (error) {
 
-        /* We don't want the use just closing the account popup to be reported as an error */
-        /* TODO: I cant remember why this is needed... look into it later */
+        /* Silently ignore popup-closed — the user dismissing the popup is not an error */
         if (error.code === "auth/popup-closed-by-user") {
           return;
         }
@@ -467,6 +572,79 @@ input::placeholder {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-5px); }
   75% { transform: translateX(5px); }
+}
+
+/* Registration step containers */
+.registration-step {
+  width: 100%;
+  max-width: 500px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-sm) 0;
+  margin-bottom: var(--spacing-md);
+  transition: color 0.2s;
+}
+
+.back-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.back-btn::before {
+  content: "\2190 ";
+}
+
+.registration-error {
+  margin-top: var(--spacing-md);
+}
+
+.under-age-notice {
+  padding: var(--spacing-xl);
+  background: var(--color-bg-panel);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(243, 156, 18, 0.3);
+  text-align: center;
+}
+
+.under-age-notice h3 {
+  color: var(--color-warning);
+  margin: 0 0 var(--spacing-md);
+  font-size: var(--font-size-lg);
+}
+
+.under-age-notice p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-lg);
+}
+
+.login-footer-links {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-lg);
+  font-size: var(--font-size-sm);
+}
+
+.login-footer-links a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.login-footer-links a:hover {
+  color: var(--color-text-secondary);
+}
+
+.link-separator {
+  color: var(--color-text-muted);
+  opacity: 0.5;
 }
 
 /* Responsive Design */

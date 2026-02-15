@@ -33,10 +33,13 @@
     </div>
 
     <NotificationToast />
+    <CookieConsent />
     <footer class="app-footer">
       <div class="footer-content">
         <div class="footer-left">
-          <span class="copyright">© 2025 Purplex. All rights reserved.</span>
+          <span class="copyright">&copy; 2025 Purplex. All rights reserved.</span>
+          <router-link to="/privacy" class="footer-link">Privacy Policy</router-link>
+          <router-link to="/terms" class="footer-link">Terms of Service</router-link>
         </div>
         <div class="footer-right">
           <span class="sponsor">Sponsored by Meta</span>
@@ -63,13 +66,15 @@ import { useTokenRefresh } from './composables/useTokenRefresh';
 import Login from './features/auth/Login.vue';
 import NavBar from './components/NavBar.vue';
 import NotificationToast from './components/NotificationToast.vue';
+import CookieConsent from './components/privacy/CookieConsent.vue';
 
 export default defineComponent({
     name: 'App',
     components: {
         Login,
         NavBar,
-        NotificationToast
+        NotificationToast,
+        CookieConsent
     },
     setup() {
         const store = useStore();
@@ -457,6 +462,18 @@ export default defineComponent({
 
 .copyright {
     opacity: 0.8;
+}
+
+.footer-link {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.footer-link:hover {
+    opacity: 1;
+    color: var(--color-text-secondary);
 }
 
 .sponsor {

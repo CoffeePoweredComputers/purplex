@@ -14,8 +14,10 @@ import pytest
 from rest_framework.test import APIClient
 
 from tests.factories import (
+    AgeVerificationFactory,
     CourseFactory,
     CourseProblemSetFactory,
+    DataPrincipalNomineeFactory,
     DebugFixProblemFactory,
     EiplProblemFactory,
     McqProblemFactory,
@@ -25,6 +27,7 @@ from tests.factories import (
     PromptProblemFactory,
     RefuteProblemFactory,
     TestCaseFactory,
+    UserConsentFactory,
     UserFactory,
     UserProfileFactory,
 )
@@ -222,3 +225,73 @@ def instructor_client(api_client, instructor):
     """API client authenticated as instructor."""
     api_client.force_authenticate(user=instructor)
     return api_client
+
+
+# =============================================================================
+# Privacy & Consent Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def user_consent(db, user):
+    """Create a single privacy_policy consent for the default user."""
+    return UserConsentFactory(user=user)
+
+
+@pytest.fixture
+def age_verification(db, user):
+    """Create an adult age verification for the default user."""
+    return AgeVerificationFactory(user=user)
+
+
+@pytest.fixture
+def minor_user(db):
+    """Create a minor user (under 18) with profile and age verification."""
+    u = UserFactory(username="minor_user")
+    UserProfileFactory(user=u)
+    AgeVerificationFactory(user=u, is_minor=True, is_child=False)
+    return u
+
+
+@pytest.fixture
+def child_user(db):
+    """Create a child user (under 13) with profile and age verification."""
+    u = UserFactory(username="child_user")
+    UserProfileFactory(user=u)
+    AgeVerificationFactory(
+        user=u, is_minor=True, is_child=True, parental_consent_given=False
+    )
+    return u
+
+
+@pytest.fixture
+def nominee(db, user):
+    """Create a DataPrincipalNominee for the default user."""
+    return DataPrincipalNomineeFactory(user=user)
+
+
+@pytest.fixture
+def user_with_all_consents(db):
+    """Create a user with all 6 consent types granted."""
+    from purplex.users_app.models import ConsentType
+
+    u = UserFactory(username="consented_user")
+    UserProfileFactory(user=u)
+    for ct, _label in ConsentType.choices:
+        UserConsentFactory(user=u, consent_type=ct)
+    return u
+
+
+@pytest.fixture
+def user_with_deletion_requested(db):
+    """Create a user with a pending deletion (inactive, scheduled in the past)."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    u = UserFactory(username="deleting_user", is_active=False)
+    profile = UserProfileFactory(user=u)
+    profile.deletion_requested_at = timezone.now() - timedelta(days=31)
+    profile.deletion_scheduled_at = timezone.now() - timedelta(days=1)
+    profile.save()
+    return u
