@@ -329,10 +329,12 @@ class IsAuthenticatedOrServiceAccount(permissions.BasePermission):
         # Check service account authentication
         service_key = request.META.get("HTTP_X_SERVICE_KEY")
         if service_key:
+            import hmac
             import os
 
             valid_key = os.environ.get("SERVICE_ACCOUNT_KEY")
-            return valid_key and service_key == valid_key
+            if valid_key:
+                return hmac.compare_digest(service_key, valid_key)
 
         return False
 

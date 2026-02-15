@@ -17,7 +17,7 @@ if config.env.value != "production":
 
 # Security settings for production
 # SSL settings - only enable if using HTTPS
-SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "False").lower() == "true"
+SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "True").lower() == "true"
 SESSION_COOKIE_SECURE = (
     os.environ.get("SESSION_COOKIE_SECURE", "True").lower() == "true"
 )

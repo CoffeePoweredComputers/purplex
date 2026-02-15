@@ -69,18 +69,16 @@ async function initializeFirebase() {
         browserLocalPersistence
       } = await import('firebase/auth');
 
-      // Get config from environment or use fallback
+      // Get config from environment — no fallback, env vars are required
       const envConfig = environment.getFirebaseConfig();
 
-      const firebaseConfig: FirebaseConfig = envConfig || {
-        // Fallback config - should be replaced with environment variables
-        apiKey: "AIzaSyCsyYati6ns2CCWgxIuHlHly_VOhXD2sS4",
-        authDomain: "purplex-97ff2.firebaseapp.com",
-        projectId: "purplex-97ff2",
-        storageBucket: "purplex-97ff2.appspot.com",
-        messagingSenderId: "863513714403",
-        appId: "1:863513714403:web:7207f4a20890ca236d2fd6"
-      };
+      if (!envConfig) {
+        const msg = 'Firebase configuration is missing. Set VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, and VITE_FIREBASE_PROJECT_ID environment variables. See .env.example for details.';
+        log.error(msg);
+        throw new Error(msg);
+      }
+
+      const firebaseConfig: FirebaseConfig = envConfig;
 
       // Initialize real Firebase
       firebaseApp = initializeApp(firebaseConfig);
