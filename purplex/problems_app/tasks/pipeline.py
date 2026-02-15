@@ -1293,12 +1293,6 @@ def execute_mcq_pipeline(
                 submission.execution_status = "completed"
                 submission.save()
 
-                # Update progress
-                from purplex.problems_app.services.progress_service import (
-                    ProgressService,
-                )
-
-                ProgressService.process_submission(submission)
         except IntegrityError as e:
             # Another worker beat us - fetch and return existing submission
             if "celery_task_id" in str(e):
@@ -1311,6 +1305,13 @@ def execute_mcq_pipeline(
                 )
                 return _build_cached_mcq_result(existing)
             raise  # Re-raise if it's not a celery_task_id uniqueness error
+
+        # Update progress (outside transaction — does its own atomic + Redis/network calls)
+        from purplex.problems_app.services.progress_service import (
+            ProgressService,
+        )
+
+        ProgressService.process_submission(submission)
 
         publish_progress(
             task_id, 100, f"Complete! {'Correct!' if is_correct else 'Incorrect.'}"
@@ -1640,7 +1641,7 @@ def execute_debug_fix_pipeline(
                         }
                     )
 
-            # Record test results and update progress
+            # Record test results
             if test_execution_data:
                 # Set processed_code before service call (will be saved by service)
                 submission.processed_code = fixed_code
@@ -1661,11 +1662,14 @@ def execute_debug_fix_pipeline(
                     "complete" if all_passed else "incomplete"
                 )
                 submission.save()
-                from purplex.problems_app.services.progress_service import (
-                    ProgressService,
-                )
 
-                ProgressService.process_submission(submission)
+        # Update progress (outside transaction — does its own atomic + Redis/network calls)
+        if not test_execution_data:
+            from purplex.problems_app.services.progress_service import (
+                ProgressService,
+            )
+
+            ProgressService.process_submission(submission)
 
         publish_progress(task_id, 100, f"Complete! Score: {score}%")
 
@@ -1988,7 +1992,7 @@ def execute_probeable_code_pipeline(
                         }
                     )
 
-            # Record test results and update progress
+            # Record test results
             if test_execution_data:
                 # Set processed_code before service call (will be saved by service)
                 submission.processed_code = student_code
@@ -2009,16 +2013,19 @@ def execute_probeable_code_pipeline(
                     "complete" if all_passed else "incomplete"
                 )
                 submission.save()
-                from purplex.problems_app.services.progress_service import (
-                    ProgressService,
-                )
 
-                ProgressService.process_submission(submission)
+        # Update progress (outside transaction — does its own atomic + Redis/network calls)
+        if not test_execution_data:
+            from purplex.problems_app.services.progress_service import (
+                ProgressService,
+            )
 
-            # Record submission for cooldown tracking
-            from purplex.problems_app.services.probe_service import ProbeService
+            ProgressService.process_submission(submission)
 
-            ProbeService.record_submission(problem.id, user.id)
+        # Record submission for cooldown tracking (Redis call — outside transaction)
+        from purplex.problems_app.services.probe_service import ProbeService
+
+        ProbeService.record_submission(problem.id, user.id)
 
         publish_progress(task_id, 100, f"Complete! Score: {score}%")
 
