@@ -1,18 +1,32 @@
-# Purplex V0.1 Codebase Review
+# Purplex V1 Codebase Review
 
-> **Branch:** `admin-page-cleanup` | **Reviewed:** 2026-02-08 | **Target release:** 2026-02-21
+> **Branch:** `admin-page-cleanup` | **Reviewed:** 2026-02-08 | **Updated:** 2026-02-15 | **Target release:** 2026-02-21
 
 ---
 
 ## Overall Assessment
 
-The codebase is in good shape for a V0.1 release serving hundreds of university students. The architecture is sound, the privacy implementation is genuinely thoughtful, and the issues identified are the kind that accumulate in any fast-moving codebase. None suggest carelessness — they suggest prioritization.
+The codebase is in good shape for a V1 release serving hundreds of university students. The architecture is sound, the privacy implementation is genuinely thoughtful, and the issues identified are the kind that accumulate in any fast-moving codebase. None suggest carelessness — they suggest prioritization.
 
 The only item I'd call a real risk is missing transaction boundaries. Everything else is either low-probability, self-correcting, or caught immediately during manual testing.
 
 ---
 
-## Fixes Applied During This Review (14 total)
+## Commits Landed (2026-02-15)
+
+The `admin-page-cleanup` branch was organized into 5 logical commits and pushed:
+
+| # | Commit | Scope | Files |
+|---|--------|-------|------:|
+| 1 | `a877d5c` | Ruff formatting fixes (zero behavior change) | 23 |
+| 2 | `d8a7dad` | Security hardening (hmac, creds, SSL) | 4 |
+| 3 | `39e0a42` | Admin page cleanup + DataTable component | 19 |
+| 4 | `92b67bf` | Privacy/consent system (GDPR/FERPA/DPDPA) | 54 |
+| 5 | `33ee24c` | Infrastructure, deps, scripts, docs | 38 |
+
+---
+
+## Fixes Applied During Review (14 total)
 
 | # | File | Fix | Why |
 |---|------|-----|-----|
@@ -33,147 +47,214 @@ The only item I'd call a real risk is missing transaction boundaries. Everything
 
 ---
 
-## Systematic Issues
+## Remaining Work — Agent Task List
 
-### 1. No Transaction Boundaries on Multi-Model Writes
+Each task below is scoped for an independent branch. Context-gathering instructions are included so any agent (or developer) can pick up a task cold.
 
-**Severity: High | Effort: Low**
+---
 
-The codebase has zero uses of `transaction.atomic()` wrapping multi-model writes at the service layer. The pipeline's `save_submission_helper` creates a Submission, then in a separate operation creates CodeVariations and TestExecutions. If the worker crashes between those steps, you get a submission record with no test results.
+### TASK 1: Transaction Boundaries on Pipeline Writes
+
+**Branch name:** `fix/pipeline-transaction-boundaries`
+**Severity:** High | **Effort:** Low | **Status:** TODO — next priority
+
+**Problem:** The pipeline's multi-model writes (Submission + CodeVariations + TestExecutions) are not wrapped in `transaction.atomic()`. Worker crash between steps = orphaned records.
+
+**How to get context:**
+1. Read `purplex/problems_app/tasks/pipeline.py` — search for `save_submission_helper`, `_save_mcq_result`, `_save_debug_fix_result`, `_save_probeable_code_result`
+2. Read `purplex/submissions/models.py` to understand the Submission -> TestExecution -> CodeVariation relationships
+3. Grep for `transaction.atomic` across the codebase to confirm there are zero existing uses
+
+**What to do:**
+- Wrap each save helper's multi-model create block in `with transaction.atomic():`
+- Four code paths need it (search for `Submission.objects.create` in pipeline.py)
+- Do NOT add retries or change Celery task behavior — just wrap the DB writes
+- Run `pytest -m unit -k pipeline` after to verify nothing breaks
 
 **Affected code paths:**
-- `pipeline.py:543-699` — `save_submission_helper` (EiPL)
-- `pipeline.py:1272-1313` — MCQ pipeline save
-- `pipeline.py:1579-1669` — Debug Fix pipeline save
-- `pipeline.py:1927-2016` — Probeable Code pipeline save
-
-**Fix:** Wrap the multi-model creates in `with transaction.atomic():`. The code is already structured to make this easy.
-
-**Risk if ignored:** Orphaned submission records on worker crash. Low probability at current scale, increases with concurrency.
+- `pipeline.py` — `save_submission_helper` (EiPL)
+- `pipeline.py` — MCQ pipeline save
+- `pipeline.py` — Debug Fix pipeline save
+- `pipeline.py` — Probeable Code pipeline save
 
 ---
 
-### 2. Progress Aggregate Race Condition
+### TASK 2: Verify and Fix Submission Status Enum
 
-**Severity: Medium | Effort: Medium**
+**Branch name:** `fix/submission-status-enum`
+**Severity:** Medium | **Effort:** Low | **Status:** DONE (2026-02-15)
 
-`UserProblemSetProgress.update_from_progress` runs an aggregate query (count completed problems) and writes the result to the rollup table. Two submissions for different problems in the same problem set can both read stale counts and overwrite each other.
+**Problem:** Frontend uses `'passed' | 'partial' | 'failed' | 'pending'`. Backend uses `'complete' | 'partial' | 'incomplete'`. Only `'partial'` overlaps. Either there's a mapping layer, or status badges are silently wrong.
 
-**Concrete scenario:** Student completes Problem 3 and Problem 4 nearly simultaneously. Both tasks compute "3 of 10 completed" from the aggregate. Actual answer should be "4 of 10." Self-corrects on next submission.
+**How to get context:**
+1. Read `purplex/submissions/models.py` — find the status field choices (~line 99-108)
+2. Read `purplex/client/src/types/index.ts` — search for `SubmissionStatus` or the status union type (~line 461)
+3. Grep frontend for `passed`, `failed`, `complete`, `incomplete` to find where status values are consumed or transformed
+4. Grep backend serializers (`problems_app/serializers.py`, `submissions/`) for any `SerializerMethodField` or property that maps status values
+5. Check `purplex/client/src/components/ui/StatusBadge.vue` to see what values it actually renders
 
-**Affected code:**
-- `progress.py:113-150` — `update_from_progress` aggregate outside lock scope
-- `progress_service.py:836` — Called after individual progress save
-
-**Fix:** Wrap aggregate + `update_or_create` in `transaction.atomic()` with `select_for_update()` on the source rows.
-
-**Risk if ignored:** Dashboard shows stale completion percentages. Self-correcting, but visually confusing.
-
----
-
-### 3. Four Different Error Handling Philosophies
-
-**Severity: Medium | Effort: High**
-
-The codebase has no agreed-upon error contract between layers:
-
-| Pattern | Where | How |
-|---------|-------|-----|
-| Raise exceptions, view catches | admin_views, instructor_content_views, submission_views | `except Exception -> Response({"error": ...}, 500)` |
-| Let DRF handle it | student_views, instructor_views, instructor_analytics_views | No try/except |
-| Return error dicts from service | hint_service -> hint_views | `if "error" in result: return Response(...)` |
-| Return success/error dicts | ai_generation_service, docker_execution_service | `{"success": False, "error": "..."}` |
-
-**Worst case:** `hint_service.py` uses all three patterns within a single class.
-
-**The good news:** Error key is consistently `"error"` everywhere, and status codes are reasonable. Nobody will hit a 500 because of inconsistent handling — they might get a less-helpful error message.
-
-**Recommended fix:** Define a DRF exception handler middleware that maps `ValueError -> 400`, `ObjectDoesNotExist -> 404`, `PermissionDenied -> 403`, returning `{"error": str(e)}`. Then strip bare `except Exception` blocks from views. The views with no try/except are already correct for this pattern.
+**What to do:**
+- If a mapping exists: document it, ensure it's consistent, done
+- If no mapping exists: decide on canonical values (recommend backend wins), add a mapping in the frontend service layer or serializer, update the TypeScript type
+- Either way, add a comment in both locations cross-referencing the other
 
 ---
 
-### 4. Frontend-Backend Contract Mismatches
+### TASK 3: Fix Course Reorder URL Mismatch
 
-**Severity: Medium | Effort: Low-Medium**
+**Branch name:** `fix/course-reorder-url`
+**Severity:** Medium | **Effort:** Trivial | **Status:** DONE (2026-02-15)
 
-#### 4a. Submission Status Enum (verify before fixing)
+**Problem:** Frontend calls `/problem-sets/reorder/`. Backend registers `/problem-sets/order/`. This is a 404.
 
-Frontend uses `'passed' | 'partial' | 'failed' | 'pending'`. Backend uses `'complete' | 'partial' | 'incomplete'`. Only `'partial'` overlaps. Either there's a mapping layer somewhere, or status badges are broken. Given this is a working application, there's likely a transform — verify before assuming it's broken.
+**How to get context:**
+1. Read `purplex/client/src/services/contentService.ts` — search for `reorder` (~line 477-486)
+2. Read `purplex/problems_app/urls.py` — search for `order` (~line 329-332)
 
-- Frontend: `client/src/types/index.ts:461`
-- Backend: `submissions/models.py:99-108`
-
-#### 4b. Course Reorder URL Mismatch
-
-Frontend calls `/problem-sets/reorder/`. Backend registers `/problem-sets/order/`.
-
-- Frontend: `client/src/services/contentService.ts:477-486`
-- Backend: `problems_app/urls.py:329-332`
-
-#### 4c. Course Student Structure
-
-Frontend expects nested `{ user: { id, email, username } }`. Backend returns flat `{ user_id, username, email }`.
-
-- Frontend: `client/src/types/index.ts:714-730`
-- Backend: `problems_app/serializers.py:1553-1602`
-
-#### 4d. Pagination Fields Not Standard
-
-Frontend `useDataTable` expects `total_pages` and `current_page`. DRF's default `PageNumberPagination` doesn't return these. Some endpoints manually add them, but not all.
-
-- Frontend: `client/src/types/datatable.ts:13-21`
-- Backend: `settings/base.py:198` (default paginator)
-- Manual additions: `users_app/user_views.py:177-179`, `submissions/repositories/submission_repository.py:87-88`
-
-**Fix:** Create a custom pagination class that always returns these fields, set it as the default.
+**What to do:**
+- Pick one name (recommend `reorder` since it's more descriptive)
+- Update whichever side is wrong (probably the backend URL)
+- Grep both codebases for the old name to catch any other references
+- If changing the backend URL, check if any other frontend service calls the old path
 
 ---
 
-### 5. UserConsent Immutability Guards Are Bypassable
+### TASK 4: Fix Course Student Response Structure
 
-**Severity: Medium | Effort: Low**
+**Branch name:** `fix/course-student-serializer`
+**Severity:** Medium | **Effort:** Low | **Status:** DONE (2026-02-15)
 
-The `save()` and `delete()` overrides on UserConsent prevent instance-level modifications. But `QuerySet.update()` and `QuerySet.delete()` generate SQL directly and bypass model methods entirely.
+**Problem:** Frontend expects nested `{ user: { id, email, username } }`. Backend returns flat `{ user_id, username, email }`.
 
-No code currently uses these bypass paths — the guards are effective in practice. But for GDPR audit trail compliance, "nobody's broken it yet" is insufficient long-term.
+**How to get context:**
+1. Read `purplex/client/src/types/index.ts` — search for `CourseStudent` or similar (~line 714-730)
+2. Read `purplex/problems_app/serializers.py` — search for `CourseEnrollmentSerializer` (~line 1553-1602)
+3. Read `purplex/client/src/components/content/CourseStudentsPage.vue` to see how the data is consumed
 
-**Fix:** Add a database-level trigger preventing UPDATE and DELETE on `users_app_userconsent`. The Django guards catch the common case; the trigger catches everything else.
-
-**Risk if ignored:** Low today (no code uses bulk operations on consent records). Increases as team grows.
-
----
-
-### 6. User Deletion Race Conditions
-
-**Severity: Low-Medium | Effort: Medium**
-
-Neither `cancel_deletion` nor `execute_hard_deletion` uses `select_for_update()` on UserProfile. If both run simultaneously:
-- `cancel_deletion` sets `is_active=True` and clears deletion flags
-- `execute_hard_deletion` proceeds to delete data
-- Result: user account is reactivated with no data
-
-Additionally, if a Celery task is already queued when deletion starts, the submission pipeline doesn't check `user.is_active`. A submission could be created and immediately orphaned.
-
-**Affected code:**
-- `data_deletion_service.py:76-94` — `cancel_deletion` (no lock)
-- `data_deletion_service.py:97-231` — `execute_hard_deletion` (no lock)
-- `pipeline.py:479-500` — No `is_active` check before submission
-
-**Risk if ignored:** Low. Deletion is rare, and simultaneous cancel+delete is even rarer. But it's a correctness issue.
+**What to do:**
+- Either nest the backend response (update serializer) or flatten the frontend type (update type + component)
+- Recommend updating the frontend type to match backend since the flat structure is simpler
+- Update `CourseStudentsPage.vue` if it accesses `student.user.email` etc.
 
 ---
 
-### 7. Sentry Only Captures Task Errors
+### TASK 5: Standardize Pagination Across All Endpoints
 
-**Severity: Low | Effort: Low**
+**Branch name:** `fix/pagination-standard`
+**Severity:** Medium | **Effort:** Low-Medium | **Status:** TODO
 
-Sentry integration exists in Celery tasks (`pipeline.py:1150-1160`) but not in views or services. View-layer 500 errors are logged but not captured in Sentry.
+**Problem:** Frontend `useDataTable` expects `total_pages` and `current_page`. DRF's default `PageNumberPagination` doesn't return these. Some endpoints manually add them, others don't.
 
-**Fix:** Add Sentry middleware or DRF exception handler that calls `sentry_sdk.capture_exception()` for unhandled errors.
+**How to get context:**
+1. Read `purplex/client/src/types/datatable.ts` (~line 13-21) for expected response shape
+2. Read `purplex/settings/base.py` (~line 198) for the default paginator config
+3. Grep backend for `total_pages` and `current_page` to find which endpoints already return them
+4. Read `purplex/users_app/user_views.py` — `AdminUserManagementView.get()` as an example of manual pagination
+
+**What to do:**
+- Create a custom `StandardPagination` class (extends `PageNumberPagination`) that adds `total_pages` and `current_page` to every response
+- Set it as `DEFAULT_PAGINATION_CLASS` in `settings/base.py`
+- Remove manual pagination logic from `user_views.py` and any other views that duplicate it
+- Verify `useDataTable` works against the standardized response
 
 ---
 
-## Test Coverage Gaps
+### TASK 6: Progress Aggregate Race Condition
+
+**Branch name:** `fix/progress-race-condition`
+**Severity:** Medium | **Effort:** Medium | **Status:** TODO — defer to post-V1 unless concurrency is high
+
+**Problem:** `UserProblemSetProgress.update_from_progress` runs an aggregate query then writes the rollup. Concurrent submissions for different problems in the same problem set can both read stale counts.
+
+**How to get context:**
+1. Read `purplex/problems_app/models/progress.py` — find `update_from_progress` (~line 113-150)
+2. Read `purplex/problems_app/services/progress_service.py` — find where `update_from_progress` is called (~line 836)
+3. Understand the `UserProgress` -> `UserProblemSetProgress` rollup relationship
+
+**What to do:**
+- Wrap the aggregate + `update_or_create` in `transaction.atomic()`
+- Add `select_for_update()` on the UserProgress rows being aggregated
+- Add a test that simulates concurrent progress updates (use `threading` or mock the race)
+- Self-correcting bug — low urgency unless you see stale dashboards in production
+
+---
+
+### TASK 7: DRF Exception Handler (Error Standardization — Phase 1)
+
+**Branch name:** `improve/drf-exception-handler`
+**Severity:** Medium | **Effort:** Low (phase 1 only) | **Status:** TODO — post-V1
+
+**Problem:** Four different error handling patterns across views. Phase 1 is just the exception handler (~20 lines) that gets 80% of the benefit.
+
+**How to get context:**
+1. Grep views for `except Exception` to find bare catches: `purplex/problems_app/views/admin_views.py`, `instructor_content_views.py`, `submission_views.py`
+2. Grep for `"error"` in Response calls to see the current error format
+3. Read DRF docs on custom exception handlers: `REST_FRAMEWORK['EXCEPTION_HANDLER']`
+
+**What to do (Phase 1 only):**
+- Create `purplex/utils/exception_handler.py` with a custom handler that maps: `ValueError -> 400`, `ObjectDoesNotExist -> 404`, `PermissionDenied -> 403`
+- All return `{"error": str(e)}` format (already the convention)
+- Set it in `settings/base.py` under `REST_FRAMEWORK`
+- Do NOT strip existing try/except blocks yet — that's Phase 2
+
+---
+
+### TASK 8: User Deletion Race Condition
+
+**Branch name:** `fix/deletion-race-condition`
+**Severity:** Low-Medium | **Effort:** Medium | **Status:** TODO — defer to post-V1
+
+**Problem:** `cancel_deletion` and `execute_hard_deletion` don't use `select_for_update()`. Concurrent cancel + delete = reactivated user with no data. Also, pipeline doesn't check `user.is_active`.
+
+**How to get context:**
+1. Read `purplex/users_app/services/data_deletion_service.py` — `cancel_deletion` (~line 76-94) and `execute_hard_deletion` (~line 97-231)
+2. Read `purplex/problems_app/tasks/pipeline.py` — early section (~line 479-500) where submission is created
+
+**What to do:**
+- Add `select_for_update()` on UserProfile reads in both `cancel_deletion` and `execute_hard_deletion`
+- Add `if not user.is_active: raise` check early in the pipeline before creating a Submission
+- Add tests for the race condition scenario
+
+---
+
+### TASK 9: Sentry View-Layer Integration
+
+**Branch name:** `improve/sentry-views`
+**Severity:** Low | **Effort:** Low | **Status:** TODO — post-V1
+
+**Problem:** Sentry captures Celery task errors but not view-layer 500s.
+
+**How to get context:**
+1. Grep for `sentry_sdk` across the codebase to see current usage
+2. Read `purplex/problems_app/tasks/pipeline.py` (~line 1150-1160) for the existing Sentry integration pattern
+3. Check `requirements.txt` for `sentry-sdk` version
+
+**What to do:**
+- If sentry-sdk is installed, add `DjangoIntegration` to `sentry_sdk.init()` in settings (it auto-captures view errors)
+- If not installed, add `sentry-sdk[django]` to requirements and init in `settings/production.py`
+- Combine with Task 7's exception handler if doing both
+
+---
+
+### TASK 10: UserConsent Database-Level Immutability
+
+**Branch name:** `improve/consent-db-trigger`
+**Severity:** Medium | **Effort:** Low | **Status:** TODO — post-V1
+
+**Problem:** Python-level `save()`/`delete()` overrides are bypassed by `QuerySet.update()` and `QuerySet.delete()`. No code currently does this, but the audit trail is legally required.
+
+**How to get context:**
+1. Read `purplex/users_app/models.py` — `UserConsent.save()` and `UserConsent.delete()` overrides
+2. Read `purplex/users_app/migrations/` to understand the current schema
+
+**What to do:**
+- Create a migration that adds a PostgreSQL trigger: `BEFORE UPDATE OR DELETE ON users_app_userconsent RAISE EXCEPTION`
+- Test that both Django ORM `.update()` and raw SQL `DELETE` are blocked
+- The Python guards stay in place for better error messages
+
+---
+
+## Test Coverage Gaps (reference — not individual tasks)
 
 ### Well Tested
 - Privacy services (consent, deletion, export)
@@ -244,18 +325,8 @@ Appropriately engineered for hundreds of users:
 | Item | Reason |
 |------|--------|
 | Dockerfile USER directive | Infrastructure decision, requires Docker build testing |
-| CODE_OF_CONDUCT.md placeholder | User rejected suggested value, needs their preferred contact |
+| CODE_OF_CONDUCT.md placeholder | Needs preferred contact method |
 | Celery retry backoff on pipeline tasks | Existing retry behavior works; enhancement, not fix |
 | AI consent gate in ai_generation_service.py | Already gated at pipeline.py (the only caller) |
 | CI integration tests non-blocking | Appears intentional for development workflow |
-| Rate limiting on privacy endpoints | Good enhancement but not V0.1 blocker (endpoints are auth-gated, operate on request.user only) |
-| Error handling standardization | High-effort refactor, no runtime bugs from current state |
-
----
-
-## Remaining Manual Steps
-
-1. **Start PostgreSQL and run `pytest`** to verify backend tests pass
-2. **Verify submission status enum** — check if there's a mapping layer between backend `complete/incomplete` and frontend `passed/failed`
-3. **Decide on CODE_OF_CONDUCT.md** contact method
-4. **Test course reorder feature** — URL mismatch will 404
+| Rate limiting on privacy endpoints | Good enhancement but not V1 blocker (endpoints are auth-gated, operate on request.user only) |

@@ -207,7 +207,7 @@ async function performRemove(): Promise<void> {
 
   removing.value = true;
   try {
-    await ctx.api.value.removeCourseStudent(courseId.value, removeTarget.value.id);
+    await ctx.api.value.removeCourseStudent(courseId.value, removeTarget.value.user.id);
     allStudents = allStudents.filter(s => s.id !== removeTarget.value!.id);
     showRemoveDialog.value = false;
     removeTarget.value = null;

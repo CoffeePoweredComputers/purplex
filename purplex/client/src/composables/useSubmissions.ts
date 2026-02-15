@@ -311,12 +311,10 @@ export function useSubmissions(
 
   function getStatusClass(status: string): string {
     switch (status.toLowerCase()) {
-      case 'passed':
       case 'complete':
         return 'status-success';
       case 'partial':
         return 'status-warning';
-      case 'failed':
       case 'incomplete':
         return 'status-error';
       case 'pending':

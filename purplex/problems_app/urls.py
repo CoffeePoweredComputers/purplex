@@ -326,7 +326,7 @@ urlpatterns = [
         name="instructor_course_problemsets",
     ),
     path(
-        "instructor/courses/<str:course_id>/problem-sets/order/",
+        "instructor/courses/<str:course_id>/problem-sets/reorder/",
         InstructorCourseProblemSetOrderView.as_view(),
         name="instructor_course_reorder",
     ),

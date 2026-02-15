@@ -790,6 +790,7 @@ class CourseService:
 
             response_data.append(
                 {
+                    "id": enrollment_data["enrollment_id"],
                     "user": enrollment_data["user"],
                     "enrolled_at": enrollment_data["enrolled_at"],
                     "is_active": True,  # Already filtered for active enrollments

@@ -1288,7 +1288,7 @@ def execute_mcq_pipeline(
                 submission.passed_all_tests = is_correct
                 submission.is_correct = is_correct
                 submission.completion_status = (
-                    "completed" if is_correct else "incomplete"
+                    "complete" if is_correct else "incomplete"
                 )
                 submission.execution_status = "completed"
                 submission.save()

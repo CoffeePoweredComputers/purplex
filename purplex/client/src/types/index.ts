@@ -458,7 +458,7 @@ export interface BaseSubmission {
   problem_set: string;
   course?: string;
   score: number;
-  status: 'passed' | 'partial' | 'failed' | 'pending';
+  status: 'incomplete' | 'partial' | 'complete';
   readonly submitted_at: string;
   prompt: string;
   execution_time?: number;
@@ -490,13 +490,6 @@ export interface SubmissionDetailed extends BaseSubmission {
     email: string;
     display_name?: string;
   };
-}
-
-export interface SubmissionListResponse {
-  count: number;
-  next?: string;
-  previous?: string;
-  results: BaseSubmission[];
 }
 
 export interface SubmissionStats {
@@ -719,13 +712,14 @@ export interface CourseStudent {
     username: string;
     first_name?: string;
     last_name?: string;
+    full_name?: string;
   };
   enrolled_at: string;
+  is_active: boolean;
   progress: {
     completion_percentage: number;
     completed_problem_sets: number;
     total_problem_sets: number;
-    last_activity?: string;
   };
 }
 

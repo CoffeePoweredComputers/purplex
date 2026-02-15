@@ -124,7 +124,7 @@ export interface ContentApiService {
 
   // Course Students
   getCourseStudents(courseId: string): Promise<CourseStudent[]>;
-  removeCourseStudent(courseId: string, enrollmentId: number): Promise<void>;
+  removeCourseStudent(courseId: string, userId: number): Promise<void>;
 
   // Course Problem Sets
   getCourseProblemSets(courseId: string): Promise<CourseProblemSet[]>;
@@ -413,10 +413,10 @@ class ContentServiceImpl implements ContentApiService {
     }
   }
 
-  async removeCourseStudent(courseId: string, enrollmentId: number): Promise<void> {
+  async removeCourseStudent(courseId: string, userId: number): Promise<void> {
     try {
       await axios.delete(
-        `${this.baseURL}/courses/${courseId}/students/${enrollmentId}/`
+        `${this.baseURL}/courses/${courseId}/students/${userId}/`
       );
     } catch (error) {
       throw this._handleError(error, 'Failed to remove student from course');
