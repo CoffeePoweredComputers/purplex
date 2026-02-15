@@ -3,393 +3,256 @@
     :show-header="false"
     :show-breadcrumb="false"
   >
-    <!-- Filters Section -->
-    <div class="filters-section" role="search" aria-label="Filter submissions">
-      <div class="filter-group">
-        <label for="search">Search</label>
-        <input
-          id="search"
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search by student or problem..."
-          aria-label="Search submissions by student name or problem"
-          @input="debouncedSearch"
-        >
-      </div>
-
-      <div class="filter-group">
-        <label for="status">Status</label>
-        <select
-          id="status"
-          v-model="statusFilter"
-          @change="handleFilterChange"
-        >
-          <option value="">All Statuses</option>
-          <option value="complete">Complete</option>
-          <option value="partial">Partial</option>
-          <option value="incomplete">Incomplete</option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <label for="problem-set">Problem Set</label>
-        <select
-          id="problem-set"
-          v-model="problemSetFilter"
-          @change="handleFilterChange"
-        >
-          <option value="">All Problem Sets</option>
-          <option
-            v-for="ps in filterOptions.problem_sets"
-            :key="ps.slug"
-            :value="ps.slug"
-          >
-            {{ ps.title }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Admin only: Course filter (when not in course drill-down mode) -->
-      <div v-if="ctx.isAdmin.value && !isCourseScoped" class="filter-group">
-        <label for="course">Course</label>
-        <select
-          id="course"
-          v-model="courseFilter"
-          @change="handleFilterChange"
-        >
-          <option value="">All Courses</option>
-          <option
-            v-for="course in filterOptions.courses"
-            :key="course.id"
-            :value="course.id"
-          >
-            {{ course.name }}
-          </option>
-        </select>
-      </div>
-
-      <div class="filter-actions">
-        <Transition name="fade">
-          <button
-            v-if="hasFilters"
-            class="clear-filters-btn"
-            aria-label="Clear all filters"
-            @click="clearFilters"
-          >
-            Clear Filters
-          </button>
-        </Transition>
-        <!-- Admin only: Export button -->
-        <button
-          v-if="ctx.isAdmin.value"
-          class="action-button export-button"
-          :disabled="totalCount === 0"
-          title="Export filtered submissions to CSV"
-          @click="exportToCSV"
-        >
-          Export CSV ({{ totalCount }})
-        </button>
-      </div>
-    </div>
-
-    <!-- Active Filter Chips -->
-    <Transition name="slide-fade">
-      <div
-        v-if="hasFilters"
-        class="active-filters"
-        role="region"
-        aria-label="Active filters"
-      >
-        <span class="active-filters-label">Active filters:</span>
-        <div class="filter-chips">
-          <button
-            v-if="searchQuery"
-            class="filter-chip"
-            :aria-label="`Remove search filter: ${searchQuery}`"
-            @click="clearSearchFilter"
-          >
-            <span class="chip-label">Search:</span>
-            <span class="chip-value">{{ searchQuery }}</span>
-            <span class="chip-remove" aria-hidden="true">x</span>
-          </button>
-          <button
-            v-if="statusFilter"
-            class="filter-chip"
-            :aria-label="`Remove status filter: ${formatStatus(statusFilter)}`"
-            @click="clearStatusFilter"
-          >
-            <span class="chip-label">Status:</span>
-            <span class="chip-value">{{ formatStatus(statusFilter) }}</span>
-            <span class="chip-remove" aria-hidden="true">x</span>
-          </button>
-          <button
-            v-if="problemSetFilter"
-            class="filter-chip"
-            :aria-label="`Remove problem set filter: ${getProblemSetTitle(problemSetFilter)}`"
-            @click="clearProblemSetFilter"
-          >
-            <span class="chip-label">Problem Set:</span>
-            <span class="chip-value">{{ getProblemSetTitle(problemSetFilter) }}</span>
-            <span class="chip-remove" aria-hidden="true">x</span>
-          </button>
-          <button
-            v-if="courseFilter && ctx.isAdmin.value"
-            class="filter-chip"
-            :aria-label="`Remove course filter`"
-            @click="clearCourseFilter"
-          >
-            <span class="chip-label">Course:</span>
-            <span class="chip-value">{{ getCourseName(courseFilter) }}</span>
-            <span class="chip-remove" aria-hidden="true">x</span>
-          </button>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- Results Summary Bar -->
-    <div
-      v-if="!loading && !error"
-      class="results-bar"
-      role="status"
-      aria-live="polite"
+    <DataTable
+      :columns="columns"
+      :items="submissions"
+      :loading="loading"
+      :error="error"
+      :total-count="totalCount"
+      :current-page="currentPage"
+      :page-size="pageSize"
+      :total-pages="totalPages"
+      :has-next="hasNext"
+      :has-previous="hasPrevious"
+      :page-numbers="pageNumbers"
+      :range-start="rangeStart"
+      :range-end="rangeEnd"
+      item-label="submissions"
+      row-key="id"
+      empty-title="No Submissions Found"
+      :empty-message="hasFilters
+        ? 'Try adjusting your filters to see more results.'
+        : 'No students have submitted solutions yet.'"
+      @go-to-page="goToPage"
+      @page-size-change="handlePageSizeChange"
+      @retry="fetchSubmissions"
     >
-      <span class="results-count">
-        <template v-if="totalCount > 0">
-          Showing {{ rangeStart }}-{{ rangeEnd }} of {{ totalCount }} submissions
-        </template>
-        <template v-else>
-          No submissions found
-        </template>
-      </span>
-      <span
-        v-if="hasFilters && totalCount > 0"
-        class="results-filter-summary"
-      >
-        {{ filterSummary }}
-      </span>
-    </div>
+      <!-- Filters -->
+      <template #filters>
+        <div class="filters-section" role="search" aria-label="Filter submissions">
+          <div class="filter-group">
+            <label for="search">Search</label>
+            <input
+              id="search"
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search by student or problem..."
+              aria-label="Search submissions by student name or problem"
+              @input="debouncedSearch"
+            >
+          </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner" />
-      <p>Loading submissions...</p>
-    </div>
+          <div class="filter-group">
+            <label for="status">Status</label>
+            <select
+              id="status"
+              v-model="statusFilter"
+              @change="handleFilterChange"
+            >
+              <option value="">All Statuses</option>
+              <option value="complete">Complete</option>
+              <option value="partial">Partial</option>
+              <option value="incomplete">Incomplete</option>
+            </select>
+          </div>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="error-state" role="alert">
-      <div class="error-icon" aria-hidden="true">!!!</div>
-      <span class="visually-hidden">Error:</span>
-      <h3>Unable to Load Submissions</h3>
-      <p>{{ error }}</p>
-      <button class="retry-btn" aria-label="Retry loading submissions" @click="fetchSubmissions">
-        Try Again
-      </button>
-    </div>
+          <div class="filter-group">
+            <label for="problem-set">Problem Set</label>
+            <select
+              id="problem-set"
+              v-model="problemSetFilter"
+              @change="handleFilterChange"
+            >
+              <option value="">All Problem Sets</option>
+              <option
+                v-for="ps in filterOptions.problem_sets"
+                :key="ps.slug"
+                :value="ps.slug"
+              >
+                {{ ps.title }}
+              </option>
+            </select>
+          </div>
 
-    <!-- Submissions Table -->
-    <div v-else-if="submissions.length > 0" class="submissions-table-container">
-      <table class="submissions-table">
-        <thead>
-          <tr>
-            <th scope="col">Student</th>
-            <th scope="col">Problem</th>
-            <th scope="col">Problem Set</th>
-            <!-- Admin: Show course column when not filtered to single course -->
-            <th v-if="ctx.isAdmin.value && !isCourseScoped && !courseFilter" scope="col">
-              Course
-            </th>
-            <th scope="col" class="center">Score</th>
-            <!-- Admin: Show comprehension column -->
-            <th v-if="ctx.isAdmin.value" scope="col" class="center">
-              Comprehension
-            </th>
-            <th scope="col" class="center">Status</th>
-            <th scope="col">Submitted</th>
-            <!-- Admin: Show actions column -->
-            <th v-if="ctx.isAdmin.value" scope="col" class="center">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="submission in submissions" :key="submission.id">
-            <td class="student-cell">
-              <div v-if="ctx.isAdmin.value" class="user-info">
-                <div class="user-avatar-small">
-                  {{ submission.user.charAt(0).toUpperCase() }}
-                </div>
-                <span class="username">{{ submission.user }}</span>
-              </div>
-              <span v-else>{{ submission.user }}</span>
-            </td>
-            <td class="problem-cell">{{ submission.problem }}</td>
-            <td class="problem-set-cell">
-              <span class="problem-set-tag">{{ submission.problem_set || '-' }}</span>
-            </td>
-            <td v-if="ctx.isAdmin.value && !isCourseScoped && !courseFilter" class="course-cell">
-              <span class="course-tag">{{ submission.course || 'No Course' }}</span>
-            </td>
-            <td class="center">
-              <span
-                :class="['score-badge', getScoreClass(submission.score)]"
-                role="status"
-                :aria-label="`Score: ${submission.score}%`"
+          <!-- Admin only: Course filter -->
+          <div v-if="ctx.isAdmin.value && !isCourseScoped" class="filter-group">
+            <label for="course">Course</label>
+            <select
+              id="course"
+              v-model="courseFilter"
+              @change="handleFilterChange"
+            >
+              <option value="">All Courses</option>
+              <option
+                v-for="course in filterOptions.courses"
+                :key="course.id"
+                :value="course.id"
               >
-                {{ submission.score }}%
-              </span>
-            </td>
-            <td v-if="ctx.isAdmin.value" class="center">
-              <span
-                :class="['comprehension-badge', getComprehensionClass(submission.comprehension_level)]"
-              >
-                {{ formatComprehensionLevel(submission.comprehension_level) }}
-              </span>
-            </td>
-            <td class="center">
-              <span
-                :class="['status-badge', getStatusClass(submission.status)]"
-                role="status"
-                :aria-label="`Status: ${formatStatus(submission.status)}`"
-              >
-                {{ formatStatus(submission.status) }}
-              </span>
-            </td>
-            <td class="date-cell">
-              {{ formatDate(submission.submitted_at) }}
-            </td>
-            <td v-if="ctx.isAdmin.value" class="actions-cell">
+                {{ course.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="filter-actions">
+            <Transition name="fade">
               <button
-                class="action-button view-button"
-                title="View Details"
-                @click="viewSubmission(submission.id)"
+                v-if="hasFilters"
+                class="clear-filters-btn"
+                aria-label="Clear all filters"
+                @click="clearFilters"
               >
-                View
+                Clear Filters
               </button>
-              <button
-                class="action-button download-button"
-                title="Download Data"
-                @click="downloadSubmissionData(submission)"
-              >
-                Download
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </Transition>
+            <button
+              v-if="ctx.isAdmin.value"
+              class="action-button export-button"
+              :disabled="totalCount === 0"
+              title="Export filtered submissions to CSV"
+              @click="exportToCSV"
+            >
+              Export CSV ({{ totalCount }})
+            </button>
+          </div>
+        </div>
 
-      <!-- Pagination -->
-      <nav class="pagination" role="navigation" aria-label="Submissions pagination">
-        <div class="pagination-left">
-          <label for="page-size" class="page-size-label">Show:</label>
-          <select
-            id="page-size"
-            v-model="pageSize"
-            class="page-size-select"
-            aria-label="Number of submissions per page"
-            @change="handlePageSizeChange"
+        <!-- Active Filter Chips -->
+        <Transition name="slide-fade">
+          <div
+            v-if="hasFilters"
+            class="active-filters"
+            role="region"
+            aria-label="Active filters"
           >
-            <option :value="10">10</option>
-            <option :value="25">25</option>
-            <option :value="50">50</option>
-            <option :value="100">100</option>
-          </select>
-          <span class="page-size-suffix">per page</span>
+            <span class="active-filters-label">Active filters:</span>
+            <div class="filter-chips">
+              <button
+                v-if="searchQuery"
+                class="filter-chip"
+                :aria-label="`Remove search filter: ${searchQuery}`"
+                @click="clearSearchFilter"
+              >
+                <span class="chip-label">Search:</span>
+                <span class="chip-value">{{ searchQuery }}</span>
+                <span class="chip-remove" aria-hidden="true">x</span>
+              </button>
+              <button
+                v-if="statusFilter"
+                class="filter-chip"
+                :aria-label="`Remove status filter: ${formatStatus(statusFilter)}`"
+                @click="clearStatusFilter"
+              >
+                <span class="chip-label">Status:</span>
+                <span class="chip-value">{{ formatStatus(statusFilter) }}</span>
+                <span class="chip-remove" aria-hidden="true">x</span>
+              </button>
+              <button
+                v-if="problemSetFilter"
+                class="filter-chip"
+                :aria-label="`Remove problem set filter: ${getProblemSetTitle(problemSetFilter)}`"
+                @click="clearProblemSetFilter"
+              >
+                <span class="chip-label">Problem Set:</span>
+                <span class="chip-value">{{ getProblemSetTitle(problemSetFilter) }}</span>
+                <span class="chip-remove" aria-hidden="true">x</span>
+              </button>
+              <button
+                v-if="courseFilter && ctx.isAdmin.value"
+                class="filter-chip"
+                :aria-label="`Remove course filter`"
+                @click="clearCourseFilter"
+              >
+                <span class="chip-label">Course:</span>
+                <span class="chip-value">{{ getCourseName(courseFilter) }}</span>
+                <span class="chip-remove" aria-hidden="true">x</span>
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </template>
+
+      <!-- Results actions (filter summary) -->
+      <template #results-actions>
+        <span
+          v-if="hasFilters && totalCount > 0"
+          class="results-filter-summary"
+        >
+          {{ filterSummary }}
+        </span>
+      </template>
+
+      <!-- Student cell -->
+      <template #cell-student="{ item }">
+        <div v-if="ctx.isAdmin.value" class="user-info">
+          <div class="user-avatar-small">
+            {{ item.user.charAt(0).toUpperCase() }}
+          </div>
+          <span class="username">{{ item.user }}</span>
         </div>
+        <span v-else>{{ item.user }}</span>
+      </template>
 
-        <div class="pagination-center">
-          <!-- Admin: Full page navigation -->
-          <template v-if="ctx.isAdmin.value">
-            <button
-              class="pagination-btn"
-              :disabled="!hasPrevious"
-              title="First page"
-              @click="goToPage(1)"
-            >
-              &laquo;
-            </button>
-            <button
-              class="pagination-btn"
-              :disabled="!hasPrevious"
-              title="Previous page"
-              @click="goToPage(currentPage - 1)"
-            >
-              &lsaquo;
-            </button>
+      <!-- Problem set cell -->
+      <template #cell-problem-set="{ item }">
+        <span class="problem-set-tag">{{ item.problem_set || '-' }}</span>
+      </template>
 
-            <button
-              v-for="page in pageNumbers"
-              :key="page"
-              class="pagination-btn page-number"
-              :class="{ active: page === currentPage }"
-              @click="goToPage(page)"
-            >
-              {{ page }}
-            </button>
+      <!-- Course cell (admin only) -->
+      <template #cell-course="{ item }">
+        <span class="course-tag">{{ item.course || 'No Course' }}</span>
+      </template>
 
-            <button
-              class="pagination-btn"
-              :disabled="!hasNext"
-              title="Next page"
-              @click="goToPage(currentPage + 1)"
-            >
-              &rsaquo;
-            </button>
-            <button
-              class="pagination-btn"
-              :disabled="!hasNext"
-              title="Last page"
-              @click="goToPage(totalPages)"
-            >
-              &raquo;
-            </button>
-          </template>
+      <!-- Score badge -->
+      <template #cell-score="{ item }">
+        <span
+          :class="['score-badge', getScoreClass(item.score)]"
+          role="status"
+          :aria-label="`Score: ${item.score}%`"
+        >
+          {{ item.score }}%
+        </span>
+      </template>
 
-          <!-- Instructor: Simple prev/next -->
-          <template v-else>
-            <button
-              class="page-btn"
-              :disabled="currentPage === 1"
-              :aria-disabled="currentPage === 1 ? 'true' : undefined"
-              aria-label="Go to previous page"
-              @click="goToPage(currentPage - 1)"
-            >
-              Previous
-            </button>
-            <span class="page-info" aria-live="polite">
-              Page {{ currentPage }} of {{ totalPages }}
-            </span>
-            <button
-              class="page-btn"
-              :disabled="currentPage === totalPages || totalPages === 0"
-              :aria-disabled="currentPage === totalPages || totalPages === 0 ? 'true' : undefined"
-              aria-label="Go to next page"
-              @click="goToPage(currentPage + 1)"
-            >
-              Next
-            </button>
-          </template>
+      <!-- Comprehension level (admin only) -->
+      <template #cell-comprehension="{ item }">
+        <span
+          :class="['comprehension-badge', getComprehensionClass(item.comprehension_level)]"
+        >
+          {{ formatComprehensionLevel(item.comprehension_level) }}
+        </span>
+      </template>
+
+      <!-- Status badge -->
+      <template #cell-status="{ item }">
+        <span
+          :class="['status-badge', getStatusClass(item.status)]"
+          role="status"
+          :aria-label="`Status: ${formatStatus(item.status)}`"
+        >
+          {{ formatStatus(item.status) }}
+        </span>
+      </template>
+
+      <!-- Actions (admin only) -->
+      <template #cell-actions="{ item }">
+        <div class="actions-cell">
+          <button
+            class="action-button view-button"
+            title="View Details"
+            @click="viewSubmission(item.id)"
+          >
+            View
+          </button>
+          <button
+            class="action-button download-button"
+            title="Download Data"
+            @click="downloadSubmissionData(item)"
+          >
+            Download
+          </button>
         </div>
-
-        <div class="pagination-right">
-          <span v-if="ctx.isAdmin.value" class="pagination-info">
-            {{ rangeStart }}-{{ rangeEnd }} of {{ totalCount }}
-          </span>
-        </div>
-      </nav>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else class="empty-state">
-      <div class="empty-icon" aria-hidden="true">[ ]</div>
-      <span class="visually-hidden">Information:</span>
-      <h3>No Submissions Found</h3>
-      <p v-if="hasFilters">
-        Try adjusting your filters to see more results.
-      </p>
-      <p v-else>
-        No students have submitted solutions yet.
-      </p>
-    </div>
+      </template>
+    </DataTable>
 
     <!-- Admin only: View Submission Modal -->
     <ViewSubmissionModal
@@ -406,9 +269,12 @@
 import { computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
+import DataTable from '@/components/ui/DataTable.vue';
 import ViewSubmissionModal from '@/modals/ViewSubmissionModal.vue';
 import { provideContentContext } from '@/composables/useContentContext';
 import { useSubmissions } from '@/composables/useSubmissions';
+import type { DataTableColumn } from '@/types/datatable';
+import type { SubmissionSummary } from '@/services/contentService';
 
 // Provide role-aware context
 const ctx = provideContentContext();
@@ -470,6 +336,44 @@ const {
   formatDate,
   getProblemSetTitle,
 } = useSubmissions(ctx, { courseId });
+
+// Column definitions — built dynamically based on admin/instructor role and filters
+const columns = computed<DataTableColumn<SubmissionSummary>[]>(() => {
+  const cols: DataTableColumn<SubmissionSummary>[] = [
+    { key: 'user', label: 'Student', slot: 'cell-student' },
+    { key: 'problem', label: 'Problem' },
+    { key: 'problem_set', label: 'Problem Set', hideOnMobile: true, slot: 'cell-problem-set' },
+  ];
+
+  // Admin: Show course column when not filtered to single course
+  if (ctx.isAdmin.value && !isCourseScoped.value && !courseFilter.value) {
+    cols.push({ key: 'course', label: 'Course', hideOnMobile: true, slot: 'cell-course' });
+  }
+
+  cols.push({ key: 'score', label: 'Score', align: 'center', width: '100px', slot: 'cell-score' });
+
+  // Admin: comprehension column
+  if (ctx.isAdmin.value) {
+    cols.push({ key: 'comprehension_level', label: 'Comprehension', align: 'center', hideOnMobile: true, slot: 'cell-comprehension' });
+  }
+
+  cols.push(
+    { key: 'status', label: 'Status', align: 'center', width: '110px', slot: 'cell-status' },
+    {
+      key: 'submitted_at',
+      label: 'Submitted',
+      hideOnMobile: true,
+      render: (value) => formatDate(value as string),
+    },
+  );
+
+  // Admin: actions column
+  if (ctx.isAdmin.value) {
+    cols.push({ key: 'actions', label: 'Actions', align: 'center', slot: 'cell-actions', width: '160px' });
+  }
+
+  return cols;
+});
 
 // Helper for course name display
 function getCourseName(courseIdValue: string): string {
@@ -550,6 +454,7 @@ onMounted(fetchSubmissions);
 .filter-actions {
   display: flex;
   align-items: flex-end;
+  gap: var(--spacing-sm);
   height: 38px;
 }
 
@@ -637,24 +542,7 @@ onMounted(fetchSubmissions);
   line-height: 1;
 }
 
-/* Results Bar */
-.results-bar {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg-panel);
-  border: 1px solid var(--color-border, var(--color-bg-input));
-  border-radius: var(--radius-base);
-  margin-bottom: var(--spacing-lg);
-}
-
-.results-count {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
+/* Results summary */
 .results-filter-summary {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
@@ -685,121 +573,7 @@ onMounted(fetchSubmissions);
   opacity: 0;
 }
 
-/* Loading State */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xxl);
-  color: var(--color-text-secondary);
-}
-
-.loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--color-border, var(--color-bg-input));
-  border-top-color: var(--color-primary-gradient-start);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: var(--spacing-lg);
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Error State */
-.error-state {
-  text-align: center;
-  padding: var(--spacing-xxl);
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-}
-
-.error-icon {
-  font-size: 2rem;
-  margin-bottom: var(--spacing-lg);
-  color: var(--color-error);
-  font-weight: bold;
-}
-
-.error-state h3 {
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm);
-}
-
-.error-state p {
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-lg);
-}
-
-.retry-btn {
-  padding: var(--spacing-md) var(--spacing-xl);
-  background: var(--color-primary-gradient-start);
-  color: white;
-  border: none;
-  border-radius: var(--radius-base);
-  cursor: pointer;
-  font-weight: 600;
-  transition: var(--transition-base);
-}
-
-.retry-btn:hover {
-  background: var(--color-primary-gradient-end);
-}
-
-/* Table Container */
-.submissions-table-container {
-  background: var(--color-bg-panel);
-  border: 1px solid var(--color-border, var(--color-bg-input));
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-}
-
-/* Table */
-.submissions-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.submissions-table th,
-.submissions-table td {
-  padding: var(--spacing-md) var(--spacing-lg);
-  text-align: left;
-  border-bottom: 1px solid var(--color-border, var(--color-bg-input));
-}
-
-.submissions-table th {
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: var(--color-bg-hover);
-}
-
-.submissions-table th.center,
-.submissions-table td.center {
-  text-align: center;
-}
-
-.submissions-table tbody tr:hover {
-  background: var(--color-bg-hover);
-}
-
-.submissions-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
 /* Cell styles */
-.student-cell {
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
 .user-info {
   display: flex;
   align-items: center;
@@ -827,16 +601,6 @@ onMounted(fetchSubmissions);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.problem-cell {
-  color: var(--color-text-primary);
-}
-
-.problem-set-cell,
-.date-cell {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
 }
 
 .problem-set-tag {
@@ -1018,145 +782,6 @@ onMounted(fetchSubmissions);
   color: var(--color-text-primary);
 }
 
-/* Pagination */
-.pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-top: 1px solid var(--color-border, var(--color-bg-input));
-}
-
-.pagination-left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex: 1;
-}
-
-.pagination-center {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-}
-
-.pagination-right {
-  flex: 1;
-  text-align: right;
-}
-
-.pagination-info {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.page-size-label,
-.page-size-suffix {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.page-size-select {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border: 1px solid var(--color-border, var(--color-bg-input));
-  border-radius: var(--radius-base);
-  background: var(--color-surface, var(--color-bg-hover));
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-}
-
-/* Admin pagination buttons */
-.pagination-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 2px solid var(--color-bg-input);
-  border-radius: var(--radius-base);
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition-base);
-  min-width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pagination-btn:hover:not(:disabled) {
-  border-color: var(--color-primary-gradient-start);
-  background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
-}
-
-.pagination-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.pagination-btn.active {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  border-color: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
-  font-weight: 600;
-  box-shadow: var(--shadow-colored);
-}
-
-/* Instructor pagination buttons */
-.page-btn {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  background: var(--color-bg-hover);
-  border: 1px solid var(--color-border, var(--color-bg-input));
-  border-radius: var(--radius-base);
-  color: var(--color-text-primary);
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition-base);
-}
-
-.page-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-start);
-  color: white;
-  border-color: var(--color-primary-gradient-start);
-}
-
-.page-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.page-info {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  padding: 0 var(--spacing-lg);
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: var(--spacing-xxl);
-  background: var(--color-bg-panel);
-  border: 1px dashed var(--color-border, var(--color-bg-input));
-  border-radius: var(--radius-lg);
-}
-
-.empty-icon {
-  font-size: 2rem;
-  margin-bottom: var(--spacing-lg);
-  color: var(--color-text-secondary);
-}
-
-.empty-state h3 {
-  font-size: var(--font-size-xl);
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm);
-}
-
-.empty-state p {
-  color: var(--color-text-secondary);
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .filters-section {
@@ -1185,44 +810,6 @@ onMounted(fetchSubmissions);
   .active-filters {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .results-bar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-xs);
-  }
-
-  .submissions-table th,
-  .submissions-table td {
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-size: var(--font-size-sm);
-  }
-
-  /* Hide some columns on mobile */
-  .submissions-table th:nth-child(3),
-  .submissions-table td:nth-child(3) {
-    display: none;
-  }
-
-  .pagination {
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
-  .pagination-left {
-    order: 2;
-    justify-content: center;
-  }
-
-  .pagination-center {
-    order: 1;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .pagination-right {
-    display: none;
   }
 }
 </style>

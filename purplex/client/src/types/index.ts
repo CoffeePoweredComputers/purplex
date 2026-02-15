@@ -1,3 +1,6 @@
+// Re-export datatable types
+export * from './datatable';
+
 // ===== CORE DOMAIN TYPES =====
 
 export type DifficultyLevel = 'easy' | 'beginner' | 'intermediate' | 'advanced';
@@ -415,7 +418,6 @@ export interface User {
   uid?: string;
   email: string;
   displayName?: string;
-  password?: string;
   role: 'admin' | 'user' | 'instructor';
   isAdmin: boolean;
 }
