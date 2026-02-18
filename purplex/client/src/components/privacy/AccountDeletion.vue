@@ -122,94 +122,112 @@ function formatDate(isoDate: string): string {
 
 <style scoped>
 .account-deletion {
-    padding: 1.5rem;
-    background: var(--card-bg, #1e1e2e);
-    border-radius: 8px;
-    border: 1px solid var(--border-color, #333);
+    padding: var(--spacing-xl);
+    background: var(--color-bg-panel);
+    border-radius: var(--radius-base);
+    border: 1px solid var(--color-bg-border);
+    box-shadow: var(--shadow-sm);
 }
 
 .account-deletion__title {
-    margin: 0 0 0.5rem;
-    font-size: 1.1rem;
-    color: var(--text-primary, #e0e0e0);
+    margin: 0 0 var(--spacing-sm);
+    font-size: var(--font-size-md);
+    color: var(--color-text-primary);
 }
 
 .account-deletion__description {
-    margin: 0 0 1rem;
-    font-size: 0.85rem;
-    color: var(--text-secondary, #999);
+    margin: 0 0 var(--spacing-base);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
 }
 
 .account-deletion__warning {
-    padding: 1rem;
-    margin-bottom: 1rem;
-    background: rgba(231, 76, 60, 0.08);
-    border: 1px solid rgba(231, 76, 60, 0.25);
-    border-radius: 6px;
-    font-size: 0.85rem;
-    color: var(--text-primary, #e0e0e0);
+    padding: var(--spacing-base);
+    margin-bottom: var(--spacing-base);
+    background: var(--color-error-bg);
+    border: 1px solid rgba(220, 53, 69, 0.25);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
 }
 
 .account-deletion__warning ul {
-    margin: 0.5rem 0;
-    padding-left: 1.5rem;
+    margin: var(--spacing-sm) 0;
+    padding-left: var(--spacing-xl);
 }
 
 .account-deletion__warning li {
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--spacing-xs);
 }
 
 .account-deletion__confirm {
     display: flex;
     align-items: flex-start;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    font-size: 0.85rem;
-    color: var(--text-primary, #e0e0e0);
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-base);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
     cursor: pointer;
 }
 
 .account-deletion__btn {
-    padding: 0.6rem 1.2rem;
+    padding: var(--spacing-sm) var(--spacing-lg);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: opacity 0.2s;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    transition: var(--transition-fast);
 }
 
 .account-deletion__btn:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
 }
 
+.account-deletion__btn:focus-visible {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
 .account-deletion__btn--danger {
-    background: var(--error-color, #e74c3c);
-    color: white;
+    background: var(--color-error);
+    color: var(--color-text-primary);
+}
+
+.account-deletion__btn--danger:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
 }
 
 .account-deletion__btn--cancel {
-    background: var(--primary-gradient, linear-gradient(135deg, #9b59b6, #6c3483));
-    color: white;
+    background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
+    color: var(--color-text-primary);
+}
+
+.account-deletion__btn--cancel:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-colored);
 }
 
 .account-deletion__pending {
-    padding: 1rem;
-    background: rgba(243, 156, 18, 0.08);
-    border: 1px solid rgba(243, 156, 18, 0.25);
-    border-radius: 6px;
-    margin-bottom: 1rem;
+    padding: var(--spacing-base);
+    background: var(--color-warning-bg);
+    border: 1px solid rgba(255, 193, 7, 0.25);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-base);
+    color: var(--color-text-secondary);
 }
 
 .account-deletion__error {
-    margin-top: 0.5rem;
-    color: var(--error-color, #e74c3c);
-    font-size: 0.85rem;
+    margin-top: var(--spacing-sm);
+    color: var(--color-error);
+    font-size: var(--font-size-sm);
 }
 
 .account-deletion__success {
-    margin-top: 0.5rem;
-    color: var(--success-color, #2ecc71);
-    font-size: 0.85rem;
+    margin-top: var(--spacing-sm);
+    color: var(--color-success);
+    font-size: var(--font-size-sm);
 }
 </style>

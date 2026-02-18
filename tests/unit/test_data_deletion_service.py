@@ -2,18 +2,20 @@
 Tests for DataDeletionService — GDPR Art. 17 (Right to Erasure).
 
 Covers: request, cancel, hard delete (with mocked Firebase),
-idempotent re-request, and pending deletion query.
+idempotent re-request, pending deletion query, and race condition guards.
 """
 
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.contrib.auth.models import User
 
 from purplex.users_app.models import (
     AgeVerification,
     DataAccessAuditLog,
     DataPrincipalNominee,
     UserConsent,
+    UserProfile,
 )
 from purplex.users_app.services.data_deletion_service import DataDeletionService
 from tests.factories import (
@@ -105,6 +107,7 @@ class TestExecuteHardDeletion:
     def test_hard_delete_removes_user(self, mock_firebase, user):
         mock_firebase.return_value = True
         user_id = user.id
+        DataDeletionService.request_deletion(user)
         result = DataDeletionService.execute_hard_deletion(user)
         assert result["status"] == "deleted"
         assert result["user_id"] == user_id
@@ -115,12 +118,15 @@ class TestExecuteHardDeletion:
     @patch(
         "purplex.users_app.services.data_deletion_service.DataDeletionService._delete_firebase_account"
     )
-    def test_hard_delete_preserves_consent_records_with_null_user(self, mock_firebase, user):
+    def test_hard_delete_preserves_consent_records_with_null_user(
+        self, mock_firebase, user
+    ):
         """Consent records use SET_NULL — preserved for GDPR Art. 7 audit trail."""
         mock_firebase.return_value = True
         user_id = user.id
         UserConsentFactory(user=user)
         UserConsentFactory(user=user, consent_type="ai_processing")
+        DataDeletionService.request_deletion(user)
         DataDeletionService.execute_hard_deletion(user)
         # Records preserved but user FK set to NULL
         assert UserConsent.objects.filter(user_id=user_id).count() == 0
@@ -133,6 +139,7 @@ class TestExecuteHardDeletion:
     def test_hard_delete_removes_age_verification(self, mock_firebase, user):
         mock_firebase.return_value = True
         AgeVerificationFactory(user=user)
+        DataDeletionService.request_deletion(user)
         DataDeletionService.execute_hard_deletion(user)
         assert not AgeVerification.objects.filter(user_id=user.id).exists()
 
@@ -142,6 +149,7 @@ class TestExecuteHardDeletion:
     def test_hard_delete_removes_nominee(self, mock_firebase, user):
         mock_firebase.return_value = True
         DataPrincipalNomineeFactory(user=user)
+        DataDeletionService.request_deletion(user)
         DataDeletionService.execute_hard_deletion(user)
         assert not DataPrincipalNominee.objects.filter(user_id=user.id).exists()
 
@@ -151,6 +159,7 @@ class TestExecuteHardDeletion:
     def test_hard_delete_creates_audit_log(self, mock_firebase, user):
         mock_firebase.return_value = True
         user_id = user.id
+        DataDeletionService.request_deletion(user)
         DataDeletionService.execute_hard_deletion(user)
         audit = DataAccessAuditLog.objects.filter(
             action="delete_user", target_user_ids__contains=[user_id]
@@ -162,6 +171,7 @@ class TestExecuteHardDeletion:
     )
     def test_hard_delete_returns_stats(self, mock_firebase, user):
         mock_firebase.return_value = True
+        DataDeletionService.request_deletion(user)
         result = DataDeletionService.execute_hard_deletion(user)
         stats = result["stats"]
         assert "user_deleted" in stats
@@ -205,3 +215,95 @@ class TestGetAccountsPendingDeletion:
         pending = DataDeletionService.get_accounts_pending_deletion()
         user_ids = [p.user.id for p in pending]
         assert user.id not in user_ids
+
+
+class TestDeletionRaceConditionGuards:
+    """Tests for race condition guards between cancel and hard delete."""
+
+    @patch(
+        "purplex.users_app.services.data_deletion_service"
+        ".DataDeletionService._delete_firebase_account"
+    )
+    def test_hard_delete_after_cancel_returns_already_cancelled(
+        self, mock_firebase, user
+    ):
+        """If cancel_deletion() wins the race, execute_hard_deletion() bails."""
+        mock_firebase.return_value = True
+        DataDeletionService.request_deletion(user)
+        DataDeletionService.cancel_deletion(user)
+
+        # deletion_requested_at is now None — hard delete should see that
+        result = DataDeletionService.execute_hard_deletion(user)
+        assert result["status"] == "already_cancelled"
+        mock_firebase.assert_not_called()
+
+    @patch(
+        "purplex.users_app.services.data_deletion_service"
+        ".DataDeletionService._delete_firebase_account"
+    )
+    def test_cancel_after_hard_delete_returns_no_pending(self, mock_firebase, user):
+        """If execute_hard_deletion() wins the race, cancel sees no profile."""
+        mock_firebase.return_value = True
+        user_id = user.id
+        DataDeletionService.request_deletion(user)
+        DataDeletionService.execute_hard_deletion(user)
+
+        # User is deleted — create a fresh one and verify cancel on deleted user
+        assert not User.objects.filter(id=user_id).exists()
+
+    @patch(
+        "purplex.users_app.services.data_deletion_service"
+        ".DataDeletionService._delete_firebase_account"
+    )
+    def test_hard_delete_rolls_back_on_firebase_failure(self, mock_firebase, user):
+        """If Firebase delete raises, all DB operations roll back."""
+        mock_firebase.side_effect = Exception("Firebase unavailable")
+        user_id = user.id
+        DataDeletionService.request_deletion(user)
+
+        with pytest.raises(Exception, match="Firebase unavailable"):
+            DataDeletionService.execute_hard_deletion(user)
+
+        # User and profile should still exist (transaction rolled back)
+        assert User.objects.filter(id=user_id).exists()
+        profile = UserProfile.objects.get(user_id=user_id)
+        assert profile.deletion_requested_at is not None
+
+    def test_cancel_is_atomic(self, user):
+        """Cancel updates both is_active and profile timestamps together."""
+        DataDeletionService.request_deletion(user)
+
+        DataDeletionService.cancel_deletion(user)
+
+        user.refresh_from_db()
+        profile = UserProfile.objects.get(user=user)
+        assert user.is_active is True
+        assert profile.deletion_requested_at is None
+        assert profile.deletion_scheduled_at is None
+
+
+class TestPipelineInactiveUserGuard:
+    """Test that save_submission_helper rejects inactive users."""
+
+    def test_save_submission_rejects_inactive_user(self, user):
+        """Pipeline should refuse to create submissions for mid-deletion users."""
+        from purplex.problems_app.tasks.pipeline import save_submission_helper
+        from tests.factories import EiplProblemFactory, ProblemSetFactory
+
+        problem = EiplProblemFactory()
+        problem_set = ProblemSetFactory()
+
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+
+        with pytest.raises(Exception, match="inactive"):
+            save_submission_helper(
+                user_id=user.id,
+                problem_id=problem.id,
+                problem_set_id=problem_set.id,
+                course_id=None,
+                user_prompt="print('hello')",
+                variations=["print('hello')"],
+                test_results=[{"passed": True}],
+                segmentation=None,
+            )

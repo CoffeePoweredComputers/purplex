@@ -479,6 +479,8 @@ def save_submission_helper(
     user = UserService.get_user_by_id(user_id)
     if not user:
         raise Exception(f"User {user_id} not found")
+    if not user.is_active:
+        raise Exception(f"User {user_id} is inactive (deletion in progress)")
 
     problem = ProblemRepository.get_problem_by_id(problem_id)
     if not problem:

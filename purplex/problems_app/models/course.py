@@ -48,6 +48,18 @@ class Course(models.Model):
             self.slug = slugify(self.course_id)
         super().save(*args, **kwargs)
 
+    def is_instructor(self, user) -> bool:
+        """Check if user has any instructor role on this course."""
+        return self.course_instructors.filter(user=user).exists()
+
+    def is_primary_instructor(self, user) -> bool:
+        """Check if user is a primary instructor on this course."""
+        return self.course_instructors.filter(user=user, role="primary").exists()
+
+    def get_primary_instructors(self):
+        """Return queryset of primary CourseInstructor rows."""
+        return self.course_instructors.filter(role="primary").select_related("user")
+
     def soft_delete(self):
         """Soft delete the course"""
         self.is_deleted = True

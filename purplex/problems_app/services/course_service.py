@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from rest_framework import status
 from users_app.repositories import UserRepository
 
-from ..repositories import CourseRepository
+from ..repositories import CourseInstructorRepository, CourseRepository
 from ..repositories.course_problem_set_repository import CourseProblemSetRepository
 from ..repositories.problem_repository import ProblemRepository
 from ..repositories.problem_set_repository import ProblemSetRepository
@@ -177,6 +177,8 @@ class CourseService:
         """
         Create a new course.
 
+        Also creates a CourseInstructor row making the creator a primary instructor.
+
         Args:
             instructor: User who will be the instructor
             **course_data: Course field data
@@ -184,7 +186,12 @@ class CourseService:
         Returns:
             Created Course instance
         """
-        return CourseRepository.create(instructor=instructor, **course_data)
+        course = CourseRepository.create(instructor=instructor, **course_data)
+        # Create the CourseInstructor row for the creator
+        CourseInstructorRepository.add_instructor(
+            course=course, user=instructor, role="primary"
+        )
+        return course
 
     @staticmethod
     def update_course(course, **update_data) -> Any:
@@ -216,6 +223,74 @@ class CourseService:
         """
         course.soft_delete()
         return True
+
+    # Course Instructor Management Methods
+
+    @staticmethod
+    def add_course_instructor(
+        course, user, role: str = "primary", added_by=None
+    ) -> Any:
+        """Add an instructor or TA to a course.
+
+        Args:
+            course: Course instance
+            user: User to add
+            role: 'primary' or 'ta'
+            added_by: User who is adding
+
+        Returns:
+            CourseInstructor instance
+        """
+        return CourseInstructorRepository.add_instructor(
+            course=course, user=user, role=role, added_by=added_by
+        )
+
+    @staticmethod
+    def remove_course_instructor(course, user) -> dict[str, Any]:
+        """Remove an instructor from a course.
+
+        Refuses to remove the last primary instructor.
+
+        Returns:
+            Dict with success status
+        """
+        try:
+            removed = CourseInstructorRepository.remove_instructor(course, user)
+            if not removed:
+                return {
+                    "success": False,
+                    "error": "User is not an instructor on this course",
+                }
+            return {"success": True}
+        except ValueError as e:
+            return {"success": False, "error": str(e)}
+
+    @staticmethod
+    def update_course_instructor_role(course, user, new_role: str) -> dict[str, Any]:
+        """Update an instructor's role on a course.
+
+        Returns:
+            Dict with success status and updated instructor
+        """
+        try:
+            ci = CourseInstructorRepository.update_role(course, user, new_role)
+            if not ci:
+                return {
+                    "success": False,
+                    "error": "User is not an instructor on this course",
+                }
+            return {"success": True, "course_instructor": ci}
+        except ValueError as e:
+            return {"success": False, "error": str(e)}
+
+    @staticmethod
+    def get_course_instructors(course) -> list:
+        """Get all instructors for a course.
+
+        Returns:
+            List of CourseInstructor instances
+        """
+        return CourseInstructorRepository.get_course_instructors(course)
 
     # Instructor Course Management Methods
 
@@ -607,6 +682,8 @@ class CourseService:
                         },
                         "order": ps["order"],
                         "is_required": ps["is_required"],
+                        "due_date": ps["due_date"],
+                        "deadline_type": ps["deadline_type"],
                     }
                 )
 

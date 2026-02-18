@@ -472,7 +472,46 @@ export interface BaseSubmission {
 
 }
 
+// ===== TYPE-SPECIFIC DATA (from get_submission_details type_data) =====
+
+export interface McqTypeData {
+  question_text: string;
+  options: McqOption[];
+  selected_option_id: string | null;
+  correct_option: McqOption | null;
+  is_correct: boolean;
+}
+
+export interface RefuteTypeData {
+  claim_text: string;
+  function_signature: string;
+  function_name: string;
+}
+
+export interface DebugFixTypeData {
+  buggy_code: string;
+}
+
+export interface PromptTypeData {
+  image_url: string;
+  image_alt_text: string;
+}
+
+export interface ProbeableTypeData {
+  function_signature: string;
+}
+
+export type SubmissionTypeData =
+  | McqTypeData
+  | RefuteTypeData
+  | DebugFixTypeData
+  | PromptTypeData
+  | ProbeableTypeData
+  | Record<string, never>;
+
 export interface SubmissionDetailed extends BaseSubmission {
+  submission_type?: string;
+  type_data?: SubmissionTypeData;
   problem_details?: {
     title: string;
     slug: string;
@@ -644,6 +683,17 @@ export interface SubmissionHistoryResponse {
 }
 
 // ===== COURSE TYPES =====
+export type CourseInstructorRole = 'primary' | 'ta';
+
+export interface CourseInstructorMember {
+  user_id: number;
+  username: string;
+  full_name: string;
+  email: string;
+  role: CourseInstructorRole;
+  added_at: string;
+}
+
 export interface Course {
   id: number;
   course_id: string;
@@ -657,6 +707,8 @@ export interface Course {
   enrolled_students_count: number;
   enrollment_code?: string;
   problem_sets?: CourseProblemSet[];
+  instructors?: CourseInstructorMember[];
+  my_role?: CourseInstructorRole;
   created_at: string;
   updated_at?: string;
 }
@@ -689,11 +741,12 @@ export interface Deadline {
 
 export interface CourseProblemSet {
   id: number;
-  name: string;
-  description: string;
-  slug: string;
-  problems_count?: number;
-  icon?: string;
+  problem_set: {
+    slug: string;
+    title: string;
+    description?: string;
+    problems_count: number;
+  };
   order?: number;
   is_required?: boolean;
   due_date?: string | null;

@@ -136,75 +136,81 @@ async function updateDirectoryInfo() {
 <style scoped>
 .privacy-settings {
     max-width: 700px;
-    margin: 2rem auto;
-    padding: 0 1rem;
+    margin: var(--spacing-xl) auto;
+    padding: 0 var(--spacing-base);
 }
 
 .privacy-settings__title {
-    margin: 0 0 1.5rem;
-    font-size: 1.5rem;
-    color: var(--text-primary, #e0e0e0);
+    margin: 0 0 var(--spacing-xl);
+    font-size: var(--font-size-lg);
+    color: var(--color-text-primary);
 }
 
 .privacy-settings__section {
-    margin-bottom: 2rem;
+    margin-bottom: var(--spacing-xl);
 }
 
 .privacy-settings__section--danger {
-    padding-top: 1rem;
-    border-top: 1px solid rgba(231, 76, 60, 0.3);
+    padding-top: var(--spacing-base);
+    border-top: 1px solid rgba(220, 53, 69, 0.3);
 }
 
 .privacy-settings__section-title {
-    margin: 0 0 0.3rem;
-    font-size: 1.1rem;
-    color: var(--text-primary, #e0e0e0);
+    margin: 0 0 var(--spacing-xs);
+    font-size: var(--font-size-md);
+    color: var(--color-text-primary);
 }
 
 .privacy-settings__section-desc {
-    margin: 0 0 1rem;
-    font-size: 0.85rem;
-    color: var(--text-secondary, #999);
+    margin: 0 0 var(--spacing-base);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
 }
 
 .privacy-settings__loading {
-    padding: 1rem;
-    color: var(--text-secondary, #999);
+    padding: var(--spacing-base);
+    color: var(--color-text-muted);
 }
 
 .consent-toggles {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--spacing-md);
 }
 
 .consent-toggle {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 1rem;
-    background: var(--card-bg, #1e1e2e);
-    border-radius: 6px;
-    border: 1px solid var(--border-color, #333);
+    padding: var(--spacing-md) var(--spacing-base);
+    background: var(--color-bg-panel);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-bg-border);
+    transition: var(--transition-fast);
+}
+
+.consent-toggle:hover {
+    background: var(--color-bg-hover);
 }
 
 .consent-toggle__info {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
 }
 
 .consent-toggle__label {
-    font-size: 0.9rem;
-    color: var(--text-primary, #e0e0e0);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
 }
 
 .consent-toggle__required {
-    font-size: 0.7rem;
-    padding: 0.15rem 0.4rem;
-    background: rgba(155, 89, 182, 0.2);
-    color: var(--link-color, #9b59b6);
-    border-radius: 3px;
+    font-size: var(--font-size-xs);
+    padding: 2px var(--spacing-xs);
+    background: rgba(102, 126, 234, 0.15);
+    color: var(--color-primary-gradient-start);
+    border-radius: var(--radius-xs);
+    font-weight: 600;
 }
 
 .consent-toggle__switch {
@@ -212,6 +218,7 @@ async function updateDirectoryInfo() {
     width: 44px;
     height: 24px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .consent-toggle__switch input {
@@ -223,9 +230,9 @@ async function updateDirectoryInfo() {
 .consent-toggle__slider {
     position: absolute;
     inset: 0;
-    background: var(--border-color, #333);
-    border-radius: 24px;
-    transition: background 0.2s;
+    background: var(--color-bg-border);
+    border-radius: var(--radius-round);
+    transition: var(--transition-fast);
 }
 
 .consent-toggle__slider::before {
@@ -235,13 +242,13 @@ async function updateDirectoryInfo() {
     height: 18px;
     left: 3px;
     bottom: 3px;
-    background: white;
-    border-radius: 50%;
-    transition: transform 0.2s;
+    background: var(--color-text-primary);
+    border-radius: var(--radius-circle);
+    transition: var(--transition-fast);
 }
 
 .consent-toggle__switch input:checked + .consent-toggle__slider {
-    background: var(--link-color, #9b59b6);
+    background: var(--color-primary-gradient-start);
 }
 
 .consent-toggle__switch input:checked + .consent-toggle__slider::before {
@@ -251,5 +258,10 @@ async function updateDirectoryInfo() {
 .consent-toggle__switch input:disabled + .consent-toggle__slider {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.consent-toggle__switch input:focus-visible + .consent-toggle__slider {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
 }
 </style>

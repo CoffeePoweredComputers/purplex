@@ -178,8 +178,11 @@ class SubmissionRepository(BaseRepository[Submission]):
         try:
             return (
                 Submission.objects.select_related(
-                    "user", "problem", "problem_set", "course", "segmentation"
+                    "user", "problem_set", "course", "segmentation"
                 )
+                # NOTE: 'problem' is intentionally excluded from select_related
+                # to allow django-polymorphic to resolve the correct subclass
+                # (EiplProblem, McqProblem, etc.) with type-specific fields.
                 .prefetch_related(
                     "test_executions__test_case",
                     "hint_activations__hint",

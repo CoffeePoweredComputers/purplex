@@ -71,6 +71,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import("./components/content/SubmissionsPage.vue"),
         meta: {requiresAuth: true, requiresInstructor: true}
     },
+    {
+        path: "/instructor/courses/:courseId/submissions/:submissionId",
+        name: "InstructorSubmissionDetail",
+        component: () => import("./components/content/SubmissionDetailPage.vue"),
+        meta: {requiresAuth: true, requiresInstructor: true}
+    },
     // Instructor Content Management routes - using unified components
     {
         path: "/instructor/problems",
@@ -193,6 +199,12 @@ const routes: RouteRecordRaw[] = [
         path: "/admin/submissions",
         name: "AdminSubmissions",
         component: () => import("./components/content/SubmissionsPage.vue"),
+        meta: {requiresAuth: true, requiresAdmin: true}
+    },
+    {
+        path: "/admin/submissions/:submissionId",
+        name: "AdminSubmissionDetail",
+        component: () => import("./components/content/SubmissionDetailPage.vue"),
         meta: {requiresAuth: true, requiresAdmin: true}
     },
     {

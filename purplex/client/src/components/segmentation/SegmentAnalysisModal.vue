@@ -6,8 +6,8 @@
         class="modal-overlay"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
-        aria-describedby="modal-description"
+        aria-labelledby="segment-modal-title"
+        aria-describedby="segment-modal-description"
         @click.self="closeModal"
       >
         <div
@@ -19,7 +19,7 @@
           <div class="modal-header">
             <div class="header-content">
               <h3
-                id="modal-title"
+                id="segment-modal-title"
                 class="modal-title"
               >
                 Comprehension Level Analysis
@@ -36,16 +36,17 @@
             <div class="modal-actions">
               <div class="size-controls-group">
                 <span class="size-label">Size</span>
-                <div class="size-controls">
+                <div class="size-controls" role="group" aria-label="Modal size">
                   <button
                     v-for="size in sizePresets"
                     :key="size.name"
                     :class="['size-btn', { active: currentSize === size.name }]"
                     :title="`${size.label} view`"
                     :aria-label="`Set ${size.label.toLowerCase()} window size`"
+                    :aria-pressed="currentSize === size.name"
                     @click="setModalSize(size.name)"
                   >
-                    {{ size.icon }}
+                    <span aria-hidden="true">{{ size.icon }}</span>
                   </button>
                 </div>
               </div>
@@ -55,15 +56,16 @@
                 aria-label="Open understanding analysis in new tab"
                 @click="openInNewTab"
               >
-                <span class="icon">⬈</span>
+                <span class="icon" aria-hidden="true">⬈</span>
               </button>
               <button
+                ref="closeButtonRef"
                 class="close-button"
                 title="Close (ESC)"
                 aria-label="Close modal"
                 @click="closeModal"
               >
-                &times;
+                <span aria-hidden="true">&times;</span>
               </button>
             </div>
           </div>
@@ -71,9 +73,9 @@
           <div class="modal-body">
             <div class="analysis-header">
               <div class="feedback-content">
-                <span class="feedback-icon">{{ getFeedbackIcon() }}</span>
+                <span class="feedback-icon" aria-hidden="true">{{ getFeedbackIcon() }}</span>
                 <div class="feedback-text">
-                  <p class="feedback-message">
+                  <p id="segment-modal-description" class="feedback-message">
                     <template v-if="segmentation.comprehension_level === 'relational'">
                       Excellent! Your <span class="segment-badge segment-badge-success">{{ segmentation.segment_count }} segment{{ segmentation.segment_count > 1 ? 's' : '' }}</span> show{{ segmentation.segment_count === 1 ? 's' : '' }} high-level understanding.
                     </template>
@@ -148,8 +150,9 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-// Focus trap composable
-const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
+// Focus trap composable — focus the close button on open (Fix 6, WCAG 2.4.3)
+const closeButtonRef = ref<HTMLElement | null>(null)
+const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible), closeButtonRef)
 
 // Size state
 const currentSize = ref<SizePreset>('medium')

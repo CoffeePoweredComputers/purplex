@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from purplex.problems_app.repositories.course_repository import CourseRepository
 from purplex.problems_app.services.course_service import CourseService
 from purplex.submissions.repositories import SubmissionRepository
+from purplex.submissions.services import SubmissionService
 from purplex.users_app.permissions import IsCourseInstructor
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,8 @@ class InstructorCourseProblemSetsView(APIView):
                     },
                     "order": cps["order"],
                     "is_required": cps["is_required"],
+                    "due_date": cps["due_date"],
+                    "deadline_type": cps["deadline_type"],
                 }
             )
 
@@ -175,3 +178,52 @@ class InstructorCourseSubmissionsView(APIView):
                 },
             }
         )
+
+
+class InstructorSubmissionDetailView(APIView):
+    """
+    View a single submission's full details.
+
+    GET /api/instructor/courses/{course_id}/submissions/{submission_id}/
+
+    FERPA Compliant: Verifies submission belongs to the instructor's course
+    before returning data. Uses the same SubmissionService.get_submission_details()
+    as the admin view, plus type_data enrichment for all 7 problem types.
+    """
+
+    permission_classes = [IsCourseInstructor]
+
+    def get(self, request, course_id, submission_id):
+        """Get full submission details for a single submission."""
+        course = CourseRepository.get_course_by_id(course_id)
+        if not course:
+            return Response(
+                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verify instructor permission on the course
+        self.check_object_permissions(request, course)
+
+        try:
+            submission_data = SubmissionService.get_submission_details(submission_id)
+        except Exception as e:
+            if "DoesNotExist" in type(e).__name__:
+                return Response(
+                    {"error": "Submission not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            logger.error(f"Error fetching submission details: {e}")
+            return Response(
+                {"error": "Failed to fetch submission details"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # FERPA: Verify submission belongs to this course
+        submission_course = submission_data.get("course")
+        if not submission_course or submission_course.get("id") != course.course_id:
+            return Response(
+                {"error": "Submission not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(submission_data)

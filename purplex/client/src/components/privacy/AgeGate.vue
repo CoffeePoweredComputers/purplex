@@ -98,78 +98,96 @@ function submitAge() {
 .age-gate {
     max-width: 400px;
     margin: 0 auto;
-    padding: 1.5rem;
-    background: var(--card-bg, #1e1e2e);
-    border-radius: 8px;
-    border: 1px solid var(--border-color, #333);
+    padding: var(--spacing-xl);
+    background: var(--color-bg-panel);
+    border-radius: var(--radius-base);
+    border: 1px solid var(--color-bg-border);
+    box-shadow: var(--shadow-base);
 }
 
 .age-gate__title {
-    margin: 0 0 0.5rem;
-    font-size: 1.2rem;
-    color: var(--text-primary, #e0e0e0);
+    margin: 0 0 var(--spacing-sm);
+    font-size: var(--font-size-md);
+    color: var(--color-text-primary);
 }
 
 .age-gate__description {
-    margin: 0 0 1rem;
-    font-size: 0.85rem;
-    color: var(--text-secondary, #999);
+    margin: 0 0 var(--spacing-base);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
 }
 
 .age-gate__form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--spacing-base);
 }
 
 .age-gate__label {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    font-size: 0.9rem;
-    color: var(--text-primary, #e0e0e0);
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
 }
 
 .age-gate__input {
-    padding: 0.5rem;
-    border: 1px solid var(--border-color, #333);
-    border-radius: 4px;
-    background: var(--input-bg, #2a2a3e);
-    color: var(--text-primary, #e0e0e0);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--color-bg-border);
+    border-radius: var(--radius-xs);
+    background: var(--color-bg-input);
+    color: var(--color-text-primary);
+    transition: var(--transition-fast);
+}
+
+.age-gate__input:focus {
+    outline: none;
+    border-color: var(--color-primary-gradient-start);
 }
 
 .age-gate__message {
-    font-size: 0.85rem;
-    color: var(--text-secondary, #999);
-    padding: 0.5rem;
-    border-radius: 4px;
-    background: var(--info-bg, #1a1a2e);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-xs);
+    background: var(--color-info-bg);
 }
 
 .age-gate__message--warning {
-    color: var(--warning-color, #f39c12);
-    background: rgba(243, 156, 18, 0.1);
-    border: 1px solid rgba(243, 156, 18, 0.3);
+    color: var(--color-warning-text);
+    background: var(--color-warning-bg);
+    border: 1px solid rgba(255, 193, 7, 0.3);
 }
 
 .age-gate__error {
-    color: var(--error-color, #e74c3c);
-    font-size: 0.85rem;
+    color: var(--color-error);
+    font-size: var(--font-size-sm);
 }
 
 .age-gate__submit {
-    padding: 0.75rem;
-    background: var(--primary-gradient, linear-gradient(135deg, #9b59b6, #6c3483));
-    color: white;
+    padding: var(--spacing-md);
+    background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
+    color: var(--color-text-primary);
     border: none;
-    border-radius: 6px;
-    font-size: 1rem;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-base);
+    font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: var(--transition-fast);
+}
+
+.age-gate__submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-colored);
+}
+
+.age-gate__submit:focus-visible {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
 }
 
 .age-gate__submit:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
 }
 </style>

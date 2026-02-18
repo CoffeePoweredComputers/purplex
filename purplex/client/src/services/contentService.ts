@@ -13,6 +13,8 @@ import axios, { AxiosResponse } from 'axios';
 import type {
   APIError,
   Course,
+  CourseInstructorMember,
+  CourseInstructorRole,
   CourseProblemSet,
   CourseStudent,
   HintConfig,
@@ -136,6 +138,12 @@ export interface ContentApiService {
 
   // Instructors (for admin course assignment)
   getInstructors(): Promise<Instructor[]>;
+
+  // Course Team (multi-instructor management)
+  getCourseTeam(courseId: string): Promise<CourseInstructorMember[]>;
+  addCourseTeamMember(courseId: string, data: { user_id: number; role: CourseInstructorRole }): Promise<CourseInstructorMember>;
+  updateCourseTeamMember(courseId: string, userId: number, data: { role: CourseInstructorRole }): Promise<CourseInstructorMember>;
+  removeCourseTeamMember(courseId: string, userId: number): Promise<void>;
 
   // Submissions
   getSubmissions(params: SubmissionQueryParams): Promise<PaginatedSubmissions>;
@@ -439,7 +447,7 @@ class ContentServiceImpl implements ContentApiService {
   async addCourseProblemSet(courseId: string, data: Record<string, unknown>): Promise<CourseProblemSet> {
     try {
       const response: AxiosResponse<CourseProblemSet> = await axios.post(
-        `${this.baseURL}/courses/${courseId}/problem-sets/`,
+        `${this.baseURL}/courses/${courseId}/problem-sets/manage/`,
         data
       );
       return response.data;
@@ -507,6 +515,60 @@ class ContentServiceImpl implements ContentApiService {
       return response.data;
     } catch (error) {
       throw this._handleError(error, 'Failed to load instructors');
+    }
+  }
+
+  // ============ COURSE TEAM ============
+
+  async getCourseTeam(courseId: string): Promise<CourseInstructorMember[]> {
+    try {
+      const response: AxiosResponse<CourseInstructorMember[]> = await axios.get(
+        `/api/instructor/courses/${courseId}/team/`
+      );
+      return response.data;
+    } catch (error) {
+      throw this._handleError(error, 'Failed to load course team');
+    }
+  }
+
+  async addCourseTeamMember(
+    courseId: string,
+    data: { user_id: number; role: CourseInstructorRole }
+  ): Promise<CourseInstructorMember> {
+    try {
+      const response: AxiosResponse<CourseInstructorMember> = await axios.post(
+        `/api/instructor/courses/${courseId}/team/`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      throw this._handleError(error, 'Failed to add team member');
+    }
+  }
+
+  async updateCourseTeamMember(
+    courseId: string,
+    userId: number,
+    data: { role: CourseInstructorRole }
+  ): Promise<CourseInstructorMember> {
+    try {
+      const response: AxiosResponse<CourseInstructorMember> = await axios.patch(
+        `/api/instructor/courses/${courseId}/team/${userId}/`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      throw this._handleError(error, 'Failed to update team member');
+    }
+  }
+
+  async removeCourseTeamMember(courseId: string, userId: number): Promise<void> {
+    try {
+      await axios.delete(
+        `/api/instructor/courses/${courseId}/team/${userId}/`
+      );
+    } catch (error) {
+      throw this._handleError(error, 'Failed to remove team member');
     }
   }
 

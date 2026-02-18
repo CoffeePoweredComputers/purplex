@@ -56,6 +56,7 @@ const props = withDefaults(defineProps<{
   value?: string
   readOnly?: boolean
   tabTargetId?: string | null
+  focusScopeSelector?: string | null
 }>(), {
   lang: 'python',
   theme: 'tomorrow_night',
@@ -69,7 +70,8 @@ const props = withDefaults(defineProps<{
   extraLines: 0,
   value: '',
   readOnly: false,
-  tabTargetId: null
+  tabTargetId: null,
+  focusScopeSelector: null
 })
 
 const emit = defineEmits<{
@@ -129,9 +131,19 @@ function editorInit(editorInstance: AceEditor): void {
   // CRITICAL ACCESSIBILITY FIX: Override Tab key behavior to allow tabbing out
   // By default, ACE captures Tab for indentation, creating a keyboard trap
 
+  // Resolve the focus scope once: dialog ancestor or the whole document
+  const focusScope: Element | Document = (() => {
+    if (props.focusScopeSelector) {
+      return editorInstance.container.closest(props.focusScopeSelector) ?? document
+    }
+    return editorInstance.container.closest('[role="dialog"]') ?? document
+  })()
+  const isInDialog = focusScope !== document
+
   // Helper function to get all focusable elements (excluding ACE editor internals)
+  // Scopes to nearest dialog to avoid escaping modal focus traps
   const getFocusableElements = () => {
-    return Array.from(document.querySelectorAll(
+    return Array.from(focusScope.querySelectorAll(
       'button:not([disabled]):not([tabindex="-1"]), ' +
       '[href]:not([tabindex="-1"]), ' +
       'input:not([disabled]):not([tabindex="-1"]), ' +
@@ -174,12 +186,14 @@ function editorInit(editorInstance: AceEditor): void {
         if (currentIndex !== -1 && currentIndex < focusableElements.length - 1) {
           const nextElement = focusableElements[currentIndex + 1] as HTMLElement
           nextElement.focus()
+        } else if (isInDialog && focusableElements.length > 0) {
+          // Inside a dialog: wrap to first focusable element
+          ;(focusableElements[0] as HTMLElement).focus()
         } else {
-          // Use custom tab target if provided, otherwise fall back to submit button
+          // Main page: use custom tab target or fall back to submit button
           const targetId = props.tabTargetId || 'submitButton'
           const targetElement = document.getElementById(targetId)
           if (targetElement) {
-            // If target is a wrapper with an editor inside, focus the editor
             const innerEditor = targetElement.querySelector('.ace_text-input')
             if (innerEditor) {
               (innerEditor as HTMLElement).focus()
@@ -214,6 +228,9 @@ function editorInit(editorInstance: AceEditor): void {
         if (currentIndex > 0) {
           const prevElement = focusableElements[currentIndex - 1] as HTMLElement
           prevElement.focus()
+        } else if (isInDialog && focusableElements.length > 0) {
+          // Inside a dialog: wrap to last focusable element
+          ;(focusableElements[focusableElements.length - 1] as HTMLElement).focus()
         }
       }, 10)
     }
@@ -226,8 +243,19 @@ function editorInit(editorInstance: AceEditor): void {
     exec: function(aceEditor: AceEditor) {
       aceEditor.blur()
 
-      // Try to focus submit button after escaping
       setTimeout(() => {
+        // Try tabTargetId prop first
+        if (props.tabTargetId) {
+          const target = document.getElementById(props.tabTargetId)
+          if (target) { target.focus(); return }
+        }
+        // Try close button in nearest dialog
+        const dialog = aceEditor.container.closest('[role="dialog"]')
+        if (dialog) {
+          const closeBtn = dialog.querySelector('[aria-label="Close modal"]') as HTMLElement
+          if (closeBtn) { closeBtn.focus(); return }
+        }
+        // Final fallback: submit button
         const submitBtn = document.getElementById('submitButton')
         if (submitBtn) {
           submitBtn.focus()

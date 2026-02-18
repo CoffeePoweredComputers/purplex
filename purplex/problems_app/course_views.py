@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from purplex.problems_app.repositories import CourseInstructorRepository
 from purplex.users_app.permissions import IsAdmin, IsCourseInstructor, IsInstructor
 from purplex.users_app.repositories.user_repository import UserRepository
 
@@ -84,6 +85,7 @@ class AdminCourseListCreateView(APIView):
                 instructor = request.user
 
             # Use service layer to create course
+            # NOTE: CourseService.create_course already creates CourseInstructor row
             course = CourseService.create_course(
                 instructor=instructor, **serializer.validated_data
             )
@@ -131,6 +133,22 @@ class AdminCourseDetailView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
                 serializer.validated_data["instructor"] = instructor
+
+                # Sync CourseInstructor table: ensure new instructor has a primary role
+                if not CourseInstructorRepository.is_course_instructor(
+                    instructor, course
+                ):
+                    CourseInstructorRepository.add_instructor(
+                        course=course,
+                        user=instructor,
+                        role="primary",
+                        added_by=request.user,
+                    )
+                else:
+                    # Ensure they're primary if already present
+                    CourseInstructorRepository.update_role(
+                        course, instructor, "primary"
+                    )
 
             updated_course = CourseService.update_course(
                 course, **serializer.validated_data
@@ -291,14 +309,17 @@ class CourseLookupView(APIView):
         course = result["course"]
         already_enrolled = result["already_enrolled"]
 
+        instructor_name = CourseInstructorRepository.get_primary_instructor_names(
+            course
+        ) or (course.instructor.get_full_name() or course.instructor.username)
+
         return Response(
             {
                 "course": {
                     "course_id": course.course_id,
                     "name": course.name,
                     "description": course.description,
-                    "instructor": course.instructor.get_full_name()
-                    or course.instructor.username,
+                    "instructor": instructor_name,
                     "problem_sets_count": course.problem_sets.count(),
                     "enrollment_open": course.enrollment_open,
                 },
@@ -416,6 +437,8 @@ class AdminCourseProblemSetsView(APIView):
                     },
                     "order": cps["order"],
                     "is_required": cps["is_required"],
+                    "due_date": cps["due_date"],
+                    "deadline_type": cps["deadline_type"],
                     "added_at": cps.get("added_at"),  # This might not be in the dict
                 }
             )

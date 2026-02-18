@@ -46,6 +46,7 @@ flower>=2.0.1                        # Celery monitoring dashboard (used by star
 openai>=1.40.6                       # OpenAI API client
 firebase-admin>=6.5.0                # Firebase Auth admin SDK
 llama-api-client>=0.6.0              # Must be >=0.6.0 for httpx 0.28+ compatibility
+sentry-sdk[django]>=2.19.0          # Error tracking; config in settings/production.py
 
 # ---------------------------------------------------------------------------
 # HTTP & Networking

@@ -34,6 +34,12 @@ from .views.admin_views import (
     AdminTestProblemView,
 )
 
+# Instructor Course Team Management views
+from .views.course_instructor_views import (
+    CourseTeamDetailView,
+    CourseTeamListCreateView,
+)
+
 # Hint system views
 from .views.hint_views import (
     AdminProblemHintView,
@@ -68,6 +74,7 @@ from .views.instructor_content_views import (
 from .views.instructor_views import (
     InstructorCourseProblemSetsView,
     InstructorCourseSubmissionsView,
+    InstructorSubmissionDetailView,
 )
 
 # Probe views for Probeable Code problems
@@ -310,6 +317,17 @@ urlpatterns = [
         InstructorCourseDetailView.as_view(),
         name="instructor_course_detail",
     ),
+    # Course Team Management (multi-instructor)
+    path(
+        "instructor/courses/<str:course_id>/team/",
+        CourseTeamListCreateView.as_view(),
+        name="instructor_course_team",
+    ),
+    path(
+        "instructor/courses/<str:course_id>/team/<int:user_id>/",
+        CourseTeamDetailView.as_view(),
+        name="instructor_course_team_detail",
+    ),
     path(
         "instructor/courses/<str:course_id>/students/",
         InstructorCourseStudentsView.as_view(),
@@ -339,6 +357,11 @@ urlpatterns = [
         "instructor/courses/<str:course_id>/submissions/",
         InstructorCourseSubmissionsView.as_view(),
         name="instructor_course_submissions",
+    ),
+    path(
+        "instructor/courses/<str:course_id>/submissions/<str:submission_id>/",
+        InstructorSubmissionDetailView.as_view(),
+        name="instructor_submission_detail",
     ),
     # Instructor Analytics Views
     path(

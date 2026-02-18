@@ -197,6 +197,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "purplex.utils.pagination.StandardPagination",
     "PAGE_SIZE": 100,
+    "EXCEPTION_HANDLER": "purplex.utils.exception_handler.custom_exception_handler",
 }
 
 # CORS configuration from environment

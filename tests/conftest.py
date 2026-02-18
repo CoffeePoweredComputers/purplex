@@ -11,9 +11,30 @@ Usage:
 """
 
 import pytest
+from django.db import connection
 from rest_framework.test import APIClient
 
-from tests.factories import (
+# =============================================================================
+# Database Triggers (required because --nomigrations skips RunSQL)
+# =============================================================================
+
+
+@pytest.fixture(scope="session")
+def _userconsent_immutability_trigger(django_db_setup, django_db_blocker):
+    """Install the UserConsent immutability trigger on the test DB.
+
+    --nomigrations creates tables from model definitions via syncdb, which
+    skips RunSQL operations in migrations. This fixture installs the trigger
+    from the migration's FORWARD_SQL so the test DB matches production.
+    """
+    from purplex.users_app.sql import FORWARD_SQL
+
+    with django_db_blocker.unblock():
+        with connection.cursor() as cursor:
+            cursor.execute(FORWARD_SQL)
+
+
+from tests.factories import (  # noqa: E402
     AgeVerificationFactory,
     CourseFactory,
     CourseProblemSetFactory,

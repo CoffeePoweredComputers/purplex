@@ -7,7 +7,12 @@ from typing import Any
 from django.contrib.auth.models import User
 from django.db.models import Count, Q
 
-from purplex.problems_app.models import Course, CourseEnrollment, CourseProblemSet
+from purplex.problems_app.models import (
+    Course,
+    CourseEnrollment,
+    CourseInstructor,
+    CourseProblemSet,
+)
 
 from .base_repository import BaseRepository
 
@@ -73,6 +78,7 @@ class CourseRepository(BaseRepository):
         """
         return (
             Course.objects.select_related("instructor")
+            .prefetch_related("course_instructors__user")
             .annotate(
                 problem_sets_count=Count("problem_sets"),
                 enrolled_students_count=Count(
@@ -94,6 +100,7 @@ class CourseRepository(BaseRepository):
         return (
             Course.objects.filter(is_active=True, is_deleted=False)
             .select_related("instructor")
+            .prefetch_related("course_instructors__user")
             .annotate(
                 problem_sets_count=Count("problem_sets"),
                 enrolled_students_count=Count(
@@ -109,14 +116,22 @@ class CourseRepository(BaseRepository):
     ) -> list[dict[str, Any]]:
         """Get all courses for an instructor with statistics.
 
+        Uses CourseInstructor table so TAs see their courses too.
+
         Args:
             instructor_id: ID of the instructor
 
         Returns:
             List of dicts with course data and statistics
         """
+        # Get course IDs where this user is an instructor (any role)
+        course_ids = CourseInstructor.objects.filter(user_id=instructor_id).values_list(
+            "course_id", flat=True
+        )
+
         courses = (
-            Course.objects.filter(instructor_id=instructor_id, is_deleted=False)
+            Course.objects.filter(id__in=course_ids, is_deleted=False)
+            .prefetch_related("course_instructors")
             .annotate(
                 problem_sets_count=Count("problem_sets"),
                 enrolled_students_count=Count(
@@ -124,6 +139,13 @@ class CourseRepository(BaseRepository):
                 ),
             )
             .order_by("-created_at")
+        )
+
+        # Build role lookup for this user
+        role_map = dict(
+            CourseInstructor.objects.filter(
+                user_id=instructor_id, course_id__in=course_ids
+            ).values_list("course_id", "role")
         )
 
         return [
@@ -137,6 +159,7 @@ class CourseRepository(BaseRepository):
                 "problem_sets_count": c.problem_sets_count,
                 "enrolled_students_count": c.enrolled_students_count,
                 "created_at": c.created_at,
+                "my_role": role_map.get(c.id, None),
             }
             for c in courses
         ]
@@ -180,7 +203,21 @@ class CourseRepository(BaseRepository):
                         "order": cps.order,
                         "is_required": cps.is_required,
                         "total_problems": ps.problems.count(),
+                        "due_date": cps.due_date.isoformat() if cps.due_date else None,
+                        "deadline_type": cps.deadline_type,
                     }
+                )
+
+            # Build instructor name from primary instructors
+            from .course_instructor_repository import CourseInstructorRepository
+
+            instructor_name = CourseInstructorRepository.get_primary_instructor_names(
+                course
+            )
+            if not instructor_name:
+                # Fallback to legacy FK
+                instructor_name = (
+                    course.instructor.get_full_name() or course.instructor.username
                 )
 
             result.append(
@@ -190,8 +227,7 @@ class CourseRepository(BaseRepository):
                         "course_id": course.course_id,
                         "name": course.name,
                         "description": course.description,
-                        "instructor_name": course.instructor.get_full_name()
-                        or course.instructor.username,
+                        "instructor_name": instructor_name,
                     },
                     "enrolled_at": enrollment.enrolled_at,
                     "problem_sets": course_problem_sets,
@@ -335,6 +371,8 @@ class CourseRepository(BaseRepository):
                     "problems_count": cps.problem_set.problems.count(),
                     "is_public": cps.problem_set.is_public,
                 },
+                "due_date": cps.due_date.isoformat() if cps.due_date else None,
+                "deadline_type": cps.deadline_type,
             }
             for cps in course_problem_sets
         ]
@@ -403,6 +441,8 @@ class CourseRepository(BaseRepository):
         Returns:
             List of dicts with course data
         """
+        from .course_instructor_repository import CourseInstructorRepository
+
         courses = (
             Course.objects.filter(
                 course_problem_sets__problem_set_id=problem_set_id,
@@ -411,6 +451,7 @@ class CourseRepository(BaseRepository):
             )
             .distinct()
             .select_related("instructor")
+            .prefetch_related("course_instructors__user")
         )
 
         return [
@@ -418,7 +459,10 @@ class CourseRepository(BaseRepository):
                 "id": c.id,
                 "course_id": c.course_id,
                 "name": c.name,
-                "instructor_name": c.instructor.get_full_name()
+                "instructor_name": CourseInstructorRepository.get_primary_instructor_names(
+                    c
+                )
+                or c.instructor.get_full_name()
                 or c.instructor.username,
             }
             for c in courses
@@ -471,13 +515,19 @@ class CourseRepository(BaseRepository):
         Returns:
             List of dicts with matching course data
         """
-        courses = Course.objects.filter(
-            Q(name__icontains=query)
-            | Q(description__icontains=query)
-            | Q(course_id__icontains=query),
-            is_active=True,
-            is_deleted=False,
-        ).select_related("instructor")
+        from .course_instructor_repository import CourseInstructorRepository
+
+        courses = (
+            Course.objects.filter(
+                Q(name__icontains=query)
+                | Q(description__icontains=query)
+                | Q(course_id__icontains=query),
+                is_active=True,
+                is_deleted=False,
+            )
+            .select_related("instructor")
+            .prefetch_related("course_instructors__user")
+        )
 
         return [
             {
@@ -485,7 +535,10 @@ class CourseRepository(BaseRepository):
                 "course_id": c.course_id,
                 "name": c.name,
                 "description": c.description,
-                "instructor_name": c.instructor.get_full_name()
+                "instructor_name": CourseInstructorRepository.get_primary_instructor_names(
+                    c
+                )
+                or c.instructor.get_full_name()
                 or c.instructor.username,
                 "enrollment_open": c.enrollment_open,
             }

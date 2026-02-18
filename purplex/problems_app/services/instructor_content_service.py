@@ -83,7 +83,7 @@ class InstructorContentService:
 
     @staticmethod
     def can_manage_course(user: User, course: Course) -> bool:
-        """Check if user owns the course."""
-        return course.instructor_id == user.id or (
-            hasattr(user, "profile") and user.profile.role == "admin"
-        )
+        """Check if user is an instructor on the course."""
+        if hasattr(user, "profile") and user.profile.role == "admin":
+            return True
+        return course.is_instructor(user)

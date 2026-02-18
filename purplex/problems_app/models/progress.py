@@ -115,9 +115,10 @@ class UserProblemSetProgress(models.Model):
         """
         Update problem set progress when individual problem progress changes.
 
-        LOCK-FREE: Uses atomic update_or_create() to avoid blocking greenlets.
-        Independent grading operations don't need coordination - each recalculates
-        from source of truth (UserProgress table).
+        Recalculates aggregates from UserProgress (source of truth) and writes
+        the rollup via update_or_create. Concurrent rollups for the same tuple
+        are eventually consistent — each recalculates from source of truth, so
+        the next call self-corrects any stale data.
         """
         # Recalculate aggregates from UserProgress (source of truth)
         stats = UserProgress.objects.filter(
@@ -141,7 +142,7 @@ class UserProblemSetProgress(models.Model):
         )
         is_completed = (completed == total_problems) if total_problems > 0 else False
 
-        # Atomic update_or_create with all fields in defaults
+        # Atomic update_or_create (completed_at omitted — preserved on UPDATE, defaults to NULL on INSERT)
         set_progress, created = cls.objects.update_or_create(
             user=user_progress.user,
             problem_set=user_progress.problem_set,
@@ -155,12 +156,11 @@ class UserProblemSetProgress(models.Model):
                 "last_activity": stats["last_activity"],
                 "completion_percentage": completion_pct,
                 "is_completed": is_completed,
-                "completed_at": models.F("completed_at"),
             },
         )
 
-        # If just became completed and completed_at wasn't set, update it
-        if is_completed and not created and not set_progress.completed_at:
+        # Set completed_at on first completion (works for both INSERT and UPDATE)
+        if is_completed and not set_progress.completed_at:
             set_progress.completed_at = timezone.now()
             set_progress.save(update_fields=["completed_at"])
 

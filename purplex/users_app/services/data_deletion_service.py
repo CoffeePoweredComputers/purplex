@@ -14,6 +14,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -78,18 +79,29 @@ class DataDeletionService:
         """
         Cancel a pending deletion during the grace period.
         Re-activates the user account.
+
+        Uses select_for_update() to prevent race with execute_hard_deletion().
         """
-        profile = getattr(user, "profile", None)
-        if not profile or profile.deletion_requested_at is None:
-            return {"status": "no_pending_deletion"}
+        from ..models import UserProfile
 
-        user.is_active = True
-        user.save(update_fields=["is_active"])
+        with transaction.atomic():
+            profile = UserProfile.objects.select_for_update().filter(user=user).first()
+            if not profile or profile.deletion_requested_at is None:
+                return {"status": "no_pending_deletion"}
 
-        profile.deletion_requested_at = None
-        profile.deletion_scheduled_at = None
-        profile.save(update_fields=["deletion_requested_at", "deletion_scheduled_at"])
+            # Re-fetch user with lock so is_active update is atomic
+            locked_user = User.objects.select_for_update().get(pk=user.pk)
+            locked_user.is_active = True
+            locked_user.save(update_fields=["is_active"])
 
+            profile.deletion_requested_at = None
+            profile.deletion_scheduled_at = None
+            profile.save(
+                update_fields=["deletion_requested_at", "deletion_scheduled_at"]
+            )
+
+        # Refresh the caller's reference so it sees updated state
+        user.refresh_from_db()
         logger.info(f"Deletion cancelled for user {user.username}")
         return {"status": "deletion_cancelled"}
 
@@ -100,6 +112,9 @@ class DataDeletionService:
 
         This is called by the cleanup management command after the grace period.
         It can also be called directly for immediate deletion (admin action).
+
+        Uses transaction.atomic() + select_for_update() to prevent race with
+        cancel_deletion(). If cancel won the race, returns early.
 
         Deletion order matters for referential integrity:
         1. Anonymize submissions (SET_NULL preserves them)
@@ -113,122 +128,134 @@ class DataDeletionService:
         9. Delete Firebase account
         10. Delete Django user (cascades remaining relations)
         """
+        from ..models import UserProfile
+
         username = user.username
         user_id = user.id
         stats = {}
 
-        try:
-            # 1. Anonymize submissions (these use SET_NULL, so user FK becomes NULL)
-            # The raw_input may contain PII — scrub it if requested
-            from purplex.submissions.models import (
-                HintActivation,
-                SegmentationAnalysis,
-                Submission,
-                SubmissionFeedback,
-            )
+        with transaction.atomic():
+            # Lock profile row — blocks concurrent cancel_deletion()
+            profile = UserProfile.objects.select_for_update().filter(user=user).first()
 
-            submission_ids = list(
-                Submission.objects.filter(user=user).values_list("id", flat=True)
-            )
-            stats["submissions_anonymized"] = len(submission_ids)
-
-            # 2. Delete detailed submission data that's tied to user identity
-            stats["hint_activations_deleted"] = HintActivation.objects.filter(
-                submission__user=user
-            ).delete()[0]
-
-            stats["segmentation_analyses_deleted"] = (
-                SegmentationAnalysis.objects.filter(submission__user=user).delete()[0]
-            )
-
-            stats["submission_feedback_deleted"] = SubmissionFeedback.objects.filter(
-                submission__user=user
-            ).delete()[0]
-
-            # 3. Null out user FK on submissions (preserves for research)
-            Submission.objects.filter(user=user).update(user=None)
-
-            # 4. Delete progress records
-            from purplex.problems_app.models import (
-                CourseEnrollment,
-                ProgressSnapshot,
-                UserProblemSetProgress,
-                UserProgress,
-            )
-
-            # UserProgress uses SET_NULL, so null it out
-            stats["progress_anonymized"] = UserProgress.objects.filter(
-                user=user
-            ).update(user=None)
-
-            # These use CASCADE but let's be explicit
-            stats["problem_set_progress_deleted"] = (
-                UserProblemSetProgress.objects.filter(user=user).delete()[0]
-            )
-
-            stats["progress_snapshots_deleted"] = ProgressSnapshot.objects.filter(
-                user=user
-            ).delete()[0]
-
-            # 5. Delete enrollments
-            stats["enrollments_deleted"] = CourseEnrollment.objects.filter(
-                user=user
-            ).delete()[0]
-
-            # 6. Delete privacy-related records
-            from ..models import (
-                AgeVerification,
-                AuditAction,
-                DataAccessAuditLog,
-                DataPrincipalNominee,
-                UserConsent,
-            )
-
-            # Consent records use SET_NULL — they are preserved for GDPR Art. 7
-            # audit trail. The user FK is automatically nulled on user.delete().
-            stats["consent_records_preserved"] = UserConsent.objects.filter(
-                user=user
-            ).count()
+            # State guard: if cancel_deletion() already cleared the request, bail
+            if not profile or profile.deletion_requested_at is None:
+                return {"status": "already_cancelled", "user_id": user_id}
 
             try:
-                AgeVerification.objects.filter(user=user).delete()
-                stats["age_verification_deleted"] = True
-            except AgeVerification.DoesNotExist:
-                stats["age_verification_deleted"] = False
+                # 1. Anonymize submissions (SET_NULL preserves them)
+                from purplex.submissions.models import (
+                    HintActivation,
+                    SegmentationAnalysis,
+                    Submission,
+                    SubmissionFeedback,
+                )
 
-            try:
-                DataPrincipalNominee.objects.filter(user=user).delete()
-                stats["nominee_deleted"] = True
-            except DataPrincipalNominee.DoesNotExist:
-                stats["nominee_deleted"] = False
+                submission_ids = list(
+                    Submission.objects.filter(user=user).values_list("id", flat=True)
+                )
+                stats["submissions_anonymized"] = len(submission_ids)
 
-            # 7. Delete Firebase account
-            stats["firebase_deleted"] = cls._delete_firebase_account(user)
+                # 2. Delete detailed submission data tied to user identity
+                stats["hint_activations_deleted"] = HintActivation.objects.filter(
+                    submission__user=user
+                ).delete()[0]
 
-            # 8. Log the deletion in audit trail (before deleting user)
-            DataAccessAuditLog.objects.create(
-                accessor=None,  # System action
-                action=AuditAction.DELETE_USER,
-                target_user_ids=[user_id],
-                query_parameters={"reason": "user_requested_deletion"},
-                ip_address="127.0.0.1",  # System action
-            )
+                stats["segmentation_analyses_deleted"] = (
+                    SegmentationAnalysis.objects.filter(
+                        submission__user=user
+                    ).delete()[0]
+                )
 
-            # 9. Delete user profile and Django user (CASCADE handles profile)
-            user.delete()
-            stats["user_deleted"] = True
+                stats["submission_feedback_deleted"] = (
+                    SubmissionFeedback.objects.filter(submission__user=user).delete()[0]
+                )
 
-            logger.info(
-                f"Hard deletion completed for user {username} (id={user_id}): {stats}"
-            )
-            return {"status": "deleted", "user_id": user_id, "stats": stats}
+                # 3. Null out user FK on submissions (preserves for research)
+                Submission.objects.filter(user=user).update(user=None)
 
-        except Exception as e:
-            logger.error(
-                f"Error during hard deletion for user {username}: {e}",
-                exc_info=True,
-            )
-            raise
+                # 4. Delete progress records
+                from purplex.problems_app.models import (
+                    CourseEnrollment,
+                    ProgressSnapshot,
+                    UserProblemSetProgress,
+                    UserProgress,
+                )
+
+                stats["progress_anonymized"] = UserProgress.objects.filter(
+                    user=user
+                ).update(user=None)
+
+                stats["problem_set_progress_deleted"] = (
+                    UserProblemSetProgress.objects.filter(user=user).delete()[0]
+                )
+
+                stats["progress_snapshots_deleted"] = ProgressSnapshot.objects.filter(
+                    user=user
+                ).delete()[0]
+
+                # 5. Delete enrollments
+                stats["enrollments_deleted"] = CourseEnrollment.objects.filter(
+                    user=user
+                ).delete()[0]
+
+                # 6. Delete privacy-related records
+                from ..models import (
+                    AgeVerification,
+                    AuditAction,
+                    DataAccessAuditLog,
+                    DataPrincipalNominee,
+                    UserConsent,
+                )
+
+                stats["consent_records_preserved"] = UserConsent.objects.filter(
+                    user=user
+                ).count()
+
+                try:
+                    AgeVerification.objects.filter(user=user).delete()
+                    stats["age_verification_deleted"] = True
+                except AgeVerification.DoesNotExist:
+                    stats["age_verification_deleted"] = False
+
+                try:
+                    DataPrincipalNominee.objects.filter(user=user).delete()
+                    stats["nominee_deleted"] = True
+                except DataPrincipalNominee.DoesNotExist:
+                    stats["nominee_deleted"] = False
+
+                # 7. Delete Firebase account
+                stats["firebase_deleted"] = cls._delete_firebase_account(user)
+
+                # 8. Log the deletion in audit trail (before deleting user)
+                DataAccessAuditLog.objects.create(
+                    accessor=None,  # System action
+                    action=AuditAction.DELETE_USER,
+                    target_user_ids=[user_id],
+                    query_parameters={"reason": "user_requested_deletion"},
+                    ip_address="127.0.0.1",  # System action
+                )
+
+                # 9. Delete user profile and Django user (CASCADE)
+                user.delete()
+                stats["user_deleted"] = True
+
+                logger.info(
+                    f"Hard deletion completed for user {username} "
+                    f"(id={user_id}): {stats}"
+                )
+                return {
+                    "status": "deleted",
+                    "user_id": user_id,
+                    "stats": stats,
+                }
+
+            except Exception as e:
+                logger.error(
+                    f"Error during hard deletion for user {username}: {e}",
+                    exc_info=True,
+                )
+                raise
 
     @staticmethod
     def _delete_firebase_account(user: User) -> bool:

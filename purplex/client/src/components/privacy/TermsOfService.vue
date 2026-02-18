@@ -118,51 +118,57 @@ const effectiveDate = new Date().toLocaleDateString(undefined, {
 <style scoped>
 .policy-page {
     max-width: 800px;
-    margin: 2rem auto;
-    padding: 0 1.5rem 3rem;
+    margin: var(--spacing-xl) auto;
+    padding: 0 var(--spacing-xl) var(--spacing-xxl);
 }
 
 .policy-page__content {
-    color: var(--text-primary, #e0e0e0);
+    color: var(--color-text-secondary);
     line-height: 1.6;
 }
 
 .policy-page__version {
-    color: var(--text-secondary, #999);
-    font-size: 0.85rem;
-    margin-bottom: 2rem;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-xl);
 }
 
 .policy-page h1 {
-    font-size: 1.8rem;
-    margin-bottom: 0.25rem;
+    font-size: var(--font-size-xxl);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
 }
 
 .policy-page h2 {
-    font-size: 1.2rem;
-    margin-top: 2rem;
-    margin-bottom: 0.5rem;
+    font-size: var(--font-size-md);
+    margin-top: var(--spacing-xl);
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text-primary);
 }
 
 .policy-page section {
-    margin-bottom: 1rem;
+    margin-bottom: var(--spacing-base);
 }
 
 .policy-page p,
 .policy-page li {
-    font-size: 0.9rem;
-    color: var(--text-secondary, #ccc);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
 }
 
 .policy-page ul {
-    padding-left: 1.5rem;
+    padding-left: var(--spacing-xl);
 }
 
 .policy-page li {
-    margin-bottom: 0.3rem;
+    margin-bottom: var(--spacing-xs);
 }
 
 .policy-page a {
-    color: var(--link-color, #9b59b6);
+    color: var(--color-primary-gradient-start);
+}
+
+.policy-page a:hover {
+    color: var(--color-primary-gradient-end);
 }
 </style>

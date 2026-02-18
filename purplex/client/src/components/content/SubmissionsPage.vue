@@ -233,7 +233,12 @@
         </span>
       </template>
 
-      <!-- Actions (admin only) -->
+      <!-- Submission type badge (instructors + admins) -->
+      <template #cell-type="{ item }">
+        <span class="type-badge">{{ formatSubmissionType(item.submission_type) }}</span>
+      </template>
+
+      <!-- Actions (admin: View + Download, instructor: View only) -->
       <template #cell-actions="{ item }">
         <div class="actions-cell">
           <button
@@ -244,6 +249,7 @@
             View
           </button>
           <button
+            v-if="ctx.isAdmin.value"
             class="action-button download-button"
             title="Download Data"
             @click="downloadSubmissionData(item)"
@@ -254,9 +260,8 @@
       </template>
     </DataTable>
 
-    <!-- Admin only: View Submission Modal -->
+    <!-- View Submission Modal (admin + instructor) -->
     <ViewSubmissionModal
-      v-if="ctx.isAdmin.value"
       :is-visible="showViewModal"
       :submission="selectedSubmission"
       @close="closeViewModal"
@@ -350,6 +355,11 @@ const columns = computed<DataTableColumn<SubmissionSummary>[]>(() => {
     cols.push({ key: 'course', label: 'Course', hideOnMobile: true, slot: 'cell-course' });
   }
 
+  // Submission type column (instructor + admin)
+  if (ctx.isInstructor.value || ctx.isAdmin.value) {
+    cols.push({ key: 'submission_type', label: 'Type', align: 'center', hideOnMobile: true, width: '110px', slot: 'cell-type' });
+  }
+
   cols.push({ key: 'score', label: 'Score', align: 'center', width: '100px', slot: 'cell-score' });
 
   // Admin: comprehension column
@@ -367,13 +377,35 @@ const columns = computed<DataTableColumn<SubmissionSummary>[]>(() => {
     },
   );
 
-  // Admin: actions column
-  if (ctx.isAdmin.value) {
-    cols.push({ key: 'actions', label: 'Actions', align: 'center', slot: 'cell-actions', width: '160px' });
+  // Actions column (admin + instructor)
+  if (ctx.isAdmin.value || ctx.isInstructor.value) {
+    cols.push({
+      key: 'actions',
+      label: 'Actions',
+      align: 'center',
+      slot: 'cell-actions',
+      width: ctx.isAdmin.value ? '160px' : '80px',
+    });
   }
 
   return cols;
 });
+
+// Helper for submission type display
+function formatSubmissionType(type: string): string {
+  const typeMap: Record<string, string> = {
+    eipl: 'EiPL',
+    mcq: 'MCQ',
+    prompt: 'Prompt',
+    refute: 'Refute',
+    debug_fix: 'Debug Fix',
+    probeable_code: 'Probeable',
+    probeable_spec: 'Probe Spec',
+    direct_code: 'Code',
+    function_redef: 'Func Redef',
+  };
+  return typeMap[type] || type;
+}
 
 // Helper for course name display
 function getCourseName(courseIdValue: string): string {
@@ -714,6 +746,20 @@ onMounted(fetchSubmissions);
   background: var(--color-bg-hover);
   color: var(--color-text-muted);
   border: 1px solid var(--color-bg-input);
+}
+
+/* Type badge */
+.type-badge {
+  display: inline-block;
+  padding: 2px var(--spacing-xs);
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-bg-input);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 /* Actions */
