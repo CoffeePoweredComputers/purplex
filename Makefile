@@ -100,7 +100,6 @@ typecheck: ## Run type checking
 .PHONY: build
 build: ## Build production Docker images
 	docker build -t purplex-app:latest .
-	docker build -f Dockerfile.celery -t purplex-celery:latest .
 
 .PHONY: build-frontend
 build-frontend: ## Build frontend for production
@@ -138,7 +137,6 @@ docker-clean: ## Clean Docker resources
 .PHONY: prod-build
 prod-build: ## Build for production
 	docker build -t purplex-app:prod .
-	docker build -f Dockerfile.celery -t purplex-celery:prod .
 
 .PHONY: prod-up
 prod-up: ## Start production services
@@ -188,9 +186,8 @@ clean: ## Clean temporary files
 
 .PHONY: requirements
 requirements: ## Update requirements files
-	pip freeze > requirements/current.txt
-	@echo "Current requirements saved to requirements/current.txt"
-	@echo "Review and update base.txt, development.txt, and production.txt as needed"
+	pip freeze > requirements.txt
+	@echo "Current requirements saved to requirements.txt"
 
 .PHONY: check-security
 check-security: ## Check for security vulnerabilities (Python + frontend)

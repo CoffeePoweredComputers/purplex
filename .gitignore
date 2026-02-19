@@ -147,11 +147,13 @@ celerybeat-schedule.db
 
 # Documentation build
 docs/_build/
+docs/lessons/*.html
 site/
 
 # Build artifacts
 build-info.json
 VERSION.bak
+purplex/client/dist-stats.html
 
 # PyInstaller
 *.manifest

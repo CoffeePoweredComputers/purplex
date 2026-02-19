@@ -19,11 +19,8 @@ from .student_service import StudentService
 from .submission_validation_service import SubmissionValidationService
 from .validation_service import ProblemValidationService
 
-# Alias for backwards compatibility
-CodeExecutionService = DockerExecutionService
-
 __all__ = [
-    "CodeExecutionService",
+    "DockerExecutionService",
     "get_shared_docker_service",
     "cleanup_shared_service",
     "SharedDockerServiceContext",

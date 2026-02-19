@@ -14,10 +14,10 @@ but require integration tests to exercise fully.
 Known limitation: _record_eipl_test_results_no_transaction (used by EiPL,
 Debug Fix, and Probeable Code when test_execution_data is present) still calls
 ProgressService.process_submission INSIDE the transaction.atomic() block.
-This is tracked in V01_REVIEW.md Task 6.
+This needs to be refactored to match the MCQ pattern (call after commit).
 """
 
-from unittest.mock import call, patch
+from unittest.mock import patch
 
 import pytest
 from django.db import IntegrityError
@@ -109,9 +109,7 @@ class TestMcqTransactionBoundaries:
         self, mock_publish, mock_progress, mcq_setup
     ):
         """Non-IntegrityError from ProgressService should also propagate."""
-        result = self._run_mcq(
-            mcq_setup, "b", "tx-progress-generic-error", throw=False
-        )
+        result = self._run_mcq(mcq_setup, "b", "tx-progress-generic-error", throw=False)
 
         assert result.state == "FAILURE"
         with pytest.raises(ValueError, match="unexpected progress failure"):
@@ -146,9 +144,7 @@ class TestMcqTransactionBoundaries:
         # Task failed, but submission should be fully saved
         assert result.state == "FAILURE"
 
-        submission = Submission.objects.get(
-            celery_task_id="tx-persist-despite-failure"
-        )
+        submission = Submission.objects.get(celery_task_id="tx-persist-despite-failure")
         assert submission.completion_status == "complete"
         assert submission.score == 100
         assert submission.is_correct is True
@@ -183,17 +179,13 @@ class TestMcqTransactionBoundaries:
             return original_save(self_sub, *args, **kwargs)
 
         with patch.object(Submission, "save", save_then_fail):
-            result = self._run_mcq(
-                mcq_setup, "b", "tx-rollback-test", throw=False
-            )
+            result = self._run_mcq(mcq_setup, "b", "tx-rollback-test", throw=False)
 
         assert result.state == "FAILURE"
 
         # No submission should exist — the transaction rolled back both
         # the create AND the failed save
-        assert not Submission.objects.filter(
-            celery_task_id="tx-rollback-test"
-        ).exists()
+        assert not Submission.objects.filter(celery_task_id="tx-rollback-test").exists()
 
         # ProgressService should NOT have been called (transaction never committed)
         assert mock_progress.call_count == 0
@@ -226,9 +218,9 @@ class TestMcqTransactionBoundaries:
         cached = result2.get()
 
         # Should still be exactly one submission
-        assert Submission.objects.filter(
-            celery_task_id="tx-idempotent-test"
-        ).count() == 1
+        assert (
+            Submission.objects.filter(celery_task_id="tx-idempotent-test").count() == 1
+        )
         # Returned result should reference the original
         assert cached["submission_id"] == str(original_id)
 
@@ -237,9 +229,7 @@ class TestMcqTransactionBoundaries:
     # -----------------------------------------------------------------
 
     @patch("purplex.problems_app.tasks.pipeline.publish_progress")
-    def test_progress_called_with_committed_submission(
-        self, mock_publish, mcq_setup
-    ):
+    def test_progress_called_with_committed_submission(self, mock_publish, mcq_setup):
         """
         ProgressService.process_submission must be called with a submission
         that already exists in the DB (i.e., the transaction has committed).
@@ -261,9 +251,9 @@ class TestMcqTransactionBoundaries:
             result.get()
 
         assert len(captured) == 1
-        assert captured[0]["exists_in_db"] is True, (
-            "ProgressService was called before the transaction committed"
-        )
+        assert (
+            captured[0]["exists_in_db"] is True
+        ), "ProgressService was called before the transaction committed"
 
     # -----------------------------------------------------------------
     # 6. ProgressService called exactly once on success
@@ -330,9 +320,7 @@ class TestMcqTransactionBoundaries:
             "purplex.submissions.services.SubmissionService.create_submission",
             side_effect=IntegrityError("some_other_constraint violated"),
         ):
-            result = self._run_mcq(
-                mcq_setup, "b", "tx-non-taskid-error", throw=False
-            )
+            result = self._run_mcq(mcq_setup, "b", "tx-non-taskid-error", throw=False)
 
         assert result.state == "FAILURE"
         with pytest.raises(IntegrityError, match="some_other_constraint"):
