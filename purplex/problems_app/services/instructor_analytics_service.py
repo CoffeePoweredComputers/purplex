@@ -114,6 +114,7 @@ class InstructorAnalyticsService:
                     "problem_set_slug": ps.slug,
                     "problem_set_title": ps.title,
                     "due_date": cps.due_date.isoformat() if cps.due_date else None,
+                    "deadline_type": cps.deadline_type,
                     "avg_completion": stat.get("avg_completion") or 0,
                     "students_completed": stat.get("students_completed") or 0,
                     "students_started": stat.get("students_started") or 0,

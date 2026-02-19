@@ -1,10 +1,13 @@
 <template>
   <div class="segment-mapping">
+    <div class="sr-only" aria-live="polite" aria-atomic="true">
+      {{ segmentAnnouncement }}
+    </div>
     <div class="mapping-grid-simplified">
       <!-- Left: Student Response with Inline Segments -->
-      <div class="response-panel">
+      <div class="response-panel" role="region" aria-label="Your explanation">
         <h4 class="panel-title">
-          <span class="title-icon">💭</span>
+          <span class="title-icon" aria-hidden="true">💭</span>
           Your Explanation
         </h4>
         <div class="response-text">
@@ -15,8 +18,18 @@
               'segment-span': part.isSegment,
               'active': part.isSegment && activeSegment === part.segmentId
             }"
-            @mouseenter="part.isSegment && setActiveSegment(part.segmentId)"
+            v-bind="part.isSegment ? {
+              tabindex: 0,
+              role: 'button',
+              'aria-pressed': activeSegment === part.segmentId,
+              'aria-label': `Segment ${getSegmentNumber(part.segmentId!)}: ${part.text}`
+            } : {}"
+            @mouseenter="part.isSegment && setActiveSegment(part.segmentId!)"
             @mouseleave="part.isSegment && clearActiveSegment()"
+            @focus="part.isSegment && setActiveSegment(part.segmentId!)"
+            @blur="part.isSegment && clearActiveSegment()"
+            @keydown.enter="part.isSegment && toggleSegment(part.segmentId!)"
+            @keydown.space.prevent="part.isSegment && toggleSegment(part.segmentId!)"
           >
             <template v-if="part.isSegment">
               <span
@@ -43,9 +56,9 @@
       </div>
 
       <!-- Right: Code with Highlights -->
-      <div class="code-panel">
+      <div class="code-panel" role="region" aria-label="Reference code">
         <h4 class="panel-title">
-          <span class="title-icon">📝</span>
+          <span class="title-icon" aria-hidden="true">📝</span>
           Reference Code
         </h4>
         <div class="code-display">
@@ -54,6 +67,7 @@
             :key="index"
             class="code-line"
             :class="getLineClass(index + 1)"
+            :aria-current="isLineHighlighted(index + 1) ? 'true' : undefined"
           >
             <span
               class="line-number"
@@ -130,6 +144,23 @@ export default defineComponent({
     codeLines(): string[] {
       // Don't filter out empty lines to maintain line numbering
       return this.referenceCode.split('\n');
+    },
+
+    segmentAnnouncement(): string {
+      if (!this.activeSegment) {
+        return '';
+      }
+      const segment = this.segments.find(s => s.id === this.activeSegment);
+      if (!segment || !segment.code_lines || segment.code_lines.length === 0) {
+        return '';
+      }
+      const num = this.getSegmentNumber(this.activeSegment);
+      const lines = segment.code_lines;
+      const min = Math.min(...lines);
+      const max = Math.max(...lines);
+      return min === max
+        ? `Segment ${num} highlighted, covering line ${min}`
+        : `Segment ${num} highlighted, covering lines ${min} to ${max}`;
     },
 
     parsedResponse(): ParsedResponsePart[] {
@@ -237,6 +268,10 @@ export default defineComponent({
       this.activeSegment = null;
     },
 
+    toggleSegment(segmentId: number): void {
+      this.activeSegment = this.activeSegment === segmentId ? null : segmentId;
+    },
+
     getSegmentColor(segmentId: number): string {
       // Get color for segment (cycling through palette)
       const index = (segmentId - 1) % this.segmentColors.length;
@@ -255,6 +290,14 @@ export default defineComponent({
         s.code_lines && s.code_lines.includes(lineNumber)
       );
       return segment ? segment.id : null;
+    },
+
+    isLineHighlighted(lineNumber: number): boolean {
+      if (!this.activeSegment) {
+        return false;
+      }
+      const segment = this.segments.find(s => s.id === this.activeSegment);
+      return !!segment?.code_lines?.includes(lineNumber);
     },
 
     getLineClass(lineNumber: number): string[] {
@@ -277,6 +320,18 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .segment-mapping {
   background: var(--color-bg-panel);
   border-radius: var(--radius-base);

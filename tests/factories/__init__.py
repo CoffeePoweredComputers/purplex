@@ -33,7 +33,16 @@ from purplex.problems_app.models import (
     TestCase,
     UserProgress,
 )
-from purplex.users_app.models import UserProfile
+from purplex.users_app.models import (
+    AgeVerification,
+    ConsentMethod,
+    ConsentType,
+    DataAccessAuditLog,
+    DataPrincipalNominee,
+    UserConsent,
+    UserProfile,
+    VerificationMethod,
+)
 
 User = get_user_model()
 
@@ -63,6 +72,63 @@ class UserProfileFactory(DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     firebase_uid = factory.Sequence(lambda n: f"firebase-uid-{n}")
     role = "user"  # Default role; can be overridden with "admin" or "instructor"
+
+
+# =============================================================================
+# Privacy & Consent Factories
+# =============================================================================
+
+
+class UserConsentFactory(DjangoModelFactory):
+    """Factory for UserConsent model (append-only audit trail)."""
+
+    class Meta:
+        model = UserConsent
+
+    user = factory.SubFactory(UserFactory)
+    consent_type = ConsentType.PRIVACY_POLICY
+    granted = True
+    ip_address = "127.0.0.1"
+    policy_version = "1.0"
+    consent_method = ConsentMethod.REGISTRATION
+
+
+class AgeVerificationFactory(DjangoModelFactory):
+    """Factory for AgeVerification model (COPPA/DPDPA compliance)."""
+
+    class Meta:
+        model = AgeVerification
+
+    user = factory.SubFactory(UserFactory)
+    is_minor = False
+    is_child = False
+    verification_method = VerificationMethod.SELF_DECLARED
+    parental_consent_given = False
+
+
+class DataAccessAuditLogFactory(DjangoModelFactory):
+    """Factory for DataAccessAuditLog model (FERPA/GDPR audit trail)."""
+
+    class Meta:
+        model = DataAccessAuditLog
+
+    accessor = factory.SubFactory(UserFactory)
+    action = "view_user_list"
+    ip_address = "127.0.0.1"
+
+
+class DataPrincipalNomineeFactory(DjangoModelFactory):
+    """Factory for DataPrincipalNominee model (DPDPA Sec. 8(7))."""
+
+    class Meta:
+        model = DataPrincipalNominee
+
+    user = factory.SubFactory(UserFactory)
+    nominee_name = factory.Sequence(lambda n: f"Nominee {n}")
+    nominee_email = factory.LazyAttribute(
+        lambda o: f"{o.nominee_name.lower().replace(' ', '.')}@example.com"
+    )
+    nominee_relationship = "parent"
 
 
 # =============================================================================

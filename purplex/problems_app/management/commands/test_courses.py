@@ -133,7 +133,7 @@ class Command(BaseCommand):
         self.stdout.write("\nProblem Sets:")
         for cps in course.courseproblemset_set.order_by("order"):
             self.stdout.write(
-                f'  {cps.order + 1}. {cps.problem_set.title} ({"Required" if cps.is_required else "Optional"})'
+                f"  {cps.order + 1}. {cps.problem_set.title} ({'Required' if cps.is_required else 'Optional'})"
             )
 
         # List enrolled students

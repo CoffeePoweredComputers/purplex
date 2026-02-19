@@ -10,7 +10,7 @@ import pytest
 
 from purplex.problems_app.services.ai_generation_service import AITestGenerationService
 from purplex.problems_app.services.docker_execution_service import (
-    DockerExecutionService as CodeExecutionService,
+    DockerExecutionService,
 )
 from purplex.problems_app.services.segmentation_service import SegmentationService
 from purplex.problems_app.services.validation_service import ProblemValidationService
@@ -35,8 +35,8 @@ class TestServiceInitialization:
         assert service is not None
 
     def test_code_execution_service(self):
-        """Test CodeExecutionService basic functionality."""
-        service = CodeExecutionService()
+        """Test DockerExecutionService basic functionality."""
+        service = DockerExecutionService()
         assert service is not None
         assert service.max_execution_time == 5  # Default max execution time
 

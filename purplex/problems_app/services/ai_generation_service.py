@@ -32,7 +32,9 @@ class AITestGenerationService:
             # Initialize Llama only
             llama_api_key = getattr(settings, "LLAMA_API_KEY", None)
             llama_model = getattr(
-                settings, "LLAMA_MODEL", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+                settings,
+                "LLAMA_MODEL",
+                "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
             )
             if llama_api_key:
                 try:
@@ -59,7 +61,9 @@ class AITestGenerationService:
                 self.model_name = openai_model
                 logger.info(f"✅ Using OpenAI API provider (model: {openai_model})")
             else:
-                logger.warning("⚠️  OPENAI_API_KEY not configured but AI_PROVIDER=openai")
+                logger.warning(
+                    "⚠️  OPENAI_API_KEY not configured but AI_PROVIDER=openai"
+                )
 
         else:
             logger.warning(f"⚠️  Unknown AI_PROVIDER: {self.provider}")

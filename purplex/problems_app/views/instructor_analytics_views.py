@@ -227,7 +227,7 @@ class InstructorCourseExportView(APIView):
 
         # Create response
         response = HttpResponse(csv_data, content_type="text/csv")
-        filename = f'course_{course.course_id}_progress_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        filename = f"course_{course.course_id}_progress_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
         return response
@@ -272,7 +272,7 @@ class InstructorProblemSetExportView(APIView):
 
         # Create response
         response = HttpResponse(csv_data, content_type="text/csv")
-        filename = f'course_{course.course_id}_{problem_set.slug}_scores_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        filename = f"course_{course.course_id}_{problem_set.slug}_scores_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
         return response
@@ -317,7 +317,7 @@ class InstructorProblemExportView(APIView):
 
         # Create response
         response = HttpResponse(csv_data, content_type="text/csv")
-        filename = f'course_{course.course_id}_{problem.slug}_scores_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        filename = f"course_{course.course_id}_{problem.slug}_scores_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
         return response

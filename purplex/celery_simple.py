@@ -84,4 +84,16 @@ app.conf.beat_schedule = {
         "task": "cleanup.log_pool_metrics",
         "schedule": 900.0,  # Every 15 minutes
     },
+    "cleanup-expired-data": {
+        "task": "purplex.celery_simple.cleanup_expired_data",
+        "schedule": 86400.0,  # Every 24 hours
+    },
 }
+
+
+@app.task(name="purplex.celery_simple.cleanup_expired_data")
+def cleanup_expired_data():
+    """Periodic task to enforce data retention policies (GDPR Art. 17)."""
+    from django.core.management import call_command
+
+    call_command("cleanup_expired_data")

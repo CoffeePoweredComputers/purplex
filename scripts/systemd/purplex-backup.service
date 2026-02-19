@@ -1,0 +1,27 @@
+[Unit]
+Description=Purplex PostgreSQL Backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu
+ExecStart=/home/ubuntu/scripts/backup-recovery/backup-postgres.sh
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+# Environment variables (can be overridden)
+Environment="DB_CONTAINER=purplex_postgres"
+Environment="DB_NAME=purplex_prod"
+Environment="DB_USER=purplex_user"
+Environment="BACKUP_DIR=/home/ubuntu/backups/postgres"
+Environment="LOG_DIR=/home/ubuntu/logs"
+Environment="S3_BUCKET=purplex-db-backups"
+
+[Install]
+WantedBy=multi-user.target

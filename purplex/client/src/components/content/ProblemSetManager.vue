@@ -11,118 +11,148 @@
       </router-link>
     </template>
 
-    <!-- Status Messages -->
-    <div class="status-container">
-      <div v-if="loading" class="loading-indicator">
-        Loading problem sets...
-      </div>
-      <div v-if="error" class="error-message">
-        {{ error }}
-      </div>
-    </div>
+    <DataTable
+      :columns="columns"
+      :items="items"
+      :loading="loading"
+      :error="error"
+      :total-count="totalCount"
+      :current-page="currentPage"
+      :page-size="pageSize"
+      :total-pages="totalPages"
+      :has-next="hasNext"
+      :has-previous="hasPrevious"
+      :page-numbers="pageNumbers"
+      :range-start="rangeStart"
+      :range-end="rangeEnd"
+      item-label="problem sets"
+      row-key="slug"
+      empty-title="No Problem Sets"
+      :empty-message="ctx.isInstructor.value
+        ? 'You haven\'t created any problem sets yet. Create your first one!'
+        : 'No problem sets found. Create your first one!'"
+      @go-to-page="goToPage"
+      @page-size-change="handlePageSizeChange"
+      @retry="refresh"
+    >
+      <!-- Search filter -->
+      <template #filters>
+        <div class="filters-section">
+          <div class="filter-group">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search by title or description..."
+              class="search-input"
+              @input="debouncedSearch"
+            >
+          </div>
+        </div>
+      </template>
 
-    <!-- Problem Sets Table -->
-    <div v-if="!loading && !error" class="table-responsive">
-      <table class="problem-sets-table">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Description</th>
-            <th>Problems</th>
-            <th>Visibility</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="set in problemSets" :key="set.slug">
-            <td>{{ set.title }}</td>
-            <td>{{ set.description || 'No description' }}</td>
-            <td>{{ set.problems_count || set.problems?.length || 0 }}</td>
-            <td>
-              <span :class="['visibility-badge', set.is_public ? 'public' : 'private']">
-                {{ set.is_public ? 'Public' : 'Private' }}
-              </span>
-            </td>
-            <td class="actions-cell">
-              <router-link
-                :to="ctx.paths.editProblemSet(set.slug)"
-                class="action-button edit-button"
-              >
-                Edit
-              </router-link>
-              <button class="action-button delete-button" @click="confirmDelete(set)">
-                Delete
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- Visibility badge -->
+      <template #cell-visibility="{ item }">
+        <StatusBadge
+          :value="item.is_public ? 'Public' : 'Private'"
+          :variant="item.is_public ? 'success' : 'error'"
+        />
+      </template>
 
-      <p v-if="problemSets.length === 0" class="no-data">
-        {{ ctx.isInstructor.value
-          ? "You haven't created any problem sets yet. Create your first one!"
-          : "No problem sets found. Create your first one!"
-        }}
-      </p>
-    </div>
-
-    <!-- Delete Confirmation Dialog -->
-    <div v-if="showDeleteDialog" class="dialog-overlay">
-      <div class="dialog">
-        <h3>Delete Problem Set?</h3>
-        <p>
-          Are you sure you want to delete "{{ deleteTarget?.title }}"?
-          This will not delete the problems inside.
-        </p>
-        <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="showDeleteDialog = false">
-            Cancel
-          </button>
-          <button class="btn btn-danger" :disabled="deleting" @click="performDelete">
-            {{ deleting ? 'Deleting...' : 'Delete' }}
+      <!-- Actions -->
+      <template #cell-actions="{ item }">
+        <div class="actions-cell">
+          <router-link
+            :to="ctx.paths.editProblemSet(item.slug)"
+            class="action-button edit-button"
+          >
+            Edit
+          </router-link>
+          <button class="action-button delete-button" @click="confirmDelete(item)">
+            Delete
           </button>
         </div>
-      </div>
-    </div>
+      </template>
+    </DataTable>
+
+    <!-- Delete Confirmation Dialog -->
+    <ConfirmDialog
+      :visible="showDeleteDialog"
+      title="Delete Problem Set?"
+      :message="`Are you sure you want to delete &quot;${deleteTarget?.title}&quot;? This will not delete the problems inside.`"
+      confirm-label="Delete"
+      :loading="deleting"
+      @confirm="performDelete"
+      @cancel="showDeleteDialog = false"
+    />
   </ContentEditorLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import ContentEditorLayout from './ContentEditorLayout.vue';
+import DataTable from '@/components/ui/DataTable.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { provideContentContext } from '@/composables/useContentContext';
+import { useDataTable } from '@/composables/useDataTable';
+import { clientSidePaginate } from '@/utils/clientSidePaginate';
 import { log } from '@/utils/logger';
 import type { ProblemSet } from '@/types';
+import type { DataTableColumn } from '@/types/datatable';
 
-// Provide role-aware context (page-level components must provide, not inject)
 const ctx = provideContentContext();
 
-// State
-const problemSets = ref<ProblemSet[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
-const deleting = ref(false);
+// Cached data for client-side pagination
+let allProblemSets: ProblemSet[] = [];
+let needsRefetch = true;
 
-// Delete dialog state (kept as dialog per user request)
+const {
+  items, loading, error, currentPage, pageSize, totalCount,
+  totalPages, hasNext, hasPrevious, rangeStart, rangeEnd,
+  pageNumbers, searchQuery, debouncedSearch, goToPage,
+  handlePageSizeChange, fetch: fetchTable, refresh,
+} = useDataTable<ProblemSet>({
+  fetchFn: async (params) => {
+    if (needsRefetch) {
+      allProblemSets = await ctx.api.value.getProblemSets();
+      needsRefetch = false;
+    }
+    return clientSidePaginate(allProblemSets, params, {
+      searchFn: (item, q) => {
+        const lower = q.toLowerCase();
+        return item.title.toLowerCase().includes(lower)
+          || (item.description?.toLowerCase().includes(lower) ?? false);
+      },
+    });
+  },
+  initialPageSize: 25,
+});
+
+// Column definitions
+const columns: DataTableColumn<ProblemSet>[] = [
+  { key: 'title', label: 'Title' },
+  {
+    key: 'description',
+    label: 'Description',
+    hideOnMobile: true,
+    render: (value) => (value as string) || 'No description',
+  },
+  {
+    key: 'problems_count',
+    label: 'Problems',
+    align: 'center',
+    width: '100px',
+    render: (value, row) => String(value ?? row.problems?.length ?? 0),
+  },
+  { key: 'is_public', label: 'Visibility', align: 'center', width: '120px', slot: 'cell-visibility' },
+  { key: 'actions', label: 'Actions', slot: 'cell-actions', width: '160px' },
+];
+
+// Delete dialog state
 const showDeleteDialog = ref(false);
 const deleteTarget = ref<ProblemSet | null>(null);
+const deleting = ref(false);
 
-// Fetch problem sets
-async function fetchProblemSets(): Promise<void> {
-  try {
-    loading.value = true;
-    error.value = null;
-    problemSets.value = await ctx.api.value.getProblemSets();
-  } catch (err) {
-    const apiError = err as { error?: string };
-    error.value = apiError.error || 'Failed to load problem sets';
-    log.error('Failed to fetch problem sets', { error: err });
-  } finally {
-    loading.value = false;
-  }
-}
-
-// Delete handlers
 function confirmDelete(set: ProblemSet): void {
   deleteTarget.value = set;
   showDeleteDialog.value = true;
@@ -134,9 +164,10 @@ async function performDelete(): Promise<void> {
   deleting.value = true;
   try {
     await ctx.api.value.deleteProblemSet(deleteTarget.value.slug);
-    problemSets.value = problemSets.value.filter(s => s.slug !== deleteTarget.value!.slug);
+    allProblemSets = allProblemSets.filter(s => s.slug !== deleteTarget.value!.slug);
     showDeleteDialog.value = false;
     deleteTarget.value = null;
+    await fetchTable();
   } catch (err) {
     const apiError = err as { error?: string };
     error.value = apiError.error || 'Failed to delete problem set';
@@ -146,104 +177,40 @@ async function performDelete(): Promise<void> {
   }
 }
 
-// Load on mount
-onMounted(fetchProblemSets);
+onMounted(fetchTable);
 </script>
 
 <style scoped>
-/* Status messages */
-.status-container {
-  margin-bottom: var(--spacing-xl);
+.filters-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
 }
 
-.loading-indicator {
-  padding: var(--spacing-xl);
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
-  color: var(--color-text-muted);
-  text-align: center;
-  box-shadow: var(--shadow-md);
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
 }
 
-.error-message {
-  padding: var(--spacing-xl);
-  background: var(--color-error-bg);
-  border-radius: var(--radius-lg);
-  color: var(--color-error-text);
-  text-align: center;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--color-error);
-}
-
-/* Table */
-.table-responsive {
-  overflow-x: auto;
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 2px solid transparent;
+.search-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border, var(--color-bg-input));
+  border-radius: var(--radius-base);
+  background: var(--color-surface, var(--color-bg-hover));
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
   transition: var(--transition-base);
 }
 
-.table-responsive:hover {
-  border-color: var(--color-bg-input);
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-primary-gradient-start);
 }
 
-.problem-sets-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.problem-sets-table th {
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  font-weight: 600;
-  font-size: var(--font-size-base);
-  border-bottom: 2px solid var(--color-bg-input);
-}
-
-.problem-sets-table td {
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--color-bg-hover);
-  color: var(--color-text-secondary);
-  vertical-align: middle;
-}
-
-.problem-sets-table tr:hover {
-  background: var(--color-bg-hover);
-}
-
-.problem-sets-table tr:last-child td {
-  border-bottom: none;
-}
-
-/* Visibility badge */
-.visibility-badge {
-  padding: var(--spacing-xs) var(--spacing-md);
-  border-radius: var(--radius-xl);
-  font-weight: 600;
-  font-size: var(--font-size-xs);
-  display: inline-block;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.visibility-badge.public {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  border: 1px solid var(--color-success);
-}
-
-.visibility-badge.private {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-  border: 1px solid var(--color-error);
-}
-
-/* Actions */
 .actions-cell {
   display: flex;
   gap: var(--spacing-md);
@@ -304,87 +271,7 @@ onMounted(fetchProblemSets);
   transform: translateY(-1px);
 }
 
-.no-data {
-  text-align: center;
-  padding: var(--spacing-xxl);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-md);
-}
-
-/* Delete Dialog */
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.dialog {
-  background: var(--color-bg-panel);
-  padding: var(--spacing-xl);
-  border-radius: var(--radius-lg);
-  max-width: 400px;
-  width: 90%;
-  box-shadow: var(--shadow-lg);
-}
-
-.dialog h3 {
-  margin: 0 0 var(--spacing-lg) 0;
-  color: var(--color-text-primary);
-}
-
-.dialog p {
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-lg);
-}
-
-.dialog-actions {
-  display: flex;
-  gap: var(--spacing-md);
-  justify-content: flex-end;
-  margin-top: var(--spacing-lg);
-}
-
-/* Buttons */
-.btn {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-base);
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: var(--transition-base);
-}
-
-.btn-secondary {
-  background: var(--color-bg-hover);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
-}
-
-.btn-danger {
-  background: var(--color-error);
-  color: var(--color-text-primary);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Responsive */
 @media (max-width: 768px) {
-  .problem-sets-table {
-    font-size: var(--font-size-sm);
-  }
-
-  .problem-sets-table th,
-  .problem-sets-table td {
-    padding: var(--spacing-md);
-  }
-
   .actions-cell {
     flex-direction: column;
   }

@@ -151,6 +151,22 @@ echo -e "${GREEN}✓ All prerequisites met${NC}"
 echo ""
 
 # ============================================================================
+# Docker Sanity Check
+# ============================================================================
+echo -e "${BLUE}→ Verifying Docker can start containers...${NC}"
+if ! docker_check=$(docker run --rm alpine:latest true 2>&1); then
+    echo -e "${RED}✗ Docker cannot start containers:${NC}"
+    echo -e "${RED}  $docker_check${NC}"
+    echo -e "${YELLOW}  Common causes:${NC}"
+    echo -e "${YELLOW}    - Kernel updated but not rebooted (missing veth module)${NC}"
+    echo -e "${YELLOW}    - Docker daemon not running${NC}"
+    echo -e "${YELLOW}    - Insufficient permissions${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ Docker is healthy${NC}"
+echo ""
+
+# ============================================================================
 # Load Environment Variables
 # ============================================================================
 echo -e "${BLUE}→ Loading environment variables...${NC}"
@@ -178,19 +194,35 @@ echo -e "${BLUE}→ Starting PostgreSQL...${NC}"
 if docker ps | grep -q purplex-postgres-dev; then
     echo -e "${GREEN}✓ PostgreSQL already running${NC}"
 else
-    docker rm -f purplex-postgres-dev 2>/dev/null || true
+    docker rm -f purplex-postgres-dev > /dev/null 2>&1 || true
 
-    docker run -d \
+    if ! pg_output=$(docker run -d \
         --name purplex-postgres-dev \
         -e POSTGRES_DB=purplex_dev \
         -e POSTGRES_USER=purplex_user \
         -e POSTGRES_PASSWORD=devpass \
         -p 5432:5432 \
         -v purplex_postgres_dev_data:/var/lib/postgresql/data \
-        postgres:15-alpine > /dev/null 2>&1
+        postgres:15-alpine 2>&1); then
+        echo -e "${RED}✗ Failed to start PostgreSQL container:${NC}"
+        echo -e "${RED}  $pg_output${NC}"
+        exit 1
+    fi
 
-    sleep 5
-    echo -e "${GREEN}✓ PostgreSQL started${NC}"
+    # Wait for PostgreSQL to be ready
+    echo -e "${BLUE}  Waiting for PostgreSQL to accept connections...${NC}"
+    for i in $(seq 1 15); do
+        if docker exec purplex-postgres-dev pg_isready -U purplex_user > /dev/null 2>&1; then
+            break
+        fi
+        if [ "$i" -eq 15 ]; then
+            echo -e "${RED}✗ PostgreSQL failed to become ready after 15s${NC}"
+            echo -e "${YELLOW}  Check: docker logs purplex-postgres-dev${NC}"
+            exit 1
+        fi
+        sleep 1
+    done
+    echo -e "${GREEN}✓ PostgreSQL started and ready${NC}"
 fi
 echo ""
 
@@ -202,24 +234,32 @@ echo -e "${BLUE}→ Starting Redis...${NC}"
 if docker ps | grep -q purplex-redis-dev; then
     echo -e "${GREEN}✓ Redis already running${NC}"
 else
-    docker rm -f purplex-redis-dev 2>/dev/null || true
+    docker rm -f purplex-redis-dev > /dev/null 2>&1 || true
 
-    docker run -d \
+    if ! redis_output=$(docker run -d \
         --name purplex-redis-dev \
         -p 6379:6379 \
-        redis:7-alpine > /dev/null 2>&1
-
-    sleep 2
-    echo -e "${GREEN}✓ Redis started${NC}"
+        redis:7-alpine 2>&1); then
+        echo -e "${RED}✗ Failed to start Redis container:${NC}"
+        echo -e "${RED}  $redis_output${NC}"
+        exit 1
+    fi
 fi
 
-# Test Redis
-if docker exec purplex-redis-dev redis-cli ping > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Redis is ready${NC}"
-else
-    echo -e "${RED}✗ Redis failed to start${NC}"
-    exit 1
-fi
+# Wait for Redis to be ready
+echo -e "${BLUE}  Waiting for Redis to accept connections...${NC}"
+for i in $(seq 1 10); do
+    if docker exec purplex-redis-dev redis-cli ping > /dev/null 2>&1; then
+        break
+    fi
+    if [ "$i" -eq 10 ]; then
+        echo -e "${RED}✗ Redis failed to become ready after 10s${NC}"
+        echo -e "${YELLOW}  Check: docker logs purplex-redis-dev${NC}"
+        exit 1
+    fi
+    sleep 1
+done
+echo -e "${GREEN}✓ Redis started and ready${NC}"
 echo ""
 
 # ============================================================================

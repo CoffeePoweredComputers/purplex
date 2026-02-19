@@ -45,11 +45,11 @@ pkill -f "celery.*purplex" 2>/dev/null && echo -e "${GREEN}✓ Celery workers st
 
 # Stop Redis container
 echo -e "${YELLOW}Stopping Redis...${NC}"
-docker stop purplex-redis 2>/dev/null && echo -e "${GREEN}✓ Redis stopped${NC}" || echo -e "${GREEN}✓ Redis not running${NC}"
+docker stop purplex-redis-dev 2>/dev/null && echo -e "${GREEN}✓ Redis stopped${NC}" || echo -e "${GREEN}✓ Redis not running${NC}"
 
 # Stop PostgreSQL container (if running)
 echo -e "${YELLOW}Stopping PostgreSQL...${NC}"
-docker stop purplex-postgres 2>/dev/null && echo -e "${GREEN}✓ PostgreSQL stopped${NC}" || echo -e "${GREEN}✓ PostgreSQL not running${NC}"
+docker stop purplex-postgres-dev 2>/dev/null && echo -e "${GREEN}✓ PostgreSQL stopped${NC}" || echo -e "${GREEN}✓ PostgreSQL not running${NC}"
 
 # Kill any remaining Python processes from the project
 echo -e "${YELLOW}Cleaning up any remaining processes...${NC}"

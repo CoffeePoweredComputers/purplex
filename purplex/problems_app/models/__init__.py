@@ -26,6 +26,7 @@ from .category import ProblemCategory
 
 # Courses
 from .course import Course, CourseEnrollment, CourseProblemSet
+from .course_instructor import CourseInstructor, CourseInstructorRole
 
 # Hints
 from .hint import ProblemHint
@@ -80,6 +81,8 @@ __all__ = [
     "Course",
     "CourseProblemSet",
     "CourseEnrollment",
+    "CourseInstructor",
+    "CourseInstructorRole",
     # Progress
     "UserProgress",
     "UserProblemSetProgress",

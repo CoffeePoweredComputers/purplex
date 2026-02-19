@@ -63,6 +63,12 @@
               </span>
               <span class="meta-separator" aria-hidden="true">·</span>
               <span class="student-count">{{ course.enrolled_students_count }} students</span>
+              <template v-if="course.my_role">
+                <span class="meta-separator" aria-hidden="true">·</span>
+                <span :class="['role-badge', `role-${course.my_role}`]">
+                  {{ course.my_role === 'primary' ? 'Primary' : 'TA' }}
+                </span>
+              </template>
             </div>
           </div>
 
@@ -212,7 +218,7 @@ import { onMounted, ref, reactive, computed } from 'vue';
 import axios from 'axios';
 import InstructorNavBar from './InstructorNavBar.vue';
 import { log } from '../../utils/logger';
-import { instructorContentService } from '@/services/instructorContentService';
+import { instructorContentService } from '@/services/contentService';
 
 interface Course {
   id: number;
@@ -222,6 +228,7 @@ interface Course {
   is_active: boolean;
   problem_sets_count: number;
   enrolled_students_count: number;
+  my_role?: 'primary' | 'ta';
 }
 
 const courses = ref<Course[]>([]);
@@ -538,6 +545,26 @@ onMounted(() => {
 
 .student-count {
   color: var(--color-text-secondary);
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.role-primary {
+  background: rgba(102, 126, 234, 0.15);
+  color: var(--color-primary-gradient-start);
+}
+
+.role-ta {
+  background: rgba(76, 175, 80, 0.15);
+  color: var(--color-success);
 }
 
 /* Add Course Card - Ghost/Shadow style */

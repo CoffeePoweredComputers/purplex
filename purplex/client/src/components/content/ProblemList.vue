@@ -9,153 +9,175 @@
       </button>
     </template>
 
-    <!-- Status Messages -->
-    <div class="status-container">
-      <div v-if="loading" class="loading-indicator">
-        Loading problems...
-      </div>
-      <div v-if="error" class="error-message">
-        {{ error }}
-      </div>
-    </div>
+    <DataTable
+      :columns="columns"
+      :items="items"
+      :loading="loading"
+      :error="error"
+      :total-count="totalCount"
+      :current-page="currentPage"
+      :page-size="pageSize"
+      :total-pages="totalPages"
+      :has-next="hasNext"
+      :has-previous="hasPrevious"
+      :page-numbers="pageNumbers"
+      :range-start="rangeStart"
+      :range-end="rangeEnd"
+      item-label="problems"
+      row-key="slug"
+      empty-title="No Problems"
+      :empty-message="ctx.isInstructor.value
+        ? 'You haven\'t created any problems yet. Create your first one!'
+        : 'No problems found. Create your first one!'"
+      @go-to-page="goToPage"
+      @page-size-change="handlePageSizeChange"
+      @retry="refresh"
+    >
+      <!-- Search filter -->
+      <template #filters>
+        <div class="filters-section">
+          <div class="filter-group">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search by title..."
+              class="search-input"
+              @input="debouncedSearch"
+            >
+          </div>
+        </div>
+      </template>
 
-    <!-- Problems Table -->
-    <div v-if="!loading && !error" class="table-responsive">
-      <table class="problems-table">
-        <thead>
-          <tr>
-            <th>Type</th>
-            <th>Title</th>
-            <th>Difficulty</th>
-            <th>Problem Sets</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="problem in problems" :key="problem.slug">
-            <td>
-              <span class="type-badge" :class="problemTypeClass(problem.problem_type)">
-                {{ getProblemTypeLabel(problem.problem_type) }}
-              </span>
-            </td>
-            <td>{{ problem.title }}</td>
-            <td>
-              <span class="badge" :class="difficultyClass(problem.difficulty)">
-                {{ problem.difficulty }}
-              </span>
-            </td>
-            <td>{{ getProblemSetNames(problem) }}</td>
-            <td class="actions-cell">
-              <button class="action-button edit-button" @click="editProblem(problem.slug)">
-                Edit
-              </button>
-              <button class="action-button delete-button" @click="confirmDelete(problem)">
-                Delete
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- Type badge -->
+      <template #cell-type="{ item }">
+        <StatusBadge
+          :value="item.problem_type"
+          :variant="getTypeVariant(item.problem_type)"
+          :label="getProblemTypeLabel(item.problem_type)"
+        />
+      </template>
 
-      <p v-if="problems.length === 0" class="no-data">
-        {{ ctx.isInstructor.value
-          ? "You haven't created any problems yet. Create your first one!"
-          : "No problems found. Create your first one!"
-        }}
-      </p>
-    </div>
+      <!-- Difficulty badge -->
+      <template #cell-difficulty="{ item }">
+        <StatusBadge
+          :value="item.difficulty"
+          :variant="getDifficultyVariant(item.difficulty)"
+        />
+      </template>
+
+      <!-- Actions -->
+      <template #cell-actions="{ item }">
+        <div class="actions-cell">
+          <button class="action-button edit-button" @click="editProblem(item.slug)">
+            Edit
+          </button>
+          <button class="action-button delete-button" @click="confirmDelete(item)">
+            Delete
+          </button>
+        </div>
+      </template>
+    </DataTable>
   </ContentEditorLayout>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
+import DataTable from '@/components/ui/DataTable.vue';
+import StatusBadge from '@/components/ui/StatusBadge.vue';
 import { provideContentContext } from '@/composables/useContentContext';
+import { useDataTable } from '@/composables/useDataTable';
+import { clientSidePaginate } from '@/utils/clientSidePaginate';
 import { useNotification } from '@/composables/useNotification';
 import { log } from '@/utils/logger';
 import type { ProblemDetailed } from '@/types';
+import type { DataTableColumn, BadgeVariant } from '@/types/datatable';
 
-// Provide role-aware context (page-level components must provide, not inject)
 const ctx = provideContentContext();
 const router = useRouter();
 const { notify } = useNotification();
 
-// State
-const problems = ref<ProblemDetailed[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
+// Cached data for client-side pagination
+let allProblems: ProblemDetailed[] = [];
+let needsRefetch = true;
+
+const {
+  items, loading, error, currentPage, pageSize, totalCount,
+  totalPages, hasNext, hasPrevious, rangeStart, rangeEnd,
+  pageNumbers, searchQuery, debouncedSearch, goToPage,
+  handlePageSizeChange, fetch: fetchTable, refresh,
+} = useDataTable<ProblemDetailed>({
+  fetchFn: async (params) => {
+    if (needsRefetch) {
+      allProblems = await ctx.api.value.getProblems();
+      needsRefetch = false;
+    }
+    return clientSidePaginate(allProblems, params, {
+      searchFn: (item, q) => item.title.toLowerCase().includes(q.toLowerCase()),
+    });
+  },
+  initialPageSize: 25,
+});
 
 // Problem type labels
 const problemTypeLabels: Record<string, string> = {
-  mcq: 'Multiple Choice Question',
-  eipl: 'Explain in Plain Language',
-  prompt: 'Prompt Problem',
-  debug_fix: 'Debug and Fix Code',
-  probeable_code: 'Probeable Problem (Code)',
-  probeable_spec: 'Probeable Problem (Explanation)',
-  refute: 'Refute: Find Counterexample',
+  mcq: 'MCQ',
+  eipl: 'EiPL',
+  prompt: 'Prompt',
+  debug_fix: 'Debug & Fix',
+  probeable_code: 'Probeable (Code)',
+  probeable_spec: 'Probeable (Spec)',
+  refute: 'Refute',
 };
 
-// Fetch problems using the context's API
-async function fetchProblems(): Promise<void> {
-  try {
-    loading.value = true;
-    error.value = null;
-    log.debug(`Fetching problems from ${ctx.api.value.baseURL}/problems/`);
-    problems.value = await ctx.api.value.getProblems();
-    log.debug('Problems fetched successfully', { count: problems.value.length });
-  } catch (err) {
-    const apiError = err as { error?: string; status?: number };
-    log.error('Failed to fetch problems', { error: err });
-
-    if (apiError.status === 401) {
-      error.value = 'Authentication required. Please log in again.';
-    } else if (apiError.status === 403) {
-      error.value = 'Access denied. You do not have permission to view these problems.';
-    } else {
-      error.value = apiError.error || 'Failed to load problems. Please try again.';
-    }
-  } finally {
-    loading.value = false;
-  }
-}
-
-// Helper functions
 function getProblemTypeLabel(type: string): string {
   return problemTypeLabels[type] || type || 'Unknown';
 }
 
-function getProblemSetNames(problem: ProblemDetailed): string {
-  if (!problem.problem_sets || problem.problem_sets.length === 0) {
-    return 'None';
+function getTypeVariant(type: string): BadgeVariant {
+  switch (type) {
+    case 'eipl': return 'info';
+    case 'mcq': return 'success';
+    case 'prompt': return 'warning';
+    default: return 'default';
   }
-  return problem.problem_sets.map(ps => ps.title || 'Unknown').join(', ');
 }
 
-function difficultyClass(difficulty: string): string {
+function getDifficultyVariant(difficulty: string): BadgeVariant {
   switch (difficulty?.toLowerCase()) {
     case 'easy':
     case 'beginner':
-      return 'easy-badge';
+      return 'success';
     case 'intermediate':
-      return 'medium-badge';
+      return 'warning';
     case 'advanced':
     case 'hard':
-      return 'hard-badge';
+      return 'error';
     default:
-      return 'default-badge';
+      return 'default';
   }
 }
 
-function problemTypeClass(type: string): string {
-  switch (type) {
-    case 'eipl':
-      return 'eipl-badge';
-    default:
-      return 'default-type-badge';
-  }
+function getProblemSetNames(problem: ProblemDetailed): string {
+  const sets = (problem as ProblemDetailed & { problem_sets?: Array<{ title?: string }> }).problem_sets;
+  if (!sets || sets.length === 0) return 'None';
+  return sets.map(ps => ps.title || 'Unknown').join(', ');
 }
+
+// Column definitions
+const columns: DataTableColumn<ProblemDetailed>[] = [
+  { key: 'problem_type', label: 'Type', width: '130px', slot: 'cell-type' },
+  { key: 'title', label: 'Title' },
+  { key: 'difficulty', label: 'Difficulty', width: '140px', slot: 'cell-difficulty' },
+  {
+    key: 'problem_sets',
+    label: 'Problem Sets',
+    hideOnMobile: true,
+    render: (_value, row) => getProblemSetNames(row),
+  },
+  { key: 'actions', label: 'Actions', slot: 'cell-actions', width: '160px' },
+];
 
 // Navigation
 function createNewProblem(): void {
@@ -176,7 +198,8 @@ function confirmDelete(problem: ProblemDetailed): void {
 async function deleteProblem(problem: ProblemDetailed): Promise<void> {
   try {
     await ctx.api.value.deleteProblem(problem.slug);
-    problems.value = problems.value.filter(p => p.slug !== problem.slug);
+    allProblems = allProblems.filter(p => p.slug !== problem.slug);
+    await fetchTable();
     notify.success('Problem deleted', `"${problem.title}" has been removed.`);
   } catch (err) {
     const apiError = err as { error?: string };
@@ -192,129 +215,40 @@ async function deleteProblem(problem: ProblemDetailed): Promise<void> {
   }
 }
 
-// Load problems on mount
-onMounted(fetchProblems);
+onMounted(fetchTable);
 </script>
 
 <style scoped>
-/* Status messages */
-.status-container {
-  margin-bottom: var(--spacing-xl);
+.filters-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
 }
 
-.loading-indicator {
-  padding: var(--spacing-xl);
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
-  color: var(--color-text-muted);
-  text-align: center;
-  box-shadow: var(--shadow-md);
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
 }
 
-.error-message {
-  padding: var(--spacing-xl);
-  background: var(--color-error-bg);
-  border-radius: var(--radius-lg);
-  color: var(--color-error-text);
-  text-align: center;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--color-error);
-}
-
-/* Table */
-.table-responsive {
-  overflow-x: auto;
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 2px solid transparent;
+.search-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border, var(--color-bg-input));
+  border-radius: var(--radius-base);
+  background: var(--color-surface, var(--color-bg-hover));
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
   transition: var(--transition-base);
 }
 
-.table-responsive:hover {
-  border-color: var(--color-bg-input);
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-primary-gradient-start);
 }
 
-.problems-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.problems-table th {
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  font-weight: 600;
-  font-size: var(--font-size-base);
-  border-bottom: 2px solid var(--color-bg-input);
-}
-
-.problems-table td {
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--color-bg-hover);
-  color: var(--color-text-secondary);
-  vertical-align: middle;
-}
-
-.problems-table tr:hover {
-  background: var(--color-bg-hover);
-}
-
-.problems-table tr:last-child td {
-  border-bottom: none;
-}
-
-/* Badges */
-.badge,
-.type-badge {
-  padding: var(--spacing-xs) var(--spacing-md);
-  border-radius: var(--radius-xl);
-  font-weight: 600;
-  font-size: var(--font-size-xs);
-  display: inline-block;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.easy-badge {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  border: 1px solid var(--color-success);
-}
-
-.medium-badge {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-  border: 1px solid var(--color-warning);
-}
-
-.hard-badge {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-  border: 1px solid var(--color-error);
-}
-
-.default-badge {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-  border: 1px solid var(--color-info);
-}
-
-.eipl-badge {
-  background: var(--color-info-bg);
-  color: var(--color-info-text);
-  border: 1px solid var(--color-info);
-}
-
-.default-type-badge {
-  background: var(--color-bg-hover);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-bg-border);
-}
-
-/* Actions */
 .actions-cell {
   display: flex;
   gap: var(--spacing-md);
@@ -374,24 +308,7 @@ onMounted(fetchProblems);
   transform: translateY(-1px);
 }
 
-.no-data {
-  text-align: center;
-  padding: var(--spacing-xxl);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-md);
-}
-
-/* Responsive */
 @media (max-width: 768px) {
-  .problems-table {
-    font-size: var(--font-size-sm);
-  }
-
-  .problems-table th,
-  .problems-table td {
-    padding: var(--spacing-md);
-  }
-
   .actions-cell {
     flex-direction: column;
   }

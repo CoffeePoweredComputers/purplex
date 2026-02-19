@@ -149,9 +149,9 @@ class TestBooleanTypeStrictness:
 
         # Our comparison must reject this
         assert not compare_results(bool_val, int_val), f"Failed: {description}"
-        assert not compare_results(
-            int_val, bool_val
-        ), f"Failed (reversed): {description}"
+        assert not compare_results(int_val, bool_val), (
+            f"Failed (reversed): {description}"
+        )
 
     @pytest.mark.parametrize("bool_val", [True, False], ids=["True", "False"])
     def test_bool_equals_same_bool(self, bool_val: bool):

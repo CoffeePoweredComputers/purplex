@@ -34,7 +34,7 @@
               </div>
             </div>
             <div class="modal-actions">
-              <div class="size-controls-group">
+              <div class="size-controls-group" aria-hidden="true">
                 <span class="size-label">Size</span>
                 <div class="size-controls">
                   <button
@@ -42,7 +42,7 @@
                     :key="size.name"
                     :class="['size-btn', { active: currentSize === size.name }]"
                     :title="`${size.label} view`"
-                    :aria-label="`Set ${size.label.toLowerCase()} window size`"
+                    tabindex="-1"
                     @click="setModalSize(size.name)"
                   >
                     {{ size.icon }}
@@ -87,7 +87,7 @@
           <div class="modal-body">
             <!-- Version Selector Pills -->
             <div class="version-selector">
-              <span class="selector-label">View version:</span>
+              <span id="version-selector-label" class="selector-label">View version:</span>
               <div
                 class="version-pills"
                 role="tablist"
@@ -137,7 +137,7 @@
               <div class="version-details">
                 <div class="details-code">
                   <div class="section-header">
-                    <span class="section-title">Generated Code</span>
+                    <h4 class="section-title">Generated Code</h4>
                     <span
                       class="section-meta"
                       :class="{ passing: v.passing, failing: !v.passing }"
@@ -145,34 +145,46 @@
                       {{ v.passing ? 'All tests pass' : `${v.testsTotal - v.testsPassed} failing` }}
                     </span>
                   </div>
-                  <div class="code-block">
-                    <Editor
-                      :value="v.code"
-                      :read-only="true"
-                      height="100%"
-                      width="100%"
-                      theme="tomorrow_night"
-                      :show-gutter="true"
-                    />
+                  <div class="code-wrapper">
+                    <div class="code-block" inert>
+                      <Editor
+                        :value="v.code"
+                        :read-only="true"
+                        height="100%"
+                        width="100%"
+                        theme="tomorrow_night"
+                        :show-gutter="true"
+                      />
+                    </div>
+                    <pre
+                      class="code-accessible"
+                      tabindex="0"
+                      role="group"
+                      :aria-label="`Generated code for version ${i + 1}, read-only`"
+                      v-text="v.code"
+                    ></pre>
                   </div>
                 </div>
 
                 <div class="details-tests">
                   <div class="section-header">
-                    <span class="section-title">Test Results</span>
+                    <h4 class="section-title">Test Results</h4>
                     <span class="section-meta">{{ v.testsPassed }}/{{ v.testsTotal }}</span>
                   </div>
-                  <div class="tests-list">
-                    <div
+                  <ul class="tests-list">
+                    <li
                       v-for="(test, ti) in v.tests"
                       :key="`test-${ti}`"
+                      tabindex="0"
                       class="test-item"
                       :class="{ passing: test.passed, failing: !test.passed }"
+                      :aria-label="testAriaLabel(test)"
                     >
                       <div class="test-call-row">
                         <span
                           class="test-status"
                           :class="test.passed ? 'status-pass' : 'status-fail'"
+                          aria-hidden="true"
                         >{{ test.passed ? '✓' : '✗' }}</span>
                         <code class="test-call">{{ test.call }}</code>
                       </div>
@@ -189,11 +201,20 @@
                           >{{ test.error || (test.actual ?? test.expected) }}</code>
                         </span>
                       </div>
-                    </div>
-                  </div>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
+          </div>
+          <!-- Live region for version switch announcements -->
+          <div
+            class="sr-only"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {{ versionAnnouncement }}
           </div>
         </div>
       </div>
@@ -250,6 +271,7 @@ const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
 // State
 const localSelectedVersion = ref(props.selectedVersion ?? 0)
 const currentSize = ref<SizePreset>('medium')
+const versionAnnouncement = ref('')
 
 const sizePresets: SizePresetConfig[] = [
   { name: 'small', label: 'Small', icon: '◻', width: '800px', height: 'auto' },
@@ -327,6 +349,23 @@ const summaryExplanation = computed(() => {
 })
 
 // Methods
+function testAriaLabel(test: Test): string {
+  const status = test.passed ? 'passed' : 'failed'
+  const got = test.error || (test.actual ?? test.expected)
+  return `${test.call}: expected ${test.expected}, got ${got}, ${status}`
+}
+
+function announceVersion(index: number): void {
+  const v = props.variants[index]
+  if (!v) return
+  const status = v.passing ? 'passing' : 'failing'
+  const msg = `Version ${index + 1} of ${props.variants.length}, ${status}, ${v.testsPassed} of ${v.testsTotal} tests passed`
+  versionAnnouncement.value = ''
+  nextTick(() => {
+    versionAnnouncement.value = msg
+  })
+}
+
 function closeModal(): void {
   emit('close')
 }
@@ -339,6 +378,7 @@ function setModalSize(sizeName: SizePreset): void {
 function selectVersion(index: number): void {
   localSelectedVersion.value = index
   emit('update:selectedVersion', index)
+  announceVersion(index)
   nextTick(() => {
     const tab = document.getElementById(`version-tab-${index}`)
     tab?.focus()
@@ -747,6 +787,12 @@ onMounted(() => {
   min-height: 0;
 }
 
+.code-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -754,6 +800,10 @@ onMounted(() => {
   padding-bottom: var(--spacing-sm);
   border-bottom: 1px solid var(--color-bg-input);
   flex-shrink: 0;
+}
+
+h4.section-title {
+  margin: 0;
 }
 
 .section-title {
@@ -777,15 +827,47 @@ onMounted(() => {
   color: var(--color-error);
 }
 
+/* Accessible code overlay - transparent over the Ace editor, visible focus ring */
+.code-accessible {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: var(--spacing-sm);
+  color: transparent;
+  background: transparent;
+  overflow: auto;
+  z-index: 1;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border: 2px solid transparent;
+  border-radius: var(--radius-base);
+  cursor: default;
+}
+
+.code-accessible:focus {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: -2px;
+}
+
 /* Code Block - Container for Ace Editor */
 .code-block {
   border-radius: var(--radius-base);
   overflow: hidden;
-  flex: 1;
-  min-height: 0;
+  height: 100%;
 }
 
 /* Tests List - Row-based layout for better readability */
+ul.tests-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
 .tests-list {
   display: flex;
   flex-direction: column;
@@ -806,6 +888,12 @@ onMounted(() => {
 }
 
 .test-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.test-item:focus {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: -2px;
   background: var(--color-bg-hover);
 }
 

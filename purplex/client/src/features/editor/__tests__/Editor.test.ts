@@ -68,6 +68,8 @@ const createMockEditor = () => ({
   clearSelection: vi.fn(),
   container: {
     setAttribute: vi.fn(),
+    getAttribute: vi.fn().mockReturnValue('0'),
+    closest: vi.fn().mockReturnValue(null),
     style: {}
   },
   commands: {
@@ -142,7 +144,8 @@ describe('Editor Component', () => {
         extraLines: 0,
         value: '',
         readOnly: false,
-        tabTargetId: null
+        tabTargetId: null,
+        focusScopeSelector: null
       })
     })
 

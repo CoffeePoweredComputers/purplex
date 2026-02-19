@@ -147,7 +147,7 @@ Environment: {PURPLEX_ENVIRONMENT}
 Debug: {DEBUG}
 Mock Firebase: {USE_MOCK_FIREBASE}
 Mock OpenAI: {USE_MOCK_OPENAI}
-Database: {DATABASES['default']['NAME']}
+Database: {DATABASES["default"]["NAME"]}
 ========================================
 """
 )

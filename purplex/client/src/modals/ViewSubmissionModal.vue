@@ -26,13 +26,21 @@
               <span class="meta-item">{{ submission?.user || 'Unknown User' }}</span>
               <span class="meta-separator">•</span>
               <span class="meta-item">{{ submission?.problem?.title || submission?.problem || 'Unknown Problem' }}</span>
-              <span class="meta-separator">•</span>
-              <span class="meta-item">ID: {{ submission?.submission_id || submission?.id || 'N/A' }}</span>
+              <span v-if="submissionTypeLabel" class="meta-separator">•</span>
+              <span v-if="submissionTypeLabel" class="meta-item type-badge">{{ submissionTypeLabel }}</span>
               <span class="meta-separator">•</span>
               <span class="meta-item">{{ formatDate(submission?.submitted_at) }}</span>
             </div>
           </div>
           <div class="header-actions">
+            <button
+              v-if="expandRoute"
+              class="expand-btn"
+              title="Open in full page"
+              @click="expandToFullPage"
+            >
+              Expand
+            </button>
             <button
               class="download-btn"
               :disabled="!submission"
@@ -134,7 +142,12 @@
 
         <!-- Main Content Area -->
         <div class="main-content">
-          <!-- Two Column Layout -->
+          <!-- Type-specific content (MCQ options, Refute claim, DebugFix side-by-side, etc.) -->
+          <SubmissionDetailContent
+            v-if="submission"
+            :submission="(submission as Record<string, unknown>)"
+          >
+          <!-- Two Column Layout (code + tests — the default slot of SubmissionDetailContent) -->
           <div class="two-column-layout">
             <!-- Left Column: Code -->
             <div class="code-column">
@@ -358,6 +371,7 @@
               </div>
             </div>
           </div>
+          </SubmissionDetailContent>
         </div>
       </div>
     </div>
@@ -366,7 +380,9 @@
 
 <script setup lang="ts">
 import { computed, ref, toRef, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import Editor from '@/features/editor/Editor.vue'
+import SubmissionDetailContent from '@/modals/submission-detail/SubmissionDetailContent.vue'
 import { formatTestValue, getValueDisplayClass } from '@/utils/testValueFormatter'
 import { log } from '@/utils/logger'
 import { useFocusTrap } from '@/composables/useFocusTrap'
@@ -445,6 +461,40 @@ const emit = defineEmits<{
 
 // Focus trap composable
 const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
+
+// Router for expand-to-full-page link
+const router = useRouter()
+
+const expandRoute = computed(() => {
+  if (!props.submission) return null
+  const subId = props.submission.submission_id || props.submission.id
+  const courseData = (props.submission as Record<string, unknown>).course as { id?: string } | undefined
+  if (courseData?.id) {
+    return { name: 'InstructorSubmissionDetail', params: { courseId: courseData.id, submissionId: subId } }
+  }
+  return { name: 'AdminSubmissionDetail', params: { submissionId: subId } }
+})
+
+function expandToFullPage(): void {
+  if (expandRoute.value) {
+    closeModal()
+    router.push(expandRoute.value)
+  }
+}
+
+const submissionTypeLabel = computed(() => {
+  const typeMap: Record<string, string> = {
+    eipl: 'EiPL',
+    mcq: 'MCQ',
+    prompt: 'Prompt',
+    refute: 'Refute',
+    debug_fix: 'Debug Fix',
+    probeable_code: 'Probeable Code',
+    probeable_spec: 'Probeable Spec',
+  }
+  const st = (props.submission as Record<string, unknown> | null)?.submission_type as string | undefined
+  return st ? (typeMap[st] || st) : ''
+})
 
 // State
 const currentVariationIndex = ref(0)
@@ -784,8 +834,8 @@ watch(() => props.submission, () => {
   background: var(--color-bg-panel);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  max-width: 800px;
-  width: 90vw;
+  max-width: 960px;
+  width: 92vw;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
@@ -848,6 +898,36 @@ watch(() => props.submission, () => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.expand-btn {
+  padding: 6px 12px;
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-bg-input);
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.expand-btn:hover {
+  background: var(--color-bg-input);
+  border-color: var(--color-primary-gradient-start);
+  color: var(--color-primary-gradient-start);
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-bg-input);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .download-btn {

@@ -529,7 +529,8 @@ class SubmissionService:
             # Add segmentation if exists
             if hasattr(submission, "segmentation"):
                 seg = submission.segmentation
-                threshold = submission.problem.get_segmentation_threshold
+                # Use getattr for safety — select_related bypasses polymorphic resolution
+                threshold = getattr(submission.problem, "get_segmentation_threshold", 2)
                 details["segmentation"] = {
                     "comprehension_level": seg.comprehension_level,
                     "segment_count": seg.segment_count,
@@ -541,8 +542,8 @@ class SubmissionService:
                     "passed": seg.segment_count <= threshold,
                 }
 
-            # Add code variations for EiPL
-            if submission.submission_type == "eipl":
+            # Add code variations for EiPL and EiPL-like types (prompt, probeable_spec)
+            if submission.submission_type in ("eipl", "prompt", "probeable_spec"):
                 details["code_variations"] = []
                 for cv in submission.code_variations.all():
                     # Get test results for this specific variation
@@ -578,6 +579,9 @@ class SubmissionService:
                         }
                     )
 
+            # Add type-specific data from the polymorphic problem model
+            details["type_data"] = cls._build_type_data(submission)
+
             # Add feedback
             details["feedback"] = [
                 {
@@ -591,6 +595,70 @@ class SubmissionService:
             ]
 
         return details
+
+    @staticmethod
+    def _build_type_data(submission) -> dict:
+        """
+        Build type-specific data from the polymorphic problem model.
+
+        Uses hasattr() to safely probe for type-specific fields since
+        django-polymorphic returns the concrete subclass instance.
+        """
+        problem = submission.problem
+        sub_type = submission.submission_type
+        data: dict = {}
+
+        if sub_type == "mcq":
+            # MCQ: question text, all options, selected/correct option
+            if hasattr(problem, "options"):
+                data["question_text"] = getattr(problem, "question_text", "")
+                data["options"] = problem.options  # JSON list
+                # Determine selected and correct from raw_input
+                import json
+
+                try:
+                    selected_id = (
+                        json.loads(submission.raw_input)
+                        if submission.raw_input
+                        else None
+                    )
+                except (json.JSONDecodeError, TypeError):
+                    selected_id = submission.raw_input
+                data["selected_option_id"] = selected_id
+                data["correct_option"] = next(
+                    (o for o in problem.options if o.get("is_correct")), None
+                )
+                data["is_correct"] = submission.is_correct
+
+        elif sub_type == "refute":
+            # Refute: claim text, function signature, student input
+            if hasattr(problem, "claim_text"):
+                data["claim_text"] = problem.claim_text
+            data["function_signature"] = getattr(problem, "function_signature", "")
+            data["function_name"] = getattr(problem, "function_name", "")
+
+        elif sub_type == "debug_fix":
+            # Debug Fix: the buggy code the student was given
+            if hasattr(problem, "buggy_code"):
+                data["buggy_code"] = problem.buggy_code
+
+        elif sub_type == "prompt":
+            # Prompt: image info from the problem
+            if hasattr(problem, "image_url"):
+                data["image_url"] = problem.image_url
+                data["image_alt_text"] = getattr(problem, "image_alt_text", "")
+
+        elif sub_type == "probeable_code":
+            # Probeable Code: function signature for context
+            data["function_signature"] = getattr(problem, "function_signature", "")
+
+        elif sub_type == "probeable_spec":
+            # Probeable Spec: function signature for context
+            data["function_signature"] = getattr(problem, "function_signature", "")
+
+        # EiPL has no extra type_data — all its data is already in code_variations/segmentation
+
+        return data
 
     @staticmethod
     def _map_grade_to_completion_status(grade: str) -> str:

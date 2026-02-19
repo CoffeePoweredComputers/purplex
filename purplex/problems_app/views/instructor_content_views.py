@@ -27,7 +27,7 @@ from ..models import (
     PromptProblem,
     RefuteProblem,
 )
-from ..repositories import CourseRepository
+from ..repositories import CourseInstructorRepository, CourseRepository
 from ..serializers import (
     AdminDebugFixProblemSerializer,
     AdminMcqProblemSerializer,
@@ -52,10 +52,9 @@ logger = logging.getLogger(__name__)
 
 
 # Valid problem types - used for validation
-VALID_PROBLEM_TYPES = frozenset([
-    "eipl", "mcq", "probeable_code", "refute",
-    "prompt", "debug_fix", "probeable_spec"
-])
+VALID_PROBLEM_TYPES = frozenset(
+    ["eipl", "mcq", "probeable_code", "refute", "prompt", "debug_fix", "probeable_spec"]
+)
 
 
 class InvalidProblemTypeError(ValueError):
@@ -153,6 +152,10 @@ class InstructorCourseCreateView(APIView):
         if serializer.is_valid():
             # Follow DRF pattern: pass instructor via save() like problem creation does
             course = serializer.save(instructor=request.user)
+            # Create CourseInstructor row for the creator
+            CourseInstructorRepository.add_instructor(
+                course=course, user=request.user, role="primary"
+            )
             return Response(
                 CourseDetailSerializer(course).data, status=status.HTTP_201_CREATED
             )
@@ -175,10 +178,15 @@ class InstructorProblemListView(APIView):
 
         # Validate problem_type before proceeding
         try:
-            SerializerClass = get_serializer_for_problem_type(problem_type, for_write=True)
+            SerializerClass = get_serializer_for_problem_type(
+                problem_type, for_write=True
+            )
         except InvalidProblemTypeError as e:
             return Response(
-                {"error": str(e), "details": f"Received problem_type: '{problem_type}'"},
+                {
+                    "error": str(e),
+                    "details": f"Received problem_type: '{problem_type}'",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -416,9 +424,17 @@ class InstructorCourseProblemSetManageView(APIView):
 
         return Response(
             {
-                "message": "Problem set added"
-                if created
-                else "Problem set already in course"
+                "id": cps.id,
+                "problem_set": {
+                    "slug": ps.slug,
+                    "title": ps.title,
+                    "description": ps.description,
+                    "problems_count": ps.problems.count(),
+                },
+                "order": cps.order,
+                "is_required": cps.is_required,
+                "due_date": cps.due_date.isoformat() if cps.due_date else None,
+                "deadline_type": cps.deadline_type,
             },
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )

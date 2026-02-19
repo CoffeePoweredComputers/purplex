@@ -1,15 +1,13 @@
 /**
  * useSubmissions - Composable for unified submissions management.
  *
- * Provides shared state and logic for the SubmissionsPage component,
- * including pagination, filtering, debounced search, and role-aware API calls.
- *
- * Usage:
- *   const ctx = provideContentContext();
- *   const submissions = useSubmissions(ctx, courseId);
+ * Delegates pagination, search, and filter state management to useDataTable,
+ * while keeping all domain-specific logic (filter summary, CSV export,
+ * view modal, download, formatting helpers).
  */
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
 import type { ContentContext } from './useContentContext';
+import { useDataTable } from './useDataTable';
 import type {
   PaginatedSubmissions,
   SubmissionFilters,
@@ -17,6 +15,7 @@ import type {
   SubmissionSummary
 } from '@/services/contentService';
 import type { SubmissionDetailed } from '@/types';
+import type { DataTableQueryParams } from '@/types/datatable';
 import { log } from '@/utils/logger';
 
 export interface UseSubmissionsOptions {
@@ -36,7 +35,7 @@ export interface UseSubmissionsReturn {
   loading: Ref<boolean>;
   error: Ref<string | null>;
 
-  // Pagination
+  // Pagination (delegated from useDataTable)
   currentPage: Ref<number>;
   pageSize: Ref<number>;
   totalCount: Ref<number>;
@@ -91,246 +90,127 @@ export function useSubmissions(
 ): UseSubmissionsReturn {
   const { courseId, initialPageSize = 25 } = options;
 
-  // Data
-  const submissions = ref<SubmissionSummary[]>([]);
-  const selectedSubmission = ref<SubmissionDetailed | null>(null);
-  const filterOptions = ref<SubmissionFilters>({
-    problem_sets: [],
-    courses: [],
-    statuses: ['complete', 'partial', 'incomplete']
-  });
-
-  // State
-  const loading = ref(true);
-  const error = ref<string | null>(null);
-
-  // Pagination
-  const currentPage = ref(1);
-  const pageSize = ref(initialPageSize);
-  const totalCount = ref(0);
-  const totalPages = ref(0);
-  const hasNext = ref(false);
-  const hasPrevious = ref(false);
-
-  // Filters
-  const searchQuery = ref('');
+  // Domain-specific filter refs (not part of useDataTable's generic filters)
   const statusFilter = ref('');
   const problemSetFilter = ref('');
   const courseFilter = ref('');
 
-  // Modal
+  // Domain-specific data
+  const selectedSubmission = ref<SubmissionDetailed | null>(null);
   const showViewModal = ref(false);
 
-  // Debounce timer
-  let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+  // Delegate pagination/search/error/loading to useDataTable
+  const table = useDataTable<SubmissionSummary, SubmissionFilters>({
+    fetchFn: async (params: DataTableQueryParams) => {
+      const apiParams: SubmissionQueryParams = {
+        page: params.page,
+        page_size: params.page_size,
+      };
 
-  // Computed: Pagination range
-  const rangeStart = computed(() => {
-    if (totalCount.value === 0) return 0;
-    return (currentPage.value - 1) * pageSize.value + 1;
+      if (params.search) apiParams.search = params.search;
+      if (statusFilter.value) apiParams.status = statusFilter.value;
+      if (problemSetFilter.value) apiParams.problem_set = problemSetFilter.value;
+
+      // Role-specific parameters
+      if (ctx.isAdmin.value) {
+        if (courseFilter.value) apiParams.course = courseFilter.value;
+      } else {
+        const cid = courseId?.value;
+        if (!cid) throw new Error('Course ID is required for instructor submissions');
+        apiParams.course_id = cid;
+      }
+
+      const response: PaginatedSubmissions = await ctx.api.value.getSubmissions(apiParams);
+      return response;
+    },
+    initialPageSize,
   });
 
-  const rangeEnd = computed(() => {
-    const end = currentPage.value * pageSize.value;
-    return Math.min(end, totalCount.value);
-  });
+  // Expose items as 'submissions' for domain clarity
+  const submissions = table.items;
+  const filterOptions = computed(() =>
+    table.filterOptions.value ?? { problem_sets: [], courses: [], statuses: ['complete', 'partial', 'incomplete'] }
+  );
 
-  // Computed: Page numbers for pagination (shows up to 5 pages)
-  const pageNumbers = computed(() => {
-    const pages: number[] = [];
-    const maxVisible = 5;
-    const half = Math.floor(maxVisible / 2);
-
-    let start = Math.max(1, currentPage.value - half);
-    const end = Math.min(totalPages.value, start + maxVisible - 1);
-
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-
-    return pages;
-  });
-
-  // Computed: Has any filters active
+  // Domain-specific: has filters active (extends useDataTable's hasFilters with domain filters)
   const hasFilters = computed(() => {
     return !!(
-      searchQuery.value ||
+      table.searchQuery.value ||
       statusFilter.value ||
       problemSetFilter.value ||
       courseFilter.value
     );
   });
 
-  // Computed: Filter summary for display
+  // Filter summary for display
   const filterSummary = computed(() => {
     const parts: string[] = [];
-    if (searchQuery.value) {
-      parts.push(`"${searchQuery.value}"`);
-    }
-    if (statusFilter.value) {
-      parts.push(formatStatus(statusFilter.value));
-    }
-    if (problemSetFilter.value) {
-      parts.push(getProblemSetTitle(problemSetFilter.value));
-    }
+    if (table.searchQuery.value) parts.push(`"${table.searchQuery.value}"`);
+    if (statusFilter.value) parts.push(formatStatus(statusFilter.value));
+    if (problemSetFilter.value) parts.push(getProblemSetTitle(problemSetFilter.value));
     if (courseFilter.value) {
-      const course = filterOptions.value.courses?.find(c => c.id === courseFilter.value);
+      const course = filterOptions.value.courses?.find((c: { id: string; name: string }) => c.id === courseFilter.value);
       if (course) parts.push(course.name);
     }
     return parts.length > 0 ? `(filtered by ${parts.join(', ')})` : '';
   });
 
-  // Fetch submissions
-  async function fetchSubmissions(): Promise<void> {
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const params: SubmissionQueryParams = {
-        page: currentPage.value,
-        page_size: pageSize.value,
-      };
-
-      if (searchQuery.value.trim()) {
-        params.search = searchQuery.value.trim();
-      }
-      if (statusFilter.value) {
-        params.status = statusFilter.value;
-      }
-      if (problemSetFilter.value) {
-        params.problem_set = problemSetFilter.value;
-      }
-
-      // Role-specific parameters
-      if (ctx.isAdmin.value) {
-        // Admin can filter by course
-        if (courseFilter.value) {
-          params.course = courseFilter.value;
-        }
-      } else {
-        // Instructor requires course_id
-        const cid = courseId?.value;
-        if (!cid) {
-          throw new Error('Course ID is required for instructor submissions');
-        }
-        params.course_id = cid;
-      }
-
-      const response: PaginatedSubmissions = await ctx.api.value.getSubmissions(params);
-
-      submissions.value = response.results;
-      totalCount.value = response.count;
-      totalPages.value = response.total_pages;
-      currentPage.value = response.current_page;
-      hasNext.value = !!response.next;
-      hasPrevious.value = !!response.previous;
-
-      // Update filter options from response
-      if (response.filters) {
-        filterOptions.value = response.filters;
-      }
-
-      log.info('Submissions loaded', {
-        count: submissions.value.length,
-        total: totalCount.value,
-        role: ctx.role.value
-      });
-    } catch (err) {
-      log.error('Failed to fetch submissions', err);
-      const apiError = err as { error?: string; status?: number };
-
-      if (apiError.status === 401) {
-        error.value = 'Authentication required. Please log in again.';
-      } else if (apiError.status === 403) {
-        error.value = 'You do not have permission to view these submissions.';
-      } else if (apiError.status === 404) {
-        error.value = 'Course not found.';
-      } else {
-        error.value = apiError.error || 'Failed to load submissions. Please try again.';
-      }
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  // Pagination actions
-  function goToPage(page: number): void {
-    if (page >= 1 && page <= totalPages.value && page !== currentPage.value) {
-      currentPage.value = page;
-      fetchSubmissions();
-    }
-  }
-
-  function handlePageSizeChange(): void {
-    currentPage.value = 1;
-    fetchSubmissions();
-  }
-
-  // Filter actions
+  // Domain filter change — reset page and refetch
   function handleFilterChange(): void {
-    currentPage.value = 1;
-    fetchSubmissions();
+    table.currentPage.value = 1;
+    table.fetch();
   }
 
-  function debouncedSearch(): void {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-    searchTimeout = setTimeout(() => {
-      currentPage.value = 1;
-      fetchSubmissions();
-    }, 300);
+  // Domain-specific page size change (v-model binding, no event arg)
+  function handlePageSizeChange(): void {
+    table.currentPage.value = 1;
+    table.fetch();
   }
 
+  // Clear filters
   function clearFilters(): void {
-    searchQuery.value = '';
     statusFilter.value = '';
     problemSetFilter.value = '';
     courseFilter.value = '';
-    currentPage.value = 1;
-    fetchSubmissions();
+    table.clearAllFilters(); // resets searchQuery and fetches
   }
 
   function clearSearchFilter(): void {
-    searchQuery.value = '';
-    currentPage.value = 1;
-    fetchSubmissions();
+    table.searchQuery.value = '';
+    table.currentPage.value = 1;
+    table.fetch();
   }
 
   function clearStatusFilter(): void {
     statusFilter.value = '';
-    currentPage.value = 1;
-    fetchSubmissions();
+    table.currentPage.value = 1;
+    table.fetch();
   }
 
   function clearProblemSetFilter(): void {
     problemSetFilter.value = '';
-    currentPage.value = 1;
-    fetchSubmissions();
+    table.currentPage.value = 1;
+    table.fetch();
   }
 
   function clearCourseFilter(): void {
     courseFilter.value = '';
-    currentPage.value = 1;
-    fetchSubmissions();
+    table.currentPage.value = 1;
+    table.fetch();
   }
 
   // Submission detail view
   async function viewSubmission(id: number): Promise<void> {
     try {
-      loading.value = true;
+      table.loading.value = true;
       const cid = courseId?.value;
       selectedSubmission.value = await ctx.api.value.getSubmission(id, cid);
       showViewModal.value = true;
     } catch (err) {
       log.error('Failed to load submission details', { error: err, id });
-      error.value = 'Failed to load submission details. Please try again.';
+      table.error.value = 'Failed to load submission details. Please try again.';
     } finally {
-      loading.value = false;
+      table.loading.value = false;
     }
   }
 
@@ -348,17 +228,16 @@ export function useSubmissions(
 
     try {
       const params: SubmissionQueryParams = {};
-      if (searchQuery.value.trim()) params.search = searchQuery.value.trim();
+      if (table.searchQuery.value.trim()) params.search = table.searchQuery.value.trim();
       if (statusFilter.value) params.status = statusFilter.value;
       if (problemSetFilter.value) params.problem_set = problemSetFilter.value;
       if (courseFilter.value) params.course = courseFilter.value;
 
       const blob = await ctx.api.value.exportSubmissions(params);
 
-      // Generate filename
       let filename = 'submissions_export';
-      if (searchQuery.value) {
-        filename += `_search-${searchQuery.value.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      if (table.searchQuery.value) {
+        filename += `_search-${table.searchQuery.value.replace(/[^a-zA-Z0-9]/g, '_')}`;
       }
       if (statusFilter.value) filename += `_status-${statusFilter.value}`;
       if (problemSetFilter.value) {
@@ -369,7 +248,6 @@ export function useSubmissions(
       }
       filename += `_${new Date().toISOString().split('T')[0]}.csv`;
 
-      // Trigger download
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -382,7 +260,7 @@ export function useSubmissions(
       log.info('Export successful', { filename });
     } catch (err) {
       log.error('Export failed', err);
-      error.value = 'Failed to export CSV. Please try again.';
+      table.error.value = 'Failed to export CSV. Please try again.';
     }
   }
 
@@ -395,7 +273,7 @@ export function useSubmissions(
 
     if (!submission?.id) {
       log.error('Invalid submission for download', { submission });
-      error.value = 'Unable to download submission data.';
+      table.error.value = 'Unable to download submission data.';
       return;
     }
 
@@ -420,7 +298,7 @@ export function useSubmissions(
       log.info('Submission downloaded', { id: submission.id });
     } catch (err) {
       log.error('Download failed', { error: err, id: submission.id });
-      error.value = 'Failed to download submission data. Please try again.';
+      table.error.value = 'Failed to download submission data. Please try again.';
     }
   }
 
@@ -433,12 +311,10 @@ export function useSubmissions(
 
   function getStatusClass(status: string): string {
     switch (status.toLowerCase()) {
-      case 'passed':
       case 'complete':
         return 'status-success';
       case 'partial':
         return 'status-warning';
-      case 'failed':
       case 'incomplete':
         return 'status-error';
       case 'pending':
@@ -501,20 +377,20 @@ export function useSubmissions(
   }
 
   function getProblemSetTitle(slug: string): string {
-    const ps = filterOptions.value.problem_sets.find(p => p.slug === slug);
+    const ps = filterOptions.value.problem_sets.find((p: { slug: string; title: string }) => p.slug === slug);
     return ps ? ps.title : slug;
   }
 
   // Watch for course ID changes (for instructor view)
   if (courseId) {
     watch(courseId, () => {
-      currentPage.value = 1;
-      pageSize.value = initialPageSize;
-      searchQuery.value = '';
+      table.currentPage.value = 1;
+      table.pageSize.value = initialPageSize;
+      table.searchQuery.value = '';
       statusFilter.value = '';
       problemSetFilter.value = '';
       courseFilter.value = '';
-      fetchSubmissions();
+      table.fetch();
     });
   }
 
@@ -524,23 +400,23 @@ export function useSubmissions(
     selectedSubmission,
     filterOptions,
 
-    // State
-    loading,
-    error,
+    // State (delegated)
+    loading: table.loading,
+    error: table.error,
 
-    // Pagination
-    currentPage,
-    pageSize,
-    totalCount,
-    totalPages,
-    hasNext,
-    hasPrevious,
-    rangeStart,
-    rangeEnd,
-    pageNumbers,
+    // Pagination (delegated)
+    currentPage: table.currentPage,
+    pageSize: table.pageSize,
+    totalCount: table.totalCount,
+    totalPages: table.totalPages,
+    hasNext: table.hasNext,
+    hasPrevious: table.hasPrevious,
+    rangeStart: table.rangeStart,
+    rangeEnd: table.rangeEnd,
+    pageNumbers: table.pageNumbers,
 
     // Filters
-    searchQuery,
+    searchQuery: table.searchQuery,
     statusFilter,
     problemSetFilter,
     courseFilter,
@@ -548,11 +424,11 @@ export function useSubmissions(
     filterSummary,
 
     // Actions
-    fetchSubmissions,
-    goToPage,
+    fetchSubmissions: table.fetch,
+    goToPage: table.goToPage,
     handlePageSizeChange,
     handleFilterChange,
-    debouncedSearch,
+    debouncedSearch: table.debouncedSearch,
     clearFilters,
     clearSearchFilter,
     clearStatusFilter,

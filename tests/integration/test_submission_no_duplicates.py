@@ -248,9 +248,9 @@ class TestEiplHandlerPassesSubmissionId:
 
             # The fix should include submission_id in the task arguments
             # Expected args: [problem_id, user_prompt, user_id, problem_set_id, course_id, submission_id]
-            assert (
-                len(task_args) >= 6
-            ), f"Task should include submission_id. Got {len(task_args)} args: {task_args}"
+            assert len(task_args) >= 6, (
+                f"Task should include submission_id. Got {len(task_args)} args: {task_args}"
+            )
 
             # submission_id should be the 6th argument (index 5)
             submission_id_arg = task_args[5] if len(task_args) > 5 else None
@@ -312,9 +312,9 @@ class TestDebugFixHandlerPassesSubmissionId:
             )
 
             # The fix should include submission_id in the task arguments
-            assert (
-                len(task_args) >= 6
-            ), f"Task should include submission_id. Got {len(task_args)} args"
+            assert len(task_args) >= 6, (
+                f"Task should include submission_id. Got {len(task_args)} args"
+            )
 
             submission_id_arg = task_args[5] if len(task_args) > 5 else None
             assert submission_id_arg == str(submission.submission_id)
@@ -372,9 +372,9 @@ class TestProbeableCodeHandlerPassesSubmissionId:
                 "args", call_kwargs.args[0] if call_kwargs.args else []
             )
 
-            assert (
-                len(task_args) >= 6
-            ), f"Task should include submission_id. Got {len(task_args)} args"
+            assert len(task_args) >= 6, (
+                f"Task should include submission_id. Got {len(task_args)} args"
+            )
 
             submission_id_arg = task_args[5] if len(task_args) > 5 else None
             assert submission_id_arg == str(submission.submission_id)
@@ -500,7 +500,7 @@ class TestSubmissionHistoryNoDuplicates:
                 user=user,
                 problem=problem,
                 problem_set=problem_set,
-                raw_input=f"Attempt {i+1}",
+                raw_input=f"Attempt {i + 1}",
                 submission_type="eipl",
                 score=100 if i % 2 == 0 else 0,
                 execution_status="completed",

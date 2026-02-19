@@ -1,8 +1,19 @@
 {
-  "name": "frontend",
+  "name": "purplex-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "description": "Vue 3 + TypeScript frontend for the Purplex educational coding challenge platform",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CoffeePoweredComputers/purplex.git",
+    "directory": "purplex/client"
+  },
+  "bugs": {
+    "url": "https://github.com/CoffeePoweredComputers/purplex/issues"
+  },
+  "homepage": "https://github.com/CoffeePoweredComputers/purplex#readme",
   "scripts": {
     "django": "python ../../manage.py runserver",
     "dev": "concurrently \"yarn vite --mode development\" \"yarn django\"",

@@ -56,7 +56,7 @@ class ProblemHint(models.Model):
                 required_fields = ["line_start", "line_end", "title", "explanation"]
                 if not all(field in subgoal for field in required_fields):
                     raise ValidationError(
-                        f'Each subgoal must have: {", ".join(required_fields)}'
+                        f"Each subgoal must have: {', '.join(required_fields)}"
                     )
 
         elif self.hint_type == "suggested_trace":

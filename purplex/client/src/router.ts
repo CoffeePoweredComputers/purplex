@@ -71,6 +71,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import("./components/content/SubmissionsPage.vue"),
         meta: {requiresAuth: true, requiresInstructor: true}
     },
+    {
+        path: "/instructor/courses/:courseId/submissions/:submissionId",
+        name: "InstructorSubmissionDetail",
+        component: () => import("./components/content/SubmissionDetailPage.vue"),
+        meta: {requiresAuth: true, requiresInstructor: true}
+    },
     // Instructor Content Management routes - using unified components
     {
         path: "/instructor/problems",
@@ -196,6 +202,12 @@ const routes: RouteRecordRaw[] = [
         meta: {requiresAuth: true, requiresAdmin: true}
     },
     {
+        path: "/admin/submissions/:submissionId",
+        name: "AdminSubmissionDetail",
+        component: () => import("./components/content/SubmissionDetailPage.vue"),
+        meta: {requiresAuth: true, requiresAdmin: true}
+    },
+    {
         path: "/admin/courses/:courseId/submissions",
         name: "AdminCourseSubmissions",
         component: () => import("./components/content/SubmissionsPage.vue"),
@@ -231,6 +243,24 @@ const routes: RouteRecordRaw[] = [
         name: "AdminCourseProblemSets",
         component: () => import("./components/content/CourseProblemSetsPage.vue"),
         meta: {requiresAuth: true, requiresAdmin: true}
+    },
+    // Privacy & compliance routes (public — no auth required for policy pages)
+    {
+        path: "/privacy",
+        name: "PrivacyPolicy",
+        component: () => import("./components/privacy/PrivacyPolicy.vue"),
+    },
+    {
+        path: "/terms",
+        name: "TermsOfService",
+        component: () => import("./components/privacy/TermsOfService.vue"),
+    },
+    // Authenticated privacy settings
+    {
+        path: "/settings/privacy",
+        name: "PrivacySettings",
+        component: () => import("./components/privacy/PrivacySettings.vue"),
+        meta: {requiresAuth: true}
     }
 ];
 

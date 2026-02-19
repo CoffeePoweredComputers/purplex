@@ -1,6 +1,8 @@
 import logging
+import math
 
 from django.conf import settings
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -49,7 +51,6 @@ class UserRoleView(APIView):
                 "email": request.user.email,
                 "role": profile.role,
                 "is_admin": profile.is_admin,
-                "firebase_uid": profile.firebase_uid,
                 "language_preference": profile.language_preference,
             }
         )
@@ -89,7 +90,6 @@ class AuthStatusView(APIView):
                         "email": user.email,
                         "role": profile.role,
                         "is_admin": profile.is_admin,
-                        "firebase_uid": profile.firebase_uid,
                         "language_preference": profile.language_preference,
                     },
                 }
@@ -105,7 +105,13 @@ class AdminUserManagementView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        """List all users and their roles (admin only)"""
+        """List all users and their roles with pagination (admin only)"""
+        # Parse pagination parameters
+        page = int(request.query_params.get("page", 1))
+        page_size = min(int(request.query_params.get("page_size", 25)), 100)
+        search = request.query_params.get("search", "").strip()
+        role_filter = request.query_params.get("role", "").strip()
+
         # Use repository to get all users
         users = UserRepository.get_all_users()
 
@@ -120,13 +126,40 @@ class AdminUserManagementView(APIView):
                         role=UserRole.ADMIN if user.is_superuser else UserRole.USER,
                     )
 
-        # Use repository to get all profiles
+        # Use repository to get all profiles with users
         user_profiles = UserProfileRepository.get_all_with_users()
 
+        # Build queryset with filters
         if user_profiles.exists():
-            # Users with profiles exist, return them
+            queryset = user_profiles
+
+            # Apply search filter (username or email)
+            if search:
+                queryset = queryset.filter(
+                    Q(user__username__icontains=search)
+                    | Q(user__email__icontains=search)
+                )
+
+            # Apply role filter
+            if role_filter:
+                queryset = queryset.filter(role=role_filter)
+
+            # Order by username for consistent pagination
+            queryset = queryset.order_by("user__username")
+
+            # Calculate pagination
+            total_count = queryset.count()
+            total_pages = math.ceil(total_count / page_size) if total_count > 0 else 1
+            page = max(1, min(page, total_pages))  # Clamp page to valid range
+
+            # Get paginated slice
+            start = (page - 1) * page_size
+            end = start + page_size
+            paginated_profiles = queryset[start:end]
+
+            # Build response data
             users_data = []
-            for profile in user_profiles:
+            for profile in paginated_profiles:
                 users_data.append(
                     {
                         "id": profile.user.id,
@@ -136,11 +169,37 @@ class AdminUserManagementView(APIView):
                         "is_active": profile.user.is_active,
                     }
                 )
-            return Response(users_data)
 
-        # No profiles exist, return users with default roles
+            return Response(
+                {
+                    "results": users_data,
+                    "count": total_count,
+                    "total_pages": total_pages,
+                    "current_page": page,
+                    "next": f"?page={page + 1}" if page < total_pages else None,
+                    "previous": f"?page={page - 1}" if page > 1 else None,
+                    "filters": {
+                        "roles": [
+                            {"value": UserRole.ADMIN, "label": "Admin"},
+                            {"value": UserRole.INSTRUCTOR, "label": "Instructor"},
+                            {"value": UserRole.USER, "label": "User"},
+                        ]
+                    },
+                }
+            )
+
+        # No profiles exist, return users with default roles (paginated)
+        users_list = list(users.order_by("username"))
+        total_count = len(users_list)
+        total_pages = math.ceil(total_count / page_size) if total_count > 0 else 1
+        page = max(1, min(page, total_pages))
+
+        start = (page - 1) * page_size
+        end = start + page_size
+        paginated_users = users_list[start:end]
+
         users_data = []
-        for user in users:
+        for user in paginated_users:
             users_data.append(
                 {
                     "id": user.id,
@@ -150,7 +209,24 @@ class AdminUserManagementView(APIView):
                     "is_active": user.is_active,
                 }
             )
-        return Response(users_data)
+
+        return Response(
+            {
+                "results": users_data,
+                "count": total_count,
+                "total_pages": total_pages,
+                "current_page": page,
+                "next": f"?page={page + 1}" if page < total_pages else None,
+                "previous": f"?page={page - 1}" if page > 1 else None,
+                "filters": {
+                    "roles": [
+                        {"value": UserRole.ADMIN, "label": "Admin"},
+                        {"value": UserRole.INSTRUCTOR, "label": "Instructor"},
+                        {"value": UserRole.USER, "label": "User"},
+                    ]
+                },
+            }
+        )
 
     def post(self, request, user_id):
         """Update a user's role (admin only)"""
@@ -282,7 +358,7 @@ class LanguagePreferenceView(APIView):
         if language not in valid_languages:
             return Response(
                 {
-                    "error": f'Invalid language. Must be one of: {", ".join(valid_languages)}'
+                    "error": f"Invalid language. Must be one of: {', '.join(valid_languages)}"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )

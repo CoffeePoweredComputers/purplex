@@ -10,13 +10,39 @@ import { nextTick, onBeforeUnmount, ref, type Ref, watch } from 'vue'
  * @param isVisible - Reactive ref controlling modal visibility
  * @returns modalContentRef - Attach to modal content element via ref="modalContentRef"
  */
-export function useFocusTrap(isVisible: Ref<boolean>) {
+export function useFocusTrap(isVisible: Ref<boolean>, initialFocusRef?: Ref<HTMLElement | null>) {
   const modalContentRef = ref<HTMLElement | null>(null)
   const lastFocusedElement = ref<HTMLElement | null>(null)
   let focusTrapHandler: ((e: KeyboardEvent) => void) | null = null
 
-  const focusableSelector =
-    'button, [href], input, select, textarea, iframe[tabindex], [tabindex]:not([tabindex="-1"])'
+  const candidateSelector =
+    'button:not([disabled]):not([tabindex="-1"]), ' +
+    '[href]:not([tabindex="-1"]), ' +
+    'input:not([disabled]):not([tabindex="-1"]), ' +
+    'select:not([disabled]):not([tabindex="-1"]), ' +
+    'textarea:not([disabled]):not([tabindex="-1"]), ' +
+    '[tabindex]:not([tabindex="-1"])'
+
+  /**
+   * Returns elements that can actually receive focus via Tab key.
+   * Filters out elements inside inert/display:none/aria-hidden subtrees,
+   * hidden elements, and Ace editor internals.
+   */
+  function getTabbableElements(container: HTMLElement): HTMLElement[] {
+    return Array.from(container.querySelectorAll<HTMLElement>(candidateSelector)).filter(el => {
+      // Must be visible (not in display:none ancestor, not hidden)
+      if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') return false
+      if (getComputedStyle(el).visibility === 'hidden') return false
+
+      // Must not be inside an inert subtree
+      if (el.closest('[inert]')) return false
+
+      // Must not be an Ace editor internal element
+      if (el.classList.contains('ace_text-input') || el.classList.contains('ace_content')) return false
+
+      return true
+    })
+  }
 
   function activate(): void {
     lastFocusedElement.value = document.activeElement as HTMLElement
@@ -43,7 +69,7 @@ export function useFocusTrap(isVisible: Ref<boolean>) {
       if (e.key !== 'Tab') {
         return
       }
-      const focusable = modal.querySelectorAll<HTMLElement>(focusableSelector)
+      const focusable = getTabbableElements(modal)
       if (!focusable.length) {
         return
       }
@@ -63,12 +89,16 @@ export function useFocusTrap(isVisible: Ref<boolean>) {
   }
 
   function focusFirstElement(): void {
+    if (initialFocusRef?.value) {
+      initialFocusRef.value.focus()
+      return
+    }
     const modal = modalContentRef.value
     if (!modal) {
       return
     }
-    const first = modal.querySelector(focusableSelector) as HTMLElement
-    first?.focus()
+    const tabbable = getTabbableElements(modal)
+    tabbable[0]?.focus()
   }
 
   function setInert(inert: boolean): void {

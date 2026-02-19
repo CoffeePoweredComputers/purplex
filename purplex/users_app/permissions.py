@@ -136,20 +136,55 @@ class IsInstructorOrReadOnly(permissions.BasePermission):
 
 class IsCourseInstructor(permissions.BasePermission):
     """
-    Allow access only to the instructor of a specific course.
+    Allow access to any instructor (primary or TA) of a specific course.
+
+    Both primaries and TAs have legitimate educational interest under FERPA,
+    so this permission covers viewing students, analytics, and submissions.
     """
 
     def has_object_permission(self, request, view, obj) -> bool:
         if not request.user or not request.user.is_authenticated:
             return False
 
-        # Handle different object types
+        if request.user.is_superuser:
+            return True
+
+        # Resolve course from obj
+        course = (
+            obj if hasattr(obj, "course_instructors") else getattr(obj, "course", None)
+        )
+        if course and hasattr(course, "is_instructor"):
+            return course.is_instructor(request.user)
+
+        # Fallback to legacy FK check for backward compat during transition
         if hasattr(obj, "instructor"):
-            # Direct course object
-            return obj.instructor == request.user or request.user.is_superuser
-        elif hasattr(obj, "course"):
-            # Related to course (e.g., enrollment, problem set)
-            return obj.course.instructor == request.user or request.user.is_superuser
+            return obj.instructor == request.user
+        elif hasattr(obj, "course") and hasattr(obj.course, "instructor"):
+            return obj.course.instructor == request.user
+
+        return False
+
+
+class IsPrimaryCourseInstructor(permissions.BasePermission):
+    """
+    Allow access only to primary instructors of a course.
+
+    Gates destructive operations: course deletion, membership management,
+    and team management.
+    """
+
+    def has_object_permission(self, request, view, obj) -> bool:
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        if request.user.is_superuser:
+            return True
+
+        course = (
+            obj if hasattr(obj, "course_instructors") else getattr(obj, "course", None)
+        )
+        if course and hasattr(course, "is_primary_instructor"):
+            return course.is_primary_instructor(request.user)
 
         return False
 
@@ -178,7 +213,11 @@ class IsInstructorAndOwner(permissions.BasePermission):
         # Instructors only access their own resources
         if hasattr(obj, "created_by"):
             return obj.created_by_id == request.user.id
+        if hasattr(obj, "is_instructor"):
+            # Multi-instructor: any role counts as ownership
+            return obj.is_instructor(request.user)
         if hasattr(obj, "instructor"):
+            # Legacy FK fallback
             return obj.instructor_id == request.user.id
 
         return False
@@ -254,7 +293,7 @@ class CanSubmitSolution(permissions.BasePermission):
             )
 
             # Instructors can also submit solutions to their own courses
-            is_instructor = course.instructor == request.user
+            is_instructor = course.is_instructor(request.user)
 
             return enrolled or is_instructor or request.user.is_superuser
 
@@ -329,10 +368,12 @@ class IsAuthenticatedOrServiceAccount(permissions.BasePermission):
         # Check service account authentication
         service_key = request.META.get("HTTP_X_SERVICE_KEY")
         if service_key:
+            import hmac
             import os
 
             valid_key = os.environ.get("SERVICE_ACCOUNT_KEY")
-            return valid_key and service_key == valid_key
+            if valid_key:
+                return hmac.compare_digest(service_key, valid_key)
 
         return False
 

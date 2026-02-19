@@ -35,7 +35,7 @@ staticfiles/
 .env.*
 !.env.example
 !.env.test
-!.env.development
+!purplex/client/.env.development
 !.env.production.template
 firebase-credentials.json
 *.pem
@@ -100,8 +100,8 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Claude/Serena/AI tools
-.claude/settings.local.json
-.serena/memories/
+.claude/
+.serena/
 *.claude.backup
 
 # Docker
@@ -127,6 +127,12 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
+# Demo/screenshot artifacts
+demo-screenshots/
+
+# Root package.json (not part of the build system)
+/package.json
+
 # Development artifacts
 verify_architecture.py
 architecture_verification_report.json
@@ -141,11 +147,13 @@ celerybeat-schedule.db
 
 # Documentation build
 docs/_build/
+docs/lessons/*.html
 site/
 
 # Build artifacts
 build-info.json
 VERSION.bak
+purplex/client/dist-stats.html
 
 # PyInstaller
 *.manifest

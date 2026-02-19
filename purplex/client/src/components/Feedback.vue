@@ -251,7 +251,7 @@
       :is-visible="showCorrectnessModal"
       :variants="variants"
       :selected-version="selectedVariant"
-      @close="showCorrectnessModal = false"
+      @close="closeCorrectnessModal"
       @update:selected-version="selectedVariant = $event"
       @debug="handleDebug"
     />
@@ -705,6 +705,11 @@ export default defineComponent({
     openCorrectnessModal(): void {
       this.showCorrectnessModal = true
       this.announce('Correctness Analysis dialog opened')
+    },
+
+    closeCorrectnessModal(): void {
+      this.showCorrectnessModal = false
+      this.announce('Correctness Analysis dialog closed')
     },
 
     handleAbstractionClick(): void {

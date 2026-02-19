@@ -6,227 +6,191 @@
         User Management Console
       </h1>
 
-      <div class="status-container">
-        <div
-          v-if="loading"
-          class="loading-indicator"
-        >
-          Loading users...
-        </div>
-
-        <div
-          v-if="error"
-          class="error-message"
-        >
-          {{ error }}
-        </div>
-      </div>
-
-      <div
-        v-if="!loading && !error"
-        class="table-responsive"
+      <DataTable
+        :columns="columns"
+        :items="users"
+        :loading="loading"
+        :error="error"
+        :total-count="totalCount"
+        :current-page="currentPage"
+        :page-size="pageSize"
+        :total-pages="totalPages"
+        :has-next="hasNext"
+        :has-previous="hasPrevious"
+        :page-numbers="pageNumbers"
+        :range-start="rangeStart"
+        :range-end="rangeEnd"
+        item-label="users"
+        row-key="id"
+        empty-title="No Users Found"
+        empty-message="There are no users matching your filters."
+        @go-to-page="goToPage"
+        @page-size-change="handlePageSizeChange"
+        @retry="fetch"
       >
-        <table class="users-table">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="user in users"
-              :key="user.id"
-              :class="{ 'admin-row': user.role === 'admin' }"
-            >
-              <td>{{ user.username }}</td>
-              <td>{{ user.email }}</td>
-              <td>
-                <span
-                  class="badge"
-                  :class="getBadgeClass(user.role)"
+        <!-- Filters -->
+        <template #filters>
+          <div class="filters-section">
+            <div class="filter-group">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search by username or email..."
+                class="search-input"
+                @input="debouncedSearch"
+              >
+            </div>
+            <div class="filter-group">
+              <select
+                :value="filters.role || ''"
+                class="filter-select"
+                @change="handleRoleFilterChange"
+              >
+                <option value="">All Roles</option>
+                <option
+                  v-for="role in filterOptions?.roles || defaultRoles"
+                  :key="role.value"
+                  :value="role.value"
                 >
-                  {{ user.role }}
-                </span>
-              </td>
-              <td>
-                <div class="role-dropdown-container">
-                  <select
-                    class="role-dropdown"
-                    :value="user.role"
-                    :disabled="updatingUsers[user.id] || user.email === $store.state.auth.user.email"
-                    :title="user.email === $store.state.auth.user.email ? 'You cannot change your own role' : 'Select a role'"
-                    @change="changeRole(user.id, $event.target.value)"
-                  >
-                    <option value="user">
-                      User
-                    </option>
-                    <option value="instructor">
-                      Instructor
-                    </option>
-                    <option value="admin">
-                      Admin
-                    </option>
-                  </select>
-                  <span
-                    v-if="updatingUsers[user.id]"
-                    class="dropdown-spinner"
-                  />
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                  {{ role.label }}
+                </option>
+              </select>
+            </div>
+            <Transition name="fade">
+              <button
+                v-if="hasFilters"
+                class="clear-filters-btn"
+                @click="clearAllFilters"
+              >
+                Clear Filters
+              </button>
+            </Transition>
+          </div>
+        </template>
+
+        <!-- Role badge column -->
+        <template #cell-role="{ value }">
+          <StatusBadge
+            :value="value"
+            :variant="getBadgeVariant(value)"
+          />
+        </template>
+
+        <!-- Actions column -->
+        <template #cell-actions="{ item }">
+          <div class="role-dropdown-container">
+            <select
+              class="role-dropdown"
+              :value="item.role"
+              :disabled="updatingUsers[item.id] || item.email === currentUserEmail"
+              :title="item.email === currentUserEmail ? 'You cannot change your own role' : 'Select a role'"
+              @change="handleRoleChange(item.id, ($event.target as HTMLSelectElement).value)"
+            >
+              <option value="user">User</option>
+              <option value="instructor">Instructor</option>
+              <option value="admin">Admin</option>
+            </select>
+            <span
+              v-if="updatingUsers[item.id]"
+              class="dropdown-spinner"
+            />
+          </div>
+        </template>
+      </DataTable>
     </div>
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
-import { mapGetters } from 'vuex';
-import axios, { AxiosError } from 'axios';
-import AuthService from '../services/auth.service';
+<script setup lang="ts">
+import { computed, onMounted } from 'vue';
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
 import AdminNavBar from './AdminNavBar.vue';
-import { log } from '@/utils/logger';
-import type { User } from '@/types';
+import DataTable from './ui/DataTable.vue';
+import StatusBadge from './ui/StatusBadge.vue';
+import { useAdminUsers, type AdminUser } from '@/composables/useAdminUsers';
+import type { DataTableColumn } from '@/types/datatable';
 
-// Setup axios to include credentials and CSRF token
-axios.defaults.withCredentials = true;
+const store = useStore();
+const router = useRouter();
 
-interface ComponentData {
-  users: User[];
-  loading: boolean;
-  error: string | null;
-  updatingUsers: Record<number, boolean>;
+// Check admin access
+const isAdmin = computed(() => store.getters['auth/isAdmin']);
+const currentUserEmail = computed(() => store.state.auth.user?.email || '');
+
+// Redirect non-admins
+if (!isAdmin.value) {
+  router.push('/');
 }
 
-export default defineComponent({
-  name: 'AdminUsers',
-  components: {
-    AdminNavBar
-  },
-  data(): ComponentData {
-    return {
-      users: [],
-      loading: true,
-      error: null,
-      updatingUsers: {} // Track which users are being updated
-    };
-  },
-  computed: {
-    ...mapGetters('auth', ['isAdmin'])
-  },
-  created() {
-    // Redirect non-admin users
-    if (!this.isAdmin) {
-      this.$router.push('/');
-      return;
-    }
+// Use the admin users composable
+const {
+  users,
+  loading,
+  error,
+  currentPage,
+  pageSize,
+  totalCount,
+  totalPages,
+  hasNext,
+  hasPrevious,
+  pageNumbers,
+  rangeStart,
+  rangeEnd,
+  searchQuery,
+  filters,
+  filterOptions,
+  hasFilters,
+  fetch,
+  goToPage,
+  handlePageSizeChange,
+  setFilter,
+  clearAllFilters,
+  debouncedSearch,
+  changeRole,
+  updatingUsers,
+  getBadgeVariant,
+} = useAdminUsers();
 
-    this.fetchUsers();
-  },
-  methods: {
-    async fetchUsers(): Promise<void> {
-      try {
-        this.loading = true;
+// Default roles for when API hasn't loaded filter options yet
+const defaultRoles = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'instructor', label: 'Instructor' },
+  { value: 'user', label: 'User' },
+];
 
-        // Get CSRF token from cookie if present
-        function getCookie(name: string): string | undefined {
-          const value = `; ${document.cookie}`;
-          const parts = value.split(`; ${name}=`);
-          if (parts.length === 2) {return parts.pop()?.split(';').shift();}
-        }
+// Column definitions
+const columns: DataTableColumn<AdminUser>[] = [
+  { key: 'username', label: 'Username' },
+  { key: 'email', label: 'Email', hideOnMobile: true },
+  { key: 'role', label: 'Role', slot: 'cell-role', align: 'center' },
+  { key: 'actions', label: 'Actions', slot: 'cell-actions', align: 'center' },
+];
 
-        // First make a GET request to get the CSRF token
-        await axios.get('/api/csrf/', { withCredentials: true });
-
-        const csrfToken = getCookie('csrftoken');
-
-        const response = await axios.get('/api/admin/users/', {
-          headers: {
-            'X-CSRFToken': csrfToken
-          },
-          withCredentials: true
-        });
-
-        this.users = response.data;
-        this.loading = false;
-      } catch (error) {
-        const axiosError = error as AxiosError;
-        this.error = 'Failed to load users. Please try again.';
-        this.loading = false;
-        log.error('Error fetching users', { error: axiosError });
-      }
-    },
-
-    getBadgeClass(role: string): string {
-      switch (role) {
-        case 'admin':
-          return 'admin-badge';
-        case 'instructor':
-          return 'instructor-badge';
-        case 'user':
-        default:
-          return 'user-badge';
-      }
-    },
-
-    async changeRole(userId: number, newRole: string): Promise<void> {
-      log.debug('Changing role for user', { userId, newRole });
-      try {
-        // Set this user as updating
-        this.updatingUsers = {
-          ...this.updatingUsers,
-          [userId]: true
-        };
-
-        // Get CSRF token from cookie if present
-        function getCookie(name: string): string | undefined {
-          const value = `; ${document.cookie}`;
-          const parts = value.split(`; ${name}=`);
-          if (parts.length === 2) {return parts.pop()?.split(';').shift();}
-        }
-
-        const csrfToken = getCookie('csrftoken');
-
-        // Send the request to the server
-        await axios.post(`/api/admin/user/${userId}/`, {
-          role: newRole
-        }, {
-          headers: {
-            'X-CSRFToken': csrfToken
-          },
-          withCredentials: true
-        });
-
-        // Update the user role locally instead of refetching all users
-        const userIndex = this.users.findIndex(user => user.id === userId);
-        if (userIndex !== -1) {
-          // Create a copy of the users array to avoid mutating the state directly
-          const updatedUsers = [...this.users];
-          updatedUsers[userIndex] = {
-            ...updatedUsers[userIndex],
-            role: newRole
-          };
-          this.users = updatedUsers;
-        }
-      } catch (error) {
-        const axiosError = error as AxiosError;
-        this.error = 'Failed to update user role. Please try again.';
-        log.error('Error updating user role', { error: axiosError, userId, newRole });
-      } finally {
-        // Remove updating status when done
-        this.updatingUsers = {
-          ...this.updatingUsers,
-          [userId]: false
-        };
-      }
-    }
+// Handlers
+function handleRoleFilterChange(event: Event) {
+  const target = event.target as HTMLSelectElement;
+  if (target.value) {
+    setFilter('role', target.value);
+  } else {
+    // Clear the role filter when "All Roles" is selected
+    const newFilters = { ...filters.value };
+    delete newFilters.role;
+    filters.value = newFilters;
+    fetch();
   }
-})
+}
+
+async function handleRoleChange(userId: number, newRole: string) {
+  await changeRole(userId, newRole);
+}
+
+// Fetch users on mount
+onMounted(() => {
+  if (isAdmin.value) {
+    fetch();
+  }
+});
 </script>
 
 <style scoped>
@@ -248,113 +212,72 @@ export default defineComponent({
   gap: var(--spacing-sm);
 }
 
-
-.status-container {
-  margin-bottom: var(--spacing-xl);
+/* Filters */
+.filters-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  align-items: center;
 }
 
-.loading-indicator {
-  padding: var(--spacing-xl);
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-bg-input);
+  border-radius: var(--radius-base);
   background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
-  color: var(--color-text-muted);
-  text-align: center;
-  box-shadow: var(--shadow-md);
-}
-
-.error-message {
-  padding: var(--spacing-xl);
-  background: var(--color-error-bg);
-  border-radius: var(--radius-lg);
-  color: var(--color-error-text);
-  text-align: center;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--color-error);
-}
-
-.table-responsive {
-  overflow-x: auto;
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 2px solid transparent;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
   transition: var(--transition-base);
 }
 
-.table-responsive:hover {
-  border-color: var(--color-bg-input);
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-primary-gradient-start);
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
 }
 
-.users-table {
+.filter-select {
   width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.users-table th {
-  background: var(--color-bg-hover);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-bg-input);
+  border-radius: var(--radius-base);
+  background: var(--color-bg-panel);
   color: var(--color-text-primary);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  font-weight: 600;
-  font-size: var(--font-size-base);
-  border-bottom: 2px solid var(--color-bg-input);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
 }
 
-.users-table td {
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--color-bg-hover);
+.clear-filters-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-base);
+  background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  vertical-align: middle;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-base);
 }
 
-.users-table tr:hover {
-  background: var(--color-bg-hover);
+.clear-filters-btn:hover {
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
-.users-table tr:last-child td {
-  border-bottom: none;
-}
-
-.admin-row {
-  background: linear-gradient(to right, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-}
-
-.badge {
-  min-width: 80px;
-  padding: var(--spacing-xs) var(--spacing-md);
-  border-radius: var(--radius-xl);
-  font-weight: 600;
-  font-size: var(--font-size-xs);
-  display: inline-block;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.admin-badge {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.instructor-badge {
-  background: linear-gradient(135deg, var(--color-info) 0%, #1976d2 100%);
-  color: var(--color-text-primary);
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
-}
-
-.user-badge {
-  background: var(--color-bg-hover);
-  color: var(--color-text-tertiary);
-  border: 1px solid var(--color-bg-border);
-}
-
+/* Role dropdown in actions */
 .role-dropdown-container {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
-  min-width: 150px;
+  min-width: 130px;
 }
 
 .role-dropdown {
@@ -412,15 +335,30 @@ export default defineComponent({
   }
 }
 
+/* Transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
-  .users-table {
-    font-size: var(--font-size-sm);
+  .filters-section {
+    flex-direction: column;
   }
 
-  .users-table th,
-  .users-table td {
-    padding: var(--spacing-md);
+  .filter-group {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .clear-filters-btn {
+    width: 100%;
   }
 
   .role-dropdown-container {

@@ -10,6 +10,7 @@ from .base_repository import BaseRepository
 from .course_enrollment_repository import CourseEnrollmentRepository
 
 # New dedicated repositories
+from .course_instructor_repository import CourseInstructorRepository
 from .course_problem_set_repository import CourseProblemSetRepository
 from .course_repository import CourseRepository
 from .hint_repository import HintRepository
@@ -31,6 +32,7 @@ __all__ = [
     "TestCaseRepository",
     "ProblemCategoryRepository",
     # New dedicated repositories
+    "CourseInstructorRepository",
     "CourseProblemSetRepository",
     "UserProgressRepository",
     "ProblemSetRepository",

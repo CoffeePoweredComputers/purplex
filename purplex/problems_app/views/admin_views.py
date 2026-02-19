@@ -106,7 +106,9 @@ class AdminProblemListView(APIView):
 
                     # Return the serialized problem with correct serializer
                     # Use same mapping - already validated above
-                    response_serializer = PROBLEM_TYPE_SERIALIZERS[problem_type](problem)
+                    response_serializer = PROBLEM_TYPE_SERIALIZERS[problem_type](
+                        problem
+                    )
                     return Response(
                         response_serializer.data, status=status.HTTP_201_CREATED
                     )

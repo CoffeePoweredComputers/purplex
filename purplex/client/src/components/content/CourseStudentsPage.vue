@@ -14,122 +14,147 @@
     <!-- Summary Bar -->
     <div class="summary-bar">
       <p class="summary-text">
-        <strong>{{ students.length }}</strong> students enrolled
+        <strong>{{ totalCount }}</strong> students enrolled
       </p>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner" />
-      <p>Loading students...</p>
-    </div>
+    <DataTable
+      :columns="columns"
+      :items="items"
+      :loading="loading"
+      :error="error"
+      :total-count="totalCount"
+      :current-page="currentPage"
+      :page-size="pageSize"
+      :total-pages="totalPages"
+      :has-next="hasNext"
+      :has-previous="hasPrevious"
+      :page-numbers="pageNumbers"
+      :range-start="rangeStart"
+      :range-end="rangeEnd"
+      item-label="students"
+      row-key="id"
+      empty-title="No Students Enrolled"
+      empty-message="No students have enrolled in this course yet."
+      @go-to-page="goToPage"
+      @page-size-change="handlePageSizeChange"
+      @retry="refresh"
+    >
+      <!-- Search filter -->
+      <template #filters>
+        <div class="filters-section">
+          <div class="filter-group">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search by name or email..."
+              class="search-input"
+              @input="debouncedSearch"
+            >
+          </div>
+        </div>
+      </template>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="error-container">
-      <p class="error-message">{{ error }}</p>
-    </div>
+      <!-- Email with monospace -->
+      <template #cell-email="{ item }">
+        <span class="email">{{ item.user.email }}</span>
+      </template>
 
-    <!-- Empty State -->
-    <div v-else-if="students.length === 0" class="empty-state">
-      <div class="empty-icon">&#x1F465;</div>
-      <h3>No Students Enrolled</h3>
-      <p>No students have enrolled in this course yet.</p>
-    </div>
+      <!-- Progress bar -->
+      <template #cell-progress="{ item }">
+        <div class="progress-info">
+          <div class="progress-bar-mini">
+            <div
+              class="progress-fill"
+              :style="{ width: item.progress.completion_percentage + '%' }"
+            />
+          </div>
+          <span class="progress-text">
+            {{ item.progress.completed_problem_sets }} / {{ item.progress.total_problem_sets }}
+          </span>
+        </div>
+      </template>
 
-    <!-- Students Table -->
-    <div v-else class="table-responsive">
-      <table class="students-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Enrolled Date</th>
-            <th>Progress</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="student in students" :key="student.id">
-            <td>{{ getStudentName(student.user) }}</td>
-            <td class="email">{{ student.user.email }}</td>
-            <td>{{ formatDate(student.enrolled_at) }}</td>
-            <td class="progress-cell">
-              <div class="progress-info">
-                <div class="progress-bar-mini">
-                  <div
-                    class="progress-fill"
-                    :style="{ width: student.progress.completion_percentage + '%' }"
-                  />
-                </div>
-                <span class="progress-text">
-                  {{ student.progress.completed_problem_sets }} / {{ student.progress.total_problem_sets }}
-                </span>
-              </div>
-            </td>
-            <td>
-              <button
-                class="action-button remove-button"
-                title="Remove from course"
-                @click="confirmRemove(student)"
-              >
-                Remove
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <!-- Remove action -->
+      <template #cell-actions="{ item }">
+        <button
+          class="action-button remove-button"
+          title="Remove from course"
+          @click="confirmRemove(item)"
+        >
+          Remove
+        </button>
+      </template>
+    </DataTable>
 
     <!-- Remove Confirmation Dialog -->
-    <div v-if="showRemoveDialog" class="dialog-overlay">
-      <div class="dialog">
-        <h3>Remove Student?</h3>
-        <p>
-          Are you sure you want to remove "{{ removeTarget ? getStudentName(removeTarget.user) : '' }}" from this course?
-        </p>
-        <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="showRemoveDialog = false">
-            Cancel
-          </button>
-          <button class="btn btn-danger" :disabled="removing" @click="performRemove">
-            {{ removing ? 'Removing...' : 'Remove' }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmDialog
+      :visible="showRemoveDialog"
+      title="Remove Student?"
+      :message="`Are you sure you want to remove &quot;${removeTarget ? getStudentName(removeTarget.user) : ''}&quot; from this course?`"
+      confirm-label="Remove"
+      :loading="removing"
+      @confirm="performRemove"
+      @cancel="showRemoveDialog = false"
+    />
   </ContentEditorLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
+import DataTable from '@/components/ui/DataTable.vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { provideContentContext } from '@/composables/useContentContext';
+import { useDataTable } from '@/composables/useDataTable';
+import { clientSidePaginate } from '@/utils/clientSidePaginate';
 import { log } from '@/utils/logger';
 import type { Course, CourseStudent } from '@/types';
+import type { DataTableColumn } from '@/types/datatable';
 
-// Router
 const route = useRoute();
-
-// Provide role-aware context
 const ctx = provideContentContext();
 
-// State
+// Course info (fetched separately from table data)
 const course = ref<Course | null>(null);
-const students = ref<CourseStudent[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
-const removing = ref(false);
-const showRemoveDialog = ref(false);
-const removeTarget = ref<CourseStudent | null>(null);
 
-// Computed
 const courseId = computed(() => route.params.courseId as string);
 const pageTitle = computed(() => {
-  if (course.value) {
-    return `Students - ${course.value.name}`;
-  }
+  if (course.value) return `Students - ${course.value.name}`;
   return 'Course Students';
+});
+
+// Cached data for client-side pagination
+let allStudents: CourseStudent[] = [];
+let needsRefetch = true;
+
+const {
+  items, loading, error, currentPage, pageSize, totalCount,
+  totalPages, hasNext, hasPrevious, rangeStart, rangeEnd,
+  pageNumbers, searchQuery, debouncedSearch, goToPage,
+  handlePageSizeChange, fetch: fetchTable, refresh,
+} = useDataTable<CourseStudent>({
+  fetchFn: async (params) => {
+    if (needsRefetch) {
+      // Fetch course info + students in parallel
+      const [courseData, students] = await Promise.all([
+        ctx.api.value.getCourse(courseId.value),
+        ctx.api.value.getCourseStudents(courseId.value),
+      ]);
+      course.value = courseData;
+      allStudents = students;
+      needsRefetch = false;
+    }
+    return clientSidePaginate(allStudents, params, {
+      searchFn: (item, q) => {
+        const lower = q.toLowerCase();
+        const name = getStudentName(item.user).toLowerCase();
+        return name.includes(lower) || item.user.email.toLowerCase().includes(lower);
+      },
+    });
+  },
+  initialPageSize: 25,
 });
 
 // Helpers
@@ -145,30 +170,33 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
   });
 }
 
-// Fetch course and students
-async function fetchData(): Promise<void> {
-  loading.value = true;
-  error.value = null;
+// Column definitions
+const columns: DataTableColumn<CourseStudent>[] = [
+  {
+    key: 'user',
+    label: 'Name',
+    render: (_value, row) => getStudentName(row.user),
+  },
+  { key: 'user.email', label: 'Email', hideOnMobile: true, slot: 'cell-email' },
+  {
+    key: 'enrolled_at',
+    label: 'Enrolled Date',
+    hideOnMobile: true,
+    render: (value) => formatDate(value as string),
+  },
+  { key: 'progress', label: 'Progress', slot: 'cell-progress', width: '200px' },
+  { key: 'actions', label: 'Actions', slot: 'cell-actions', width: '100px' },
+];
 
-  try {
-    // Fetch course info first
-    course.value = await ctx.api.value.getCourse(courseId.value);
-    // Then fetch students
-    students.value = await ctx.api.value.getCourseStudents(courseId.value);
-  } catch (err) {
-    const apiError = err as { error?: string };
-    error.value = apiError.error || 'Failed to load students';
-    log.error('Failed to load course students', { courseId: courseId.value, error: err });
-  } finally {
-    loading.value = false;
-  }
-}
+// Remove dialog state
+const showRemoveDialog = ref(false);
+const removeTarget = ref<CourseStudent | null>(null);
+const removing = ref(false);
 
-// Remove handlers
 function confirmRemove(student: CourseStudent): void {
   removeTarget.value = student;
   showRemoveDialog.value = true;
@@ -179,10 +207,11 @@ async function performRemove(): Promise<void> {
 
   removing.value = true;
   try {
-    await ctx.api.value.removeCourseStudent(courseId.value, removeTarget.value.id);
-    students.value = students.value.filter(s => s.id !== removeTarget.value!.id);
+    await ctx.api.value.removeCourseStudent(courseId.value, removeTarget.value.user.id);
+    allStudents = allStudents.filter(s => s.id !== removeTarget.value!.id);
     showRemoveDialog.value = false;
     removeTarget.value = null;
+    await fetchTable();
   } catch (err) {
     const apiError = err as { error?: string };
     error.value = apiError.error || 'Failed to remove student';
@@ -192,12 +221,13 @@ async function performRemove(): Promise<void> {
   }
 }
 
-// Watch for route changes
+// Watch for route changes — refetch when courseId changes
 watch(
   () => route.params.courseId,
   () => {
     if (route.params.courseId) {
-      fetchData();
+      needsRefetch = true;
+      refresh();
     }
   },
   { immediate: true }
@@ -219,109 +249,34 @@ watch(
   color: var(--color-text-secondary);
 }
 
-/* Loading */
-.loading-container {
+.filters-section {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xxl);
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-bg-hover);
-  border-top: 3px solid var(--color-primary-gradient-start);
-  border-radius: var(--radius-circle);
-  animation: spin 1s linear infinite;
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Error */
-.error-container {
-  padding: var(--spacing-xl);
-  background: var(--color-error-bg);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-error);
-}
-
-.error-message {
-  color: var(--color-error-text);
-  margin: 0;
-  text-align: center;
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: var(--spacing-xxl);
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
-}
-
-.empty-icon {
-  font-size: 4rem;
-  margin-bottom: var(--spacing-lg);
-}
-
-.empty-state h3 {
-  font-size: var(--font-size-xl);
+.search-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border, var(--color-bg-input));
+  border-radius: var(--radius-base);
+  background: var(--color-surface, var(--color-bg-hover));
   color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm);
-}
-
-.empty-state p {
-  color: var(--color-text-muted);
-}
-
-/* Table */
-.table-responsive {
-  overflow-x: auto;
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 2px solid transparent;
+  font-size: var(--font-size-sm);
   transition: var(--transition-base);
 }
 
-.table-responsive:hover {
-  border-color: var(--color-bg-input);
-}
-
-.students-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.students-table th {
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-  border-bottom: 2px solid var(--color-bg-input);
-}
-
-.students-table td {
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--color-bg-hover);
-  color: var(--color-text-secondary);
-  vertical-align: middle;
-}
-
-.students-table tr:hover {
-  background: var(--color-bg-hover);
-}
-
-.students-table tr:last-child td {
-  border-bottom: none;
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-primary-gradient-start);
 }
 
 .email {
@@ -330,10 +285,6 @@ watch(
 }
 
 /* Progress */
-.progress-cell {
-  width: 200px;
-}
-
 .progress-info {
   display: flex;
   align-items: center;
@@ -400,76 +351,7 @@ watch(
   background: var(--color-error-bg);
 }
 
-/* Dialog */
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.dialog {
-  background: var(--color-bg-panel);
-  padding: var(--spacing-xl);
-  border-radius: var(--radius-lg);
-  max-width: 400px;
-  width: 90%;
-  box-shadow: var(--shadow-lg);
-}
-
-.dialog h3 {
-  margin: 0 0 var(--spacing-lg) 0;
-  color: var(--color-text-primary);
-}
-
-.dialog p {
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-lg);
-}
-
-.dialog-actions {
-  display: flex;
-  gap: var(--spacing-md);
-  justify-content: flex-end;
-  margin-top: var(--spacing-lg);
-}
-
-/* Buttons */
-.btn {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-base);
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: var(--transition-base);
-}
-
-.btn-secondary {
-  background: var(--color-bg-hover);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
-}
-
-.btn-danger {
-  background: var(--color-error);
-  color: var(--color-text-primary);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Responsive */
 @media (max-width: 768px) {
-  .students-table th,
-  .students-table td {
-    padding: var(--spacing-md);
-  }
-
   .progress-info {
     flex-direction: column;
     align-items: flex-start;

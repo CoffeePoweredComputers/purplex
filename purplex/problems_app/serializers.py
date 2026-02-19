@@ -169,17 +169,17 @@ class McqProblemSerializer(serializers.ModelSerializer):
         seen_ids = set()
         for i, opt in enumerate(value):
             if not isinstance(opt, dict):
-                raise serializers.ValidationError(f"Option {i+1} must be an object")
+                raise serializers.ValidationError(f"Option {i + 1} must be an object")
             opt_id = opt.get("id")
             if not opt_id:
-                raise serializers.ValidationError(f"Option {i+1} must have an id")
+                raise serializers.ValidationError(f"Option {i + 1} must have an id")
             if opt_id in seen_ids:
                 raise serializers.ValidationError(
                     f"Duplicate option id '{opt_id}' - each option must have a unique id"
                 )
             seen_ids.add(opt_id)
             if not opt.get("text", "").strip():
-                raise serializers.ValidationError(f"Option {i+1} must have text")
+                raise serializers.ValidationError(f"Option {i + 1} must have text")
             if opt.get("is_correct"):
                 correct_count += 1
 
@@ -1366,6 +1366,29 @@ class AdminProblemSerializer(ProblemSerializer):
 
 
 # Course-related serializers
+
+
+class CourseInstructorSerializer(serializers.Serializer):
+    """Serializer for CourseInstructor (read)."""
+
+    user_id = serializers.IntegerField(source="user.id")
+    username = serializers.CharField(source="user.username")
+    full_name = serializers.SerializerMethodField()
+    email = serializers.EmailField(source="user.email")
+    role = serializers.CharField()
+    added_at = serializers.DateTimeField()
+
+    def get_full_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
+
+
+class CourseInstructorCreateSerializer(serializers.Serializer):
+    """Serializer for adding an instructor to a course."""
+
+    user_id = serializers.IntegerField()
+    role = serializers.ChoiceField(choices=["primary", "ta"], default="primary")
+
+
 class CourseListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for listing courses"""
 
@@ -1390,7 +1413,12 @@ class CourseListSerializer(serializers.ModelSerializer):
         ]
 
     def get_instructor_name(self, obj):
-        """Get instructor's full name or username"""
+        """Get comma-joined primary instructor names, with legacy FK fallback."""
+        if hasattr(obj, "course_instructors"):
+            primaries = obj.course_instructors.filter(role="primary")
+            names = [ci.user.get_full_name() or ci.user.username for ci in primaries]
+            if names:
+                return ", ".join(names)
         return obj.instructor.get_full_name() or obj.instructor.username
 
 
@@ -1410,12 +1438,14 @@ class InstructorCourseListSerializer(serializers.Serializer):
     problem_sets_count = serializers.IntegerField()
     enrolled_students_count = serializers.IntegerField()
     created_at = serializers.DateTimeField()
+    my_role = serializers.CharField(required=False, allow_null=True)
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):
     """Detailed serializer for course with problem sets"""
 
     instructor = serializers.SerializerMethodField()
+    instructors = serializers.SerializerMethodField()
     problem_sets = serializers.SerializerMethodField()
     enrolled_students_count = serializers.IntegerField(
         source="enrollments.filter(is_active=True).count", read_only=True
@@ -1430,6 +1460,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "name",
             "description",
             "instructor",
+            "instructors",
             "problem_sets",
             "enrolled_students_count",
             "is_active",
@@ -1439,12 +1470,20 @@ class CourseDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_instructor(self, obj):
+        """Legacy single-instructor field (backward compat)."""
         return {
             "id": obj.instructor.id,
             "username": obj.instructor.username,
             "full_name": obj.instructor.get_full_name() or obj.instructor.username,
             "email": obj.instructor.email,
         }
+
+    def get_instructors(self, obj):
+        """Multi-instructor list from CourseInstructor table."""
+        course_instructors = obj.course_instructors.select_related("user").order_by(
+            "role", "added_at"
+        )
+        return CourseInstructorSerializer(course_instructors, many=True).data
 
     def get_problem_sets(self, obj):
         """Get problem sets ordered by position in course"""
@@ -1456,6 +1495,8 @@ class CourseDetailSerializer(serializers.ModelSerializer):
                 "id": cps.id,
                 "order": cps.order,
                 "is_required": cps.is_required,
+                "due_date": cps.due_date.isoformat() if cps.due_date else None,
+                "deadline_type": cps.deadline_type,
                 "problem_set": ProblemSetListSerializer(cps.problem_set).data,
             }
             for cps in course_problem_sets
@@ -1551,13 +1592,18 @@ class CourseCreateUpdateSerializer(serializers.ModelSerializer):
 
 
 class CourseEnrollmentSerializer(serializers.ModelSerializer):
-    """Serializer for displaying course enrollments (students in a course)"""
+    """
+    Serializer for displaying course enrollments (students in a course).
+    Data minimization (GDPR Art. 25): Only shows username by default.
+    Email/name only included if the student hasn't opted out of
+    directory information (FERPA opt-out).
+    """
 
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
-    email = serializers.EmailField(source="user.email", read_only=True)
-    first_name = serializers.CharField(source="user.first_name", read_only=True)
-    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    email = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
 
     class Meta:
         model = CourseEnrollment
@@ -1572,6 +1618,28 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
             "is_active",
         ]
         read_only_fields = fields
+
+    def _is_directory_visible(self, obj):
+        """Check if user has opted into directory information visibility."""
+        profile = getattr(obj.user, "profile", None)
+        if profile is None:
+            return True  # Default to visible if no profile
+        return profile.directory_info_visible
+
+    def get_email(self, obj):
+        if self._is_directory_visible(obj):
+            return obj.user.email
+        return None
+
+    def get_first_name(self, obj):
+        if self._is_directory_visible(obj):
+            return obj.user.first_name
+        return None
+
+    def get_last_name(self, obj):
+        if self._is_directory_visible(obj):
+            return obj.user.last_name
+        return None
 
 
 class CourseLookupSerializer(serializers.Serializer):

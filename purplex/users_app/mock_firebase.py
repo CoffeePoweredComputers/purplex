@@ -134,7 +134,7 @@ class MockFirebaseAuth:
                 # For any other email in development, create a student account
                 return {
                     "uid": payload.get(
-                        "uid", f'mock-uid-{email.replace("@", "-").replace(".", "-")}'
+                        "uid", f"mock-uid-{email.replace('@', '-').replace('.', '-')}"
                     ),
                     "email": email,
                     "name": payload.get(
@@ -174,7 +174,7 @@ class MockFirebaseAuth:
 
             # For any other email in development, create a student account
             return {
-                "uid": f'mock-uid-{email.replace("@", "-").replace(".", "-")}',
+                "uid": f"mock-uid-{email.replace('@', '-').replace('.', '-')}",
                 "email": email,
                 "name": email.split("@")[0],
                 "email_verified": True,
@@ -246,7 +246,7 @@ class MockFirebaseAuth:
         Returns:
             MockUserRecord object
         """
-        uid = f'mock-uid-{email.replace("@", "-").replace(".", "-")}'
+        uid = f"mock-uid-{email.replace('@', '-').replace('.', '-')}"
         return MockUserRecord(
             uid=uid, email=email, display_name=display_name or email.split("@")[0]
         )
@@ -292,7 +292,7 @@ class MockFirebaseAuth:
 
         # For development, create user on the fly
         return MockUserRecord(
-            uid=f'mock-uid-{email.replace("@", "-").replace(".", "-")}',
+            uid=f"mock-uid-{email.replace('@', '-').replace('.', '-')}",
             email=email,
             display_name=email.split("@")[0],
         )
@@ -391,7 +391,7 @@ def create_test_token(email: str) -> str:
         uid = MockFirebaseAuth.TEST_USERS[email]["uid"]
         name = MockFirebaseAuth.TEST_USERS[email]["name"]
     else:
-        uid = f'mock-uid-{email.replace("@", "-").replace(".", "-")}'
+        uid = f"mock-uid-{email.replace('@', '-').replace('.', '-')}"
         name = email.split("@")[0]
 
     payload = {
@@ -403,4 +403,4 @@ def create_test_token(email: str) -> str:
         "email_verified": True,
     }
 
-    return jwt.encode(payload, MockFirebaseAuth.MOCK_SECRET, algorithm="HS256")
+    return jwt.encode(payload, MockFirebaseAuth.get_mock_secret(), algorithm="HS256")

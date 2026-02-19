@@ -31,7 +31,7 @@ class ResearchExportService:
         start_date: datetime | None = None,
         end_date: datetime | None = None,
         include_code: bool = False,
-        anonymize: bool = False,
+        anonymize: bool = True,  # FERPA U4: Default anonymized to protect PII
     ) -> dict[str, Any]:
         """
         Export complete research dataset with all metrics.

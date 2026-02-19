@@ -58,6 +58,13 @@
           </div>
 
           <LanguageSwitcher />
+
+          <div class="info-item info-item--link" @click="goToPrivacySettings">
+            <span class="info-label">Privacy Settings</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </div>
         </div>
 
         <div class="modal-footer">
@@ -93,6 +100,7 @@
 <script setup lang="ts">
 import { toRef } from 'vue'
 import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 
@@ -105,6 +113,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useStore()
+const router = useRouter()
 
 // Focus trap composable
 const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
@@ -115,6 +124,11 @@ function logout(): void {
 
 function closeModal(): void {
   emit('close')
+}
+
+function goToPrivacySettings(): void {
+  closeModal()
+  router.push({ name: 'PrivacySettings' })
 }
 
 function getInitials(): string {
@@ -274,6 +288,28 @@ function getMemberSince(): string {
 
 .info-item:last-child {
     border-bottom: none;
+}
+
+.info-item--link {
+    cursor: pointer;
+    border-radius: var(--radius-base);
+    margin: 0 calc(-1 * var(--spacing-sm));
+    padding: var(--spacing-md) var(--spacing-sm);
+    transition: var(--transition-base);
+}
+
+.info-item--link:hover {
+    background: var(--color-bg-hover);
+}
+
+.info-item--link svg {
+    color: var(--color-text-muted);
+    transition: var(--transition-base);
+}
+
+.info-item--link:hover svg {
+    color: var(--color-text-secondary);
+    transform: translateX(2px);
 }
 
 .info-label {
