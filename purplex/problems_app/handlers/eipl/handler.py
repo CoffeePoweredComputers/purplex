@@ -59,6 +59,12 @@ class EiPLHandler(ActivityHandler):
                 error=f"Description must be under {self.MAX_INPUT_LENGTH} characters",
             )
 
+        # Prompt injection heuristic — log only, don't block
+        # (avoids false positives on legitimate code descriptions)
+        from purplex.utils.prompt_sanitizer import PromptSanitizer
+
+        PromptSanitizer.analyze(text)
+
         return ValidationResult(is_valid=True)
 
     # ─── Submission Processing ──────────────────────────────────
