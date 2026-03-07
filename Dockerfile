@@ -17,8 +17,9 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip wheel && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip 'wheel>=0.46.2' && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir 'jaraco.context>=6.1.0'
 
 # Copy project
 COPY . .

@@ -1415,7 +1415,9 @@ class CourseListSerializer(serializers.ModelSerializer):
     def get_instructor_name(self, obj):
         """Get comma-joined primary instructor names."""
         if hasattr(obj, "course_instructors"):
-            primaries = obj.course_instructors.filter(role="primary")
+            primaries = [
+                ci for ci in obj.course_instructors.all() if ci.role == "primary"
+            ]
             names = [ci.user.get_full_name() or ci.user.username for ci in primaries]
             if names:
                 return ", ".join(names)

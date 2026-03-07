@@ -686,12 +686,12 @@ async function fetchOverview() {
   try {
     // Use the analytics endpoint which returns overview data
     const response = await axios.get(`/api/instructor/courses/${courseId.value}/analytics/`);
-    overview.value = response.data;
-
-    // Set the current user's role from the response
-    if (response.data.my_role) {
-      myRole.value = response.data.my_role as CourseInstructorRole;
+    // Set the current user's role before overview to avoid brief flash of wrong controls
+    const data = response.data;
+    if (data.my_role) {
+      myRole.value = data.my_role as CourseInstructorRole;
     }
+    overview.value = data;
 
     log.info('Loaded instructor course overview', {
       courseId: courseId.value,

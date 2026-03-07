@@ -63,32 +63,34 @@ jobs:
 
           # Create specific test data
           python manage.py shell << 'EOF'
-          from problems_app.models import Problem, ProblemSet, TestCase
+          from purplex.problems_app.models import EiplProblem, TestCase
           from django.contrib.auth import get_user_model
 
           # Create test problems that tests expect
           problems = [
-              {"slug": "two-sum", "title": "Two Sum", "difficulty": "Easy"},
-              {"slug": "palindrome-check", "title": "Palindrome Check", "difficulty": "Easy"},
-              {"slug": "fizzbuzz", "title": "FizzBuzz", "difficulty": "Easy"}
+              {"slug": "two-sum", "title": "Two Sum", "sig": "def two_sum(nums: list, target: int) -> list:", "ref": "def two_sum(nums, target):\n    return []"},
+              {"slug": "palindrome-check", "title": "Palindrome Check", "sig": "def is_palindrome(s: str) -> bool:", "ref": "def is_palindrome(s):\n    return s == s[::-1]"},
+              {"slug": "fizzbuzz", "title": "FizzBuzz", "sig": "def fizzbuzz(n: int) -> str:", "ref": "def fizzbuzz(n):\n    return str(n)"}
           ]
 
           for p in problems:
-              problem, _ = Problem.objects.get_or_create(
+              problem, _ = EiplProblem.objects.get_or_create(
                   slug=p["slug"],
                   defaults={
                       "title": p["title"],
-                      "difficulty": p["difficulty"],
+                      "difficulty": "easy",
                       "description": f"Test problem {p['title']}",
-                      "starter_code": "def solution():\n    pass",
-                      "solution_code": "def solution():\n    return True"
+                      "function_signature": p["sig"],
+                      "reference_solution": p["ref"],
                   }
               )
-              # Add test cases
               TestCase.objects.get_or_create(
                   problem=problem,
-                  input_data="test",
-                  expected_output="test"
+                  order=0,
+                  defaults={
+                      "inputs": ["test"],
+                      "expected_output": "test",
+                  }
               )
 
           # Create test users for load testing

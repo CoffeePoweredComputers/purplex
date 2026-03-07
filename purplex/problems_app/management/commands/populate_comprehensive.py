@@ -10,6 +10,7 @@ from purplex.problems_app.models import (
     CourseEnrollment,
     CourseInstructor,
     CourseProblemSet,
+    EiplProblem,
     Problem,
     ProblemCategory,
     ProblemHint,
@@ -802,7 +803,7 @@ Multiply two 2x2 matrices.
         ]
 
         for data in problem_data:
-            problem, _ = Problem.objects.get_or_create(
+            problem, _ = EiplProblem.objects.get_or_create(
                 slug=data["slug"],
                 defaults={
                     "title": data["title"],
@@ -811,7 +812,6 @@ Multiply two 2x2 matrices.
                     "function_name": data["function_name"],
                     "function_signature": data["function_signature"],
                     "reference_solution": data["reference_solution"],
-                    "problem_type": "eipl",
                     "memory_limit": 128,
                     "tags": data.get("tags", []),
                     "is_active": True,

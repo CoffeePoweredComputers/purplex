@@ -100,6 +100,7 @@ jobs:
           image-ref: 'purplex-app:scan'
           format: 'table'
           severity: 'CRITICAL,HIGH'
+          trivyignores: '.trivyignore'
           exit-code: '1'
 
   secret-scan:

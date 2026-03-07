@@ -350,27 +350,30 @@ jobs:
 
           # Create test problems expected by load tests
           python manage.py shell << 'EOF'
-          from problems_app.models import Problem, TestCase
+          from purplex.problems_app.models import EiplProblem, TestCase
           problems = [
-              {"slug": "two-sum", "title": "Two Sum"},
-              {"slug": "palindrome-check", "title": "Palindrome Check"},
-              {"slug": "fizzbuzz", "title": "FizzBuzz"}
+              {"slug": "two-sum", "title": "Two Sum", "sig": "def two_sum(nums: list, target: int) -> list:", "ref": "def two_sum(nums, target):\n    return []"},
+              {"slug": "palindrome-check", "title": "Palindrome Check", "sig": "def is_palindrome(s: str) -> bool:", "ref": "def is_palindrome(s):\n    return s == s[::-1]"},
+              {"slug": "fizzbuzz", "title": "FizzBuzz", "sig": "def fizzbuzz(n: int) -> str:", "ref": "def fizzbuzz(n):\n    return str(n)"}
           ]
           for p in problems:
-              problem, _ = Problem.objects.get_or_create(
+              problem, _ = EiplProblem.objects.get_or_create(
                   slug=p["slug"],
                   defaults={
                       "title": p["title"],
-                      "difficulty": "Easy",
+                      "difficulty": "easy",
                       "description": f"Test problem: {p['title']}",
-                      "starter_code": "def solution():\n    pass",
-                      "solution_code": "def solution():\n    return True"
+                      "function_signature": p["sig"],
+                      "reference_solution": p["ref"],
                   }
               )
               TestCase.objects.get_or_create(
                   problem=problem,
-                  input_data="test",
-                  expected_output="test"
+                  order=0,
+                  defaults={
+                      "inputs": ["test"],
+                      "expected_output": "test",
+                  }
               )
           print(f"Created {len(problems)} test problems")
           EOF
