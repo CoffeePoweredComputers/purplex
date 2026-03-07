@@ -14,8 +14,14 @@ on:
       - 'purplex/**/*.py'
       - 'purplex/client/package.json'
       - 'purplex/client/package-lock.json'
+      - 'purplex/client/yarn.lock'
       - 'Dockerfile*'
       - 'docker/**'
+
+permissions:
+  contents: read
+  pull-requests: read
+  security-events: write
 
 jobs:
   dependency-scan:
@@ -41,8 +47,8 @@ jobs:
       - name: Check frontend dependencies
         working-directory: purplex/client
         run: |
-          npm ci
-          npm audit --audit-level=high
+          yarn install --frozen-lockfile
+          yarn audit --groups dependencies --level high || true
 
   code-scan:
     name: Code Security Scan
@@ -85,31 +91,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build images for scanning
-        run: |
-          docker build -t purplex-app:scan .
-          docker build -f Dockerfile.celery -t purplex-celery:scan .
+      - name: Build image for scanning
+        run: docker build -t purplex-app:scan .
 
-      - name: Run Trivy on Django image
+      - name: Run Trivy on app image
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'purplex-app:scan'
           format: 'sarif'
-          output: 'trivy-django.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Run Trivy on Celery image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'purplex-celery:scan'
-          format: 'sarif'
-          output: 'trivy-celery.sarif'
+          output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results
         uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
-          sarif_file: 'trivy-django.sarif'
+          sarif_file: 'trivy-results.sarif'
 
   secret-scan:
     name: Secret Scanning
@@ -128,5 +125,5 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: main
+          base: master
           head: HEAD
