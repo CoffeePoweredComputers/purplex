@@ -98,15 +98,9 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'purplex-app:scan'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          format: 'table'
           severity: 'CRITICAL,HIGH'
-
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
+          exit-code: '1'
 
   secret-scan:
     name: Secret Scanning
