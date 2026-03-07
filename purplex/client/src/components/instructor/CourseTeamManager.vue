@@ -109,7 +109,7 @@ const newEmail = ref('');
 const newRole = ref<CourseInstructorRole>('ta');
 
 // Reactive: re-evaluates when prop changes (e.g., after analytics API returns)
-const isPrimary = computed(() => !props.myRole || props.myRole === 'primary');
+const isPrimary = computed(() => props.myRole === 'primary');
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {

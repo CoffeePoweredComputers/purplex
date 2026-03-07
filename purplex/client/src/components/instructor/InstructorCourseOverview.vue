@@ -437,7 +437,7 @@ const courseId = computed(() => route.params.courseId as string);
 const overview = ref<CourseOverview | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
-const myRole = ref<CourseInstructorRole>('primary');
+const myRole = ref<CourseInstructorRole>('ta');
 
 // Problem set selection state
 const selectedProblemSetSlug = ref<string | null>(null);
