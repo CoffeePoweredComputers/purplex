@@ -82,12 +82,16 @@ def model_problem_set(db):
 @pytest.fixture
 def model_course(db, model_instructor, model_problem_set):
     """Course for model tests."""
+    from purplex.problems_app.models import CourseInstructor
+
     course = Course.objects.create(
         course_id="MODEL-TEST-101",
         name="Model Test Course",
-        instructor=model_instructor,
     )
     course.problem_sets.add(model_problem_set)
+    CourseInstructor.objects.create(
+        course=course, user=model_instructor, role="primary"
+    )
     return course
 
 
@@ -297,7 +301,6 @@ class TestCourseFieldDefaults:
         course = Course.objects.create(
             course_id="TEST-101",
             name="Test Course",
-            instructor=model_instructor,
         )
         assert course.is_active is True
 
@@ -306,7 +309,6 @@ class TestCourseFieldDefaults:
         course = Course.objects.create(
             course_id="TEST-101",
             name="Test Course",
-            instructor=model_instructor,
         )
         assert course.enrollment_open is True
 
@@ -315,7 +317,6 @@ class TestCourseFieldDefaults:
         course = Course.objects.create(
             course_id="TEST-101",
             name="Test Course",
-            instructor=model_instructor,
         )
         assert course.is_deleted is False
 
@@ -329,7 +330,6 @@ class TestCourseSlugAutoGeneration:
         course = Course.objects.create(
             course_id="CS101-FALL2024",
             name="Intro to CS",
-            instructor=model_instructor,
         )
         assert course.slug == "cs101-fall2024"
 
@@ -339,7 +339,6 @@ class TestCourseSlugAutoGeneration:
             course_id="CS101",
             slug="custom-slug",
             name="Test Course",
-            instructor=model_instructor,
         )
         assert course.slug == "custom-slug"
 
@@ -348,14 +347,12 @@ class TestCourseSlugAutoGeneration:
         Course.objects.create(
             course_id="UNIQUE-101",
             name="First",
-            instructor=model_instructor,
         )
         with pytest.raises(IntegrityError):
             with transaction.atomic():
                 Course.objects.create(
                     course_id="UNIQUE-101",
                     name="Second",
-                    instructor=model_instructor,
                 )
 
 
@@ -382,15 +379,25 @@ class TestCourseSoftDelete:
 
 
 @pytest.mark.django_db
-class TestCourseInstructorProtection:
-    """Tests for Course instructor PROTECT behavior."""
+class TestCourseInstructorCascade:
+    """Tests for CourseInstructor CASCADE behavior on user deletion."""
 
-    def test_cannot_delete_instructor_with_courses(
+    def test_deleting_instructor_cascades_course_instructor(
         self, model_instructor, model_course
     ):
-        """Deleting instructor with courses should raise ProtectedError."""
-        with pytest.raises(ProtectedError):
-            model_instructor.delete()
+        """Deleting user should cascade-delete their CourseInstructor rows, not the course."""
+        from purplex.problems_app.models import CourseInstructor
+
+        assert CourseInstructor.objects.filter(
+            user=model_instructor, course=model_course
+        ).exists()
+        course_pk = model_course.pk
+        model_instructor.delete()
+        # Course still exists, but instructor link is gone
+        assert Course.objects.filter(pk=course_pk).exists()
+        assert not CourseInstructor.objects.filter(
+            user_id=model_instructor.pk, course=model_course
+        ).exists()
 
 
 @pytest.mark.django_db
@@ -402,7 +409,6 @@ class TestCourseStr:
         course = Course.objects.create(
             course_id="CS101",
             name="Intro to CS",
-            instructor=model_instructor,
         )
         assert str(course) == "CS101 - Intro to CS"
 
@@ -1032,17 +1038,12 @@ class TestValidationErrorMessages:
             eipl.full_clean()
         assert "reference_solution" in exc_info.value.message_dict
 
-    def test_course_instructor_required_error(self, db):
-        """Course without instructor should have clear error."""
-        course = Course(
-            course_id="TEST-101",
-            name="Test Course",
-            # Missing instructor
-        )
+    def test_course_requires_course_id(self, db):
+        """Course without course_id should have clear error."""
+        course = Course(name="Test Course")
         with pytest.raises(ValidationError) as exc_info:
             course.full_clean()
-        # Error should mention instructor
-        assert "instructor" in exc_info.value.message_dict
+        assert "course_id" in exc_info.value.message_dict
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1118,7 +1119,6 @@ class TestCrossModelRelationships:
         course = Course.objects.create(
             course_id="MULTI-PS",
             name="Multi PS Course",
-            instructor=model_instructor,
         )
         ps1 = ProblemSet.objects.create(title="Week 1")
         ps2 = ProblemSet.objects.create(title="Week 2")

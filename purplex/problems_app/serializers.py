@@ -1385,7 +1385,7 @@ class CourseInstructorSerializer(serializers.Serializer):
 class CourseInstructorCreateSerializer(serializers.Serializer):
     """Serializer for adding an instructor to a course."""
 
-    user_id = serializers.IntegerField()
+    email = serializers.EmailField()
     role = serializers.ChoiceField(choices=["primary", "ta"], default="primary")
 
 
@@ -1413,13 +1413,13 @@ class CourseListSerializer(serializers.ModelSerializer):
         ]
 
     def get_instructor_name(self, obj):
-        """Get comma-joined primary instructor names, with legacy FK fallback."""
+        """Get comma-joined primary instructor names."""
         if hasattr(obj, "course_instructors"):
             primaries = obj.course_instructors.filter(role="primary")
             names = [ci.user.get_full_name() or ci.user.username for ci in primaries]
             if names:
                 return ", ".join(names)
-        return obj.instructor.get_full_name() or obj.instructor.username
+        return "Unknown Instructor"
 
 
 class InstructorCourseListSerializer(serializers.Serializer):
@@ -1444,12 +1444,9 @@ class InstructorCourseListSerializer(serializers.Serializer):
 class CourseDetailSerializer(serializers.ModelSerializer):
     """Detailed serializer for course with problem sets"""
 
-    instructor = serializers.SerializerMethodField()
     instructors = serializers.SerializerMethodField()
     problem_sets = serializers.SerializerMethodField()
-    enrolled_students_count = serializers.IntegerField(
-        source="enrollments.filter(is_active=True).count", read_only=True
-    )
+    enrolled_students_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -1459,7 +1456,6 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "slug",
             "name",
             "description",
-            "instructor",
             "instructors",
             "problem_sets",
             "enrolled_students_count",
@@ -1469,14 +1465,8 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-    def get_instructor(self, obj):
-        """Legacy single-instructor field (backward compat)."""
-        return {
-            "id": obj.instructor.id,
-            "username": obj.instructor.username,
-            "full_name": obj.instructor.get_full_name() or obj.instructor.username,
-            "email": obj.instructor.email,
-        }
+    def get_enrolled_students_count(self, obj):
+        return obj.enrollments.filter(is_active=True).count()
 
     def get_instructors(self, obj):
         """Multi-instructor list from CourseInstructor table."""
@@ -1555,6 +1545,7 @@ class CourseCreateUpdateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         problem_set_ids = validated_data.pop("problem_set_ids", [])
+        validated_data.pop("instructor_id", None)
         # Create course using service
         course = AdminProblemService.create_course(validated_data)
 
@@ -1570,6 +1561,7 @@ class CourseCreateUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         problem_set_ids = validated_data.pop("problem_set_ids", None)
+        validated_data.pop("instructor_id", None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)

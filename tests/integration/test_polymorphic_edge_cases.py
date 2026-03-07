@@ -76,7 +76,6 @@ def edge_course(db, edge_instructor, edge_problem_set):
     course = Course.objects.create(
         course_id="EDGE-TEST-101",
         name="Edge Test Course",
-        instructor=edge_instructor,
     )
     course.problem_sets.add(edge_problem_set)
     return course

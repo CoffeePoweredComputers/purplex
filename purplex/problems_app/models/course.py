@@ -19,11 +19,6 @@ class Course(models.Model):
     slug = models.SlugField(max_length=100, unique=True, blank=True)
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    # CRITICAL: Changed from CASCADE to PROTECT to prevent accidental data loss
-    # Deleting an instructor should not cascade-delete all their courses and student data
-    instructor = models.ForeignKey(
-        User, on_delete=models.PROTECT, related_name="instructed_courses"
-    )
     problem_sets = models.ManyToManyField(
         ProblemSet, through="CourseProblemSet", related_name="courses"
     )
@@ -39,7 +34,7 @@ class Course(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["course_id"]),
-            models.Index(fields=["instructor", "is_active"]),
+            models.Index(fields=["is_active"]),
             models.Index(fields=["is_deleted", "is_active"]),
         ]
 

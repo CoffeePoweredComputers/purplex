@@ -188,7 +188,7 @@ class CourseEnrollmentRepository(BaseRepository):
     def get_instructor_enrollment_overview(cls, instructor: User) -> dict[str, Any]:
         """Get enrollment overview for all courses taught by an instructor."""
         instructor_courses = Course.objects.filter(
-            instructor=instructor, is_active=True
+            course_instructors__user=instructor, is_active=True
         )
 
         overview = {

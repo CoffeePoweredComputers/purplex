@@ -75,7 +75,7 @@ def course_with_deadline(db, instructor):
         ProblemSetFactory,
     )
 
-    course = CourseFactory(instructor=instructor)
+    course = CourseFactory()
     ps = ProblemSetFactory(title="Deadline PS")
     CourseProblemSetFactory(
         course=course,

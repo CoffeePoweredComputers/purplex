@@ -373,6 +373,14 @@
             </div>
           </div>
         </div>
+
+        <!-- Course Team Section -->
+        <div class="course-card" style="margin-top: var(--spacing-xl);">
+          <CourseTeamManager
+            :course-id="courseId"
+            :my-role="myRole"
+          />
+        </div>
       </template>
     </div>
   </div>
@@ -383,7 +391,9 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
 import InstructorNavBar from './InstructorNavBar.vue';
+import CourseTeamManager from './CourseTeamManager.vue';
 import { log } from '../../utils/logger';
+import type { CourseInstructorRole } from '@/types';
 
 interface ProblemSetStat {
   problem_set_slug: string;
@@ -427,6 +437,7 @@ const courseId = computed(() => route.params.courseId as string);
 const overview = ref<CourseOverview | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
+const myRole = ref<CourseInstructorRole>('primary');
 
 // Problem set selection state
 const selectedProblemSetSlug = ref<string | null>(null);
@@ -676,6 +687,11 @@ async function fetchOverview() {
     // Use the analytics endpoint which returns overview data
     const response = await axios.get(`/api/instructor/courses/${courseId.value}/analytics/`);
     overview.value = response.data;
+
+    // Set the current user's role from the response
+    if (response.data.my_role) {
+      myRole.value = response.data.my_role as CourseInstructorRole;
+    }
 
     log.info('Loaded instructor course overview', {
       courseId: courseId.value,

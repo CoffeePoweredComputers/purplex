@@ -8,7 +8,10 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from purplex.problems_app.repositories import CourseEnrollmentRepository
+from purplex.problems_app.repositories import (
+    CourseEnrollmentRepository,
+    CourseInstructorRepository,
+)
 from purplex.problems_app.repositories.course_repository import CourseRepository
 from purplex.problems_app.repositories.problem_repository import ProblemRepository
 from purplex.problems_app.repositories.problem_set_repository import (
@@ -44,6 +47,9 @@ class InstructorCourseAnalyticsView(APIView):
 
         # Get analytics
         analytics = InstructorAnalyticsService.get_course_overview(course)
+
+        # Include the requesting user's role on this course
+        analytics["my_role"] = CourseInstructorRepository.get_role(request.user, course)
 
         return Response(analytics, status=status.HTTP_200_OK)
 

@@ -84,8 +84,6 @@ class AdminCourseListCreateView(APIView):
             else:
                 instructor = request.user
 
-            # Use service layer to create course
-            # NOTE: CourseService.create_course already creates CourseInstructor row
             course = CourseService.create_course(
                 instructor=instructor, **serializer.validated_data
             )
@@ -123,32 +121,8 @@ class AdminCourseDetailView(APIView):
             course, data=request.data, partial=True
         )
         if serializer.is_valid():
-            # Handle instructor update if provided
-            instructor_id = serializer.validated_data.pop("instructor_id", None)
-            if instructor_id:
-                instructor = UserRepository.get_by_id(instructor_id)
-                if not instructor:
-                    return Response(
-                        {"error": "Instructor not found"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                serializer.validated_data["instructor"] = instructor
-
-                # Sync CourseInstructor table: ensure new instructor has a primary role
-                if not CourseInstructorRepository.is_course_instructor(
-                    instructor, course
-                ):
-                    CourseInstructorRepository.add_instructor(
-                        course=course,
-                        user=instructor,
-                        role="primary",
-                        added_by=request.user,
-                    )
-                else:
-                    # Ensure they're primary if already present
-                    CourseInstructorRepository.update_role(
-                        course, instructor, "primary"
-                    )
+            # instructor_id is handled via the team management API, not inline
+            serializer.validated_data.pop("instructor_id", None)
 
             updated_course = CourseService.update_course(
                 course, **serializer.validated_data
@@ -309,9 +283,10 @@ class CourseLookupView(APIView):
         course = result["course"]
         already_enrolled = result["already_enrolled"]
 
-        instructor_name = CourseInstructorRepository.get_primary_instructor_names(
-            course
-        ) or (course.instructor.get_full_name() or course.instructor.username)
+        instructor_name = (
+            CourseInstructorRepository.get_primary_instructor_names(course)
+            or "Unknown Instructor"
+        )
 
         return Response(
             {

@@ -186,7 +186,7 @@ class CourseService:
         Returns:
             Created Course instance
         """
-        course = CourseRepository.create(instructor=instructor, **course_data)
+        course = CourseRepository.create(**course_data)
         # Create the CourseInstructor row for the creator
         CourseInstructorRepository.add_instructor(
             course=course, user=instructor, role="primary"

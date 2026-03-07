@@ -1177,7 +1177,6 @@ def progress_course(db, progress_instructor, progress_problem_set):
     course = Course.objects.create(
         course_id="PROG-TEST-101",
         name="Progress Test Course",
-        instructor=progress_instructor,
     )
     course.problem_sets.add(progress_problem_set)
     return course
@@ -1286,12 +1285,10 @@ class TestUserProgressUniqueConstraint:
         course1 = Course.objects.create(
             course_id="COURSE-1",
             name="Course 1",
-            instructor=progress_instructor,
         )
         course2 = Course.objects.create(
             course_id="COURSE-2",
             name="Course 2",
-            instructor=progress_instructor,
         )
 
         UserProgress.objects.create(

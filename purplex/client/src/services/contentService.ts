@@ -141,7 +141,7 @@ export interface ContentApiService {
 
   // Course Team (multi-instructor management)
   getCourseTeam(courseId: string): Promise<CourseInstructorMember[]>;
-  addCourseTeamMember(courseId: string, data: { user_id: number; role: CourseInstructorRole }): Promise<CourseInstructorMember>;
+  addCourseTeamMember(courseId: string, data: { email: string; role: CourseInstructorRole }): Promise<CourseInstructorMember>;
   updateCourseTeamMember(courseId: string, userId: number, data: { role: CourseInstructorRole }): Promise<CourseInstructorMember>;
   removeCourseTeamMember(courseId: string, userId: number): Promise<void>;
 
@@ -533,7 +533,7 @@ class ContentServiceImpl implements ContentApiService {
 
   async addCourseTeamMember(
     courseId: string,
-    data: { user_id: number; role: CourseInstructorRole }
+    data: { email: string; role: CourseInstructorRole }
   ): Promise<CourseInstructorMember> {
     try {
       const response: AxiosResponse<CourseInstructorMember> = await axios.post(

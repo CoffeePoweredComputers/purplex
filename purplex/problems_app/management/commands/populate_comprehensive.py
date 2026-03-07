@@ -8,6 +8,7 @@ from django.db import transaction
 from purplex.problems_app.models import (
     Course,
     CourseEnrollment,
+    CourseInstructor,
     CourseProblemSet,
     Problem,
     ProblemCategory,
@@ -959,10 +960,12 @@ Multiply two 2x2 matrices.
             defaults={
                 "name": "Introduction to Computer Science",
                 "description": "Learn the fundamentals of programming and computer science",
-                "instructor": instructors[0],
                 "is_active": True,
                 "enrollment_open": True,
             },
+        )
+        CourseInstructor.objects.get_or_create(
+            course=cs101, user=instructors[0], defaults={"role": "primary"}
         )
 
         # Add problem sets to CS101
@@ -988,10 +991,12 @@ Multiply two 2x2 matrices.
             defaults={
                 "name": "Data Structures and Algorithms",
                 "description": "Deep dive into data structures and algorithmic thinking",
-                "instructor": instructors[1],
                 "is_active": True,
                 "enrollment_open": True,
             },
+        )
+        CourseInstructor.objects.get_or_create(
+            course=cs201, user=instructors[1], defaults={"role": "primary"}
         )
 
         # Add problem sets to CS201
@@ -1017,10 +1022,12 @@ Multiply two 2x2 matrices.
             defaults={
                 "name": "Advanced Algorithms",
                 "description": "Graduate-level algorithms course",
-                "instructor": instructors[0],
                 "is_active": True,
                 "enrollment_open": False,  # Closed enrollment
             },
+        )
+        CourseInstructor.objects.get_or_create(
+            course=cs301, user=instructors[0], defaults={"role": "primary"}
         )
 
         # Add problem sets to CS301

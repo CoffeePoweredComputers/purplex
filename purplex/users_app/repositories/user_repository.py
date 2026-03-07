@@ -70,6 +70,14 @@ class UserRepository(BaseRepository):
             return None
 
     @classmethod
+    def get_by_email(cls, email: str) -> User | None:
+        """Get a user by their email address."""
+        try:
+            return User.objects.select_related("profile").get(email__iexact=email)
+        except User.DoesNotExist:
+            return None
+
+    @classmethod
     def get_service_account(cls) -> User | None:
         """
         Get the service account user.

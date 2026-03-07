@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand
 from purplex.problems_app.models import (
     Course,
     CourseEnrollment,
+    CourseInstructor,
     CourseProblemSet,
     ProblemSet,
 )
@@ -69,10 +70,14 @@ class Command(BaseCommand):
             defaults={
                 "name": "Introduction to Computer Science",
                 "description": "A comprehensive introduction to CS fundamentals",
-                "instructor": instructor_user,
                 "is_active": True,
                 "enrollment_open": True,
             },
+        )
+        CourseInstructor.objects.get_or_create(
+            course=course,
+            user=instructor_user,
+            defaults={"role": "primary"},
         )
 
         if created:
@@ -121,9 +126,15 @@ class Command(BaseCommand):
         self.stdout.write("\n" + self.style.SUCCESS("=== Course Information ==="))
         self.stdout.write(f"Course ID: {course.course_id}")
         self.stdout.write(f"Name: {course.name}")
-        self.stdout.write(
-            f"Instructor: {course.instructor.get_full_name() or course.instructor.username}"
+        from purplex.problems_app.repositories.course_instructor_repository import (
+            CourseInstructorRepository,
         )
+
+        instructor_name = (
+            CourseInstructorRepository.get_primary_instructor_names(course)
+            or "Unknown Instructor"
+        )
+        self.stdout.write(f"Instructor: {instructor_name}")
         self.stdout.write(f"Problem Sets: {course.problem_sets.count()}")
         self.stdout.write(
             f"Enrolled Students: {course.enrollments.filter(is_active=True).count()}"

@@ -89,7 +89,6 @@ def course(db, instructor):
     return Course.objects.create(
         course_id="POLY-TEST-101",
         name="Polymorphic Test Course",
-        instructor=instructor,
     )
 
 

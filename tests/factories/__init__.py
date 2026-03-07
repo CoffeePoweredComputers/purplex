@@ -18,6 +18,7 @@ from factory.django import DjangoModelFactory
 from purplex.problems_app.models import (
     Course,
     CourseEnrollment,
+    CourseInstructor,
     CourseProblemSet,
     DebugFixProblem,
     EiplProblem,
@@ -295,7 +296,18 @@ class CourseFactory(DjangoModelFactory):
 
     course_id = factory.Sequence(lambda n: f"COURSE-{n}")
     name = factory.Sequence(lambda n: f"Test Course {n}")
-    instructor = factory.SubFactory(UserFactory)
+
+
+class CourseInstructorFactory(DjangoModelFactory):
+    """Factory for CourseInstructor through-table."""
+
+    class Meta:
+        model = CourseInstructor
+
+    course = factory.SubFactory(CourseFactory)
+    user = factory.SubFactory(UserFactory)
+    role = "primary"
+    added_by = None
 
 
 class CourseEnrollmentFactory(DjangoModelFactory):
