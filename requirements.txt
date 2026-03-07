@@ -97,6 +97,14 @@ djangorestframework-simplejwt>=5.5.1
 h11>=0.16.0
 
 # ---------------------------------------------------------------------------
+# Build / packaging (transitive but setting minimum safe floors)
+# ---------------------------------------------------------------------------
+# SECURITY: 0.46.2 patches CVE-2026-24049 (privilege escalation via malicious wheel)
+wheel>=0.46.2
+# SECURITY: 6.1.0 patches CVE-2026-23949 (path traversal via malicious tar)
+jaraco.context>=6.1.0
+
+# ---------------------------------------------------------------------------
 # Testing
 # ---------------------------------------------------------------------------
 factory_boy>=3.3.0

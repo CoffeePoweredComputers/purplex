@@ -699,7 +699,6 @@ export interface Course {
   course_id: string;
   name: string;
   description: string;
-  instructor_id: number;
   instructor_name: string;
   is_active: boolean;
   enrollment_open: boolean;

@@ -6,7 +6,7 @@ Handles ownership-scoped CRUD operations for problems, problem sets, and courses
 from django.contrib.auth.models import User
 
 from ..models import Course, Problem, ProblemSet
-from ..repositories import CourseRepository, ProblemRepository, ProblemSetRepository
+from ..repositories import ProblemRepository, ProblemSetRepository
 from .admin_service import AdminProblemService
 
 
@@ -72,14 +72,6 @@ class InstructorContentService:
         return ProblemSetRepository.create(**data)
 
     # === COURSES ===
-
-    @staticmethod
-    def create_course(user: User, data: dict) -> Course:
-        """Create a course with user as instructor/owner."""
-        # Remove instructor_id if present (frontend may send null for non-admins)
-        data.pop("instructor_id", None)
-        data["instructor"] = user
-        return CourseRepository.create(**data)
 
     @staticmethod
     def can_manage_course(user: User, course: Course) -> bool:

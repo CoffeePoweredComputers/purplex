@@ -60,7 +60,7 @@ def problem_set(db, admin_user):
 @pytest.fixture
 def course(db, admin_user):
     """Create a test course."""
-    return CourseFactory(instructor=admin_user)
+    return CourseFactory()
 
 
 @pytest.fixture
@@ -553,9 +553,7 @@ class TestHintCourseContext:
         self, api_client, student_user, problem, admin_user
     ):
         """Test hint access when not enrolled in course."""
-        other_course = Course.objects.create(
-            course_id="OTHER101", name="Other Course", instructor=admin_user
-        )
+        other_course = Course.objects.create(course_id="OTHER101", name="Other Course")
 
         api_client.force_authenticate(user=student_user)
 

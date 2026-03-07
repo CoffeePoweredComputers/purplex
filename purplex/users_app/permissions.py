@@ -156,12 +156,6 @@ class IsCourseInstructor(permissions.BasePermission):
         if course and hasattr(course, "is_instructor"):
             return course.is_instructor(request.user)
 
-        # Fallback to legacy FK check for backward compat during transition
-        if hasattr(obj, "instructor"):
-            return obj.instructor == request.user
-        elif hasattr(obj, "course") and hasattr(obj.course, "instructor"):
-            return obj.course.instructor == request.user
-
         return False
 
 
@@ -216,9 +210,6 @@ class IsInstructorAndOwner(permissions.BasePermission):
         if hasattr(obj, "is_instructor"):
             # Multi-instructor: any role counts as ownership
             return obj.is_instructor(request.user)
-        if hasattr(obj, "instructor"):
-            # Legacy FK fallback
-            return obj.instructor_id == request.user.id
 
         return False
 

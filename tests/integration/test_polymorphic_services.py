@@ -88,7 +88,6 @@ def service_course(db, instructor_user, service_problem_set):
     course = Course.objects.create(
         course_id="SERVICE-TEST-101",
         name="Service Test Course",
-        instructor=instructor_user,
     )
     course.problem_sets.add(service_problem_set)
     return course

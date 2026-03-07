@@ -54,7 +54,6 @@ def course(db, admin_user):
     return CourseFactory(
         course_id="CS101",
         name="Introduction to Programming",
-        instructor=admin_user,
     )
 
 
@@ -412,7 +411,7 @@ class TestCrossCourseIsolation:
         """Test that hint progress is isolated between different courses."""
         # Create another course and enroll the student
         other_course = Course.objects.create(
-            course_id="CS102", name="Advanced Programming", instructor=admin_user
+            course_id="CS102", name="Advanced Programming"
         )
 
         CourseEnrollment.objects.create(
@@ -503,9 +502,7 @@ class TestHintErrorHandling:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
         # Test accessing hints when not enrolled in course
-        other_course = Course.objects.create(
-            course_id="CS999", name="Not Enrolled", instructor=admin_user
-        )
+        other_course = Course.objects.create(course_id="CS999", name="Not Enrolled")
 
         response = api_client.get(
             hint_availability_url, {"course_id": other_course.course_id}

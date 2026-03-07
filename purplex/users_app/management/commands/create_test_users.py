@@ -162,7 +162,11 @@ class Command(BaseCommand):
 
     def _create_sample_data(self):
         """Create sample courses and enrollments for testing"""
-        from purplex.problems_app.models import Course, CourseEnrollment
+        from purplex.problems_app.models import (
+            Course,
+            CourseEnrollment,
+            CourseInstructor,
+        )
 
         # Get users
         try:
@@ -174,14 +178,15 @@ class Command(BaseCommand):
 
         # Create a sample course
         course, created = Course.objects.get_or_create(
-            id="CS101-2024",
+            course_id="CS101-2024",
             defaults={
                 "name": "Introduction to Programming",
                 "description": "Learn the basics of programming with Python",
-                "instructor": instructor,
-                "enrollment_code": "CS101TEST",
                 "is_active": True,
             },
+        )
+        CourseInstructor.objects.get_or_create(
+            course=course, user=instructor, defaults={"role": "primary"}
         )
 
         if created:

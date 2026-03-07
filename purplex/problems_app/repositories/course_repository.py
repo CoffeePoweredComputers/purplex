@@ -77,8 +77,7 @@ class CourseRepository(BaseRepository):
             - enrolled_students_count: active enrollments
         """
         return (
-            Course.objects.select_related("instructor")
-            .prefetch_related("course_instructors__user")
+            Course.objects.prefetch_related("course_instructors__user")
             .annotate(
                 problem_sets_count=Count("problem_sets"),
                 enrolled_students_count=Count(
@@ -99,7 +98,6 @@ class CourseRepository(BaseRepository):
         """
         return (
             Course.objects.filter(is_active=True, is_deleted=False)
-            .select_related("instructor")
             .prefetch_related("course_instructors__user")
             .annotate(
                 problem_sets_count=Count("problem_sets"),
@@ -182,8 +180,11 @@ class CourseRepository(BaseRepository):
                 course__is_active=True,
                 course__is_deleted=False,
             )
-            .select_related("course__instructor")
-            .prefetch_related("course__courseproblemset_set__problem_set__problems")
+            .select_related("course")
+            .prefetch_related(
+                "course__courseproblemset_set__problem_set__problems",
+                "course__course_instructors__user",
+            )
             .order_by("-enrolled_at")
         )
 
@@ -211,14 +212,10 @@ class CourseRepository(BaseRepository):
             # Build instructor name from primary instructors
             from .course_instructor_repository import CourseInstructorRepository
 
-            instructor_name = CourseInstructorRepository.get_primary_instructor_names(
-                course
+            instructor_name = (
+                CourseInstructorRepository.get_primary_instructor_names(course)
+                or "Unknown Instructor"
             )
-            if not instructor_name:
-                # Fallback to legacy FK
-                instructor_name = (
-                    course.instructor.get_full_name() or course.instructor.username
-                )
 
             result.append(
                 {
@@ -450,7 +447,6 @@ class CourseRepository(BaseRepository):
                 is_deleted=False,
             )
             .distinct()
-            .select_related("instructor")
             .prefetch_related("course_instructors__user")
         )
 
@@ -462,8 +458,7 @@ class CourseRepository(BaseRepository):
                 "instructor_name": CourseInstructorRepository.get_primary_instructor_names(
                     c
                 )
-                or c.instructor.get_full_name()
-                or c.instructor.username,
+                or "Unknown Instructor",
             }
             for c in courses
         ]
@@ -517,17 +512,13 @@ class CourseRepository(BaseRepository):
         """
         from .course_instructor_repository import CourseInstructorRepository
 
-        courses = (
-            Course.objects.filter(
-                Q(name__icontains=query)
-                | Q(description__icontains=query)
-                | Q(course_id__icontains=query),
-                is_active=True,
-                is_deleted=False,
-            )
-            .select_related("instructor")
-            .prefetch_related("course_instructors__user")
-        )
+        courses = Course.objects.filter(
+            Q(name__icontains=query)
+            | Q(description__icontains=query)
+            | Q(course_id__icontains=query),
+            is_active=True,
+            is_deleted=False,
+        ).prefetch_related("course_instructors__user")
 
         return [
             {
@@ -538,8 +529,7 @@ class CourseRepository(BaseRepository):
                 "instructor_name": CourseInstructorRepository.get_primary_instructor_names(
                     c
                 )
-                or c.instructor.get_full_name()
-                or c.instructor.username,
+                or "Unknown Instructor",
                 "enrollment_open": c.enrollment_open,
             }
             for c in courses

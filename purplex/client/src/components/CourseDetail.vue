@@ -37,7 +37,10 @@
           <div class="course-meta">
             <div class="meta-item">
               <span class="label">Instructor:</span>
-              <span class="value">{{ course.instructor.full_name || course.instructor.username }}</span>
+              <span v-if="course.instructors?.length" class="value">
+                {{ course.instructors.filter(i => i.role === 'primary').map(i => i.full_name).join(', ') }}
+              </span>
+              <span v-else class="value">Unknown</span>
             </div>
             <div class="meta-item">
               <span class="label">Problem Sets:</span>

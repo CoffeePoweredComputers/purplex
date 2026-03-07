@@ -1,0 +1,16 @@
+# Trivy CVE ignore list — reviewed 2026-03-07
+# Only add CVEs here that have no upstream fix available.
+# Remove entries once a fix is released.
+
+# glibc: integer overflow in memalign — no fix from Debian yet (status: affected)
+CVE-2026-0861
+
+# openldap: null pointer deref in ber_memalloc_x — no fix from Debian (status: affected)
+CVE-2023-2953
+
+# sqlite: integer overflow — no fix from Debian yet (status: affected)
+CVE-2025-7458
+
+# zlib: integer overflow in zipOpenNewFileInZip4_6 — Debian marked will_not_fix
+# Only affects minizip's zip-creation API, which we don't use
+CVE-2023-45853

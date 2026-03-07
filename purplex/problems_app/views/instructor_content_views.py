@@ -12,9 +12,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from purplex.users_app.permissions import (
-    IsCourseInstructor,
     IsInstructor,
     IsInstructorAndOwner,
+    IsPrimaryCourseInstructor,
 )
 
 from ..models import (
@@ -27,7 +27,7 @@ from ..models import (
     PromptProblem,
     RefuteProblem,
 )
-from ..repositories import CourseInstructorRepository, CourseRepository
+from ..repositories import CourseRepository
 from ..serializers import (
     AdminDebugFixProblemSerializer,
     AdminMcqProblemSerializer,
@@ -46,6 +46,7 @@ from ..serializers import (
     RefuteProblemSerializer,
 )
 from ..services.admin_service import AdminProblemService
+from ..services.course_service import CourseService
 from ..services.instructor_content_service import InstructorContentService
 
 logger = logging.getLogger(__name__)
@@ -150,11 +151,8 @@ class InstructorCourseCreateView(APIView):
         data = {k: v for k, v in request.data.items() if k != "instructor_id"}
         serializer = CourseCreateUpdateSerializer(data=data)
         if serializer.is_valid():
-            # Follow DRF pattern: pass instructor via save() like problem creation does
-            course = serializer.save(instructor=request.user)
-            # Create CourseInstructor row for the creator
-            CourseInstructorRepository.add_instructor(
-                course=course, user=request.user, role="primary"
+            course = CourseService.create_course(
+                instructor=request.user, **serializer.validated_data
             )
             return Response(
                 CourseDetailSerializer(course).data, status=status.HTTP_201_CREATED
@@ -394,7 +392,7 @@ class InstructorProblemSetDetailView(APIView):
 class InstructorCourseProblemSetManageView(APIView):
     """POST: Add problem set to course. DELETE: Remove from course."""
 
-    permission_classes = [IsCourseInstructor]
+    permission_classes = [IsPrimaryCourseInstructor]
 
     def post(self, request, course_id):
         course = CourseRepository.get_course_by_id(course_id)

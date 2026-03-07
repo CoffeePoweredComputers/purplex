@@ -37,7 +37,7 @@ class TestCourseServiceCreateCourse:
         )
         assert course.course_id == "CS101-TEST"
         assert course.name == "Test Course"
-        assert course.instructor == instructor
+        assert course.is_instructor(instructor)
         assert course.is_active is True
 
     def test_create_course_with_description(self, instructor):

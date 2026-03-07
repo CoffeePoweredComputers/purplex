@@ -37,6 +37,7 @@ def _userconsent_immutability_trigger(django_db_setup, django_db_blocker):
 from tests.factories import (  # noqa: E402
     AgeVerificationFactory,
     CourseFactory,
+    CourseInstructorFactory,
     CourseProblemSetFactory,
     DataPrincipalNomineeFactory,
     DebugFixProblemFactory,
@@ -140,7 +141,9 @@ def problem_set(db):
 @pytest.fixture
 def course(db, instructor):
     """Create a course with an instructor."""
-    return CourseFactory(instructor=instructor)
+    c = CourseFactory()
+    CourseInstructorFactory(course=c, user=instructor, role="primary")
+    return c
 
 
 # =============================================================================
@@ -190,7 +193,8 @@ def course_with_due_dates(db, instructor):
 
     from django.utils import timezone
 
-    course = CourseFactory(instructor=instructor)
+    course = CourseFactory()
+    CourseInstructorFactory(course=course, user=instructor, role="primary")
     ps1 = ProblemSetFactory(title="No Deadline Set")
     ps2 = ProblemSetFactory(title="Soft Deadline Set")
     ps3 = ProblemSetFactory(title="Hard Deadline Set")
@@ -316,3 +320,32 @@ def user_with_deletion_requested(db):
     profile.deletion_scheduled_at = timezone.now() - timedelta(days=1)
     profile.save()
     return u
+
+
+# =============================================================================
+# Multi-Instructor Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def ta_user(db):
+    """Create a TA user with instructor profile."""
+    user = UserFactory(username="ta_user")
+    UserProfileFactory(user=user, role="instructor")
+    return user
+
+
+@pytest.fixture
+def ta_client(api_client, ta_user):
+    """API client authenticated as a TA."""
+    api_client.force_authenticate(user=ta_user)
+    return api_client
+
+
+@pytest.fixture
+def course_with_team(db, instructor, ta_user):
+    """Create a course with a primary instructor and a TA."""
+    c = CourseFactory()
+    CourseInstructorFactory(course=c, user=instructor, role="primary")
+    CourseInstructorFactory(course=c, user=ta_user, role="ta", added_by=instructor)
+    return c

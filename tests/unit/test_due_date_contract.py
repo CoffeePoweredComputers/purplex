@@ -71,11 +71,13 @@ def course_with_deadline(db, instructor):
     """A course with one problem set that has a soft deadline."""
     from tests.factories import (
         CourseFactory,
+        CourseInstructorFactory,
         CourseProblemSetFactory,
         ProblemSetFactory,
     )
 
-    course = CourseFactory(instructor=instructor)
+    course = CourseFactory()
+    CourseInstructorFactory(course=course, user=instructor, role="primary")
     ps = ProblemSetFactory(title="Deadline PS")
     CourseProblemSetFactory(
         course=course,

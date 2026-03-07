@@ -1,5 +1,5 @@
 # Simple Dockerfile for Purplex with Frontend Build
-FROM python:3.11-slim as backend
+FROM python:3.11-slim-bookworm as backend
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -17,7 +17,9 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir --upgrade 'wheel>=0.46.2' 'jaraco.context>=6.1.0'
 
 # Copy project
 COPY . .

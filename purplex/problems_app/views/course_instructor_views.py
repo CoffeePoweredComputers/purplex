@@ -60,10 +60,9 @@ class CourseTeamListCreateView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        user_id = serializer.validated_data["user_id"]
         role = serializer.validated_data["role"]
+        user = UserRepository.get_by_email(serializer.validated_data["email"])
 
-        user = UserRepository.get_by_id(user_id)
         if not user:
             return Response(
                 {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND

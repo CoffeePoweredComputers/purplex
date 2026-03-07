@@ -180,12 +180,10 @@ class TestCourseProblemSetConstraints:
         course1 = Course.objects.create(
             course_id="COURSE-1",
             name="Course 1",
-            instructor=instructor,
         )
         course2 = Course.objects.create(
             course_id="COURSE-2",
             name="Course 2",
-            instructor=instructor,
         )
 
         CourseProblemSet.objects.create(
@@ -362,7 +360,6 @@ class TestCourseProblemSetCascade:
         course = Course.objects.create(
             course_id="DELETE-TEST",
             name="Delete Test Course",
-            instructor=instructor,
         )
         ps = ProblemSet.objects.create(title="Test PS")
         cps = CourseProblemSet.objects.create(course=course, problem_set=ps)

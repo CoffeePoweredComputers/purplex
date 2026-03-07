@@ -203,7 +203,9 @@ async function loadCourse(courseId: string): Promise<void> {
     formData.course_id = course.course_id;
     formData.name = course.name;
     formData.description = course.description || '';
-    formData.instructor_id = course.instructor_id;
+    // instructor_id is set via team management, not from Course model
+    const primaryInstructor = course.instructors?.find(i => i.role === 'primary');
+    formData.instructor_id = primaryInstructor?.user_id ?? null;
     formData.is_active = course.is_active;
     formData.enrollment_open = course.enrollment_open;
   } catch (err) {
