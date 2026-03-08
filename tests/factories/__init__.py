@@ -32,8 +32,10 @@ from purplex.problems_app.models import (
     PromptProblem,
     RefuteProblem,
     TestCase,
+    UserProblemSetProgress,
     UserProgress,
 )
+from purplex.submissions.models import CodeVariation, HintActivation, Submission
 from purplex.users_app.models import (
     AgeVerification,
     ConsentMethod,
@@ -389,3 +391,61 @@ class UserProgressFactory(DjangoModelFactory):
     problem_set = factory.SubFactory(ProblemSetFactory)
     attempts = 0
     is_completed = False
+
+
+# =============================================================================
+# Submission Factories
+# =============================================================================
+
+
+class SubmissionFactory(DjangoModelFactory):
+    """Factory for Submission model."""
+
+    class Meta:
+        model = Submission
+
+    user = factory.SubFactory(UserFactory)
+    problem = factory.SubFactory(EiplProblemFactory)
+    problem_set = factory.SubFactory(ProblemSetFactory)
+    submission_type = "eipl"
+    raw_input = "The function doubles the input"
+
+
+class HintActivationFactory(DjangoModelFactory):
+    """Factory for HintActivation model."""
+
+    class Meta:
+        model = HintActivation
+
+    submission = factory.SubFactory(SubmissionFactory)
+    hint = factory.SubFactory(ProblemHintFactory)
+    activation_order = factory.Sequence(lambda n: n)
+
+
+class CodeVariationFactory(DjangoModelFactory):
+    """Factory for CodeVariation model."""
+
+    class Meta:
+        model = CodeVariation
+
+    submission = factory.SubFactory(SubmissionFactory)
+    variation_index = factory.Sequence(lambda n: n)
+    generated_code = "def f(x): return x * 2"
+
+
+# =============================================================================
+# Problem Set Progress Factory
+# =============================================================================
+
+
+class UserProblemSetProgressFactory(DjangoModelFactory):
+    """Factory for UserProblemSetProgress model."""
+
+    class Meta:
+        model = UserProblemSetProgress
+
+    user = factory.SubFactory(UserFactory)
+    problem_set = factory.SubFactory(ProblemSetFactory)
+    course = None
+    total_problems = 5
+    completed_problems = 0

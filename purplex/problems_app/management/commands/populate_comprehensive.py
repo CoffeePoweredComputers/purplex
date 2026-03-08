@@ -81,7 +81,7 @@ class Command(BaseCommand):
         Submission.objects.all().delete()
         UserProgress.objects.all().delete()
         CourseEnrollment.objects.all().delete()
-        Course.objects.all().delete()
+        Course.all_objects.all().delete()
         ProblemSet.objects.all().delete()
         ProblemHint.objects.all().delete()
         Problem.objects.all().delete()
@@ -955,7 +955,7 @@ Multiply two 2x2 matrices.
         courses = []
 
         # CS101 - Introduction to Computer Science
-        cs101, _ = Course.objects.get_or_create(
+        cs101, _ = Course.all_objects.get_or_create(
             course_id="CS101-FALL2024",
             defaults={
                 "name": "Introduction to Computer Science",
@@ -986,7 +986,7 @@ Multiply two 2x2 matrices.
         courses.append(cs101)
 
         # CS201 - Data Structures and Algorithms
-        cs201, _ = Course.objects.get_or_create(
+        cs201, _ = Course.all_objects.get_or_create(
             course_id="CS201-FALL2024",
             defaults={
                 "name": "Data Structures and Algorithms",
@@ -1017,7 +1017,7 @@ Multiply two 2x2 matrices.
         courses.append(cs201)
 
         # CS301 - Advanced Algorithms (closed enrollment)
-        cs301, _ = Course.objects.get_or_create(
+        cs301, _ = Course.all_objects.get_or_create(
             course_id="CS301-SPRING2025",
             defaults={
                 "name": "Advanced Algorithms",

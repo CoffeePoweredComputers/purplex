@@ -122,7 +122,7 @@ class Command(BaseCommand):
             # Course related
             "course_problem_sets": CourseProblemSet.objects.count(),
             "course_enrollments": CourseEnrollment.objects.count(),
-            "courses": Course.objects.count(),
+            "courses": Course.all_objects.count(),
             # Problem related
             "problem_hints": ProblemHint.objects.count(),
             "test_cases": TestCase.objects.count(),
@@ -274,9 +274,9 @@ class Command(BaseCommand):
         self.stdout.write(f"  • Course Enrollments: {count}")
 
         if dry_run:
-            count = Course.objects.count()
+            count = Course.all_objects.count()
         else:
-            count, _ = Course.objects.all().delete()
+            count, _ = Course.all_objects.all().delete()
         deleted_counts["courses"] = count
         self.stdout.write(f"  • Courses: {count}")
 

@@ -177,7 +177,7 @@ class Command(BaseCommand):
             return
 
         # Create a sample course
-        course, created = Course.objects.get_or_create(
+        course, created = Course.all_objects.get_or_create(
             course_id="CS101-2024",
             defaults={
                 "name": "Introduction to Programming",

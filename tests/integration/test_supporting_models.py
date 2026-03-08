@@ -374,8 +374,8 @@ class TestCourseSoftDelete:
         """soft_delete should not actually delete the record."""
         course_pk = model_course.pk
         model_course.soft_delete()
-        # Should still exist
-        assert Course.objects.filter(pk=course_pk).exists()
+        # Should still exist (use all_objects since default manager excludes soft-deleted)
+        assert Course.all_objects.filter(pk=course_pk).exists()
 
 
 @pytest.mark.django_db
@@ -489,28 +489,6 @@ class TestTestCaseValidation:
         # Empty list is treated as blank=False violation
         with pytest.raises(ValidationError):
             tc.full_clean()
-
-
-@pytest.mark.django_db
-class TestTestCaseUniqueConstraint:
-    """Tests for TestCase unique_together constraint."""
-
-    def test_unique_problem_order(self, model_problem):
-        """Same problem + order should raise IntegrityError."""
-        TestCase.objects.create(
-            problem=model_problem,
-            inputs=[1],
-            expected_output=1,
-            order=0,
-        )
-        with pytest.raises(IntegrityError):
-            with transaction.atomic():
-                TestCase.objects.create(
-                    problem=model_problem,
-                    inputs=[2],
-                    expected_output=2,
-                    order=0,  # Same order
-                )
 
 
 @pytest.mark.django_db

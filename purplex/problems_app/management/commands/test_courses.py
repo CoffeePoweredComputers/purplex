@@ -65,7 +65,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("✓ Created test users"))
 
         # Create a test course
-        course, created = Course.objects.get_or_create(
+        course, created = Course.all_objects.get_or_create(
             course_id="CS101-FALL2024",
             defaults={
                 "name": "Introduction to Computer Science",

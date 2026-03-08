@@ -39,28 +39,35 @@ class CourseRepository(BaseRepository):
             Course instance or None if not found
         """
         return Course.objects.filter(
-            course_id__iexact=course_id, is_active=True, is_deleted=False
+            course_id__iexact=course_id, is_active=True
         ).first()
 
     @classmethod
     def get_course_by_slug(cls, slug: str) -> Course | None:
         """Get a course by slug."""
-        return Course.objects.filter(slug=slug, is_deleted=False).first()
+        return Course.objects.filter(slug=slug).first()
 
     @classmethod
     def get_course_by_id(cls, course_id: str) -> Course | None:
-        """Get a course by its course_id field (case-insensitive)."""
-        return Course.objects.filter(course_id__iexact=course_id).first()
+        """Get a course by its course_id field (case-insensitive).
+
+        Uses all_objects to include soft-deleted courses, since this is
+        used by admin views with require_active=False.
+        """
+        return Course.all_objects.filter(course_id__iexact=course_id).first()
 
     @classmethod
     def get_course_by_pk(cls, pk: int) -> Course | None:
         """Get a course by its primary key (integer ID)."""
-        return Course.objects.filter(pk=pk, is_deleted=False).first()
+        return Course.objects.filter(pk=pk).first()
 
     @classmethod
     def course_exists(cls, course_id: str) -> bool:
-        """Check if a course exists by course_id (case-insensitive)."""
-        return Course.objects.filter(course_id__iexact=course_id).exists()
+        """Check if a course exists by course_id (case-insensitive).
+
+        Uses all_objects so uniqueness checks catch soft-deleted courses too.
+        """
+        return Course.all_objects.filter(course_id__iexact=course_id).exists()
 
     @classmethod
     def get_course_problem_set_ids(cls, course: Course) -> list[int]:
@@ -77,7 +84,7 @@ class CourseRepository(BaseRepository):
             - enrolled_students_count: active enrollments
         """
         return (
-            Course.objects.prefetch_related("course_instructors__user")
+            Course.all_objects.prefetch_related("course_instructors__user")
             .annotate(
                 problem_sets_count=Count("problem_sets"),
                 enrolled_students_count=Count(
@@ -97,7 +104,7 @@ class CourseRepository(BaseRepository):
             - enrolled_students_count: active enrollments
         """
         return (
-            Course.objects.filter(is_active=True, is_deleted=False)
+            Course.objects.filter(is_active=True)
             .prefetch_related("course_instructors__user")
             .annotate(
                 problem_sets_count=Count("problem_sets"),
@@ -128,7 +135,7 @@ class CourseRepository(BaseRepository):
         )
 
         courses = (
-            Course.objects.filter(id__in=course_ids, is_deleted=False)
+            Course.objects.filter(id__in=course_ids)
             .prefetch_related("course_instructors")
             .annotate(
                 problem_sets_count=Count("problem_sets"),
@@ -444,7 +451,6 @@ class CourseRepository(BaseRepository):
             Course.objects.filter(
                 course_problem_sets__problem_set_id=problem_set_id,
                 is_active=True,
-                is_deleted=False,
             )
             .distinct()
             .prefetch_related("course_instructors__user")
@@ -517,7 +523,6 @@ class CourseRepository(BaseRepository):
             | Q(description__icontains=query)
             | Q(course_id__icontains=query),
             is_active=True,
-            is_deleted=False,
         ).prefetch_related("course_instructors__user")
 
         return [

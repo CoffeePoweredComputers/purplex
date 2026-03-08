@@ -31,7 +31,6 @@ class TestCase(models.Model):
     class Meta:
         app_label = "problems_app"
         ordering = ["order", "id"]
-        unique_together = ["problem", "order"]
 
     def clean(self):
         if not isinstance(self.inputs, list):

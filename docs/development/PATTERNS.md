@@ -948,10 +948,10 @@ class Submission(models.Model):
     submission_id = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
 
     # Core relationships
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="new_submissions")
-    problem = models.ForeignKey("problems_app.Problem", on_delete=models.PROTECT, related_name="new_submissions")
-    problem_set = models.ForeignKey("problems_app.ProblemSet", on_delete=models.PROTECT, related_name="new_submissions")
-    course = models.ForeignKey("problems_app.Course", on_delete=models.PROTECT, null=True, blank=True, related_name="new_submissions")
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="submissions")
+    problem = models.ForeignKey("problems_app.Problem", on_delete=models.PROTECT, related_name="submissions")
+    problem_set = models.ForeignKey("problems_app.ProblemSet", on_delete=models.PROTECT, related_name="submissions")
+    course = models.ForeignKey("problems_app.Course", on_delete=models.PROTECT, null=True, blank=True, related_name="submissions")
 
     # Submission metadata
     submitted_at = models.DateTimeField(auto_now_add=True, db_index=True)
