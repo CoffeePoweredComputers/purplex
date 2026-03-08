@@ -4,15 +4,15 @@
 
 Views (controllers) -> Services (business logic) -> Repositories (data access).
 
-- **Views** never import or call Django ORM (`.objects`, `.filter`, `.get`, `.save`).
+- **Views** must not import model classes or call Django ORM (`Model.objects.*`, `instance.save()`, `instance.delete()`). Serializer `.save()` is fine.
 - **Services** never import or call Django ORM — they call repository methods.
-- **Repositories** never return QuerySets — they return `list[Model]`, `Model | None`, or Python primitives.
+- **Repositories** return `list[Model]`, `Model | None`, or Python primitives — not QuerySets. (Exception: `get_*_queryset()` methods used solely for DRF field validation, e.g. `PrimaryKeyRelatedField`.)
 
 Flag any violation of these boundaries.
 
 ## Error Response Format
 
-All API errors return `{"error": "..."}`. A custom exception handler in `purplex/utils/exception_handler.py` normalizes DRF exceptions automatically. Views should raise DRF exceptions (`NotFound`, `ValidationError`, `PermissionDenied`), not `ValueError`.
+All API errors return `{"error": ...}` (string or structured validation payload). A custom exception handler in `purplex/utils/exception_handler.py` normalizes DRF exceptions automatically. Views should raise DRF exceptions (`NotFound`, `ValidationError`, `PermissionDenied`), not `ValueError`.
 
 ## Soft-Delete: Course Model
 
@@ -42,4 +42,4 @@ Never expose student emails or real names in API responses without checking `use
 
 ## Tests Use Factory Boy
 
-Tests must use factories from `tests/factories/`, never `Model.objects.create()`.
+Tests must use factories from `tests/factories/`, never `Model.objects.create()`. If no factory exists for a model, add one.

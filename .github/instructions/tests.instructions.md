@@ -1,12 +1,12 @@
 ---
-applyTo: "tests/**/*.py"
+applyTo: "tests/**/test_*.py"
 ---
 
 # Test Review Rules
 
 ## 1. Every test file must declare pytestmark
 
-Unit tests and integration tests must be explicitly marked. Without `django_db`, database access will fail silently or raise errors.
+Unit tests and integration tests must be explicitly marked. Without `django_db`, pytest-django blocks database access and raises a clear error.
 
 ```python
 # Unit test file
@@ -20,12 +20,12 @@ Flag any test file missing `pytestmark`.
 
 ## 2. Use factories, never Model.objects.create()
 
-All test data must come from Factory Boy factories in `tests/factories/__init__.py`.
+All test data must come from Factory Boy factories in `tests/factories/__init__.py`. If no factory exists for a model, add one.
 
 ```python
 # WRONG
 user = User.objects.create_user(username="test", password="pass")
-course = Course.objects.create(title="Test", slug="test")
+course = Course.objects.create(name="Test", slug="test")
 # RIGHT
 from tests.factories import UserFactory, CourseFactory
 user = UserFactory()
@@ -68,7 +68,7 @@ Never call Firebase directly in tests. Mock the service factory.
 from firebase_admin import auth
 auth.delete_user(uid)
 # RIGHT
-@patch("purplex.users_app.services.user_service.get_firebase_service")
+@patch("purplex.users_app.utils.firebase.get_firebase_service")
 def test_delete(mock_firebase):
     mock_firebase.return_value = MagicMock()
     ...

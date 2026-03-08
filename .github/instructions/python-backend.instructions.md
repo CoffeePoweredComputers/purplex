@@ -6,7 +6,7 @@ applyTo: "purplex/**/*.py"
 
 ## 1. Views must not call ORM
 
-Views delegate to services or repositories. Never call `.objects`, `.filter()`, `.get()`, `.save()`, `.delete()` in a view.
+Never call `Model.objects.*`, `instance.save()`, or `instance.delete()` in a view. Serializer `.save()` is fine.
 
 ```python
 # WRONG
@@ -17,7 +17,7 @@ course = CourseService.get_course_by_id(course_id)
 
 ## 2. Services must not call ORM
 
-Services contain business logic and call repository methods for data access.
+Services call repository methods for data access.
 
 ```python
 # WRONG (in a service)
@@ -27,6 +27,8 @@ submissions = SubmissionRepository.get_submissions_for_user(user)
 ```
 
 ## 3. Repository methods return Python types, not QuerySets
+
+Exception: `get_*_queryset()` methods used solely for DRF field validation (e.g., `PrimaryKeyRelatedField`) may return QuerySets.
 
 ```python
 # WRONG
@@ -39,7 +41,7 @@ def get_courses(self) -> list[Course]:
 
 ## 4. No bare `except Exception` in views
 
-The custom exception handler (`purplex/utils/exception_handler.py`) catches unhandled exceptions and returns JSON 500. Bare `except Exception` blocks in views hide bugs and bypass Sentry.
+The custom exception handler catches unhandled exceptions and returns JSON 500. Bare `except Exception` hides bugs and bypasses Sentry.
 
 ```python
 # WRONG
@@ -119,14 +121,16 @@ service.create_course(data)
 CourseService.create_course(data)
 ```
 
-## 11. Celery tasks use @shared_task with retry config
+## 11. Celery tasks must define an explicit retry strategy
+
+Use `bind=True` with either `autoretry_for`/`retry_backoff` or manual `self.retry()`.
 
 ```python
-# WRONG
+# WRONG — no retry strategy
 @shared_task
 def process(submission_id): ...
 # RIGHT
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
 def process(self, submission_id): ...
 ```
 
