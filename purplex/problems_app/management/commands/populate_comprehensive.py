@@ -81,7 +81,7 @@ class Command(BaseCommand):
         Submission.objects.all().delete()
         UserProgress.objects.all().delete()
         CourseEnrollment.objects.all().delete()
-        Course.objects.all().delete()
+        Course.all_objects.all().delete()
         ProblemSet.objects.all().delete()
         ProblemHint.objects.all().delete()
         Problem.objects.all().delete()

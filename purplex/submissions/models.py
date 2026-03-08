@@ -23,22 +23,22 @@ class Submission(models.Model):
     # even if user account is deleted. Use PROTECT for problem/set/course to prevent
     # accidental deletion of educational content that has submissions.
     user = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, related_name="new_submissions"
+        User, on_delete=models.SET_NULL, null=True, related_name="submissions"
     )
     problem = models.ForeignKey(
-        "problems_app.Problem", on_delete=models.PROTECT, related_name="new_submissions"
+        "problems_app.Problem", on_delete=models.PROTECT, related_name="submissions"
     )
     problem_set = models.ForeignKey(
         "problems_app.ProblemSet",
         on_delete=models.PROTECT,
-        related_name="new_submissions",
+        related_name="submissions",
     )
     course = models.ForeignKey(
         "problems_app.Course",
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name="new_submissions",
+        related_name="submissions",
     )
 
     # Submission metadata

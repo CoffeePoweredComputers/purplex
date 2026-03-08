@@ -8,8 +8,18 @@ from django.utils.text import slugify
 from .problem_set import ProblemSet
 
 
+class ActiveCourseManager(models.Manager):
+    """Default manager that excludes soft-deleted courses."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
 class Course(models.Model):
     """Course model for organizing problem sets into courses."""
+
+    objects = ActiveCourseManager()
+    all_objects = models.Manager()
 
     course_id = models.CharField(
         max_length=50,
@@ -40,7 +50,14 @@ class Course(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.course_id)
+            base_slug = slugify(self.course_id)
+            self.slug = base_slug
+            counter = 1
+            while (
+                Course.all_objects.filter(slug=self.slug).exclude(pk=self.pk).exists()
+            ):
+                self.slug = f"{base_slug}-{counter}"
+                counter += 1
         super().save(*args, **kwargs)
 
     def is_instructor(self, user) -> bool:

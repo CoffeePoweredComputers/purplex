@@ -131,7 +131,7 @@ class TestCourseServiceSoftDelete:
         assert result is True
 
         # Refresh from database
-        deleted_course = Course.objects.get(id=course_id)
+        deleted_course = Course.all_objects.get(id=course_id)
         assert deleted_course.is_deleted is True
         assert deleted_course.is_active is False
         assert deleted_course.enrollment_open is False
@@ -142,8 +142,8 @@ class TestCourseServiceSoftDelete:
         course_id = course.id
         CourseService.soft_delete_course(course)
 
-        # Course should still exist
-        assert Course.objects.filter(id=course_id).exists()
+        # Course should still exist (use all_objects since default manager excludes soft-deleted)
+        assert Course.all_objects.filter(id=course_id).exists()
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -161,7 +161,7 @@ class ProgressRepository(BaseRepository):
         return list(
             UserProblemSetProgress.objects.filter(**filters)
             .select_related("problem_set", "course")
-            .order_by("-last_updated")
+            .order_by("-last_activity")
         )
 
     @classmethod
@@ -183,9 +183,9 @@ class ProgressRepository(BaseRepository):
             or 0,
             "total_hints": progress_qs.aggregate(Sum("hints_used"))["hints_used__sum"]
             or 0,
-            "avg_score": progress_qs.filter(score__isnull=False).aggregate(
-                Avg("score")
-            )["score__avg"]
+            "avg_score": progress_qs.filter(best_score__isnull=False).aggregate(
+                Avg("best_score")
+            )["best_score__avg"]
             or 0.0,
         }
 
@@ -267,9 +267,9 @@ class ProgressRepository(BaseRepository):
                 "hints_used__avg"
             ]
             or 0.0,
-            "avg_score": progress_qs.filter(score__isnull=False).aggregate(
-                Avg("score")
-            )["score__avg"]
+            "avg_score": progress_qs.filter(best_score__isnull=False).aggregate(
+                Avg("best_score")
+            )["best_score__avg"]
             or 0.0,
         }
 
@@ -296,9 +296,9 @@ class ProgressRepository(BaseRepository):
                 status="completed"
             ).aggregate(Avg("attempts"))["attempts__avg"]
             or 0.0,
-            "avg_score": progress_qs.filter(score__isnull=False).aggregate(
-                Avg("score")
-            )["score__avg"]
+            "avg_score": progress_qs.filter(best_score__isnull=False).aggregate(
+                Avg("best_score")
+            )["best_score__avg"]
             or 0.0,
             "courses_enrolled": Course.objects.filter(
                 enrollments__user=user, enrollments__is_active=True
@@ -533,7 +533,7 @@ class ProgressRepository(BaseRepository):
                 "attempts": p.attempts,
                 "is_completed": p.is_completed,
                 "best_score": p.best_score,
-                "last_submission_at": p.last_submission_at,
+                "last_submission_at": p.last_attempt,
             }
             for p in progress_records
         ]

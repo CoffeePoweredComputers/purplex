@@ -46,7 +46,7 @@ class ProblemSetRepository(BaseRepository):
     def get_active_problem_sets(cls) -> list:
         """Get all active (published) problem sets."""
         return list(
-            ProblemSet.objects.filter(is_published=True)
+            ProblemSet.objects.filter(is_public=True)
             .select_related("created_by")
             .annotate(problem_count=Count("problems"))
             .order_by("-created_at")
@@ -72,7 +72,7 @@ class ProblemSetRepository(BaseRepository):
                 "title": ps.title,
                 "description": ps.description,
                 "problems_count": ps.problem_count,
-                "is_published": ps.is_published,
+                "is_published": ps.is_public,
                 "icon_url": ps.icon.url if ps.icon else None,
             }
             for ps in problem_sets
@@ -98,9 +98,9 @@ class ProblemSetRepository(BaseRepository):
     def get_problems_in_set_ordered(cls, problem_set: ProblemSet) -> list:
         """Get all problems in a problem set, ordered by membership order."""
         return list(
-            Problem.objects.filter(problem_set_memberships__problem_set=problem_set)
-            .select_related("category")
-            .order_by("problem_set_memberships__order")
+            Problem.objects.filter(problemsetmembership__problem_set=problem_set)
+            .prefetch_related("categories")
+            .order_by("problemsetmembership__order")
         )
 
     @classmethod
@@ -141,7 +141,7 @@ class ProblemSetRepository(BaseRepository):
         ).select_related("created_by")
 
         if not include_unpublished:
-            queryset = queryset.filter(is_published=True)
+            queryset = queryset.filter(is_public=True)
 
         return list(queryset)
 
@@ -241,7 +241,7 @@ class ProblemSetRepository(BaseRepository):
             slug=new_slug,
             description=f"Copy of {original_set.title}",
             created_by=user,
-            is_published=False,  # Start as unpublished
+            is_public=False,  # Start as unpublished
         )
 
         # Copy problem memberships
@@ -254,7 +254,6 @@ class ProblemSetRepository(BaseRepository):
                 problem_set=new_set,
                 problem=membership.problem,
                 order=membership.order,
-                weight=membership.weight,
             )
 
         return new_set
@@ -263,7 +262,7 @@ class ProblemSetRepository(BaseRepository):
     def publish_problem_set(cls, problem_set: ProblemSet) -> bool:
         """Publish a problem set (make it available to students)."""
         try:
-            problem_set.is_published = True
+            problem_set.is_public = True
             problem_set.save()
             return True
         except Exception:
@@ -273,7 +272,7 @@ class ProblemSetRepository(BaseRepository):
     def unpublish_problem_set(cls, problem_set: ProblemSet) -> bool:
         """Unpublish a problem set (make it unavailable to students)."""
         try:
-            problem_set.is_published = False
+            problem_set.is_public = False
             problem_set.save()
             return True
         except Exception:
