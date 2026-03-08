@@ -26,7 +26,7 @@ class TestTestCaseOrderConstraint:
         """Post-fix: after removing constraint, same order on same problem is OK."""
         problem = EiplProblemFactory()
         TestCaseFactory(problem=problem, order=0, inputs=[1], expected_output=1)
-        # This currently raises IntegrityError due to unique_together
+        # Before fix: this raised IntegrityError due to unique_together
         TestCaseFactory(problem=problem, order=0, inputs=[2], expected_output=2)
 
     def test_ordering_by_order_then_id(self):
