@@ -181,6 +181,24 @@ class TestCourseServiceGetCourse:
         result = CourseService.get_course_by_id(course.course_id, require_active=False)
         assert result.id == course.id
 
+    def test_get_course_by_id_deleted_excluded_by_default(self, course):
+        """Soft-deleted courses excluded even with require_active=False."""
+        course.is_deleted = True
+        course.save()
+
+        result = CourseService.get_course_by_id(course.course_id, require_active=False)
+        assert result is None
+
+    def test_get_course_by_id_deleted_included_when_requested(self, course):
+        """Soft-deleted courses included with include_deleted=True."""
+        course.is_deleted = True
+        course.save()
+
+        result = CourseService.get_course_by_id(
+            course.course_id, require_active=False, include_deleted=True
+        )
+        assert result.id == course.id
+
     def test_get_course_by_pk(self, course):
         """Get course by primary key."""
         result = CourseService.get_course_by_pk(course.id)

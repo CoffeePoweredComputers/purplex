@@ -100,7 +100,9 @@ class AdminCourseDetailView(APIView):
 
     def get(self, request, course_id):
         """Get course details"""
-        course = CourseService.get_course_by_id(course_id, require_active=False)
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
         if not course:
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
@@ -111,7 +113,9 @@ class AdminCourseDetailView(APIView):
 
     def put(self, request, course_id):
         """Update course details"""
-        course = CourseService.get_course_by_id(course_id, require_active=False)
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
         if not course:
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
@@ -132,7 +136,9 @@ class AdminCourseDetailView(APIView):
 
     def delete(self, request, course_id):
         """Soft delete a course"""
-        course = CourseService.get_course_by_id(course_id, require_active=False)
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
         if not course:
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
@@ -391,7 +397,9 @@ class AdminCourseProblemSetsView(APIView):
 
     def get(self, request, course_id):
         """Get all problem sets assigned to a course"""
-        course = CourseService.get_course_by_id(course_id, require_active=False)
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
         if not course:
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
@@ -422,7 +430,9 @@ class AdminCourseProblemSetsView(APIView):
 
     def post(self, request, course_id):
         """Add a problem set to a course"""
-        course = CourseService.get_course_by_id(course_id, require_active=False)
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
         if not course:
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
@@ -470,7 +480,9 @@ class AdminCourseProblemSetsView(APIView):
 
     def put(self, request, course_id, problem_set_slug):
         """Update problem set order or required status in course"""
-        course = CourseService.get_course_by_id(course_id, require_active=False)
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
         if not course:
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
@@ -504,7 +516,9 @@ class AdminCourseProblemSetsView(APIView):
 
     def delete(self, request, course_id, problem_set_slug):
         """Remove a problem set from a course"""
-        course = CourseService.get_course_by_id(course_id, require_active=False)
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
         if not course:
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
@@ -611,7 +625,9 @@ class AdminCourseStudentsView(APIView):
 
     def get(self, request, course_id):
         """Get all students enrolled in a course with progress info"""
-        course = CourseService.get_course_by_id(course_id, require_active=False)
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
         if not course:
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
@@ -622,7 +638,9 @@ class AdminCourseStudentsView(APIView):
 
     def delete(self, request, course_id, user_id):
         """Remove a student from a course"""
-        course = CourseService.get_course_by_id(course_id, require_active=False)
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
         if not course:
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND

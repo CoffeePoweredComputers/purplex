@@ -49,10 +49,27 @@ class CourseRepository(BaseRepository):
 
     @classmethod
     def get_course_by_id(cls, course_id: str) -> Course | None:
-        """Get a course by its course_id field (case-insensitive).
+        """Get a non-deleted course by its course_id field (case-insensitive).
 
-        Uses all_objects to include soft-deleted courses, since this is
-        used by admin views with require_active=False.
+        Returns courses regardless of is_active status, but excludes
+        soft-deleted courses (is_deleted=True). Use
+        get_course_by_id_including_deleted() when you need deleted courses.
+        """
+        return Course.objects.filter(course_id__iexact=course_id).first()
+
+    @classmethod
+    def get_course_by_id_including_deleted(cls, course_id: str) -> Course | None:
+        """Get a course by its course_id field, including soft-deleted courses.
+
+        Uses all_objects to bypass the ActiveCourseManager filter, so
+        soft-deleted courses are included. Use this for admin views that
+        need to manage deleted courses.
+
+        Args:
+            course_id: The user-defined course ID (e.g., CS101-FALL2024)
+
+        Returns:
+            Course instance or None if not found
         """
         return Course.all_objects.filter(course_id__iexact=course_id).first()
 
