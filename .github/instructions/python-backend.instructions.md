@@ -26,9 +26,9 @@ submissions = Submission.objects.filter(user=user)
 submissions = SubmissionRepository.get_submissions_for_user(user)
 ```
 
-## 3. Repository methods return Python types, not QuerySets
+## 3. Repository methods prefer concrete Python types over QuerySets
 
-Exception: `get_*_queryset()` methods used solely for DRF field validation (e.g., `PrimaryKeyRelatedField`) may return QuerySets.
+QuerySet returns are allowed for DRF validation, pagination, or annotated listings.
 
 ```python
 # WRONG
@@ -41,7 +41,7 @@ def get_courses(self) -> list[Course]:
 
 ## 4. No bare `except Exception` in views
 
-The custom exception handler catches unhandled exceptions and returns JSON 500. Bare `except Exception` hides bugs and bypasses Sentry.
+The custom exception handler returns JSON 500 for unhandled exceptions. Bare `except Exception` hides bugs.
 
 ```python
 # WRONG
@@ -53,12 +53,14 @@ except Exception:
 result = SomeService.do_thing()
 ```
 
-## 5. Raise DRF exceptions, not ValueError
+## 5. Views must raise DRF exceptions, not ValueError
+
+In views/serializers, raise DRF exceptions for correct HTTP responses. Services/repos may use `ValueError`.
 
 ```python
-# WRONG
+# WRONG (in a view)
 raise ValueError("Course not found")
-# RIGHT
+# RIGHT (in a view)
 from rest_framework.exceptions import NotFound
 raise NotFound("Course not found")
 ```
@@ -97,7 +99,7 @@ logger.error("Failed for user %s: %s", user.id, err)
 
 ## 9. Use transaction.atomic() for multi-step writes
 
-Multiple related writes must be wrapped in `transaction.atomic()` to prevent partial state on failure.
+Wrap multi-step writes in `transaction.atomic()` to prevent partial state.
 
 ```python
 # WRONG
@@ -111,7 +113,7 @@ with transaction.atomic():
 
 ## 10. Services are static/classmethod classes
 
-Services hold no instance state. All methods are `@staticmethod` or `@classmethod`.
+No instance state. All methods are `@staticmethod` or `@classmethod`.
 
 ```python
 # WRONG
@@ -136,7 +138,7 @@ def process(self, submission_id): ...
 
 ## 12. Repository queries must use select_related/prefetch_related
 
-When traversing foreign keys, use `select_related` (FK/OneToOne) or `prefetch_related` (M2M/reverse FK) to avoid N+1 queries.
+Use `select_related` (FK/OneToOne) or `prefetch_related` (M2M/reverse FK) to avoid N+1 queries.
 
 ```python
 # WRONG — N+1 on problem.problem_set access

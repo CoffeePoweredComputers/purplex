@@ -6,7 +6,7 @@ Views (controllers) -> Services (business logic) -> Repositories (data access).
 
 - **Views** must not import model classes or call Django ORM (`Model.objects.*`, `instance.save()`, `instance.delete()`). Serializer `.save()` is fine.
 - **Services** never import or call Django ORM — they call repository methods.
-- **Repositories** return `list[Model]`, `Model | None`, or Python primitives — not QuerySets. (Exception: `get_*_queryset()` methods used solely for DRF field validation, e.g. `PrimaryKeyRelatedField`.)
+- **Repositories** prefer concrete types (`list[Model]`, `Model | None`, primitives) over QuerySets. Intentional QuerySet returns for DRF validation, pagination, or annotated listings are allowed.
 
 Flag any violation of these boundaries.
 
