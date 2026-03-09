@@ -183,16 +183,14 @@ class TestCourseServiceGetCourse:
 
     def test_get_course_by_id_deleted_excluded_by_default(self, course):
         """Soft-deleted courses excluded even with require_active=False."""
-        course.is_deleted = True
-        course.save()
+        course.soft_delete()
 
         result = CourseService.get_course_by_id(course.course_id, require_active=False)
         assert result is None
 
     def test_get_course_by_id_deleted_included_when_requested(self, course):
         """Soft-deleted courses included with include_deleted=True."""
-        course.is_deleted = True
-        course.save()
+        course.soft_delete()
 
         result = CourseService.get_course_by_id(
             course.course_id, require_active=False, include_deleted=True
