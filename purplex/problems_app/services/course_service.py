@@ -66,19 +66,29 @@ class CourseService:
         }
 
     @staticmethod
-    def get_course_by_id(course_id: str, require_active: bool = True) -> Any | None:
+    def get_course_by_id(
+        course_id: str,
+        require_active: bool = True,
+        include_deleted: bool = False,
+    ) -> Any | None:
         """
         Get course by ID with validation.
 
         Args:
             course_id: Course identifier (string, e.g., "CS101-FALL2024")
-            require_active: Whether to require is_active=True
+            require_active: If True, only return courses with is_active=True.
+                If False, return courses regardless of is_active status.
+            include_deleted: If True, include soft-deleted courses
+                (is_deleted=True). Only meaningful when require_active=False,
+                since active courses are never soft-deleted.
 
         Returns:
             Course instance or None if not found
         """
         if require_active:
             return CourseRepository.get_active_course(course_id)
+        elif include_deleted:
+            return CourseRepository.get_course_by_id_including_deleted(course_id)
         else:
             return CourseRepository.get_course_by_id(course_id)
 
