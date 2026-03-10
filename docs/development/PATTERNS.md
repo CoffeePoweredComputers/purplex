@@ -264,7 +264,6 @@ class StudentService:
 # From: purplex/problems_app/services/hint_service.py
 from typing import Dict, List, Optional, Any
 from django.shortcuts import get_object_or_404
-from django.core.cache import cache
 
 class HintService:
     """Handle all hint-related business logic."""
@@ -327,18 +326,6 @@ class HintService:
                 'attempts_needed': max(0, hint['min_attempts'] - attempts)
             }
             availability['hints'].append(hint_info)
-
-        return availability
-
-    @staticmethod
-    def get_cached_hint_availability(user, problem_slug: str) -> Optional[Dict[str, Any]]:
-        """Get cached hint availability or compute and cache it."""
-        cache_key = f'hint_availability:{user.id}:{problem_slug}'
-        availability = cache.get(cache_key)
-
-        if availability is None:
-            availability = HintService.get_hint_availability(user, problem_slug)
-            cache.set(cache_key, availability, 300)  # Cache for 5 minutes
 
         return availability
 ```
