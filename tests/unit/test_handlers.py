@@ -4,6 +4,7 @@ Unit tests for activity type handlers.
 Tests the handler registry and EiPL handler implementation.
 """
 
+import json
 from unittest.mock import MagicMock
 
 import pytest
@@ -741,6 +742,103 @@ class TestMCQProcessSubmission:
         result = handler.process_submission(mock_submission, "1", problem)
         assert result.success is False
         assert "no correct answer" in result.error.lower()
+
+
+class TestMCQMultiSelectProcessSubmission:
+    """Tests for MCQ multi-select grading logic."""
+
+    pytestmark = [pytest.mark.unit]
+
+    @pytest.fixture
+    def handler(self):
+        return get_handler("mcq")
+
+    @pytest.fixture
+    def multi_select_problem(self):
+        """MCQ problem with allow_multiple=True, correct answers are 1 and 3."""
+        problem = MagicMock()
+        problem.slug = "multi-mcq"
+        problem.options = [
+            {"id": "1", "text": "Option A", "is_correct": True},
+            {"id": "2", "text": "Option B", "is_correct": False},
+            {"id": "3", "text": "Option C", "is_correct": True},
+        ]
+        problem.allow_multiple = True
+        return problem
+
+    @pytest.fixture
+    def mock_submission(self, multi_select_problem):
+        submission = MagicMock()
+        submission.submission_id = "test-uuid"
+        submission.problem = multi_select_problem
+        return submission
+
+    def test_all_correct_none_wrong(
+        self, handler, mock_submission, multi_select_problem
+    ):
+        """Selecting exactly the correct options gives score 100 and passed=True."""
+        result = handler.process_submission(
+            mock_submission, json.dumps(["1", "3"]), multi_select_problem
+        )
+        assert result.success is True
+        assert result.type_specific_data["is_correct"] is True
+        assert result.type_specific_data["partial_score"] == 1.0
+        assert set(result.type_specific_data["selected_options"]) == {"1", "3"}
+
+    def test_partial_one_of_two(self, handler, mock_submission, multi_select_problem):
+        """Selecting 1 of 2 correct gives score 50 and passed=False."""
+        result = handler.process_submission(
+            mock_submission, json.dumps(["1"]), multi_select_problem
+        )
+        assert result.success is True
+        assert result.type_specific_data["is_correct"] is False
+        assert result.type_specific_data["partial_score"] == 0.5
+
+    def test_all_correct_plus_wrong(
+        self, handler, mock_submission, multi_select_problem
+    ):
+        """Selecting all correct + one wrong: score 100% of correct selected, but not exact match."""
+        result = handler.process_submission(
+            mock_submission, json.dumps(["1", "2", "3"]), multi_select_problem
+        )
+        assert result.success is True
+        assert result.type_specific_data["is_correct"] is False
+        assert result.type_specific_data["partial_score"] == 1.0
+
+    def test_none_correct_only_wrong(
+        self, handler, mock_submission, multi_select_problem
+    ):
+        """Selecting only wrong options gives score 0."""
+        result = handler.process_submission(
+            mock_submission, json.dumps(["2"]), multi_select_problem
+        )
+        assert result.success is True
+        assert result.type_specific_data["is_correct"] is False
+        assert result.type_specific_data["partial_score"] == 0.0
+
+    def test_single_select_backwards_compat(self, handler, mock_submission):
+        """Plain string input still works for single-select MCQ."""
+        problem = MagicMock()
+        problem.slug = "single-mcq"
+        problem.options = [
+            {"id": "1", "text": "Option A", "is_correct": False},
+            {"id": "2", "text": "Option B", "is_correct": True},
+        ]
+        problem.allow_multiple = False
+        result = handler.process_submission(mock_submission, "2", problem)
+        assert result.success is True
+        assert result.type_specific_data["is_correct"] is True
+
+    def test_validation_empty_json_array(self, handler, multi_select_problem):
+        """Empty JSON array should be rejected."""
+        result = handler.validate_input(json.dumps([]), multi_select_problem)
+        assert result.is_valid is False
+
+    def test_validation_invalid_id_in_array(self, handler, multi_select_problem):
+        """JSON array with an invalid option ID should be rejected."""
+        result = handler.validate_input(json.dumps(["1", "99"]), multi_select_problem)
+        assert result.is_valid is False
+        assert "99" in result.error
 
 
 class TestMCQGrading:

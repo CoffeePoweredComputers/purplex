@@ -628,6 +628,9 @@ class SubmissionService:
                 data["correct_option"] = next(
                     (o for o in problem.options if o.get("is_correct")), None
                 )
+                data["correct_options"] = [
+                    o for o in problem.options if o.get("is_correct")
+                ]
                 data["is_correct"] = submission.is_correct
 
         elif sub_type == "refute":

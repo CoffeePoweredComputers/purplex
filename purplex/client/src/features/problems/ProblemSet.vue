@@ -1357,6 +1357,8 @@ export default {
                             const mcqResult = resultData || {
                                 selected_option: unifiedResult.selected_option || { id: '', text: '' },
                                 correct_option: unifiedResult.correct_option || { id: '', text: '' },
+                                selected_options: unifiedResult.selected_options,
+                                correct_options: unifiedResult.correct_options,
                                 is_correct: unifiedResult.is_correct ?? false
                             };
 
@@ -1369,6 +1371,8 @@ export default {
                                         submission_id: unifiedResult.submission_id,
                                         selected_option: mcqResult.selected_option,
                                         correct_option: mcqResult.correct_option,
+                                        selected_options: mcqResult.selected_options,
+                                        correct_options: mcqResult.correct_options,
                                         completion_status: unifiedResult.completion_status
                                     },
                                     promptCorrectness: unifiedResult.score ?? 0,
@@ -1703,6 +1707,8 @@ export default {
                 submission_id: response.submission_id,
                 selected_option: response.selected_option || { id: '', text: '' },
                 correct_option: response.correct_option || { id: '', text: '', explanation: '' },
+                selected_options: response.selected_options,
+                correct_options: response.correct_options,
                 completion_status: response.completion_status
             };
 

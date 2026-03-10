@@ -219,6 +219,8 @@ export interface McqResult {
     text: string
     explanation?: string
   }
+  selected_options?: Array<{ id: string; text: string }>
+  correct_options?: Array<{ id: string; text: string; explanation?: string }>
   completion_status?: string
 }
 

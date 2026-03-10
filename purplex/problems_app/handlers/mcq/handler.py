@@ -2,12 +2,15 @@
 Handler for Multiple Choice Question (MCQ) activity type.
 
 MCQ problems present a question with multiple options. Students select
-one answer, and grading is deterministic (correct/incorrect).
+one or more answers. Single-select MCQs are binary (correct/incorrect).
+Multi-select MCQs (allow_multiple=True) use partial credit grading:
+score = (# correct selected) / (# total correct), passed only on exact match.
 
 MCQ uses synchronous processing - no Celery needed since it's just
-comparing the selected answer to the correct one.
+comparing the selected answer(s) to the correct one(s).
 """
 
+import json
 import logging
 from typing import TYPE_CHECKING, Any, Union
 
@@ -52,6 +55,32 @@ def _ensure_mcq_problem(problem: Union["Problem", "McqProblem"]) -> "McqProblem"
     return mcq_problem
 
 
+def _get_correct_options(mcq: "McqProblem") -> list[dict]:
+    """Return all options where is_correct=True."""
+    return [opt for opt in mcq.options if opt.get("is_correct", False)]
+
+
+def _parse_selected_ids(raw_input: str, allow_multiple: bool) -> list[str]:
+    """
+    Parse selected option IDs from raw input.
+
+    For multi-select (allow_multiple=True): expects JSON array like '["a","b"]'.
+    For single-select: expects plain string like "a".
+    Falls back to single-element list on parse failure.
+    """
+    text = raw_input.strip()
+    if allow_multiple:
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, list):
+                return [str(item) for item in parsed]
+        except (json.JSONDecodeError, TypeError):
+            pass
+        # Fallback: treat as single selection
+        return [text] if text else []
+    return [text] if text else []
+
+
 @register_handler("mcq")
 class MCQHandler(ActivityHandler):
     """Handler for Multiple Choice Question (MCQ) problems."""
@@ -66,7 +95,8 @@ class MCQHandler(ActivityHandler):
         """
         Validate MCQ answer input.
 
-        raw_input should be the selected option ID (e.g., "1", "2", "A", "B").
+        Single-select: raw_input is a plain option ID (e.g., "1", "2").
+        Multi-select: raw_input is a JSON array (e.g., '["1","3"]').
         """
         mcq = _ensure_mcq_problem(problem)
         text = raw_input.strip()
@@ -79,13 +109,19 @@ class MCQHandler(ActivityHandler):
                 is_valid=False, error="This problem has no answer options configured"
             )
 
-        # Validate that the selected option exists
         valid_ids = [str(opt.get("id", "")) for opt in mcq.options]
-        if text not in valid_ids:
-            return ValidationResult(
-                is_valid=False,
-                error=f"Invalid option selected. Valid options: {', '.join(valid_ids)}",
-            )
+        selected_ids = _parse_selected_ids(text, mcq.allow_multiple)
+
+        if not selected_ids:
+            return ValidationResult(is_valid=False, error="Please select an answer")
+
+        # Validate that all selected options exist
+        for sid in selected_ids:
+            if sid not in valid_ids:
+                return ValidationResult(
+                    is_valid=False,
+                    error=f"Invalid option selected: {sid}. Valid options: {', '.join(valid_ids)}",
+                )
 
         return ValidationResult(is_valid=True)
 
@@ -98,34 +134,39 @@ class MCQHandler(ActivityHandler):
         Process MCQ submission.
 
         MCQ processing is synchronous and simple:
-        1. Compare selected option to correct answer
-        2. Update submission fields
+        1. Compare selected option(s) to correct answer(s)
+        2. For multi-select: partial credit = (# correct selected) / (# total correct)
         """
         mcq = _ensure_mcq_problem(problem)
-        selected_id = raw_input.strip()
+        correct_options = _get_correct_options(mcq)
 
-        # Find correct answer
-        correct_option = next(
-            (opt for opt in mcq.options if opt.get("is_correct", False)), None
-        )
-
-        if not correct_option:
+        if not correct_options:
             logger.error(f"MCQ problem {mcq.slug} has no correct answer defined")
             return ProcessingResult(
                 success=False,
                 error="Problem configuration error: no correct answer defined",
             )
 
-        # Check if answer is correct
-        is_correct = selected_id == str(correct_option.get("id", ""))
+        selected_ids = set(_parse_selected_ids(raw_input, mcq.allow_multiple))
+        correct_ids = {str(opt["id"]) for opt in correct_options}
+
+        is_correct = selected_ids == correct_ids
+        score_ratio = len(selected_ids & correct_ids) / len(correct_ids)
+
+        # Backwards compat: singular fields use first element
+        first_selected = next(iter(selected_ids)) if selected_ids else ""
+        first_correct = str(correct_options[0]["id"])
 
         return ProcessingResult(
             success=True,
-            processed_code=selected_id,
+            processed_code=raw_input.strip(),
             type_specific_data={
-                "selected_option": selected_id,
-                "correct_option": str(correct_option.get("id", "")),
+                "selected_option": first_selected,
+                "correct_option": first_correct,
+                "selected_options": sorted(selected_ids),
+                "correct_options": sorted(correct_ids),
                 "is_correct": is_correct,
+                "partial_score": score_ratio,
             },
         )
 
@@ -135,10 +176,13 @@ class MCQHandler(ActivityHandler):
         """
         Calculate grade for MCQ submission.
 
-        MCQ grading is binary: complete (correct) or incomplete (wrong).
+        complete = exact match, partial = some correct, incomplete = none correct.
         """
         if submission.passed_all_tests:
             return "complete"
+        score = getattr(submission, "score", 0)
+        if isinstance(score, (int, float)) and score > 0:
+            return "partial"
         return "incomplete"
 
     def is_correct(self, submission: "Submission") -> bool:
@@ -153,10 +197,13 @@ class MCQHandler(ActivityHandler):
         """
         Evaluate completion status for progress tracking.
 
-        For MCQ: Just correctness check.
+        complete = exact match, partial = some correct, incomplete = none correct.
         """
         if submission.passed_all_tests:
             return "complete"
+        score = getattr(submission, "score", 0)
+        if isinstance(score, (int, float)) and score > 0:
+            return "partial"
         return "incomplete"
 
     # ─── Data Extraction ────────────────────────────────────────
@@ -170,30 +217,35 @@ class MCQHandler(ActivityHandler):
     ) -> list[dict[str, Any]]:
         """Extract test results for MCQ (single correct/incorrect result)."""
         mcq = _ensure_mcq_problem(problem)
-        selected_id = submission.raw_input.strip() if submission.raw_input else ""
+        selected_ids = set(
+            _parse_selected_ids(
+                submission.raw_input.strip() if submission.raw_input else "",
+                mcq.allow_multiple,
+            )
+        )
 
         # Find selected and correct options
-        selected_option = next(
-            (opt for opt in mcq.options if str(opt.get("id", "")) == selected_id), None
-        )
-        correct_option = next(
-            (opt for opt in mcq.options if opt.get("is_correct", False)), None
+        selected_options = [
+            opt for opt in mcq.options if str(opt.get("id", "")) in selected_ids
+        ]
+        correct_options = _get_correct_options(mcq)
+
+        selected_text = ", ".join(
+            opt.get("text", str(opt.get("id", ""))) for opt in selected_options
+        ) or str(selected_ids)
+        correct_text = ", ".join(opt.get("text", "") for opt in correct_options)
+        explanation = ", ".join(
+            opt.get("explanation", "")
+            for opt in correct_options
+            if opt.get("explanation")
         )
 
         return [
             {
                 "isSuccessful": submission.passed_all_tests,
-                "selected_answer": (
-                    selected_option.get("text", selected_id)
-                    if selected_option
-                    else selected_id
-                ),
-                "correct_answer": (
-                    correct_option.get("text", "") if correct_option else ""
-                ),
-                "explanation": (
-                    correct_option.get("explanation", "") if correct_option else ""
-                ),
+                "selected_answer": selected_text,
+                "correct_answer": correct_text,
+                "explanation": explanation,
             }
         ]
 
@@ -245,28 +297,47 @@ class MCQHandler(ActivityHandler):
     def serialize_result(self, submission: "Submission") -> dict[str, Any]:
         """Serialize MCQ submission result for API response."""
         mcq = _ensure_mcq_problem(submission.problem)
-        selected_id = submission.raw_input.strip() if submission.raw_input else ""
+        selected_ids = set(
+            _parse_selected_ids(
+                submission.raw_input.strip() if submission.raw_input else "",
+                mcq.allow_multiple,
+            )
+        )
 
         # Find selected and correct options
-        selected_option = next(
-            (opt for opt in mcq.options if str(opt.get("id", "")) == selected_id), None
-        )
-        correct_option = next(
-            (opt for opt in mcq.options if opt.get("is_correct", False)), None
-        )
+        selected_options = [
+            opt for opt in mcq.options if str(opt.get("id", "")) in selected_ids
+        ]
+        correct_options = _get_correct_options(mcq)
+
+        # Backwards compat: singular fields use first element
+        first_selected = selected_options[0] if selected_options else None
+        first_correct = correct_options[0] if correct_options else None
 
         return {
             "selected_option": {
-                "id": selected_id,
-                "text": selected_option.get("text", "") if selected_option else "",
+                "id": str(first_selected.get("id", "")) if first_selected else "",
+                "text": first_selected.get("text", "") if first_selected else "",
             },
             "correct_option": {
-                "id": str(correct_option.get("id", "")) if correct_option else "",
-                "text": correct_option.get("text", "") if correct_option else "",
+                "id": str(first_correct.get("id", "")) if first_correct else "",
+                "text": first_correct.get("text", "") if first_correct else "",
                 "explanation": (
-                    correct_option.get("explanation", "") if correct_option else ""
+                    first_correct.get("explanation", "") if first_correct else ""
                 ),
             },
+            "selected_options": [
+                {"id": str(opt.get("id", "")), "text": opt.get("text", "")}
+                for opt in selected_options
+            ],
+            "correct_options": [
+                {
+                    "id": str(opt.get("id", "")),
+                    "text": opt.get("text", ""),
+                    "explanation": opt.get("explanation", ""),
+                }
+                for opt in correct_options
+            ],
             "is_correct": submission.passed_all_tests,
         }
 
@@ -301,18 +372,13 @@ class MCQHandler(ActivityHandler):
         """
         Execute MCQ submission synchronously.
 
-        MCQ doesn't need Celery - it's just comparing the selected answer
-        to the correct one. This runs inline in the request.
+        MCQ doesn't need Celery - it's just comparing the selected answer(s)
+        to the correct one(s). This runs inline in the request.
         """
         mcq = _ensure_mcq_problem(problem)
-        selected_id = raw_input.strip()
+        correct_options = _get_correct_options(mcq)
 
-        # Find correct option
-        correct_option = next(
-            (opt for opt in mcq.options if opt.get("is_correct", False)), None
-        )
-
-        if not correct_option:
+        if not correct_options:
             logger.error(f"MCQ problem {mcq.slug} has no correct answer defined")
             return SubmissionOutcome(
                 complete=True,
@@ -320,16 +386,27 @@ class MCQHandler(ActivityHandler):
                 error="Problem configuration error: no correct answer defined",
             )
 
-        # Check answer
-        is_correct = selected_id == str(correct_option.get("id", ""))
-        score = 100 if is_correct else 0
+        selected_ids = set(_parse_selected_ids(raw_input, mcq.allow_multiple))
+        correct_ids = {str(opt["id"]) for opt in correct_options}
+
+        is_correct = selected_ids == correct_ids
+        score_ratio = len(selected_ids & correct_ids) / len(correct_ids)
+        score = int(score_ratio * 100)
+
+        # Determine completion status
+        if is_correct:
+            completion_status = "complete"
+        elif score > 0:
+            completion_status = "partial"
+        else:
+            completion_status = "incomplete"
 
         # Update submission
-        submission.processed_code = selected_id
+        submission.processed_code = raw_input.strip()
         submission.score = score
         submission.passed_all_tests = is_correct
         submission.is_correct = is_correct
-        submission.completion_status = "complete" if is_correct else "incomplete"
+        submission.completion_status = completion_status
         submission.execution_status = "completed"
         submission.save()
 
@@ -340,31 +417,47 @@ class MCQHandler(ActivityHandler):
 
         logger.info(
             f"MCQ submission {submission.submission_id}: "
-            f"selected={selected_id}, correct={is_correct}, score={score}"
+            f"selected={selected_ids}, correct={is_correct}, score={score}"
         )
 
         # Build result data
-        selected_opt = next(
-            (opt for opt in mcq.options if str(opt.get("id", "")) == selected_id), None
-        )
+        selected_opts = [
+            opt for opt in mcq.options if str(opt.get("id", "")) in selected_ids
+        ]
+
+        # Backwards compat: singular fields
+        first_selected = selected_opts[0] if selected_opts else None
+        first_correct = correct_options[0]
 
         result_data = {
             "submission_id": str(submission.submission_id),
             "problem_type": "mcq",
             "score": score,
             "is_correct": is_correct,
-            "completion_status": submission.completion_status,
+            "completion_status": completion_status,
             "problem_slug": problem.slug,
             "user_input": raw_input,
             "selected_option": {
-                "id": selected_id,
-                "text": selected_opt.get("text", "") if selected_opt else "",
+                "id": str(first_selected.get("id", "")) if first_selected else "",
+                "text": first_selected.get("text", "") if first_selected else "",
             },
             "correct_option": {
-                "id": str(correct_option.get("id", "")),
-                "text": correct_option.get("text", ""),
-                "explanation": correct_option.get("explanation", ""),
+                "id": str(first_correct.get("id", "")),
+                "text": first_correct.get("text", ""),
+                "explanation": first_correct.get("explanation", ""),
             },
+            "selected_options": [
+                {"id": str(opt.get("id", "")), "text": opt.get("text", "")}
+                for opt in selected_opts
+            ],
+            "correct_options": [
+                {
+                    "id": str(opt.get("id", "")),
+                    "text": opt.get("text", ""),
+                    "explanation": opt.get("explanation", ""),
+                }
+                for opt in correct_options
+            ],
             "result": self.serialize_result(submission),
         }
 

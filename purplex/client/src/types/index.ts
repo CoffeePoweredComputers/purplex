@@ -586,7 +586,10 @@ export interface EiplResultData {
 export interface McqResultData {
   selected_option: { id: string; text: string };
   correct_option: { id: string; text: string; explanation?: string };
+  selected_options?: Array<{ id: string; text: string }>;
+  correct_options?: Array<{ id: string; text: string; explanation?: string }>;
   is_correct: boolean;
+  score?: number;
 }
 
 /**
