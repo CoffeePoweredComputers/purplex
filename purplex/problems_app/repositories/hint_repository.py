@@ -39,7 +39,7 @@ class HintRepository(BaseRepository):
 
         Args:
             problem: The problem to get hints for
-            hint_type: The type of hint (variable_fade, subgoal_hints, suggested_trace)
+            hint_type: The type of hint (variable_fade, subgoal_highlight, suggested_trace)
 
         Returns:
             QuerySet of hints of the specified type

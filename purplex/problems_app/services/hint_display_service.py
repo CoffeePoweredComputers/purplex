@@ -17,21 +17,21 @@ class HintDisplayService:
     # Display name mappings for hint types
     HINT_TYPE_DISPLAY_NAMES = {
         "variable_fade": "Variable Fade",
-        "subgoal_hints": "Subgoal Highlighting",
+        "subgoal_highlight": "Subgoal Highlighting",
         "suggested_trace": "Suggested Trace",
     }
 
     # Emoji mappings for hint types
     HINT_TYPE_EMOJIS = {
         "variable_fade": "🏷️",
-        "subgoal_hints": "🎯",
+        "subgoal_highlight": "🎯",
         "suggested_trace": "🔍",
     }
 
     # Descriptions for hint types
     HINT_TYPE_DESCRIPTIONS = {
         "variable_fade": "Gradually reveals variable names in the solution",
-        "subgoal_hints": "Highlights key subgoals to solve the problem",
+        "subgoal_highlight": "Highlights key subgoals to solve the problem",
         "suggested_trace": "Provides a step-by-step trace through the solution",
     }
 
