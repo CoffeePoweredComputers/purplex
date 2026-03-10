@@ -3,7 +3,6 @@
 import logging
 from typing import TYPE_CHECKING, Any
 
-from django.core.cache import cache
 from django.http import Http404
 
 from ..models import ProblemHint
@@ -23,13 +22,6 @@ logger = logging.getLogger(__name__)
 
 class HintService:
     """Handle all hint-related business logic."""
-
-    # Hint type mappings
-    HINT_TYPE_CHOICES = {
-        "variable_fade": "variable_fade",
-        "subgoal": "subgoal_highlight",
-        "trace": "trace",
-    }
 
     @staticmethod
     def get_hint_availability(
@@ -251,181 +243,6 @@ class HintService:
             "min_attempts": hint.min_attempts,
             "success": True,
         }
-
-    @staticmethod
-    def record_hint_usage(user, problem_slug: str, hint_type: str) -> bool:
-        """
-        Record that a user has used a hint.
-
-        Args:
-            user: User instance
-            problem_slug: Problem slug
-            hint_type: Type of hint used
-
-        Returns:
-            True if recorded successfully
-        """
-        problem = ProblemRepository.get_problem_by_slug(problem_slug)
-        if problem:
-            hint_type_mapped = HintService.HINT_TYPE_CHOICES.get(hint_type, hint_type)
-            hints = HintRepository.get_problem_hints_by_type(problem, hint_type_mapped)
-            hint = hints.first() if hints else None
-
-            if hint:
-                # Record usage (could be extended to track in a separate model)
-                logger.info(
-                    f"User {user.id} used {hint_type} hint for problem {problem_slug}"
-                )
-
-                # Invalidate any cached hint data
-                cache_key = f"hint_usage:{user.id}:{problem_slug}"
-                cache.delete(cache_key)
-
-                return True
-            else:
-                logger.error(
-                    f"Hint not found for problem {problem_slug} and type {hint_type}"
-                )
-                return False
-        else:
-            logger.error(f"Problem not found: {problem_slug}")
-            return False
-
-    @staticmethod
-    def get_cached_hint_availability(user, problem_slug: str) -> dict[str, Any] | None:
-        """
-        Get cached hint availability or compute and cache it.
-
-        Args:
-            user: User instance
-            problem_slug: Problem slug
-
-        Returns:
-            Hint availability data
-        """
-        cache_key = f"hint_availability:{user.id}:{problem_slug}"
-        availability = cache.get(cache_key)
-
-        if availability is None:
-            availability = HintService.get_hint_availability(user, problem_slug)
-            # Cache for 5 minutes
-            cache.set(cache_key, availability, 300)
-
-        return availability
-
-    @staticmethod
-    def invalidate_hint_cache(user, problem_slug: str):
-        """
-        Invalidate hint-related cache for a user and problem.
-
-        Args:
-            user: User instance
-            problem_slug: Problem slug
-        """
-        cache_keys = [
-            f"hint_availability:{user.id}:{problem_slug}",
-            f"hint_usage:{user.id}:{problem_slug}",
-        ]
-
-        for key in cache_keys:
-            cache.delete(key)
-
-    @staticmethod
-    def validate_hint_access_context(
-        user,
-        problem_slug: str,
-        course_id: str | None = None,
-        problem_set_slug: str | None = None,
-    ) -> dict[str, Any]:
-        """
-        Validate user's access to hints with course context.
-
-        Args:
-            user: Django User instance
-            problem_slug: Problem slug
-            course_id: Optional course ID
-            problem_set_slug: Optional problem set slug
-
-        Returns:
-            Dict with validation results and context data
-        """
-
-        result = {
-            "valid": True,
-            "problem": None,
-            "problem_set": None,
-            "course": None,
-            "error": None,
-            "user_attempts": 0,
-            "hints_available": [],
-        }
-
-        # Validate problem
-        problem = ProblemRepository.get_problem_by_slug(problem_slug)
-        if not problem or not problem.is_active:
-            result["valid"] = False
-            result["error"] = "Problem not found"
-            return result
-        result["problem"] = problem
-
-        # Validate problem set if provided
-        if problem_set_slug:
-            problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
-            if not problem_set:
-                result["valid"] = False
-                result["error"] = "Problem set not found"
-                return result
-            result["problem_set"] = problem_set
-
-            # Check if problem belongs to problem set
-            if not ProblemRepository.problem_in_set(problem, problem_set):
-                result["valid"] = False
-                result["error"] = "Problem does not belong to the specified problem set"
-                return result
-
-        # Validate course access if provided
-        if course_id:
-            course = CourseRepository.get_active_course(course_id)
-            if not course:
-                result["valid"] = False
-                result["error"] = "Course not found"
-                return result
-            result["course"] = course
-
-            # Check enrollment
-            if not CourseRepository.user_is_enrolled(user, course):
-                result["valid"] = False
-                result["error"] = "You are not enrolled in this course"
-                return result
-
-        # Get user progress with context using ID-based method
-        if result["problem_set"] and result["course"]:
-            progress = ProgressRepository.get_by_ids(
-                user_id=user.id,
-                problem_id=problem.id,
-                problem_set_id=result["problem_set"].id,
-                course_id=result["course"].id,
-            )
-        elif result["problem_set"]:
-            progress = ProgressRepository.get_by_ids(
-                user_id=user.id,
-                problem_id=problem.id,
-                problem_set_id=result["problem_set"].id,
-            )
-        else:
-            progress = ProgressRepository.get_by_ids(
-                user_id=user.id, problem_id=problem.id
-            )
-        result["user_attempts"] = progress.attempts if progress else 0
-
-        # Get available hints
-        hints = HintRepository.get_enabled_hints_for_problem(problem)
-
-        for hint in hints:
-            if result["user_attempts"] >= hint["min_attempts"]:
-                result["hints_available"].append(hint["hint_type"])
-
-        return result
 
 
 class AdminHintService:
