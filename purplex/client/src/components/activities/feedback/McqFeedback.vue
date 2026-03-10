@@ -40,7 +40,7 @@
           </div>
           <div
             class="answer-value"
-            :class="isCorrect ? 'answer-value--correct' : 'answer-value--incorrect'"
+            :class="isCorrect ? 'answer-value--correct' : isPartial ? 'answer-value--partial' : 'answer-value--incorrect'"
           >
             {{ selectedAnswer }}
           </div>
@@ -326,6 +326,10 @@ const bannerClass = computed(() => {
 
 .answer-value--incorrect {
   border-left-color: var(--color-error);
+}
+
+.answer-value--partial {
+  border-left-color: var(--color-warning, #edbb33);
 }
 
 /* Explanation */

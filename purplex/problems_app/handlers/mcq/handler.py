@@ -147,14 +147,15 @@ class MCQHandler(ActivityHandler):
                 error="Problem configuration error: no correct answer defined",
             )
 
-        selected_ids = set(_parse_selected_ids(raw_input, mcq.allow_multiple))
+        selected_id_list = _parse_selected_ids(raw_input, mcq.allow_multiple)
+        selected_ids = set(selected_id_list)
         correct_ids = {str(opt["id"]) for opt in correct_options}
 
         is_correct = selected_ids == correct_ids
         score_ratio = len(selected_ids & correct_ids) / len(correct_ids)
 
-        # Backwards compat: singular fields use first element
-        first_selected = next(iter(selected_ids)) if selected_ids else ""
+        # Backwards compat: singular fields use first element (stable order)
+        first_selected = selected_id_list[0] if selected_id_list else ""
         first_correct = str(correct_options[0]["id"])
 
         return ProcessingResult(
