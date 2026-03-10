@@ -32,7 +32,7 @@
         :checked="isCheckboxMode ? selectedIds.has(option.id) : modelValue === option.id"
         :disabled="disabled"
         class="mcq-radio"
-        @change="selectOption(option.id)"
+        @change.stop
       >
       <label
         :for="`option-${option.id}`"
@@ -79,7 +79,7 @@
 /**
  * McqInput - Input component for Multiple Choice Question activities.
  *
- * Renders radio button options for MCQ problems.
+ * Renders radio buttons (single-select) or checkboxes (multi-select) for MCQ problems.
  */
 import { computed, ref, watch } from 'vue'
 import type { ActivityProblem, InputConfig } from '../types'
@@ -138,6 +138,11 @@ watch(() => props.modelValue, (val) => {
   } catch { /* not JSON */ }
   selectedIds.value = val ? new Set([val]) : new Set()
 }, { immediate: true })
+
+// Reset selection state when navigating to a different problem
+watch(() => props.problem.slug, () => {
+  selectedIds.value = new Set()
+})
 
 // Get question text from problem (MCQ-specific field)
 const questionText = computed<string>(() => {
