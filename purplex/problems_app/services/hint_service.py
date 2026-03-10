@@ -27,7 +27,7 @@ class HintService:
     # Hint type mappings
     HINT_TYPE_CHOICES = {
         "variable_fade": "variable_fade",
-        "subgoal": "subgoal_hints",
+        "subgoal": "subgoal_highlight",
         "trace": "trace",
     }
 
