@@ -21,13 +21,13 @@
       <!-- Result Banner -->
       <div
         class="result-banner"
-        :class="isCorrect ? 'result-banner--correct' : 'result-banner--incorrect'"
+        :class="bannerClass"
       >
         <div class="result-icon">
-          {{ isCorrect ? '✓' : '✗' }}
+          {{ isCorrect ? '✓' : isPartial ? '~' : '✗' }}
         </div>
         <div class="result-text">
-          <span class="result-label">{{ isCorrect ? 'Correct!' : 'Incorrect' }}</span>
+          <span class="result-label">{{ isCorrect ? 'Correct!' : isPartial ? 'Partially Correct' : 'Incorrect' }}</span>
           <span class="result-score">Score: {{ score }}%</span>
         </div>
       </div>
@@ -40,7 +40,7 @@
           </div>
           <div
             class="answer-value"
-            :class="isCorrect ? 'answer-value--correct' : 'answer-value--incorrect'"
+            :class="isCorrect ? 'answer-value--correct' : isPartial ? 'answer-value--partial' : 'answer-value--incorrect'"
           >
             {{ selectedAnswer }}
           </div>
@@ -93,6 +93,7 @@ import type { SubmissionHistoryItem } from '../types'
 
 interface McqResult {
   is_correct: boolean
+  score?: number
   selected_option?: {
     id: string
     text: string
@@ -102,6 +103,8 @@ interface McqResult {
     text: string
     explanation?: string
   }
+  selected_options?: Array<{ id: string; text: string }>
+  correct_options?: Array<{ id: string; text: string; explanation?: string }>
 }
 
 interface Props {
@@ -134,10 +137,38 @@ defineEmits<{
 
 const hasResult = computed(() => props.mcqResult !== null)
 const isCorrect = computed(() => props.mcqResult?.is_correct ?? false)
-const score = computed(() => isCorrect.value ? 100 : 0)
-const selectedAnswer = computed(() => props.mcqResult?.selected_option?.text ?? 'Unknown')
-const correctAnswer = computed(() => props.mcqResult?.correct_option?.text ?? 'Unknown')
-const explanation = computed(() => props.mcqResult?.correct_option?.explanation ?? '')
+const score = computed(() => {
+  if (props.mcqResult?.score !== undefined) return props.mcqResult.score
+  return isCorrect.value ? 100 : 0
+})
+const isPartial = computed(() => !isCorrect.value && score.value > 0)
+const selectedAnswer = computed(() => {
+  const plural = props.mcqResult?.selected_options
+  if (plural && plural.length > 1) {
+    return plural.map(o => o.text).join(', ')
+  }
+  return props.mcqResult?.selected_option?.text ?? 'Unknown'
+})
+const correctAnswer = computed(() => {
+  const plural = props.mcqResult?.correct_options
+  if (plural && plural.length > 1) {
+    return plural.map(o => o.text).join(', ')
+  }
+  return props.mcqResult?.correct_option?.text ?? 'Unknown'
+})
+const explanation = computed(() => {
+  const plural = props.mcqResult?.correct_options
+  if (plural && plural.length > 0) {
+    const explanations = plural.map(o => o.explanation).filter(Boolean)
+    if (explanations.length > 0) return explanations.join('; ')
+  }
+  return props.mcqResult?.correct_option?.explanation ?? ''
+})
+const bannerClass = computed(() => {
+  if (isCorrect.value) return 'result-banner--correct'
+  if (isPartial.value) return 'result-banner--partial'
+  return 'result-banner--incorrect'
+})
 </script>
 
 <style scoped>
@@ -209,6 +240,16 @@ const explanation = computed(() => props.mcqResult?.correct_option?.explanation 
 .result-banner--incorrect {
   background: rgba(245, 101, 101, 0.15);
   border: 1px solid var(--color-error);
+}
+
+.result-banner--partial {
+  background: rgba(237, 187, 51, 0.15);
+  border: 1px solid var(--color-warning, #edbb33);
+}
+
+.result-banner--partial .result-icon {
+  background: var(--color-warning, #edbb33);
+  color: white;
 }
 
 .result-icon {
@@ -285,6 +326,10 @@ const explanation = computed(() => props.mcqResult?.correct_option?.explanation 
 
 .answer-value--incorrect {
   border-left-color: var(--color-error);
+}
+
+.answer-value--partial {
+  border-left-color: var(--color-warning, #edbb33);
 }
 
 /* Explanation */

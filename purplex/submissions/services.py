@@ -617,17 +617,26 @@ class SubmissionService:
                 import json
 
                 try:
-                    selected_id = (
+                    parsed = (
                         json.loads(submission.raw_input)
                         if submission.raw_input
                         else None
                     )
                 except (json.JSONDecodeError, TypeError):
-                    selected_id = submission.raw_input
-                data["selected_option_id"] = selected_id
+                    parsed = submission.raw_input
+                # Normalize: keep singular field as string for backwards compat
+                if isinstance(parsed, list):
+                    data["selected_option_id"] = parsed[0] if parsed else None
+                    data["selected_option_ids"] = parsed
+                else:
+                    data["selected_option_id"] = parsed
+                    data["selected_option_ids"] = [parsed] if parsed is not None else []
                 data["correct_option"] = next(
                     (o for o in problem.options if o.get("is_correct")), None
                 )
+                data["correct_options"] = [
+                    o for o in problem.options if o.get("is_correct")
+                ]
                 data["is_correct"] = submission.is_correct
 
         elif sub_type == "refute":

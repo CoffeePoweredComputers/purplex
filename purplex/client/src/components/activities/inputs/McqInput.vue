@@ -19,20 +19,20 @@
       :key="option.id"
       class="mcq-option"
       :class="{
-        'mcq-option--selected': modelValue === option.id,
+        'mcq-option--selected': isCheckboxMode ? selectedIds.has(option.id) : modelValue === option.id,
         'mcq-option--disabled': disabled
       }"
       @click="selectOption(option.id)"
     >
       <input
         :id="`option-${option.id}`"
-        type="radio"
+        :type="isCheckboxMode ? 'checkbox' : 'radio'"
         :name="`mcq-${problem.slug}`"
         :value="option.id"
-        :checked="modelValue === option.id"
+        :checked="isCheckboxMode ? selectedIds.has(option.id) : modelValue === option.id"
         :disabled="disabled"
         class="mcq-radio"
-        @change="selectOption(option.id)"
+        @change.stop
       >
       <label
         :for="`option-${option.id}`"
@@ -47,7 +47,7 @@
   <button
     id="submitButton"
     class="submit-button"
-    :disabled="disabled || !modelValue"
+    :disabled="disabled || (isCheckboxMode ? selectedIds.size === 0 : !modelValue)"
     :aria-busy="disabled"
     :aria-label="getButtonAriaLabel()"
     @click="handleSubmit"
@@ -79,9 +79,9 @@
 /**
  * McqInput - Input component for Multiple Choice Question activities.
  *
- * Renders radio button options for MCQ problems.
+ * Renders radio buttons (single-select) or checkboxes (multi-select) for MCQ problems.
  */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { ActivityProblem, InputConfig } from '../types'
 
 interface McqOption {
@@ -90,7 +90,7 @@ interface McqOption {
 }
 
 interface Props {
-  /** Selected option ID (v-model) */
+  /** Selected option ID (v-model) — plain string for radio, JSON array for checkbox */
   modelValue: string
   /** Current problem data */
   problem: ActivityProblem
@@ -116,6 +116,34 @@ const emit = defineEmits<{
 // Get input config from problem
 const inputConfig = computed<InputConfig | undefined>(() => props.problem.input_config)
 
+// Detect checkbox mode from input config
+const isCheckboxMode = computed(() => inputConfig.value?.type === 'checkbox')
+
+// Internal set for checkbox mode
+const selectedIds = ref<Set<string>>(new Set())
+
+// Sync selectedIds from modelValue when in checkbox mode
+watch(() => props.modelValue, (val) => {
+  if (!isCheckboxMode.value) return
+  if (!val) {
+    selectedIds.value = new Set()
+    return
+  }
+  try {
+    const parsed = JSON.parse(val)
+    if (Array.isArray(parsed)) {
+      selectedIds.value = new Set(parsed)
+      return
+    }
+  } catch { /* not JSON */ }
+  selectedIds.value = val ? new Set([val]) : new Set()
+}, { immediate: true })
+
+// Reset selection state when navigating to a different problem
+watch(() => props.problem.slug, () => {
+  selectedIds.value = new Set()
+})
+
 // Get question text from problem (MCQ-specific field)
 const questionText = computed<string>(() => {
   // Try question_text field first (MCQ problems), fallback to description
@@ -134,14 +162,28 @@ function getOptionMarker(optionId: string): string {
 }
 
 function selectOption(optionId: string) {
-  if (!props.disabled) {
+  if (props.disabled) return
+
+  if (isCheckboxMode.value) {
+    const next = new Set(selectedIds.value)
+    if (next.has(optionId)) {
+      next.delete(optionId)
+    } else {
+      next.add(optionId)
+    }
+    selectedIds.value = next
+    emit('update:modelValue', JSON.stringify([...next]))
+  } else {
     emit('update:modelValue', optionId)
   }
 }
 
 function handleSubmit() {
-  if (!props.disabled && props.modelValue) {
-    emit('submit')
+  if (props.disabled) return
+  if (isCheckboxMode.value) {
+    if (selectedIds.value.size > 0) emit('submit')
+  } else {
+    if (props.modelValue) emit('submit')
   }
 }
 
@@ -149,7 +191,8 @@ function getButtonAriaLabel(): string {
   if (props.disabled) {
     return 'Checking answer, please wait'
   }
-  if (!props.modelValue) {
+  const hasSelection = isCheckboxMode.value ? selectedIds.value.size > 0 : !!props.modelValue
+  if (!hasSelection) {
     return 'Please select an answer before submitting'
   }
   return 'Submit Answer'

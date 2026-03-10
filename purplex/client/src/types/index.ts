@@ -478,7 +478,9 @@ export interface McqTypeData {
   question_text: string;
   options: McqOption[];
   selected_option_id: string | null;
+  selected_option_ids?: string[];
   correct_option: McqOption | null;
+  correct_options?: McqOption[];
   is_correct: boolean;
 }
 
@@ -586,7 +588,10 @@ export interface EiplResultData {
 export interface McqResultData {
   selected_option: { id: string; text: string };
   correct_option: { id: string; text: string; explanation?: string };
+  selected_options?: Array<{ id: string; text: string }>;
+  correct_options?: Array<{ id: string; text: string; explanation?: string }>;
   is_correct: boolean;
+  score?: number;
 }
 
 /**
