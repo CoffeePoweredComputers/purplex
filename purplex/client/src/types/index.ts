@@ -478,7 +478,9 @@ export interface McqTypeData {
   question_text: string;
   options: McqOption[];
   selected_option_id: string | null;
+  selected_option_ids?: string[];
   correct_option: McqOption | null;
+  correct_options?: McqOption[];
   is_correct: boolean;
 }
 

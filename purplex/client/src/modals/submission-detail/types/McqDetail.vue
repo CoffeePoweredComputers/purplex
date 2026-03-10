@@ -15,14 +15,14 @@
           :key="option.id"
           class="option-item"
           :class="{
-            'option-selected': option.id === typeData.selected_option_id,
+            'option-selected': isSelected(option.id),
             'option-correct': option.is_correct,
-            'option-wrong': option.id === typeData.selected_option_id && !option.is_correct,
+            'option-wrong': isSelected(option.id) && !option.is_correct,
           }"
         >
           <span class="option-indicator">
             <span v-if="option.is_correct" class="indicator-icon correct">&#10003;</span>
-            <span v-else-if="option.id === typeData.selected_option_id" class="indicator-icon wrong">&#10007;</span>
+            <span v-else-if="isSelected(option.id)" class="indicator-icon wrong">&#10007;</span>
             <span v-else class="indicator-icon neutral">{{ option.id }}</span>
           </span>
           <div class="option-content">
@@ -45,11 +45,23 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { McqTypeData } from '@/types';
 
-defineProps<{
+const props = defineProps<{
   typeData: McqTypeData;
 }>();
+
+const selectedIdSet = computed(() => {
+  const ids = props.typeData.selected_option_ids;
+  if (ids) return new Set(ids);
+  const single = props.typeData.selected_option_id;
+  return single ? new Set([single]) : new Set<string>();
+});
+
+function isSelected(optionId: string): boolean {
+  return selectedIdSet.value.has(optionId);
+}
 </script>
 
 <style scoped>

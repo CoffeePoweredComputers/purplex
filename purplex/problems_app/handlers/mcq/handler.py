@@ -418,7 +418,7 @@ class MCQHandler(ActivityHandler):
 
         logger.info(
             f"MCQ submission {submission.submission_id}: "
-            f"selected={selected_ids}, correct={is_correct}, score={score}"
+            f"selected={sorted(selected_ids)}, correct={is_correct}, score={score}"
         )
 
         # Build result data
