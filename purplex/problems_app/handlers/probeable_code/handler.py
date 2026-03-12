@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, Any
 from .. import register_handler
 from ..base import (
     ActivityHandler,
-    ProcessingResult,
     SubmissionOutcome,
     ValidationResult,
 )
@@ -90,21 +89,6 @@ class ProbeableCodeHandler(ActivityHandler):
             )
 
         return ValidationResult(is_valid=True)
-
-    # --- Submission Processing ---
-
-    def process_submission(
-        self, submission: "Submission", raw_input: str, problem: "Problem"
-    ) -> ProcessingResult:
-        """
-        Process Probeable Code submission.
-
-        Note: This is a stub. Actual processing is handled by the
-        execute_probeable_code_pipeline Celery task.
-        """
-        raise NotImplementedError(
-            "Probeable Code processing is handled by execute_probeable_code_pipeline task."
-        )
 
     # --- Grading ---
 

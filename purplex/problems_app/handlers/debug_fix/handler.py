@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any
 from .. import register_handler
 from ..base import (
     ActivityHandler,
-    ProcessingResult,
     SubmissionOutcome,
     ValidationResult,
 )
@@ -61,21 +60,6 @@ class DebugFixHandler(ActivityHandler):
             )
 
         return ValidationResult(is_valid=True)
-
-    # --- Submission Processing ---
-
-    def process_submission(
-        self, submission: "Submission", raw_input: str, problem: "Problem"
-    ) -> ProcessingResult:
-        """
-        Process Debug Fix submission.
-
-        Note: This is a stub. Actual processing is handled by the
-        execute_debug_fix_pipeline Celery task.
-        """
-        raise NotImplementedError(
-            "Debug Fix processing is handled by execute_debug_fix_pipeline task."
-        )
 
     # --- Grading ---
 

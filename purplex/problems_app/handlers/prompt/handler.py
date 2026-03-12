@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
 from ..base import (
     ActivityHandler,
-    ProcessingResult,
     SubmissionOutcome,
     ValidationResult,
 )
@@ -57,21 +56,6 @@ class PromptHandler(ActivityHandler):
             )
 
         return ValidationResult(is_valid=True)
-
-    # --- Submission Processing ---
-
-    def process_submission(
-        self, submission: "Submission", raw_input: str, problem: "Problem"
-    ) -> ProcessingResult:
-        """
-        Process prompt submission.
-
-        Note: Processing is handled by the execute_eipl_pipeline Celery task.
-        """
-        raise NotImplementedError(
-            "Prompt processing is handled by execute_eipl_pipeline task. "
-            "Direct handler processing not supported."
-        )
 
     # --- Grading (delegates to EiPL logic) ---
 

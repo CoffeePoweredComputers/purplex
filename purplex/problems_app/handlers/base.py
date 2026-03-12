@@ -81,20 +81,21 @@ class ActivityHandler(ABC):
 
     # ─── Submission Processing ──────────────────────────────────
 
-    @abstractmethod
     def process_submission(
         self, submission: "Submission", raw_input: str, problem: "Problem"
     ) -> ProcessingResult:
         """
         Process the submission. This is the main type-specific logic.
 
-        For EiPL: Generate code variations, run tests, analyze segmentation
-        For Direct Code: Run tests on submitted code
-        For MCQ: Check selected answer
-
-        Should update submission fields and create any type-specific records.
+        Synchronous handlers (MCQ, Refute) override this to process inline.
+        Asynchronous handlers (EiPL, Prompt, DebugFix, ProbeableCode,
+        ProbeableSpec) inherit this default — their submit() queues a Celery
+        pipeline task instead.
         """
-        pass
+        raise NotImplementedError(
+            f"{self.type_name} handler does not support direct process_submission(). "
+            f"Async handlers delegate processing to Celery pipeline tasks via submit()."
+        )
 
     # ─── Grading ────────────────────────────────────────────────
 
