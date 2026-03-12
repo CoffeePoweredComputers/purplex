@@ -2054,7 +2054,6 @@ export default {
                     const success = await this.removeHint(hintType);
                     if (success) {
                         this.logger.info('Removed hint', { hintType });
-                        }
                     } else {
                         this.logger.error('Failed to remove hint', { hintType });
                     }
