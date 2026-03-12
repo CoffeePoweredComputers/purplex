@@ -120,27 +120,15 @@
   padding: 0 2px;
 }
 
-/* Subgoal highlighting in ACE Editor */
+/* Subgoal highlighting in ACE Editor — applied as fullLine markers */
 .ace_subgoal-comment {
-  background-color: rgba(59, 130, 246, 0.15) !important;
+  background-color: rgba(59, 130, 246, 0.18) !important;
   border-left: 3px solid #3b82f6 !important;
-  font-weight: 600 !important;
-  font-style: italic !important;
-  color: #3b82f6 !important;
-  display: block;
-  width: 100%;
-  padding-left: 8px !important;
-  margin-left: -8px !important;
 }
 
 .ace_subgoal-highlight {
   background-color: rgba(59, 130, 246, 0.08) !important;
-  border-left: 3px solid #3b82f6 !important;
-  display: block;
-  width: 100%;
-  padding-left: 8px !important;
-  margin-left: -8px !important;
-  position: relative;
+  border-left: 3px solid rgba(59, 130, 246, 0.4) !important;
 }
 
 /* Subgoal gutter indicators */

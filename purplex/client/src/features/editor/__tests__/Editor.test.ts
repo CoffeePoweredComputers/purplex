@@ -144,6 +144,7 @@ describe('Editor Component', () => {
         extraLines: 0,
         value: '',
         readOnly: false,
+        markers: [],
         tabTargetId: null,
         focusScopeSelector: null
       })

@@ -382,4 +382,106 @@ line5`
       expect(result.code).toContain('STEP 2')
     })
   })
+
+  describe('marker generation', () => {
+    it('should return markers for a single subgoal', () => {
+      const code = `def calculate(a, b):
+    result = a + b
+    return result`
+
+      const hintData = {
+        code,
+        subgoals: [
+          {
+            line_start: 2,
+            line_end: 2,
+            title: 'Addition step',
+            explanation: 'Addition step'
+          }
+        ]
+      }
+
+      const result = processor.processHint(hintData)
+
+      expect(result.success).toBe(true)
+      expect(result.metadata?.markers).toBeDefined()
+      const markers = result.metadata!.markers!
+
+      // Comment line at row 1 (0-indexed, inserted before original line 2)
+      expect(markers).toContainEqual({ row: 1, className: 'ace_subgoal-comment' })
+      // Code line at row 2 (original line 2, shifted by 1)
+      expect(markers).toContainEqual({ row: 2, className: 'ace_subgoal-highlight' })
+      expect(markers).toHaveLength(2)
+    })
+
+    it('should return markers for multiple subgoals', () => {
+      const code = `def process(data):
+    cleaned = clean(data)
+    result = analyze(cleaned)
+    return result`
+
+      const hintData = {
+        code,
+        subgoals: [
+          {
+            line_start: 2,
+            line_end: 2,
+            explanation: 'Cleaning'
+          },
+          {
+            line_start: 3,
+            line_end: 4,
+            explanation: 'Analysis'
+          }
+        ]
+      }
+
+      const result = processor.processHint(hintData)
+
+      expect(result.success).toBe(true)
+      const markers = result.metadata!.markers!
+
+      // Markers should be sorted by row
+      const rows = markers.map(m => m.row)
+      expect(rows).toEqual([...rows].sort((a, b) => a - b))
+
+      // STEP 1 comment + its code line
+      expect(markers).toContainEqual({ row: 1, className: 'ace_subgoal-comment' })
+      expect(markers).toContainEqual({ row: 2, className: 'ace_subgoal-highlight' })
+
+      // STEP 2 comment + its code lines (2 lines: original 3 and 4)
+      expect(markers).toContainEqual({ row: 3, className: 'ace_subgoal-comment' })
+      expect(markers).toContainEqual({ row: 4, className: 'ace_subgoal-highlight' })
+      expect(markers).toContainEqual({ row: 5, className: 'ace_subgoal-highlight' })
+
+      expect(markers).toHaveLength(5)
+    })
+
+    it('should return markers sorted by row', () => {
+      const code = `line1
+line2
+line3`
+
+      const hintData = {
+        code,
+        subgoals: [
+          { line_start: 1, line_end: 1, explanation: 'First' },
+          { line_start: 3, line_end: 3, explanation: 'Third' }
+        ]
+      }
+
+      const result = processor.processHint(hintData)
+
+      const markers = result.metadata!.markers!
+      for (let i = 1; i < markers.length; i++) {
+        expect(markers[i].row).toBeGreaterThanOrEqual(markers[i - 1].row)
+      }
+    })
+
+    it('should not include markers on failed processing', () => {
+      const result = processor.processHint({ code: '', subgoals: null as any })
+      expect(result.success).toBe(false)
+      expect(result.metadata?.markers).toBeUndefined()
+    })
+  })
 })

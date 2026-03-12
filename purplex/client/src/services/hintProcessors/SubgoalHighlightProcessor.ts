@@ -5,6 +5,7 @@
 
 import { log } from '../../utils/logger';
 import {
+  EditorMarker,
   HintProcessor,
   HintRenderStrategy,
   HintResult,
@@ -36,13 +37,14 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
 
       logger.debug(`Processed ${subgoals.length} subgoals`);
 
-      // Add metadata to the result
+      // Add metadata to the result, preserving markers from addSubgoalComments
       return {
         ...result,
         metadata: {
           strategy: HintRenderStrategy.ANNOTATE_CODE,
           canStack: false,  // Cannot stack with other code modifications
-          affectsLineNumbers: true  // Comments change line numbers
+          affectsLineNumbers: true,  // Comments change line numbers
+          markers: result.metadata?.markers
         }
       };
 
@@ -79,6 +81,9 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
 
       logger.debug('Sorted subgoals:', sortedSubgoals);
 
+      // Track markers for editor highlighting (built bottom-up alongside code)
+      const markers: EditorMarker[] = [];
+
       // Process each subgoal
       sortedSubgoals.forEach(({ subgoal, originalIndex }) => {
 
@@ -102,6 +107,22 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
 
         modifiedLines.splice(insertPosition, 0, commentText);
 
+        // Shift previously computed markers that are at or after the insert point
+        for (const m of markers) {
+          if (m.row >= insertPosition) {
+            m.row += 1;
+          }
+        }
+
+        // Mark the comment line
+        markers.push({ row: insertPosition, className: 'ace_subgoal-comment' });
+
+        // Mark code lines within this subgoal's range
+        // After insertion, original line_start is now at index line_start (0-indexed)
+        for (let line = subgoal.line_start; line <= subgoal.line_end; line++) {
+          markers.push({ row: line, className: 'ace_subgoal-highlight' });
+        }
+
         logger.debug(`After insertion:`, {
           linesAfterInsert: modifiedLines.length,
           insertedLine: modifiedLines[insertPosition],
@@ -111,12 +132,16 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
 
       const joinedLines = modifiedLines.join('\n');
 
+      // Sort markers by row for consistent ordering
+      markers.sort((a, b) => a.row - b.row);
+
       logger.debug('Final result:', {
         modifiedCode: joinedLines,
         length: joinedLines.length,
         lineCount: modifiedLines.length,
         firstFewLines: modifiedLines.slice(0, 5),
-        hasNewlines: joinedLines.includes('\n')
+        hasNewlines: joinedLines.includes('\n'),
+        markerCount: markers.length
       });
 
       return {
@@ -125,7 +150,8 @@ class SubgoalHighlightProcessor implements HintProcessor<SubgoalData> {
         metadata: {
           strategy: HintRenderStrategy.ANNOTATE_CODE,
           canStack: false,
-          affectsLineNumbers: true
+          affectsLineNumbers: true,
+          markers
         }
       };
 

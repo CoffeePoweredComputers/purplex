@@ -12,8 +12,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, nextTick } from 'vue'
 import { VAceEditor } from 'vue3-ace-editor'
+import ace from 'ace-builds'
 import 'ace-builds/src-noconflict/mode-python'
 import 'ace-builds/src-noconflict/theme-clouds_midnight'
 import 'ace-builds/src-noconflict/theme-chrome'
@@ -24,6 +25,12 @@ import 'ace-builds/src-noconflict/theme-solarized_light'
 import 'ace-builds/src-noconflict/theme-dracula'
 import 'ace-builds/src-noconflict/theme-tomorrow_night'
 
+// Marker definition for line highlighting
+interface EditorMarker {
+  row: number
+  className: string
+}
+
 // Ace Editor instance type - minimal interface for what we use
 interface AceEditor {
   setOptions(options: Record<string, unknown>): void
@@ -33,6 +40,10 @@ interface AceEditor {
     container: { style: { pointerEvents: string; userSelect: string } }
     freeze(): void
     unfreeze(): void
+  }
+  session: {
+    addMarker(range: unknown, className: string, type: string, inFront: boolean): number
+    removeMarker(id: number): void
   }
   setOption(name: string, value: unknown): void
   getOption(name: string): unknown
@@ -55,6 +66,7 @@ const props = withDefaults(defineProps<{
   extraLines?: number
   value?: string
   readOnly?: boolean
+  markers?: EditorMarker[]
   tabTargetId?: string | null
   focusScopeSelector?: string | null
 }>(), {
@@ -70,6 +82,7 @@ const props = withDefaults(defineProps<{
   extraLines: 0,
   value: '',
   readOnly: false,
+  markers: () => [],
   tabTargetId: null,
   focusScopeSelector: null
 })
@@ -80,6 +93,29 @@ const emit = defineEmits<{
 
 const editor = ref<AceEditor | null>(null)
 let lastMinLines: number | null = null
+const activeMarkerIds: number[] = []
+
+/** Clear all managed markers from the ACE session */
+function clearMarkers(): void {
+  if (!editor.value) return
+  for (const id of activeMarkerIds) {
+    editor.value.session.removeMarker(id)
+  }
+  activeMarkerIds.length = 0
+}
+
+/** Apply marker definitions to the ACE session as fullLine markers */
+function applyMarkers(): void {
+  clearMarkers()
+  if (!editor.value || !props.markers?.length) return
+
+  const { Range } = ace.require('ace/range')
+  for (const marker of props.markers) {
+    const range = new Range(marker.row, 0, marker.row, 1)
+    const id = editor.value.session.addMarker(range, marker.className, 'fullLine', false)
+    activeMarkerIds.push(id)
+  }
+}
 
 // When using minLines/maxLines, don't set a fixed height - let Ace manage it
 const editorStyle = computed(() => {
@@ -294,8 +330,16 @@ watch(() => props.value, (newValue) => {
         editor.value.setOption('minLines', effectiveMinLines)
       }
     }
+
+    // Reapply markers after value change (setValue clears markers)
+    nextTick(() => applyMarkers())
   }
 }, { immediate: true })
+
+/* Reapply markers when marker prop changes independently of value */
+watch(() => props.markers, () => {
+  applyMarkers()
+}, { deep: true })
 
 // Expose editor instance if needed
 defineExpose({
@@ -439,7 +483,11 @@ defineExpose({
 
   /* Hint System Styles */
   /* Variable fade has no visual styling - just transforms variable names */
-  /* Subgoal highlighting styles moved to global styles block below */
+  /* Subgoal highlighting: force comment tokens to have transparent backgrounds
+     so fullLine marker backgrounds show through consistently across all themes */
+  :deep(.ace_comment) {
+    background-color: transparent !important;
+  }
 
   /* Hide cursor only for read-only editors */
   :deep(.ace_editor.ace_read-only .ace_cursor-layer) {

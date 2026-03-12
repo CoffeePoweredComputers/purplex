@@ -5,6 +5,7 @@ import {
   HintResult,
   HintType
 } from '../services/hintProcessors'
+import { EditorMarker } from '../services/hintProcessors/types'
 import { log } from '../utils/logger'
 
 // Types for hint content - varies by hint type
@@ -57,6 +58,12 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
 
   // Track UI overlays for OVERLAY_UI strategy hints
   const activeOverlays = ref<Array<{ component: string; props: Record<string, unknown> }>>([])
+
+  // Computed markers from active subgoal highlight hint
+  const subgoalMarkers = computed<EditorMarker[]>(() => {
+    const subgoalHint = activeHints.value.find(h => h.hintType === 'subgoal_highlight')
+    return subgoalHint?.result?.metadata?.markers ?? []
+  })
 
   // Watch for original code changes
   watch(originalCode, (newCode) => {
@@ -423,6 +430,7 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
     activeHints: computed(() => activeHints.value),
     activeOverlays: computed(() => activeOverlays.value),
     modifiedCode: computed(() => modifiedCode.value),
+    subgoalMarkers,
     hasActiveHints,
     canToggleOriginal,
     hintsByType,

@@ -277,4 +277,58 @@ describe('useEditorHints composable', () => {
       expect(composable.hasActiveHints.value).toBe(false)
     })
   })
+
+  describe('Subgoal markers', () => {
+    it('should expose subgoalMarkers when subgoal hint is active', async () => {
+      const hintData = {
+        content: {
+          subgoals: [{
+            line_start: 2,
+            line_end: 2,
+            title: 'Addition step',
+            explanation: 'Addition step'
+          }]
+        }
+      }
+
+      // No markers before applying
+      expect(composable.subgoalMarkers.value).toEqual([])
+
+      await composable.applyHint('subgoal_highlight', hintData)
+
+      // Should have markers after applying
+      const markers = composable.subgoalMarkers.value
+      expect(markers.length).toBeGreaterThan(0)
+      expect(markers.some(m => m.className === 'ace_subgoal-comment')).toBe(true)
+      expect(markers.some(m => m.className === 'ace_subgoal-highlight')).toBe(true)
+    })
+
+    it('should clear subgoalMarkers when hint is removed', async () => {
+      await composable.applyHint('subgoal_highlight', {
+        content: {
+          subgoals: [{
+            line_start: 2,
+            line_end: 2,
+            title: 'Test',
+            explanation: 'Test'
+          }]
+        }
+      })
+
+      expect(composable.subgoalMarkers.value.length).toBeGreaterThan(0)
+
+      await composable.removeHint('subgoal_highlight')
+
+      expect(composable.subgoalMarkers.value).toEqual([])
+    })
+
+    it('should return empty markers when no subgoal hint is active', async () => {
+      // Apply a non-subgoal hint
+      await composable.applyHint('variable_fade', {
+        content: { mappings: [{ from: 'x', to: 'first' }] }
+      })
+
+      expect(composable.subgoalMarkers.value).toEqual([])
+    })
+  })
 })

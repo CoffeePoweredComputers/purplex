@@ -221,6 +221,7 @@
             :max-lines="35"
             :extra-lines="2"
             :value="displayedCode"
+            :markers="subgoalMarkers"
             :read-only="true"
             :show-gutter="showLineNumbers"
             :theme="currentTheme"
@@ -430,6 +431,7 @@ export default {
         // Initialize hint system
         const {
             modifiedCode,
+            subgoalMarkers,
             hasActiveHints,
             activeOverlays,
             applyHint,
@@ -464,6 +466,7 @@ export default {
             entry,
             originalSolutionCode,
             modifiedCode,
+            subgoalMarkers,
             hasActiveHints,
             activeOverlays,
             applyHint,
