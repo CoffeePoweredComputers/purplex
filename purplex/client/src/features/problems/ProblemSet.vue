@@ -2046,10 +2046,6 @@ export default {
                             timestamp: new Date().toISOString()
                         });
 
-                        // Force complete re-render for subgoal hints to fix overlapping text
-                        if (hintType === 'subgoal_highlight') {
-                            this.editorRenderKey++;
-                        }
                     } else {
                         this.logger.error('Failed to apply hint', { hintType });
                     }
@@ -2058,9 +2054,6 @@ export default {
                     const success = await this.removeHint(hintType);
                     if (success) {
                         this.logger.info('Removed hint', { hintType });
-                        // Force complete re-render when removing subgoal hints
-                        if (hintType === 'subgoal_highlight') {
-                            this.editorRenderKey++;
                         }
                     } else {
                         this.logger.error('Failed to remove hint', { hintType });
