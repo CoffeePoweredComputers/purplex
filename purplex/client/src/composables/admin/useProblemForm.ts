@@ -122,15 +122,7 @@ export const useProblemForm = (): UseProblemFormReturn => {
    * Set entire form state (partial update)
    */
   const setForm = (data: Partial<ProblemFormState>): void => {
-    if (data.title !== undefined) {state.title = data.title;}
-    if (data.difficulty !== undefined) {state.difficulty = data.difficulty;}
-    if (data.problem_type !== undefined) {state.problem_type = data.problem_type;}
-    if (data.category_ids !== undefined) {state.category_ids = data.category_ids;}
-    if (data.function_signature !== undefined) {state.function_signature = data.function_signature;}
-    if (data.reference_solution !== undefined) {state.reference_solution = data.reference_solution;}
-    if (data.tags !== undefined) {state.tags = data.tags;}
-
-    // Update original state snapshot after loading
+    Object.assign(state, data);
     originalState = JSON.stringify(state);
   };
 

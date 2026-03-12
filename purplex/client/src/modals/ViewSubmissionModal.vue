@@ -106,267 +106,240 @@
           </div>
         </div>
 
-        <!-- Variation Navigation (only show for EiPL submissions) -->
-        <div
-          v-if="hasVariations"
-          class="variation-nav"
-        >
-          <div class="nav-info">
-            <span class="variation-label">Variation {{ currentVariationIndex + 1 }} of {{ totalVariationsCount }}</span>
-            <div
-              class="variation-status"
-              :class="currentVariationStatusClass"
-            >
-              {{ currentVariationData?.success ? 'All tests passed' : `${currentVariationData?.testsPassed || 0}/${currentVariationData?.totalTests || 0} tests passed` }}
-            </div>
-          </div>
-          <div class="nav-controls">
-            <button
-              class="nav-btn"
-              :disabled="currentVariationIndex === 0"
-              title="Previous variation"
-              @click="prevVariation"
-            >
-              ← Previous
-            </button>
-            <button
-              class="nav-btn"
-              :disabled="currentVariationIndex >= totalVariationsCount - 1"
-              title="Next variation"
-              @click="nextVariation"
-            >
-              Next →
-            </button>
-          </div>
-        </div>
-
         <!-- Main Content Area -->
-        <div class="main-content">
+        <div class="modal-body">
           <!-- Type-specific content (MCQ options, Refute claim, DebugFix side-by-side, etc.) -->
           <SubmissionDetailContent
             v-if="submission"
             :submission="(submission as Record<string, unknown>)"
           >
-          <!-- Two Column Layout (code + tests — the default slot of SubmissionDetailContent) -->
-          <div class="two-column-layout">
-            <!-- Left Column: Code -->
-            <div class="code-column">
-              <!-- Natural Language Prompt (EiPL/Prompt types) - show if raw_input exists -->
-              <div
-                v-if="submission?.raw_input"
-                class="code-section"
-              >
-                <div class="section-header">
-                  <span class="section-title">Natural Language Prompt</span>
-                </div>
-                <div class="prompt-box">
-                  {{ submission.raw_input }}
-                </div>
-              </div>
-
-              <!-- Code -->
-              <div class="code-section">
-                <div class="section-header">
-                  <span class="section-title">
-                    {{ hasVariations ? `Generated Code - Variation ${currentVariationIndex + 1}` : (submission?.raw_input ? 'Generated Code' : 'Submitted Code') }}
-                  </span>
-                  <button
-                    class="copy-btn"
-                    @click="copyCode(currentCodeToDisplay)"
-                  >
-                    Copy
-                  </button>
-                </div>
-                <Editor
-                  :value="currentCodeToDisplay || '# No code available'"
-                  :read-only="true"
-                  height="400px"
-                  width="100%"
-                  theme="tomorrow_night"
-                />
-              </div>
-            </div>
-
-            <!-- Right Column: Tests -->
-            <div class="tests-column">
-              <div class="section-header">
-                <span class="section-title">
-                  Test Results
-                  <span
-                    v-if="currentTestResults.length > 0"
-                    class="test-count"
-                  >
-                    ({{ currentPassingTests }}/{{ currentTestResults.length }} passing)
-                  </span>
-                </span>
-              </div>
-
-              <div
-                v-if="!currentTestResults || currentTestResults.length === 0"
-                class="empty-state"
-              >
-                No test results available{{ hasVariations ? ' for current variation' : '' }}
-              </div>
-              <div
-                v-else
-                class="test-results"
-              >
-                <!-- Test Summary Bar -->
-                <div class="test-summary-bar">
-                  <div class="summary-counts">
-                    <span class="count-item passing">✓ {{ currentPassingTests }} Passing</span>
-                    <span class="count-item failing">✗ {{ currentFailingTests }} Failing</span>
-                  </div>
-                </div>
-
-                <!-- Failing Tests (Expanded by default) -->
-                <details
-                  v-if="currentFailingTests > 0"
-                  open
-                  class="test-group"
-                >
-                  <summary class="test-group-header failing">
-                    <span class="group-icon">▶</span>
-                    Failing Tests ({{ currentFailingTests }})
-                  </summary>
-                  <div class="test-list">
-                    <article
-                      v-for="(test, i) in currentFailingTestsList"
-                      :key="`fail-${i}`"
-                      class="test-item failing"
-                    >
-                      <div class="test-content">
-                        <code class="test-call">{{ formatTestCall(test) }}</code>
-                        <div class="test-diff">
-                          <div>Expected: <code class="expected">{{ formatValue(test.expected_output || test.expected) }}</code></div>
-                          <div>
-                            Got: <code
-                              class="actual"
-                              :class="getValueDisplayClass(test.actual_output || test.actual)"
-                            >{{ formatTestValue(test.actual_output || test.actual) }}</code>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  </div>
-                </details>
-
-                <!-- Passing Tests (Collapsed by default) -->
-                <details
-                  v-if="currentPassingTests > 0"
-                  class="test-group"
-                >
-                  <summary class="test-group-header passing">
-                    <span class="group-icon">▶</span>
-                    Passing Tests ({{ currentPassingTests }})
-                  </summary>
-                  <div class="test-list">
-                    <article
-                      v-for="(test, i) in currentPassingTestsList"
-                      :key="`pass-${i}`"
-                      class="test-item passing"
-                    >
-                      <div class="test-content">
-                        <code class="test-call">{{ formatTestCall(test) }} → {{ formatValue(test.expected_output || test.expected) }}</code>
-                      </div>
-                    </article>
-                  </div>
-                </details>
-              </div>
+          <!-- Natural Language Prompt (EiPL/Prompt types) - full-width above grid -->
+          <div
+            v-if="submission?.raw_input"
+            class="prompt-section"
+          >
+            <span class="section-title">Natural Language Prompt</span>
+            <div class="prompt-box">
+              {{ submission.raw_input }}
             </div>
           </div>
 
-          <!-- Analysis Section - Always Visible Below -->
+          <!-- Main Grid: code+tests group | segmentation -->
           <div
-            v-if="submission?.segmentation || hasHintsActivated"
-            class="analysis-section-static"
+            class="main-grid"
+            :class="{ 'has-segmentation': submission?.segmentation?.segments?.length }"
           >
-            <div class="section-header">
-              <h3 class="section-title">
-                Analysis & Hints
-              </h3>
-            </div>
-
-            <div class="analysis-content">
-              <!-- Hints Activated Section -->
+            <!-- Left group: Code + Tests -->
+            <div class="code-tests-group">
+              <!-- Variation nav (scoped to code+tests) -->
               <div
-                v-if="hasHintsActivated"
-                class="analysis-section hints-section"
+                v-if="hasVariations"
+                class="variation-nav"
               >
-                <h4 class="section-title">
-                  Hints Used ({{ hintsActivatedCount }})
-                </h4>
-                <div class="hints-list">
+                <div class="nav-info">
+                  <span class="variation-label">Variation {{ currentVariationIndex + 1 }} of {{ totalVariationsCount }}</span>
                   <div
-                    v-for="(hint, idx) in submission.hints_activated"
-                    :key="idx"
-                    class="hint-item"
+                    class="variation-status"
+                    :class="currentVariationStatusClass"
                   >
-                    <span class="hint-icon">{{ getHintIcon(hint.hint_type) }}</span>
-                    <div class="hint-details">
-                      <div class="hint-type-name">
-                        {{ formatHintType(hint.hint_type) }}
+                    {{ currentVariationData?.success ? 'All tests passed' : `${currentVariationData?.testsPassed || 0}/${currentVariationData?.totalTests || 0} tests passed` }}
+                  </div>
+                </div>
+                <div class="nav-controls">
+                  <button
+                    class="nav-btn"
+                    :disabled="currentVariationIndex === 0"
+                    title="Previous variation"
+                    @click="prevVariation"
+                  >
+                    ← Previous
+                  </button>
+                  <button
+                    class="nav-btn"
+                    :disabled="currentVariationIndex >= totalVariationsCount - 1"
+                    title="Next variation"
+                    @click="nextVariation"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+
+              <div class="code-tests-columns">
+                <!-- Code -->
+                <div class="code-column">
+                  <div class="code-section">
+                    <div class="section-header">
+                      <span class="section-title">
+                        {{ hasVariations ? `Generated Code - Variation ${currentVariationIndex + 1}` : (submission?.raw_input ? 'Generated Code' : 'Submitted Code') }}
+                      </span>
+                      <button
+                        class="copy-btn"
+                        @click="copyCode(currentCodeToDisplay)"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <Editor
+                      :value="currentCodeToDisplay || '# No code available'"
+                      :read-only="true"
+                      :min-lines="3"
+                      :max-lines="30"
+                      width="100%"
+                      theme="tomorrow_night"
+                    />
+                  </div>
+                </div>
+
+                <!-- Tests -->
+                <div class="tests-panel">
+                  <div class="section-header">
+                    <span class="section-title">
+                      Test Results
+                      <span
+                        v-if="currentTestResults.length > 0"
+                        class="test-count"
+                      >
+                        ({{ currentPassingTests }}/{{ currentTestResults.length }} passing)
+                      </span>
+                    </span>
+                  </div>
+
+                  <div
+                    v-if="!currentTestResults || currentTestResults.length === 0"
+                    class="empty-state"
+                  >
+                    No test results available{{ hasVariations ? ' for current variation' : '' }}
+                  </div>
+                  <div
+                    v-else
+                    class="test-results"
+                  >
+                    <!-- Test Summary Bar -->
+                    <div class="test-summary-bar">
+                      <div class="summary-counts">
+                        <span class="count-item passing">✓ {{ currentPassingTests }} Passing</span>
+                        <span class="count-item failing">✗ {{ currentFailingTests }} Failing</span>
                       </div>
-                      <div class="hint-meta">
-                        <span class="hint-trigger">{{ formatTriggerType(hint.trigger_type) }}</span>
-                        <span class="hint-time">{{ formatHintTime(hint.activated_at) }}</span>
+                    </div>
+
+                    <!-- Failing Tests (Expanded by default) -->
+                    <details
+                      v-if="currentFailingTests > 0"
+                      open
+                      class="test-group"
+                    >
+                      <summary class="test-group-header failing">
+                        <span class="group-icon">▶</span>
+                        Failing Tests ({{ currentFailingTests }})
+                      </summary>
+                      <div class="test-list">
+                        <article
+                          v-for="(test, i) in currentFailingTestsList"
+                          :key="`fail-${i}`"
+                          class="test-item failing"
+                        >
+                          <div class="test-content">
+                            <code class="test-call">{{ formatTestCall(test) }}</code>
+                            <div class="test-diff">
+                              <div>Expected: <code class="expected">{{ formatValue(test.expected_output || test.expected) }}</code></div>
+                              <div>
+                                Got: <code
+                                  class="actual"
+                                  :class="getValueDisplayClass(test.actual_output || test.actual)"
+                                >{{ formatTestValue(test.actual_output || test.actual) }}</code>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      </div>
+                    </details>
+
+                    <!-- Passing Tests (Collapsed by default) -->
+                    <details
+                      v-if="currentPassingTests > 0"
+                      class="test-group"
+                    >
+                      <summary class="test-group-header passing">
+                        <span class="group-icon">▶</span>
+                        Passing Tests ({{ currentPassingTests }})
+                      </summary>
+                      <div class="test-list">
+                        <article
+                          v-for="(test, i) in currentPassingTestsList"
+                          :key="`pass-${i}`"
+                          class="test-item passing"
+                        >
+                          <div class="test-content">
+                            <code class="test-call">{{ formatTestCall(test) }} → {{ formatValue(test.expected_output || test.expected) }}</code>
+                          </div>
+                        </article>
+                      </div>
+                    </details>
+                  </div>
+
+                  <!-- Hints (compact, inside tests panel) -->
+                  <div
+                    v-if="hasHintsActivated"
+                    class="hints-compact"
+                  >
+                    <div class="section-header">
+                      <span class="section-title">Hints Used ({{ hintsActivatedCount }})</span>
+                    </div>
+                    <div class="hints-list">
+                      <div
+                        v-for="(hint, idx) in submission.hints_activated"
+                        :key="idx"
+                        class="hint-item"
+                      >
+                        <span class="hint-icon">{{ getHintIcon(hint.hint_type) }}</span>
+                        <div class="hint-details">
+                          <div class="hint-type-name">
+                            {{ formatHintType(hint.hint_type) }}
+                          </div>
+                          <div class="hint-meta">
+                            <span class="hint-trigger">{{ formatTriggerType(hint.trigger_type) }}</span>
+                            <span class="hint-time">{{ formatHintTime(hint.activated_at) }}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div
-                v-if="submission.segmentation.confidence_score"
-                class="info-item"
-              >
-                <span class="info-label">Confidence:</span>
-                <span class="info-value">{{ Math.round(submission.segmentation.confidence_score * 100) }}%</span>
-              </div>
+            </div>
 
-              <div
-                v-if="submission.segmentation.feedback_message"
-                class="analysis-section"
-              >
-                <h4 class="section-title">
-                  Feedback
-                </h4>
-                <p class="feedback-text">
-                  {{ submission.segmentation.feedback_message }}
-                </p>
+            <!-- Right: Segmentation (only for EiPL) -->
+            <div
+              v-if="submission?.segmentation?.segments?.length"
+              class="segmentation-panel"
+            >
+              <div class="section-header">
+                <span class="section-title">
+                  Segmentation
+                  <span class="segment-count-highlight">{{ submission.segmentation.segment_count || submission.segmentation.segments.length }}</span>
+                </span>
               </div>
-
-              <div
-                v-if="submission.segmentation.suggested_improvements?.length"
-                class="analysis-section"
-              >
-                <h4 class="section-title">
-                  Suggested Improvements
-                </h4>
-                <ul class="improvements-list">
-                  <li
-                    v-for="(improvement, idx) in submission.segmentation.suggested_improvements"
-                    :key="idx"
-                  >
-                    {{ improvement }}
-                  </li>
-                </ul>
-              </div>
-
-              <div
-                v-if="submission.segmentation.segments?.length"
-                class="analysis-section"
-              >
-                <h4 class="section-title">
-                  Code Segments (<span class="segment-count-highlight">{{ submission.segmentation.segment_count || submission.segmentation.segments.length }}</span>)
-                </h4>
-                <div class="segments-list">
-                  <div
-                    v-for="(segment, idx) in submission.segmentation.segments"
-                    :key="idx"
-                    class="segment-item"
-                  >
-                    {{ segment }}
-                  </div>
+              <div class="segments-list">
+                <div
+                  v-for="(segment, idx) in submission.segmentation.segments"
+                  :key="segment.id"
+                  class="segment-item"
+                  :style="{
+                    borderLeftColor: getSegmentColor(idx),
+                    backgroundColor: getSegmentColor(idx) + '10'
+                  }"
+                >
+                  <span
+                    class="segment-number"
+                    :style="{ backgroundColor: getSegmentColor(idx) }"
+                  >{{ idx + 1 }}</span>
+                  <span class="segment-body">
+                    <span class="segment-text">{{ segment.text }}</span>
+                    <span v-if="segment.code_lines?.length" class="segment-lines">
+                      Lines {{ formatCodeLines(segment.code_lines) }}
+                    </span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -414,11 +387,14 @@ interface HintActivated {
   activated_at?: string
 }
 
+interface SegmentData {
+  id: number
+  text: string
+  code_lines: number[]
+}
+
 interface Segmentation {
-  confidence_score?: number
-  feedback_message?: string
-  suggested_improvements?: string[]
-  segments?: string[]
+  segments?: SegmentData[]
   segment_count?: number
 }
 
@@ -803,6 +779,32 @@ function formatHintTime(timestamp: string | undefined): string {
   return formatDate(timestamp)
 }
 
+// Segment display helpers
+const SEGMENT_COLORS = ['#9f7aea', '#4299e1', '#4fd1c5', '#68d391', '#f6ad55', '#fc8181']
+
+function getSegmentColor(index: number): string {
+  return SEGMENT_COLORS[index % SEGMENT_COLORS.length]
+}
+
+function formatCodeLines(lines: number[]): string {
+  if (!lines.length) return ''
+  const sorted = [...lines].sort((a, b) => a - b)
+  const ranges: string[] = []
+  let start = sorted[0]
+  let end = start
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === end + 1) {
+      end = sorted[i]
+    } else {
+      ranges.push(start === end ? `${start}` : `${start}-${end}`)
+      start = sorted[i]
+      end = start
+    }
+  }
+  ranges.push(start === end ? `${start}` : `${start}-${end}`)
+  return ranges.join(', ')
+}
+
 // Watchers
 watch(() => props.submission, () => {
   currentVariationIndex.value = 0
@@ -834,8 +836,8 @@ watch(() => props.submission, () => {
   background: var(--color-bg-panel);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  max-width: 960px;
-  width: 92vw;
+  max-width: 1400px;
+  width: 95vw;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
@@ -1049,30 +1051,62 @@ watch(() => props.submission, () => {
   cursor: not-allowed;
 }
 
-/* Main Content */
-.main-content {
+/* Modal Body */
+.modal-body {
   flex: 1;
   overflow-y: auto;
   background: var(--color-bg-panel);
   padding: 20px;
 }
 
-/* Two Column Layout */
-.two-column-layout {
+/* Main Grid Layout */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: 20px;
+}
+
+.main-grid.has-segmentation {
+  grid-template-columns: 2fr 1fr;
+}
+
+.code-tests-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.code-tests-group .variation-nav {
+  border-bottom: none;
+  padding: 8px 12px;
+  border-radius: var(--radius-base);
+}
+
+.code-tests-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  margin-bottom: 24px;
 }
 
-.code-column,
-.tests-column {
-  min-height: 400px;
+.tests-panel {
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-bg-input);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-lg);
 }
 
-.tests-column {
-  border-left: 1px solid var(--color-bg-input);
-  padding-left: 20px;
+.segmentation-panel {
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-bg-input);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-lg);
+}
+
+.hints-compact {
+  border-top: 1px solid var(--color-bg-input);
+  margin-top: 16px;
+  padding-top: 16px;
 }
 
 .test-count {
@@ -1081,6 +1115,21 @@ watch(() => props.submission, () => {
   font-weight: normal;
 }
 
+
+/* Prompt Section (full-width above grid) */
+.prompt-section {
+  margin-bottom: 20px;
+}
+
+.prompt-section > .section-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
 
 /* Code Section */
 .code-section {
@@ -1123,7 +1172,6 @@ watch(() => props.submission, () => {
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text-primary);
-  margin-bottom: 16px;
 }
 
 /* Test Results Section */
@@ -1281,81 +1329,7 @@ details[open] .group-icon {
   font-family: monospace;
 }
 
-/* Static Analysis Section */
-.analysis-section-static {
-  border-top: 2px solid var(--color-bg-input);
-  margin-top: 24px;
-  padding-top: 24px;
-}
-
-.analysis-section-static .section-header {
-  margin-bottom: 16px;
-}
-
-.analysis-section-static .section-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.analysis-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.analysis-section {
-  border-top: 1px solid var(--color-bg-input);
-  padding-top: 16px;
-}
-
-.analysis-section h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.info-item {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.info-label {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-.info-value {
-  font-size: 14px;
-  color: var(--color-text-primary);
-  word-break: break-all;
-}
-
-.feedback-text {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
-.improvements-list {
-  margin: 0;
-  padding-left: 20px;
-  list-style: disc;
-}
-
-.improvements-list li {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--color-text-primary);
-  margin-bottom: 4px;
-}
+/* (analysis-section-static removed — content is now in the 3-col grid) */
 
 .segments-list {
   display: flex;
@@ -1364,11 +1338,40 @@ details[open] .group-icon {
 }
 
 .segment-item {
-  background: var(--color-bg-hover);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   padding: 8px 12px;
   border-radius: 4px;
+  border-left: 3px solid;
   font-size: 13px;
   color: var(--color-text-primary);
+}
+
+.segment-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.segment-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.segment-lines {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--color-text-muted);
 }
 
 .segment-count-highlight {
@@ -1500,20 +1503,32 @@ details[open] .group-icon {
     text-align: center;
   }
 
-  .main-content {
+  .modal-body {
     padding: 16px;
   }
 
-  .two-column-layout {
+  .main-grid,
+  .main-grid.has-segmentation {
     grid-template-columns: 1fr;
     gap: 16px;
   }
 
-  .tests-column {
-    border-left: none;
+  .code-tests-columns {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .tests-panel,
+  .segmentation-panel {
+    background: transparent;
+    border-radius: 0;
+    border: none;
     border-top: 1px solid var(--color-bg-input);
-    padding-left: 0;
-    padding-top: 16px;
+    padding: 16px 0 0 0;
+  }
+
+  .prompt-section {
+    margin-bottom: 16px;
   }
 
   .header-actions {
