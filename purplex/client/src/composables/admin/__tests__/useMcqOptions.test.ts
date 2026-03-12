@@ -39,8 +39,10 @@ describe('useMcqOptions', () => {
       mcq.setOptions(apiOptions)
 
       expect(mcq.options.value).toHaveLength(3)
+      expect(mcq.options.value[0].id).toBe('1')
       expect(mcq.options.value[0].text).toBe('Option A')
       expect(mcq.options.value[0].is_correct).toBe(true)
+      expect(mcq.options.value[0].explanation).toBe('Correct!')
       expect(mcq.hasCorrectAnswer.value).toBe(true)
     })
 

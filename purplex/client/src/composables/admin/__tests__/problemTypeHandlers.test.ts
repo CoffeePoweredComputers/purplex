@@ -57,7 +57,11 @@ describe('problemTypeHandlers', () => {
 
       expect(composables.mcqOptions.questionText.value).toBe('What is 2 + 2?')
       expect(composables.mcqOptions.options.value).toHaveLength(3)
+      expect(composables.mcqOptions.options.value[0].text).toBe('3')
+      expect(composables.mcqOptions.options.value[0].is_correct).toBe(false)
+      expect(composables.mcqOptions.options.value[1].text).toBe('4')
       expect(composables.mcqOptions.options.value[1].is_correct).toBe(true)
+      expect(composables.mcqOptions.options.value[1].explanation).toBe('Correct!')
     })
 
     it('should save MCQ state back to API format', () => {
@@ -218,6 +222,8 @@ describe('problemTypeHandlers', () => {
       expect(composables.probeableCodeConfig.showFunctionSignature.value).toBe(false)
       expect(composables.probeableCodeConfig.probeMode.value).toBe('cooldown')
       expect(composables.probeableCodeConfig.maxProbes.value).toBe(15)
+      expect(composables.probeableCodeConfig.cooldownAttempts.value).toBe(5)
+      expect(composables.probeableCodeConfig.cooldownRefill.value).toBe(8)
     })
 
     it('should not load when probe_mode is undefined', () => {
@@ -267,9 +273,12 @@ describe('problemTypeHandlers', () => {
 
       problemTypeHandlers.probeable_spec.load(mockData, composables)
 
-      // Probe config
+      // Probe config — all 5 fields
+      expect(composables.probeableSpecConfig.showFunctionSignature.value).toBe(true)
       expect(composables.probeableSpecConfig.probeMode.value).toBe('block')
       expect(composables.probeableSpecConfig.maxProbes.value).toBe(20)
+      expect(composables.probeableSpecConfig.cooldownAttempts.value).toBe(3)
+      expect(composables.probeableSpecConfig.cooldownRefill.value).toBe(5)
 
       // Segmentation
       expect(composables.segmentation.isEnabled.value).toBe(true)
@@ -338,6 +347,8 @@ describe('problemTypeHandlers', () => {
 
       expect(saved.claim_text).toBe('Modified claim that always fails')
       expect(saved.claim_predicate).toBe('modified > 0')
+      // expected_counterexample was not edited — verify it survived the round-trip
+      expect(saved.expected_counterexample).toBe('{}')
     })
 
     it('should handle missing refute fields gracefully', () => {
