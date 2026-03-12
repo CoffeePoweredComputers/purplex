@@ -23,11 +23,21 @@ PROGRESS_SERVICE_PATH = "purplex.problems_app.services.progress_service.Progress
 # ─── Shared fixtures ───────────────────────────────────────────
 
 
-def _make_mock_submission():
-    """Create a mock Submission with the fields handlers expect."""
+def _make_mock_submission(problem=None, raw_input=None):
+    """Create a mock Submission with the fields handlers expect.
+
+    For sync handlers, pass the same problem fixture used in submit() so that
+    serialize_result() (which reads submission.problem) processes realistic data
+    instead of a generic MagicMock whose auto-created attributes silently pass
+    duck-typing checks.
+    """
     sub = MagicMock()
     sub.submission_id = uuid.uuid4()
-    sub.problem = MagicMock()
+    sub.problem = problem or MagicMock()
+    sub.raw_input = raw_input
+    # Prevent MagicMock auto-creation from making serialize_result()
+    # read truthy garbage for fields submit() never sets.
+    sub.type_specific_data = None
     sub.save = MagicMock()
     return sub
 
@@ -176,7 +186,7 @@ class TestMCQSubmitContract:
     def test_submit_returns_complete_true(
         self, _mock_progress, mcq_handler, mcq_problem
     ):
-        submission = _make_mock_submission()
+        submission = _make_mock_submission(problem=mcq_problem, raw_input="b")
         outcome = mcq_handler.submit(
             submission, "b", mcq_problem, _make_handler_context()
         )
@@ -189,7 +199,7 @@ class TestMCQSubmitContract:
     def test_submit_updates_submission_fields(
         self, _mock_progress, mcq_handler, mcq_problem
     ):
-        submission = _make_mock_submission()
+        submission = _make_mock_submission(problem=mcq_problem, raw_input="b")
         mcq_handler.submit(submission, "b", mcq_problem, _make_handler_context())
 
         assert submission.score == 100
@@ -202,7 +212,7 @@ class TestMCQSubmitContract:
     def test_submit_incorrect_still_completes(
         self, _mock_progress, mcq_handler, mcq_problem
     ):
-        submission = _make_mock_submission()
+        submission = _make_mock_submission(problem=mcq_problem, raw_input="a")
         outcome = mcq_handler.submit(
             submission, "a", mcq_problem, _make_handler_context()
         )
@@ -215,7 +225,7 @@ class TestMCQSubmitContract:
     def test_submit_result_data_matches_frontend_contract(
         self, _mock_progress, mcq_handler, mcq_problem
     ):
-        submission = _make_mock_submission()
+        submission = _make_mock_submission(problem=mcq_problem, raw_input="b")
         outcome = mcq_handler.submit(
             submission, "b", mcq_problem, _make_handler_context()
         )
@@ -228,11 +238,17 @@ class TestMCQSubmitContract:
         assert "correct_option" in rd
         assert "submission_id" in rd
 
+        # Verify serialize_result() produced realistic data (not empty MagicMock garbage)
+        result = rd["result"]
+        assert result["selected_option"]["id"] == "b"
+        assert result["correct_option"]["id"] == "b"
+        assert result["is_correct"] is True
+
     @patch(PROGRESS_SERVICE_PATH)
     def test_submit_never_raises_not_implemented_error(
         self, _mock_progress, mcq_handler, mcq_problem
     ):
-        submission = _make_mock_submission()
+        submission = _make_mock_submission(problem=mcq_problem, raw_input="b")
         outcome = mcq_handler.submit(
             submission, "b", mcq_problem, _make_handler_context()
         )
@@ -263,7 +279,7 @@ class TestRefuteSubmitContract:
     def test_submit_returns_complete_true_disproven(
         self, _mock_progress, refute_handler, refute_problem
     ):
-        submission = _make_mock_submission()
+        submission = _make_mock_submission(problem=refute_problem)
         # f(-5) = -10, which is NOT > 0, so claim is disproven
         outcome = refute_handler.submit(
             submission, json.dumps({"x": -5}), refute_problem, _make_handler_context()
@@ -277,7 +293,7 @@ class TestRefuteSubmitContract:
     def test_submit_returns_complete_true_not_disproven(
         self, _mock_progress, refute_handler, refute_problem
     ):
-        submission = _make_mock_submission()
+        submission = _make_mock_submission(problem=refute_problem)
         # f(5) = 10, which IS > 0, so claim is NOT disproven
         outcome = refute_handler.submit(
             submission, json.dumps({"x": 5}), refute_problem, _make_handler_context()
@@ -290,7 +306,7 @@ class TestRefuteSubmitContract:
     def test_submit_updates_submission_fields(
         self, _mock_progress, refute_handler, refute_problem
     ):
-        submission = _make_mock_submission()
+        submission = _make_mock_submission(problem=refute_problem)
         refute_handler.submit(
             submission, json.dumps({"x": -5}), refute_problem, _make_handler_context()
         )
@@ -304,7 +320,7 @@ class TestRefuteSubmitContract:
     def test_submit_result_data_matches_frontend_contract(
         self, _mock_progress, refute_handler, refute_problem
     ):
-        submission = _make_mock_submission()
+        submission = _make_mock_submission(problem=refute_problem)
         outcome = refute_handler.submit(
             submission, json.dumps({"x": -5}), refute_problem, _make_handler_context()
         )
@@ -318,11 +334,19 @@ class TestRefuteSubmitContract:
         assert "result_value" in rd
         assert "submission_id" in rd
 
+        # Verify serialize_result() produced realistic data from the problem fixture
+        result = rd["result"]
+        assert result["claim_text"] == refute_problem.claim_text
+        assert result["function_signature"] == refute_problem.function_signature
+        assert (
+            result["claim_disproven"] is False
+        )  # serialize_result reads type_specific_data, not inline
+
     @patch(PROGRESS_SERVICE_PATH)
     def test_submit_never_raises_not_implemented_error(
         self, _mock_progress, refute_handler, refute_problem
     ):
-        submission = _make_mock_submission()
+        submission = _make_mock_submission(problem=refute_problem)
         outcome = refute_handler.submit(
             submission, json.dumps({"x": -5}), refute_problem, _make_handler_context()
         )
@@ -332,7 +356,7 @@ class TestRefuteSubmitContract:
     def test_submit_handles_invalid_json(
         self, _mock_progress, refute_handler, refute_problem
     ):
-        submission = _make_mock_submission()
+        submission = _make_mock_submission(problem=refute_problem)
         outcome = refute_handler.submit(
             submission, "not json", refute_problem, _make_handler_context()
         )
