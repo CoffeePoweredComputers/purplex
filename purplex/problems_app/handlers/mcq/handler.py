@@ -12,6 +12,7 @@ comparing the selected answer(s) to the correct one(s).
 
 import json
 import logging
+import random
 from typing import TYPE_CHECKING, Any, Union
 
 from .. import register_handler
@@ -265,6 +266,10 @@ class MCQHandler(ActivityHandler):
         # Ensure we have the actual McqProblem instance with MCQ-specific fields
         mcq = _ensure_mcq_problem(problem)
 
+        options_to_display = list(mcq.options)
+        if mcq.shuffle_options:
+            random.shuffle(options_to_display)
+
         return {
             "display": {
                 "show_reference_code": False,
@@ -280,7 +285,7 @@ class MCQHandler(ActivityHandler):
                         "id": str(opt.get("id", "")),
                         "text": opt.get("text", ""),
                     }
-                    for opt in mcq.options
+                    for opt in options_to_display
                 ],
             },
             "hints": {

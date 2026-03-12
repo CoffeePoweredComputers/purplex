@@ -1093,6 +1093,98 @@ class TestMCQConfig:
         assert config["supports"]["test_cases"] is False
 
 
+class TestMCQShuffleOptions:
+    """Tests for MCQ option shuffling behavior."""
+
+    @pytest.fixture
+    def handler(self):
+        """Create an MCQ handler instance."""
+        return get_handler("mcq")
+
+    @pytest.fixture
+    def mock_problem_no_shuffle(self):
+        """MCQ problem with shuffle_options=False."""
+        problem = MagicMock()
+        problem.options = [
+            {"id": "1", "text": "Option A", "is_correct": False},
+            {"id": "2", "text": "Option B", "is_correct": True},
+            {"id": "3", "text": "Option C", "is_correct": False},
+            {"id": "4", "text": "Option D", "is_correct": False},
+        ]
+        problem.allow_multiple = False
+        problem.shuffle_options = False
+        return problem
+
+    @pytest.fixture
+    def mock_problem_shuffle(self):
+        """MCQ problem with shuffle_options=True."""
+        problem = MagicMock()
+        problem.options = [
+            {"id": "1", "text": "Option A", "is_correct": False},
+            {"id": "2", "text": "Option B", "is_correct": True},
+            {"id": "3", "text": "Option C", "is_correct": False},
+            {"id": "4", "text": "Option D", "is_correct": False},
+        ]
+        problem.allow_multiple = False
+        problem.shuffle_options = True
+        return problem
+
+    def test_no_shuffle_preserves_order(self, handler, mock_problem_no_shuffle):
+        """When shuffle_options=False, options stay in original order."""
+        config = handler.get_problem_config(mock_problem_no_shuffle)
+        option_ids = [opt["id"] for opt in config["input"]["options"]]
+        assert option_ids == ["1", "2", "3", "4"]
+
+    def test_shuffle_preserves_all_options(self, handler, mock_problem_shuffle):
+        """When shuffle_options=True, all options are still present."""
+        config = handler.get_problem_config(mock_problem_shuffle)
+        option_ids = sorted(opt["id"] for opt in config["input"]["options"])
+        assert option_ids == ["1", "2", "3", "4"]
+
+    def test_shuffle_changes_order(self, handler, mock_problem_shuffle):
+        """When shuffle_options=True, order should differ from original at least sometimes."""
+        original_order = ["1", "2", "3", "4"]
+        saw_different_order = False
+        # With 4 options, probability of same order is 1/24 per call.
+        # After 10 calls, probability of never seeing a different order is (1/24)^10.
+        for _ in range(10):
+            config = handler.get_problem_config(mock_problem_shuffle)
+            option_ids = [opt["id"] for opt in config["input"]["options"]]
+            if option_ids != original_order:
+                saw_different_order = True
+                break
+        assert saw_different_order, "Options were never shuffled after 10 attempts"
+
+    def test_shuffle_does_not_mutate_original(self, handler, mock_problem_shuffle):
+        """Shuffling should not mutate the problem's original options list."""
+        original_options = [dict(opt) for opt in mock_problem_shuffle.options]
+        handler.get_problem_config(mock_problem_shuffle)
+        assert mock_problem_shuffle.options == original_options
+
+    def test_shuffle_does_not_leak_is_correct(self, handler, mock_problem_shuffle):
+        """Shuffled options should not expose is_correct to frontend."""
+        config = handler.get_problem_config(mock_problem_shuffle)
+        for opt in config["input"]["options"]:
+            assert "is_correct" not in opt
+            assert "explanation" not in opt
+
+    def test_shuffle_with_multiselect(self, handler):
+        """Shuffling works correctly with allow_multiple=True."""
+        problem = MagicMock()
+        problem.options = [
+            {"id": "a", "text": "A", "is_correct": True},
+            {"id": "b", "text": "B", "is_correct": True},
+            {"id": "c", "text": "C", "is_correct": False},
+        ]
+        problem.allow_multiple = True
+        problem.shuffle_options = True
+
+        config = handler.get_problem_config(problem)
+        option_ids = sorted(opt["id"] for opt in config["input"]["options"])
+        assert option_ids == ["a", "b", "c"]
+        assert config["input"]["type"] == "checkbox"
+
+
 class TestMCQSerializeResult:
     """Tests for MCQ result serialization."""
 
