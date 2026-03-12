@@ -14,7 +14,7 @@ from purplex.problems_app.handlers import (
     get_registered_types,
     is_registered,
 )
-from purplex.problems_app.handlers.base import ActivityHandler
+from purplex.problems_app.handlers.base import ActivityHandler, ProcessingResult
 
 # Mark all tests in this module as unit tests
 pytestmark = pytest.mark.unit
@@ -1307,3 +1307,95 @@ class TestPromptConfig:
 
         assert "image_url" in config["required_fields"]
         assert config["type_specific_section"] == "prompt_image"
+
+
+# ─── process_submission() contract tests ─────────────────────
+
+
+ASYNC_HANDLER_TYPES = [
+    "eipl",
+    "prompt",
+    "debug_fix",
+    "probeable_code",
+    "probeable_spec",
+]
+SYNC_HANDLER_TYPES = ["mcq", "refute"]
+
+
+class TestAsyncHandlersProcessSubmission:
+    """Async handlers should inherit the base class default for process_submission()."""
+
+    @pytest.fixture(params=ASYNC_HANDLER_TYPES)
+    def handler(self, request):
+        return get_handler(request.param)
+
+    def test_raises_not_implemented_error(self, handler):
+        """Calling process_submission() on an async handler should raise NotImplementedError."""
+        mock_submission = MagicMock()
+        mock_problem = MagicMock()
+
+        with pytest.raises(NotImplementedError) as exc_info:
+            handler.process_submission(mock_submission, "input", mock_problem)
+
+        assert handler.type_name in str(exc_info.value)
+        assert "Celery pipeline" in str(exc_info.value)
+
+    def test_inherits_from_base_class(self, handler):
+        """Async handlers should not override process_submission() — they inherit the base default."""
+        assert "process_submission" not in type(handler).__dict__
+
+    def test_error_message_includes_handler_type(self, handler):
+        """Error message should identify which handler was called."""
+        mock_submission = MagicMock()
+        mock_problem = MagicMock()
+
+        with pytest.raises(NotImplementedError, match=handler.type_name):
+            handler.process_submission(mock_submission, "input", mock_problem)
+
+
+class TestSyncHandlersProcessSubmission:
+    """Sync handlers should have their own working process_submission()."""
+
+    def test_mcq_has_own_process_submission(self):
+        """MCQ handler should override process_submission()."""
+        handler = get_handler("mcq")
+        assert "process_submission" in type(handler).__dict__
+
+    def test_refute_has_own_process_submission(self):
+        """Refute handler should override process_submission()."""
+        handler = get_handler("refute")
+        assert "process_submission" in type(handler).__dict__
+
+    def test_mcq_process_submission_returns_result(self):
+        """MCQ handler's process_submission should return a ProcessingResult."""
+        handler = get_handler("mcq")
+        mock_submission = MagicMock()
+        mock_problem = MagicMock()
+        mock_problem.slug = "test-mcq"
+        mock_problem.options = [
+            {"id": "1", "text": "Option A", "is_correct": True},
+            {"id": "2", "text": "Option B", "is_correct": False},
+        ]
+        mock_problem.allow_multiple = False
+
+        result = handler.process_submission(mock_submission, "1", mock_problem)
+
+        assert isinstance(result, ProcessingResult)
+        assert result.success is True
+        assert result.type_specific_data["is_correct"] is True
+
+
+class TestBaseClassProcessSubmission:
+    """Base class process_submission() default behavior."""
+
+    def test_base_default_is_not_abstract(self):
+        """process_submission should be a concrete method, not abstract."""
+        import inspect
+
+        method = ActivityHandler.process_submission
+        assert not getattr(method, "__isabstractmethod__", False)
+        # Should be a regular function, not decorated with @abstractmethod
+        assert callable(method)
+        # Verify it has a real implementation (not just `pass`)
+        source = inspect.getsource(method)
+        assert "NotImplementedError" in source

@@ -22,7 +22,6 @@ from typing import TYPE_CHECKING, Any
 from .. import register_handler
 from ..base import (
     ActivityHandler,
-    ProcessingResult,
     SubmissionOutcome,
     ValidationResult,
 )
@@ -87,22 +86,6 @@ class ProbeableSpecHandler(ActivityHandler):
             )
 
         return ValidationResult(is_valid=True)
-
-    # --- Submission Processing ---
-
-    def process_submission(
-        self, submission: "Submission", raw_input: str, problem: "Problem"
-    ) -> ProcessingResult:
-        """
-        Process Probeable Spec submission.
-
-        Note: Processing is handled by the execute_eipl_pipeline Celery task.
-        The pipeline is identical to EiPL - NL -> LLM code generation -> testing.
-        """
-        raise NotImplementedError(
-            "Probeable Spec processing is handled by execute_eipl_pipeline task. "
-            "Direct handler processing not supported."
-        )
 
     # --- Grading (reuses EiPL logic) ---
 

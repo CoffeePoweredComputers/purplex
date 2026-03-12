@@ -22,7 +22,6 @@ if TYPE_CHECKING:
 
 from ..base import (
     ActivityHandler,
-    ProcessingResult,
     SubmissionOutcome,
     ValidationResult,
 )
@@ -60,23 +59,6 @@ class EiPLHandler(ActivityHandler):
             )
 
         return ValidationResult(is_valid=True)
-
-    # ─── Submission Processing ──────────────────────────────────
-
-    def process_submission(
-        self, submission: "Submission", raw_input: str, problem: "Problem"
-    ) -> ProcessingResult:
-        """
-        Process EiPL submission.
-
-        Note: In Phase 1, this is a stub. Full implementation requires
-        pipeline integration (Phase 2+). Currently, processing is handled
-        by the execute_eipl_pipeline Celery task.
-        """
-        raise NotImplementedError(
-            "EiPL processing is handled by execute_eipl_pipeline task. "
-            "Direct handler processing will be available in Phase 2."
-        )
 
     # ─── Grading ────────────────────────────────────────────────
 
