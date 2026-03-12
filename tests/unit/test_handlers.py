@@ -1384,6 +1384,53 @@ class TestSyncHandlersProcessSubmission:
         assert result.success is True
         assert result.type_specific_data["is_correct"] is True
 
+    def test_refute_process_submission_disproven(self):
+        """Refute handler process_submission should detect a valid counterexample."""
+        from purplex.problems_app.models import RefuteProblem
+
+        handler = get_handler("refute")
+        mock_submission = MagicMock()
+        mock_problem = MagicMock(spec=RefuteProblem)
+        mock_problem.slug = "test-refute"
+        mock_problem.reference_solution = "def f(x):\n    return x * 2"
+        mock_problem.function_signature = "f(x: int) -> int"
+        mock_problem.claim_predicate = "result > 0"
+        mock_problem.claim_text = "The function always returns a positive number"
+
+        # f(-5) = -10, which is NOT > 0, so the claim is disproven
+        result = handler.process_submission(
+            mock_submission, json.dumps({"x": -5}), mock_problem
+        )
+
+        assert isinstance(result, ProcessingResult)
+        assert result.success is True
+        assert result.type_specific_data["claim_disproven"] is True
+        assert result.type_specific_data["execution_success"] is True
+        assert result.type_specific_data["result_value"] == -10
+
+    def test_refute_process_submission_not_disproven(self):
+        """Refute handler process_submission should reject non-counterexamples."""
+        from purplex.problems_app.models import RefuteProblem
+
+        handler = get_handler("refute")
+        mock_submission = MagicMock()
+        mock_problem = MagicMock(spec=RefuteProblem)
+        mock_problem.slug = "test-refute"
+        mock_problem.reference_solution = "def f(x):\n    return x * 2"
+        mock_problem.function_signature = "f(x: int) -> int"
+        mock_problem.claim_predicate = "result > 0"
+        mock_problem.claim_text = "The function always returns a positive number"
+
+        # f(5) = 10, which IS > 0, so the claim holds
+        result = handler.process_submission(
+            mock_submission, json.dumps({"x": 5}), mock_problem
+        )
+
+        assert isinstance(result, ProcessingResult)
+        assert result.success is True
+        assert result.type_specific_data["claim_disproven"] is False
+        assert result.type_specific_data["result_value"] == 10
+
 
 class TestBaseClassProcessSubmission:
     """Base class process_submission() default behavior."""
