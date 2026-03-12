@@ -1,5 +1,6 @@
 <template>
   <VAceEditor
+    ref="vAceRef"
     :lang="lang"
     :theme="theme"
     :mode="mode"
@@ -12,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, nextTick } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { VAceEditor } from 'vue3-ace-editor'
 import ace from 'ace-builds'
 import 'ace-builds/src-noconflict/mode-python'
@@ -38,8 +39,6 @@ interface AceEditor {
   renderer: {
     $cursorLayer: { element: { style: { display: string } } }
     container: { style: { pointerEvents: string; userSelect: string } }
-    freeze(): void
-    unfreeze(): void
   }
   session: {
     addMarker(range: unknown, className: string, type: string, inFront: boolean): number
@@ -49,6 +48,7 @@ interface AceEditor {
   getOption(name: string): unknown
   getValue(): string
   setValue(value: string, cursorPos?: number): void
+  resize(force?: boolean): void
   commands: { addCommand(command: { name: string; bindKey: { win: string; mac: string }; exec: (editor: AceEditor) => void }): void }
   blur(): void
 }
@@ -92,6 +92,7 @@ const emit = defineEmits<{
 }>()
 
 const editor = ref<AceEditor | null>(null)
+const vAceRef = ref<{ _contentBackup?: string } | null>(null)
 let lastMinLines: number | null = null
 const activeMarkerIds: number[] = []
 
@@ -117,13 +118,15 @@ function applyMarkers(): void {
   }
 }
 
-// When using minLines/maxLines, don't set a fixed height - let Ace manage it
+// When using minLines/maxLines, OMIT the height key entirely so Vue's
+// patchStyle never touches el.style.height — ACE's $autosize manages it.
+// Including `height: undefined` would cause Vue to clear it to "" on every re-render.
 const editorStyle = computed(() => {
   const useAutoHeight = props.minLines !== null || props.maxLines !== null
-  return {
-    height: useAutoHeight ? undefined : props.height,
-    width: props.width
+  if (useAutoHeight) {
+    return { width: props.width }
   }
+  return { height: props.height, width: props.width }
 })
 
 /* Simple editor initialization */
@@ -311,28 +314,38 @@ watch(() => props.value, (newValue) => {
   if (editor.value && newValue !== undefined) {
     const currentValue = editor.value.getValue()
     if (currentValue !== newValue) {
-      // Freeze renderer completely during setValue to prevent flicker
-      // setValue() clears content then inserts, causing layout recalculation
-      editor.value.renderer.freeze()
+      // Without freeze, setValue() and applyMarkers() merely schedule render
+      // changes via ACE's $loop.schedule() — no immediate repaint occurs
+      // because JS is single-threaded. The final resize(true) forces a
+      // synchronous flush of ALL pending changes including $autosize,
+      // producing correct layout in one pass with no flicker.
       editor.value.setValue(newValue, 1)
-      editor.value.renderer.unfreeze()
+      applyMarkers()
+      // Sync VAceEditor's internal backup so its own value watcher
+      // sees the content is already current and skips its unprotected setValue
+      if (vAceRef.value) {
+        vAceRef.value._contentBackup = newValue
+      }
     }
 
     // Update minLines if extraLines is set - only when value actually changes
+    // Placed before resize so it's included in the same synchronous render pass
     if (props.extraLines > 0 && props.minLines !== null) {
       const contentLines = newValue.split('\n').length
       const effectiveMinLines = contentLines > props.minLines
         ? contentLines + props.extraLines
         : props.minLines
-      // Only update if the value changed to avoid layout thrashing
       if (effectiveMinLines !== lastMinLines) {
         lastMinLines = effectiveMinLines
         editor.value.setOption('minLines', effectiveMinLines)
       }
     }
 
-    // Reapply markers after value change (setValue clears markers)
-    nextTick(() => applyMarkers())
+    // Single synchronous resize flushes all pending render changes
+    // (setValue, markers, minLines) in one pass including $autosize
+    if (currentValue !== newValue) {
+      editor.value.resize(true)
+    }
   }
 }, { immediate: true })
 
@@ -355,7 +368,12 @@ defineExpose({
     box-shadow: var(--shadow-md);
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     font-size: var(--font-size-sm);
-    transition: var(--transition-base);
+    /* Transition only visual properties — never height/width.
+       ACE's $autosize sets container height synchronously; animating it
+       creates a ResizeObserver feedback loop that corrupts cached layout. */
+    transition-property: border-color, box-shadow;
+    transition-duration: 0.3s;
+    transition-timing-function: ease;
   }
 
   /* Remove extra padding at bottom when using auto-height (minLines/maxLines) */
