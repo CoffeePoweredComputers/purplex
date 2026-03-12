@@ -9,11 +9,17 @@ export enum HintRenderStrategy {
   OVERLAY_UI = 'overlay_ui'         // Suggested Trace - shows UI overlay
 }
 
+export interface EditorMarker {
+  row: number;                    // 0-indexed line number
+  className: string;              // CSS class for the marker
+}
+
 export interface HintMetadata {
   strategy: HintRenderStrategy;
   canStack: boolean;              // Can this hint be applied with others?
   affectsLineNumbers: boolean;    // Does this hint change line numbers?
   processorVersion?: string;      // For future compatibility
+  markers?: EditorMarker[];       // Line markers for editor highlighting
 }
 
 export interface HintResult {

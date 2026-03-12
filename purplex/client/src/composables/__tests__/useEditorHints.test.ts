@@ -263,6 +263,74 @@ describe('useEditorHints composable', () => {
       expect(composable.modifiedCode.value).toContain('# STEP 1: Calculate sum')
       expect(composable.activeHints.value).toHaveLength(2)
     })
+
+    it('should survive removing first hint (subgoal then variable_fade then remove subgoal)', async () => {
+      // Apply subgoal first
+      await composable.applyHint('subgoal_highlight', {
+        content: {
+          subgoals: [{
+            line_start: 2,
+            line_end: 2,
+            title: 'Addition step',
+            explanation: 'Addition step'
+          }]
+        }
+      })
+      expect(composable.modifiedCode.value).toContain('# STEP 1: Addition step')
+
+      // Apply variable fade on top
+      await composable.applyHint('variable_fade', {
+        content: {
+          mappings: [{ from: 'result', to: 'sum' }]
+        }
+      })
+      expect(composable.modifiedCode.value).toContain('# STEP 1')
+      expect(composable.modifiedCode.value).toContain('sum')
+      expect(composable.activeHints.value).toHaveLength(2)
+
+      // Remove subgoal (the first-applied hint)
+      await composable.removeHint('subgoal_highlight')
+
+      // Variable fade should still be active with correct code
+      expect(composable.activeHints.value).toHaveLength(1)
+      expect(composable.hasActiveHints.value).toBe(true)
+      expect(composable.modifiedCode.value).toContain('sum')
+      expect(composable.modifiedCode.value).not.toContain('# STEP')
+      expect(composable.modifiedCode.value.length).toBeGreaterThan(0)
+    })
+
+    it('should survive removing first hint (variable_fade then subgoal then remove variable_fade)', async () => {
+      // Apply variable fade first
+      await composable.applyHint('variable_fade', {
+        content: {
+          mappings: [{ from: 'result', to: 'sum' }]
+        }
+      })
+      expect(composable.modifiedCode.value).toContain('sum')
+
+      // Apply subgoal on top
+      await composable.applyHint('subgoal_highlight', {
+        content: {
+          subgoals: [{
+            line_start: 2,
+            line_end: 2,
+            title: 'Addition step',
+            explanation: 'Addition step'
+          }]
+        }
+      })
+      expect(composable.activeHints.value).toHaveLength(2)
+
+      // Remove variable fade (the first-applied hint)
+      await composable.removeHint('variable_fade')
+
+      // Subgoal should still be active with correct code
+      expect(composable.activeHints.value).toHaveLength(1)
+      expect(composable.hasActiveHints.value).toBe(true)
+      expect(composable.modifiedCode.value).toContain('# STEP 1: Addition step')
+      expect(composable.modifiedCode.value).not.toContain('sum')
+      expect(composable.modifiedCode.value.length).toBeGreaterThan(0)
+    })
   })
 
   describe('Error handling', () => {
@@ -275,6 +343,60 @@ describe('useEditorHints composable', () => {
       expect(result).toBe(false)
       expect(composable.errorState.value).toBeTruthy()
       expect(composable.hasActiveHints.value).toBe(false)
+    })
+  })
+
+  describe('Subgoal markers', () => {
+    it('should expose subgoalMarkers when subgoal hint is active', async () => {
+      const hintData = {
+        content: {
+          subgoals: [{
+            line_start: 2,
+            line_end: 2,
+            title: 'Addition step',
+            explanation: 'Addition step'
+          }]
+        }
+      }
+
+      // No markers before applying
+      expect(composable.subgoalMarkers.value).toEqual([])
+
+      await composable.applyHint('subgoal_highlight', hintData)
+
+      // Should have markers after applying
+      const markers = composable.subgoalMarkers.value
+      expect(markers.length).toBeGreaterThan(0)
+      expect(markers.some(m => m.className === 'ace_subgoal-comment')).toBe(true)
+      expect(markers.some(m => m.className === 'ace_subgoal-highlight')).toBe(true)
+    })
+
+    it('should clear subgoalMarkers when hint is removed', async () => {
+      await composable.applyHint('subgoal_highlight', {
+        content: {
+          subgoals: [{
+            line_start: 2,
+            line_end: 2,
+            title: 'Test',
+            explanation: 'Test'
+          }]
+        }
+      })
+
+      expect(composable.subgoalMarkers.value.length).toBeGreaterThan(0)
+
+      await composable.removeHint('subgoal_highlight')
+
+      expect(composable.subgoalMarkers.value).toEqual([])
+    })
+
+    it('should return empty markers when no subgoal hint is active', async () => {
+      // Apply a non-subgoal hint
+      await composable.applyHint('variable_fade', {
+        content: { mappings: [{ from: 'x', to: 'first' }] }
+      })
+
+      expect(composable.subgoalMarkers.value).toEqual([])
     })
   })
 })
