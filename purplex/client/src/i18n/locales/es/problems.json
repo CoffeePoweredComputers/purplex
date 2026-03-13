@@ -1,0 +1,215 @@
+{
+  "status": {
+    "completed": "Completado",
+    "inProgress": "En Progreso",
+    "remaining": "Pendiente",
+    "notStarted": "Sin Comenzar"
+  },
+  "home": {
+    "welcome": "¡Bienvenido a Purplex!",
+    "welcomeMessage": "Comienza uniéndote a un curso para acceder a los conjuntos de problemas.",
+    "joinCourse": "Unirse a un Curso",
+    "completed": "{completed} / {total} completados",
+    "noProblems": "Aún no hay problemas",
+    "noSetsAvailable": "Aún no hay conjuntos de problemas disponibles en este curso.",
+    "reviewAction": "Revisar →",
+    "continueAction": "Continuar →",
+    "startAction": "Comenzar →",
+    "closedBadge": "🔒 Cerrado",
+    "aria": {
+      "courseProgress": "Progreso del curso: {completed} de {total} conjuntos de problemas completados",
+      "loadingProblemSets": "Cargando conjuntos de problemas",
+      "problemSetProgress": "{title}: {completed} de {total} completados",
+      "progressPercent": "Progreso: {percent}%"
+    }
+  },
+  "dueDate": {
+    "pastDue": "Vencido",
+    "today": "Vence hoy",
+    "tomorrow": "Vence mañana",
+    "inDays": "Vence en {days} días",
+    "onDate": "Vence el {date}"
+  },
+  "enrollment": {
+    "title": "Unirse a un Curso",
+    "courseIdLabel": "ID del Curso",
+    "courseIdPlaceholder": "Ingresa el ID del Curso (ej., CS101-FALL2024)",
+    "lookupButton": "Buscar Curso",
+    "lookingUp": "Buscando...",
+    "instructor": "Instructor:",
+    "problemSets": "Conjuntos de Problemas:",
+    "status": "Estado:",
+    "openForEnrollment": "Inscripción Abierta",
+    "alreadyEnrolled": "✓ Ya estás inscrito en este curso",
+    "enrollButton": "Unirse al Curso",
+    "enrolling": "Inscribiendo..."
+  },
+  "problemSet": {
+    "title": "Conjunto de Problemas",
+    "progress": "Progreso",
+    "problems": "Problemas",
+    "loading": "Cargando conjunto de problemas...",
+    "noProblems": "No se encontraron problemas en este conjunto.",
+    "skipToEditor": "Ir al editor de código",
+    "codeEditor": "Editor de Código",
+    "problemImage": "Imagen del Problema",
+    "problemImageAlt": "Imagen del problema",
+    "noImageConfigured": "No hay imagen configurada para este problema",
+    "question": "Pregunta",
+    "noQuestionText": "No se proporcionó texto de la pregunta. Por favor, agrega una descripción en el panel de administración.",
+    "submissionResults": "Entregas y Resultados",
+    "completedCount": "{count} completados",
+    "inProgressCount": "{count} en progreso",
+    "remainingCount": "{count} pendientes",
+    "editorThemeLabel": "Tema del editor",
+    "selectEditorTheme": "Seleccionar tema del editor",
+    "aria": {
+      "previousProblem": "Problema anterior",
+      "nextProblem": "Problema siguiente",
+      "problemNav": "Navegación de problemas",
+      "codeCopied": "Código copiado al portapapeles",
+      "copyCode": "Copiar código al portapapeles",
+      "hideLineNumbers": "Ocultar números de línea",
+      "showLineNumbers": "Mostrar números de línea",
+      "decreaseFont": "Reducir tamaño de fuente",
+      "increaseFont": "Aumentar tamaño de fuente"
+    },
+    "deadline": {
+      "submissionsClosed": "Entregas Cerradas",
+      "closedOn": "Este conjunto de problemas cerró el {date}",
+      "lateSubmission": "Entrega Tardía",
+      "dueDateWas": "La fecha de entrega fue {date}. Las entregas se marcarán como tardías.",
+      "due": "Vence el {date}",
+      "submitSoon": "¡Envía pronto!",
+      "tomorrow": "Mañana ({date})",
+      "inDays": "en {days} días ({date})"
+    },
+    "tooltip": {
+      "notAttempted": "{name} - Sin intentar",
+      "inProgress": "{name} - En Progreso (Puntuación: {score}%)",
+      "completed": "{name} - Completado (Puntuación: {score}%)"
+    },
+    "theme": {
+      "dark": "🌙 Oscuro",
+      "light": "☀️ Claro",
+      "monokai": "🎨 Monokai",
+      "github": "🐙 GitHub",
+      "solarizedDark": "🌅 Solarized Oscuro",
+      "solarizedLight": "🌅 Solarized Claro",
+      "dracula": "🧛 Dracula",
+      "tomorrowNight": "🌃 Tomorrow Night"
+    }
+  },
+  "editor": {
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "lines": "Líneas",
+    "noLines": "Sin Líneas",
+    "theme": {
+      "dark": "Oscuro",
+      "light": "Claro"
+    },
+    "size": {
+      "small": "Pequeño",
+      "medium": "Mediano",
+      "large": "Grande",
+      "fullscreen": "Pantalla completa"
+    }
+  },
+  "submission": {
+    "submit": "Enviar",
+    "submitting": "Enviando...",
+    "runTests": "Ejecutar Pruebas",
+    "running": "Ejecutando...",
+    "placeholder": "Describe lo que hace este código en tus propias palabras...",
+    "submitSolution": "Enviar Solución",
+    "submittingWait": "Enviando solución, por favor espera",
+    "draftSaved": "Borrador guardado",
+    "minLength": "Ingresa al menos 10 caracteres para enviar",
+    "testSolution": "Probar Solución",
+    "testingWait": "Probando código, por favor espera",
+    "codeTooShort": "El código debe tener al menos 10 caracteres",
+    "resetToOriginal": "Restablecer al Original"
+  },
+  "hints": {
+    "title": "Pistas",
+    "showHint": "Mostrar Pista",
+    "hideHint": "Ocultar Pista",
+    "noHints": "No hay pistas disponibles"
+  },
+  "eipl": {
+    "sectionLabel": "Describe el código aquí"
+  },
+  "prompt": {
+    "sectionLabel": "Describe la imagen aquí"
+  },
+  "mcq": {
+    "sectionLabel": "Selecciona tu respuesta",
+    "submitAnswer": "Enviar Respuesta",
+    "checkingWait": "Verificando respuesta, por favor espera",
+    "selectFirst": "Por favor, selecciona una respuesta antes de enviar"
+  },
+  "probeableCode": {
+    "sectionLabel": "Descubre el Comportamiento de la Función y Replica la Implementación"
+  },
+  "probeableSpec": {
+    "sectionLabel": "Descubre y explica la función",
+    "describeFunction": "Describe Qué Hace la Función"
+  },
+  "debugFix": {
+    "sectionLabel": "Corrige el código con errores"
+  },
+  "probe": {
+    "history": "Historial ({count})",
+    "historyAriaLabel": "Ver historial de sondeos ({count} entradas únicas)",
+    "probeHistory": "Historial de Sondeos",
+    "probing": "Sondeando",
+    "alreadyProbed": "Ya sondeado",
+    "probe": "Sondear",
+    "noProbesYet": "Aún no hay sondeos. Ingresa valores y haz clic en Sondear para descubrir el comportamiento de la función.",
+    "tooltipDuplicate": "Ya sondeaste estas entradas — el resultado se muestra arriba",
+    "tooltipUnlimited": "Sondeos ilimitados disponibles",
+    "tooltipExhausted": "No quedan sondeos",
+    "tooltipDefault": "Consultar el oráculo con estas entradas",
+    "srDuplicate": "Estas entradas ya fueron sondeadas. Resultado: {result}",
+    "paramAriaLabel": "Ingresa valor para {name} (tipo: {type})",
+    "cachedResultAriaLabel": "Resultado en caché: {result}"
+  },
+  "refute": {
+    "disprove": "Refutar:",
+    "testing": "Probando",
+    "test": "Probar",
+    "disproves": "✓ REFUTA",
+    "claimHolds": "la afirmación se mantiene",
+    "submitCounterexample": "Enviar {call} como contraejemplo",
+    "keepTrying": "¡Sigue intentando! Encuentra una entrada que haga falsa la afirmación."
+  },
+  "activity": {
+    "unknownType": "Tipo de actividad desconocido: {type}",
+    "noFeedbackComponent": "No hay componente de retroalimentación disponible para el tipo de actividad: {type}"
+  },
+  "pytutor": {
+    "title": "Depurador Paso a Paso",
+    "srDescription": "Depurador interactivo de Python con Python Tutor",
+    "sizeLabel": "Tamaño",
+    "sizeView": "Vista {size}",
+    "setSizeAriaLabel": "Establecer tamaño de ventana {size}",
+    "openNewTab": "Abrir en nueva pestaña",
+    "openNewTabAriaLabel": "Abrir Python Tutor en nueva pestaña",
+    "closeEsc": "Cerrar (ESC)",
+    "closeModal": "Cerrar ventana",
+    "loadingDebugger": "Cargando depurador...",
+    "pythonTutorVisualizer": "Visualizador de Python Tutor",
+    "switchTheme": "Cambiar a fondo {theme}",
+    "codeTooLarge": "El código es demasiado grande para depuración directa",
+    "urlLengthExceeded": "El código excede el límite de longitud de URL ({length} caracteres)",
+    "copyCodeAndOpen": "Copiar Código y Abrir Python Tutor",
+    "loadingTimeout": "Tiempo de Carga Agotado",
+    "connectionError": "Error de Conexión",
+    "failedToLoad": "Error al Cargar el Depurador",
+    "timeoutMessage": "Python Tutor está tardando demasiado en cargar. Esto puede deberse a una conexión lenta o problemas del servicio.",
+    "networkMessage": "No se pudo conectar con Python Tutor. Por favor, verifica tu conexión a internet.",
+    "openDirectly": "Abrir Python Tutor directamente",
+    "iframeTitle": "Visualizador de Código de Python Tutor"
+  }
+}
