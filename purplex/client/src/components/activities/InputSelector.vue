@@ -19,7 +19,7 @@
     v-else
     class="activity-input-fallback"
   >
-    <p>Unknown activity type: {{ activityType }}</p>
+    <p>{{ $t('problems.activity.unknownType', { type: activityType }) }}</p>
   </div>
 </template>
 

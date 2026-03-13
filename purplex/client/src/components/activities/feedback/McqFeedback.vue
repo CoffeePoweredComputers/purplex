@@ -2,7 +2,7 @@
   <div class="mcq-feedback">
     <div class="feedback-header">
       <h3 class="feedback-title">
-        {{ title }}
+        {{ title || $t('feedback.mcq.title') }}
       </h3>
     </div>
 
@@ -11,7 +11,7 @@
       class="loading-state"
     >
       <div class="loading-spinner" />
-      <span>Checking your answer...</span>
+      <span>{{ $t('feedback.mcq.checking') }}</span>
     </div>
 
     <div
@@ -27,8 +27,8 @@
           {{ isCorrect ? '✓' : isPartial ? '~' : '✗' }}
         </div>
         <div class="result-text">
-          <span class="result-label">{{ isCorrect ? 'Correct!' : isPartial ? 'Partially Correct' : 'Incorrect' }}</span>
-          <span class="result-score">Score: {{ score }}%</span>
+          <span class="result-label">{{ isCorrect ? $t('feedback.mcq.correct') : isPartial ? $t('feedback.mcq.partiallyCorrect') : $t('feedback.mcq.incorrect') }}</span>
+          <span class="result-score">{{ $t('feedback.mcq.score', { score }) }}</span>
         </div>
       </div>
 
@@ -36,7 +36,7 @@
       <div class="answer-details">
         <div class="answer-section">
           <div class="answer-label">
-            Your Answer
+            {{ $t('feedback.mcq.yourAnswer') }}
           </div>
           <div
             class="answer-value"
@@ -51,7 +51,7 @@
           class="answer-section"
         >
           <div class="answer-label">
-            Correct Answer
+            {{ $t('feedback.mcq.correctAnswer') }}
           </div>
           <div class="answer-value answer-value--correct">
             {{ correctAnswer }}
@@ -63,7 +63,7 @@
           class="explanation-section"
         >
           <div class="answer-label">
-            Explanation
+            {{ $t('feedback.mcq.explanation') }}
           </div>
           <div class="explanation-text">
             {{ explanation }}
@@ -76,7 +76,7 @@
       v-else
       class="no-result"
     >
-      <p>Select an answer and submit to see your results.</p>
+      <p>{{ $t('feedback.mcq.noResult') }}</p>
     </div>
   </div>
 </template>
@@ -128,7 +128,7 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   isNavigating: false,
   submissionHistory: () => [],
-  title: 'Answer Result',
+  title: '',
 })
 
 defineEmits<{

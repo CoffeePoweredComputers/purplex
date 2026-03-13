@@ -5,22 +5,22 @@
 
     <!-- Code Solution -->
     <div class="form-section rounded-lg border-default transition-fast">
-      <h3>Code Solution</h3>
+      <h3>{{ $t('admin.editors.eipl.codeSolution') }}</h3>
 
       <div class="form-group">
-        <label for="function_signature">Function Signature (with type hints) *</label>
+        <label for="function_signature">{{ $t('admin.editors.eipl.functionSignatureLabel') }}</label>
         <input
           id="function_signature"
           :value="editor.form.form.function_signature"
           type="text"
           required
-          placeholder="e.g., def is_anagram(str1: str, str2: str) -> bool:"
+          :placeholder="$t('admin.editors.eipl.functionSignaturePlaceholder')"
           @input="updateField('function_signature', ($event.target as HTMLInputElement).value)"
         >
       </div>
 
       <div class="form-group">
-        <label for="reference_solution">Reference Solution *</label>
+        <label for="reference_solution">{{ $t('admin.editors.eipl.referenceSolutionLabel') }}</label>
         <EditorToolbar :editor="editor" />
 
         <div class="code-editor">
@@ -47,7 +47,7 @@
 
     <!-- Hints Configuration -->
     <div class="form-section rounded-lg border-default transition-fast">
-      <h3>Hints Configuration</h3>
+      <h3>{{ $t('admin.editors.eipl.hintsConfiguration') }}</h3>
 
       <div class="hint-tabs">
         <button
@@ -56,7 +56,7 @@
           :class="{ active: editor.hints.activeTab.value === 'variable_fade' }"
           @click="editor.hints.activeTab.value = 'variable_fade'"
         >
-          Variable Fade
+          {{ $t('admin.editors.eipl.variableFade') }}
         </button>
         <button
           type="button"
@@ -64,7 +64,7 @@
           :class="{ active: editor.hints.activeTab.value === 'subgoal_highlight' }"
           @click="editor.hints.activeTab.value = 'subgoal_highlight'"
         >
-          Subgoal Highlighting
+          {{ $t('admin.editors.eipl.subgoalHighlighting') }}
         </button>
         <button
           type="button"
@@ -72,7 +72,7 @@
           :class="{ active: editor.hints.activeTab.value === 'suggested_trace' }"
           @click="editor.hints.activeTab.value = 'suggested_trace'"
         >
-          Suggested Trace
+          {{ $t('admin.editors.eipl.suggestedTrace') }}
         </button>
       </div>
 
@@ -88,13 +88,13 @@
               type="checkbox"
               class="toggle-checkbox"
             >
-            <span class="toggle-text">Enable Variable Fade Hints</span>
+            <span class="toggle-text">{{ $t('admin.editors.eipl.enableVariableFade') }}</span>
           </label>
           <div
             v-if="editor.hints.hints.variable_fade.is_enabled"
             class="attempts-config"
           >
-            <label>Min Attempts Required:</label>
+            <label>{{ $t('admin.editors.eipl.minAttemptsRequired') }}</label>
             <input
               v-model.number="editor.hints.hints.variable_fade.min_attempts"
               type="number"
@@ -109,7 +109,7 @@
           v-if="editor.hints.hints.variable_fade.is_enabled"
           class="mappings-section"
         >
-          <h4>Variable Mappings</h4>
+          <h4>{{ $t('admin.editors.eipl.variableMappings') }}</h4>
           <div class="mappings-list">
             <div
               v-for="(mapping, index) in editor.hints.hints.variable_fade.content.mappings"
@@ -118,13 +118,13 @@
             >
               <input
                 v-model="mapping.from"
-                placeholder="Original variable"
+                :placeholder="$t('admin.editors.eipl.originalVariable')"
                 class="mapping-input"
               >
               <span class="mapping-arrow">→</span>
               <input
                 v-model="mapping.to"
-                placeholder="Replacement"
+                :placeholder="$t('admin.editors.eipl.replacement')"
                 class="mapping-input"
               >
               <button
@@ -139,14 +139,14 @@
           <div class="add-mapping">
             <input
               v-model="newVariableMapping.from"
-              placeholder="Original variable"
+              :placeholder="$t('admin.editors.eipl.originalVariable')"
               class="mapping-input"
               @keyup.enter="addVariableMapping"
             >
             <span class="mapping-arrow">→</span>
             <input
               v-model="newVariableMapping.to"
-              placeholder="Replacement"
+              :placeholder="$t('admin.editors.eipl.replacement')"
               class="mapping-input"
               @keyup.enter="addVariableMapping"
             >
@@ -156,7 +156,7 @@
               :disabled="!newVariableMapping.from || !newVariableMapping.to"
               @click="addVariableMapping"
             >
-              Add Mapping
+              {{ $t('admin.editors.eipl.addMapping') }}
             </button>
           </div>
         </div>
@@ -174,13 +174,13 @@
               type="checkbox"
               class="toggle-checkbox"
             >
-            <span class="toggle-text">Enable Subgoal Highlighting</span>
+            <span class="toggle-text">{{ $t('admin.editors.eipl.enableSubgoalHighlighting') }}</span>
           </label>
           <div
             v-if="editor.hints.hints.subgoal_highlight.is_enabled"
             class="attempts-config"
           >
-            <label>Min Attempts Required:</label>
+            <label>{{ $t('admin.editors.eipl.minAttemptsRequired') }}</label>
             <input
               v-model.number="editor.hints.hints.subgoal_highlight.min_attempts"
               type="number"
@@ -195,7 +195,7 @@
           v-if="editor.hints.hints.subgoal_highlight.is_enabled"
           class="subgoals-section"
         >
-          <h4>Subgoals</h4>
+          <h4>{{ $t('admin.editors.eipl.subgoals') }}</h4>
           <div class="subgoals-list">
             <div
               v-for="(subgoal, index) in editor.hints.hints.subgoal_highlight.content.subgoals"
@@ -205,7 +205,7 @@
               <div class="subgoal-header">
                 <input
                   v-model="subgoal.title"
-                  placeholder="Subgoal title"
+                  :placeholder="$t('admin.editors.eipl.subgoalTitle')"
                   class="subgoal-title-input"
                 >
                 <button
@@ -217,33 +217,33 @@
                 </button>
               </div>
               <div class="subgoal-lines">
-                <label>Lines:</label>
+                <label>{{ $t('admin.editors.eipl.lines') }}</label>
                 <input
                   v-model.number="subgoal.line_start"
                   type="number"
                   min="1"
-                  placeholder="Start"
+                  :placeholder="$t('admin.editors.eipl.start')"
                   class="line-input"
                 >
-                <span>to</span>
+                <span>{{ $t('admin.editors.eipl.to') }}</span>
                 <input
                   v-model.number="subgoal.line_end"
                   type="number"
                   :min="subgoal.line_start"
-                  placeholder="End"
+                  :placeholder="$t('admin.editors.eipl.end')"
                   class="line-input"
                 >
               </div>
               <textarea
                 v-model="subgoal.explanation"
-                placeholder="Explanation of this subgoal"
+                :placeholder="$t('admin.editors.eipl.subgoalExplanation')"
                 rows="2"
                 class="subgoal-explanation"
               />
             </div>
           </div>
           <div class="add-subgoal">
-            <h5>Add New Subgoal</h5>
+            <h5>{{ $t('admin.editors.eipl.addNewSubgoal') }}</h5>
             <input
               v-model="newSubgoal.title"
               placeholder="Subgoal title"
@@ -279,7 +279,7 @@
               :disabled="!newSubgoal.title || !newSubgoal.explanation"
               @click="addSubgoal"
             >
-              Add Subgoal
+              {{ $t('admin.editors.eipl.addSubgoal') }}
             </button>
           </div>
         </div>
@@ -297,13 +297,13 @@
               type="checkbox"
               class="toggle-checkbox"
             >
-            <span class="toggle-text">Enable Suggested Trace</span>
+            <span class="toggle-text">{{ $t('admin.editors.eipl.enableSuggestedTrace') }}</span>
           </label>
           <div
             v-if="editor.hints.hints.suggested_trace.is_enabled"
             class="attempts-config"
           >
-            <label>Min Attempts Required:</label>
+            <label>{{ $t('admin.editors.eipl.minAttemptsRequired') }}</label>
             <input
               v-model.number="editor.hints.hints.suggested_trace.min_attempts"
               type="number"
@@ -318,21 +318,21 @@
           v-if="editor.hints.hints.suggested_trace.is_enabled"
           class="suggested-trace-section"
         >
-          <h4>Configure Suggested Trace</h4>
+          <h4>{{ $t('admin.editors.eipl.configureSuggestedTrace') }}</h4>
           <p class="hint-description">
-            Provide a function call that students can trace through Python Tutor.
+            {{ $t('admin.editors.eipl.suggestedTraceDescription') }}
           </p>
 
           <div class="form-group">
             <label class="form-label">
-              <span class="label-text">Suggested Function Call</span>
+              <span class="label-text">{{ $t('admin.editors.eipl.suggestedFunctionCall') }}</span>
               <span class="label-required">*</span>
             </label>
             <div class="input-with-preview">
               <input
                 v-model="editor.hints.hints.suggested_trace.content.suggested_call"
                 type="text"
-                placeholder="e.g., function_name([1, 2, 3], 'example')"
+                :placeholder="$t('admin.editors.eipl.suggestedCallPlaceholder')"
                 class="form-input suggested-call-input"
               >
               <div
@@ -347,11 +347,11 @@
               class="trace-preview-section"
             >
               <div class="preview-label">
-                Preview (as students will see it):
+                {{ $t('admin.editors.eipl.previewLabel') }}
               </div>
               <div class="suggested-trace">
                 <div class="trace-content">
-                  <span class="trace-label">💡 Try tracing:</span>
+                  <span class="trace-label">{{ $t('admin.editors.eipl.tryTracing') }}</span>
                   <code class="trace-function">{{ editor.hints.hints.suggested_trace.content.suggested_call }}</code>
                   <button
                     v-if="editor.form.form.reference_solution"
@@ -359,7 +359,7 @@
                     class="trace-btn"
                     @click="previewInPyTutor"
                   >
-                    <span>🔍</span> Trace
+                    <span>🔍</span> {{ $t('admin.editors.eipl.trace') }}
                   </button>
                 </div>
               </div>

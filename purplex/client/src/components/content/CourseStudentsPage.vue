@@ -2,19 +2,19 @@
   <ContentEditorLayout
     :page-title="pageTitle"
     :back-path="ctx.paths.courses.value"
-    :back-label="ctx.isInstructor.value ? 'Back to My Courses' : 'Back to Courses'"
+    :back-label="ctx.isInstructor.value ? $t('admin.contentLayout.backToMyCourses') : $t('admin.contentLayout.backToCourses')"
     :show-breadcrumb="true"
   >
     <template #header-actions>
       <router-link :to="ctx.paths.editCourse(courseId)" class="action-button secondary-button">
-        Edit Course
+        {{ $t('admin.courses.editCourse') }}
       </router-link>
     </template>
 
     <!-- Summary Bar -->
     <div class="summary-bar">
       <p class="summary-text">
-        <strong>{{ totalCount }}</strong> students enrolled
+        {{ $t('admin.courseStudents.studentsEnrolled', { count: totalCount }) }}
       </p>
     </div>
 
@@ -32,10 +32,10 @@
       :page-numbers="pageNumbers"
       :range-start="rangeStart"
       :range-end="rangeEnd"
-      item-label="students"
+      :item-label="$t('admin.courseStudents.itemLabel')"
       row-key="id"
-      empty-title="No Students Enrolled"
-      empty-message="No students have enrolled in this course yet."
+      :empty-title="$t('admin.courseStudents.noStudents')"
+      :empty-message="$t('admin.courseStudents.noStudentsMessage')"
       @go-to-page="goToPage"
       @page-size-change="handlePageSizeChange"
       @retry="refresh"
@@ -47,7 +47,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Search by name or email..."
+              :placeholder="$t('admin.courseStudents.searchPlaceholder')"
               class="search-input"
               @input="debouncedSearch"
             >
@@ -79,10 +79,10 @@
       <template #cell-actions="{ item }">
         <button
           class="action-button remove-button"
-          title="Remove from course"
+          :title="$t('admin.courseStudents.removeFromCourse')"
           @click="confirmRemove(item)"
         >
-          Remove
+          {{ $t('common.remove') }}
         </button>
       </template>
     </DataTable>
@@ -90,9 +90,9 @@
     <!-- Remove Confirmation Dialog -->
     <ConfirmDialog
       :visible="showRemoveDialog"
-      title="Remove Student?"
-      :message="`Are you sure you want to remove &quot;${removeTarget ? getStudentName(removeTarget.user) : ''}&quot; from this course?`"
-      confirm-label="Remove"
+      :title="$t('admin.courseStudents.removeStudent')"
+      :message="$t('admin.courseStudents.removeConfirmMessage', { name: removeTarget ? getStudentName(removeTarget.user) : '' })"
+      :confirm-label="$t('common.remove')"
       :loading="removing"
       @confirm="performRemove"
       @cancel="showRemoveDialog = false"
@@ -102,6 +102,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
 import DataTable from '@/components/ui/DataTable.vue';
@@ -113,6 +114,7 @@ import { log } from '@/utils/logger';
 import type { Course, CourseStudent } from '@/types';
 import type { DataTableColumn } from '@/types/datatable';
 
+const { t } = useI18n();
 const route = useRoute();
 const ctx = provideContentContext();
 
@@ -121,8 +123,8 @@ const course = ref<Course | null>(null);
 
 const courseId = computed(() => route.params.courseId as string);
 const pageTitle = computed(() => {
-  if (course.value) return `Students - ${course.value.name}`;
-  return 'Course Students';
+  if (course.value) return t('admin.courseStudents.studentsDash', { name: course.value.name });
+  return t('admin.courseStudents.title');
 });
 
 // Cached data for client-side pagination
@@ -175,22 +177,22 @@ function formatDate(dateString: string): string {
 }
 
 // Column definitions
-const columns: DataTableColumn<CourseStudent>[] = [
+const columns = computed<DataTableColumn<CourseStudent>[]>(() => [
   {
     key: 'user',
-    label: 'Name',
+    label: t('admin.courseStudents.columnName'),
     render: (_value, row) => getStudentName(row.user),
   },
-  { key: 'user.email', label: 'Email', hideOnMobile: true, slot: 'cell-email' },
+  { key: 'user.email', label: t('admin.courseStudents.columnEmail'), hideOnMobile: true, slot: 'cell-email' },
   {
     key: 'enrolled_at',
-    label: 'Enrolled Date',
+    label: t('admin.courseStudents.columnEnrolled'),
     hideOnMobile: true,
     render: (value) => formatDate(value as string),
   },
-  { key: 'progress', label: 'Progress', slot: 'cell-progress', width: '200px' },
-  { key: 'actions', label: 'Actions', slot: 'cell-actions', width: '100px' },
-];
+  { key: 'progress', label: t('admin.courseStudents.columnProgress'), slot: 'cell-progress', width: '200px' },
+  { key: 'actions', label: t('admin.courseStudents.columnActions'), slot: 'cell-actions', width: '100px' },
+]);
 
 // Remove dialog state
 const showRemoveDialog = ref(false);
@@ -214,7 +216,7 @@ async function performRemove(): Promise<void> {
     await fetchTable();
   } catch (err) {
     const apiError = err as { error?: string };
-    error.value = apiError.error || 'Failed to remove student';
+    error.value = apiError.error || t('admin.courseStudents.failedToRemove');
     log.error('Failed to remove student', { error: err });
   } finally {
     removing.value = false;

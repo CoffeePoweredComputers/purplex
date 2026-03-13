@@ -5,10 +5,100 @@
     "remaining": "E Toe Ana",
     "notStarted": "Kāore Anō Kia Tīmata"
   },
+  "home": {
+    "welcome": "Welcome to Purplex!",
+    "welcomeMessage": "Get started by joining a course to access problem sets.",
+    "joinCourse": "Join a Course",
+    "completed": "{completed} / {total} completed",
+    "noProblems": "No problems yet",
+    "noSetsAvailable": "No problem sets available in this course yet.",
+    "reviewAction": "Review →",
+    "continueAction": "Continue →",
+    "startAction": "Start →",
+    "closedBadge": "🔒 Closed",
+    "aria": {
+      "courseProgress": "Course progress: {completed} of {total} problem sets completed",
+      "loadingProblemSets": "Loading problem sets",
+      "problemSetProgress": "{title}: {completed} of {total} completed",
+      "progressPercent": "Progress: {percent}%"
+    }
+  },
+  "dueDate": {
+    "pastDue": "Past due",
+    "today": "Due today",
+    "tomorrow": "Due tomorrow",
+    "inDays": "Due in {days} days",
+    "onDate": "Due {date}"
+  },
+  "enrollment": {
+    "title": "Join a Course",
+    "courseIdLabel": "Course ID",
+    "courseIdPlaceholder": "Enter Course ID (e.g., CS101-FALL2024)",
+    "lookupButton": "Lookup Course",
+    "lookingUp": "Looking up...",
+    "instructor": "Instructor:",
+    "problemSets": "Problem Sets:",
+    "status": "Status:",
+    "openForEnrollment": "Open for Enrollment",
+    "alreadyEnrolled": "✓ You are already enrolled in this course",
+    "enrollButton": "Join Course",
+    "enrolling": "Enrolling..."
+  },
   "problemSet": {
     "title": "Huinga Raru",
     "progress": "Kauneke",
-    "problems": "Ngā Raru"
+    "problems": "Ngā Raru",
+    "loading": "Loading problem set...",
+    "noProblems": "No problems found in this set.",
+    "skipToEditor": "Skip to code editor",
+    "codeEditor": "Code Editor",
+    "problemImage": "Problem Image",
+    "problemImageAlt": "Problem image",
+    "noImageConfigured": "No image configured for this problem",
+    "question": "Question",
+    "noQuestionText": "No question text provided. Please add a description in the admin panel.",
+    "submissionResults": "Submission & Results",
+    "completedCount": "{count} completed",
+    "inProgressCount": "{count} in progress",
+    "remainingCount": "{count} remaining",
+    "editorThemeLabel": "Editor theme",
+    "selectEditorTheme": "Select editor theme",
+    "aria": {
+      "previousProblem": "Previous problem",
+      "nextProblem": "Next problem",
+      "problemNav": "Problem navigation",
+      "codeCopied": "Code copied to clipboard",
+      "copyCode": "Copy code to clipboard",
+      "hideLineNumbers": "Hide line numbers",
+      "showLineNumbers": "Show line numbers",
+      "decreaseFont": "Decrease font size",
+      "increaseFont": "Increase font size"
+    },
+    "deadline": {
+      "submissionsClosed": "Submissions Closed",
+      "closedOn": "This problem set closed on {date}",
+      "lateSubmission": "Late Submission",
+      "dueDateWas": "Due date was {date}. Submissions will be marked as late.",
+      "due": "Due {date}",
+      "submitSoon": "Submit soon!",
+      "tomorrow": "Tomorrow ({date})",
+      "inDays": "in {days} days ({date})"
+    },
+    "tooltip": {
+      "notAttempted": "{name} - Not attempted",
+      "inProgress": "{name} - In Progress (Score: {score}%)",
+      "completed": "{name} - Completed (Score: {score}%)"
+    },
+    "theme": {
+      "dark": "🌙 Dark",
+      "light": "☀️ Light",
+      "monokai": "🎨 Monokai",
+      "github": "🐙 GitHub",
+      "solarizedDark": "🌅 Solarized Dark",
+      "solarizedLight": "🌅 Solarized Light",
+      "dracula": "🧛 Dracula",
+      "tomorrowNight": "🌃 Tomorrow Night"
+    }
   },
   "editor": {
     "copy": "Tārua",
@@ -22,7 +112,8 @@
     "size": {
       "small": "Iti",
       "medium": "Waenga",
-      "large": "Nui"
+      "large": "Nui",
+      "fullscreen": "Fullscreen"
     }
   },
   "submission": {
@@ -30,12 +121,95 @@
     "submitting": "E tuku ana...",
     "runTests": "Whakahaerehia ngā Whakamātautau",
     "running": "E haere ana...",
-    "placeholder": "Whakamāramahia he aha te mahi a tēnei waehere ki ō ake kupu..."
+    "placeholder": "Whakamāramahia he aha te mahi a tēnei waehere ki ō ake kupu...",
+    "submitSolution": "Submit Solution",
+    "submittingWait": "Submitting solution, please wait",
+    "draftSaved": "Draft saved",
+    "minLength": "Enter at least 10 characters to submit",
+    "testSolution": "Test Solution",
+    "testingWait": "Testing code, please wait",
+    "codeTooShort": "Code must be at least 10 characters",
+    "resetToOriginal": "Reset to Original"
   },
   "hints": {
     "title": "Ngā Tohutohu",
     "showHint": "Whakaatuhia te Tohutohu",
     "hideHint": "Hunaia te Tohutohu",
     "noHints": "Kāore he tohutohu e wātea ana"
+  },
+  "eipl": {
+    "sectionLabel": "Describe the code here"
+  },
+  "prompt": {
+    "sectionLabel": "Describe the image here"
+  },
+  "mcq": {
+    "sectionLabel": "Select your answer",
+    "submitAnswer": "Submit Answer",
+    "checkingWait": "Checking answer, please wait",
+    "selectFirst": "Please select an answer before submitting"
+  },
+  "probeableCode": {
+    "sectionLabel": "Discover Function Behavior and Replicate Implementation"
+  },
+  "probeableSpec": {
+    "sectionLabel": "Discover and explain the function",
+    "describeFunction": "Describe What the Function Does"
+  },
+  "debugFix": {
+    "sectionLabel": "Fix the buggy code"
+  },
+  "probe": {
+    "history": "History ({count})",
+    "historyAriaLabel": "View probe history ({count} unique entries)",
+    "probeHistory": "Probe History",
+    "probing": "Probing",
+    "alreadyProbed": "Already probed",
+    "probe": "Probe",
+    "noProbesYet": "No probes yet. Enter values and click Probe to discover function behavior.",
+    "tooltipDuplicate": "You already probed these inputs - result shown above",
+    "tooltipUnlimited": "Unlimited probes available",
+    "tooltipExhausted": "No probes remaining",
+    "tooltipDefault": "Query the oracle with these inputs",
+    "srDuplicate": "These inputs were already probed. Result: {result}",
+    "paramAriaLabel": "Enter value for {name} (type: {type})",
+    "cachedResultAriaLabel": "Cached result: {result}"
+  },
+  "refute": {
+    "disprove": "Disprove:",
+    "testing": "Testing",
+    "test": "Test",
+    "disproves": "✓ DISPROVES",
+    "claimHolds": "claim holds",
+    "submitCounterexample": "Submit {call} as counterexample",
+    "keepTrying": "Keep trying! Find an input that makes the claim false."
+  },
+  "activity": {
+    "unknownType": "Unknown activity type: {type}",
+    "noFeedbackComponent": "No feedback component available for activity type: {type}"
+  },
+  "pytutor": {
+    "title": "Step-by-Step Debugger",
+    "srDescription": "Interactive Python code debugger powered by Python Tutor",
+    "sizeLabel": "Size",
+    "sizeView": "{size} view",
+    "setSizeAriaLabel": "Set {size} window size",
+    "openNewTab": "Open in new tab",
+    "openNewTabAriaLabel": "Open Python Tutor in new tab",
+    "closeEsc": "Close (ESC)",
+    "closeModal": "Close modal",
+    "loadingDebugger": "Loading debugger...",
+    "pythonTutorVisualizer": "Python Tutor Visualizer",
+    "switchTheme": "Switch to {theme} background",
+    "codeTooLarge": "Code is too large for direct debugging",
+    "urlLengthExceeded": "The code exceeds the URL length limit ({length} characters)",
+    "copyCodeAndOpen": "Copy Code & Open Python Tutor",
+    "loadingTimeout": "Loading Timeout",
+    "connectionError": "Connection Error",
+    "failedToLoad": "Failed to Load Debugger",
+    "timeoutMessage": "Python Tutor is taking too long to load. This might be due to slow internet or service issues.",
+    "networkMessage": "Unable to connect to Python Tutor. Please check your internet connection.",
+    "openDirectly": "Open Python Tutor directly",
+    "iframeTitle": "Python Tutor Code Visualizer"
   }
 }

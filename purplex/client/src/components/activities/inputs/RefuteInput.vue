@@ -2,7 +2,7 @@
   <div class="refute-input">
     <!-- Claim Banner -->
     <div class="claim-banner">
-      <span class="claim-label">Disprove:</span>
+      <span class="claim-label">{{ $t('problems.refute.disprove') }}</span>
       <span class="claim-text">"{{ claimText }}"</span>
     </div>
 
@@ -53,10 +53,10 @@
       >
         <template v-if="testing">
           <span class="spinner" />
-          <span>Testing</span>
+          <span>{{ $t('problems.refute.testing') }}</span>
         </template>
         <template v-else>
-          <span>Test</span>
+          <span>{{ $t('problems.refute.test') }}</span>
         </template>
       </button>
     </div>
@@ -87,11 +87,11 @@
         <span
           v-if="attempt.disproven"
           class="badge-success"
-        >✓ DISPROVES</span>
+        >{{ $t('problems.refute.disproves') }}</span>
         <span
           v-else
           class="badge-muted"
-        >claim holds</span>
+        >{{ $t('problems.refute.claimHolds') }}</span>
       </div>
     </div>
 
@@ -103,7 +103,7 @@
       @click="submitCounterexample"
     >
       <span v-if="!disabled">
-        Submit {{ formatCall(counterexample!) }} as counterexample
+        {{ $t('problems.refute.submitCounterexample', { call: formatCall(counterexample!) }) }}
       </span>
       <div
         v-else
@@ -122,7 +122,7 @@
       v-else-if="attempts.length > 0"
       class="hint-message"
     >
-      Keep trying! Find an input that makes the claim false.
+      {{ $t('problems.refute.keepTrying') }}
     </div>
   </div>
 </template>

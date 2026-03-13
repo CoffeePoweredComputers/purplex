@@ -39,8 +39,7 @@ import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import axios from 'axios';
 import { SUPPORTED_LANGUAGES } from '../i18n/brand';
-import { setLocale } from '../i18n';
-import type { SupportedLocale } from '../i18n';
+import { setLocale, type SupportedLocale } from '../i18n';
 import { log } from '../utils/logger';
 
 const { locale } = useI18n();

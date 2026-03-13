@@ -19,7 +19,7 @@
             v-if="hasEtymology"
             class="etymology-superscript"
             :aria-expanded="showEtymology"
-            aria-label="Learn about the meaning of this name"
+            :aria-label="$t('aria.etymologyMeaning')"
             @click.prevent.stop="showEtymology = !showEtymology"
           >*</button></span>
         </router-link>
@@ -32,7 +32,7 @@
         >
           <button
             class="etymology-close"
-            aria-label="Close"
+            :aria-label="$t('common.close')"
             @click="showEtymology = false"
           >
             ×
@@ -67,7 +67,7 @@
           class="nav-item instructor-item"
         >
           <span class="nav-icon">📚</span>
-          <span>Instructor</span>
+          <span>{{ $t('nav.instructor') }}</span>
         </router-link>
 
         <router-link
@@ -76,7 +76,7 @@
           class="nav-item admin-item"
         >
           <span class="nav-icon">⚙️</span>
-          <span>Admin</span>
+          <span>{{ $t('nav.admin') }}</span>
         </router-link>
 
         <button
@@ -84,7 +84,7 @@
           @click="showAccountModal = true"
         >
           <span class="nav-icon">👤</span>
-          <span>Account</span>
+          <span>{{ $t('nav.account') }}</span>
         </button>
       </div>
     </div>

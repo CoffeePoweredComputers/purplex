@@ -9,7 +9,7 @@
         class="loading-container"
       >
         <div class="loading-spinner" />
-        <p>Loading your courses...</p>
+        <p>{{ $t('admin.instructor.loadingCourses') }}</p>
       </div>
 
       <!-- Error State -->
@@ -25,15 +25,15 @@
             <line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
         </div>
-        <span class="visually-hidden">Error:</span>
-        <h3>Unable to Load Courses</h3>
+        <span class="visually-hidden">{{ $t('admin.instructor.error') }}</span>
+        <h3>{{ $t('admin.instructor.unableToLoad') }}</h3>
         <p>{{ error }}</p>
         <button
           class="retry-btn"
-          aria-label="Retry loading courses"
+          :aria-label="$t('admin.instructor.retryLoading')"
           @click="fetchCourses"
         >
-          Try Again
+          {{ $t('common.tryAgain') }}
         </button>
       </div>
 
@@ -47,7 +47,7 @@
           :key="course.id"
           :to="`/instructor/courses/${course.course_id}`"
           :class="['course-card', course.is_active ? 'active' : 'inactive']"
-          :aria-label="`Open ${course.name}`"
+          :aria-label="$t('admin.instructor.openCourse', { name: course.name })"
         >
           <div class="card-main">
             <h3 class="course-title">{{ course.name }}</h3>
@@ -59,14 +59,14 @@
                 :class="['status-indicator', course.is_active ? 'active' : 'inactive']"
                 role="status"
               >
-                {{ course.is_active ? 'Active' : 'Inactive' }}
+                {{ course.is_active ? $t('admin.instructor.active') : $t('admin.instructor.inactive') }}
               </span>
               <span class="meta-separator" aria-hidden="true">·</span>
-              <span class="student-count">{{ course.enrolled_students_count }} students</span>
+              <span class="student-count">{{ course.enrolled_students_count }} {{ $t('admin.instructor.students') }}</span>
               <template v-if="course.my_role">
                 <span class="meta-separator" aria-hidden="true">·</span>
                 <span :class="['role-badge', `role-${course.my_role}`]">
-                  {{ course.my_role === 'primary' ? 'Primary' : 'TA' }}
+                  {{ course.my_role === 'primary' ? $t('admin.instructor.roles.primary') : $t('admin.instructor.roles.ta') }}
                 </span>
               </template>
             </div>
@@ -102,7 +102,7 @@
           <button
             v-if="!isFormExpanded"
             class="add-card-trigger"
-            aria-label="Create a new course"
+            :aria-label="$t('admin.instructor.createNewCourse')"
             @click="toggleForm"
           >
             <div class="add-card-content">
@@ -112,7 +112,7 @@
                   <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
               </div>
-              <span class="add-text">Create Course</span>
+              <span class="add-text">{{ $t('admin.instructor.createCourse') }}</span>
             </div>
           </button>
 
@@ -123,11 +123,11 @@
             @submit.prevent="handleCreateCourse"
           >
             <div class="form-header">
-              <h3>Create New Course</h3>
+              <h3>{{ $t('admin.instructor.createNew') }}</h3>
               <button
                 type="button"
                 class="close-form-btn"
-                aria-label="Cancel course creation"
+                :aria-label="$t('admin.instructor.cancelCreation')"
                 @click="toggleForm"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -140,12 +140,12 @@
             <div class="form-body">
               <div class="form-row">
                 <div class="form-field">
-                  <label for="new-course-name">Course Name *</label>
+                  <label for="new-course-name">{{ $t('admin.instructor.courseName') }}</label>
                   <input
                     id="new-course-name"
                     v-model="formData.name"
                     type="text"
-                    placeholder="e.g., Introduction to Computer Science"
+                    :placeholder="$t('admin.instructor.courseNamePlaceholder')"
                     :disabled="isCreating"
                     required
                   >
@@ -154,17 +154,17 @@
 
               <div class="form-row">
                 <div class="form-field">
-                  <label for="new-course-id">Course ID *</label>
+                  <label for="new-course-id">{{ $t('admin.instructor.courseId') }}</label>
                   <input
                     id="new-course-id"
                     :value="formData.course_id"
                     type="text"
-                    placeholder="e.g., CS101-FALL2024"
+                    :placeholder="$t('admin.instructor.courseIdPlaceholder')"
                     :disabled="isCreating"
                     required
                     @input="handleCourseIdInput"
                   >
-                  <small>Unique identifier (no spaces, auto-uppercased)</small>
+                  <small>{{ $t('admin.instructor.courseIdHint') }}</small>
                 </div>
               </div>
 
@@ -176,9 +176,9 @@
                     class="toggle-checkbox"
                     :disabled="isCreating"
                   >
-                  <span class="toggle-text">Active</span>
+                  <span class="toggle-text">{{ $t('admin.instructor.activeLabel') }}</span>
                   <span class="toggle-hint">
-                    {{ formData.is_active ? 'Visible to students' : 'Hidden from students' }}
+                    {{ formData.is_active ? $t('admin.instructor.visibleToStudents') : $t('admin.instructor.hiddenFromStudents') }}
                   </span>
                 </label>
               </div>
@@ -196,14 +196,14 @@
                 :disabled="isCreating"
                 @click="toggleForm"
               >
-                Cancel
+                {{ $t('common.cancel') }}
               </button>
               <button
                 type="submit"
                 class="btn-create"
                 :disabled="!isFormValid || isCreating"
               >
-                {{ isCreating ? 'Creating...' : 'Create Course' }}
+                {{ isCreating ? $t('admin.instructor.creating') : $t('admin.instructor.createCourse') }}
               </button>
             </div>
           </form>
@@ -215,6 +215,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, reactive, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import axios from 'axios';
 import InstructorNavBar from './InstructorNavBar.vue';
 import { log } from '../../utils/logger';
@@ -231,6 +232,7 @@ interface Course {
   my_role?: 'primary' | 'ta';
 }
 
+const { t } = useI18n();
 const courses = ref<Course[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -261,9 +263,9 @@ async function fetchCourses() {
   } catch (err: unknown) {
     log.error('Failed to fetch instructor courses', err);
     if (axios.isAxiosError(err) && err.response?.status === 403) {
-      error.value = 'You do not have permission to view instructor courses.';
+      error.value = t('admin.instructor.noPermission');
     } else {
-      error.value = 'Failed to load courses. Please try again.';
+      error.value = t('admin.instructor.loadFailed');
     }
   } finally {
     loading.value = false;
@@ -311,7 +313,7 @@ async function handleCreateCourse(): Promise<void> {
     resetForm();
   } catch (err) {
     const apiError = err as { error?: string };
-    formError.value = apiError.error || 'Failed to create course';
+    formError.value = apiError.error || t('admin.instructor.failedToCreateCourse');
     log.error('Failed to create course', err);
   } finally {
     isCreating.value = false;

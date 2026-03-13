@@ -21,22 +21,22 @@
               id="modal-title"
               class="modal-title"
             >
-              🔍 Step-by-Step Debugger
+              {{ $t('problems.pytutor.title') }}
             </h3>
             <span
               id="modal-description"
               class="sr-only"
-            >Interactive Python code debugger powered by Python Tutor</span>
+            >{{ $t('problems.pytutor.srDescription') }}</span>
             <div class="modal-actions">
               <div class="size-controls-group">
-                <span class="size-label">Size</span>
+                <span class="size-label">{{ $t('problems.pytutor.sizeLabel') }}</span>
                 <div class="size-controls">
                   <button
                     v-for="size in sizePresets"
                     :key="size.name"
                     :class="['size-btn', { active: currentSize === size.name }]"
-                    :title="`${size.label} view`"
-                    :aria-label="`Set ${size.label.toLowerCase()} window size`"
+                    :title="$t('problems.pytutor.sizeView', { size: size.label })"
+                    :aria-label="$t('problems.pytutor.setSizeAriaLabel', { size: size.label.toLowerCase() })"
                     @click="setModalSize(size.name)"
                   >
                     {{ size.icon }}
@@ -45,16 +45,16 @@
               </div>
               <button
                 class="action-button"
-                title="Open in new tab"
-                aria-label="Open Python Tutor in new tab"
+                :title="$t('problems.pytutor.openNewTab')"
+                :aria-label="$t('problems.pytutor.openNewTabAriaLabel')"
                 @click="openInNewTab"
               >
                 <span class="icon">⬈</span>
               </button>
               <button
                 class="close-button"
-                title="Close (ESC)"
-                aria-label="Close modal"
+                :title="$t('problems.pytutor.closeEsc')"
+                :aria-label="$t('problems.pytutor.closeModal')"
                 @click="closeModal"
               >
                 &times;
@@ -67,7 +67,7 @@
               class="loading-container"
             >
               <div class="loading-spinner" />
-              <p>Loading debugger...</p>
+              <p>{{ $t('problems.pytutor.loadingDebugger') }}</p>
             </div>
             <div
               v-show="!loading && !urlTooLong"
@@ -75,10 +75,10 @@
               class="iframe-wrapper"
             >
               <div class="iframe-header">
-                <span class="iframe-info">Python Tutor Visualizer</span>
+                <span class="iframe-info">{{ $t('problems.pytutor.pythonTutorVisualizer') }}</span>
                 <button
                   class="theme-toggle"
-                  :title="`Switch to ${isDarkWrapper ? 'light' : 'dark'} background`"
+                  :title="$t('problems.pytutor.switchTheme', { theme: isDarkWrapper ? 'light' : 'dark' })"
                   @click="toggleTheme"
                 >
                   <span v-if="isDarkWrapper">🌞</span>
@@ -103,22 +103,22 @@
               v-if="urlTooLong"
               class="url-warning"
             >
-              <p>⚠️ Code is too large for direct debugging</p>
+              <p>{{ $t('problems.pytutor.codeTooLarge') }}</p>
               <p class="warning-details">
-                The code exceeds the URL length limit ({{ urlLength }} characters)
+                {{ $t('problems.pytutor.urlLengthExceeded', { length: urlLength }) }}
               </p>
               <div class="warning-actions">
                 <button
                   class="action-btn primary"
                   @click="copyAndOpen"
                 >
-                  <span>📋</span> Copy Code & Open Python Tutor
+                  <span>📋</span> {{ $t('problems.pytutor.copyCodeAndOpen') }}
                 </button>
                 <button
                   class="action-btn secondary"
                   @click="closeModal"
                 >
-                  Cancel
+                  {{ $t('common.cancel') }}
                 </button>
               </div>
             </div>
@@ -140,7 +140,7 @@
                   class="retry-button"
                   @click="retry"
                 >
-                  <span>🔄</span> Try Again
+                  <span>🔄</span> {{ $t('common.tryAgain') }}
                 </button>
                 <a
                   v-if="errorType === 'TIMEOUT' || errorType === 'NETWORK'"
@@ -148,7 +148,7 @@
                   target="_blank"
                   class="error-link"
                 >
-                  Open Python Tutor directly
+                  {{ $t('problems.pytutor.openDirectly') }}
                 </a>
               </div>
             </div>
@@ -161,6 +161,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { log } from '@/utils/logger'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 
@@ -186,6 +187,8 @@ const emit = defineEmits<{
   (e: 'debugger-error', payload: { type: ErrorType; message: string }): void
 }>()
 
+const { t } = useI18n()
+
 // Focus trap composable
 const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
 
@@ -200,21 +203,21 @@ const errorType = ref<ErrorType>(null)
 const errorMessage = ref('')
 const urlTooLong = ref(false)
 const urlLength = ref(0)
-const iframeTitle = ref('Python Tutor Code Visualizer')
+const iframeTitle = ref(t('problems.pytutor.iframeTitle'))
 const loadingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const isDarkWrapper = ref(false)
 const currentSize = ref<SizePreset>('medium')
 
-const sizePresets: SizePresetConfig[] = [
-  { name: 'small', label: 'Small', icon: '◻', width: '800px', height: '600px' },
-  { name: 'medium', label: 'Medium', icon: '◼', width: '1200px', height: '800px' },
-  { name: 'large', label: 'Large', icon: '⬛', width: '95%', height: '90vh' },
-  { name: 'fullscreen', label: 'Fullscreen', icon: '⛶', width: '100%', height: '100vh' }
-]
+const sizePresets = computed<SizePresetConfig[]>(() => [
+  { name: 'small', label: t('problems.editor.size.small'), icon: '◻', width: '800px', height: '600px' },
+  { name: 'medium', label: t('problems.editor.size.medium'), icon: '◼', width: '1200px', height: '800px' },
+  { name: 'large', label: t('problems.editor.size.large'), icon: '⬛', width: '95%', height: '90vh' },
+  { name: 'fullscreen', label: t('problems.editor.size.fullscreen'), icon: '⛶', width: '100%', height: '100vh' },
+])
 
 // Computed
 const modalStyle = computed(() => {
-  const preset = sizePresets.find(s => s.name === currentSize.value)
+  const preset = sizePresets.value.find(s => s.name === currentSize.value)
   if (!preset) {
     return {}
   }
@@ -246,7 +249,7 @@ function startLoadingTimeout(): void {
       loading.value = false
       error.value = true
       errorType.value = 'TIMEOUT'
-      errorMessage.value = 'Python Tutor is taking too long to load. This might be due to slow internet or service issues.'
+      errorMessage.value = t('problems.pytutor.timeoutMessage')
       emit('debugger-error', { type: errorType.value, message: errorMessage.value })
     }
   }, TIMEOUT_DURATION)
@@ -271,7 +274,7 @@ function onIframeError(): void {
   loading.value = false
   error.value = true
   errorType.value = 'NETWORK'
-  errorMessage.value = 'Unable to connect to Python Tutor. Please check your internet connection.'
+  errorMessage.value = t('problems.pytutor.networkMessage')
   emit('debugger-error', { type: errorType.value, message: errorMessage.value })
 }
 
@@ -315,11 +318,11 @@ function copyAndOpen(): void {
 function getErrorTitle(): string {
   switch (errorType.value) {
     case 'TIMEOUT':
-      return 'Loading Timeout'
+      return t('problems.pytutor.loadingTimeout')
     case 'NETWORK':
-      return 'Connection Error'
+      return t('problems.pytutor.connectionError')
     default:
-      return 'Failed to Load Debugger'
+      return t('problems.pytutor.failedToLoad')
   }
 }
 
@@ -374,7 +377,7 @@ onMounted(() => {
     isDarkWrapper.value = savedTheme === 'true'
   }
   const savedSize = localStorage.getItem('pytutor-modal-size') as SizePreset | null
-  if (savedSize && sizePresets.find(s => s.name === savedSize)) {
+  if (savedSize && sizePresets.value.find(s => s.name === savedSize)) {
     currentSize.value = savedSize
   }
 })

@@ -2,18 +2,18 @@
   <ContentEditorLayout
     :page-title="pageTitle"
     :back-path="backPath"
-    back-label="Back to Submissions"
+    :back-label="$t('admin.submissions.backToSubmissions')"
     :show-header="true"
     :show-breadcrumb="true"
   >
     <div v-if="loading" class="loading-state">
-      Loading submission details...
+      {{ $t('admin.submissions.loadingDetails') }}
     </div>
 
     <div v-else-if="error" class="error-state">
       <p>{{ error }}</p>
       <button class="retry-btn" @click="fetchSubmission">
-        Retry
+        {{ $t('common.retry') }}
       </button>
     </div>
 
@@ -21,35 +21,35 @@
       <!-- Metrics bar -->
       <div class="metrics-bar">
         <div class="metric">
-          <span class="metric-label">Score:</span>
+          <span class="metric-label">{{ $t('admin.submissions.score') }}</span>
           <span class="metric-value" :class="getScoreClass(submission.score)">
             {{ submission.score || 0 }}%
           </span>
         </div>
         <div class="metric">
-          <span class="metric-label">Status:</span>
+          <span class="metric-label">{{ $t('admin.submissions.status') }}</span>
           <span class="metric-value">
-            {{ submission.completion_status || submission.status || 'Unknown' }}
+            {{ submission.completion_status || submission.status || $t('admin.submissions.unknown') }}
           </span>
         </div>
         <div class="metric">
-          <span class="metric-label">Type:</span>
+          <span class="metric-label">{{ $t('admin.submissions.typeLabel') }}</span>
           <span class="metric-value type-badge">{{ formatType(submission.submission_type) }}</span>
         </div>
         <div v-if="submission.execution_time_ms" class="metric">
-          <span class="metric-label">Time:</span>
+          <span class="metric-label">{{ $t('admin.submissions.time') }}</span>
           <span class="metric-value">{{ submission.execution_time_ms }}ms</span>
         </div>
         <div class="metric">
-          <span class="metric-label">Student:</span>
+          <span class="metric-label">{{ $t('admin.submissions.studentLabel') }}</span>
           <span class="metric-value">{{ submission.user }}</span>
         </div>
         <div class="metric">
-          <span class="metric-label">Problem:</span>
+          <span class="metric-label">{{ $t('admin.submissions.problemLabel') }}</span>
           <span class="metric-value">{{ submission.problem?.title || submission.problem }}</span>
         </div>
         <div class="metric">
-          <span class="metric-label">Submitted:</span>
+          <span class="metric-label">{{ $t('admin.submissions.submittedLabel') }}</span>
           <span class="metric-value">{{ formatDate(submission.submitted_at) }}</span>
         </div>
       </div>
@@ -61,7 +61,7 @@
           <!-- NL Prompt -->
           <div v-if="submission.raw_input" class="code-section">
             <div class="section-header">
-              <span class="section-title">Natural Language Prompt</span>
+              <span class="section-title">{{ $t('admin.submissions.naturalLanguagePrompt') }}</span>
             </div>
             <div class="prompt-box">{{ submission.raw_input }}</div>
           </div>
@@ -69,7 +69,7 @@
           <!-- Variation nav -->
           <div v-if="hasVariations" class="variation-nav">
             <span class="variation-label">
-              Variation {{ currentVariationIndex + 1 }} of {{ variationsCount }}
+              {{ $t('admin.submissions.variationOf', { current: currentVariationIndex + 1, total: variationsCount }) }}
             </span>
             <div class="nav-controls">
               <button
@@ -77,14 +77,14 @@
                 :disabled="currentVariationIndex === 0"
                 @click="currentVariationIndex--"
               >
-                Previous
+                {{ $t('admin.submissions.previous') }}
               </button>
               <button
                 class="nav-btn"
                 :disabled="currentVariationIndex >= variationsCount - 1"
                 @click="currentVariationIndex++"
               >
-                Next
+                {{ $t('admin.submissions.next') }}
               </button>
             </div>
           </div>
@@ -93,11 +93,11 @@
           <div class="code-section">
             <div class="section-header">
               <span class="section-title">
-                {{ hasVariations ? `Generated Code - Variation ${currentVariationIndex + 1}` : (submission.raw_input ? 'Generated Code' : 'Submitted Code') }}
+                {{ hasVariations ? $t('admin.submissions.generatedCodeVariation', { index: currentVariationIndex + 1 }) : (submission.raw_input ? $t('admin.submissions.generatedCode') : $t('admin.submissions.submittedCode')) }}
               </span>
             </div>
             <Editor
-              :value="currentCode || '# No code available'"
+              :value="currentCode || t('admin.submissions.noCodeAvailable')"
               :read-only="true"
               height="450px"
               width="100%"
@@ -109,7 +109,7 @@
           <div v-if="currentTests.length > 0" class="code-section">
             <div class="section-header">
               <span class="section-title">
-                Test Results ({{ currentTests.filter(t => t.passed || t.isSuccessful).length }}/{{ currentTests.length }} passing)
+                {{ $t('admin.submissions.testResults', { passing: currentTests.filter(tc => tc.passed || tc.isSuccessful).length, total: currentTests.length }) }}
               </span>
             </div>
             <div class="test-list">
@@ -120,10 +120,10 @@
                 :class="(test.passed || test.isSuccessful) ? 'passing' : 'failing'"
               >
                 <span class="test-status">{{ (test.passed || test.isSuccessful) ? '&#10003;' : '&#10007;' }}</span>
-                <code class="test-call">{{ test.description || `Test ${i + 1}` }}</code>
+                <code class="test-call">{{ test.description || `${$t('admin.submissions.testCase')} ${i + 1}` }}</code>
                 <template v-if="!(test.passed || test.isSuccessful)">
-                  <span class="test-expected">Expected: {{ formatValue(test.expected_output || test.expected) }}</span>
-                  <span class="test-actual">Got: {{ formatValue(test.actual_output || test.actual) }}</span>
+                  <span class="test-expected">{{ $t('admin.submissions.expected') }} {{ formatValue(test.expected_output || test.expected) }}</span>
+                  <span class="test-actual">{{ $t('admin.submissions.got') }} {{ formatValue(test.actual_output || test.actual) }}</span>
                 </template>
               </div>
             </div>
@@ -132,17 +132,17 @@
           <!-- Segmentation -->
           <div v-if="submission.segmentation" class="code-section">
             <div class="section-header">
-              <span class="section-title">Segmentation Analysis</span>
+              <span class="section-title">{{ $t('admin.submissions.segmentationAnalysis') }}</span>
             </div>
             <div class="segmentation-info">
               <div class="seg-metric">
-                <span>Comprehension:</span>
+                <span>{{ $t('admin.submissions.comprehension') }}</span>
                 <strong>{{ submission.segmentation.comprehension_level }}</strong>
               </div>
               <div class="seg-metric">
-                <span>Segments:</span>
+                <span>{{ $t('admin.submissions.segments') }}</span>
                 <strong>{{ submission.segmentation.segment_count }}</strong>
-                (threshold: {{ submission.segmentation.threshold }})
+                ({{ $t('admin.submissions.threshold', { value: submission.segmentation.threshold }) }})
               </div>
               <div v-if="submission.segmentation.feedback_message" class="seg-feedback">
                 {{ submission.segmentation.feedback_message }}
@@ -157,6 +157,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
 import Editor from '@/features/editor/Editor.vue';
@@ -167,6 +168,7 @@ import { log } from '@/utils/logger';
 
 const ctx = provideContentContext();
 const route = useRoute();
+const { t } = useI18n();
 
 const submissionId = computed(() => route.params.submissionId as string);
 const courseId = computed(() => route.params.courseId as string | undefined);
@@ -177,10 +179,10 @@ const error = ref<string | null>(null);
 const currentVariationIndex = ref(0);
 
 const pageTitle = computed(() => {
-  if (!submission.value) return 'Submission Details';
+  if (!submission.value) return t('admin.submissions.title');
   const problem = submission.value.problem as { title?: string } | string | undefined;
   const title = typeof problem === 'object' ? problem?.title : problem;
-  return `Submission: ${title || 'Unknown'}`;
+  return t('admin.submissions.submissionTitle', { title: title || t('admin.submissions.unknown') });
 });
 
 const backPath = computed(() => {
@@ -222,7 +224,7 @@ async function fetchSubmission(): Promise<void> {
     submission.value = data as unknown as Record<string, unknown>;
   } catch (err) {
     log.error('Failed to load submission', { error: err, submissionId: submissionId.value });
-    error.value = 'Failed to load submission details. Please try again.';
+    error.value = t('admin.submissions.failedToLoad');
   } finally {
     loading.value = false;
   }
@@ -244,8 +246,8 @@ function formatType(type: string | undefined): string {
 }
 
 function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return 'Unknown';
-  return new Date(dateStr as string).toLocaleString('en-US', {
+  if (!dateStr) return t('admin.submissions.unknown');
+  return new Date(dateStr as string).toLocaleString(undefined, {
     month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 }

@@ -6,30 +6,30 @@
     <!-- Current Problem Sets Section -->
     <div class="section">
       <div class="section-header">
-        <h3>Current Problem Sets</h3>
+        <h3>{{ $t('admin.courseProblemSets.currentProblemSets') }}</h3>
         <span class="count-badge">{{ currentProblemSets.length }}</span>
       </div>
 
       <div v-if="loading.current" class="loading-container">
         <div class="loading-spinner" />
-        <p>Loading problem sets...</p>
+        <p>{{ $t('admin.courseProblemSets.loading') }}</p>
       </div>
 
       <div v-else-if="currentProblemSets.length === 0" class="empty-state">
-        <p>No problem sets assigned to this course yet.</p>
+        <p>{{ $t('admin.courseProblemSets.noProblemSets') }}</p>
       </div>
 
       <div v-else class="table-responsive">
         <table class="problem-sets-table">
           <thead>
             <tr>
-              <th>Order</th>
-              <th>Problem Set</th>
-              <th class="center">Problems</th>
-              <th class="center">Required</th>
-              <th>Due Date</th>
-              <th>Deadline</th>
-              <th>Actions</th>
+              <th>{{ $t('admin.courseProblemSets.columnOrder') }}</th>
+              <th>{{ $t('admin.courseProblemSets.columnProblemSet') }}</th>
+              <th class="center">{{ $t('admin.courseProblemSets.columnProblems') }}</th>
+              <th class="center">{{ $t('admin.courseProblemSets.columnRequired') }}</th>
+              <th>{{ $t('admin.courseProblemSets.columnDueDate') }}</th>
+              <th>{{ $t('admin.courseProblemSets.columnDeadline') }}</th>
+              <th>{{ $t('admin.courseProblemSets.columnActions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -39,7 +39,7 @@
                   <button
                     :disabled="index === 0"
                     class="order-btn"
-                    title="Move up"
+                    :title="$t('admin.courseProblemSets.moveUp')"
                     @click="moveUp(index)"
                   >
                     &#x2191;
@@ -48,7 +48,7 @@
                   <button
                     :disabled="index === currentProblemSets.length - 1"
                     class="order-btn"
-                    title="Move down"
+                    :title="$t('admin.courseProblemSets.moveDown')"
                     @click="moveDown(index)"
                   >
                     &#x2193;
@@ -76,7 +76,7 @@
                 <button
                   v-if="item.due_date"
                   class="clear-date-btn"
-                  title="Clear due date"
+                  :title="$t('admin.courseProblemSets.clearDueDate')"
                   @click="clearDueDate(item)"
                 >
                   ✕
@@ -87,21 +87,21 @@
                   v-model="item.deadline_type"
                   class="deadline-select"
                   :disabled="!item.due_date"
-                  :title="!item.due_date ? 'Set a due date first' : ''"
+                  :title="!item.due_date ? $t('admin.courseProblemSets.setDueDateFirst') : ''"
                   @change="updateDeadlineType(item)"
                 >
-                  <option value="none">None</option>
-                  <option value="soft">Soft</option>
-                  <option value="hard">Hard</option>
+                  <option value="none">{{ $t('admin.courseProblemSets.none') }}</option>
+                  <option value="soft">{{ $t('admin.courseProblemSets.soft') }}</option>
+                  <option value="hard">{{ $t('admin.courseProblemSets.hard') }}</option>
                 </select>
               </td>
               <td>
                 <button
                   class="action-button remove-button"
-                  title="Remove from course"
+                  :title="$t('admin.courseProblemSets.removeFromCourse')"
                   @click="confirmRemove(item)"
                 >
-                  Remove
+                  {{ $t('common.remove') }}
                 </button>
               </td>
             </tr>
@@ -115,32 +115,32 @@
     <!-- Available Problem Sets Section -->
     <div class="section">
       <div class="section-header">
-        <h3>Add Problem Sets</h3>
-        <span class="count-badge">{{ availableProblemSets.length }} available</span>
+        <h3>{{ $t('admin.courseProblemSets.addProblemSets') }}</h3>
+        <span class="count-badge">{{ $t('admin.courseProblemSets.available', { count: availableProblemSets.length }) }}</span>
       </div>
 
       <div v-if="loading.available" class="loading-container">
         <div class="loading-spinner" />
-        <p>Loading available problem sets...</p>
+        <p>{{ $t('admin.courseProblemSets.loadingAvailable') }}</p>
       </div>
 
       <div v-else-if="availableProblemSets.length === 0" class="empty-state">
-        <p>All problem sets have been added to this course.</p>
+        <p>{{ $t('admin.courseProblemSets.allAdded') }}</p>
       </div>
 
       <div v-else class="available-grid">
         <div v-for="ps in availableProblemSets" :key="ps.slug" class="available-item">
           <div class="item-info">
             <h4>{{ ps.title }}</h4>
-            <p class="description">{{ ps.description || 'No description' }}</p>
-            <span class="problems-count">{{ ps.problems_count || 0 }} problems</span>
+            <p class="description">{{ ps.description || $t('admin.courseProblemSets.noDescription') }}</p>
+            <span class="problems-count">{{ $t('admin.courseProblemSets.problemsCount', { count: ps.problems_count || 0 }) }}</span>
           </div>
           <button
             class="action-button add-button"
             :disabled="loading.adding"
             @click="addProblemSet(ps)"
           >
-            Add
+            {{ $t('common.add') }}
           </button>
         </div>
       </div>
@@ -149,16 +149,16 @@
     <!-- Remove Confirmation Dialog -->
     <div v-if="showRemoveDialog" class="dialog-overlay">
       <div class="dialog">
-        <h3>Remove Problem Set?</h3>
+        <h3>{{ $t('admin.courseProblemSets.removeProblemSet') }}</h3>
         <p>
-          Are you sure you want to remove "{{ removeTarget?.problem_set.title }}" from this course?
+          {{ $t('admin.courseProblemSets.removeConfirmMessage', { title: removeTarget?.problem_set.title }) }}
         </p>
         <div class="dialog-actions">
           <button class="btn btn-secondary" @click="showRemoveDialog = false">
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button class="btn btn-danger" :disabled="removing" @click="performRemove">
-            {{ removing ? 'Removing...' : 'Remove' }}
+            {{ removing ? $t('admin.courseProblemSets.removing') : $t('common.remove') }}
           </button>
         </div>
       </div>
@@ -168,6 +168,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
 import { provideContentContext } from '@/composables/useContentContext';
@@ -176,6 +177,7 @@ import type { Course, CourseProblemSet, ProblemSet } from '@/types';
 
 // Router
 const route = useRoute();
+const { t } = useI18n();
 
 // Provide role-aware context
 const ctx = provideContentContext();
@@ -206,9 +208,9 @@ function setDateInputRef(itemId: number, el: unknown): void {
 const courseId = computed(() => route.params.courseId as string);
 const pageTitle = computed(() => {
   if (course.value) {
-    return `Problem Sets - ${course.value.name}`;
+    return t('admin.courseProblemSets.problemSetsDash', { name: course.value.name });
   }
-  return 'Course Problem Sets';
+  return t('admin.courseProblemSets.title');
 });
 
 // Fetch data

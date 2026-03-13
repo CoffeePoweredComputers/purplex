@@ -5,14 +5,14 @@
 
     <!-- Question & Options -->
     <div class="form-section rounded-lg border-default transition-fast">
-      <h3>Question & Options</h3>
+      <h3>{{ $t('admin.editors.mcq.questionAndOptions') }}</h3>
 
       <div class="form-group">
-        <label for="question-text">Question *</label>
+        <label for="question-text">{{ $t('admin.editors.mcq.questionLabel') }}</label>
         <textarea
           id="question-text"
           :value="editor.mcqOptions.questionText.value"
-          placeholder="Enter the question that students will see"
+          :placeholder="$t('admin.editors.mcq.questionPlaceholder')"
           rows="3"
           required
           @input="editor.mcqOptions.setQuestionText(($event.target as HTMLTextAreaElement).value)"
@@ -20,7 +20,7 @@
       </div>
 
       <p class="section-description">
-        Add 2-6 answer options. Mark one as the correct answer and optionally add explanations.
+        {{ $t('admin.editors.mcq.optionsDescription') }}
       </p>
 
       <div class="mcq-options-list">
@@ -39,13 +39,13 @@
                 :checked="option.is_correct"
                 @change="editor.mcqOptions.setCorrect(index)"
               >
-              <span>Correct Answer</span>
+              <span>{{ $t('admin.editors.mcq.correctAnswer') }}</span>
             </label>
             <button
               type="button"
               class="remove-btn"
               :disabled="editor.mcqOptions.options.value.length <= 2"
-              title="Remove option"
+              :title="$t('admin.editors.mcq.removeOption')"
               @click="editor.mcqOptions.removeOption(index)"
             >
               ×
@@ -56,13 +56,13 @@
               v-model="option.text"
               type="text"
               class="option-text-input"
-              placeholder="Enter option text"
+              :placeholder="$t('admin.editors.mcq.optionTextPlaceholder')"
             >
             <input
               v-model="option.explanation"
               type="text"
               class="option-explanation-input"
-              placeholder="Explanation (shown when this option is selected)"
+              :placeholder="$t('admin.editors.mcq.explanationPlaceholder')"
             >
           </div>
         </div>
@@ -74,14 +74,14 @@
         :disabled="!editor.mcqOptions.canAddMore.value"
         @click="editor.mcqOptions.addOption"
       >
-        + Add Option
+        {{ $t('admin.editors.mcq.addOption') }}
       </button>
 
       <div
         v-if="!editor.mcqOptions.hasCorrectAnswer.value"
         class="validation-warning"
       >
-        Please mark one option as the correct answer
+        {{ $t('admin.editors.mcq.markCorrectAnswer') }}
       </div>
     </div>
   </div>

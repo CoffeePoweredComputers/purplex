@@ -30,7 +30,7 @@
     <!-- NL Description Input -->
     <div class="section-header description-section-header">
       <div class="section-label">
-        Describe What the Function Does
+        {{ $t('problems.probeableSpec.describeFunction') }}
       </div>
     </div>
     <span
@@ -38,7 +38,7 @@
       class="draft-indicator"
       role="status"
       aria-live="polite"
-    >Draft saved</span>
+    >{{ $t('problems.submission.draftSaved') }}</span>
     <div
       id="promptEditor"
       class="prompt-editor-wrapper"
@@ -61,13 +61,13 @@
       class="submit-button"
       :disabled="disabled || !isValid"
       :aria-busy="disabled"
-      :aria-label="disabled ? 'Submitting solution, please wait' : (isValid ? 'Submit Solution' : 'Enter at least 10 characters to submit')"
+      :aria-label="disabled ? $t('problems.submission.submittingWait') : (isValid ? $t('problems.submission.submitSolution') : $t('problems.submission.minLength'))"
       @click="handleSubmit"
     >
       <span
         v-if="!disabled"
         class="button-text"
-      >Submit Solution</span>
+      >{{ $t('problems.submission.submitSolution') }}</span>
       <div
         v-if="disabled"
         class="loading-content"
@@ -82,7 +82,7 @@
           <span class="dot" />
           <span class="dot" />
         </div>
-        <span class="visually-hidden">Submitting solution, please wait</span>
+        <span class="visually-hidden">{{ $t('problems.submission.submittingWait') }}</span>
       </div>
     </button>
   </div>
@@ -97,6 +97,7 @@
  * - NL textarea: Write description that gets converted to code by LLM
  */
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Editor from '@/features/editor/Editor.vue'
 import ProbePanel from './shared/ProbePanel.vue'
 import { useProbeState } from './shared/useProbeState'
@@ -148,8 +149,10 @@ const {
   updateProbeInput,
 } = useProbeState(() => props.problem)
 
+const { t } = useI18n()
+
 const sectionLabel = computed(() => {
-  return props.problem?.display_config?.section_label || 'Discover and explain the function'
+  return props.problem?.display_config?.section_label || t('problems.probeableSpec.sectionLabel')
 })
 
 // NL editor logic

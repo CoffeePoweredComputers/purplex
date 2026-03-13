@@ -9,7 +9,7 @@
 
   <div class="section-header">
     <div class="section-label">
-      {{ problem?.display_config?.section_label || inputConfig?.label || 'Select your answer' }}
+      {{ problem?.display_config?.section_label || inputConfig?.label || $t('problems.mcq.sectionLabel') }}
     </div>
   </div>
 
@@ -55,7 +55,7 @@
     <span
       v-if="!disabled"
       class="button-text"
-    >Submit Answer</span>
+    >{{ $t('problems.mcq.submitAnswer') }}</span>
     <div
       v-if="disabled"
       class="loading-content"
@@ -70,7 +70,7 @@
         <span class="dot" />
         <span class="dot" />
       </div>
-      <span class="visually-hidden">Checking answer, please wait</span>
+      <span class="visually-hidden">{{ $t('problems.mcq.checkingWait') }}</span>
     </div>
   </button>
 </template>
@@ -82,6 +82,7 @@
  * Renders radio buttons (single-select) or checkboxes (multi-select) for MCQ problems.
  */
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ActivityProblem, InputConfig } from '../types'
 
 interface McqOption {
@@ -107,6 +108,8 @@ const props = withDefaults(defineProps<Props>(), {
   theme: 'dark',
   draftSaved: false,
 })
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
@@ -189,13 +192,13 @@ function handleSubmit() {
 
 function getButtonAriaLabel(): string {
   if (props.disabled) {
-    return 'Checking answer, please wait'
+    return t('problems.mcq.checkingWait')
   }
   const hasSelection = isCheckboxMode.value ? selectedIds.value.size > 0 : !!props.modelValue
   if (!hasSelection) {
-    return 'Please select an answer before submitting'
+    return t('problems.mcq.selectFirst')
   }
-  return 'Submit Answer'
+  return t('problems.mcq.submitAnswer')
 }
 </script>
 

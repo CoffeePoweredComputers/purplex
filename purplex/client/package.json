@@ -28,7 +28,9 @@
     "test:unit": "vitest run",
     "test:coverage": "vitest run --coverage",
     "dead-code": "knip",
-    "dead-code:fix": "knip --fix"
+    "dead-code:fix": "knip --fix",
+    "i18n:check": "node scripts/check-i18n.mjs",
+    "i18n:badges": "node scripts/generate-i18n-badges.mjs"
   },
   "dependencies": {
     "ace-builds": "^1.32.5",

@@ -13,7 +13,7 @@
           🤖
         </div>
         <div class="generating-message">
-          Running tests...
+          {{ $t('feedback.codeSubmission.runningTests') }}
         </div>
       </div>
     </div>
@@ -52,12 +52,12 @@
           v-if="submissionHistory && submissionHistory.length > 0"
           class="attempt-selector"
         >
-          <span class="attempt-header-label">Previous Submissions:</span>
+          <span class="attempt-header-label">{{ $t('feedback.attempts.label') }}</span>
           <button
             ref="triggerRef"
             class="attempt-dropdown-trigger"
             :class="{ 'is-active': showAttemptDropdown }"
-            :aria-label="`View previous submissions. Current: attempt ${currentAttemptNumber} of ${totalAttempts}, score ${currentScore}%`"
+            :aria-label="$t('feedback.attempts.ariaLabel', { current: currentAttemptNumber, total: totalAttempts, score: currentScore })"
             :aria-expanded="showAttemptDropdown"
             :aria-haspopup="true"
             @click="showAttemptDropdown = !showAttemptDropdown"
@@ -101,7 +101,7 @@
                 }"
                 role="menuitem"
                 :tabindex="showAttemptDropdown ? 0 : -1"
-                :aria-label="`Attempt ${attempt.attempt_number}: ${attempt.score}%, ${attempt.tests_passed} of ${attempt.total_tests} tests passed${attempt.is_best ? ', best attempt' : ''}`"
+                :aria-label="$t('feedback.attempts.attemptAriaLabel', { number: attempt.attempt_number, score: attempt.score, passed: attempt.tests_passed, total: attempt.total_tests }) + (attempt.is_best ? $t('feedback.attempts.bestAttempt') : '')"
                 @click="selectAttempt(attempt)"
                 @keydown.escape="closeDropdownAndFocusTrigger"
                 @keydown.arrow-down.prevent="focusNextItem"
@@ -137,7 +137,7 @@
       <!-- Code Section -->
       <section class="code-section">
         <div class="code-header">
-          <span>Your Submission</span>
+          <span>{{ $t('feedback.codeSubmission.yourSubmission') }}</span>
         </div>
         <Editor
           :value="studentCode"
@@ -153,8 +153,8 @@
       <!-- Test Summary Bar -->
       <div class="test-summary-bar">
         <div class="summary-counts">
-          <span class="count-item passing">✓ {{ passingTests.length }} Passing</span>
-          <span class="count-item failing">✗ {{ failingTests.length }} Failing</span>
+          <span class="count-item passing">✓ {{ $t('feedback.tests.passing', { count: passingTests.length }) }}</span>
+          <span class="count-item failing">✗ {{ $t('feedback.tests.failing', { count: failingTests.length }) }}</span>
         </div>
       </div>
 
@@ -168,7 +168,7 @@
         >
           <summary class="test-group-header failing">
             <span class="group-icon">▶</span>
-            Failing Tests ({{ failingTests.length }})
+            {{ $t('feedback.tests.failingGroup', { count: failingTests.length }) }}
           </summary>
           <div class="test-list">
             <article
@@ -179,9 +179,9 @@
               <div class="test-content">
                 <code class="test-call">{{ test.function_call }}</code>
                 <div class="test-diff">
-                  <div>Expected: <code class="expected">{{ formatValue(test.expected_output) }}</code></div>
+                  <div>{{ $t('feedback.tests.expected') }} <code class="expected">{{ formatValue(test.expected_output) }}</code></div>
                   <div>
-                    Got: <code
+                    {{ $t('feedback.tests.got') }} <code
                       class="actual"
                       :class="{ 'is-error': test.error }"
                     >{{ test.error || formatValue(test.actual_output) }}</code>
@@ -190,7 +190,7 @@
               </div>
               <button
                 class="debug-btn"
-                :aria-label="`Debug test case: ${test.function_call}`"
+                :aria-label="$t('feedback.codeSubmission.debugTestCase', { call: test.function_call })"
                 @click="openDebugger(test)"
               >
                 <span aria-hidden="true">🔍</span>
@@ -211,7 +211,7 @@
             aria-expanded="false"
           >
             <span class="group-icon">▶</span>
-            Passing Tests ({{ passingTests.length }})
+            {{ $t('feedback.tests.passingGroup', { count: passingTests.length }) }}
           </summary>
           <div class="test-list">
             <article
@@ -234,7 +234,7 @@
       class="empty-state"
     >
       <span class="empty-icon">🚀</span>
-      <p>Submit your solution to see test results</p>
+      <p>{{ $t('feedback.codeSubmission.submitToSeeResults') }}</p>
     </div>
 
     <!-- PyTutor Modal -->

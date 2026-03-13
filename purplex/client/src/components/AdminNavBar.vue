@@ -7,7 +7,7 @@
             to="/admin/users"
             class="admin-link"
           >
-            Users
+            {{ $t('admin.nav.users') }}
           </router-link>
         </li>
         <li>
@@ -15,7 +15,7 @@
             to="/admin/problems"
             class="admin-link"
           >
-            Problems
+            {{ $t('admin.nav.problems') }}
           </router-link>
         </li>
         <li>
@@ -23,7 +23,7 @@
             to="/admin/problem-sets"
             class="admin-link"
           >
-            Problem Sets
+            {{ $t('admin.nav.problemSets') }}
           </router-link>
         </li>
         <li>
@@ -31,7 +31,7 @@
             to="/admin/submissions"
             class="admin-link"
           >
-            Submissions
+            {{ $t('admin.nav.submissions') }}
           </router-link>
         </li>
         <li>
@@ -39,7 +39,7 @@
             to="/admin/courses"
             class="admin-link"
           >
-            Courses
+            {{ $t('admin.nav.courses') }}
           </router-link>
         </li>
       </ul>

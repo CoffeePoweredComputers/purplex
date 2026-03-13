@@ -17,6 +17,15 @@ An educational coding challenge platform with AI-powered problem generation, san
 - **Progress Tracking** -- Per-student analytics, instructor dashboards, and research data export with anonymization
 - **Course Management** -- Instructor roles, problem set organization, enrollment, and team management
 
+## Translation Status
+
+<!-- i18n-badges:start -->
+[![Bengali translation](https://img.shields.io/badge/Bengali-100%25-brightgreen)](purplex/client/src/i18n/locales/bn/)
+[![Te Reo Māori translation](https://img.shields.io/badge/Te%20Reo%20M%C4%81ori-100%25-brightgreen)](purplex/client/src/i18n/locales/mi/)
+<!-- i18n-badges:end -->
+
+Help translate Purplex into your language! See [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md) for guidelines.
+
 ## Quick Start
 
 ```bash

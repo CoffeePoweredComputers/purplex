@@ -2,7 +2,7 @@
   <div class="refute-feedback">
     <div class="feedback-header">
       <h3 class="feedback-title">
-        {{ title }}
+        {{ title || $t('feedback.refute.title') }}
       </h3>
     </div>
 
@@ -11,7 +11,7 @@
       class="loading-state"
     >
       <div class="loading-spinner" />
-      <span>Checking your input...</span>
+      <span>{{ $t('feedback.refute.checkingInput') }}</span>
     </div>
 
     <div
@@ -28,16 +28,16 @@
         </div>
         <div class="result-text">
           <span class="result-label">
-            {{ isCounterexampleFound ? 'Counterexample Found!' : 'Not a Counterexample' }}
+            {{ isCounterexampleFound ? $t('feedback.refute.counterexampleFound') : $t('feedback.refute.notCounterexample') }}
           </span>
-          <span class="result-score">Score: {{ score }}%</span>
+          <span class="result-score">{{ $t('feedback.refute.score', { score }) }}</span>
         </div>
       </div>
 
       <!-- Claim Reminder -->
       <div class="claim-reminder">
         <div class="section-label">
-          The Claim
+          {{ $t('feedback.refute.theClaim') }}
         </div>
         <div class="claim-text">
           {{ claimText }}
@@ -47,7 +47,7 @@
       <!-- Input Details -->
       <div class="details-section">
         <div class="section-label">
-          Your Input
+          {{ $t('feedback.refute.yourInput') }}
         </div>
         <div class="input-display">
           <code>{{ formattedInput }}</code>
@@ -60,7 +60,7 @@
         class="details-section"
       >
         <div class="section-label">
-          Function Output
+          {{ $t('feedback.refute.functionOutput') }}
         </div>
         <div
           class="output-display"
@@ -79,7 +79,7 @@
         class="details-section"
       >
         <div class="section-label">
-          Execution Error
+          {{ $t('feedback.refute.executionError') }}
         </div>
         <div class="error-display">
           {{ executionError }}
@@ -92,11 +92,10 @@
         class="success-explanation"
       >
         <div class="section-label">
-          Why This Works
+          {{ $t('feedback.refute.whyThisWorks') }}
         </div>
         <div class="explanation-text">
-          The function returned <code>{{ formattedResult }}</code> for your input,
-          which disproves the claim "{{ claimText }}".
+          {{ $t('feedback.refute.disprovesClaimExplanation', { result: formattedResult, claim: claimText }) }}
         </div>
       </div>
 
@@ -105,11 +104,10 @@
         class="failure-explanation"
       >
         <div class="section-label">
-          Why This Doesn't Work
+          {{ $t('feedback.refute.whyThisDoesntWork') }}
         </div>
         <div class="explanation-text">
-          The function returned <code>{{ formattedResult }}</code>, which still supports the claim.
-          Try finding input that produces a result contradicting "{{ claimText }}".
+          {{ $t('feedback.refute.supportsClaimExplanation', { result: formattedResult, claim: claimText }) }}
         </div>
       </div>
     </div>
@@ -118,7 +116,7 @@
       v-else
       class="no-result"
     >
-      <p>Enter function arguments and submit to find a counterexample.</p>
+      <p>{{ $t('feedback.refute.enterAndSubmit') }}</p>
     </div>
   </div>
 </template>
@@ -131,7 +129,10 @@
  * the function's output, and explanation of the result.
  */
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { SubmissionHistoryItem } from '../types'
+
+const { t } = useI18n()
 
 interface RefuteResult {
   claim_disproven: boolean
@@ -165,7 +166,7 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   isNavigating: false,
   submissionHistory: () => [],
-  title: 'Counterexample Result',
+  title: '',
 })
 
 defineEmits<{
@@ -177,7 +178,7 @@ const isCounterexampleFound = computed(() => props.refuteResult?.claim_disproven
 const executionSuccess = computed(() => props.refuteResult?.execution_success ?? false)
 const executionError = computed(() => props.refuteResult?.execution_error ?? '')
 const score = computed(() => props.refuteResult?.score ?? (isCounterexampleFound.value ? 100 : 0))
-const claimText = computed(() => props.refuteResult?.claim_text ?? 'No claim specified')
+const claimText = computed(() => props.refuteResult?.claim_text ?? t('feedback.refute.noClaimSpecified'))
 
 const formattedInput = computed(() => {
   const args = props.refuteResult?.input_args
@@ -195,9 +196,9 @@ const formattedResult = computed(() => {
 
 const resultInterpretation = computed(() => {
   if (isCounterexampleFound.value) {
-    return 'This disproves the claim!'
+    return t('feedback.refute.disprovesClaim')
   }
-  return 'This supports the claim'
+  return t('feedback.refute.supportsClaim')
 })
 </script>
 

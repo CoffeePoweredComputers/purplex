@@ -13,7 +13,7 @@
           🤖
         </div>
         <div class="generating-message">
-          Generating feedback...
+          {{ $t('feedback.loading') }}
         </div>
       </div>
     </div>
@@ -49,11 +49,11 @@
           v-if="submissionHistory && submissionHistory.length > 0"
           class="attempt-selector"
         >
-          <span class="attempt-header-label">Attempt:</span>
+          <span class="attempt-header-label">{{ $t('feedback.attempts.headerLabel') }}</span>
           <button
             class="attempt-dropdown-trigger"
             :class="{ 'is-active': showAttemptDropdown }"
-            :aria-label="`View previous submissions. Current: attempt ${currentAttemptNumber} of ${totalAttempts}, score ${currentAttemptScore}%`"
+            :aria-label="$t('feedback.attempts.ariaLabel', { current: currentAttemptNumber, total: totalAttempts, score: currentAttemptScore })"
             :aria-expanded="showAttemptDropdown"
             :aria-haspopup="true"
             @click="showAttemptDropdown = !showAttemptDropdown"
@@ -65,7 +65,7 @@
               :class="[getScoreClass(currentAttemptScore), { 'is-partial': currentAttemptStatus === 'partial' }]"
             >
               {{ currentAttemptScore }}%
-              <span v-if="currentAttemptStatus === 'partial'" class="partial-indicator" title="Tests passed but abstraction needs work">⚠</span>
+              <span v-if="currentAttemptStatus === 'partial'" class="partial-indicator" :title="$t('feedback.attempts.testsPassedButAbstraction')">⚠</span>
             </span>
             <span class="dropdown-arrow" aria-hidden="true">▾</span>
           </button>
@@ -90,7 +90,7 @@
                 }"
                 role="menuitem"
                 :tabindex="showAttemptDropdown ? 0 : -1"
-                :aria-label="`Attempt ${attempt.attempt_number}: ${attempt.score}%, ${attempt.tests_passed} of ${attempt.total_tests} tests passed${attempt.is_best ? ', best attempt' : ''}`"
+                :aria-label="$t('feedback.attempts.attemptAriaLabel', { number: attempt.attempt_number, score: attempt.score, passed: attempt.tests_passed, total: attempt.total_tests }) + (attempt.is_best ? $t('feedback.attempts.bestAttempt') : '')"
                 @click="loadAttempt(attempt)"
                 @keydown.escape="closeDropdownAndFocusTrigger"
                 @keydown.arrow-down.prevent="focusNextItem"
@@ -123,7 +123,7 @@
       >
         <div class="section-label">
           <span class="label-icon" aria-hidden="true">💭</span>
-          <h3 id="explanation-heading" class="label-text">Your Explanation</h3>
+          <h3 id="explanation-heading" class="label-text">{{ $t('feedback.yourExplanation') }}</h3>
         </div>
         <p class="explanation-text">{{ userPrompt }}</p>
       </div>
@@ -139,7 +139,7 @@
         aria-haspopup="dialog"
       >
         <div class="card-content">
-          <div class="card-label" id="correctness-label">CORRECTNESS</div>
+          <div class="card-label" id="correctness-label">{{ $t('feedback.correctness.label') }}</div>
 
           <div
             class="progress-bar-container"
@@ -147,7 +147,7 @@
             :aria-valuenow="correctnessFill"
             aria-valuemin="0"
             aria-valuemax="100"
-            :aria-label="`Correctness: ${passingVariants} of ${totalVariants} versions passing`"
+            :aria-label="$t('feedback.correctness.metric', { passing: passingVariants, total: totalVariants })"
           >
             <div
               class="progress-bar-fill"
@@ -159,11 +159,11 @@
           <div class="card-status">
             <span class="status-icon" aria-hidden="true">{{ correctnessStatus.icon }}</span>
             <span class="status-label">{{ correctnessStatus.label }}</span>
-            <span class="status-metric">{{ passingVariants }}/{{ totalVariants }} pass</span>
+            <span class="status-metric">{{ $t('feedback.correctness.metric', { passing: passingVariants, total: totalVariants }) }}</span>
           </div>
           <div class="card-description">{{ correctnessStatus.description }}</div>
         </div>
-        <div class="card-action" :class="correctnessClass" title="View analysis">
+        <div class="card-action" :class="correctnessClass" :title="$t('feedback.nextStep.viewAnalysis')">
           <span class="action-icon">→</span>
         </div>
       </button>
@@ -180,7 +180,7 @@
         :aria-haspopup="isAbstractionLocked ? undefined : 'dialog'"
       >
         <div class="card-content">
-          <div class="card-label" id="abstraction-label">ABSTRACTION</div>
+          <div class="card-label" id="abstraction-label">{{ $t('feedback.abstraction.label') }}</div>
 
           <div
             class="progress-bar-container"
@@ -188,7 +188,7 @@
             :aria-valuenow="abstractionFill"
             aria-valuemin="0"
             aria-valuemax="100"
-            :aria-label="isAbstractionLocked ? 'Abstraction: locked' : `Abstraction: ${segmentCount} segments`"
+            :aria-label="isAbstractionLocked ? ($t('feedback.abstraction.label') + ': ' + $t('feedback.abstraction.status.locked')) : ($t('feedback.abstraction.label') + ': ' + $t('feedback.abstraction.segments', { count: segmentCount }))"
           >
             <div
               class="progress-bar-fill"
@@ -201,13 +201,13 @@
             <span class="status-icon" aria-hidden="true">{{ abstractionStatus.icon }}</span>
             <span class="status-label">{{ abstractionStatus.label }}</span>
             <span v-if="!isAbstractionLocked" class="status-metric">
-              {{ segmentCount }} segments
-              <span v-if="segmentCount > segmentThreshold" class="metric-hint">(want {{ segmentThreshold }})</span>
+              {{ $t('feedback.abstraction.segments', { count: segmentCount }) }}
+              <span v-if="segmentCount > segmentThreshold" class="metric-hint">{{ $t('feedback.abstraction.segmentThreshold', { threshold: segmentThreshold }) }}</span>
             </span>
           </div>
           <div class="card-description">{{ abstractionStatus.description }}</div>
         </div>
-        <div v-if="!isAbstractionLocked" class="card-action" :class="abstractionClass" title="View analysis">
+        <div v-if="!isAbstractionLocked" class="card-action" :class="abstractionClass" :title="$t('feedback.nextStep.viewAnalysis')">
           <span class="action-icon">→</span>
         </div>
       </button>
@@ -243,7 +243,7 @@
       class="empty-state"
     >
       <span class="empty-icon">🚀</span>
-      <p>Submit a prompt to start getting feedback!</p>
+      <p>{{ $t('feedback.emptyState') }}</p>
     </div>
 
     <!-- Correctness Modal -->
@@ -499,22 +499,22 @@ export default defineComponent({
 
     correctnessStatus(): { icon: string; label: string; description: string } {
       if (this.passingVariants === 0) {
-        return { icon: '✗', label: 'Not yet working', description: 'None of the versions passed the tests' }
+        return { icon: '✗', label: this.$t('feedback.correctness.status.notYetWorking'), description: this.$t('feedback.correctness.status.notYetWorkingDesc') }
       }
       if (this.passingVariants < this.totalVariants) {
-        return { icon: '~', label: 'Works, but ambiguous', description: 'One version interpreted it differently' }
+        return { icon: '~', label: this.$t('feedback.correctness.status.ambiguous'), description: this.$t('feedback.correctness.status.ambiguousDesc') }
       }
-      return { icon: '✓', label: 'Clear', description: 'All versions produced working code' }
+      return { icon: '✓', label: this.$t('feedback.correctness.status.clear'), description: this.$t('feedback.correctness.status.clearDesc') }
     },
 
     abstractionStatus(): { icon: string; label: string; description: string } {
       if (this.isAbstractionLocked) {
-        return { icon: '🔒', label: 'Locked', description: 'Unlocks when all versions pass' }
+        return { icon: '🔒', label: this.$t('feedback.abstraction.status.locked'), description: this.$t('feedback.abstraction.status.lockedDesc') }
       }
       if (this.segmentCount <= this.segmentThreshold) {
-        return { icon: '✓', label: 'High-level', description: 'Focused on purpose, not implementation' }
+        return { icon: '✓', label: this.$t('feedback.abstraction.status.highLevel'), description: this.$t('feedback.abstraction.status.highLevelDesc') }
       }
-      return { icon: '✗', label: 'Too detailed', description: 'Describe the goal, not the steps' }
+      return { icon: '✗', label: this.$t('feedback.abstraction.status.tooDetailed'), description: this.$t('feedback.abstraction.status.tooDetailedDesc') }
     },
 
     correctnessClass(): string {
@@ -543,38 +543,38 @@ export default defineComponent({
 
     nextStepAction(): string | null {
       if (this.passingVariants === 0) {
-        return 'View Analysis'
+        return this.$t('feedback.nextStep.viewAnalysis')
       }
       if (this.passingVariants < this.totalVariants) {
-        return 'See What Failed'
+        return this.$t('feedback.nextStep.seeWhatFailed')
       }
       if (!this.isAbstractionLocked && this.segmentCount > this.segmentThreshold) {
-        return 'Review Abstraction'
+        return this.$t('feedback.nextStep.reviewAbstraction')
       }
       // Fully successful
       if (this.allVariationsPass && !this.isAbstractionLocked && this.segmentCount <= this.segmentThreshold) {
-        return 'Next Problem'
+        return this.$t('feedback.nextStep.nextProblem')
       }
       // All correct but abstraction not enabled/available
       if (this.allVariationsPass) {
-        return 'Next Problem'
+        return this.$t('feedback.nextStep.nextProblem')
       }
       return null
     },
 
     nextStepBannerText(): string {
       if (this.passingVariants === 0) {
-        return 'Your explanation didn\'t produce working code yet. Let\'s look at what the code tried to do and where it went wrong.'
+        return this.$t('feedback.banner.notWorking')
       }
       if (this.passingVariants < this.totalVariants) {
-        return 'Your explanation could be read in different ways. One interpretation worked, but another didn\'t. Try being more specific.'
+        return this.$t('feedback.banner.ambiguous')
       }
       if (!this.isAbstractionLocked && this.segmentCount > this.segmentThreshold) {
-        return 'Your explanation focuses on individual steps. Try describing what the code accomplishes overall instead of how it works line-by-line.'
+        return this.$t('feedback.banner.tooDetailed')
       }
       // Fully successful
       if (this.allVariationsPass) {
-        return 'Problem complete! Your explanation is clear and correct.'
+        return this.$t('feedback.banner.complete')
       }
       return ''
     },
@@ -704,21 +704,21 @@ export default defineComponent({
     // Modal handlers
     openCorrectnessModal(): void {
       this.showCorrectnessModal = true
-      this.announce('Correctness Analysis dialog opened')
+      this.announce(this.$t('feedback.announcement.correctnessOpened'))
     },
 
     closeCorrectnessModal(): void {
       this.showCorrectnessModal = false
-      this.announce('Correctness Analysis dialog closed')
+      this.announce(this.$t('feedback.announcement.correctnessClosed'))
     },
 
     handleAbstractionClick(): void {
       if (this.isAbstractionLocked) {
-        this.announce('Abstraction is locked. Complete all correctness tests first.')
+        this.announce(this.$t('feedback.announcement.abstractionLocked'))
         return
       }
       this.showSegmentAnalysisModal = true
-      this.announce('Abstraction Details dialog opened')
+      this.announce(this.$t('feedback.announcement.abstractionOpened'))
     },
 
     handleNextStepAction(): void {

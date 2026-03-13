@@ -20,12 +20,12 @@
               id="submission-modal-title"
               class="modal-title"
             >
-              Submission Details
+              {{ $t('admin.submissions.title') }}
             </h2>
             <div class="header-meta">
-              <span class="meta-item">{{ submission?.user || 'Unknown User' }}</span>
+              <span class="meta-item">{{ submission?.user || $t('admin.submissions.unknownUser') }}</span>
               <span class="meta-separator">•</span>
-              <span class="meta-item">{{ submission?.problem?.title || submission?.problem || 'Unknown Problem' }}</span>
+              <span class="meta-item">{{ submission?.problem?.title || submission?.problem || $t('admin.submissions.unknownProblem') }}</span>
               <span v-if="submissionTypeLabel" class="meta-separator">•</span>
               <span v-if="submissionTypeLabel" class="meta-item type-badge">{{ submissionTypeLabel }}</span>
               <span class="meta-separator">•</span>
@@ -36,22 +36,22 @@
             <button
               v-if="expandRoute"
               class="expand-btn"
-              title="Open in full page"
+              :title="$t('admin.submissions.openFullPage')"
               @click="expandToFullPage"
             >
-              Expand
+              {{ $t('admin.submissions.expand') }}
             </button>
             <button
               class="download-btn"
               :disabled="!submission"
-              title="Download Data"
+              :title="$t('admin.submissions.downloadData')"
               @click="downloadSubmission"
             >
-              Download
+              {{ $t('admin.submissions.download') }}
             </button>
             <button
               class="close-btn"
-              aria-label="Close"
+              :aria-label="$t('common.close')"
               @click="closeModal"
             >
               ✕
@@ -62,7 +62,7 @@
         <!-- Key Metrics Bar -->
         <div class="metrics-bar">
           <div class="metric">
-            <span class="metric-label">Score:</span>
+            <span class="metric-label">{{ $t('admin.submissions.score') }}</span>
             <span
               class="metric-value"
               :class="getScoreClass(submission?.score)"
@@ -71,37 +71,37 @@
             </span>
           </div>
           <div class="metric">
-            <span class="metric-label">Status:</span>
+            <span class="metric-label">{{ $t('admin.submissions.status') }}</span>
             <span
               class="metric-value"
               :class="getStatusClass(submission?.completion_status || submission?.status)"
             >
-              {{ submission?.completion_status || submission?.status || 'Unknown' }}
+              {{ submission?.completion_status || submission?.status || $t('admin.submissions.unknown') }}
             </span>
           </div>
           <div
             v-if="hasVariations"
             class="metric"
           >
-            <span class="metric-label">Variations:</span>
+            <span class="metric-label">{{ $t('admin.submissions.variations') }}</span>
             <span class="metric-value">
-              {{ passingVariationsCount }}/{{ totalVariationsCount }} passed all tests
+              {{ $t('admin.submissions.variationsPassed', { passing: passingVariationsCount, total: totalVariationsCount }) }}
             </span>
           </div>
           <div
             v-if="currentVariationData"
             class="metric"
           >
-            <span class="metric-label">Current Variation:</span>
+            <span class="metric-label">{{ $t('admin.submissions.currentVariation') }}</span>
             <span class="metric-value">
-              {{ currentVariationData.testsPassed }}/{{ currentVariationData.totalTests }} tests passed
+              {{ $t('admin.submissions.testsPassed', { passed: currentVariationData.testsPassed, total: currentVariationData.totalTests }) }}
             </span>
           </div>
           <div
             v-if="submission?.execution_time_ms"
             class="metric"
           >
-            <span class="metric-label">Time:</span>
+            <span class="metric-label">{{ $t('admin.submissions.time') }}</span>
             <span class="metric-value">{{ submission.execution_time_ms }}ms</span>
           </div>
         </div>
@@ -118,7 +118,7 @@
             v-if="submission?.raw_input"
             class="prompt-section"
           >
-            <span class="section-title">Natural Language Prompt</span>
+            <span class="section-title">{{ $t('admin.submissions.naturalLanguagePrompt') }}</span>
             <div class="prompt-box">
               {{ submission.raw_input }}
             </div>
@@ -137,30 +137,30 @@
                 class="variation-nav"
               >
                 <div class="nav-info">
-                  <span class="variation-label">Variation {{ currentVariationIndex + 1 }} of {{ totalVariationsCount }}</span>
+                  <span class="variation-label">{{ $t('admin.submissions.variationOf', { current: currentVariationIndex + 1, total: totalVariationsCount }) }}</span>
                   <div
                     class="variation-status"
                     :class="currentVariationStatusClass"
                   >
-                    {{ currentVariationData?.success ? 'All tests passed' : `${currentVariationData?.testsPassed || 0}/${currentVariationData?.totalTests || 0} tests passed` }}
+                    {{ currentVariationData?.success ? $t('admin.submissions.allTestsPassed') : $t('admin.submissions.testsPassedOf', { passed: currentVariationData?.testsPassed || 0, total: currentVariationData?.totalTests || 0 }) }}
                   </div>
                 </div>
                 <div class="nav-controls">
                   <button
                     class="nav-btn"
                     :disabled="currentVariationIndex === 0"
-                    title="Previous variation"
+                    :title="$t('admin.submissions.previousVariation')"
                     @click="prevVariation"
                   >
-                    ← Previous
+                    {{ $t('admin.submissions.previousArrow') }}
                   </button>
                   <button
                     class="nav-btn"
                     :disabled="currentVariationIndex >= totalVariationsCount - 1"
-                    title="Next variation"
+                    :title="$t('admin.submissions.nextVariation')"
                     @click="nextVariation"
                   >
-                    Next →
+                    {{ $t('admin.submissions.nextArrow') }}
                   </button>
                 </div>
               </div>
@@ -171,13 +171,13 @@
                   <div class="code-section">
                     <div class="section-header">
                       <span class="section-title">
-                        {{ hasVariations ? `Generated Code - Variation ${currentVariationIndex + 1}` : (submission?.raw_input ? 'Generated Code' : 'Submitted Code') }}
+                        {{ hasVariations ? $t('admin.submissions.generatedCodeVariation', { index: currentVariationIndex + 1 }) : (submission?.raw_input ? $t('admin.submissions.generatedCode') : $t('admin.submissions.submittedCode')) }}
                       </span>
                       <button
                         class="copy-btn"
                         @click="copyCode(currentCodeToDisplay)"
                       >
-                        Copy
+                        {{ $t('admin.submissions.copy') }}
                       </button>
                     </div>
                     <Editor
@@ -195,13 +195,7 @@
                 <div class="tests-panel">
                   <div class="section-header">
                     <span class="section-title">
-                      Test Results
-                      <span
-                        v-if="currentTestResults.length > 0"
-                        class="test-count"
-                      >
-                        ({{ currentPassingTests }}/{{ currentTestResults.length }} passing)
-                      </span>
+                      {{ $t('admin.submissions.testResults', { passing: currentPassingTests, total: currentTestResults.length }) }}
                     </span>
                   </div>
 
@@ -209,7 +203,7 @@
                     v-if="!currentTestResults || currentTestResults.length === 0"
                     class="empty-state"
                   >
-                    No test results available{{ hasVariations ? ' for current variation' : '' }}
+                    {{ hasVariations ? $t('admin.submissions.noTestResultsVariation') : $t('admin.submissions.noTestResults') }}
                   </div>
                   <div
                     v-else
@@ -218,8 +212,8 @@
                     <!-- Test Summary Bar -->
                     <div class="test-summary-bar">
                       <div class="summary-counts">
-                        <span class="count-item passing">✓ {{ currentPassingTests }} Passing</span>
-                        <span class="count-item failing">✗ {{ currentFailingTests }} Failing</span>
+                        <span class="count-item passing">✓ {{ currentPassingTests }} {{ $t('admin.submissions.passing') }}</span>
+                        <span class="count-item failing">✗ {{ currentFailingTests }} {{ $t('admin.submissions.failing') }}</span>
                       </div>
                     </div>
 
@@ -231,7 +225,7 @@
                     >
                       <summary class="test-group-header failing">
                         <span class="group-icon">▶</span>
-                        Failing Tests ({{ currentFailingTests }})
+                        {{ $t('admin.submissions.failingTests', { count: currentFailingTests }) }}
                       </summary>
                       <div class="test-list">
                         <article
@@ -242,9 +236,9 @@
                           <div class="test-content">
                             <code class="test-call">{{ formatTestCall(test) }}</code>
                             <div class="test-diff">
-                              <div>Expected: <code class="expected">{{ formatValue(test.expected_output || test.expected) }}</code></div>
+                              <div>{{ $t('admin.submissions.expected') }} <code class="expected">{{ formatValue(test.expected_output || test.expected) }}</code></div>
                               <div>
-                                Got: <code
+                                {{ $t('admin.submissions.got') }} <code
                                   class="actual"
                                   :class="getValueDisplayClass(test.actual_output || test.actual)"
                                 >{{ formatTestValue(test.actual_output || test.actual) }}</code>
@@ -262,7 +256,7 @@
                     >
                       <summary class="test-group-header passing">
                         <span class="group-icon">▶</span>
-                        Passing Tests ({{ currentPassingTests }})
+                        {{ $t('admin.submissions.passingTests', { count: currentPassingTests }) }}
                       </summary>
                       <div class="test-list">
                         <article
@@ -284,7 +278,7 @@
                     class="hints-compact"
                   >
                     <div class="section-header">
-                      <span class="section-title">Hints Used ({{ hintsActivatedCount }})</span>
+                      <span class="section-title">{{ $t('admin.submissions.hintsUsed', { count: hintsActivatedCount }) }}</span>
                     </div>
                     <div class="hints-list">
                       <div
@@ -316,7 +310,7 @@
             >
               <div class="section-header">
                 <span class="section-title">
-                  Segmentation
+                  {{ $t('admin.submissions.segmentation') }}
                   <span class="segment-count-highlight">{{ submission.segmentation.segment_count || submission.segmentation.segments.length }}</span>
                 </span>
               </div>
@@ -337,7 +331,7 @@
                   <span class="segment-body">
                     <span class="segment-text">{{ segment.text }}</span>
                     <span v-if="segment.code_lines?.length" class="segment-lines">
-                      Lines {{ formatCodeLines(segment.code_lines) }}
+                      {{ $t('admin.submissions.lines', { lines: formatCodeLines(segment.code_lines) }) }}
                     </span>
                   </span>
                 </div>
@@ -353,6 +347,7 @@
 
 <script setup lang="ts">
 import { computed, ref, toRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import Editor from '@/features/editor/Editor.vue'
 import SubmissionDetailContent from '@/modals/submission-detail/SubmissionDetailContent.vue'
@@ -434,6 +429,8 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'download', submission: Submission | null): void
 }>()
+
+const { t } = useI18n()
 
 // Focus trap composable
 const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
@@ -664,7 +661,7 @@ function getStatusClass(status: string | undefined): string {
 
 function formatDate(dateString: string | undefined): string {
   if (!dateString) {
-    return 'Unknown'
+    return t('admin.submissions.unknown')
   }
   const date = new Date(dateString)
   return date.toLocaleString('en-US', {
@@ -678,13 +675,13 @@ function formatDate(dateString: string | undefined): string {
 
 function _formatComprehension(level: string | undefined): string {
   if (!level) {
-    return 'Not evaluated'
+    return t('admin.submissions.notEvaluated')
   }
   if (level === 'high_level' || level === 'high-level') {
-    return 'High Level'
+    return t('admin.submissions.highLevel')
   }
   if (level === 'low_level' || level === 'low-level') {
-    return 'Low Level'
+    return t('admin.submissions.lowLevel')
   }
   return level
 }
@@ -728,7 +725,7 @@ function formatTestCall(test: TestResult): string {
   if (test.inputs !== undefined) {
     return `test(${formatValue(test.inputs)})`
   }
-  return 'Test Case'
+  return t('admin.submissions.testCase')
 }
 
 async function copyCode(code?: string): Promise<void> {
@@ -746,19 +743,19 @@ async function copyCode(code?: string): Promise<void> {
 
 function formatHintType(hintType: string): string {
   const typeMap: Record<string, string> = {
-    'variable_fade': 'Variable Fade',
-    'subgoal_highlight': 'Subgoal Highlighting',
-    'suggested_trace': 'Suggested Trace'
+    'variable_fade': t('admin.submissions.hintTypes.variableFade'),
+    'subgoal_highlight': t('admin.submissions.hintTypes.subgoalHighlight'),
+    'suggested_trace': t('admin.submissions.hintTypes.suggestedTrace'),
   }
   return typeMap[hintType] || hintType
 }
 
 function formatTriggerType(triggerType: string): string {
   const triggerMap: Record<string, string> = {
-    'manual': 'Manually activated',
-    'auto_attempts': 'Auto (attempts)',
-    'auto_time': 'Auto (time)',
-    'instructor': 'Instructor provided'
+    'manual': t('admin.submissions.triggerTypes.manual'),
+    'auto_attempts': t('admin.submissions.triggerTypes.autoAttempts'),
+    'auto_time': t('admin.submissions.triggerTypes.autoTime'),
+    'instructor': t('admin.submissions.triggerTypes.instructor'),
   }
   return triggerMap[triggerType] || triggerType
 }
@@ -774,7 +771,7 @@ function getHintIcon(hintType: string): string {
 
 function formatHintTime(timestamp: string | undefined): string {
   if (!timestamp) {
-    return 'Unknown'
+    return t('admin.submissions.unknown')
   }
   return formatDate(timestamp)
 }

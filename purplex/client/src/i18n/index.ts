@@ -1,5 +1,4 @@
-import { createI18n } from 'vue-i18n';
-import type { I18n } from 'vue-i18n';
+import { createI18n, type I18n } from 'vue-i18n';
 import en from './locales/en';
 import { getBrandName } from './brand';
 import { log } from '../utils/logger';

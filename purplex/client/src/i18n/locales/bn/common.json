@@ -6,6 +6,7 @@
   "nav": {
     "home": "Home",
     "admin": "Admin",
+    "instructor": "Instructor",
     "account": "Account",
     "signOut": "Sign Out"
   },
@@ -26,6 +27,31 @@
     "filter": "Filter",
     "clear": "Clear",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "confirm": "Confirm",
+    "retry": "Retry",
+    "tryAgain": "Try Again",
+    "add": "Add",
+    "remove": "Remove",
+    "processing": "Processing...",
+    "continue": "Continue",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "status": "Status",
+    "actions": "Actions",
+    "active": "Active",
+    "inactive": "Inactive",
+    "required": "Required",
+    "optional": "Optional",
+    "pleaseWait": "Please wait...",
+    "failedToLoad": "Failed to load component",
+    "unknown": "Unknown"
+  },
+  "aria": {
+    "etymologyMeaning": "Learn about the meaning of this name",
+    "progress": "Progress",
+    "closeDialog": "Close",
+    "joinCourse": "Join a new course to access problem sets"
   }
 }

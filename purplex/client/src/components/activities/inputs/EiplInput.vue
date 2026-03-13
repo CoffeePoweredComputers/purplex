@@ -5,7 +5,7 @@
     :disabled="disabled"
     :theme="theme"
     :draft-saved="draftSaved"
-    section-label="Describe the code here"
+    :section-label="t('problems.eipl.sectionLabel')"
     @submit="$emit('submit')"
   />
 </template>
@@ -17,6 +17,7 @@
  * Thin wrapper around DescriptionInput with EiPL-specific label.
  */
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import DescriptionInput from './DescriptionInput.vue'
 import type { ActivityProblem } from '../types'
 
@@ -38,6 +39,8 @@ const props = withDefaults(defineProps<Props>(), {
   theme: 'dark',
   draftSaved: false,
 })
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void

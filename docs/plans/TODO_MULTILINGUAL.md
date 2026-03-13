@@ -1,5 +1,7 @@
 # Multilingual Support Implementation
 
+> **Note**: This document covers the original infrastructure setup. For the active string extraction and full i18n implementation, see **[TODO_I18N_FULL.md](./TODO_I18N_FULL.md)**.
+
 ## Overview
 
 Purplex multilingual support for 17 languages:

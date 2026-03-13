@@ -4,8 +4,7 @@ import App from './App.vue'
 import axios from "axios";
 import router from "./router";
 import store from "./store";
-import { getStoredLocale, i18n, setLocale } from './i18n';
-import type { SupportedLocale } from './i18n';
+import { getStoredLocale, i18n, setLocale, type SupportedLocale } from './i18n';
 import { log } from './utils/logger';
 import { environment } from './services/environment';
 import { ensureFirebaseInitialized, firebaseAuth } from './firebaseConfig';

@@ -1,9 +1,8 @@
 <template>
   <div class="consent-form">
-    <h3 class="consent-form__title">Data Processing Consent</h3>
+    <h3 class="consent-form__title">{{ t('auth.consent.title') }}</h3>
     <p class="consent-form__description">
-      Please review and accept the following to continue.
-      Items marked with * are required.
+      {{ t('auth.consent.description') }}
     </p>
 
     <div class="consent-form__items">
@@ -15,8 +14,8 @@
           required
         >
         <span class="consent-item__text">
-          I have read and agree to the
-          <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a> *
+          {{ t('auth.consent.privacyPolicy') }}
+          <a href="/privacy" target="_blank" rel="noopener">{{ t('auth.consent.privacyPolicyLink') }}</a> *
         </span>
       </label>
 
@@ -27,14 +26,14 @@
           required
         >
         <span class="consent-item__text">
-          I accept the
-          <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> *
+          {{ t('auth.consent.termsOfService') }}
+          <a href="/terms" target="_blank" rel="noopener">{{ t('auth.consent.termsOfServiceLink') }}</a> *
         </span>
       </label>
 
       <!-- Optional consents -->
       <div class="consent-form__optional-header">
-        <span>Optional data processing (you can change these later in Settings)</span>
+        <span>{{ t('auth.consent.optionalHeader') }}</span>
       </div>
 
       <label class="consent-item">
@@ -43,9 +42,9 @@
           v-model="consents.ai_processing"
         >
         <span class="consent-item__text">
-          Allow AI analysis of my code submissions
+          {{ t('auth.consent.aiProcessing') }}
           <small class="consent-item__detail">
-            Your code may be sent to OpenAI for comprehension analysis and feedback generation.
+            {{ t('auth.consent.aiProcessingDetail') }}
           </small>
         </span>
       </label>
@@ -56,9 +55,9 @@
           v-model="consents.research_use"
         >
         <span class="consent-item__text">
-          Allow anonymized use of my data for research
+          {{ t('auth.consent.researchUse') }}
           <small class="consent-item__detail">
-            De-identified submission and progress data may be used for educational research.
+            {{ t('auth.consent.researchUseDetail') }}
           </small>
         </span>
       </label>
@@ -69,9 +68,9 @@
           v-model="consents.behavioral_tracking"
         >
         <span class="consent-item__text">
-          Allow progress and performance tracking
+          {{ t('auth.consent.behavioralTracking') }}
           <small class="consent-item__detail">
-            Track detailed metrics like time spent, hint usage, and completion patterns.
+            {{ t('auth.consent.behavioralTrackingDetail') }}
           </small>
         </span>
       </label>
@@ -84,13 +83,16 @@
       :disabled="!canSubmit"
       @click="submitConsent"
     >
-      Continue
+      {{ t('common.continue') }}
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
     (e: 'consent-granted', consents: Record<string, boolean>): void;
@@ -112,7 +114,7 @@ const canSubmit = computed(() => {
 
 function submitConsent() {
     if (!canSubmit.value) {
-        error.value = 'You must accept the Privacy Policy and Terms of Service to continue.';
+        error.value = t('auth.consent.consentRequired');
         return;
     }
     error.value = '';

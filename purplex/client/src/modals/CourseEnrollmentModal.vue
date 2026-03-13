@@ -15,7 +15,7 @@
       >
         <div class="modal-header">
           <h3 id="enrollment-modal-title">
-            Join a Course
+            {{ $t('problems.enrollment.title') }}
           </h3>
           <button
             class="close-btn"
@@ -26,12 +26,12 @@
         </div>
 
         <div class="enrollment-form">
-          <label for="course-id">Course ID</label>
+          <label for="course-id">{{ $t('problems.enrollment.courseIdLabel') }}</label>
           <div class="input-group">
             <input
               id="course-id"
               v-model="courseId"
-              placeholder="Enter Course ID (e.g., CS101-FALL2024)"
+              :placeholder="$t('problems.enrollment.courseIdPlaceholder')"
               :disabled="enrollmentModal.loading"
               class="course-input"
               @keyup.enter="lookupCourse"
@@ -41,7 +41,7 @@
               class="lookup-btn"
               @click="lookupCourse"
             >
-              {{ enrollmentModal.loading ? 'Looking up...' : 'Lookup Course' }}
+              {{ enrollmentModal.loading ? $t('problems.enrollment.lookingUp') : $t('problems.enrollment.lookupButton') }}
             </button>
           </div>
         </div>
@@ -56,19 +56,19 @@
           </p>
           <div class="course-meta">
             <div class="meta-item">
-              <span class="label">Instructor:</span>
+              <span class="label">{{ $t('problems.enrollment.instructor') }}</span>
               <span class="value">{{ enrollmentModal.coursePreview.instructor }}</span>
             </div>
             <div class="meta-item">
-              <span class="label">Problem Sets:</span>
+              <span class="label">{{ $t('problems.enrollment.problemSets') }}</span>
               <span class="value">{{ enrollmentModal.coursePreview.problem_sets_count }}</span>
             </div>
             <div
               v-if="enrollmentModal.coursePreview.enrollment_open"
               class="meta-item"
             >
-              <span class="label">Status:</span>
-              <span class="value status-open">Open for Enrollment</span>
+              <span class="label">{{ $t('problems.enrollment.status') }}</span>
+              <span class="value status-open">{{ $t('problems.enrollment.openForEnrollment') }}</span>
             </div>
           </div>
 
@@ -76,7 +76,7 @@
             v-if="enrollmentModal.coursePreview.is_enrolled"
             class="already-enrolled"
           >
-            <p>✓ You are already enrolled in this course</p>
+            <p>{{ $t('problems.enrollment.alreadyEnrolled') }}</p>
           </div>
 
           <button
@@ -85,7 +85,7 @@
             :disabled="enrollmentModal.loading || !enrollmentModal.coursePreview.enrollment_open"
             @click="enrollInCourse"
           >
-            {{ enrollmentModal.loading ? 'Enrolling...' : 'Join Course' }}
+            {{ enrollmentModal.loading ? $t('problems.enrollment.enrolling') : $t('problems.enrollment.enrollButton') }}
           </button>
         </div>
 

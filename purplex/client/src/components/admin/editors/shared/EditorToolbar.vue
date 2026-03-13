@@ -6,7 +6,7 @@
           type="button"
           :disabled="editor.editorSettings.fontSize.value <= 12"
           class="zoom-btn"
-          title="Decrease font size"
+          :title="$t('admin.editors.decreaseFontSize')"
           @click="editor.editorSettings.decreaseFontSize"
         >
           <span class="zoom-icon">-</span>
@@ -16,7 +16,7 @@
           type="button"
           :disabled="editor.editorSettings.fontSize.value >= 24"
           class="zoom-btn"
-          title="Increase font size"
+          :title="$t('admin.editors.increaseFontSize')"
           @click="editor.editorSettings.increaseFontSize"
         >
           <span class="zoom-icon">+</span>

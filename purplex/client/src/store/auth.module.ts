@@ -4,8 +4,7 @@ import axios from 'axios';
 import { log } from '../utils/logger';
 import { ensureFirebaseInitialized } from '../firebaseConfig';
 import { environment } from '../services/environment';
-import { isValidLocale, setLocale } from '../i18n';
-import type { SupportedLocale } from '../i18n';
+import { isValidLocale, setLocale, type SupportedLocale } from '../i18n';
 import type { Auth, AuthProvider, User as FirebaseUser, UserCredential } from 'firebase/auth';
 
 // Type for Firebase auth functions (works for both real and mock Firebase)

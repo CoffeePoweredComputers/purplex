@@ -2,7 +2,7 @@
   <div class="debug-fix-input">
     <div class="section-header">
       <div class="section-label">
-        Fix the buggy code
+        {{ $t('problems.debugFix.sectionLabel') }}
       </div>
     </div>
     <span
@@ -10,7 +10,7 @@
       class="draft-indicator"
       role="status"
       aria-live="polite"
-    >Draft saved</span>
+    >{{ $t('problems.submission.draftSaved') }}</span>
     <div
       id="codeEditor"
       class="code-editor-wrapper"
@@ -34,20 +34,20 @@
         :disabled="disabled"
         @click="handleReset"
       >
-        Reset to Original
+        {{ $t('problems.submission.resetToOriginal') }}
       </button>
       <button
         id="submitButton"
         class="submit-button"
         :disabled="disabled || !isValid"
         :aria-busy="disabled"
-        :aria-label="disabled ? 'Testing code, please wait' : (isValid ? 'Test Solution' : 'Code must be at least 10 characters')"
+        :aria-label="disabled ? $t('problems.submission.testingWait') : (isValid ? $t('problems.submission.testSolution') : $t('problems.submission.codeTooShort'))"
         @click="handleSubmit"
       >
         <span
           v-if="!disabled"
           class="button-text"
-        >Test Solution</span>
+        >{{ $t('problems.submission.testSolution') }}</span>
         <div
           v-if="disabled"
           class="loading-content"
@@ -62,7 +62,7 @@
             <span class="dot" />
             <span class="dot" />
           </div>
-          <span class="visually-hidden">Testing code, please wait</span>
+          <span class="visually-hidden">{{ $t('problems.submission.testingWait') }}</span>
         </div>
       </button>
     </div>

@@ -7,7 +7,7 @@
     aria-busy="true"
   >
     <div class="loading-message">
-      Loading problem set...
+      {{ $t('problems.problemSet.loading') }}
     </div>
   </div>
   <div
@@ -16,7 +16,7 @@
     role="status"
   >
     <div class="loading-message">
-      No problems found in this set.
+      {{ $t('problems.problemSet.noProblems') }}
     </div>
   </div>
   <div
@@ -27,7 +27,7 @@
     <a
       href="#code-editor"
       class="skip-link"
-    >Skip to code editor</a>
+    >{{ $t('problems.problemSet.skipToEditor') }}</a>
 
     <!-- Navigation Progress Bar - Thin top indicator -->
     <div
@@ -46,7 +46,7 @@
           class="nav-button"
           :disabled="isNavigating"
           :class="{ 'is-loading': isNavigating }"
-          aria-label="Previous problem"
+          :aria-label="$t('problems.problemSet.aria.previousProblem')"
           @click="prevProblem"
         >
           <span
@@ -56,13 +56,13 @@
         </button>
         <div class="problem-info">
           <div class="progress-summary">
-            <span class="progress-stat completed">{{ completedCount }} completed</span>
-            <span class="progress-stat in_progress">{{ inProgressCount }} in progress</span>
-            <span class="progress-stat remaining">{{ remainingCount }} remaining</span>
+            <span class="progress-stat completed">{{ $t('problems.problemSet.completedCount', { count: completedCount }) }}</span>
+            <span class="progress-stat in_progress">{{ $t('problems.problemSet.inProgressCount', { count: inProgressCount }) }}</span>
+            <span class="progress-stat remaining">{{ $t('problems.problemSet.remainingCount', { count: remainingCount }) }}</span>
           </div>
           <nav
             class="problem-progress"
-            aria-label="Problem navigation"
+            :aria-label="$t('problems.problemSet.aria.problemNav')"
           >
             <button
               v-for="(problem, index) in problems"
@@ -84,7 +84,7 @@
           class="nav-button"
           :disabled="isNavigating"
           :class="{ 'is-loading': isNavigating }"
-          aria-label="Next problem"
+          :aria-label="$t('problems.problemSet.aria.nextProblem')"
           @click="nextProblem"
         >
           <span
@@ -110,14 +110,14 @@
       <span class="deadline-icon">{{ deadline.is_locked ? '🔒' : deadline.is_past_due ? '⚠️' : '⏰' }}</span>
       <span class="deadline-text">
         <template v-if="deadline.is_locked">
-          <strong>Submissions Closed</strong> — This problem set closed on {{ formatDeadline(deadline.due_date) }}
+          <strong>{{ $t('problems.problemSet.deadline.submissionsClosed') }}</strong> — {{ $t('problems.problemSet.deadline.closedOn', { date: formatDeadline(deadline.due_date) }) }}
         </template>
         <template v-else-if="deadline.is_past_due && deadline.deadline_type === 'soft'">
-          <strong>Late Submission</strong> — Due date was {{ formatDeadline(deadline.due_date) }}. Submissions will be marked as late.
+          <strong>{{ $t('problems.problemSet.deadline.lateSubmission') }}</strong> — {{ $t('problems.problemSet.deadline.dueDateWas', { date: formatDeadline(deadline.due_date) }) }}
         </template>
         <template v-else>
-          <strong>Due {{ formatDeadline(deadline.due_date) }}</strong>
-          <span v-if="isDeadlineUrgent" class="urgency-note">— Submit soon!</span>
+          <strong>{{ $t('problems.problemSet.deadline.due', { date: formatDeadline(deadline.due_date) }) }}</strong>
+          <span v-if="isDeadlineUrgent" class="urgency-note">— {{ $t('problems.problemSet.deadline.submitSoon') }}</span>
         </template>
       </span>
     </div>
@@ -141,14 +141,14 @@
         >
           <div class="section-header">
             <div class="section-label">
-              Problem Image
+              {{ $t('problems.problemSet.problemImage') }}
             </div>
           </div>
           <div class="problem-image-wrapper">
             <img
               v-if="getCurrentProblem()?.display_config?.image_url"
               :src="getCurrentProblem()?.display_config?.image_url"
-              :alt="getCurrentProblem()?.display_config?.image_alt_text || 'Problem image'"
+              :alt="getCurrentProblem()?.display_config?.image_alt_text || $t('problems.problemSet.problemImageAlt')"
               class="problem-image"
               loading="lazy"
             >
@@ -156,7 +156,7 @@
               v-else
               class="problem-image-placeholder"
             >
-              No image configured for this problem
+              {{ $t('problems.problemSet.noImageConfigured') }}
             </div>
           </div>
         </div>
@@ -170,7 +170,7 @@
         >
           <div class="section-header">
             <div class="section-label">
-              {{ getCurrentProblem()?.title || 'Question' }}
+              {{ getCurrentProblem()?.title || $t('problems.problemSet.question') }}
             </div>
           </div>
           <div class="problem-description-content">
@@ -183,7 +183,7 @@
               v-else
               class="problem-description-missing"
             >
-              No question text provided. Please add a description in the admin panel.
+              {{ $t('problems.problemSet.noQuestionText') }}
             </div>
           </div>
         </div>
@@ -196,7 +196,7 @@
         >
           <div class="section-header">
             <div class="section-label">
-              Code Editor
+              {{ $t('problems.problemSet.codeEditor') }}
             </div>
             <HintButton
               :problem-slug="getCurrentProblem().slug"
@@ -231,55 +231,55 @@
             <div class="toolbar-options">
               <button
                 class="toolbar-btn"
-                :aria-label="codeCopied ? 'Code copied to clipboard' : 'Copy code to clipboard'"
+                :aria-label="codeCopied ? $t('problems.problemSet.aria.codeCopied') : $t('problems.problemSet.aria.copyCode')"
                 @click="copyCode"
               >
                 <span aria-hidden="true">{{ codeCopied ? '✓' : '📋' }}</span>
-                <span class="btn-text">{{ codeCopied ? 'Copied' : 'Copy' }}</span>
+                <span class="btn-text">{{ codeCopied ? $t('problems.editor.copied') : $t('problems.editor.copy') }}</span>
               </button>
               <button
                 class="toolbar-btn"
-                :aria-label="showLineNumbers ? 'Hide line numbers' : 'Show line numbers'"
+                :aria-label="showLineNumbers ? $t('problems.problemSet.aria.hideLineNumbers') : $t('problems.problemSet.aria.showLineNumbers')"
                 @click="toggleLineNumbers"
               >
                 <span aria-hidden="true">{{ showLineNumbers ? '🔢' : '➖' }}</span>
-                <span class="btn-text">{{ showLineNumbers ? 'Lines' : 'No Lines' }}</span>
+                <span class="btn-text">{{ showLineNumbers ? $t('problems.editor.lines') : $t('problems.editor.noLines') }}</span>
               </button>
               <div class="theme-selector">
                 <label
                   for="editor-theme"
                   class="visually-hidden"
-                >Editor theme</label>
+                >{{ $t('problems.problemSet.editorThemeLabel') }}</label>
                 <select
                   id="editor-theme"
                   v-model="editorTheme"
                   class="theme-dropdown"
-                  aria-label="Select editor theme"
+                  :aria-label="$t('problems.problemSet.selectEditorTheme')"
                   @change="updateTheme"
                 >
                   <option value="dark">
-                    🌙 Dark
+                    {{ $t('problems.problemSet.theme.dark') }}
                   </option>
                   <option value="light">
-                    ☀️ Light
+                    {{ $t('problems.problemSet.theme.light') }}
                   </option>
                   <option value="monokai">
-                    🎨 Monokai
+                    {{ $t('problems.problemSet.theme.monokai') }}
                   </option>
                   <option value="github">
-                    🐙 GitHub
+                    {{ $t('problems.problemSet.theme.github') }}
                   </option>
                   <option value="solarized-dark">
-                    🌅 Solarized Dark
+                    {{ $t('problems.problemSet.theme.solarizedDark') }}
                   </option>
                   <option value="solarized-light">
-                    🌅 Solarized Light
+                    {{ $t('problems.problemSet.theme.solarizedLight') }}
                   </option>
                   <option value="dracula">
-                    🧛 Dracula
+                    {{ $t('problems.problemSet.theme.dracula') }}
                   </option>
                   <option value="tomorrow-night">
-                    🌃 Tomorrow Night
+                    {{ $t('problems.problemSet.theme.tomorrowNight') }}
                   </option>
                 </select>
               </div>
@@ -288,7 +288,7 @@
               <button
                 class="zoom-btn"
                 :disabled="editorFontSize <= 12"
-                aria-label="Decrease font size"
+                :aria-label="$t('problems.problemSet.aria.decreaseFont')"
                 @click="decreaseFontSize"
               >
                 <span
@@ -303,7 +303,7 @@
               <button
                 class="zoom-btn"
                 :disabled="editorFontSize >= 35"
-                aria-label="Increase font size"
+                :aria-label="$t('problems.problemSet.aria.increaseFont')"
                 @click="increaseFontSize"
               >
                 <span
@@ -356,7 +356,7 @@
           :is-loading="loading"
           :is-navigating="isNavigating"
           :submission-history="submissionHistory"
-          title="Submission & Results"
+          :title="$t('problems.problemSet.submissionResults')"
           @load-attempt="loadSpecificAttempt"
           @next-problem="nextProblem"
         />
@@ -675,9 +675,9 @@ export default {
             // Add relative indicator for upcoming deadlines
             if (diffDays > 0 && diffDays <= 7) {
                 if (diffDays === 1) {
-                    return `Tomorrow (${formatted})`;
+                    return this.$t('problems.problemSet.deadline.tomorrow', { date: formatted });
                 }
-                return `in ${diffDays} days (${formatted})`;
+                return this.$t('problems.problemSet.deadline.inDays', { days: diffDays, date: formatted });
             }
 
             return formatted;
@@ -1908,11 +1908,11 @@ export default {
             const problemName = problem.title || `Problem ${index + 1}`;
 
             if (!status || status.status === 'not_started') {
-                return `${problemName} - Not attempted`;
+                return this.$t('problems.problemSet.tooltip.notAttempted', { name: problemName });
             } else if (status.status === 'in_progress') {
-                return `${problemName} - In Progress (Score: ${status.score}%)`;
+                return this.$t('problems.problemSet.tooltip.inProgress', { name: problemName, score: status.score });
             } else if (status.status === 'completed') {
-                return `${problemName} - Completed (Score: ${status.score}%)`;
+                return this.$t('problems.problemSet.tooltip.completed', { name: problemName, score: status.score });
             }
             return problemName;
         },

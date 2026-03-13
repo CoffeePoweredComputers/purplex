@@ -1,25 +1,25 @@
 <template>
   <ContentEditorLayout
     :back-path="ctx.paths.problems.value"
-    :back-label="ctx.isInstructor.value ? 'Back to My Problems' : 'Back to Problems'"
+    :back-label="ctx.isInstructor.value ? $t('admin.contentLayout.backToMyProblems') : $t('admin.contentLayout.backToProblems')"
     :show-header="false"
   >
     <div class="header rounded-lg border-default">
-      <h2>{{ editor.isEditing.value ? 'Edit Problem' : 'Create New Problem' }}</h2>
+      <h2>{{ editor.isEditing.value ? $t('admin.problems.edit') : $t('admin.problems.create') }}</h2>
       <div class="actions">
         <button
           v-if="editor.isEditing.value"
           class="btn btn-danger"
           @click="handleDelete"
         >
-          Delete
+          {{ $t('common.delete') }}
         </button>
         <button
           :disabled="!canSave || editor.ui.ui.loading"
           class="btn btn-primary rounded-base"
           @click="handleSave"
         >
-          {{ editor.ui.ui.loading ? 'Saving...' : 'Save Problem' }}
+          {{ editor.ui.ui.loading ? $t('admin.problems.saving') : $t('admin.problems.saveProblem') }}
         </button>
       </div>
     </div>
@@ -27,9 +27,9 @@
     <form class="problem-form" @submit.prevent="handleSave">
       <!-- Problem Type Selector - Always visible at top -->
       <div class="form-section rounded-lg border-default transition-fast">
-        <h3>Problem Type</h3>
+        <h3>{{ $t('admin.problems.problemType') }}</h3>
         <div class="form-group">
-          <label for="problem_type">Select the type of problem to create</label>
+          <label for="problem_type">{{ $t('admin.problems.selectType') }}</label>
           <select
             id="problem_type"
             :value="editor.form.form.problem_type"
@@ -45,7 +45,7 @@
             </option>
           </select>
           <p v-if="editor.isEditing.value" class="type-locked-hint">
-            Problem type cannot be changed after creation
+            {{ $t('admin.problems.typeLockedHint') }}
           </p>
         </div>
       </div>
@@ -66,7 +66,7 @@
         <template #fallback>
           <div class="loading-editor">
             <div class="spinner" />
-            <p>Loading editor...</p>
+            <p>{{ $t('admin.problems.loadingEditor') }}</p>
           </div>
         </template>
       </Suspense>
@@ -75,17 +75,16 @@
     <!-- Delete confirmation dialog -->
     <div v-if="showDeleteDialog" class="dialog-overlay">
       <div class="dialog">
-        <h3>Delete Problem?</h3>
+        <h3>{{ $t('admin.problems.deleteProblemConfirm') }}</h3>
         <p>
-          Are you sure you want to delete "{{ editor.form.form.title }}"?
-          This action cannot be undone.
+          {{ $t('admin.problems.deleteConfirmMessage', { title: editor.form.form.title }) }}
         </p>
         <div class="dialog-actions">
           <button class="btn btn-secondary" @click="showDeleteDialog = false">
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button class="btn btn-danger" @click="confirmDelete">
-            Delete
+            {{ $t('common.delete') }}
           </button>
         </div>
       </div>
@@ -95,6 +94,7 @@
 
 <script setup lang="ts">
 import { type Component, computed, defineAsyncComponent, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
 import { provideContentContext } from '@/composables/useContentContext';
@@ -105,6 +105,8 @@ import { log } from '@/utils/logger';
 // Router
 const route = useRoute();
 const router = useRouter();
+
+const { t } = useI18n();
 
 // Provide role-aware context (page-level components must provide, not inject)
 const ctx = provideContentContext();
@@ -240,11 +242,11 @@ async function confirmDelete() {
   try {
     editor.ui.setLoading(true);
     await ctx.api.value.deleteProblem(editor.currentSlug.value);
-    editor.ui.setSuccess('Problem deleted');
+    editor.ui.setSuccess(t('admin.problems.problemDeleted'));
     ctx.navigateToList('problems');
   } catch (error) {
     log.error('Failed to delete problem', error);
-    editor.ui.setError('Failed to delete problem');
+    editor.ui.setError(t('admin.problems.failedToDeleteProblem'));
   } finally {
     editor.ui.setLoading(false);
   }

@@ -8,11 +8,11 @@
           class="login-logo"
         >
         <h1 class="login-title">
-          Purplex
+          {{ $t('brand.name') }}
         </h1>
       </div>
       <p class="login-subtitle">
-        Natural Language Programming Problems for the Age of GenAI
+        {{ $t('brand.tagline') }}
       </p>
     </div>
 
@@ -24,14 +24,14 @@
             for="email"
             class="field-label"
           >
-            <span class="label-text">Email Address</span>
-            <span class="label-subtitle">Use your work or personal email</span>
+            <span class="label-text">{{ $t('auth.login.email.label') }}</span>
+            <span class="label-subtitle">{{ $t('auth.login.email.hint') }}</span>
           </label>
           <input
             id="email"
             v-model="email"
             type="email"
-            placeholder="you@example.com"
+            :placeholder="$t('auth.login.email.placeholder')"
             name="email"
             required
           >
@@ -42,14 +42,14 @@
             for="psw"
             class="field-label"
           >
-            <span class="label-text">Password</span>
-            <span class="label-subtitle">Must be at least 6 characters</span>
+            <span class="label-text">{{ $t('auth.login.password.label') }}</span>
+            <span class="label-subtitle">{{ $t('auth.login.password.hint') }}</span>
           </label>
           <input
             id="psw"
             v-model="password"
             type="password"
-            placeholder="Enter your password"
+            :placeholder="$t('auth.login.password.placeholder')"
             name="psw"
             required
           >
@@ -61,23 +61,23 @@
             :disabled="isLoading"
             @click="login"
           >
-            <span v-if="isLoading">Logging in...</span>
-            <span v-else>Login</span>
+            <span v-if="isLoading">{{ $t('auth.login.submitLoading') }}</span>
+            <span v-else>{{ $t('auth.login.submit') }}</span>
           </button>
           <button
             type="button"
             :disabled="isLoading"
             @click="startRegistration"
           >
-            New Account
+            {{ $t('auth.login.createAccount') }}
           </button>
           <button
             type="button"
             :disabled="isLoading"
             @click="loginWithGoogle"
           >
-            <span v-if="isLoading">Signing in...</span>
-            <span v-else>Login with Google</span>
+            <span v-if="isLoading">{{ $t('auth.login.googleLoading') }}</span>
+            <span v-else>{{ $t('auth.login.google') }}</span>
           </button>
           <button
             v-if="showRedirectOption"
@@ -86,7 +86,7 @@
             class="redirect-mode-btn"
             @click="loginWithGoogleRedirect"
           >
-            Use Redirect Mode (Slower Connection)
+            {{ $t('auth.login.redirectMode') }}
           </button>
         </div>
 
@@ -101,20 +101,20 @@
           v-if="showRedirectOption"
           class="info-message"
         >
-          Having trouble? Redirect mode works better with slow connections or strict network policies.
+          {{ $t('auth.login.redirectHint') }}
         </div>
       </form>
 
       <div class="login-footer-links">
-        <router-link to="/privacy">Privacy Policy</router-link>
+        <router-link to="/privacy">{{ $t('auth.login.privacyPolicy') }}</router-link>
         <span class="link-separator">|</span>
-        <router-link to="/terms">Terms of Service</router-link>
+        <router-link to="/terms">{{ $t('auth.login.termsOfService') }}</router-link>
       </div>
     </div>
 
     <!-- Step 2: Age Verification (registration flow) -->
     <div v-else-if="registrationStep === 'age-gate'" class="registration-step">
-      <button class="back-btn" @click="registrationStep = 'credentials'">Back</button>
+      <button class="back-btn" @click="registrationStep = 'credentials'">{{ $t('common.back') }}</button>
       <AgeGate
         @age-verified="onAgeVerified"
         @under-age="onUnderAge"
@@ -123,7 +123,7 @@
 
     <!-- Step 3: Consent Form (registration flow) -->
     <div v-else-if="registrationStep === 'consent'" class="registration-step">
-      <button class="back-btn" @click="registrationStep = 'age-gate'">Back</button>
+      <button class="back-btn" @click="registrationStep = 'age-gate'">{{ $t('common.back') }}</button>
       <ConsentForm @consent-granted="onConsentGranted" />
       <div
         v-if="errorMessage"
@@ -136,13 +136,9 @@
     <!-- Under-age block (COPPA) -->
     <div v-else-if="registrationStep === 'under-age'" class="registration-step">
       <div class="under-age-notice">
-        <h3>Parental Consent Required</h3>
-        <p>
-          Users under 13 require verifiable parental or guardian consent before
-          creating an account (COPPA). Please ask a parent or guardian to create
-          an account on your behalf.
-        </p>
-        <button class="back-btn" @click="registrationStep = 'credentials'">Back to Login</button>
+        <h3>{{ $t('auth.coppa.title') }}</h3>
+        <p>{{ $t('auth.coppa.message') }}</p>
+        <button class="back-btn" @click="registrationStep = 'credentials'">{{ $t('auth.coppa.backToLogin') }}</button>
       </div>
     </div>
   </div>
@@ -223,11 +219,11 @@ export default {
       // Step 1: Validate credentials before entering consent flow
       startRegistration: function () {
         if (!this.email || !this.password) {
-          this.displayErrorMessage('Please enter an email and password.');
+          this.displayErrorMessage(this.$t('auth.errors.missingFields'));
           return;
         }
         if (this.password.length < 6) {
-          this.displayErrorMessage('Password must be at least 6 characters.');
+          this.displayErrorMessage(this.$t('auth.login.password.tooShort'));
           return;
         }
         this.errorMessage = '';
@@ -293,30 +289,30 @@ export default {
           return;
         }
 
-        const errorMessages = {
-          'auth/email-already-in-use': 'This email is already in use. Please try another one.',
-          'auth/weak-password': 'The password is too weak. Please use a stronger password.',
-          'auth/internal-error': 'An internal error occurred. Please try again later.',
-          'auth/invalid-credential': 'Your password is invalid.',
-          'auth/too-many-requests': 'Too many requests to login. Please try again later.',
-          'auth/missing-fields': 'Please enter an email and password.',
-          'auth/no-google-auth-in-debug': 'Google authentication is not available in debug mode.',
-          'auth/registration-failed': 'Registration failed. Unable to register the new user.',
-          'auth/cookies-blocked': 'Your browser is blocking authentication cookies. Please use "Redirect Mode" below or adjust your privacy settings.',
-          'auth/popup-timeout-redirect': 'Connection is slow. Please try "Use Redirect Mode" below.',
-          'auth/popup-blocked': 'Popup was blocked. Please allow popups or use "Redirect Mode" below.',
-          'auth/network-error': 'Network connection issue detected. Please try "Use Redirect Mode" below.',
-          'auth/google-login-failed': 'Google login failed. Please try again or use redirect mode.',
-          'auth/redirect-failed': 'Unable to start redirect login. Please check your connection.',
+        const errorKeyMap: Record<string, string> = {
+          'auth/email-already-in-use': 'auth.errors.emailInUse',
+          'auth/weak-password': 'auth.errors.weakPassword', // pragma: allowlist secret
+          'auth/internal-error': 'auth.errors.internalError',
+          'auth/invalid-credential': 'auth.errors.invalidCredential',
+          'auth/too-many-requests': 'auth.errors.tooManyRequests',
+          'auth/missing-fields': 'auth.errors.missingFields',
+          'auth/no-google-auth-in-debug': 'auth.errors.noGoogleAuthDebug',
+          'auth/registration-failed': 'auth.errors.registrationFailed',
+          'auth/cookies-blocked': 'auth.errors.cookiesBlocked',
+          'auth/popup-timeout-redirect': 'auth.errors.popupTimeout',
+          'auth/popup-blocked': 'auth.errors.popupBlocked',
+          'auth/network-error': 'auth.errors.networkError',
+          'auth/google-login-failed': 'auth.errors.googleLoginFailed',
+          'auth/redirect-failed': 'auth.errors.redirectFailed',
         };
 
-
-        if (errorMessages[error.code]) {
-          return errorMessages[error.code];
+        const key = errorKeyMap[error.code];
+        if (key) {
+          return this.$t(key);
         } else if (error.message) { // a ditch attempt to get a message
           return error.message;
         } else {
-          return 'An unknown error occurred. Please try again later.';
+          return this.$t('auth.errors.unknown');
         }
       },
       displayErrorMessage: function (message) {

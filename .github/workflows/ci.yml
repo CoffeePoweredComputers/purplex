@@ -59,6 +59,10 @@ jobs:
           yarn lint:check
           yarn typecheck
 
+      - name: i18n coverage report
+        working-directory: purplex/client
+        run: yarn i18n:check
+
   test-unit:
     name: Unit Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest

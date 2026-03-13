@@ -3,7 +3,7 @@
     class="form-section rounded-lg border-default transition-fast"
     style="position: relative;"
   >
-    <h3>Test Cases</h3>
+    <h3>{{ $t('admin.editors.testCases') }}</h3>
 
     <div
       v-if="editor.ui.ui.loading"
@@ -12,7 +12,7 @@
       <div class="loading-spinner-container">
         <div class="spinner" />
         <div class="loading-text">
-          Running tests...
+          {{ $t('admin.editors.runningTests') }}
         </div>
       </div>
     </div>
@@ -24,17 +24,17 @@
           class="btn-secondary rounded-base transition-fast"
           @click="addTestCase"
         >
-          + Add Test
+          {{ $t('admin.editors.addTest') }}
         </button>
       </div>
 
       <button
         :disabled="!canTest || editor.ui.ui.loading"
         class="btn-primary rounded-base transition-fast"
-        :title="canTestReason || 'Test your reference solution against all test cases'"
+        :title="canTestReason || $t('admin.editors.testAllCasesHint')"
         @click="$emit('test')"
       >
-        {{ editor.ui.ui.loading ? 'Testing...' : 'Test All Cases' }}
+        {{ editor.ui.ui.loading ? $t('admin.editors.testing') : $t('admin.editors.testAllCases') }}
       </button>
     </div>
 
@@ -91,7 +91,7 @@
             v-else
             class="no-params-message"
           >
-            No parameters
+            {{ $t('admin.editors.noParameters') }}
           </div>
 
           <div class="output-field-container">
@@ -112,7 +112,7 @@
               </div>
             </div>
             <div class="param-label">
-              <span class="param-name">output</span>
+              <span class="param-name">{{ $t('admin.editors.output') }}</span>
               <span class="param-expected-type">: {{ getReturnType() }}</span>
             </div>
           </div>
@@ -169,10 +169,10 @@
           v-if="editor.testCases.isTestFailed(index, editor.ui.ui.testResults)"
           class="failure-msg"
         >
-          Expected: {{ JSON.stringify(editor.ui.ui.testResults?.results[index]?.expected_output) }} |
-          Got: {{ JSON.stringify(editor.ui.ui.testResults?.results[index]?.actual_output) }}
+          {{ $t('admin.submissions.expected') }} {{ JSON.stringify(editor.ui.ui.testResults?.results[index]?.expected_output) }} |
+          {{ $t('admin.submissions.got') }} {{ JSON.stringify(editor.ui.ui.testResults?.results[index]?.actual_output) }}
           <span v-if="editor.ui.ui.testResults?.results[index]?.error">
-            | Error: {{ editor.ui.ui.testResults?.results[index]?.error }}
+            | {{ $t('common.error') }}: {{ editor.ui.ui.testResults?.results[index]?.error }}
           </span>
         </div>
       </div>
@@ -188,6 +188,7 @@
  * for all test case state and operations. It does not manage its own test case state.
  */
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { UseProblemEditorReturn } from '@/composables/admin/useProblemEditor'
 
 interface Props {
@@ -195,6 +196,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { t } = useI18n()
 
 defineEmits<{
   test: []
@@ -222,9 +224,9 @@ const canTestReason = computed(() => {
   const functionSignature = (props.editor.form.form.function_signature || '').toString().trim()
   const referenceSolution = (props.editor.form.form.reference_solution || '').toString().trim()
 
-  if (props.editor.ui.ui.loading) {return 'Currently loading...'}
-  if (!functionSignature) {return 'Function signature required'}
-  if (!referenceSolution) {return 'Reference solution required'}
+  if (props.editor.ui.ui.loading) {return t('admin.editors.currentlyLoading')}
+  if (!functionSignature) {return t('admin.editors.functionSignatureRequired')}
+  if (!referenceSolution) {return t('admin.editors.referenceSolutionRequired')}
   // Delegate to composable for test case-specific reasons
   return props.editor.testCases.canTestReason.value
 })

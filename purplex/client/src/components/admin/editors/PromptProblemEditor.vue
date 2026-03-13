@@ -5,13 +5,13 @@
 
     <!-- Prompt Image Configuration -->
     <div class="form-section rounded-lg border-default">
-      <h3>Prompt Image</h3>
+      <h3>{{ $t('admin.editors.prompt.promptImage') }}</h3>
       <p class="section-description">
-        Configure the image that students will see and explain.
+        {{ $t('admin.editors.prompt.promptImageDescription') }}
       </p>
 
       <div class="form-group">
-        <label for="image_url">Image URL *</label>
+        <label for="image_url">{{ $t('admin.editors.prompt.imageUrlLabel') }}</label>
         <input
           id="image_url"
           type="url"
@@ -24,21 +24,21 @@
           v-if="!editor.promptConfig.isValidUrl.value"
           class="field-error"
         >
-          Please enter a valid URL
+          {{ $t('admin.editors.prompt.invalidUrl') }}
         </p>
       </div>
 
       <div class="form-group">
-        <label for="image_alt">Alt Text</label>
+        <label for="image_alt">{{ $t('admin.editors.prompt.altTextLabel') }}</label>
         <input
           id="image_alt"
           type="text"
           :value="editor.promptConfig.altText.value"
-          placeholder="Describe the image for accessibility"
+          :placeholder="$t('admin.editors.prompt.altTextPlaceholder')"
           @input="editor.promptConfig.setAltText(($event.target as HTMLInputElement).value)"
         >
         <p class="field-hint">
-          Describe the image content for screen readers
+          {{ $t('admin.editors.prompt.altTextHint') }}
         </p>
       </div>
 
@@ -47,7 +47,7 @@
         v-if="editor.promptConfig.hasImage.value && editor.promptConfig.isValidUrl.value"
         class="image-preview"
       >
-        <label>Preview</label>
+        <label>{{ $t('admin.editors.prompt.preview') }}</label>
         <div class="preview-container">
           <img
             :src="editor.promptConfig.imageUrl.value"
@@ -59,7 +59,7 @@
             v-if="imageLoadError"
             class="preview-error"
           >
-            Failed to load image. Please check the URL.
+            {{ $t('admin.editors.prompt.imageLoadError') }}
           </div>
         </div>
       </div>
@@ -70,32 +70,32 @@
       >
         <div class="placeholder-content">
           <span class="placeholder-icon">🖼️</span>
-          <p>Enter an image URL above to see a preview</p>
+          <p>{{ $t('admin.editors.prompt.enterImageUrl') }}</p>
         </div>
       </div>
     </div>
 
     <!-- Code Solution -->
     <div class="form-section rounded-lg border-default">
-      <h3>Code Solution</h3>
+      <h3>{{ $t('admin.editors.prompt.codeSolution') }}</h3>
       <p class="section-description">
-        The reference solution that the image represents.
+        {{ $t('admin.editors.prompt.codeSolutionDescription') }}
       </p>
 
       <div class="form-group">
-        <label for="function_signature">Function Signature (with type hints) *</label>
+        <label for="function_signature">{{ $t('admin.editors.prompt.functionSignatureLabel') }}</label>
         <input
           id="function_signature"
           :value="editor.form.form.function_signature"
           type="text"
           required
-          placeholder="e.g., def calculate_sum(numbers: list[int]) -> int:"
+          :placeholder="$t('admin.editors.prompt.functionSignaturePlaceholder')"
           @input="updateField('function_signature', ($event.target as HTMLInputElement).value)"
         >
       </div>
 
       <div class="form-group">
-        <label for="reference_solution">Reference Solution *</label>
+        <label for="reference_solution">{{ $t('admin.editors.prompt.referenceSolutionLabel') }}</label>
         <div class="code-editor">
           <Editor
             :value="String(editor.form.form.reference_solution || '')"

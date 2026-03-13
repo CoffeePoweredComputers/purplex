@@ -3,7 +3,7 @@
     <AdminNavBar />
     <div class="admin-users">
       <h1 class="page-title">
-        User Management Console
+        {{ $t('admin.users.console') }}
       </h1>
 
       <DataTable
@@ -20,10 +20,10 @@
         :page-numbers="pageNumbers"
         :range-start="rangeStart"
         :range-end="rangeEnd"
-        item-label="users"
+        :item-label="$t('admin.users.itemLabel')"
         row-key="id"
-        empty-title="No Users Found"
-        empty-message="There are no users matching your filters."
+        :empty-title="$t('admin.users.noUsersFound')"
+        :empty-message="$t('admin.users.noUsersMessage')"
         @go-to-page="goToPage"
         @page-size-change="handlePageSizeChange"
         @retry="fetch"
@@ -35,7 +35,7 @@
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Search by username or email..."
+                :placeholder="$t('admin.users.searchByUsernameOrEmail')"
                 class="search-input"
                 @input="debouncedSearch"
               >
@@ -46,7 +46,7 @@
                 class="filter-select"
                 @change="handleRoleFilterChange"
               >
-                <option value="">All Roles</option>
+                <option value="">{{ $t('admin.users.allRoles') }}</option>
                 <option
                   v-for="role in filterOptions?.roles || defaultRoles"
                   :key="role.value"
@@ -62,7 +62,7 @@
                 class="clear-filters-btn"
                 @click="clearAllFilters"
               >
-                Clear Filters
+                {{ $t('admin.users.clearFilters') }}
               </button>
             </Transition>
           </div>
@@ -83,12 +83,12 @@
               class="role-dropdown"
               :value="item.role"
               :disabled="updatingUsers[item.id] || item.email === currentUserEmail"
-              :title="item.email === currentUserEmail ? 'You cannot change your own role' : 'Select a role'"
+              :title="item.email === currentUserEmail ? $t('admin.users.cannotChangeOwnRole') : $t('admin.users.selectRole')"
               @change="handleRoleChange(item.id, ($event.target as HTMLSelectElement).value)"
             >
-              <option value="user">User</option>
-              <option value="instructor">Instructor</option>
-              <option value="admin">Admin</option>
+              <option value="user">{{ $t('admin.users.roles.user') }}</option>
+              <option value="instructor">{{ $t('admin.users.roles.instructor') }}</option>
+              <option value="admin">{{ $t('admin.users.roles.admin') }}</option>
             </select>
             <span
               v-if="updatingUsers[item.id]"
@@ -103,6 +103,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import AdminNavBar from './AdminNavBar.vue';
@@ -111,6 +112,7 @@ import StatusBadge from './ui/StatusBadge.vue';
 import { useAdminUsers, type AdminUser } from '@/composables/useAdminUsers';
 import type { DataTableColumn } from '@/types/datatable';
 
+const { t } = useI18n();
 const store = useStore();
 const router = useRouter();
 
@@ -153,19 +155,19 @@ const {
 } = useAdminUsers();
 
 // Default roles for when API hasn't loaded filter options yet
-const defaultRoles = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'instructor', label: 'Instructor' },
-  { value: 'user', label: 'User' },
-];
+const defaultRoles = computed(() => [
+  { value: 'admin', label: t('admin.users.roles.admin') },
+  { value: 'instructor', label: t('admin.users.roles.instructor') },
+  { value: 'user', label: t('admin.users.roles.user') },
+]);
 
 // Column definitions
-const columns: DataTableColumn<AdminUser>[] = [
-  { key: 'username', label: 'Username' },
-  { key: 'email', label: 'Email', hideOnMobile: true },
-  { key: 'role', label: 'Role', slot: 'cell-role', align: 'center' },
-  { key: 'actions', label: 'Actions', slot: 'cell-actions', align: 'center' },
-];
+const columns = computed<DataTableColumn<AdminUser>[]>(() => [
+  { key: 'username', label: t('admin.users.username') },
+  { key: 'email', label: t('admin.users.email'), hideOnMobile: true },
+  { key: 'role', label: t('admin.users.role'), slot: 'cell-role', align: 'center' },
+  { key: 'actions', label: t('admin.users.actions'), slot: 'cell-actions', align: 'center' },
+]);
 
 // Handlers
 function handleRoleFilterChange(event: Event) {

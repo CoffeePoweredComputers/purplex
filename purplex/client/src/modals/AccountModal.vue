@@ -18,7 +18,7 @@
             id="account-modal-title"
             class="modal-title"
           >
-            Account Settings
+            {{ t('auth.account.title') }}
           </h3>
           <button
             class="close-button"
@@ -34,7 +34,7 @@
           </div>
           <div class="user-info">
             <h4 class="user-name">
-              {{ store.state.auth.user.name || 'User' }}
+              {{ store.state.auth.user.name || t('auth.account.user') }}
             </h4>
             <p class="user-email">
               {{ store.state.auth.user.email }}
@@ -44,7 +44,7 @@
 
         <div class="info-section">
           <div class="info-item">
-            <span class="info-label">Account Type</span>
+            <span class="info-label">{{ t('auth.account.typeLabel') }}</span>
             <span
               class="role-badge"
               :class="store.state.auth.user.role"
@@ -53,14 +53,14 @@
             </span>
           </div>
           <div class="info-item">
-            <span class="info-label">Member Since</span>
+            <span class="info-label">{{ t('auth.account.memberSince') }}</span>
             <span class="info-value">{{ getMemberSince() }}</span>
           </div>
 
           <LanguageSwitcher />
 
           <div class="info-item info-item--link" @click="goToPrivacySettings">
-            <span class="info-label">Privacy Settings</span>
+            <span class="info-label">{{ t('auth.account.privacySettings') }}</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6" />
             </svg>
@@ -89,7 +89,7 @@
                 y2="12"
               />
             </svg>
-            Sign Out
+            {{ t('auth.account.signOut') }}
           </button>
         </div>
       </div>
@@ -101,6 +101,7 @@
 import { toRef } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 
@@ -114,6 +115,7 @@ const emit = defineEmits<{
 
 const store = useStore()
 const router = useRouter()
+const { t, locale } = useI18n()
 
 // Focus trap composable
 const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
@@ -132,12 +134,12 @@ function goToPrivacySettings(): void {
 }
 
 function getInitials(): string {
-  const name = store.state.auth.user.name || store.state.auth.user.email || 'User'
+  const name = store.state.auth.user.name || store.state.auth.user.email || t('auth.account.user')
   return name.split(' ').map((word: string) => word[0]).join('').toUpperCase().slice(0, 2)
 }
 
 function getMemberSince(): string {
-  return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  return new Date().toLocaleDateString(locale.value, { month: 'long', year: 'numeric' })
 }
 </script>
 

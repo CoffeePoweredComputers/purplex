@@ -2,6 +2,7 @@
   "loading": "E whakaputa urupare ana...",
   "emptyState": "Tukuna he tono kia tīmata te whiwhi urupare!",
   "yourResponse": "Tō whakautu",
+  "yourExplanation": "Your Explanation",
   "comprehension": {
     "sectionTitle": "Taumata Māramatanga",
     "sectionDescription": "E whakaatu ana he pēhea te teitei o tō whakamāramatanga",
@@ -18,7 +19,48 @@
   },
   "correctness": {
     "sectionTitle": "Tika",
-    "sectionDescription": "He maha ngā whakamāoritanga AI o tō whakamāramatanga kua whakamātauria ki ngā whakamātautau ā-wae"
+    "sectionDescription": "He maha ngā whakamāoritanga AI o tō whakamāramatanga kua whakamātauria ki ngā whakamātautau ā-wae",
+    "label": "CORRECTNESS",
+    "status": {
+      "notYetWorking": "Not yet working",
+      "notYetWorkingDesc": "None of the versions passed the tests",
+      "ambiguous": "Works, but ambiguous",
+      "ambiguousDesc": "One version interpreted it differently",
+      "clear": "Clear",
+      "clearDesc": "All versions produced working code"
+    },
+    "metric": "{passing}/{total} pass"
+  },
+  "abstraction": {
+    "label": "ABSTRACTION",
+    "status": {
+      "locked": "Locked",
+      "lockedDesc": "Unlocks when all versions pass",
+      "highLevel": "High-level",
+      "highLevelDesc": "Focused on purpose, not implementation",
+      "tooDetailed": "Too detailed",
+      "tooDetailedDesc": "Describe the goal, not the steps"
+    },
+    "segments": "{count} segments",
+    "segmentThreshold": "(want {threshold})"
+  },
+  "nextStep": {
+    "viewAnalysis": "View Analysis",
+    "seeWhatFailed": "See What Failed",
+    "reviewAbstraction": "Review Abstraction",
+    "nextProblem": "Next Problem"
+  },
+  "banner": {
+    "notWorking": "Your explanation didn't produce working code yet. Let's look at what the code tried to do and where it went wrong.",
+    "ambiguous": "Your explanation could be read in different ways. One interpretation worked, but another didn't. Try being more specific.",
+    "tooDetailed": "Your explanation focuses on individual steps. Try describing what the code accomplishes overall instead of how it works line-by-line.",
+    "complete": "Problem complete! Your explanation is clear and correct."
+  },
+  "announcement": {
+    "correctnessOpened": "Correctness Analysis dialog opened",
+    "correctnessClosed": "Correctness Analysis dialog closed",
+    "abstractionLocked": "Abstraction is locked. Complete all correctness tests first.",
+    "abstractionOpened": "Abstraction Details dialog opened"
   },
   "tests": {
     "passing": "{count} E Tutuki Ana",
@@ -33,6 +75,47 @@
   },
   "attempts": {
     "label": "Ngā Tukutanga o Mua:",
-    "ariaLabel": "Tirohia ngā tukutanga o mua. Ināianei: ngana {current} o {total}, kaute {score}%"
+    "headerLabel": "Attempt:",
+    "ariaLabel": "Tirohia ngā tukutanga o mua. Ināianei: ngana {current} o {total}, kaute {score}%",
+    "attemptAriaLabel": "Attempt {number}: {score}%, {passed} of {total} tests passed",
+    "bestAttempt": ", best attempt",
+    "testsPassedButAbstraction": "Tests passed but abstraction needs work"
+  },
+  "mcq": {
+    "title": "Answer Result",
+    "checking": "Checking your answer...",
+    "correct": "Correct!",
+    "partiallyCorrect": "Partially Correct",
+    "incorrect": "Incorrect",
+    "score": "Score: {score}%",
+    "yourAnswer": "Your Answer",
+    "correctAnswer": "Correct Answer",
+    "explanation": "Explanation",
+    "noResult": "Select an answer and submit to see your results."
+  },
+  "codeSubmission": {
+    "runningTests": "Running tests...",
+    "yourSubmission": "Your Submission",
+    "submitToSeeResults": "Submit your solution to see test results",
+    "debugTestCase": "Debug test case: {call}"
+  },
+  "refute": {
+    "title": "Counterexample Result",
+    "checkingInput": "Checking your input...",
+    "counterexampleFound": "Counterexample Found!",
+    "notCounterexample": "Not a Counterexample",
+    "score": "Score: {score}%",
+    "theClaim": "The Claim",
+    "yourInput": "Your Input",
+    "functionOutput": "Function Output",
+    "executionError": "Execution Error",
+    "whyThisWorks": "Why This Works",
+    "whyThisDoesntWork": "Why This Doesn't Work",
+    "disprovesClaimExplanation": "The function returned {result} for your input, which disproves the claim \"{claim}\".",
+    "supportsClaimExplanation": "The function returned {result}, which still supports the claim. Try finding input that produces a result contradicting \"{claim}\".",
+    "disprovesClaim": "This disproves the claim!",
+    "supportsClaim": "This supports the claim",
+    "noClaimSpecified": "No claim specified",
+    "enterAndSubmit": "Enter function arguments and submit to find a counterexample."
   }
 }

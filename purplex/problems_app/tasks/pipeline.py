@@ -423,11 +423,23 @@ def segment_prompt_helper(
     )
     problem_config["threshold"] = problem.get_segmentation_threshold
 
+    # Look up user's language preference for localised AI output
+    language = "en"
+    if user_id is not None:
+        from purplex.users_app.models import UserProfile
+
+        try:
+            profile = UserProfile.objects.get(user_id=user_id)
+            language = profile.language_preference or "en"
+        except UserProfile.DoesNotExist:
+            pass
+
     service = SegmentationService()
     segmentation_result = service.segment_prompt(
         user_prompt=user_prompt,
         reference_code=problem.reference_solution,
         problem_config=problem_config,
+        language=language,
     )
 
     # Add threshold and 'passed' field to result for frontend display

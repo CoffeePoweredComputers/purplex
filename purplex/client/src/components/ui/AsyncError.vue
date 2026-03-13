@@ -4,14 +4,14 @@
     role="alert"
   >
     <p class="error-message">
-      Failed to load component
+      {{ $t('common.failedToLoadComponent') }}
     </p>
     <button
       v-if="retry"
       class="retry-button"
       @click="retry"
     >
-      Try Again
+      {{ $t('common.tryAgain') }}
     </button>
   </div>
 </template>

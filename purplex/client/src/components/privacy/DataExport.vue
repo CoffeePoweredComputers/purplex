@@ -1,9 +1,8 @@
 <template>
   <div class="data-export">
-    <h3 class="data-export__title">Export Your Data</h3>
+    <h3 class="data-export__title">{{ t('auth.dataExport.title') }}</h3>
     <p class="data-export__description">
-      Download a copy of all your personal data in JSON format.
-      This includes your profile, submissions, progress, and consent history.
+      {{ t('auth.dataExport.description') }}
     </p>
 
     <button
@@ -11,7 +10,7 @@
       :disabled="loading"
       @click="exportData"
     >
-      {{ loading ? 'Preparing export...' : 'Download My Data' }}
+      {{ loading ? t('auth.dataExport.preparing') : t('auth.dataExport.button') }}
     </button>
 
     <p v-if="error" class="data-export__error" role="alert">{{ error }}</p>
@@ -21,7 +20,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import privacyService from '../../services/privacyService';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const error = ref('');
@@ -36,9 +38,9 @@ async function exportData() {
         const data = await privacyService.exportData();
         const filename = `purplex-data-export-${new Date().toISOString().split('T')[0]}.json`;
         privacyService.downloadAsJson(data, filename);
-        success.value = 'Your data has been downloaded.';
+        success.value = t('auth.dataExport.success');
     } catch (e: unknown) {
-        error.value = 'Failed to export data. Please try again later.';
+        error.value = t('auth.dataExport.error');
     } finally {
         loading.value = false;
     }
