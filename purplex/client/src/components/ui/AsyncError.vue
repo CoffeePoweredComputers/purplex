@@ -4,7 +4,7 @@
     role="alert"
   >
     <p class="error-message">
-      {{ $t('common.failedToLoadComponent') }}
+      {{ $t('common.failedToLoad') }}
     </p>
     <button
       v-if="retry"
