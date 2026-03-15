@@ -6,8 +6,8 @@ import admin from './admin.json';
 
 export default {
   ...common,
-  auth,
-  feedback,
-  problems,
-  admin,
+  ...auth,
+  ...feedback,
+  ...problems,
+  ...admin,
 };

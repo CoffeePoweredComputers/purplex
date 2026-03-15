@@ -46,7 +46,39 @@
     "optional": "Opcional",
     "pleaseWait": "Por favor espera...",
     "failedToLoad": "No se pudo cargar el componente",
-    "unknown": "Desconocido"
+    "unknown": "Desconocido",
+    "skipNav": "Ir al contenido principal",
+    "footer": {
+      "copyright": "© {year} Purplex. Todos los derechos reservados.",
+      "privacyPolicy": "Política de Privacidad",
+      "termsOfService": "Términos de Servicio",
+      "sponsoredBy": "Patrocinado por Meta"
+    },
+    "dataTable": {
+      "showing": "Mostrando {start}-{end} de {total} {label}",
+      "loading": "Cargando {label}...",
+      "errorTitle": "Error al cargar datos",
+      "tryAgain": "Intentar de nuevo",
+      "defaultEmptyTitle": "No se encontraron datos",
+      "defaultEmptyMessage": "No hay elementos para mostrar.",
+      "defaultItemLabel": "elementos"
+    },
+    "pagination": {
+      "show": "Mostrar:",
+      "perPage": "por página",
+      "itemsPerPage": "Número de elementos por página",
+      "rangeOf": "{start}-{end} de {total}",
+      "firstPage": "Primera página",
+      "previousPage": "Página anterior",
+      "nextPage": "Página siguiente",
+      "lastPage": "Última página"
+    },
+    "units": {
+      "ms": "{value}ms",
+      "timeMinSec": "{mins}m {secs}s",
+      "timeSec": "{secs}s",
+      "timeNA": "N/D"
+    }
   },
   "aria": {
     "etymologyMeaning": "Conoce el significado de este nombre",

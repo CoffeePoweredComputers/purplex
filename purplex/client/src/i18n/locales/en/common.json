@@ -46,7 +46,39 @@
     "optional": "Optional",
     "pleaseWait": "Please wait...",
     "failedToLoad": "Failed to load component",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "skipNav": "Skip to main content",
+    "footer": {
+      "copyright": "© {year} Purplex. All rights reserved.",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "sponsoredBy": "Sponsored by Meta"
+    },
+    "dataTable": {
+      "showing": "Showing {start}-{end} of {total} {label}",
+      "loading": "Loading {label}...",
+      "errorTitle": "Error Loading Data",
+      "tryAgain": "Try Again",
+      "defaultEmptyTitle": "No Data Found",
+      "defaultEmptyMessage": "There are no items to display.",
+      "defaultItemLabel": "items"
+    },
+    "pagination": {
+      "show": "Show:",
+      "perPage": "per page",
+      "itemsPerPage": "Number of items per page",
+      "rangeOf": "{start}-{end} of {total}",
+      "firstPage": "First page",
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "lastPage": "Last page"
+    },
+    "units": {
+      "ms": "{value}ms",
+      "timeMinSec": "{mins}m {secs}s",
+      "timeSec": "{secs}s",
+      "timeNA": "N/A"
+    }
   },
   "aria": {
     "etymologyMeaning": "Learn about the meaning of this name",

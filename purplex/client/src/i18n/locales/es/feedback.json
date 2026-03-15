@@ -1,121 +1,170 @@
 {
-  "loading": "Generando retroalimentación...",
-  "emptyState": "¡Envía una respuesta para comenzar a recibir retroalimentación!",
-  "yourResponse": "Tu respuesta",
-  "yourExplanation": "Tu Explicación",
-  "comprehension": {
-    "sectionTitle": "Nivel de Comprensión",
-    "sectionDescription": "Muestra qué tan general vs. línea por línea es tu explicación",
-    "level": {
-      "relational": "¡Excelente!",
-      "multiStructural": "Demasiado detallado",
-      "default": "Analizado"
+  "feedback": {
+    "loading": "Generando retroalimentación...",
+    "emptyState": "¡Envía una respuesta para comenzar a recibir retroalimentación!",
+    "yourResponse": "Tu respuesta",
+    "yourExplanation": "Tu Explicación",
+    "comprehension": {
+      "sectionTitle": "Nivel de Comprensión",
+      "sectionDescription": "Muestra qué tan general vs. línea por línea es tu explicación",
+      "level": {
+        "relational": "¡Excelente!",
+        "multiStructural": "Demasiado detallado",
+        "default": "Analizado"
+      },
+      "description": {
+        "relational": "Comprensión de alto nivel",
+        "multiStructural": "Revisa las mejoras sugeridas",
+        "default": "Ver análisis"
+      }
     },
-    "description": {
-      "relational": "Comprensión de alto nivel",
-      "multiStructural": "Revisa las mejoras sugeridas",
-      "default": "Ver análisis"
+    "correctness": {
+      "sectionTitle": "Corrección",
+      "sectionDescription": "Múltiples interpretaciones de IA de tu descripción probadas contra pruebas unitarias",
+      "label": "CORRECCIÓN",
+      "status": {
+        "notYetWorking": "Aún no funciona",
+        "notYetWorkingDesc": "Ninguna de las versiones pasó las pruebas",
+        "ambiguous": "Funciona, pero es ambiguo",
+        "ambiguousDesc": "Una versión lo interpretó de forma diferente",
+        "clear": "Claro",
+        "clearDesc": "Todas las versiones produjeron código funcional"
+      },
+      "metric": "{passing}/{total} pasan"
+    },
+    "abstraction": {
+      "label": "ABSTRACCIÓN",
+      "status": {
+        "locked": "Bloqueado",
+        "lockedDesc": "Se desbloquea cuando todas las versiones pasan",
+        "highLevel": "Alto nivel",
+        "highLevelDesc": "Enfocado en el propósito, no en la implementación",
+        "tooDetailed": "Demasiado detallado",
+        "tooDetailedDesc": "Describe el objetivo, no los pasos"
+      },
+      "segments": "{count} segmentos",
+      "segmentThreshold": "(objetivo: {threshold})"
+    },
+    "nextStep": {
+      "viewAnalysis": "Ver Análisis",
+      "seeWhatFailed": "Ver Qué Falló",
+      "reviewAbstraction": "Revisar Abstracción",
+      "nextProblem": "Siguiente Problema"
+    },
+    "banner": {
+      "notWorking": "Tu explicación aún no produjo código funcional. Veamos qué intentó hacer el código y dónde falló.",
+      "ambiguous": "Tu explicación podría interpretarse de varias formas. Una interpretación funcionó, pero otra no. Intenta ser más específico.",
+      "tooDetailed": "Tu explicación se enfoca en pasos individuales. Intenta describir qué logra el código en general en lugar de cómo funciona línea por línea.",
+      "complete": "¡Problema completado! Tu explicación es clara y correcta."
+    },
+    "announcement": {
+      "correctnessOpened": "Diálogo de Análisis de Corrección abierto",
+      "correctnessClosed": "Diálogo de Análisis de Corrección cerrado",
+      "abstractionLocked": "La abstracción está bloqueada. Completa todas las pruebas de corrección primero.",
+      "abstractionOpened": "Diálogo de Detalles de Abstracción abierto"
+    },
+    "tests": {
+      "passing": "{count} Aprobadas",
+      "failing": "{count} Fallidas",
+      "failingGroup": "Pruebas Fallidas ({count})",
+      "passingGroup": "Pruebas Aprobadas ({count})",
+      "expected": "Esperado:",
+      "got": "Obtenido:"
+    },
+    "solution": {
+      "title": "Solución {current} de {total}"
+    },
+    "attempts": {
+      "label": "Entregas Anteriores:",
+      "headerLabel": "Intento:",
+      "ariaLabel": "Ver entregas anteriores. Actual: intento {current} de {total}, puntuación {score}%",
+      "attemptAriaLabel": "Intento {number}: {score}%, {passed} de {total} pruebas aprobadas",
+      "bestAttempt": ", mejor intento",
+      "testsPassedButAbstraction": "Las pruebas pasaron pero la abstracción necesita mejoras"
+    },
+    "mcq": {
+      "title": "Resultado de la Respuesta",
+      "checking": "Verificando tu respuesta...",
+      "correct": "¡Correcto!",
+      "partiallyCorrect": "Parcialmente Correcto",
+      "incorrect": "Incorrecto",
+      "score": "Puntuación: {score}%",
+      "yourAnswer": "Tu Respuesta",
+      "correctAnswer": "Respuesta Correcta",
+      "explanation": "Explicación",
+      "noResult": "Selecciona una respuesta y envíala para ver tus resultados."
+    },
+    "codeSubmission": {
+      "runningTests": "Ejecutando pruebas...",
+      "yourSubmission": "Tu Entrega",
+      "submitToSeeResults": "Envía tu solución para ver los resultados de las pruebas",
+      "debugTestCase": "Depurar caso de prueba: {call}"
+    },
+    "refute": {
+      "title": "Resultado del Contraejemplo",
+      "checkingInput": "Verificando tu entrada...",
+      "counterexampleFound": "¡Contraejemplo Encontrado!",
+      "notCounterexample": "No es un Contraejemplo",
+      "score": "Puntuación: {score}%",
+      "theClaim": "La Afirmación",
+      "yourInput": "Tu Entrada",
+      "functionOutput": "Salida de la Función",
+      "executionError": "Error de Ejecución",
+      "whyThisWorks": "Por Qué Esto Funciona",
+      "whyThisDoesntWork": "Por Qué Esto No Funciona",
+      "disprovesClaimExplanation": "La función devolvió {result} para tu entrada, lo cual refuta la afirmación \"{claim}\".",
+      "supportsClaimExplanation": "La función devolvió {result}, lo cual aún apoya la afirmación. Intenta encontrar una entrada que produzca un resultado que contradiga \"{claim}\".",
+      "disprovesClaim": "¡Esto refuta la afirmación!",
+      "supportsClaim": "Esto apoya la afirmación",
+      "noClaimSpecified": "No se especificó una afirmación",
+      "enterAndSubmit": "Ingresa los argumentos de la función y envía para encontrar un contraejemplo."
+    },
+    "correctnessModal": {
+      "title": "Análisis de Corrección",
+      "versionPass": "{passing}/{total} Versiones Pasan",
+      "sizeLabel": "Tamaño",
+      "closeEsc": "Cerrar (ESC)",
+      "closeModal": "Cerrar modal",
+      "viewVersion": "Ver versión:",
+      "codeVersions": "Versiones de código",
+      "passing": "Aprobada",
+      "failing": "Fallida",
+      "generatedCode": "Código Generado",
+      "allTestsPass": "Todas las pruebas pasan",
+      "failingCount": "{count} fallando",
+      "testResults": "Resultados de Pruebas",
+      "expected": "Esperado",
+      "got": "Obtenido",
+      "sizePresets": {
+        "small": "Pequeño",
+        "medium": "Mediano",
+        "large": "Grande",
+        "fullscreen": "Pantalla completa"
+      }
+    },
+    "segmentModal": {
+      "title": "Análisis del Nivel de Comprensión",
+      "levelUnderstanding": "Comprensión {level}",
+      "sizeLabel": "Tamaño",
+      "openInNewTab": "Abrir en nueva pestaña",
+      "openInNewTabAriaLabel": "Abrir análisis de comprensión en nueva pestaña",
+      "closeEsc": "Cerrar (ESC)",
+      "closeModal": "Cerrar modal",
+      "relationalFeedback": "¡Excelente! Tus {count} segmentos muestran comprensión de alto nivel.",
+      "multiStructuralFeedback": "Tus {count} segmentos son demasiado detallados. Intenta describir el propósito general en {goal} o menos segmentos.",
+      "levelExcellent": "Excelente",
+      "levelDetailed": "Detallado",
+      "levelUnknown": "Desconocido",
+      "sizePresets": {
+        "small": "Pequeño",
+        "medium": "Mediano",
+        "large": "Grande",
+        "fullscreen": "Pantalla completa"
+      }
+    },
+    "segmentMapping": {
+      "yourExplanation": "Tu Explicación",
+      "referenceCode": "Código de Referencia"
     }
-  },
-  "correctness": {
-    "sectionTitle": "Corrección",
-    "sectionDescription": "Múltiples interpretaciones de IA de tu descripción probadas contra pruebas unitarias",
-    "label": "CORRECCIÓN",
-    "status": {
-      "notYetWorking": "Aún no funciona",
-      "notYetWorkingDesc": "Ninguna de las versiones pasó las pruebas",
-      "ambiguous": "Funciona, pero es ambiguo",
-      "ambiguousDesc": "Una versión lo interpretó de forma diferente",
-      "clear": "Claro",
-      "clearDesc": "Todas las versiones produjeron código funcional"
-    },
-    "metric": "{passing}/{total} pasan"
-  },
-  "abstraction": {
-    "label": "ABSTRACCIÓN",
-    "status": {
-      "locked": "Bloqueado",
-      "lockedDesc": "Se desbloquea cuando todas las versiones pasan",
-      "highLevel": "Alto nivel",
-      "highLevelDesc": "Enfocado en el propósito, no en la implementación",
-      "tooDetailed": "Demasiado detallado",
-      "tooDetailedDesc": "Describe el objetivo, no los pasos"
-    },
-    "segments": "{count} segmentos",
-    "segmentThreshold": "(objetivo: {threshold})"
-  },
-  "nextStep": {
-    "viewAnalysis": "Ver Análisis",
-    "seeWhatFailed": "Ver Qué Falló",
-    "reviewAbstraction": "Revisar Abstracción",
-    "nextProblem": "Siguiente Problema"
-  },
-  "banner": {
-    "notWorking": "Tu explicación aún no produjo código funcional. Veamos qué intentó hacer el código y dónde falló.",
-    "ambiguous": "Tu explicación podría interpretarse de varias formas. Una interpretación funcionó, pero otra no. Intenta ser más específico.",
-    "tooDetailed": "Tu explicación se enfoca en pasos individuales. Intenta describir qué logra el código en general en lugar de cómo funciona línea por línea.",
-    "complete": "¡Problema completado! Tu explicación es clara y correcta."
-  },
-  "announcement": {
-    "correctnessOpened": "Diálogo de Análisis de Corrección abierto",
-    "correctnessClosed": "Diálogo de Análisis de Corrección cerrado",
-    "abstractionLocked": "La abstracción está bloqueada. Completa todas las pruebas de corrección primero.",
-    "abstractionOpened": "Diálogo de Detalles de Abstracción abierto"
-  },
-  "tests": {
-    "passing": "{count} Aprobadas",
-    "failing": "{count} Fallidas",
-    "failingGroup": "Pruebas Fallidas ({count})",
-    "passingGroup": "Pruebas Aprobadas ({count})",
-    "expected": "Esperado:",
-    "got": "Obtenido:"
-  },
-  "solution": {
-    "title": "Solución {current} de {total}"
-  },
-  "attempts": {
-    "label": "Entregas Anteriores:",
-    "headerLabel": "Intento:",
-    "ariaLabel": "Ver entregas anteriores. Actual: intento {current} de {total}, puntuación {score}%",
-    "attemptAriaLabel": "Intento {number}: {score}%, {passed} de {total} pruebas aprobadas",
-    "bestAttempt": ", mejor intento",
-    "testsPassedButAbstraction": "Las pruebas pasaron pero la abstracción necesita mejoras"
-  },
-  "mcq": {
-    "title": "Resultado de la Respuesta",
-    "checking": "Verificando tu respuesta...",
-    "correct": "¡Correcto!",
-    "partiallyCorrect": "Parcialmente Correcto",
-    "incorrect": "Incorrecto",
-    "score": "Puntuación: {score}%",
-    "yourAnswer": "Tu Respuesta",
-    "correctAnswer": "Respuesta Correcta",
-    "explanation": "Explicación",
-    "noResult": "Selecciona una respuesta y envíala para ver tus resultados."
-  },
-  "codeSubmission": {
-    "runningTests": "Ejecutando pruebas...",
-    "yourSubmission": "Tu Entrega",
-    "submitToSeeResults": "Envía tu solución para ver los resultados de las pruebas",
-    "debugTestCase": "Depurar caso de prueba: {call}"
-  },
-  "refute": {
-    "title": "Resultado del Contraejemplo",
-    "checkingInput": "Verificando tu entrada...",
-    "counterexampleFound": "¡Contraejemplo Encontrado!",
-    "notCounterexample": "No es un Contraejemplo",
-    "score": "Puntuación: {score}%",
-    "theClaim": "La Afirmación",
-    "yourInput": "Tu Entrada",
-    "functionOutput": "Salida de la Función",
-    "executionError": "Error de Ejecución",
-    "whyThisWorks": "Por Qué Esto Funciona",
-    "whyThisDoesntWork": "Por Qué Esto No Funciona",
-    "disprovesClaimExplanation": "La función devolvió {result} para tu entrada, lo cual refuta la afirmación \"{claim}\".",
-    "supportsClaimExplanation": "La función devolvió {result}, lo cual aún apoya la afirmación. Intenta encontrar una entrada que produzca un resultado que contradiga \"{claim}\".",
-    "disprovesClaim": "¡Esto refuta la afirmación!",
-    "supportsClaim": "Esto apoya la afirmación",
-    "noClaimSpecified": "No se especificó una afirmación",
-    "enterAndSubmit": "Ingresa los argumentos de la función y envía para encontrar un contraejemplo."
   }
 }
