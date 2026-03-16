@@ -2,7 +2,7 @@
   <div class="prompt-detail">
     <!-- Image display -->
     <div v-if="typeData.image_url" class="detail-section">
-      <h4 class="section-label">Problem Image</h4>
+      <h4 class="section-label">{{ $t('admin.submissions.detail.problemImage') }}</h4>
       <div class="image-container">
         <img
           :src="typeData.image_url"
@@ -15,7 +15,7 @@
 
     <!-- NL prompt -->
     <div v-if="submission.raw_input" class="detail-section">
-      <h4 class="section-label">Student's Explanation</h4>
+      <h4 class="section-label">{{ $t('admin.submissions.detail.studentsExplanation') }}</h4>
       <div class="prompt-box">{{ submission.raw_input }}</div>
     </div>
   </div>

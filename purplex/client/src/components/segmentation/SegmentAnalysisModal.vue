@@ -22,20 +22,20 @@
                 id="segment-modal-title"
                 class="modal-title"
               >
-                Comprehension Level Analysis
+                {{ $t('feedback.segmentModal.title') }}
               </h3>
               <div class="header-badges">
                 <span
                   class="badge-level"
                   :class="levelBadgeClass"
                 >
-                  {{ formatLevel(segmentation.comprehension_level) }} Understanding
+                  {{ $t('feedback.segmentModal.levelUnderstanding', { level: formatLevel(segmentation.comprehension_level) }) }}
                 </span>
               </div>
             </div>
             <div class="modal-actions">
               <div class="size-controls-group">
-                <span class="size-label">Size</span>
+                <span class="size-label">{{ $t('feedback.segmentModal.sizeLabel') }}</span>
                 <div class="size-controls" role="group" aria-label="Modal size">
                   <button
                     v-for="size in sizePresets"
@@ -52,8 +52,8 @@
               </div>
               <button
                 class="action-button"
-                title="Open in new tab"
-                aria-label="Open understanding analysis in new tab"
+                :title="$t('feedback.segmentModal.openInNewTab')"
+                :aria-label="$t('feedback.segmentModal.openInNewTabAriaLabel')"
                 @click="openInNewTab"
               >
                 <span class="icon" aria-hidden="true">⬈</span>
@@ -61,8 +61,8 @@
               <button
                 ref="closeButtonRef"
                 class="close-button"
-                title="Close (ESC)"
-                aria-label="Close modal"
+                :title="$t('feedback.segmentModal.closeEsc')"
+                :aria-label="$t('feedback.segmentModal.closeModal')"
                 @click="closeModal"
               >
                 <span aria-hidden="true">&times;</span>
@@ -77,10 +77,21 @@
                 <div class="feedback-text">
                   <p id="segment-modal-description" class="feedback-message">
                     <template v-if="segmentation.comprehension_level === 'relational'">
-                      Excellent! Your <span class="segment-badge segment-badge-success">{{ segmentation.segment_count }} segment{{ segmentation.segment_count > 1 ? 's' : '' }}</span> show{{ segmentation.segment_count === 1 ? 's' : '' }} high-level understanding.
+                      <i18n-t keypath="feedback.segmentModal.relationalFeedback" tag="span">
+                        <template #count>
+                          <span class="segment-badge segment-badge-success">{{ segmentation.segment_count }}</span>
+                        </template>
+                      </i18n-t>
                     </template>
                     <template v-else-if="segmentation.comprehension_level === 'multi_structural'">
-                      Your <span class="segment-badge segment-badge-warning">{{ segmentation.segment_count }} segments</span> are too detailed. Try to describe the overall purpose in <span class="segment-badge segment-badge-goal">{{ segmentThreshold === 1 ? '1 segment' : `${segmentThreshold} or fewer segments` }}</span>.
+                      <i18n-t keypath="feedback.segmentModal.multiStructuralFeedback" tag="span">
+                        <template #count>
+                          <span class="segment-badge segment-badge-warning">{{ segmentation.segment_count }}</span>
+                        </template>
+                        <template #goal>
+                          <span class="segment-badge segment-badge-goal">{{ segmentThreshold }}</span>
+                        </template>
+                      </i18n-t>
                     </template>
                     <template v-else>
                       {{ segmentation.feedback }}
@@ -110,6 +121,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, toRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import SegmentMapping from './SegmentMapping.vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 
@@ -150,22 +162,24 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
+const { t } = useI18n()
+
 // Focus trap composable — focus the close button on open (Fix 6, WCAG 2.4.3)
 const closeButtonRef = ref<HTMLElement | null>(null)
 const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible), closeButtonRef)
 
 // Size state
 const currentSize = ref<SizePreset>('medium')
-const sizePresets: SizePresetConfig[] = [
-  { name: 'small', label: 'Small', icon: '◻', width: '800px', height: 'auto' },
-  { name: 'medium', label: 'Medium', icon: '◼', width: '1000px', height: 'auto' },
-  { name: 'large', label: 'Large', icon: '⬛', width: '1200px', height: 'auto' },
-  { name: 'fullscreen', label: 'Fullscreen', icon: '⛶', width: '100%', height: '100vh' }
-]
+const sizePresets = computed<SizePresetConfig[]>(() => [
+  { name: 'small', label: t('feedback.segmentModal.sizePresets.small'), icon: '◻', width: '800px', height: 'auto' },
+  { name: 'medium', label: t('feedback.segmentModal.sizePresets.medium'), icon: '◼', width: '1000px', height: 'auto' },
+  { name: 'large', label: t('feedback.segmentModal.sizePresets.large'), icon: '⬛', width: '1200px', height: 'auto' },
+  { name: 'fullscreen', label: t('feedback.segmentModal.sizePresets.fullscreen'), icon: '⛶', width: '100%', height: '100vh' }
+])
 
 // Computed
 const modalStyle = computed(() => {
-  const preset = sizePresets.find(s => s.name === currentSize.value)
+  const preset = sizePresets.value.find(s => s.name === currentSize.value)
   if (!preset) {
     return {}
   }
@@ -264,11 +278,11 @@ function getFeedbackIcon(): string {
 function formatLevel(level: ComprehensionLevel): string {
   switch (level) {
     case 'relational':
-      return 'Excellent'
+      return t('feedback.segmentModal.levelExcellent')
     case 'multi_structural':
-      return 'Detailed'
+      return t('feedback.segmentModal.levelDetailed')
     default:
-      return 'Unknown'
+      return t('feedback.segmentModal.levelUnknown')
   }
 }
 
@@ -286,7 +300,7 @@ function getExplanation(): string {
 // Load saved size preference on mount
 onMounted(() => {
   const savedSize = localStorage.getItem('segment-analysis-modal-size') as SizePreset | null
-  if (savedSize && sizePresets.find(s => s.name === savedSize)) {
+  if (savedSize && sizePresets.value.find(s => s.name === savedSize)) {
     currentSize.value = savedSize
   }
 })

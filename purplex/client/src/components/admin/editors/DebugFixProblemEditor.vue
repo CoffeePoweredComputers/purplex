@@ -227,8 +227,9 @@
                 :title="$t('admin.editors.debugFix.removeHint')"
                 @click="editor.debugFixConfig.removeHint(index)"
               >
-                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+                <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
                 x
+                <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
               </button>
             </div>
             <textarea

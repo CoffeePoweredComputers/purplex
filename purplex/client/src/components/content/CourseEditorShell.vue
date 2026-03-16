@@ -53,6 +53,7 @@
             :disabled="isEditing"
             required
           >
+          <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
           <small>{{ $t('admin.courseEditor.courseIdHint') }}{{ isEditing ? $t('admin.courseEditor.courseIdCannotChange') : '' }}</small>
         </div>
 
