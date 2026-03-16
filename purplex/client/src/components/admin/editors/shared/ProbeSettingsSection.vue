@@ -40,7 +40,7 @@
           type="button"
           @click="config.setProbeMode(mode.value)"
         >
-          {{ mode.label.replace(' Mode', '') }}
+          {{ $t(mode.labelKey) }}
         </button>
       </div>
 
@@ -115,13 +115,16 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { ProbeMode, UseProbeConfigReturn } from '@/composables/admin/useProbeConfig';
+
+const { t } = useI18n();
 
 interface Props {
   /** Probe configuration composable */
   config: UseProbeConfigReturn;
-  /** Probe modes with descriptions */
-  probeModes: { value: ProbeMode; label: string; description: string }[];
+  /** Probe modes with locale key paths */
+  probeModes: { value: ProbeMode; labelKey: string; descriptionKey: string }[];
   /** Custom section description (optional) */
   sectionDescription?: string;
   /** Custom cooldown attempts hint (optional) */
@@ -136,7 +139,7 @@ const props = withDefaults(defineProps<Props>(), {
 // Get description for currently selected mode
 const selectedModeDescription = computed(() => {
   const selected = props.probeModes.find(m => m.value === props.config.probeMode.value);
-  return selected?.description || '';
+  return selected ? t(selected.descriptionKey) : '';
 });
 </script>
 

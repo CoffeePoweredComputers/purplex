@@ -98,7 +98,8 @@
       "runningTests": "Running tests...",
       "yourSubmission": "Your Submission",
       "submitToSeeResults": "Submit your solution to see test results",
-      "debugTestCase": "Debug test case: {call}"
+      "debugTestCase": "Debug test case: {call}",
+      "testResults": "Test Results"
     },
     "refute": {
       "title": "Counterexample Result",
@@ -131,6 +132,13 @@
       "multiStructuralFeedback": "Your {count} segments are too detailed. Try to describe the overall purpose in {goal} or fewer segments.",
       "explanationRelational": "You focused on the overall purpose. This shows strong conceptual understanding.",
       "explanationMultiStructural": "You provided line-by-line detail. Try focusing on the main goal instead.",
+      "newTabTitle": "Understanding Analysis",
+      "feedbackLabel": "Feedback",
+      "explanationLabel": "Explanation",
+      "segmentsHeading": "Segments",
+      "segmentLabel": "Segment {id}",
+      "linesLabel": "Lines",
+      "referenceCodeHeading": "Reference Code",
       "levelExcellent": "Excellent",
       "levelDetailed": "Detailed",
       "levelUnknown": "Unknown",

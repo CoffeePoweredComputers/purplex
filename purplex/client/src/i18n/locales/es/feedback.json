@@ -98,7 +98,8 @@
       "runningTests": "Ejecutando pruebas...",
       "yourSubmission": "Tu Entrega",
       "submitToSeeResults": "Envía tu solución para ver los resultados de las pruebas",
-      "debugTestCase": "Depurar caso de prueba: {call}"
+      "debugTestCase": "Depurar caso de prueba: {call}",
+      "testResults": "Resultados de Pruebas"
     },
     "refute": {
       "title": "Resultado del Contraejemplo",
@@ -160,6 +161,13 @@
       "multiStructuralFeedback": "Tus {count} segmentos son demasiado detallados. Intenta describir el propósito general en {goal} o menos segmentos.",
       "explanationRelational": "Te enfocaste en el propósito general. Esto muestra una sólida comprensión conceptual.",
       "explanationMultiStructural": "Proporcionaste detalle línea por línea. Intenta enfocarte en el objetivo principal.",
+      "newTabTitle": "Análisis de Comprensión",
+      "feedbackLabel": "Retroalimentación",
+      "explanationLabel": "Explicación",
+      "segmentsHeading": "Segmentos",
+      "segmentLabel": "Segmento {id}",
+      "linesLabel": "Líneas",
+      "referenceCodeHeading": "Código de Referencia",
       "levelExcellent": "Excelente",
       "levelDetailed": "Detallado",
       "levelUnknown": "Desconocido",

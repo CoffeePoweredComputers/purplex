@@ -42,6 +42,15 @@
       "searchByTitle": "Search by title...",
       "itemLabel": "problems",
       "problemType": "Problem Type",
+      "activityTypes": {
+        "mcq": "Multiple Choice Question",
+        "eipl": "Explain in Plain Language",
+        "prompt": "Prompt Problem",
+        "debug_fix": "Debug and Fix Code",
+        "probeable_code": "Probeable Problem (Code)",
+        "probeable_spec": "Probeable Problem (Explanation)",
+        "refute": "Refute: Find Counterexample"
+      },
       "selectType": "Select the type of problem to create",
       "typeLockedHint": "Problem type cannot be changed after creation",
       "saveProblem": "Save Problem",
@@ -458,7 +467,27 @@
         "probeLimits": "Probe Limits",
         "budget": "Budget",
         "submissionsToRefill": "Submissions to refill",
-        "probesPerRefill": "Probes per refill"
+        "probesPerRefill": "Probes per refill",
+        "modes": {
+          "block": {
+            "label": "Block",
+            "description": "Student gets a fixed number of probes. Once exhausted, they must submit without further testing.",
+            "codeDescription": "Student gets a fixed number of probes. Once exhausted, they must submit code without further testing.",
+            "specDescription": "Student gets a fixed number of probes. Once exhausted, they must write their explanation without further testing."
+          },
+          "cooldown": {
+            "label": "Cooldown",
+            "description": "After initial probes are used, student can earn more probes by making submission attempts.",
+            "codeDescription": "After initial probes are used, student can earn more probes by making submission attempts.",
+            "specDescription": "After initial probes are used, student can earn more probes by making submission attempts."
+          },
+          "explore": {
+            "label": "Explore",
+            "description": "Unlimited probes. Student can test as many inputs as they want before submitting.",
+            "codeDescription": "Unlimited probes. Student can test as many inputs as they want before submitting.",
+            "specDescription": "Unlimited probes. Student can test as many inputs as they want before submitting their explanation."
+          }
+        }
       },
       "eipl": {
         "codeSolution": "Code Solution",

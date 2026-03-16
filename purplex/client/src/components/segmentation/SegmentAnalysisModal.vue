@@ -223,44 +223,84 @@ function setModalSize(sizeName: SizePreset): void {
 
 function openInNewTab(): void {
   const newWindow = window.open('', '_blank', 'width=1200,height=800')
-  if (newWindow) {
-    newWindow.document.write(`
-      <html>
-        <head>
-          <title>Understanding Analysis - ${formatLevel(props.segmentation.comprehension_level)}</title>
-          <style>
-            body { font-family: Inter, system-ui, sans-serif; margin: 20px; }
-            .header { margin-bottom: 20px; }
-            .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px; }
-            .segments { margin: 20px 0; }
-            .segment { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-            .code { font-family: Monaco, monospace; background: #f5f5f5; padding: 10px; border-radius: 4px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Understanding Analysis</h1>
-            <span class="badge">${formatLevel(props.segmentation.comprehension_level)} Understanding</span>
-            <p><strong>Feedback:</strong> ${props.segmentation.feedback}</p>
-            <p><strong>Explanation:</strong> ${getExplanation()}</p>
-          </div>
-          <div class="segments">
-            <h2>Segments</h2>
-            ${props.segmentation.segments.map(segment => `
-              <div class="segment">
-                <strong>Segment ${segment.id}:</strong> ${segment.text}
-                <br><small>Lines: ${segment.code_lines.join(', ')}</small>
-              </div>
-            `).join('')}
-          </div>
-          <div class="code">
-            <h2>Reference Code</h2>
-            <pre>${props.referenceCode}</pre>
-          </div>
-        </body>
-      </html>
-    `)
+  if (!newWindow) { closeModal(); return }
+
+  const title = t('feedback.segmentModal.newTabTitle')
+  const levelText = t('feedback.segmentModal.levelUnderstanding', { level: formatLevel(props.segmentation.comprehension_level) })
+  const feedbackLabel = t('feedback.segmentModal.feedbackLabel')
+  const explanationLabel = t('feedback.segmentModal.explanationLabel')
+  const segmentsHeading = t('feedback.segmentModal.segmentsHeading')
+  const linesLabel = t('feedback.segmentModal.linesLabel')
+  const refCodeHeading = t('feedback.segmentModal.referenceCodeHeading')
+
+  const doc = newWindow.document
+  doc.title = `${title} - ${formatLevel(props.segmentation.comprehension_level)}`
+
+  const style = doc.createElement('style')
+  style.textContent = `
+    body { font-family: Inter, system-ui, sans-serif; margin: 20px; }
+    .header { margin-bottom: 20px; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px; }
+    .segments { margin: 20px 0; }
+    .segment { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+    .code { font-family: Monaco, monospace; background: #f5f5f5; padding: 10px; border-radius: 4px; }
+  `
+  doc.head.appendChild(style)
+
+  const header = doc.createElement('div')
+  header.className = 'header'
+  const h1 = doc.createElement('h1')
+  h1.textContent = title
+  header.appendChild(h1)
+  const badge = doc.createElement('span')
+  badge.className = 'badge'
+  badge.textContent = levelText
+  header.appendChild(badge)
+  const feedbackP = doc.createElement('p')
+  const feedbackStrong = doc.createElement('strong')
+  feedbackStrong.textContent = `${feedbackLabel}: `
+  feedbackP.appendChild(feedbackStrong)
+  feedbackP.appendChild(doc.createTextNode(props.segmentation.feedback))
+  header.appendChild(feedbackP)
+  const explanationP = doc.createElement('p')
+  const explanationStrong = doc.createElement('strong')
+  explanationStrong.textContent = `${explanationLabel}: `
+  explanationP.appendChild(explanationStrong)
+  explanationP.appendChild(doc.createTextNode(getExplanation()))
+  header.appendChild(explanationP)
+  doc.body.appendChild(header)
+
+  const segmentsDiv = doc.createElement('div')
+  segmentsDiv.className = 'segments'
+  const h2 = doc.createElement('h2')
+  h2.textContent = segmentsHeading
+  segmentsDiv.appendChild(h2)
+  for (const segment of props.segmentation.segments) {
+    const segDiv = doc.createElement('div')
+    segDiv.className = 'segment'
+    const strong = doc.createElement('strong')
+    strong.textContent = `${t('feedback.segmentModal.segmentLabel', { id: segment.id })}: `
+    segDiv.appendChild(strong)
+    segDiv.appendChild(doc.createTextNode(segment.text))
+    const br = doc.createElement('br')
+    segDiv.appendChild(br)
+    const small = doc.createElement('small')
+    small.textContent = `${linesLabel}: ${segment.code_lines.join(', ')}`
+    segDiv.appendChild(small)
+    segmentsDiv.appendChild(segDiv)
   }
+  doc.body.appendChild(segmentsDiv)
+
+  const codeDiv = doc.createElement('div')
+  codeDiv.className = 'code'
+  const codeH2 = doc.createElement('h2')
+  codeH2.textContent = refCodeHeading
+  codeDiv.appendChild(codeH2)
+  const pre = doc.createElement('pre')
+  pre.textContent = props.referenceCode
+  codeDiv.appendChild(pre)
+  doc.body.appendChild(codeDiv)
+
   closeModal()
 }
 

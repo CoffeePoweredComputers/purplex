@@ -45,7 +45,7 @@
       <!-- Header -->
       <div class="feedback-header">
         <div class="section-label">
-          {{ title }}
+          {{ title || $t('feedback.codeSubmission.testResults') }}
         </div>
         <!-- Attempt Selector -->
         <div
@@ -298,7 +298,7 @@ const props = withDefaults(defineProps<Props>(), {
   submissionHistory: () => [],
   isLoading: false,
   isNavigating: false,
-  title: 'Test Results',
+  title: undefined,
 })
 
 const emit = defineEmits<{

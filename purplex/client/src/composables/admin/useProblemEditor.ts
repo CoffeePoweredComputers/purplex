@@ -15,6 +15,7 @@
  */
 
 import { computed, type ComputedRef, type Ref, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import axios from 'axios';
 import type { ProblemDetailed, ProblemType, TestExecutionResult } from '@/types';
 import { problemService } from '@/services/problemService';
@@ -104,6 +105,7 @@ export interface UseProblemEditorOptions {
 // ===== COMPOSABLE =====
 
 export const useProblemEditor = (options?: UseProblemEditorOptions): UseProblemEditorReturn => {
+  const { t } = useI18n();
   // Use provided API or default to admin service
   const api = options?.api;
   // Initialize feature composables
@@ -172,13 +174,13 @@ export const useProblemEditor = (options?: UseProblemEditorOptions): UseProblemE
       log.error('Failed to load activity types', error);
       // Fallback to default types
       availableTypes.value = [
-        { type: 'mcq', label: 'Multiple Choice Question', has_pipeline: true },
-        { type: 'eipl', label: 'Explain in Plain Language', has_pipeline: true },
-        { type: 'prompt', label: 'Prompt Problem', has_pipeline: true },
-        { type: 'debug_fix', label: 'Debug and Fix Code', has_pipeline: true },
-        { type: 'probeable_code', label: 'Probeable Problem (Code)', has_pipeline: true },
-        { type: 'probeable_spec', label: 'Probeable Problem (Explanation)', has_pipeline: true },
-        { type: 'refute', label: 'Refute: Find Counterexample', has_pipeline: true },
+        { type: 'mcq', label: t('admin.problems.activityTypes.mcq'), has_pipeline: true },
+        { type: 'eipl', label: t('admin.problems.activityTypes.eipl'), has_pipeline: true },
+        { type: 'prompt', label: t('admin.problems.activityTypes.prompt'), has_pipeline: true },
+        { type: 'debug_fix', label: t('admin.problems.activityTypes.debug_fix'), has_pipeline: true },
+        { type: 'probeable_code', label: t('admin.problems.activityTypes.probeable_code'), has_pipeline: true },
+        { type: 'probeable_spec', label: t('admin.problems.activityTypes.probeable_spec'), has_pipeline: true },
+        { type: 'refute', label: t('admin.problems.activityTypes.refute'), has_pipeline: true },
       ];
     } finally {
       loadingTypes.value = false;

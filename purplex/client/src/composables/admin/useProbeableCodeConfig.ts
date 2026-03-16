@@ -32,21 +32,21 @@ export type UseProbeableCodeConfigReturn = UseProbeConfigReturn;
 // ===== CONSTANTS =====
 
 // Probeable Code-specific descriptions
-export const PROBE_MODES: { value: ProbeMode; label: string; description: string }[] = [
+export const PROBE_MODES: { value: ProbeMode; labelKey: string; descriptionKey: string }[] = [
   {
     value: 'block',
-    label: 'Block Mode',
-    description: 'Student gets a fixed number of probes. Once exhausted, they must submit code without further testing.',
+    labelKey: 'admin.editors.probeSettings.modes.block.label',
+    descriptionKey: 'admin.editors.probeSettings.modes.block.codeDescription',
   },
   {
     value: 'cooldown',
-    label: 'Cooldown Mode',
-    description: 'After initial probes are used, student can earn more probes by making submission attempts.',
+    labelKey: 'admin.editors.probeSettings.modes.cooldown.label',
+    descriptionKey: 'admin.editors.probeSettings.modes.cooldown.codeDescription',
   },
   {
     value: 'explore',
-    label: 'Explore Mode',
-    description: 'Unlimited probes. Student can test as many inputs as they want before submitting.',
+    labelKey: 'admin.editors.probeSettings.modes.explore.label',
+    descriptionKey: 'admin.editors.probeSettings.modes.explore.codeDescription',
   },
 ];
 

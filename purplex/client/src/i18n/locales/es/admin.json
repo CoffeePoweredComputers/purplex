@@ -42,6 +42,15 @@
       "searchByTitle": "Buscar por título...",
       "itemLabel": "problemas",
       "problemType": "Tipo de Problema",
+      "activityTypes": {
+        "mcq": "Pregunta de Opción Múltiple",
+        "eipl": "Explicar en Lenguaje Natural",
+        "prompt": "Problema de Prompt",
+        "debug_fix": "Depurar y Corregir Código",
+        "probeable_code": "Problema Sondeable (Código)",
+        "probeable_spec": "Problema Sondeable (Explicación)",
+        "refute": "Refutar: Encontrar Contraejemplo"
+      },
       "selectType": "Selecciona el tipo de problema a crear",
       "typeLockedHint": "El tipo de problema no puede cambiarse después de la creación",
       "saveProblem": "Guardar Problema",
@@ -458,7 +467,27 @@
         "probeLimits": "Límites de Sondeo",
         "budget": "Presupuesto",
         "submissionsToRefill": "Entregas para recargar",
-        "probesPerRefill": "Sondeos por recarga"
+        "probesPerRefill": "Sondeos por recarga",
+        "modes": {
+          "block": {
+            "label": "Bloque",
+            "description": "El estudiante tiene un número fijo de sondeos. Una vez agotados, debe enviar sin más pruebas.",
+            "codeDescription": "El estudiante tiene un número fijo de sondeos. Una vez agotados, debe enviar el código sin más pruebas.",
+            "specDescription": "El estudiante tiene un número fijo de sondeos. Una vez agotados, debe escribir su explicación sin más pruebas."
+          },
+          "cooldown": {
+            "label": "Recarga",
+            "description": "Después de usar los sondeos iniciales, el estudiante puede obtener más realizando entregas.",
+            "codeDescription": "Después de usar los sondeos iniciales, el estudiante puede obtener más realizando entregas.",
+            "specDescription": "Después de usar los sondeos iniciales, el estudiante puede obtener más realizando entregas."
+          },
+          "explore": {
+            "label": "Explorar",
+            "description": "Sondeos ilimitados. El estudiante puede probar todas las entradas que quiera antes de enviar.",
+            "codeDescription": "Sondeos ilimitados. El estudiante puede probar todas las entradas que quiera antes de enviar.",
+            "specDescription": "Sondeos ilimitados. El estudiante puede probar todas las entradas que quiera antes de enviar su explicación."
+          }
+        }
       },
       "eipl": {
         "codeSolution": "Solución de Código",
