@@ -129,3 +129,14 @@ user.profile.save()
 ```
 
 - Use fixtures from conftest: `user_consent`, `age_verification`, `minor_user`, `child_user`, `nominee`
+
+## 11. `del` on MagicMock is intentional
+
+`del mock.attribute` is a valid pattern for simulating an object that lacks a specific attribute. `MagicMock.__delattr__` removes the name from the mock's internal state — after deletion, `hasattr(mock, 'attribute')` returns `False` and `mock.attribute` raises `AttributeError`. Do not flag this as unreliable.
+
+```python
+# This is correct — exercises the "no segmentation" branch
+submission = MagicMock()
+del submission.segmentation
+assert not hasattr(submission, 'segmentation')  # True
+```
