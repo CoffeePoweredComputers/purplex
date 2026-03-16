@@ -78,6 +78,24 @@
       "timeMinSec": "{mins}m {secs}s",
       "timeSec": "{secs}s",
       "timeNA": "N/D"
+    },
+    "dueDate": {
+      "pastDue": "Vencido",
+      "overdue": "ATRASADO",
+      "dueToday": "Vence hoy",
+      "dueTomorrow": "Vence mañana",
+      "dueInDays": "Vence en {days} días",
+      "dueOn": "Vence el {date}",
+      "byDays": "por {days} días",
+      "byOneDay": "por 1 día",
+      "inDays": "en {days} días",
+      "inOneDay": "en 1 día"
+    },
+    "errors": {
+      "authRequired": "Autenticación requerida. Por favor, inicia sesión de nuevo.",
+      "noPermission": "No tienes permiso para ver estos datos.",
+      "failedToLoadData": "No se pudieron cargar los datos. Inténtalo de nuevo.",
+      "unexpectedError": "Ocurrió un error inesperado."
     }
   },
   "aria": {

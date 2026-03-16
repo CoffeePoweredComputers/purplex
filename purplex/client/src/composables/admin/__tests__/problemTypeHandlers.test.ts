@@ -7,6 +7,7 @@ import { useProbeableCodeConfig } from '../useProbeableCodeConfig'
 import { useProbeableSpecConfig } from '../useProbeableSpecConfig'
 import { useRefuteConfig } from '../useRefuteConfig'
 import { useSegmentation } from '../useSegmentation'
+import { withSetup } from '@/test/setup'
 import type { ProblemDetailed } from '@/types'
 
 /**
@@ -17,8 +18,8 @@ describe('problemTypeHandlers', () => {
   let composables: ComposableBundle
 
   beforeEach(() => {
-    // Create fresh composable instances for each test
-    composables = {
+    // Create fresh composable instances for each test (inside Vue app context for i18n)
+    composables = withSetup(() => ({
       mcqOptions: useMcqOptions(),
       promptConfig: usePromptConfig(),
       debugFixConfig: useDebugFixConfig(),
@@ -26,7 +27,7 @@ describe('problemTypeHandlers', () => {
       probeableSpecConfig: useProbeableSpecConfig(),
       refuteConfig: useRefuteConfig(),
       segmentation: useSegmentation(),
-    }
+    }))
   })
 
   describe('registry completeness', () => {

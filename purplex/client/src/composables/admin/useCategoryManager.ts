@@ -9,6 +9,7 @@
  */
 
 import { type DeepReadonly, nextTick, reactive, readonly, type Ref, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { ProblemCategory } from '@/types';
 import { problemService } from '@/services/problemService';
 import { log } from '@/utils/logger';
@@ -95,6 +96,7 @@ export const COLOR_OPTIONS = [
 // ===== COMPOSABLE =====
 
 export const useCategoryManager = (): UseCategoryManagerReturn => {
+  const { t } = useI18n();
   // Categories state
   const categories = ref<ProblemCategory[]>([]);
   const selectedIds = ref<number[]>([]);
@@ -168,7 +170,7 @@ export const useCategoryManager = (): UseCategoryManagerReturn => {
 
   const createCategory = async (): Promise<void> => {
     if (!newCategory.name.trim()) {
-      error.value = 'Category name is required';
+      error.value = t('admin.editors.categoryValidation.nameRequired');
       return;
     }
 
@@ -190,7 +192,7 @@ export const useCategoryManager = (): UseCategoryManagerReturn => {
       collapseForm();
     } catch (err: unknown) {
       const errObj = err as { message?: string };
-      error.value = errObj.message || 'Failed to create category';
+      error.value = errObj.message || t('admin.editors.categoryValidation.failedToCreate');
       log.error('Failed to create category', err);
     } finally {
       isCreating.value = false;

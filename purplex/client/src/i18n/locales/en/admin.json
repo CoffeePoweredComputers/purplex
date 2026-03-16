@@ -28,7 +28,8 @@
         "admin": "Admin",
         "instructor": "Instructor",
         "user": "User"
-      }
+      },
+      "failedToUpdateRole": "Failed to update user role. Please try again."
     },
     "problems": {
       "title": "Problem Management",
@@ -235,7 +236,7 @@
       "expected": "Expected:",
       "got": "Got:",
       "segmentationAnalysis": "Segmentation Analysis",
-      "comprehension": "Comprehension:",
+      "comprehensionLabel": "Comprehension:",
       "segments": "Segments:",
       "threshold": "threshold: {value}",
       "previous": "Previous",
@@ -273,6 +274,16 @@
         "autoTime": "Auto (time)",
         "instructor": "Instructor provided"
       },
+      "failedToLoadDetails": "Failed to load submission details. Please try again.",
+      "failedToExport": "Failed to export CSV. Please try again.",
+      "unableToDownload": "Unable to download submission data.",
+      "failedToDownload": "Failed to download submission data. Please try again.",
+      "comprehension": {
+        "notEvaluated": "Not Evaluated",
+        "highLevel": "High-level",
+        "lowLevel": "Low-level"
+      },
+      "unknownDate": "Unknown",
       "detail": {
         "question": "Question",
         "options": "Options",
@@ -287,7 +298,8 @@
         "studentsFix": "Student's Fix",
         "submittedCode": "Submitted Code",
         "studentsExplanation": "Student's Explanation",
-        "problemImage": "Problem Image"
+        "problemImage": "Problem Image",
+        "problemImageAlt": "Problem image"
       }
     },
     "courses": {
@@ -368,7 +380,12 @@
       "overallHeader": "Overall",
       "notStartedTitle": "Not started",
       "noSearchResults": "No students match \"{query}\"",
-      "informationLabel": "Information:"
+      "informationLabel": "Information:",
+      "retryAriaLabel": "Retry loading students",
+      "searchAriaLabel": "Search students by username or email",
+      "courseNotFound": "Course not found.",
+      "noPermissionStudents": "You do not have permission to view students for this course.",
+      "failedToLoadStudentsRetry": "Failed to load students. Please try again."
     },
     "courseProblemSets": {
       "title": "Course Problem Sets",
@@ -487,6 +504,11 @@
             "codeDescription": "Unlimited probes. Student can test as many inputs as they want before submitting.",
             "specDescription": "Unlimited probes. Student can test as many inputs as they want before submitting their explanation."
           }
+        },
+        "validation": {
+          "maxProbesMin": "Max probes must be at least 1",
+          "cooldownAttemptsMin": "Cooldown attempts must be at least 1",
+          "cooldownRefillMin": "Cooldown refill must be at least 1"
         }
       },
       "eipl": {
@@ -550,7 +572,8 @@
         "codeSolutionDescription": "The reference solution that the image represents.",
         "functionSignatureLabel": "Function Signature (with type hints) *",
         "functionSignaturePlaceholder": "e.g., def calculate_sum(numbers: list[int]) -> int:",
-        "referenceSolutionLabel": "Reference Solution *"
+        "referenceSolutionLabel": "Reference Solution *",
+        "imagePreviewAlt": "Prompt image preview"
       },
       "debugFix": {
         "functionConfiguration": "Function Configuration",
@@ -647,6 +670,28 @@
         "solarizedLight": "Solarized Light",
         "dracula": "Dracula",
         "tomorrowNight": "Tomorrow Night"
+      },
+      "debugFixValidation": {
+        "buggyCodeRequired": "Buggy code is required"
+      },
+      "hintsValidation": {
+        "invalidFunctionCall": "Invalid function call format. Expected: function_name(args)",
+        "functionNameMismatch": "Function name \"{called}\" doesn't match \"{expected}\"",
+        "unbalancedParentheses": "Unbalanced parentheses"
+      },
+      "refuteValidation": {
+        "predicateDangerousPattern": "Predicate cannot contain import statements or dunder methods",
+        "mismatchedParentheses": "Mismatched parentheses",
+        "claimWarning": "Consider using absolute terms like \"always\", \"never\", \"for all\", or \"every\" to make the claim easier to disprove.",
+        "expectedJsonObject": "Expected counterexample must be a JSON object",
+        "invalidJson": "Invalid JSON: {message}"
+      },
+      "testCasesValidation": {
+        "invalidInputFormat": "Invalid input format"
+      },
+      "categoryValidation": {
+        "nameRequired": "Category name is required",
+        "failedToCreate": "Failed to create category"
       }
     },
     "courseOverview": {
@@ -686,6 +731,11 @@
       "students": "Students",
       "submissions": "Submissions",
       "courseProblemSets": "Problem Sets"
+    },
+    "contentContext": {
+      "myProblems": "My Problems",
+      "myProblemSets": "My Problem Sets",
+      "myCourses": "My Courses"
     }
   }
 }

@@ -78,6 +78,24 @@
       "timeMinSec": "{mins}m {secs}s",
       "timeSec": "{secs}s",
       "timeNA": "N/A"
+    },
+    "dueDate": {
+      "pastDue": "Past due",
+      "overdue": "OVERDUE",
+      "dueToday": "Due today",
+      "dueTomorrow": "Due tomorrow",
+      "dueInDays": "Due in {days} days",
+      "dueOn": "Due {date}",
+      "byDays": "by {days} days",
+      "byOneDay": "by 1 day",
+      "inDays": "in {days} days",
+      "inOneDay": "in 1 day"
+    },
+    "errors": {
+      "authRequired": "Authentication required. Please log in again.",
+      "noPermission": "You do not have permission to view this data.",
+      "failedToLoadData": "Failed to load data. Please try again.",
+      "unexpectedError": "An unexpected error occurred."
     }
   },
   "aria": {

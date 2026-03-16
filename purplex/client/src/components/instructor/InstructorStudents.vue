@@ -29,7 +29,7 @@
         <p>{{ error }}</p>
         <button
           class="retry-btn"
-          aria-label="Retry loading students"
+          :aria-label="$t('admin.courseStudents.retryAriaLabel')"
           @click="fetchStudents"
         >
           {{ $t('admin.courseStudents.tryAgain') }}
@@ -45,9 +45,9 @@
               id="student-search"
               v-model="searchQuery"
               type="text"
-              placeholder="Search by name or email..."
+              :placeholder="$t('admin.courseStudents.searchPlaceholder')"
               class="search-input"
-              aria-label="Search students by username or email"
+              :aria-label="$t('admin.courseStudents.searchAriaLabel')"
             >
           </div>
           <span class="results-count">
@@ -154,6 +154,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import axios from 'axios';
 import InstructorNavBar from './InstructorNavBar.vue';
 import { log } from '../../utils/logger';
@@ -188,6 +189,7 @@ interface Student {
 }
 
 const route = useRoute();
+const { t } = useI18n();
 const courseId = computed(() => route.params.courseId as string);
 
 const students = ref<Student[]>([]);
@@ -255,14 +257,14 @@ async function fetchStudents() {
     log.error('Failed to fetch students', err);
     if (axios.isAxiosError(err)) {
       if (err.response?.status === 404) {
-        error.value = 'Course not found.';
+        error.value = t('admin.courseStudents.courseNotFound');
       } else if (err.response?.status === 403) {
-        error.value = 'You do not have permission to view students for this course.';
+        error.value = t('admin.courseStudents.noPermissionStudents');
       } else {
-        error.value = 'Failed to load students. Please try again.';
+        error.value = t('admin.courseStudents.failedToLoadStudentsRetry');
       }
     } else {
-      error.value = 'An unexpected error occurred.';
+      error.value = t('common.errors.unexpectedError');
     }
   } finally {
     loading.value = false;

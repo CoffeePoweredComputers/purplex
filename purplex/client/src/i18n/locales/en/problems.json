@@ -261,7 +261,16 @@
       "attempts": "Attempts: {count}",
       "nextHintUnlocks": "Next hint unlocks after {count} attempts",
       "showOriginal": "Show Original",
-      "clearAllHints": "Clear All Hints"
+      "clearAllHints": "Clear All Hints",
+      "hintTypes": {
+        "variable_fade": "Variable Fade",
+        "subgoal_highlight": "Subgoal Highlighting",
+        "suggested_trace": "Suggested Trace",
+        "structural": "Structural",
+        "implementation": "Implementation",
+        "edge_case": "Edge Case",
+        "default": "Hint"
+      }
     },
     "courseDetail": {
       "loadingCourse": "Loading course...",
@@ -278,7 +287,8 @@
       "problemsCount": "{count} problems",
       "courseNotFound": "Course Not Found",
       "courseNotFoundMessage": "The course you're looking for doesn't exist or you don't have access to it.",
-      "goBackToCourses": "Go back to courses"
+      "goBackToCourses": "Go back to courses",
+      "dueInDays": "Due in {days} days"
     }
   }
 }

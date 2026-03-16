@@ -6,6 +6,7 @@
  * view modal, download, formatting helpers).
  */
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { ContentContext } from './useContentContext';
 import { useDataTable } from './useDataTable';
 import type {
@@ -88,6 +89,7 @@ export function useSubmissions(
   ctx: ContentContext,
   options: UseSubmissionsOptions = {}
 ): UseSubmissionsReturn {
+  const { t } = useI18n();
   const { courseId, initialPageSize = 25 } = options;
 
   // Domain-specific filter refs (not part of useDataTable's generic filters)
@@ -208,7 +210,7 @@ export function useSubmissions(
       showViewModal.value = true;
     } catch (err) {
       log.error('Failed to load submission details', { error: err, id });
-      table.error.value = 'Failed to load submission details. Please try again.';
+      table.error.value = t('admin.submissions.failedToLoadDetails');
     } finally {
       table.loading.value = false;
     }
@@ -260,7 +262,7 @@ export function useSubmissions(
       log.info('Export successful', { filename });
     } catch (err) {
       log.error('Export failed', err);
-      table.error.value = 'Failed to export CSV. Please try again.';
+      table.error.value = t('admin.submissions.failedToExport');
     }
   }
 
@@ -273,7 +275,7 @@ export function useSubmissions(
 
     if (!submission?.id) {
       log.error('Invalid submission for download', { submission });
-      table.error.value = 'Unable to download submission data.';
+      table.error.value = t('admin.submissions.unableToDownload');
       return;
     }
 
@@ -298,7 +300,7 @@ export function useSubmissions(
       log.info('Submission downloaded', { id: submission.id });
     } catch (err) {
       log.error('Download failed', { error: err, id: submission.id });
-      table.error.value = 'Failed to download submission data. Please try again.';
+      table.error.value = t('admin.submissions.failedToDownload');
     }
   }
 
@@ -345,18 +347,18 @@ export function useSubmissions(
   }
 
   function formatComprehensionLevel(level: string | null): string {
-    if (!level) return 'Not Evaluated';
+    if (!level) return t('admin.submissions.comprehension.notEvaluated');
 
     switch (level.toLowerCase()) {
       case 'high-level':
       case 'relational':
-        return 'High-level';
+        return t('admin.submissions.comprehension.highLevel');
       case 'low-level':
       case 'multi_structural':
       case 'multistructural':
-        return 'Low-level';
+        return t('admin.submissions.comprehension.lowLevel');
       default:
-        return 'Not Evaluated';
+        return t('admin.submissions.comprehension.notEvaluated');
     }
   }
 
@@ -371,7 +373,7 @@ export function useSubmissions(
   }
 
   function formatISODate(dateString: string | null): string {
-    if (!dateString) return 'Unknown';
+    if (!dateString) return t('admin.submissions.unknownDate');
     const date = new Date(dateString);
     return date.toISOString();
   }

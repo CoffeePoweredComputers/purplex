@@ -99,7 +99,8 @@
       "yourSubmission": "Your Submission",
       "submitToSeeResults": "Submit your solution to see test results",
       "debugTestCase": "Debug test case: {call}",
-      "testResults": "Test Results"
+      "testResults": "Test Results",
+      "probeLoading": "Loading..."
     },
     "refute": {
       "title": "Counterexample Result",
@@ -119,6 +120,13 @@
       "supportsClaim": "This supports the claim",
       "noClaimSpecified": "No claim specified",
       "enterAndSubmit": "Enter function arguments and submit to find a counterexample."
+    },
+    "sse": {
+      "taskTimeout": "No response from server after 2 minutes. The task may be stuck.",
+      "processing": "Processing...",
+      "taskFailed": "Task failed",
+      "connectionLost": "Connection lost, max reconnect attempts reached",
+      "submissionFailed": "Submission failed"
     },
     "segmentModal": {
       "title": "Comprehension Level Analysis",

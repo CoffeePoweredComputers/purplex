@@ -261,7 +261,16 @@
       "attempts": "Intentos: {count}",
       "nextHintUnlocks": "La siguiente pista se desbloquea después de {count} intentos",
       "showOriginal": "Mostrar Original",
-      "clearAllHints": "Limpiar Todas las Pistas"
+      "clearAllHints": "Limpiar Todas las Pistas",
+      "hintTypes": {
+        "variable_fade": "Desvanecimiento de Variables",
+        "subgoal_highlight": "Resaltado de Subobjetivos",
+        "suggested_trace": "Traza Sugerida",
+        "structural": "Estructural",
+        "implementation": "Implementación",
+        "edge_case": "Caso Límite",
+        "default": "Pista"
+      }
     },
     "courseDetail": {
       "loadingCourse": "Cargando curso...",
@@ -278,7 +287,8 @@
       "problemsCount": "{count} problemas",
       "courseNotFound": "Curso No Encontrado",
       "courseNotFoundMessage": "El curso que buscas no existe o no tienes acceso.",
-      "goBackToCourses": "Volver a cursos"
+      "goBackToCourses": "Volver a cursos",
+      "dueInDays": "Vence en {days} días"
     }
   }
 }

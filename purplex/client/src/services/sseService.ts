@@ -7,6 +7,7 @@
 
 import { log } from '../utils/logger';
 import { firebaseAuth } from '../firebaseConfig';
+import { i18n } from '@/i18n';
 import type { UnifiedSubmissionResult } from '../types';
 
 // Helper to extract error message from unknown error
@@ -174,7 +175,7 @@ class SSEService {
         // Start activity timeout (2 minutes max with no updates)
         const MAX_IDLE_TIME_MS = 2 * 60 * 1000;
         resetActivityTimer(MAX_IDLE_TIME_MS, () => {
-          const timeoutMsg = 'No response from server after 2 minutes. The task may be stuck.';
+          const timeoutMsg = i18n.global.t('feedback.sse.taskTimeout');
           log.error(timeoutMsg, { taskId });
           _lastError = timeoutMsg;
 
@@ -217,7 +218,7 @@ class SSEService {
           // Reset activity timer
           const MAX_IDLE_TIME_MS = 2 * 60 * 1000;
           resetActivityTimer(MAX_IDLE_TIME_MS, () => {
-            const timeoutMsg = 'No response from server after 2 minutes. The task may be stuck.';
+            const timeoutMsg = i18n.global.t('feedback.sse.taskTimeout');
             log.error(timeoutMsg, { taskId });
             _lastError = timeoutMsg;
 
@@ -235,7 +236,7 @@ class SSEService {
             onProgress({
               current: data.progress * 100,
               total: 100,
-              description: data.message || 'Processing...'
+              description: data.message || i18n.global.t('feedback.sse.processing')
             });
           }
         } catch (err) {
@@ -264,7 +265,7 @@ class SSEService {
       eventSource.addEventListener('failed', (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
-          const errorMsg = data.error || 'Task failed';
+          const errorMsg = data.error || i18n.global.t('feedback.sse.taskFailed');
           log.error('Task failed', { taskId, error: errorMsg });
 
           // Mark task as completed (failed) BEFORE disconnect to prevent reconnection
@@ -314,7 +315,7 @@ class SSEService {
               await connect();
             }, reconnectDelay * reconnectCount);
           } else {
-            const errorMsg = 'Connection lost, max reconnect attempts reached';
+            const errorMsg = i18n.global.t('feedback.sse.connectionLost');
             log.error(errorMsg, { taskId });
             _lastError = errorMsg;
             if (onError) {
@@ -360,7 +361,7 @@ class SSEService {
             });
             onSuccess(unified);
           } else {
-            const errorMsg = taskResult.result.error || 'Submission failed';
+            const errorMsg = taskResult.result.error || i18n.global.t('feedback.sse.submissionFailed');
             log.error('Submission failed', { requestId, error: errorMsg });
             if (options.onError) {
               options.onError({ error: errorMsg });

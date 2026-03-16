@@ -136,7 +136,7 @@
             </div>
             <div class="segmentation-info">
               <div class="seg-metric">
-                <span>{{ $t('admin.submissions.comprehension') }}</span>
+                <span>{{ $t('admin.submissions.comprehensionLabel') }}</span>
                 <strong>{{ submission.segmentation.comprehension_level }}</strong>
               </div>
               <div class="seg-metric">

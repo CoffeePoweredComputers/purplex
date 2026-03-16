@@ -14,6 +14,7 @@
  */
 
 import { computed, type ComputedRef, type DeepReadonly, reactive, readonly } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // ===== TYPES =====
 
@@ -97,6 +98,7 @@ export const PROBE_MODES: { value: ProbeMode; labelKey: string; descriptionKey: 
 // ===== COMPOSABLE =====
 
 export const useProbeConfig = (): UseProbeConfigReturn => {
+  const { t } = useI18n();
   const state = reactive<ProbeConfig>({
     show_function_signature: true,
     probe_mode: 'block',
@@ -118,14 +120,14 @@ export const useProbeConfig = (): UseProbeConfigReturn => {
 
   const validationError = computed((): string | null => {
     if (state.probe_mode !== 'explore' && state.max_probes < 1) {
-      return 'Max probes must be at least 1';
+      return t('admin.editors.probeSettings.validation.maxProbesMin');
     }
     if (state.probe_mode === 'cooldown') {
       if (state.cooldown_attempts < 1) {
-        return 'Cooldown attempts must be at least 1';
+        return t('admin.editors.probeSettings.validation.cooldownAttemptsMin');
       }
       if (state.cooldown_refill < 1) {
-        return 'Cooldown refill must be at least 1';
+        return t('admin.editors.probeSettings.validation.cooldownRefillMin');
       }
     }
     return null;
@@ -181,16 +183,16 @@ export const useProbeConfig = (): UseProbeConfigReturn => {
 
     if (state.probe_mode !== 'explore') {
       if (state.max_probes < 1) {
-        errors.push('Max probes must be at least 1');
+        errors.push(t('admin.editors.probeSettings.validation.maxProbesMin'));
       }
     }
 
     if (state.probe_mode === 'cooldown') {
       if (state.cooldown_attempts < 1) {
-        errors.push('Cooldown attempts must be at least 1');
+        errors.push(t('admin.editors.probeSettings.validation.cooldownAttemptsMin'));
       }
       if (state.cooldown_refill < 1) {
-        errors.push('Cooldown refill must be at least 1');
+        errors.push(t('admin.editors.probeSettings.validation.cooldownRefillMin'));
       }
     }
 

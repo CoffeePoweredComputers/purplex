@@ -6,7 +6,7 @@
       <div class="image-container">
         <img
           :src="typeData.image_url"
-          :alt="typeData.image_alt_text || 'Problem image'"
+          :alt="typeData.image_alt_text || $t('admin.submissions.detail.problemImageAlt')"
           class="problem-image"
           loading="lazy"
         >

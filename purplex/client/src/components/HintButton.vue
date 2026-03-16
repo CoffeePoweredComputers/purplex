@@ -496,15 +496,7 @@ export default {
     },
 
     getHintTitle(hintType) {
-      const titles = {
-        'variable_fade': 'Variable Fade',
-        'subgoal_highlight': 'Subgoal Highlighting',
-        'suggested_trace': 'Suggested Trace',
-        'structural': 'Structural',
-        'implementation': 'Implementation',
-        'edge_case': 'Edge Case'
-      }
-      return titles[hintType] || 'Hint'
+      return this.$t(`problems.hintButton.hintTypes.${hintType}`) || this.$t('problems.hintButton.hintTypes.default')
     },
 
     isHintActive(hintType) {

@@ -28,7 +28,8 @@
         "admin": "Administrador",
         "instructor": "Instructor",
         "user": "Usuario"
-      }
+      },
+      "failedToUpdateRole": "No se pudo actualizar el rol del usuario. Inténtalo de nuevo."
     },
     "problems": {
       "title": "Gestión de Problemas",
@@ -235,7 +236,7 @@
       "expected": "Esperado:",
       "got": "Obtenido:",
       "segmentationAnalysis": "Análisis de Segmentación",
-      "comprehension": "Comprensión:",
+      "comprehensionLabel": "Comprensión:",
       "segments": "Segmentos:",
       "threshold": "umbral: {value}",
       "previous": "Anterior",
@@ -251,6 +252,16 @@
       "copy": "Copiar",
       "noTestResults": "No hay resultados de pruebas disponibles",
       "noTestResultsVariation": "No hay resultados de pruebas disponibles para la variación actual",
+      "failedToLoadDetails": "No se pudieron cargar los detalles de la entrega. Inténtalo de nuevo.",
+      "failedToExport": "No se pudo exportar el CSV. Inténtalo de nuevo.",
+      "unableToDownload": "No se pueden descargar los datos de la entrega.",
+      "failedToDownload": "No se pudieron descargar los datos de la entrega. Inténtalo de nuevo.",
+      "comprehension": {
+        "notEvaluated": "Sin Evaluar",
+        "highLevel": "Alto nivel",
+        "lowLevel": "Bajo nivel"
+      },
+      "unknownDate": "Desconocido",
       "passing": "Aprobadas",
       "failing": "Fallidas",
       "failingTests": "Pruebas Fallidas ({count})",
@@ -287,7 +298,8 @@
         "studentsFix": "Corrección del Estudiante",
         "submittedCode": "Código Enviado",
         "studentsExplanation": "Explicación del Estudiante",
-        "problemImage": "Imagen del Problema"
+        "problemImage": "Imagen del Problema",
+        "problemImageAlt": "Imagen del problema"
       }
     },
     "courses": {
@@ -368,7 +380,12 @@
       "overallHeader": "General",
       "notStartedTitle": "Sin comenzar",
       "noSearchResults": "Ningún estudiante coincide con \"{query}\"",
-      "informationLabel": "Información:"
+      "informationLabel": "Información:",
+      "retryAriaLabel": "Reintentar cargar estudiantes",
+      "searchAriaLabel": "Buscar estudiantes por nombre de usuario o correo electrónico",
+      "courseNotFound": "Curso no encontrado.",
+      "noPermissionStudents": "No tienes permiso para ver los estudiantes de este curso.",
+      "failedToLoadStudentsRetry": "No se pudieron cargar los estudiantes. Inténtalo de nuevo."
     },
     "courseProblemSets": {
       "title": "Conjuntos de Problemas del Curso",
@@ -487,6 +504,11 @@
             "codeDescription": "Sondeos ilimitados. El estudiante puede probar todas las entradas que quiera antes de enviar.",
             "specDescription": "Sondeos ilimitados. El estudiante puede probar todas las entradas que quiera antes de enviar su explicación."
           }
+        },
+        "validation": {
+          "maxProbesMin": "Los sondeos máximos deben ser al menos 1",
+          "cooldownAttemptsMin": "Los intentos de recarga deben ser al menos 1",
+          "cooldownRefillMin": "La recarga de sondeos debe ser al menos 1"
         }
       },
       "eipl": {
@@ -550,7 +572,8 @@
         "codeSolutionDescription": "La solución de referencia que la imagen representa.",
         "functionSignatureLabel": "Firma de la Función (con anotaciones de tipo) *",
         "functionSignaturePlaceholder": "ej., def calcular_suma(numeros: list[int]) -> int:",
-        "referenceSolutionLabel": "Solución de Referencia *"
+        "referenceSolutionLabel": "Solución de Referencia *",
+        "imagePreviewAlt": "Vista previa de imagen del prompt"
       },
       "debugFix": {
         "functionConfiguration": "Configuración de la Función",
@@ -603,6 +626,28 @@
         "functionSignatureHint": "Incluye anotaciones de tipo (ej., {example})",
         "referenceSolutionLabel": "Solución de Referencia (Código Oráculo) *",
         "oracleCodeHint": "Este código está oculto para los estudiantes. Se ejecuta cuando los estudiantes sondean con entradas."
+      },
+      "debugFixValidation": {
+        "buggyCodeRequired": "El código con errores es obligatorio"
+      },
+      "hintsValidation": {
+        "invalidFunctionCall": "Formato de llamada a función inválido. Esperado: nombre_funcion(args)",
+        "functionNameMismatch": "El nombre de función \"{called}\" no coincide con \"{expected}\"",
+        "unbalancedParentheses": "Paréntesis desbalanceados"
+      },
+      "refuteValidation": {
+        "predicateDangerousPattern": "El predicado no puede contener sentencias import ni métodos dunder",
+        "mismatchedParentheses": "Paréntesis desbalanceados",
+        "claimWarning": "Considera usar términos absolutos como \"siempre\", \"nunca\", \"para todo\" o \"cada\" para hacer la afirmación más fácil de refutar.",
+        "expectedJsonObject": "El contraejemplo esperado debe ser un objeto JSON",
+        "invalidJson": "JSON inválido: {message}"
+      },
+      "testCasesValidation": {
+        "invalidInputFormat": "Formato de entrada inválido"
+      },
+      "categoryValidation": {
+        "nameRequired": "El nombre de la categoría es obligatorio",
+        "failedToCreate": "No se pudo crear la categoría"
       },
       "refute": {
         "claimToDisprove": "Afirmación a Refutar",
@@ -686,6 +731,11 @@
       "students": "Estudiantes",
       "submissions": "Entregas",
       "courseProblemSets": "Conjuntos de Problemas"
+    },
+    "contentContext": {
+      "myProblems": "Mis Problemas",
+      "myProblemSets": "Mis Conjuntos de Problemas",
+      "myCourses": "Mis Cursos"
     }
   }
 }

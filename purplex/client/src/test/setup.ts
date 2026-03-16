@@ -5,11 +5,12 @@
  * Rather than adding it per-test, we configure it globally here so every mount()
  * has access to the English message catalog.
  */
+import { createApp, defineComponent } from 'vue'
 import { config } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import en from '@/i18n/locales/en'
 
-const i18n = createI18n({
+export const testI18n = createI18n({
   legacy: false,
   locale: 'en',
   fallbackLocale: 'en',
@@ -18,4 +19,21 @@ const i18n = createI18n({
   fallbackWarn: false,
 })
 
-config.global.plugins.push(i18n)
+config.global.plugins.push(testI18n)
+
+/**
+ * Run a composable inside a temporary Vue app with i18n installed.
+ * Use this when testing composables that call useI18n().
+ */
+export function withSetup<T>(composable: () => T): T {
+  let result!: T
+  const app = createApp(defineComponent({
+    setup() {
+      result = composable()
+      return () => null
+    },
+  }))
+  app.use(testI18n)
+  app.mount(document.createElement('div'))
+  return result
+}

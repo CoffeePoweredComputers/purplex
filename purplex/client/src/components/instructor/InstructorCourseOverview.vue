@@ -389,6 +389,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import axios from 'axios';
 import InstructorNavBar from './InstructorNavBar.vue';
 import CourseTeamManager from './CourseTeamManager.vue';
@@ -432,6 +433,7 @@ interface CourseOverview {
 }
 
 const route = useRoute();
+const { t } = useI18n();
 const courseId = computed(() => route.params.courseId as string);
 
 const overview = ref<CourseOverview | null>(null);
@@ -587,10 +589,10 @@ function formatDueDate(dueDateStr: string): string {
   const diffMs = due.getTime() - now.getTime();
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0) return 'OVERDUE';
-  if (diffDays === 0) return 'Due today';
-  if (diffDays === 1) return 'Due tomorrow';
-  return `Due ${due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  if (diffDays < 0) return t('common.dueDate.overdue');
+  if (diffDays === 0) return t('common.dueDate.dueToday');
+  if (diffDays === 1) return t('common.dueDate.dueTomorrow');
+  return t('common.dueDate.dueOn', { date: due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) });
 }
 
 function getDueDateDetail(dueDateStr: string): string {
@@ -599,9 +601,14 @@ function getDueDateDetail(dueDateStr: string): string {
   const diffMs = due.getTime() - now.getTime();
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0) return `by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`;
+  if (diffDays < 0) {
+    const absDays = Math.abs(diffDays);
+    return absDays === 1 ? t('common.dueDate.byOneDay') : t('common.dueDate.byDays', { days: absDays });
+  }
   if (diffDays === 0) return '';
-  if (diffDays <= 7) return `in ${diffDays} day${diffDays === 1 ? '' : 's'}`;
+  if (diffDays <= 7) {
+    return diffDays === 1 ? t('common.dueDate.inOneDay') : t('common.dueDate.inDays', { days: diffDays });
+  }
   return '';
 }
 

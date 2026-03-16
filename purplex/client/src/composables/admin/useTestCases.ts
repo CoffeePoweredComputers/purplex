@@ -9,6 +9,7 @@
  */
 
 import { computed, type ComputedRef, type Ref, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { TestCaseDisplay, TestExecutionResult } from '@/types';
 import {
   autoDetectAndConvert,
@@ -113,6 +114,7 @@ export interface UseTestCasesReturn {
 // ===== COMPOSABLE =====
 
 export const useTestCases = (): UseTestCasesReturn => {
+  const { t } = useI18n();
   const testCases = ref<TestCaseDisplay[]>([]);
 
   /**
@@ -231,7 +233,7 @@ export const useTestCases = (): UseTestCasesReturn => {
       const validationResult = validateValueAgainstType(convertedValue, typeSpec as TypeSpec);
       return validationResult.valid ? null : (validationResult.error ?? null);
     } catch {
-      return 'Invalid input format';
+      return t('admin.editors.testCasesValidation.invalidInputFormat');
     }
   };
 
@@ -342,7 +344,7 @@ export const useTestCases = (): UseTestCasesReturn => {
       const validationResult = validateValueAgainstType(convertedValue, typeSpec as TypeSpec);
       return validationResult.valid ? null : (validationResult.error ?? null);
     } catch {
-      return 'Invalid input format';
+      return t('admin.editors.testCasesValidation.invalidInputFormat');
     }
   };
 

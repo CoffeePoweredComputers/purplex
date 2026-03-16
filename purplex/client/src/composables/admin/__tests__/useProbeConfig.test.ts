@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useProbeConfig, type ProbeConfig, type ProbeMode } from '../useProbeConfig'
+import { withSetup } from '@/test/setup'
 
 describe('useProbeConfig', () => {
   let probe: ReturnType<typeof useProbeConfig>
 
   beforeEach(() => {
-    probe = useProbeConfig()
+    probe = withSetup(() => useProbeConfig())
   })
 
   describe('initial state', () => {

@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useRefuteConfig, type RefuteConfig } from '../useRefuteConfig'
+import { withSetup } from '@/test/setup'
 
 describe('useRefuteConfig', () => {
   let refute: ReturnType<typeof useRefuteConfig>
 
   beforeEach(() => {
-    refute = useRefuteConfig()
+    refute = withSetup(() => useRefuteConfig())
   })
 
   describe('initial state', () => {

@@ -225,7 +225,11 @@
     "expected": "Expected:",
     "got": "Got:",
     "segmentationAnalysis": "Segmentation Analysis",
-    "comprehension": "Comprehension:",
+    "comprehension": {
+      "notEvaluated": "Not Evaluated",
+      "highLevel": "High-level",
+      "lowLevel": "Low-level"
+    },
     "segments": "Segments:",
     "threshold": "threshold: {value}",
     "previous": "Previous",

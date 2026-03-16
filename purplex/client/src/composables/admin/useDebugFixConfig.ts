@@ -11,6 +11,7 @@
  */
 
 import { computed, type ComputedRef, type DeepReadonly, reactive, readonly, type Ref, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // ===== TYPES =====
 
@@ -75,6 +76,7 @@ const DEFAULT_NEW_HINT: { level: 1 | 2 | 3; text: string } = {
 // ===== COMPOSABLE =====
 
 export const useDebugFixConfig = (): UseDebugFixConfigReturn => {
+  const { t } = useI18n();
   const state = reactive<DebugFixConfig>({
     buggy_code: '',
     bug_hints: [],
@@ -94,7 +96,7 @@ export const useDebugFixConfig = (): UseDebugFixConfigReturn => {
 
   const validationError = computed((): string | null => {
     if (!hasBuggyCode.value) {
-      return 'Buggy code is required';
+      return t('admin.editors.debugFixValidation.buggyCodeRequired');
     }
     return null;
   });
@@ -182,7 +184,7 @@ export const useDebugFixConfig = (): UseDebugFixConfigReturn => {
     const errors: string[] = [];
 
     if (!hasBuggyCode.value) {
-      errors.push('Buggy code is required');
+      errors.push(t('admin.editors.debugFixValidation.buggyCodeRequired'));
     }
 
     if (!codesDiffer(referenceSolution)) {

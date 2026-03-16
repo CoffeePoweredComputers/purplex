@@ -51,7 +51,7 @@
         <div class="preview-container">
           <img
             :src="editor.promptConfig.imageUrl.value"
-            :alt="editor.promptConfig.altText.value || 'Prompt image preview'"
+            :alt="editor.promptConfig.altText.value || $t('admin.editors.prompt.imagePreviewAlt')"
             @error="handleImageError"
             @load="handleImageLoad"
           >

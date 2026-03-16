@@ -99,7 +99,8 @@
       "yourSubmission": "Tu Entrega",
       "submitToSeeResults": "Envía tu solución para ver los resultados de las pruebas",
       "debugTestCase": "Depurar caso de prueba: {call}",
-      "testResults": "Resultados de Pruebas"
+      "testResults": "Resultados de Pruebas",
+      "probeLoading": "Cargando..."
     },
     "refute": {
       "title": "Resultado del Contraejemplo",
@@ -148,6 +149,13 @@
         "large": "Grande",
         "fullscreen": "Pantalla completa"
       }
+    },
+    "sse": {
+      "taskTimeout": "Sin respuesta del servidor después de 2 minutos. La tarea puede estar atascada.",
+      "processing": "Procesando...",
+      "taskFailed": "La tarea falló",
+      "connectionLost": "Conexión perdida, se alcanzó el máximo de intentos de reconexión",
+      "submissionFailed": "La entrega falló"
     },
     "segmentModal": {
       "title": "Análisis del Nivel de Comprensión",

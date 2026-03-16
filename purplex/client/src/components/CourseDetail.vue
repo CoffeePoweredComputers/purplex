@@ -135,6 +135,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
+import { useI18n } from 'vue-i18n'
 import axios, { AxiosError } from 'axios'
 import { log } from '@/utils/logger'
 import type { Course } from '@/types'
@@ -143,6 +144,7 @@ import { waitForAuthState } from '@/utils/auth-state'
 const route = useRoute()
 const router = useRouter()
 const store = useStore()
+const { t } = useI18n()
 
 const course = ref<Course | null>(null)
 const loading = ref(true)
@@ -183,15 +185,15 @@ function formatDueDate(dateString: string): string {
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
   if (diffDays < 0) {
-    return 'Past due'
+    return t('common.dueDate.pastDue')
   } else if (diffDays === 0) {
-    return 'Due today'
+    return t('common.dueDate.dueToday')
   } else if (diffDays === 1) {
-    return 'Due tomorrow'
+    return t('common.dueDate.dueTomorrow')
   } else if (diffDays <= 7) {
-    return `Due in ${diffDays} days`
+    return t('common.dueDate.dueInDays', { days: diffDays })
   } else {
-    return `Due ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    return t('common.dueDate.dueOn', { date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) })
   }
 }
 
