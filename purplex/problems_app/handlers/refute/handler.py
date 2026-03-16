@@ -340,12 +340,19 @@ class RefuteHandler(ActivityHandler):
 
             except Exception as e:
                 logger.error(
-                    f"Predicate evaluation failed for '{claim_predicate}': {e}. "
-                    f"Falling back to legacy pattern matching."
+                    "Predicate evaluation failed for '%s': %s. "
+                    "Falling back to legacy pattern matching.",
+                    claim_predicate,
+                    e,
                 )
-                # Fall through to legacy pattern matching
+                return self._legacy_evaluate_claim(claim_text, result)
 
-        # Fallback to legacy pattern matching if no predicate or predicate failed
+        # No predicate set — fall back to legacy pattern matching
+        logger.warning(
+            "No claim_predicate set for claim '%s'; using legacy pattern matching. "
+            "Set claim_predicate on the RefuteProblem for reliable evaluation.",
+            claim_text,
+        )
         return self._legacy_evaluate_claim(claim_text, result)
 
     def _legacy_evaluate_claim(self, claim_text: str, result: Any) -> bool:
@@ -361,11 +368,25 @@ class RefuteHandler(ActivityHandler):
         if "positive" in claim_lower and "always" in claim_lower:
             if isinstance(result, (int, float)):
                 return result <= 0  # Disproven if non-positive
+            logger.warning(
+                "Claim '%s' matched 'always positive' but result is %s, not numeric. "
+                "Cannot evaluate; returning False.",
+                claim_text,
+                type(result).__name__,
+            )
+            return False
 
         # Check for "always returns negative" claims
         if "negative" in claim_lower and "always" in claim_lower:
             if isinstance(result, (int, float)):
                 return result >= 0  # Disproven if non-negative
+            logger.warning(
+                "Claim '%s' matched 'always negative' but result is %s, not numeric. "
+                "Cannot evaluate; returning False.",
+                claim_text,
+                type(result).__name__,
+            )
+            return False
 
         # Check for "always returns True" claims
         if "true" in claim_lower and "always" in claim_lower:
@@ -380,31 +401,47 @@ class RefuteHandler(ActivityHandler):
             return result is None
 
         # Check for "always greater than" claims
-        match = re.search(
+        gt_match = re.search(
             r"always\s+(?:returns?\s+)?(?:a\s+value\s+)?greater\s+than\s+(-?\d+)",
             claim_lower,
         )
-        if match:
-            threshold = int(match.group(1))
+        if gt_match:
+            threshold = int(gt_match.group(1))
             if isinstance(result, (int, float)):
                 return result <= threshold
+            logger.warning(
+                "Claim '%s' matched 'always greater than %s' but result is %s, not numeric. "
+                "Cannot evaluate; returning False.",
+                claim_text,
+                threshold,
+                type(result).__name__,
+            )
+            return False
 
         # Check for "always less than" claims
-        match = re.search(
+        lt_match = re.search(
             r"always\s+(?:returns?\s+)?(?:a\s+value\s+)?less\s+than\s+(-?\d+)",
             claim_lower,
         )
-        if match:
-            threshold = int(match.group(1))
+        if lt_match:
+            threshold = int(lt_match.group(1))
             if isinstance(result, (int, float)):
                 return result >= threshold
+            logger.warning(
+                "Claim '%s' matched 'always less than %s' but result is %s, not numeric. "
+                "Cannot evaluate; returning False.",
+                claim_text,
+                threshold,
+                type(result).__name__,
+            )
+            return False
 
         # Default: can't determine, mark as not disproven
-        # This encourages instructors to use clear claim patterns or set a predicate
         logger.warning(
-            f"Could not parse claim pattern: '{claim_text}'. "
-            f"Result was: {result}. "
-            f"Consider adding a claim_predicate for reliable evaluation."
+            "Unrecognized claim pattern: '%s'. Result was: %r. "
+            "Add a claim_predicate to this RefuteProblem for reliable evaluation.",
+            claim_text,
+            result,
         )
         return False
 
