@@ -459,6 +459,7 @@ export default {
         'variable_fade': '🔤',
         'subgoal_highlight': '🎯',
         'suggested_trace': '🔍',
+        'counterexample': '💡',
         'structural': '🏗️',
         'implementation': '⚙️',
         'edge_case': '⚠️'

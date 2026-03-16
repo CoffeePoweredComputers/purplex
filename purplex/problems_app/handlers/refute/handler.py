@@ -554,7 +554,9 @@ class RefuteHandler(ActivityHandler):
                 "parameters": params,
             },
             "hints": {
-                "available": [],
+                "available": ["counterexample"]
+                if refute.expected_counterexample
+                else [],
                 "enabled": bool(refute.expected_counterexample),
             },
             "feedback": {
