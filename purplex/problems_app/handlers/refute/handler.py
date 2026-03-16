@@ -338,17 +338,16 @@ class RefuteHandler(ActivityHandler):
                 )  # nosec B307
                 return not claim_holds  # Return True if claim is disproven
 
-            except Exception as e:
-                logger.error(
-                    "Predicate evaluation failed for '%s': %s. "
+            except Exception:
+                logger.exception(
+                    "Predicate evaluation failed for '%s'. "
                     "Falling back to legacy pattern matching.",
                     claim_predicate,
-                    e,
                 )
                 return self._legacy_evaluate_claim(claim_text, result)
 
         # No predicate set — fall back to legacy pattern matching
-        logger.warning(
+        logger.info(
             "No claim_predicate set for claim '%s'; using legacy pattern matching. "
             "Set claim_predicate on the RefuteProblem for reliable evaluation.",
             claim_text,

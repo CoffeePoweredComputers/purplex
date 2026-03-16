@@ -532,8 +532,8 @@ class TestRefuteEvaluateClaimLogging:
         yield
         _logger.removeHandler(caplog.handler)
 
-    def test_no_predicate_logs_warning(self, handler, caplog):
-        """Should warn when falling back to legacy due to missing predicate."""
+    def test_no_predicate_logs_info(self, handler, caplog):
+        """Should log info when falling back to legacy due to missing predicate."""
         handler._evaluate_claim(
             claim_predicate="",
             claim_text="The function always returns True",
