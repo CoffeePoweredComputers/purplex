@@ -3,6 +3,7 @@ Unit tests for the Refute handler.
 """
 
 import json
+import logging
 from unittest.mock import MagicMock
 
 import pytest
@@ -443,6 +444,124 @@ class TestRefuteLegacyEvaluateClaim:
             "The function does something unparseable", 42
         )
         assert result is False
+
+    def test_unrecognized_pattern_logs_warning(self, handler, caplog):
+        """Unrecognized claim patterns should log a warning."""
+        _logger = logging.getLogger("purplex.problems_app.handlers.refute.handler")
+        _logger.addHandler(caplog.handler)
+        caplog.handler.setLevel(logging.WARNING)
+        try:
+            handler._legacy_evaluate_claim(
+                "The function does something unparseable", 42
+            )
+            assert "Unrecognized claim pattern" in caplog.text
+        finally:
+            _logger.removeHandler(caplog.handler)
+
+    def test_always_positive_type_mismatch_logs_warning(self, handler, caplog):
+        """'always positive' with non-numeric result should log and return False."""
+        _logger = logging.getLogger("purplex.problems_app.handlers.refute.handler")
+        _logger.addHandler(caplog.handler)
+        caplog.handler.setLevel(logging.WARNING)
+        try:
+            result = handler._legacy_evaluate_claim(
+                "The function always returns a positive number", "not a number"
+            )
+            assert result is False
+            assert "not numeric" in caplog.text
+        finally:
+            _logger.removeHandler(caplog.handler)
+
+    def test_always_negative_type_mismatch_logs_warning(self, handler, caplog):
+        """'always negative' with non-numeric result should log and return False."""
+        _logger = logging.getLogger("purplex.problems_app.handlers.refute.handler")
+        _logger.addHandler(caplog.handler)
+        caplog.handler.setLevel(logging.WARNING)
+        try:
+            result = handler._legacy_evaluate_claim(
+                "The function always returns a negative number", "not a number"
+            )
+            assert result is False
+            assert "not numeric" in caplog.text
+        finally:
+            _logger.removeHandler(caplog.handler)
+
+    def test_always_greater_than_type_mismatch_logs_warning(self, handler, caplog):
+        """'always greater than' with non-numeric result should log and return False."""
+        _logger = logging.getLogger("purplex.problems_app.handlers.refute.handler")
+        _logger.addHandler(caplog.handler)
+        caplog.handler.setLevel(logging.WARNING)
+        try:
+            result = handler._legacy_evaluate_claim(
+                "The function always returns a value greater than 10", "not a number"
+            )
+            assert result is False
+            assert "not numeric" in caplog.text
+        finally:
+            _logger.removeHandler(caplog.handler)
+
+    def test_always_less_than_type_mismatch_logs_warning(self, handler, caplog):
+        """'always less than' with non-numeric result should log and return False."""
+        _logger = logging.getLogger("purplex.problems_app.handlers.refute.handler")
+        _logger.addHandler(caplog.handler)
+        caplog.handler.setLevel(logging.WARNING)
+        try:
+            result = handler._legacy_evaluate_claim(
+                "The function always returns a value less than 10", "not a number"
+            )
+            assert result is False
+            assert "not numeric" in caplog.text
+        finally:
+            _logger.removeHandler(caplog.handler)
+
+
+class TestRefuteEvaluateClaimLogging:
+    """Tests for _evaluate_claim logging behavior."""
+
+    LOGGER_NAME = "purplex.problems_app.handlers.refute.handler"
+
+    @pytest.fixture
+    def handler(self):
+        return get_handler("refute")
+
+    @pytest.fixture(autouse=True)
+    def _attach_caplog(self, caplog):
+        _logger = logging.getLogger(self.LOGGER_NAME)
+        _logger.addHandler(caplog.handler)
+        caplog.handler.setLevel(logging.DEBUG)
+        yield
+        _logger.removeHandler(caplog.handler)
+
+    def test_no_predicate_logs_info(self, handler, caplog):
+        """Should log info when falling back to legacy due to missing predicate."""
+        handler._evaluate_claim(
+            claim_predicate="",
+            claim_text="The function always returns True",
+            result=False,
+            input_args={},
+        )
+        assert "No claim_predicate set" in caplog.text
+
+    def test_failed_predicate_logs_error(self, handler, caplog):
+        """Should log error when predicate evaluation fails."""
+        handler._evaluate_claim(
+            claim_predicate="invalid_syntax !!!",
+            claim_text="The function always returns True",
+            result=False,
+            input_args={},
+        )
+        assert "Predicate evaluation failed" in caplog.text
+
+    def test_valid_predicate_no_warning(self, handler, caplog):
+        """Should not warn when a valid predicate is used."""
+        handler._evaluate_claim(
+            claim_predicate="result > 0",
+            claim_text="always positive",
+            result=10,
+            input_args={"x": 5},
+        )
+        assert "No claim_predicate set" not in caplog.text
+        assert "legacy" not in caplog.text.lower()
 
 
 class TestRefuteTestCounterexample:
