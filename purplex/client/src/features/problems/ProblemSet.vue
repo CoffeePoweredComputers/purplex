@@ -836,7 +836,7 @@ export default {
 
             } catch (error) {
                 this.logger.error('Navigation failed', error);
-                this.notify.error('Navigation Error', 'Failed to load problem data');
+                this.notify.error(this.$t('problems.problemSet.notify.navigationError'), this.$t('problems.problemSet.notify.failedToLoadProblemData'));
                 this.isNavigating = false; // Always clear loading state on error
             }
         },
@@ -1056,7 +1056,7 @@ export default {
             // Validate attempt data exists
             if (!attempt || !attempt.data) {
                 this.logger.error('Cannot load attempt: missing data', { attempt });
-                this.notify.error('Failed to load attempt', 'Submission data is missing or corrupted');
+                this.notify.error(this.$t('problems.problemSet.notify.failedToLoadAttempt'), this.$t('problems.problemSet.notify.dataMissingOrCorrupted'));
                 this.clearFeedbackData();
                 return;
             }
@@ -1067,7 +1067,7 @@ export default {
             // Validate required fields in data
             if (!data.raw_input && !data.processed_code && (!data.variations || data.variations.length === 0)) {
                 this.logger.error('Cannot load attempt: data is empty', { data });
-                this.notify.error('Failed to load attempt', 'Submission data is incomplete');
+                this.notify.error(this.$t('problems.problemSet.notify.failedToLoadAttempt'), this.$t('problems.problemSet.notify.dataIncomplete'));
                 this.clearFeedbackData();
                 return;
             }
@@ -1351,7 +1351,7 @@ export default {
 
                         // Get the problem index for clearer messaging
                         const problemIndex = this.problems.findIndex(p => p.slug === currentProblemSlug);
-                        const problemIdentifier = problemIndex >= 0 ? `Problem ${problemIndex + 1}` : 'Submission';
+                        const problemIdentifier = problemIndex >= 0 ? this.$t('problems.problemSet.notify.problemIdentifier', { number: problemIndex + 1 }) : this.$t('problems.problemSet.notify.submission');
 
                         // Process based on problem type
                         if (problemType === 'mcq') {
@@ -1413,7 +1413,7 @@ export default {
                             });
 
                             // Show notification
-                            const message = `${problemIdentifier}: ${mcqResult.is_correct ? 'Correct!' : 'Incorrect'}`;
+                            const message = mcqResult.is_correct ? this.$t('problems.problemSet.notify.mcqCorrect', { problem: problemIdentifier }) : this.$t('problems.problemSet.notify.mcqIncorrect', { problem: problemIdentifier });
                             if (mcqResult.is_correct) {
                                 this.notify.success(message);
                             } else {
@@ -1481,7 +1481,7 @@ export default {
 
                             // Show notification
                             const allPassed = totalTestsRun > 0 && totalTestsPassed === totalTestsRun;
-                            const message = `${problemIdentifier}: ${totalTestsPassed}/${totalTestsRun} tests passed`;
+                            const message = this.$t('problems.problemSet.notify.testsPassed', { problem: problemIdentifier, passed: totalTestsPassed, total: totalTestsRun });
                             if (allPassed) {
                                 this.notify.success(message);
                             } else {
@@ -1577,7 +1577,7 @@ export default {
                             });
 
                             // Build notification message
-                            let message = `${problemIdentifier}: `;
+                            let message;
                             let notificationType = 'info';
 
                             // Use handler config instead of hardcoded type checks
@@ -1586,14 +1586,20 @@ export default {
                                 const segmentCount = segmentation.segment_count || 0;
                                 // Read threshold from segmentation result (backend uses DB field as single source of truth)
                                 const threshold = segmentation.threshold ?? 2;
-                                const thresholdText = threshold === 1 ? 'need 1' : `need ≤${threshold}`;
-                                const highLevelText = segmentationPassed
-                                    ? `✓ High-level (${segmentCount} segment${segmentCount !== 1 ? 's' : ''})`
-                                    : `✗ High-level (${segmentCount} segments, ${thresholdText})`;
-                                message += `Variations: ${perfectVariations}/${variations.length} passing, ${highLevelText}`;
+                                let highLevelText;
+                                if (segmentationPassed) {
+                                    highLevelText = segmentCount === 1
+                                        ? this.$t('problems.problemSet.notify.segmentationPassedSingular')
+                                        : this.$t('problems.problemSet.notify.segmentationPassed', { count: segmentCount });
+                                } else {
+                                    highLevelText = threshold === 1
+                                        ? this.$t('problems.problemSet.notify.segmentationFailedNeedOne', { count: segmentCount })
+                                        : this.$t('problems.problemSet.notify.segmentationFailed', { count: segmentCount, threshold });
+                                }
+                                message = this.$t('problems.problemSet.notify.variationsWithSegmentation', { problem: problemIdentifier, passed: perfectVariations, total: variations.length, segmentation: highLevelText });
                                 notificationType = (perfectVariations === variations.length && segmentationPassed) ? 'success' : 'warning';
                             } else {
-                                message += `Variations: ${perfectVariations}/${variations.length} passing`;
+                                message = this.$t('problems.problemSet.notify.variationsPassing', { problem: problemIdentifier, passed: perfectVariations, total: variations.length });
                                 notificationType = (perfectVariations === variations.length) ? 'success' : 'warning';
                             }
 
@@ -1624,7 +1630,7 @@ export default {
                     {
                         onError: (error) => {
                             this.logger.error('SSE connection error', error);
-                            this.notify.error(error.error || 'Failed to get results');
+                            this.notify.error(error.error || this.$t('problems.problemSet.notify.failedToGetResults'));
                             this.submissionTracking.removeSubmission(currentProblemSlug);
                             this.loading = this.submissionTracking.isSubmitting(this.getCurrentProblem().slug);
                             if (rollback) { rollback(); }
@@ -1636,7 +1642,7 @@ export default {
                         },
                         onTimeout: () => {
                             this.logger.warn('SSE connection timeout');
-                            this.notify.warning('Connection timeout. Please try again.');
+                            this.notify.warning(this.$t('problems.problemSet.notify.connectionTimeout'));
                             this.submissionTracking.removeSubmission(currentProblemSlug);
                             this.loading = this.submissionTracking.isSubmitting(this.getCurrentProblem().slug);
                             if (rollback) { rollback(); }
@@ -1663,18 +1669,18 @@ export default {
                 // Handle errors
                 if (error.response) {
                     if (error.response.status === 500) {
-                        this.notify.error('Server Error', 'The AI service might be unavailable.');
+                        this.notify.error(this.$t('problems.problemSet.notify.serverError'), this.$t('problems.problemSet.notify.aiServiceUnavailable'));
                     } else if (error.response.status === 401) {
-                        this.notify.error('Authentication Error', 'Please log in again.');
+                        this.notify.error(this.$t('problems.problemSet.notify.authenticationError'), this.$t('problems.problemSet.notify.pleaseLogInAgain'));
                     } else if (error.response.status === 400) {
-                        this.notify.warning('Invalid Request', error.response.data.error || 'Please check your input.');
+                        this.notify.warning(this.$t('problems.problemSet.notify.invalidRequest'), error.response.data.error || this.$t('problems.problemSet.notify.pleaseCheckInput'));
                     } else {
-                        this.notify.error('Error', error.response.data.error || 'An unknown error occurred.');
+                        this.notify.error(this.$t('common.error'), error.response.data.error || this.$t('problems.problemSet.notify.unknownError'));
                     }
                 } else if (error.request) {
-                    this.notify.error('Network Error', 'Unable to reach the server.');
+                    this.notify.error(this.$t('problems.problemSet.notify.networkError'), this.$t('problems.problemSet.notify.unableToReachServer'));
                 } else {
-                    this.notify.error('Error', error.message);
+                    this.notify.error(this.$t('common.error'), error.message);
                 }
                 // Reset loading state on error during initial submission
                 this.submissionTracking.removeSubmission(currentProblemSlug);
@@ -1701,7 +1707,7 @@ export default {
              */
             const problemType = response.problem_type || 'mcq';
             const problemIndex = this.problems.findIndex(p => p.slug === problemSlug);
-            const problemIdentifier = problemIndex >= 0 ? `Problem ${problemIndex + 1}` : 'Submission';
+            const problemIdentifier = problemIndex >= 0 ? this.$t('problems.problemSet.notify.problemIdentifier', { number: problemIndex + 1 }) : this.$t('problems.problemSet.notify.submission');
 
             // Build MCQ result from response
             const mcqResult = {
@@ -1754,7 +1760,7 @@ export default {
             });
 
             // Show notification
-            const message = `${problemIdentifier}: ${mcqResult.is_correct ? 'Correct!' : 'Incorrect'}`;
+            const message = mcqResult.is_correct ? this.$t('problems.problemSet.notify.mcqCorrect', { problem: problemIdentifier }) : this.$t('problems.problemSet.notify.mcqIncorrect', { problem: problemIdentifier });
             if (mcqResult.is_correct) {
                 this.notify.success(message);
             } else {
@@ -1813,7 +1819,7 @@ export default {
 
             } catch (error) {
                 this.logger.error('Error fetching problem set', error);
-                this.notify.error('Load Error', 'Failed to load problem set.');
+                this.notify.error(this.$t('problems.problemSet.notify.loadError'), this.$t('problems.problemSet.notify.failedToLoadProblemSet'));
             } finally {
                 this.isLoading = false;
             }
