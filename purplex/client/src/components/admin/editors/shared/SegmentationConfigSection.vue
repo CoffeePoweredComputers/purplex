@@ -1,6 +1,6 @@
 <template>
   <div class="form-section rounded-lg border-default">
-    <h3>{{ title }}</h3>
+    <h3>{{ title || $t('admin.editors.segmentation.title') }}</h3>
 
     <div class="segmentation-toggle">
       <label class="toggle-label">
@@ -10,10 +10,10 @@
           class="toggle-checkbox"
           @change="editor.segmentation.setEnabled(($event.target as HTMLInputElement).checked)"
         >
-        <span class="toggle-text">Enable Prompt Segmentation Analysis</span>
+        <span class="toggle-text">{{ $t('admin.editors.segmentation.enableToggle') }}</span>
       </label>
       <p class="hint-description">
-        Analyzes student explanations to classify their code comprehension level.
+        {{ $t('admin.editors.segmentation.enableHint') }}
       </p>
     </div>
 
@@ -22,13 +22,13 @@
       class="segmentation-config-panel"
     >
       <div class="segmentation-examples-section">
-        <h4>Segmentation Training Examples</h4>
+        <h4>{{ $t('admin.editors.segmentation.trainingExamples') }}</h4>
         <p class="section-description">
-          Provide examples to train the AI how to segment student responses.
+          {{ $t('admin.editors.segmentation.trainingDescription') }}
         </p>
 
         <div class="threshold-setting">
-          <label class="form-label">Comprehension Threshold</label>
+          <label class="form-label">{{ $t('admin.editors.segmentation.comprehensionThreshold') }}</label>
           <div class="threshold-control">
             <input
               :value="editor.segmentation.threshold.value"
@@ -39,8 +39,8 @@
               @input="editor.segmentation.setThreshold(parseInt(($event.target as HTMLInputElement).value) || 3)"
             >
             <span class="threshold-help">
-              <template v-if="useUnicodeSymbols">≤</template><template v-else>&lt;=</template> {{ editor.segmentation.threshold.value }} segments = Good (Relational)<br>
-              > {{ editor.segmentation.threshold.value }} segments = Needs Work (Multi-structural)
+              <template v-if="useUnicodeSymbols">≤</template><template v-else>&lt;=</template> {{ editor.segmentation.threshold.value }} {{ $t('admin.editors.segmentation.segmentsEquals') }} {{ $t('admin.editors.segmentation.goodRelational') }}<br>
+              > {{ editor.segmentation.threshold.value }} {{ $t('admin.editors.segmentation.segmentsEquals') }} {{ $t('admin.editors.segmentation.needsWorkMulti') }}
             </span>
           </div>
         </div>
@@ -49,24 +49,24 @@
         <div class="example-block relational">
           <h5>
             <span class="example-icon">{{ relationalIcon }}</span>
-            Good Example (Relational)
+            {{ $t('admin.editors.segmentation.goodExample') }}
           </h5>
           <p class="example-help">
-            Show how a high-level description should look
+            {{ $t('admin.editors.segmentation.goodExampleHelp') }}
           </p>
 
           <div class="form-group">
-            <label>Student Description</label>
+            <label>{{ $t('admin.editors.segmentation.studentDescription') }}</label>
             <textarea
               :value="editor.segmentation.config.examples.relational.prompt"
-              placeholder="Example: The function checks if a word is a palindrome by comparing it with its reverse"
+              :placeholder="$t('admin.editors.segmentation.relationalPromptPlaceholder')"
               rows="3"
               @input="editor.segmentation.setRelationalPrompt(($event.target as HTMLTextAreaElement).value)"
             />
           </div>
 
           <div class="segments-editor">
-            <label>Expected Segments ({{ editor.segmentation.relationalSegments.value.length }})</label>
+            <label>{{ $t('admin.editors.segmentation.expectedSegments', { count: editor.segmentation.relationalSegments.value.length }) }}</label>
             <div
               v-for="(segText, idx) in editor.segmentation.relationalSegments.value"
               :key="`rel-${idx}`"
@@ -75,7 +75,7 @@
               <div class="segment-row">
                 <input
                   :value="segText"
-                  placeholder="Segment text"
+                  :placeholder="$t('admin.editors.segmentation.segmentPlaceholder')"
                   class="segment-input"
                   @input="editor.segmentation.updateRelationalSegmentText(idx, ($event.target as HTMLInputElement).value)"
                 >
@@ -88,10 +88,10 @@
                 </button>
               </div>
               <div class="code-lines-row">
-                <label class="lines-label">Code lines:</label>
+                <label class="lines-label">{{ $t('admin.editors.segmentation.codeLines') }}</label>
                 <input
                   :value="editor.segmentation.formatLineRange(editor.segmentation.relationalCodeLines.value[idx] || [])"
-                  placeholder="e.g., 1-3 or 1,2,3"
+                  :placeholder="$t('admin.editors.segmentation.codeLinesPlaceholder')"
                   class="lines-input"
                   @input="editor.segmentation.updateRelationalSegmentCodeLines(idx, editor.segmentation.parseLineRange(($event.target as HTMLInputElement).value))"
                 >
@@ -102,7 +102,7 @@
               class="btn-secondary btn-sm"
               @click="editor.segmentation.addRelationalSegment"
             >
-              + Add Segment
+              {{ $t('admin.editors.segmentation.addSegment') }}
             </button>
           </div>
         </div>
@@ -111,24 +111,24 @@
         <div class="example-block multi-structural">
           <h5>
             <span class="example-icon">{{ multiStructuralIcon }}</span>
-            Needs Work Example (Multi-structural)
+            {{ $t('admin.editors.segmentation.needsWorkExample') }}
           </h5>
           <p class="example-help">
-            Show how a line-by-line description looks
+            {{ $t('admin.editors.segmentation.needsWorkExampleHelp') }}
           </p>
 
           <div class="form-group">
-            <label>Student Description</label>
+            <label>{{ $t('admin.editors.segmentation.studentDescription') }}</label>
             <textarea
               :value="editor.segmentation.config.examples.multi_structural.prompt"
-              placeholder="Example: It takes the input. Converts each character. Creates empty string. Loops through..."
+              :placeholder="$t('admin.editors.segmentation.multiStructuralPromptPlaceholder')"
               rows="3"
               @input="editor.segmentation.setMultiStructuralPrompt(($event.target as HTMLTextAreaElement).value)"
             />
           </div>
 
           <div class="segments-editor">
-            <label>Expected Segments ({{ editor.segmentation.multiStructuralSegments.value.length }})</label>
+            <label>{{ $t('admin.editors.segmentation.expectedSegments', { count: editor.segmentation.multiStructuralSegments.value.length }) }}</label>
             <div
               v-for="(segText, idx) in editor.segmentation.multiStructuralSegments.value"
               :key="`multi-${idx}`"
@@ -137,7 +137,7 @@
               <div class="segment-row">
                 <input
                   :value="segText"
-                  placeholder="Segment text"
+                  :placeholder="$t('admin.editors.segmentation.segmentPlaceholder')"
                   class="segment-input"
                   @input="editor.segmentation.updateMultiStructuralSegmentText(idx, ($event.target as HTMLInputElement).value)"
                 >
@@ -150,10 +150,10 @@
                 </button>
               </div>
               <div class="code-lines-row">
-                <label class="lines-label">Code lines:</label>
+                <label class="lines-label">{{ $t('admin.editors.segmentation.codeLines') }}</label>
                 <input
                   :value="editor.segmentation.formatLineRange(editor.segmentation.multiStructuralCodeLines.value[idx] || [])"
-                  placeholder="e.g., 1-3 or 1,2,3"
+                  :placeholder="$t('admin.editors.segmentation.codeLinesPlaceholder')"
                   class="lines-input"
                   @input="editor.segmentation.updateMultiStructuralSegmentCodeLines(idx, editor.segmentation.parseLineRange(($event.target as HTMLInputElement).value))"
                 >
@@ -164,7 +164,7 @@
               class="btn-secondary btn-sm"
               @click="editor.segmentation.addMultiStructuralSegment"
             >
-              + Add Segment
+              {{ $t('admin.editors.segmentation.addSegment') }}
             </button>
           </div>
         </div>
@@ -174,7 +174,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import type { UseProblemEditorReturn } from '@/composables/admin/useProblemEditor';
+
+const { t } = useI18n();
 
 interface Props {
   /** Editor composable with segmentation config */
@@ -190,7 +193,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  title: 'Prompt Segmentation Configuration',
+  title: undefined,
   relationalIcon: '✅',
   multiStructuralIcon: '❌',
   useUnicodeSymbols: true,

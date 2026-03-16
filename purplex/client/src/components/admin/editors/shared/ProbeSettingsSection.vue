@@ -1,8 +1,8 @@
 <template>
   <div class="form-section rounded-lg border-default">
-    <h3>Probe Settings</h3>
+    <h3>{{ $t('admin.editors.probeSettings.title') }}</h3>
     <p class="section-description">
-      {{ sectionDescription }}
+      {{ sectionDescription || $t('admin.editors.probeSettings.sectionDescription') }}
     </p>
 
     <!-- Show Function Signature Toggle - Compact -->
@@ -14,9 +14,9 @@
           class="toggle-checkbox"
           @change="config.setShowFunctionSignature(($event.target as HTMLInputElement).checked)"
         >
-        <span class="toggle-text">Show Function Signature</span>
+        <span class="toggle-text">{{ $t('admin.editors.probeSettings.showFunctionSignature') }}</span>
         <span class="toggle-hint">
-          {{ config.showFunctionSignature.value ? 'Students see types' : 'Types hidden' }}
+          {{ config.showFunctionSignature.value ? $t('admin.editors.probeSettings.studentsSeeTypes') : $t('admin.editors.probeSettings.typesHidden') }}
         </span>
       </label>
     </div>
@@ -24,7 +24,7 @@
     <!-- Probe Mode Selection - Segmented Control -->
     <div class="probe-mode-section">
       <div class="probe-mode-header">
-        <span class="probe-mode-label">Probe Mode</span>
+        <span class="probe-mode-label">{{ $t('admin.editors.probeSettings.probeMode') }}</span>
       </div>
 
       <div class="segmented-control">
@@ -40,7 +40,7 @@
           type="button"
           @click="config.setProbeMode(mode.value)"
         >
-          {{ mode.label.replace(' Mode', '') }}
+          {{ $t(mode.labelKey) }}
         </button>
       </div>
 
@@ -55,12 +55,12 @@
       class="probe-limits-section"
     >
       <div class="probe-limits-header">
-        <span class="probe-limits-label">Probe Limits</span>
+        <span class="probe-limits-label">{{ $t('admin.editors.probeSettings.probeLimits') }}</span>
       </div>
 
       <div class="limits-row">
         <div class="limit-field">
-          <label for="max_probes">Budget</label>
+          <label for="max_probes">{{ $t('admin.editors.probeSettings.budget') }}</label>
           <input
             id="max_probes"
             :value="config.maxProbes.value"
@@ -74,7 +74,7 @@
 
         <template v-if="config.showCooldownFields.value">
           <div class="limit-field">
-            <label for="cooldown_attempts">Submissions to refill</label>
+            <label for="cooldown_attempts">{{ $t('admin.editors.probeSettings.submissionsToRefill') }}</label>
             <input
               id="cooldown_attempts"
               :value="config.cooldownAttempts.value"
@@ -87,7 +87,7 @@
           </div>
 
           <div class="limit-field">
-            <label for="cooldown_refill">Probes per refill</label>
+            <label for="cooldown_refill">{{ $t('admin.editors.probeSettings.probesPerRefill') }}</label>
             <input
               id="cooldown_refill"
               :value="config.cooldownRefill.value"
@@ -115,13 +115,16 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { ProbeMode, UseProbeConfigReturn } from '@/composables/admin/useProbeConfig';
+
+const { t } = useI18n();
 
 interface Props {
   /** Probe configuration composable */
   config: UseProbeConfigReturn;
-  /** Probe modes with descriptions */
-  probeModes: { value: ProbeMode; label: string; description: string }[];
+  /** Probe modes with locale key paths */
+  probeModes: { value: ProbeMode; labelKey: string; descriptionKey: string }[];
   /** Custom section description (optional) */
   sectionDescription?: string;
   /** Custom cooldown attempts hint (optional) */
@@ -129,14 +132,14 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  sectionDescription: 'Configure how students can query the oracle function to discover its behavior.',
-  cooldownAttemptsHint: 'Number of submissions required before probes are refilled',
+  sectionDescription: undefined,
+  cooldownAttemptsHint: undefined,
 });
 
 // Get description for currently selected mode
 const selectedModeDescription = computed(() => {
   const selected = props.probeModes.find(m => m.value === props.config.probeMode.value);
-  return selected?.description || '';
+  return selected ? t(selected.descriptionKey) : '';
 });
 </script>
 

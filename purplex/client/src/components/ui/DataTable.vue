@@ -6,7 +6,7 @@
     <!-- Results summary bar -->
     <div v-if="!loading && !error && totalCount > 0" class="results-bar" aria-live="polite">
       <span class="results-count">
-        Showing {{ rangeStart }}-{{ rangeEnd }} of {{ totalCount }} {{ itemLabel }}
+        {{ $t('common.dataTable.showing', { start: rangeStart, end: rangeEnd, total: totalCount, label: effectiveItemLabel }) }}
       </span>
       <slot name="results-actions" />
     </div>
@@ -14,16 +14,16 @@
     <!-- Loading state -->
     <div v-if="loading" class="loading-container">
       <AsyncLoader />
-      <p class="loading-text">Loading {{ itemLabel }}...</p>
+      <p class="loading-text">{{ $t('common.dataTable.loading', { label: effectiveItemLabel }) }}</p>
     </div>
 
     <!-- Error state -->
     <div v-else-if="error" class="error-state">
       <div class="error-icon" aria-hidden="true">!</div>
-      <h3>Error Loading Data</h3>
+      <h3>{{ $t('common.dataTable.errorTitle') }}</h3>
       <p>{{ error }}</p>
       <button class="retry-button" @click="$emit('retry')">
-        Try Again
+        {{ $t('common.dataTable.tryAgain') }}
       </button>
     </div>
 
@@ -100,17 +100,21 @@
     <!-- Empty state -->
     <div v-else class="empty-state">
       <div class="empty-icon" aria-hidden="true">[ ]</div>
-      <h3>{{ emptyTitle }}</h3>
-      <p>{{ emptyMessage }}</p>
+      <h3>{{ effectiveEmptyTitle }}</h3>
+      <p>{{ effectiveEmptyMessage }}</p>
       <slot name="empty-actions" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts" generic="T">
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import AsyncLoader from './AsyncLoader.vue';
 import DataTablePagination from './DataTablePagination.vue';
 import type { DataTableColumn } from '@/types/datatable';
+
+const { t } = useI18n();
 
 interface Props {
   /** Column definitions */
@@ -154,13 +158,18 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  itemLabel: 'items',
-  emptyTitle: 'No Data Found',
-  emptyMessage: 'There are no items to display.',
+  itemLabel: '',
+  emptyTitle: '',
+  emptyMessage: '',
   rowKey: 'id',
   showPagination: true,
   pageSizeOptions: () => [10, 25, 50, 100],
 });
+
+/** Computed fallbacks: use provided prop or fall back to i18n default */
+const effectiveItemLabel = computed(() => props.itemLabel || t('common.dataTable.defaultItemLabel'));
+const effectiveEmptyTitle = computed(() => props.emptyTitle || t('common.dataTable.defaultEmptyTitle'));
+const effectiveEmptyMessage = computed(() => props.emptyMessage || t('common.dataTable.defaultEmptyMessage'));
 
 defineEmits<{
   'go-to-page': [page: number];

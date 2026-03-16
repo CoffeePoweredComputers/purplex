@@ -8,6 +8,7 @@
  */
 
 import { type DeepReadonly, reactive, readonly, type Ref, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type {
   HintConfig,
   SubgoalHighlight,
@@ -128,6 +129,7 @@ const createInitialState = (): HintsState => ({
 // ===== COMPOSABLE =====
 
 export const useHintsConfig = (): UseHintsConfigReturn => {
+  const { t } = useI18n();
   const state = reactive<HintsState>(createInitialState());
   const activeTab = ref<HintTabType>('variable_fade');
   const pyTutorVisible = ref(false);
@@ -200,7 +202,7 @@ export const useHintsConfig = (): UseHintsConfigReturn => {
       const match = call.match(functionCallRegex);
 
       if (!match) {
-        functionCallError.value = 'Invalid function call format. Expected: function_name(args)';
+        functionCallError.value = t('admin.editors.hintsValidation.invalidFunctionCall');
         return;
       }
 
@@ -208,7 +210,7 @@ export const useHintsConfig = (): UseHintsConfigReturn => {
 
       // Check if function name matches expected
       if (expectedFunctionName && calledFunction !== expectedFunctionName) {
-        functionCallError.value = `Function name "${calledFunction}" doesn't match "${expectedFunctionName}"`;
+        functionCallError.value = t('admin.editors.hintsValidation.functionNameMismatch', { called: calledFunction, expected: expectedFunctionName });
         return;
       }
 
@@ -218,12 +220,12 @@ export const useHintsConfig = (): UseHintsConfigReturn => {
         if (char === '(') {depth++;}
         if (char === ')') {depth--;}
         if (depth < 0) {
-          functionCallError.value = 'Unbalanced parentheses';
+          functionCallError.value = t('admin.editors.hintsValidation.unbalancedParentheses');
           return;
         }
       }
       if (depth !== 0) {
-        functionCallError.value = 'Unbalanced parentheses';
+        functionCallError.value = t('admin.editors.hintsValidation.unbalancedParentheses');
         return;
       }
 

@@ -1,0 +1,107 @@
+{
+  "brand": {
+    "name": "Purplex",
+    "tagline": "Problemas de Programación en Lenguaje Natural para la Era de la IA Generativa"
+  },
+  "nav": {
+    "home": "Inicio",
+    "admin": "Administración",
+    "instructor": "Docente",
+    "account": "Cuenta",
+    "signOut": "Cerrar Sesión"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "submit": "Enviar",
+    "close": "Cerrar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "view": "Ver",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "clear": "Limpiar",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "confirm": "Confirmar",
+    "retry": "Reintentar",
+    "tryAgain": "Intentar de nuevo",
+    "add": "Agregar",
+    "remove": "Eliminar",
+    "processing": "Procesando...",
+    "continue": "Continuar",
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "role": "Rol",
+    "status": "Estado",
+    "actions": "Acciones",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "required": "Obligatorio",
+    "optional": "Opcional",
+    "pleaseWait": "Por favor espera...",
+    "failedToLoad": "No se pudo cargar el componente",
+    "unknown": "Desconocido",
+    "skipNav": "Ir al contenido principal",
+    "footer": {
+      "copyright": "© {year} Purplex. Todos los derechos reservados.",
+      "privacyPolicy": "Política de Privacidad",
+      "termsOfService": "Términos de Servicio",
+      "sponsoredBy": "Patrocinado por Meta"
+    },
+    "dataTable": {
+      "showing": "Mostrando {start}-{end} de {total} {label}",
+      "loading": "Cargando {label}...",
+      "errorTitle": "Error al cargar datos",
+      "tryAgain": "Intentar de nuevo",
+      "defaultEmptyTitle": "No se encontraron datos",
+      "defaultEmptyMessage": "No hay elementos para mostrar.",
+      "defaultItemLabel": "elementos"
+    },
+    "pagination": {
+      "show": "Mostrar:",
+      "perPage": "por página",
+      "itemsPerPage": "Número de elementos por página",
+      "rangeOf": "{start}-{end} de {total}",
+      "firstPage": "Primera página",
+      "previousPage": "Página anterior",
+      "nextPage": "Página siguiente",
+      "lastPage": "Última página"
+    },
+    "units": {
+      "ms": "{value}ms",
+      "timeMinSec": "{mins}m {secs}s",
+      "timeSec": "{secs}s",
+      "timeNA": "N/D"
+    },
+    "dueDate": {
+      "pastDue": "Vencido",
+      "overdue": "ATRASADO",
+      "dueToday": "Vence hoy",
+      "dueTomorrow": "Vence mañana",
+      "dueInDays": "Vence en {days} días",
+      "dueOn": "Vence el {date}",
+      "byDays": "por {days} días",
+      "byOneDay": "por 1 día",
+      "inDays": "en {days} días",
+      "inOneDay": "en 1 día"
+    },
+    "errors": {
+      "authRequired": "Autenticación requerida. Por favor, inicia sesión de nuevo.",
+      "noPermission": "No tienes permiso para ver estos datos.",
+      "failedToLoadData": "No se pudieron cargar los datos. Inténtalo de nuevo.",
+      "unexpectedError": "Ocurrió un error inesperado."
+    }
+  },
+  "aria": {
+    "etymologyMeaning": "Conoce el significado de este nombre",
+    "progress": "Progreso",
+    "closeDialog": "Cerrar",
+    "joinCourse": "Unirse a un nuevo curso para acceder a los conjuntos de problemas"
+  }
+}

@@ -1,25 +1,25 @@
 <template>
   <div class="form-section rounded-lg border-default">
-    <h3>Basic Information</h3>
+    <h3>{{ $t('admin.editors.basicInfo') }}</h3>
 
     <div class="form-group">
-      <label for="title">Title *</label>
+      <label for="title">{{ $t('admin.editors.titleLabel') }}</label>
       <input
         id="title"
         :value="editor.form.form.title"
         type="text"
         required
-        placeholder="Enter problem title"
+        :placeholder="$t('admin.editors.titlePlaceholder')"
         @input="updateField('title', ($event.target as HTMLInputElement).value)"
       >
     </div>
 
     <div class="form-group">
-      <label for="description">Description *</label>
+      <label for="description">{{ $t('admin.editors.descriptionLabel') }}</label>
       <textarea
         id="description"
         :value="editor.form.form.description || ''"
-        placeholder="Enter problem description"
+        :placeholder="$t('admin.editors.descriptionPlaceholder')"
         rows="3"
         required
         @input="updateField('description', ($event.target as HTMLTextAreaElement).value)"
@@ -27,7 +27,7 @@
     </div>
 
     <div class="form-group">
-      <label for="tags">Tags</label>
+      <label for="tags">{{ $t('admin.editors.tagsLabel') }}</label>
       <div class="tags-container">
         <div class="tags-list">
           <span
@@ -48,7 +48,7 @@
         <input
           v-model="newTag"
           type="text"
-          placeholder="Add tag and press Enter"
+          :placeholder="$t('admin.editors.addTagPlaceholder')"
           class="tag-input"
           @keydown.enter.prevent="addTag"
         >

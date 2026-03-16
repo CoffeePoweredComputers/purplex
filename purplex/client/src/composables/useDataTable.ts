@@ -14,6 +14,7 @@
  *   });
  */
 import { computed, onUnmounted, ref, type ComputedRef, type Ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type {
   DataTableQueryParams,
   PaginatedResponseWithFilters,
@@ -60,6 +61,7 @@ export interface UseDataTableReturn<T, F = Record<string, unknown>> {
 export function useDataTable<T, F = Record<string, unknown>>(
   options: UseDataTableOptions<T, F>
 ): UseDataTableReturn<T, F> {
+  const { t } = useI18n();
   const { fetchFn, initialPageSize = 25, debounceMs = 300, filterKeys = [] } = options;
 
   // Data
@@ -174,11 +176,11 @@ export function useDataTable<T, F = Record<string, unknown>>(
       const apiError = err as { error?: string; message?: string; status?: number };
 
       if (apiError.status === 401) {
-        error.value = 'Authentication required. Please log in again.';
+        error.value = t('common.errors.authRequired');
       } else if (apiError.status === 403) {
-        error.value = 'You do not have permission to view this data.';
+        error.value = t('common.errors.noPermission');
       } else {
-        error.value = apiError.error || apiError.message || 'Failed to load data. Please try again.';
+        error.value = apiError.error || apiError.message || t('common.errors.failedToLoadData');
       }
     } finally {
       loading.value = false;

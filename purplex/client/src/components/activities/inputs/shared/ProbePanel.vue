@@ -21,7 +21,7 @@
             type="text"
             class="param-input"
             :placeholder="param.type"
-            :aria-label="`Enter value for ${param.name} (type: ${param.type})`"
+            :aria-label="$t('problems.probe.paramAriaLabel', { name: param.name, type: param.type })"
             :disabled="!canProbe || isExecuting"
             @input="$emit('update-input', param.name, ($event.target as HTMLInputElement).value)"
             @keydown.enter="!isExecuting && canProbe && hasValidInputs && $emit('execute-probe')"
@@ -36,7 +36,7 @@
             'result-flash': showResultFlash,
             'is-cached': isDuplicate
           }"
-          :aria-label="isDuplicate ? `Cached result: ${formatOutput(cachedResult)}` : undefined"
+          :aria-label="isDuplicate ? $t('problems.probe.cachedResultAriaLabel', { result: formatOutput(cachedResult) }) : undefined"
         >
           {{ displayResult !== null ? formatOutput(displayResult) : '?' }}
         </span>
@@ -45,10 +45,10 @@
         <button
           v-if="uniqueHistory.length > 0"
           class="history-btn"
-          :aria-label="`View probe history (${uniqueHistory.length} unique entries)`"
+          :aria-label="$t('problems.probe.historyAriaLabel', { count: uniqueHistory.length })"
           @click="showModal = true"
         >
-          History ({{ uniqueHistory.length }})
+          {{ $t('problems.probe.history', { count: uniqueHistory.length }) }}
         </button>
       </div>
 
@@ -64,14 +64,14 @@
       >
         <template v-if="isExecuting">
           <span class="spinner" />
-          <span>Probing</span>
+          <span>{{ $t('problems.probe.probing') }}</span>
         </template>
         <template v-else-if="isDuplicate">
           <span class="duplicate-icon" aria-hidden="true">✓</span>
-          <span>Already probed</span>
+          <span>{{ $t('problems.probe.alreadyProbed') }}</span>
         </template>
         <template v-else>
-          <span>Probe</span>
+          <span>{{ $t('problems.probe.probe') }}</span>
           <span
             v-if="probeCountDisplay"
             class="probe-count-badge"
@@ -117,11 +117,11 @@
         >
           <div class="modal-header">
             <h4 id="history-modal-title">
-              Probe History
+              {{ $t('problems.probe.probeHistory') }}
             </h4>
             <button
               class="modal-close"
-              aria-label="Close"
+              :aria-label="$t('common.close')"
               @click="showModal = false"
             >
               ✕
@@ -142,7 +142,7 @@
               v-if="uniqueHistory.length === 0"
               class="empty-state"
             >
-              No probes yet. Enter values and click Probe to discover function behavior.
+              {{ $t('problems.probe.noProbesYet') }}
             </div>
           </div>
         </div>
@@ -153,8 +153,11 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ProbeHistoryEntry, ProbeParameter } from '../../types'
 import { useFocusTrap } from '@/composables/useFocusTrap'
+
+const { t } = useI18n()
 
 interface Props {
   functionName: string
@@ -216,21 +219,21 @@ const displayResult = computed(() => {
 // Tooltip for button - changes based on state
 const buttonTooltip = computed(() => {
   if (props.isDuplicate) {
-    return 'You already probed these inputs - result shown above'
+    return t('problems.probe.tooltipDuplicate')
   }
   if (props.probeStatusClass === 'status-explore') {
-    return 'Unlimited probes available'
+    return t('problems.probe.tooltipUnlimited')
   }
   if (props.probeStatusClass === 'status-exhausted') {
-    return 'No probes remaining'
+    return t('problems.probe.tooltipExhausted')
   }
-  return 'Query the oracle with these inputs'
+  return t('problems.probe.tooltipDefault')
 })
 
 // Screen reader announcement for duplicate state
 const srAnnouncement = computed(() => {
   if (props.isDuplicate) {
-    return `These inputs were already probed. Result: ${props.formatOutput(props.cachedResult)}`
+    return t('problems.probe.srDuplicate', { result: props.formatOutput(props.cachedResult) })
   }
   return ''
 })

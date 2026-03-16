@@ -6,7 +6,7 @@
           type="button"
           :disabled="editor.editorSettings.fontSize.value <= 12"
           class="zoom-btn"
-          title="Decrease font size"
+          :title="$t('admin.editors.decreaseFontSize')"
           @click="editor.editorSettings.decreaseFontSize"
         >
           <span class="zoom-icon">-</span>
@@ -16,7 +16,7 @@
           type="button"
           :disabled="editor.editorSettings.fontSize.value >= 24"
           class="zoom-btn"
-          title="Increase font size"
+          :title="$t('admin.editors.increaseFontSize')"
           @click="editor.editorSettings.increaseFontSize"
         >
           <span class="zoom-icon">+</span>
@@ -30,28 +30,28 @@
           @change="editor.editorSettings.setTheme(($event.target as HTMLSelectElement).value)"
         >
           <option value="monokai">
-            Monokai
+            {{ $t('admin.editors.themes.monokai') }}
           </option>
           <option value="github">
-            GitHub
+            {{ $t('admin.editors.themes.github') }}
           </option>
           <option value="clouds_midnight">
-            Clouds Midnight
+            {{ $t('admin.editors.themes.cloudsMidnight') }}
           </option>
           <option value="chrome">
-            Chrome
+            {{ $t('admin.editors.themes.chrome') }}
           </option>
           <option value="solarized_dark">
-            Solarized Dark
+            {{ $t('admin.editors.themes.solarizedDark') }}
           </option>
           <option value="solarized_light">
-            Solarized Light
+            {{ $t('admin.editors.themes.solarizedLight') }}
           </option>
           <option value="dracula">
-            Dracula
+            {{ $t('admin.editors.themes.dracula') }}
           </option>
           <option value="tomorrow_night">
-            Tomorrow Night
+            {{ $t('admin.editors.themes.tomorrowNight') }}
           </option>
         </select>
       </div>

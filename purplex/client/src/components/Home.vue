@@ -28,9 +28,9 @@
               :id="`course-progress-${enrollment.course.course_id}`"
               class="progress-indicator"
               role="status"
-              :aria-label="`Course progress: ${enrollment.progress.completed_sets} of ${enrollment.progress.total_sets} problem sets completed`"
+              :aria-label="t('problems.home.aria.courseProgress', { completed: enrollment.progress.completed_sets, total: enrollment.progress.total_sets })"
             >
-              {{ enrollment.progress.completed_sets }} / {{ enrollment.progress.total_sets }} completed
+              {{ t('problems.home.completed', { completed: enrollment.progress.completed_sets, total: enrollment.progress.total_sets }) }}
             </span>
           </div>
           <hr
@@ -43,7 +43,7 @@
             v-if="loading.courses"
             class="gallery-grid"
             role="status"
-            aria-label="Loading problem sets"
+            :aria-label="t('problems.home.aria.loadingProblemSets')"
           >
             <!-- Skeleton cards -->
             <div
@@ -67,13 +67,13 @@
           <nav
             v-else-if="enrollment.course.problem_sets && enrollment.course.problem_sets.length > 0"
             class="gallery-grid"
-            :aria-label="`${enrollment.course.name} problem sets`"
+            :aria-label="`${enrollment.course.name}`"
           >
             <button
               v-for="psData in enrollment.course.problem_sets"
               :key="psData.problem_set.slug"
               class="problem-set-card"
-              :aria-label="`${psData.problem_set.title}: ${psData.progress.completed_problems} of ${psData.progress.total_problems} completed`"
+              :aria-label="t('problems.home.aria.problemSetProgress', { title: psData.problem_set.title, completed: psData.progress.completed_problems, total: psData.progress.total_problems })"
               @click="navigateToProblemSet(enrollment.course.course_id, psData.problem_set.slug)"
             >
               <div class="card-content">
@@ -85,7 +85,7 @@
                     v-if="psData.due_date"
                     :class="['due-badge', getDueDateClass(psData)]"
                   >
-                    {{ isLocked(psData) ? '🔒 Closed' : formatDueDate(psData.due_date) }}
+                    {{ isLocked(psData) ? t('problems.home.closedBadge') : formatDueDate(psData.due_date) }}
                   </span>
                 </div>
 
@@ -97,7 +97,7 @@
                       :aria-valuenow="psData.progress.percentage"
                       aria-valuemin="0"
                       aria-valuemax="100"
-                      :aria-label="`Progress: ${psData.progress.percentage}%`"
+                      :aria-label="t('problems.home.aria.progressPercent', { percent: psData.progress.percentage })"
                       aria-live="polite"
                     >
                       <div
@@ -110,11 +110,10 @@
                       aria-live="polite"
                     >
                       <template v-if="psData.progress.total_problems === 0">
-                        No problems yet
+                        {{ $t('problems.home.noProblems') }}
                       </template>
                       <template v-else>
-                        {{ psData.progress.completed_problems }} /
-                        {{ psData.progress.total_problems }} completed
+                        {{ t('problems.home.completed', { completed: psData.progress.completed_problems, total: psData.progress.total_problems }) }}
                       </template>
                     </span>
                   </div>
@@ -124,8 +123,8 @@
                 class="card-hover-text"
                 aria-hidden="true"
               >
-                {{ psData.progress.percentage === 100 ? 'Review →' :
-                  psData.progress.completed_problems > 0 ? 'Continue →' : 'Start →' }}
+                {{ psData.progress.percentage === 100 ? t('problems.home.reviewAction') :
+                  psData.progress.completed_problems > 0 ? t('problems.home.continueAction') : t('problems.home.startAction') }}
               </span>
             </button>
           </nav>
@@ -135,7 +134,7 @@
             class="empty-state"
             role="status"
           >
-            <p>No problem sets available in this course yet.</p>
+            <p>{{ $t('problems.home.noSetsAvailable') }}</p>
           </div>
         </section>
       </div>
@@ -152,18 +151,18 @@
           >
             🎓
           </div>
-          <h1>Welcome to Purplex!</h1>
-          <p>Get started by joining a course to access problem sets.</p>
+          <h1>{{ $t('problems.home.welcome') }}</h1>
+          <p>{{ $t('problems.home.welcomeMessage') }}</p>
           <button
             class="add-course-btn"
-            aria-label="Join a new course to access problem sets"
+            :aria-label="$t('aria.joinCourse')"
             @click="showEnrollmentModal"
           >
             <span
               class="btn-icon"
               aria-hidden="true"
             >+</span>
-            Join a Course
+            {{ $t('problems.home.joinCourse') }}
           </button>
         </div>
       </div>
@@ -173,7 +172,7 @@
     <button
       v-if="enrolledCourses.length > 0"
       class="add-course-btn floating"
-      aria-label="Join a Course"
+      :aria-label="$t('problems.home.joinCourse')"
       @click="showEnrollmentModal"
     >
       <span
@@ -188,11 +187,13 @@
 import { computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import CourseEnrollmentModal from '../modals/CourseEnrollmentModal.vue'
 import { waitForAuthState } from '../utils/auth-state'
 
 const store = useStore()
 const router = useRouter()
+const { t, locale } = useI18n()
 
 // Computed properties
 const enrolledCourses = computed(() => store.state.courses.enrolledCourses)
@@ -214,15 +215,15 @@ function formatDueDate(dateString: string): string {
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
   if (diffDays < 0) {
-    return 'Past due'
+    return t('problems.dueDate.pastDue')
   } else if (diffDays === 0) {
-    return 'Due today'
+    return t('problems.dueDate.today')
   } else if (diffDays === 1) {
-    return 'Due tomorrow'
+    return t('problems.dueDate.tomorrow')
   } else if (diffDays <= 7) {
-    return `Due in ${diffDays} days`
+    return t('problems.dueDate.inDays', { days: diffDays })
   } else {
-    return `Due ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    return t('problems.dueDate.onDate', { date: date.toLocaleDateString(locale.value, { month: 'short', day: 'numeric' }) })
   }
 }
 

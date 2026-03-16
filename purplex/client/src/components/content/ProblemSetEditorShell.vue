@@ -1,26 +1,26 @@
 <template>
   <ContentEditorLayout
     :back-path="ctx.paths.problemSets.value"
-    :back-label="ctx.isInstructor.value ? 'Back to My Problem Sets' : 'Back to Problem Sets'"
+    :back-label="ctx.isInstructor.value ? $t('admin.contentLayout.backToMyProblemSets') : $t('admin.contentLayout.backToProblemSets')"
     :show-header="false"
   >
     <!-- Header -->
     <div class="header rounded-lg border-default">
-      <h2>{{ isEditing ? 'Edit Problem Set' : 'Create Problem Set' }}</h2>
+      <h2>{{ isEditing ? $t('admin.problemSets.editProblemSet') : $t('admin.problemSets.createProblemSet') }}</h2>
       <div class="actions">
         <button
           v-if="isEditing"
           class="btn btn-danger"
           @click="handleDelete"
         >
-          Delete
+          {{ $t('common.delete') }}
         </button>
         <button
           :disabled="!canSave || saving"
           class="btn btn-primary rounded-base"
           @click="handleSave"
         >
-          {{ saving ? 'Saving...' : 'Save Problem Set' }}
+          {{ saving ? $t('admin.problemSets.saving') : $t('admin.problemSets.saveProblemSet') }}
         </button>
       </div>
     </div>
@@ -28,7 +28,7 @@
     <!-- Loading State -->
     <div v-if="loading" class="loading-container">
       <div class="spinner" />
-      <p>Loading problem set...</p>
+      <p>{{ $t('admin.problemSets.loading') }}</p>
     </div>
 
     <!-- Error State -->
@@ -40,54 +40,54 @@
     <form v-else class="problem-set-form" @submit.prevent="handleSave">
       <!-- Basic Info Section -->
       <div class="form-section rounded-lg border-default">
-        <h3>Basic Information</h3>
+        <h3>{{ $t('admin.problemSets.basicInfo') }}</h3>
 
         <div class="form-row">
           <div class="form-group flex-grow">
-            <label for="title">Title</label>
+            <label for="title">{{ $t('admin.problemSets.titleLabel') }}</label>
             <input
               id="title"
               v-model="formData.title"
               type="text"
               required
-              placeholder="e.g., Python Basics"
+              :placeholder="$t('admin.problemSets.titlePlaceholder')"
             />
           </div>
           <div class="form-group">
             <label class="checkbox-label">
               <input v-model="formData.is_public" type="checkbox" />
-              <span>Public</span>
+              <span>{{ $t('admin.problemSets.public') }}</span>
             </label>
           </div>
         </div>
 
         <div class="form-group">
-          <label for="description">Description</label>
+          <label for="description">{{ $t('admin.problemSets.descriptionLabel') }}</label>
           <textarea
             id="description"
             v-model="formData.description"
             rows="3"
-            placeholder="Brief description of this problem set"
+            :placeholder="$t('admin.problemSets.descriptionPlaceholder')"
           />
         </div>
       </div>
 
       <!-- Problems Section -->
       <div class="form-section rounded-lg border-default">
-        <h3>Problems</h3>
+        <h3>{{ $t('admin.problemSets.problemsSection') }}</h3>
 
         <div v-if="loadingProblems" class="problems-loading">
           <div class="spinner-small" />
-          <span>Loading problems...</span>
+          <span>{{ $t('admin.problemSets.loadingProblems') }}</span>
         </div>
 
         <div v-else class="problems-container">
           <!-- Selected problems (sortable list) -->
           <div class="selected-problems-section">
-            <label class="section-label">Selected Problems ({{ selectedProblemSlugs.length }})</label>
+            <label class="section-label">{{ $t('admin.problemSets.selectedProblems', { count: selectedProblemSlugs.length }) }}</label>
             <div class="selected-problems">
               <div v-if="selectedProblemSlugs.length === 0" class="no-problems">
-                No problems selected. Add problems from the list below.
+                {{ $t('admin.problemSets.noProblemsSelected') }}
               </div>
               <div
                 v-for="(slug, index) in selectedProblemSlugs"
@@ -102,7 +102,7 @@
                     type="button"
                     class="move-btn"
                     :disabled="index === 0"
-                    title="Move up"
+                    :title="$t('admin.problemSets.moveUp')"
                     @click="moveProblem(index, -1)"
                   >
                     ↑
@@ -111,7 +111,7 @@
                     type="button"
                     class="move-btn"
                     :disabled="index === selectedProblemSlugs.length - 1"
-                    title="Move down"
+                    :title="$t('admin.problemSets.moveDown')"
                     @click="moveProblem(index, 1)"
                   >
                     ↓
@@ -119,7 +119,7 @@
                   <button
                     type="button"
                     class="remove-btn"
-                    title="Remove"
+                    :title="$t('common.remove')"
                     @click="removeProblem(slug)"
                   >
                     ×
@@ -131,12 +131,12 @@
 
           <!-- Available problems -->
           <div class="available-problems-section">
-            <label class="section-label">Available Problems</label>
+            <label class="section-label">{{ $t('admin.problemSets.availableProblems') }}</label>
             <input
               v-model="problemSearch"
               type="text"
               class="problem-search"
-              placeholder="Search problems by title or type..."
+              :placeholder="$t('admin.problemSets.searchProblems')"
             />
             <div class="problem-list">
               <div
@@ -150,7 +150,7 @@
                 <span class="add-indicator">+</span>
               </div>
               <div v-if="filteredAvailableProblems.length === 0" class="no-problems">
-                {{ problemSearch ? 'No matching problems found' : 'All problems are already added' }}
+                {{ problemSearch ? $t('admin.problemSets.noMatchingProblems') : $t('admin.problemSets.allProblemsAdded') }}
               </div>
             </div>
           </div>
@@ -161,17 +161,16 @@
     <!-- Delete Confirmation Dialog -->
     <div v-if="showDeleteDialog" class="dialog-overlay">
       <div class="dialog">
-        <h3>Delete Problem Set?</h3>
+        <h3>{{ $t('admin.problemSets.deleteProblemSet') }}</h3>
         <p>
-          Are you sure you want to delete "{{ formData.title }}"?
-          This will not delete the problems inside.
+          {{ $t('admin.problemSets.deleteConfirmMessage', { title: formData.title }) }}
         </p>
         <div class="dialog-actions">
           <button class="btn btn-secondary" @click="showDeleteDialog = false">
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button class="btn btn-danger" :disabled="deleting" @click="confirmDelete">
-            {{ deleting ? 'Deleting...' : 'Delete' }}
+            {{ deleting ? $t('admin.problemSets.deleting') : $t('common.delete') }}
           </button>
         </div>
       </div>
@@ -181,6 +180,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
 import { provideContentContext } from '@/composables/useContentContext';
@@ -189,6 +189,8 @@ import type { ProblemSet, ProblemDetailed } from '@/types';
 
 // Router
 const route = useRoute();
+
+const { t } = useI18n();
 
 // Provide role-aware context
 const ctx = provideContentContext();
@@ -279,7 +281,7 @@ async function loadProblemSet(slug: string): Promise<void> {
     log.info('Loaded problem set for editing', { slug, problemCount: selectedProblemSlugs.value.length });
   } catch (err) {
     const apiError = err as { error?: string };
-    error.value = apiError.error || 'Failed to load problem set';
+    error.value = apiError.error || t('admin.problemSets.loading');
     log.error('Failed to load problem set', { error: err });
   } finally {
     loading.value = false;
@@ -344,7 +346,7 @@ async function handleSave(): Promise<void> {
     ctx.navigateToList('problem-sets');
   } catch (err) {
     const apiError = err as { error?: string };
-    error.value = apiError.error || 'Failed to save problem set';
+    error.value = apiError.error || t('admin.problemSets.saving');
     log.error('Error saving problem set', { error: err });
   } finally {
     saving.value = false;
@@ -367,7 +369,7 @@ async function confirmDelete(): Promise<void> {
     ctx.navigateToList('problem-sets');
   } catch (err) {
     const apiError = err as { error?: string };
-    error.value = apiError.error || 'Failed to delete problem set';
+    error.value = apiError.error || t('admin.problemSets.deleting');
     log.error('Error deleting problem set', { error: err });
     showDeleteDialog.value = false;
   } finally {

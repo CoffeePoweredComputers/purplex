@@ -36,7 +36,7 @@
       class="draft-indicator"
       role="status"
       aria-live="polite"
-    >Draft saved</span>
+    >{{ $t('problems.submission.draftSaved') }}</span>
     <div
       id="codeEditor"
       class="code-editor-wrapper"
@@ -59,13 +59,13 @@
       class="submit-button"
       :disabled="disabled || !isValid"
       :aria-busy="disabled"
-      :aria-label="disabled ? 'Testing code, please wait' : (isValid ? 'Submit Solution' : 'Code must be at least 10 characters')"
+      :aria-label="disabled ? $t('problems.submission.testingWait') : (isValid ? $t('problems.submission.submitSolution') : $t('problems.submission.codeTooShort'))"
       @click="handleSubmit"
     >
       <span
         v-if="!disabled"
         class="button-text"
-      >Submit Solution</span>
+      >{{ $t('problems.submission.submitSolution') }}</span>
       <div
         v-if="disabled"
         class="loading-content"
@@ -80,7 +80,7 @@
           <span class="dot" />
           <span class="dot" />
         </div>
-        <span class="visually-hidden">Testing code, please wait</span>
+        <span class="visually-hidden">{{ $t('problems.submission.testingWait') }}</span>
       </div>
     </button>
   </div>
@@ -95,6 +95,7 @@
  * - Code editor: Write implementation that matches the discovered behavior
  */
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Editor from '@/features/editor/Editor.vue'
 import ProbePanel from './shared/ProbePanel.vue'
 import { useProbeState } from './shared/useProbeState'
@@ -146,7 +147,9 @@ const {
   updateProbeInput,
 } = useProbeState(() => props.problem)
 
-const sectionLabel = 'Discover Function Behavior and Replicate Implementation'
+const { t } = useI18n()
+
+const sectionLabel = t('problems.probeableCode.sectionLabel')
 
 // Code editor logic
 const inputValue = computed({

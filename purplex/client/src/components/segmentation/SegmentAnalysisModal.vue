@@ -22,20 +22,20 @@
                 id="segment-modal-title"
                 class="modal-title"
               >
-                Comprehension Level Analysis
+                {{ $t('feedback.segmentModal.title') }}
               </h3>
               <div class="header-badges">
                 <span
                   class="badge-level"
                   :class="levelBadgeClass"
                 >
-                  {{ formatLevel(segmentation.comprehension_level) }} Understanding
+                  {{ $t('feedback.segmentModal.levelUnderstanding', { level: formatLevel(segmentation.comprehension_level) }) }}
                 </span>
               </div>
             </div>
             <div class="modal-actions">
               <div class="size-controls-group">
-                <span class="size-label">Size</span>
+                <span class="size-label">{{ $t('feedback.segmentModal.sizeLabel') }}</span>
                 <div class="size-controls" role="group" aria-label="Modal size">
                   <button
                     v-for="size in sizePresets"
@@ -52,8 +52,8 @@
               </div>
               <button
                 class="action-button"
-                title="Open in new tab"
-                aria-label="Open understanding analysis in new tab"
+                :title="$t('feedback.segmentModal.openInNewTab')"
+                :aria-label="$t('feedback.segmentModal.openInNewTabAriaLabel')"
                 @click="openInNewTab"
               >
                 <span class="icon" aria-hidden="true">⬈</span>
@@ -61,8 +61,8 @@
               <button
                 ref="closeButtonRef"
                 class="close-button"
-                title="Close (ESC)"
-                aria-label="Close modal"
+                :title="$t('feedback.segmentModal.closeEsc')"
+                :aria-label="$t('feedback.segmentModal.closeModal')"
                 @click="closeModal"
               >
                 <span aria-hidden="true">&times;</span>
@@ -77,10 +77,21 @@
                 <div class="feedback-text">
                   <p id="segment-modal-description" class="feedback-message">
                     <template v-if="segmentation.comprehension_level === 'relational'">
-                      Excellent! Your <span class="segment-badge segment-badge-success">{{ segmentation.segment_count }} segment{{ segmentation.segment_count > 1 ? 's' : '' }}</span> show{{ segmentation.segment_count === 1 ? 's' : '' }} high-level understanding.
+                      <i18n-t keypath="feedback.segmentModal.relationalFeedback" tag="span">
+                        <template #count>
+                          <span class="segment-badge segment-badge-success">{{ segmentation.segment_count }}</span>
+                        </template>
+                      </i18n-t>
                     </template>
                     <template v-else-if="segmentation.comprehension_level === 'multi_structural'">
-                      Your <span class="segment-badge segment-badge-warning">{{ segmentation.segment_count }} segments</span> are too detailed. Try to describe the overall purpose in <span class="segment-badge segment-badge-goal">{{ segmentThreshold === 1 ? '1 segment' : `${segmentThreshold} or fewer segments` }}</span>.
+                      <i18n-t keypath="feedback.segmentModal.multiStructuralFeedback" tag="span">
+                        <template #count>
+                          <span class="segment-badge segment-badge-warning">{{ segmentation.segment_count }}</span>
+                        </template>
+                        <template #goal>
+                          <span class="segment-badge segment-badge-goal">{{ segmentThreshold }}</span>
+                        </template>
+                      </i18n-t>
                     </template>
                     <template v-else>
                       {{ segmentation.feedback }}
@@ -110,6 +121,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, toRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import SegmentMapping from './SegmentMapping.vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 
@@ -150,22 +162,24 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
+const { t } = useI18n()
+
 // Focus trap composable — focus the close button on open (Fix 6, WCAG 2.4.3)
 const closeButtonRef = ref<HTMLElement | null>(null)
 const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible), closeButtonRef)
 
 // Size state
 const currentSize = ref<SizePreset>('medium')
-const sizePresets: SizePresetConfig[] = [
-  { name: 'small', label: 'Small', icon: '◻', width: '800px', height: 'auto' },
-  { name: 'medium', label: 'Medium', icon: '◼', width: '1000px', height: 'auto' },
-  { name: 'large', label: 'Large', icon: '⬛', width: '1200px', height: 'auto' },
-  { name: 'fullscreen', label: 'Fullscreen', icon: '⛶', width: '100%', height: '100vh' }
-]
+const sizePresets = computed<SizePresetConfig[]>(() => [
+  { name: 'small', label: t('feedback.segmentModal.sizePresets.small'), icon: '◻', width: '800px', height: 'auto' },
+  { name: 'medium', label: t('feedback.segmentModal.sizePresets.medium'), icon: '◼', width: '1000px', height: 'auto' },
+  { name: 'large', label: t('feedback.segmentModal.sizePresets.large'), icon: '⬛', width: '1200px', height: 'auto' },
+  { name: 'fullscreen', label: t('feedback.segmentModal.sizePresets.fullscreen'), icon: '⛶', width: '100%', height: '100vh' }
+])
 
 // Computed
 const modalStyle = computed(() => {
-  const preset = sizePresets.find(s => s.name === currentSize.value)
+  const preset = sizePresets.value.find(s => s.name === currentSize.value)
   if (!preset) {
     return {}
   }
@@ -209,44 +223,84 @@ function setModalSize(sizeName: SizePreset): void {
 
 function openInNewTab(): void {
   const newWindow = window.open('', '_blank', 'width=1200,height=800')
-  if (newWindow) {
-    newWindow.document.write(`
-      <html>
-        <head>
-          <title>Understanding Analysis - ${formatLevel(props.segmentation.comprehension_level)}</title>
-          <style>
-            body { font-family: Inter, system-ui, sans-serif; margin: 20px; }
-            .header { margin-bottom: 20px; }
-            .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px; }
-            .segments { margin: 20px 0; }
-            .segment { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-            .code { font-family: Monaco, monospace; background: #f5f5f5; padding: 10px; border-radius: 4px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Understanding Analysis</h1>
-            <span class="badge">${formatLevel(props.segmentation.comprehension_level)} Understanding</span>
-            <p><strong>Feedback:</strong> ${props.segmentation.feedback}</p>
-            <p><strong>Explanation:</strong> ${getExplanation()}</p>
-          </div>
-          <div class="segments">
-            <h2>Segments</h2>
-            ${props.segmentation.segments.map(segment => `
-              <div class="segment">
-                <strong>Segment ${segment.id}:</strong> ${segment.text}
-                <br><small>Lines: ${segment.code_lines.join(', ')}</small>
-              </div>
-            `).join('')}
-          </div>
-          <div class="code">
-            <h2>Reference Code</h2>
-            <pre>${props.referenceCode}</pre>
-          </div>
-        </body>
-      </html>
-    `)
+  if (!newWindow) { closeModal(); return }
+
+  const title = t('feedback.segmentModal.newTabTitle')
+  const levelText = t('feedback.segmentModal.levelUnderstanding', { level: formatLevel(props.segmentation.comprehension_level) })
+  const feedbackLabel = t('feedback.segmentModal.feedbackLabel')
+  const explanationLabel = t('feedback.segmentModal.explanationLabel')
+  const segmentsHeading = t('feedback.segmentModal.segmentsHeading')
+  const linesLabel = t('feedback.segmentModal.linesLabel')
+  const refCodeHeading = t('feedback.segmentModal.referenceCodeHeading')
+
+  const doc = newWindow.document
+  doc.title = `${title} - ${formatLevel(props.segmentation.comprehension_level)}`
+
+  const style = doc.createElement('style')
+  style.textContent = `
+    body { font-family: Inter, system-ui, sans-serif; margin: 20px; }
+    .header { margin-bottom: 20px; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px; }
+    .segments { margin: 20px 0; }
+    .segment { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+    .code { font-family: Monaco, monospace; background: #f5f5f5; padding: 10px; border-radius: 4px; }
+  `
+  doc.head.appendChild(style)
+
+  const header = doc.createElement('div')
+  header.className = 'header'
+  const h1 = doc.createElement('h1')
+  h1.textContent = title
+  header.appendChild(h1)
+  const badge = doc.createElement('span')
+  badge.className = 'badge'
+  badge.textContent = levelText
+  header.appendChild(badge)
+  const feedbackP = doc.createElement('p')
+  const feedbackStrong = doc.createElement('strong')
+  feedbackStrong.textContent = `${feedbackLabel}: `
+  feedbackP.appendChild(feedbackStrong)
+  feedbackP.appendChild(doc.createTextNode(props.segmentation.feedback))
+  header.appendChild(feedbackP)
+  const explanationP = doc.createElement('p')
+  const explanationStrong = doc.createElement('strong')
+  explanationStrong.textContent = `${explanationLabel}: `
+  explanationP.appendChild(explanationStrong)
+  explanationP.appendChild(doc.createTextNode(getExplanation()))
+  header.appendChild(explanationP)
+  doc.body.appendChild(header)
+
+  const segmentsDiv = doc.createElement('div')
+  segmentsDiv.className = 'segments'
+  const h2 = doc.createElement('h2')
+  h2.textContent = segmentsHeading
+  segmentsDiv.appendChild(h2)
+  for (const segment of props.segmentation.segments) {
+    const segDiv = doc.createElement('div')
+    segDiv.className = 'segment'
+    const strong = doc.createElement('strong')
+    strong.textContent = `${t('feedback.segmentModal.segmentLabel', { id: segment.id })}: `
+    segDiv.appendChild(strong)
+    segDiv.appendChild(doc.createTextNode(segment.text))
+    const br = doc.createElement('br')
+    segDiv.appendChild(br)
+    const small = doc.createElement('small')
+    small.textContent = `${linesLabel}: ${segment.code_lines.join(', ')}`
+    segDiv.appendChild(small)
+    segmentsDiv.appendChild(segDiv)
   }
+  doc.body.appendChild(segmentsDiv)
+
+  const codeDiv = doc.createElement('div')
+  codeDiv.className = 'code'
+  const codeH2 = doc.createElement('h2')
+  codeH2.textContent = refCodeHeading
+  codeDiv.appendChild(codeH2)
+  const pre = doc.createElement('pre')
+  pre.textContent = props.referenceCode
+  codeDiv.appendChild(pre)
+  doc.body.appendChild(codeDiv)
+
   closeModal()
 }
 
@@ -264,20 +318,20 @@ function getFeedbackIcon(): string {
 function formatLevel(level: ComprehensionLevel): string {
   switch (level) {
     case 'relational':
-      return 'Excellent'
+      return t('feedback.segmentModal.levelExcellent')
     case 'multi_structural':
-      return 'Detailed'
+      return t('feedback.segmentModal.levelDetailed')
     default:
-      return 'Unknown'
+      return t('feedback.segmentModal.levelUnknown')
   }
 }
 
 function getExplanation(): string {
   switch (props.segmentation.comprehension_level) {
     case 'relational':
-      return 'You focused on the overall purpose. This shows strong conceptual understanding.'
+      return t('feedback.segmentModal.explanationRelational')
     case 'multi_structural':
-      return 'You provided line-by-line detail. Try focusing on the main goal instead.'
+      return t('feedback.segmentModal.explanationMultiStructural')
     default:
       return ''
   }
@@ -286,7 +340,7 @@ function getExplanation(): string {
 // Load saved size preference on mount
 onMounted(() => {
   const savedSize = localStorage.getItem('segment-analysis-modal-size') as SizePreset | null
-  if (savedSize && sizePresets.find(s => s.name === savedSize)) {
+  if (savedSize && sizePresets.value.find(s => s.name === savedSize)) {
     currentSize.value = savedSize
   }
 })

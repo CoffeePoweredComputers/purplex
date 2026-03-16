@@ -9,7 +9,7 @@
         class="loading-container"
       >
         <div class="loading-spinner" />
-        <p>Loading students...</p>
+        <p>{{ $t('admin.courseStudents.loadingStudents') }}</p>
       </div>
 
       <!-- Error State -->
@@ -24,15 +24,15 @@
         >
           ⚠️
         </div>
-        <span class="visually-hidden">Error:</span>
-        <h3>Unable to Load Students</h3>
+        <span class="visually-hidden">{{ $t('admin.courseStudents.errorLabel') }}</span>
+        <h3>{{ $t('admin.courseStudents.unableToLoadStudents') }}</h3>
         <p>{{ error }}</p>
         <button
           class="retry-btn"
-          aria-label="Retry loading students"
+          :aria-label="$t('admin.courseStudents.retryAriaLabel')"
           @click="fetchStudents"
         >
-          Try Again
+          {{ $t('admin.courseStudents.tryAgain') }}
         </button>
       </div>
 
@@ -45,14 +45,13 @@
               id="student-search"
               v-model="searchQuery"
               type="text"
-              placeholder="Search by name or email..."
+              :placeholder="$t('admin.courseStudents.searchPlaceholder')"
               class="search-input"
-              aria-label="Search students by username or email"
+              :aria-label="$t('admin.courseStudents.searchAriaLabel')"
             >
           </div>
           <span class="results-count">
-            {{ filteredStudents.length }} student{{ filteredStudents.length !== 1 ? 's' : '' }}
-            {{ searchQuery ? 'found' : 'enrolled' }}
+            {{ $t('admin.courseStudents.studentsEnrolled', { count: filteredStudents.length }) }}
           </span>
         </div>
 
@@ -61,7 +60,7 @@
             <thead>
               <tr>
                 <th class="sticky-col">
-                  Student
+                  {{ $t('admin.courseStudents.studentHeader') }}
                 </th>
                 <th
                   v-for="ps in problemSets"
@@ -72,7 +71,7 @@
                   {{ ps.title }}
                 </th>
                 <th class="center">
-                  Overall
+                  {{ $t('admin.courseStudents.overallHeader') }}
                 </th>
               </tr>
             </thead>
@@ -105,7 +104,7 @@
                   <div
                     v-else
                     class="progress-indicator progress-none"
-                    title="Not started"
+                    :title="$t('admin.courseStudents.notStartedTitle')"
                   >
                     —
                   </div>
@@ -128,7 +127,7 @@
             v-if="filteredStudents.length === 0 && searchQuery"
             class="no-filter-results"
           >
-            <p>No students match "{{ searchQuery }}"</p>
+            <p>{{ $t('admin.courseStudents.noSearchResults', { query: searchQuery }) }}</p>
           </div>
         </div>
       </template>
@@ -144,9 +143,9 @@
         >
           👥
         </div>
-        <span class="visually-hidden">Information:</span>
-        <h3>No Students Enrolled</h3>
-        <p>No students have enrolled in this course yet.</p>
+        <span class="visually-hidden">{{ $t('admin.courseStudents.informationLabel') }}</span>
+        <h3>{{ $t('admin.courseStudents.noStudents') }}</h3>
+        <p>{{ $t('admin.courseStudents.noStudentsMessage') }}</p>
       </div>
     </div>
   </div>
@@ -155,6 +154,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import axios from 'axios';
 import InstructorNavBar from './InstructorNavBar.vue';
 import { log } from '../../utils/logger';
@@ -189,6 +189,7 @@ interface Student {
 }
 
 const route = useRoute();
+const { t } = useI18n();
 const courseId = computed(() => route.params.courseId as string);
 
 const students = ref<Student[]>([]);
@@ -256,14 +257,14 @@ async function fetchStudents() {
     log.error('Failed to fetch students', err);
     if (axios.isAxiosError(err)) {
       if (err.response?.status === 404) {
-        error.value = 'Course not found.';
+        error.value = t('admin.courseStudents.courseNotFound');
       } else if (err.response?.status === 403) {
-        error.value = 'You do not have permission to view students for this course.';
+        error.value = t('admin.courseStudents.noPermissionStudents');
       } else {
-        error.value = 'Failed to load students. Please try again.';
+        error.value = t('admin.courseStudents.failedToLoadStudentsRetry');
       }
     } else {
-      error.value = 'An unexpected error occurred.';
+      error.value = t('common.errors.unexpectedError');
     }
   } finally {
     loading.value = false;

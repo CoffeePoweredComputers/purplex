@@ -5,29 +5,29 @@
 
     <!-- Function Configuration -->
     <div class="form-section rounded-lg border-default">
-      <h3>Function Configuration</h3>
+      <h3>{{ $t('admin.editors.probeable.functionConfiguration') }}</h3>
       <p class="section-description">
-        Define the function signature and reference solution (oracle code).
-        The reference solution is used to evaluate student probe queries.
+        {{ $t('admin.editors.probeable.codeConfigDescription') }}
       </p>
 
       <div class="form-group">
-        <label for="function_signature">Function Signature *</label>
+        <label for="function_signature">{{ $t('admin.editors.probeable.functionSignatureLabel') }}</label>
         <input
           id="function_signature"
           :value="editor.form.form.function_signature"
           type="text"
           required
-          placeholder="e.g., def mystery_function(x: int, y: str) -> bool:"
+          :placeholder="$t('admin.editors.probeable.functionSignaturePlaceholder')"
           @input="updateField('function_signature', ($event.target as HTMLInputElement).value)"
         >
-        <p class="field-hint">
-          Include type hints (e.g., <code>def f(x: int, y: str) -> bool:</code>)
-        </p>
+        <p
+          class="field-hint"
+          v-html="$t('admin.editors.probeable.functionSignatureHint', { example: '<code>def f(x: int, y: str) -&gt; bool:</code>' })"
+        />
       </div>
 
       <div class="form-group">
-        <label for="reference_solution">Reference Solution (Oracle Code) *</label>
+        <label for="reference_solution">{{ $t('admin.editors.probeable.referenceSolutionLabel') }}</label>
         <EditorToolbar :editor="editor" />
         <div class="code-editor">
           <Editor
@@ -43,7 +43,7 @@
           />
         </div>
         <p class="field-hint">
-          This code is hidden from students. It is executed when students probe with inputs.
+          {{ $t('admin.editors.probeable.oracleCodeHint') }}
         </p>
       </div>
     </div>
@@ -52,8 +52,6 @@
     <ProbeSettingsSection
       :config="editor.probeableCodeConfig"
       :probe-modes="probeModes"
-      section-description="Configure how students can query the oracle function to discover its behavior."
-      cooldown-attempts-hint="Number of code submissions required before probes are refilled"
     />
 
     <!-- Test Cases -->
@@ -61,7 +59,6 @@
       :editor="editor"
       @test="$emit('test')"
     />
-
   </div>
 </template>
 

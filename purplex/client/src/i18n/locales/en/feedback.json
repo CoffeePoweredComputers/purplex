@@ -1,38 +1,194 @@
 {
-  "loading": "Generating feedback...",
-  "emptyState": "Submit a prompt to start getting feedback!",
-  "yourResponse": "Your response",
-  "comprehension": {
-    "sectionTitle": "Comprehension Level",
-    "sectionDescription": "Shows how high-level vs. line-by-line your explanation is",
-    "level": {
-      "relational": "Great!",
-      "multiStructural": "Too detailed",
-      "default": "Analyzed"
+  "feedback": {
+    "loading": "Generating feedback...",
+    "emptyState": "Submit a prompt to start getting feedback!",
+    "yourResponse": "Your response",
+    "yourExplanation": "Your Explanation",
+    "comprehension": {
+      "sectionTitle": "Comprehension Level",
+      "sectionDescription": "Shows how high-level vs. line-by-line your explanation is",
+      "level": {
+        "relational": "Great!",
+        "multiStructural": "Too detailed",
+        "default": "Analyzed"
+      },
+      "description": {
+        "relational": "High-level understanding",
+        "multiStructural": "Review suggested improvements",
+        "default": "View analysis"
+      }
     },
-    "description": {
-      "relational": "High-level understanding",
-      "multiStructural": "Review suggested improvements",
-      "default": "View analysis"
+    "correctness": {
+      "sectionTitle": "Correctness",
+      "sectionDescription": "Multiple AI interpretations of your description tested against unit tests",
+      "label": "CORRECTNESS",
+      "status": {
+        "notYetWorking": "Not yet working",
+        "notYetWorkingDesc": "None of the versions passed the tests",
+        "ambiguous": "Works, but ambiguous",
+        "ambiguousDesc": "One version interpreted it differently",
+        "clear": "Clear",
+        "clearDesc": "All versions produced working code"
+      },
+      "metric": "{passing}/{total} pass"
+    },
+    "abstraction": {
+      "label": "ABSTRACTION",
+      "status": {
+        "locked": "Locked",
+        "lockedDesc": "Unlocks when all versions pass",
+        "highLevel": "High-level",
+        "highLevelDesc": "Focused on purpose, not implementation",
+        "tooDetailed": "Too detailed",
+        "tooDetailedDesc": "Describe the goal, not the steps"
+      },
+      "segments": "{count} segments",
+      "segmentThreshold": "(want {threshold})"
+    },
+    "nextStep": {
+      "viewAnalysis": "View Analysis",
+      "seeWhatFailed": "See What Failed",
+      "reviewAbstraction": "Review Abstraction",
+      "nextProblem": "Next Problem"
+    },
+    "banner": {
+      "notWorking": "Your explanation didn't produce working code yet. Let's look at what the code tried to do and where it went wrong.",
+      "ambiguous": "Your explanation could be read in different ways. One interpretation worked, but another didn't. Try being more specific.",
+      "tooDetailed": "Your explanation focuses on individual steps. Try describing what the code accomplishes overall instead of how it works line-by-line.",
+      "complete": "Problem complete! Your explanation is clear and correct."
+    },
+    "announcement": {
+      "correctnessOpened": "Correctness Analysis dialog opened",
+      "correctnessClosed": "Correctness Analysis dialog closed",
+      "abstractionLocked": "Abstraction is locked. Complete all correctness tests first.",
+      "abstractionOpened": "Abstraction Details dialog opened"
+    },
+    "tests": {
+      "passing": "{count} Passing",
+      "failing": "{count} Failing",
+      "failingGroup": "Failing Tests ({count})",
+      "passingGroup": "Passing Tests ({count})",
+      "expected": "Expected:",
+      "got": "Got:"
+    },
+    "solution": {
+      "title": "Solution {current} of {total}"
+    },
+    "attempts": {
+      "label": "Previous Submissions:",
+      "headerLabel": "Attempt:",
+      "ariaLabel": "View previous submissions. Current: attempt {current} of {total}, score {score}%",
+      "attemptAriaLabel": "Attempt {number}: {score}%, {passed} of {total} tests passed",
+      "bestAttempt": ", best attempt",
+      "testsPassedButAbstraction": "Tests passed but abstraction needs work"
+    },
+    "mcq": {
+      "title": "Answer Result",
+      "checking": "Checking your answer...",
+      "correct": "Correct!",
+      "partiallyCorrect": "Partially Correct",
+      "incorrect": "Incorrect",
+      "score": "Score: {score}%",
+      "yourAnswer": "Your Answer",
+      "correctAnswer": "Correct Answer",
+      "explanation": "Explanation",
+      "noResult": "Select an answer and submit to see your results."
+    },
+    "codeSubmission": {
+      "runningTests": "Running tests...",
+      "yourSubmission": "Your Submission",
+      "submitToSeeResults": "Submit your solution to see test results",
+      "debugTestCase": "Debug test case: {call}",
+      "testResults": "Test Results",
+      "probeLoading": "Loading..."
+    },
+    "refute": {
+      "title": "Counterexample Result",
+      "checkingInput": "Checking your input...",
+      "counterexampleFound": "Counterexample Found!",
+      "notCounterexample": "Not a Counterexample",
+      "score": "Score: {score}%",
+      "theClaim": "The Claim",
+      "yourInput": "Your Input",
+      "functionOutput": "Function Output",
+      "executionError": "Execution Error",
+      "whyThisWorks": "Why This Works",
+      "whyThisDoesntWork": "Why This Doesn't Work",
+      "disprovesClaimExplanation": "The function returned {result} for your input, which disproves the claim \"{claim}\".",
+      "supportsClaimExplanation": "The function returned {result}, which still supports the claim. Try finding input that produces a result contradicting \"{claim}\".",
+      "disprovesClaim": "This disproves the claim!",
+      "supportsClaim": "This supports the claim",
+      "noClaimSpecified": "No claim specified",
+      "enterAndSubmit": "Enter function arguments and submit to find a counterexample."
+    },
+    "sse": {
+      "taskTimeout": "No response from server after 2 minutes. The task may be stuck.",
+      "processing": "Processing...",
+      "taskFailed": "Task failed",
+      "connectionLost": "Connection lost, max reconnect attempts reached",
+      "submissionFailed": "Submission failed"
+    },
+    "segmentModal": {
+      "title": "Comprehension Level Analysis",
+      "levelUnderstanding": "{level} Understanding",
+      "sizeLabel": "Size",
+      "openInNewTab": "Open in new tab",
+      "openInNewTabAriaLabel": "Open understanding analysis in new tab",
+      "closeEsc": "Close (ESC)",
+      "closeModal": "Close modal",
+      "relationalFeedback": "Excellent! Your {count} segments show high-level understanding.",
+      "multiStructuralFeedback": "Your {count} segments are too detailed. Try to describe the overall purpose in {goal} or fewer segments.",
+      "explanationRelational": "You focused on the overall purpose. This shows strong conceptual understanding.",
+      "explanationMultiStructural": "You provided line-by-line detail. Try focusing on the main goal instead.",
+      "newTabTitle": "Understanding Analysis",
+      "feedbackLabel": "Feedback",
+      "explanationLabel": "Explanation",
+      "segmentsHeading": "Segments",
+      "segmentLabel": "Segment {id}",
+      "linesLabel": "Lines",
+      "referenceCodeHeading": "Reference Code",
+      "levelExcellent": "Excellent",
+      "levelDetailed": "Detailed",
+      "levelUnknown": "Unknown",
+      "sizePresets": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large",
+        "fullscreen": "Fullscreen"
+      }
+    },
+    "correctnessModal": {
+      "title": "Correctness Analysis",
+      "versionPass": "{passing}/{total} Versions Pass",
+      "sizeLabel": "Size",
+      "closeEsc": "Close (ESC)",
+      "closeModal": "Close modal",
+      "viewVersion": "View version:",
+      "codeVersions": "Code versions",
+      "passing": "Passing",
+      "failing": "Failing",
+      "generatedCode": "Generated Code",
+      "allTestsPass": "All tests pass",
+      "failingCount": "{count} failing",
+      "testResults": "Test Results",
+      "expected": "Expected",
+      "got": "Got",
+      "summaryHeadlineNone": "Your explanation didn't produce working code yet.",
+      "summaryHeadlinePartial": "Your explanation is ambiguous — it can be interpreted differently.",
+      "summaryHeadlineAll": "Excellent! Your explanation is clear and unambiguous.",
+      "summaryExplanationNone": "I generated {total} different code versions from your explanation, but none passed all tests. Review the failing tests to see what's missing from your description.",
+      "summaryExplanationPartial": "I generated {total} code versions and {passing} passed. One version interpreted your words differently, causing test failures. Click on the failing version to see what was ambiguous.",
+      "summaryExplanationAll": "I generated {total} independent code versions from your explanation, and all of them passed every test. This means your description captured the algorithm's logic precisely.",
+      "sizePresets": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large",
+        "fullscreen": "Fullscreen"
+      }
+    },
+    "segmentMapping": {
+      "yourExplanation": "Your Explanation",
+      "referenceCode": "Reference Code"
     }
-  },
-  "correctness": {
-    "sectionTitle": "Correctness",
-    "sectionDescription": "Multiple AI interpretations of your description tested against unit tests"
-  },
-  "tests": {
-    "passing": "{count} Passing",
-    "failing": "{count} Failing",
-    "failingGroup": "Failing Tests ({count})",
-    "passingGroup": "Passing Tests ({count})",
-    "expected": "Expected:",
-    "got": "Got:"
-  },
-  "solution": {
-    "title": "Solution {current} of {total}"
-  },
-  "attempts": {
-    "label": "Previous Submissions:",
-    "ariaLabel": "View previous submissions. Current: attempt {current} of {total}, score {score}%"
   }
 }

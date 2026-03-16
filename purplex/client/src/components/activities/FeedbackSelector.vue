@@ -25,7 +25,7 @@
     v-else
     class="activity-feedback-fallback"
   >
-    <p>No feedback component available for activity type: {{ activityType }}</p>
+    <p>{{ $t('problems.activity.noFeedbackComponent', { type: activityType }) }}</p>
   </div>
 </template>
 

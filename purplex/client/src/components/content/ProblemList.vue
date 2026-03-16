@@ -5,7 +5,7 @@
   >
     <template #header-actions>
       <button class="action-button add-button" @click="createNewProblem">
-        Add New Problem
+        {{ $t('admin.problems.addNew') }}
       </button>
     </template>
 
@@ -23,12 +23,12 @@
       :page-numbers="pageNumbers"
       :range-start="rangeStart"
       :range-end="rangeEnd"
-      item-label="problems"
+      :item-label="$t('admin.problems.itemLabel')"
       row-key="slug"
-      empty-title="No Problems"
+      :empty-title="$t('admin.problems.noProblems')"
       :empty-message="ctx.isInstructor.value
-        ? 'You haven\'t created any problems yet. Create your first one!'
-        : 'No problems found. Create your first one!'"
+        ? $t('admin.problems.emptyInstructor')
+        : $t('admin.problems.emptyAdmin')"
       @go-to-page="goToPage"
       @page-size-change="handlePageSizeChange"
       @retry="refresh"
@@ -40,7 +40,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Search by title..."
+              :placeholder="$t('admin.problems.searchByTitle')"
               class="search-input"
               @input="debouncedSearch"
             >
@@ -69,10 +69,10 @@
       <template #cell-actions="{ item }">
         <div class="actions-cell">
           <button class="action-button edit-button" @click="editProblem(item.slug)">
-            Edit
+            {{ $t('common.edit') }}
           </button>
           <button class="action-button delete-button" @click="confirmDelete(item)">
-            Delete
+            {{ $t('common.delete') }}
           </button>
         </div>
       </template>
@@ -81,7 +81,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
 import DataTable from '@/components/ui/DataTable.vue';
@@ -94,6 +95,7 @@ import { log } from '@/utils/logger';
 import type { ProblemDetailed } from '@/types';
 import type { DataTableColumn, BadgeVariant } from '@/types/datatable';
 
+const { t } = useI18n();
 const ctx = provideContentContext();
 const router = useRouter();
 const { notify } = useNotification();
@@ -132,7 +134,7 @@ const problemTypeLabels: Record<string, string> = {
 };
 
 function getProblemTypeLabel(type: string): string {
-  return problemTypeLabels[type] || type || 'Unknown';
+  return problemTypeLabels[type] || type || t('common.unknown');
 }
 
 function getTypeVariant(type: string): BadgeVariant {
@@ -161,23 +163,23 @@ function getDifficultyVariant(difficulty: string): BadgeVariant {
 
 function getProblemSetNames(problem: ProblemDetailed): string {
   const sets = (problem as ProblemDetailed & { problem_sets?: Array<{ title?: string }> }).problem_sets;
-  if (!sets || sets.length === 0) return 'None';
-  return sets.map(ps => ps.title || 'Unknown').join(', ');
+  if (!sets || sets.length === 0) return t('admin.problems.noProblemSets');
+  return sets.map(ps => ps.title || t('common.unknown')).join(', ');
 }
 
 // Column definitions
-const columns: DataTableColumn<ProblemDetailed>[] = [
-  { key: 'problem_type', label: 'Type', width: '130px', slot: 'cell-type' },
-  { key: 'title', label: 'Title' },
-  { key: 'difficulty', label: 'Difficulty', width: '140px', slot: 'cell-difficulty' },
+const columns = computed<DataTableColumn<ProblemDetailed>[]>(() => [
+  { key: 'problem_type', label: t('admin.problems.columnType'), width: '130px', slot: 'cell-type' },
+  { key: 'title', label: t('admin.problems.columnTitle') },
+  { key: 'difficulty', label: t('admin.problems.columnDifficulty'), width: '140px', slot: 'cell-difficulty' },
   {
     key: 'problem_sets',
-    label: 'Problem Sets',
+    label: t('admin.problems.columnProblemSets'),
     hideOnMobile: true,
     render: (_value, row) => getProblemSetNames(row),
   },
-  { key: 'actions', label: 'Actions', slot: 'cell-actions', width: '160px' },
-];
+  { key: 'actions', label: t('admin.problems.columnActions'), slot: 'cell-actions', width: '160px' },
+]);
 
 // Navigation
 function createNewProblem(): void {
@@ -190,7 +192,7 @@ function editProblem(slug: string): void {
 
 // Delete handling
 function confirmDelete(problem: ProblemDetailed): void {
-  if (confirm(`Are you sure you want to delete "${problem.title}"? This action cannot be undone.`)) {
+  if (confirm(t('admin.problems.deleteConfirmMessage', { title: problem.title }))) {
     deleteProblem(problem);
   }
 }
@@ -200,16 +202,16 @@ async function deleteProblem(problem: ProblemDetailed): Promise<void> {
     await ctx.api.value.deleteProblem(problem.slug);
     allProblems = allProblems.filter(p => p.slug !== problem.slug);
     await fetchTable();
-    notify.success('Problem deleted', `"${problem.title}" has been removed.`);
+    notify.success(t('admin.problems.deleteSuccess'), t('admin.problems.deleteSuccessMessage', { title: problem.title }));
   } catch (err) {
     const apiError = err as { error?: string };
     if (apiError.error?.includes('submission')) {
       notify.error(
-        `"${problem.title}" has existing submissions`,
-        'Deactivate the problem instead to hide it from students.'
+        t('admin.problems.deleteHasSubmissions', { title: problem.title }),
+        t('admin.problems.deleteHasSubmissionsHint')
       );
     } else {
-      notify.error('Delete failed', apiError.error || 'Please try again.');
+      notify.error(t('admin.problems.deleteFailed'), apiError.error || t('admin.problems.deleteFailedMessage'));
     }
     log.error('Error deleting problem', { error: err });
   }

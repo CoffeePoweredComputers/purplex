@@ -1,121 +1,101 @@
 <template>
   <div class="policy-page">
     <div class="policy-page__content">
-      <h1>Privacy Policy</h1>
-      <p class="policy-page__version">Version 1.0 — Effective {{ effectiveDate }}</p>
+      <h1>{{ t('auth.privacyPage.title') }}</h1>
+      <p class="policy-page__version">{{ t('auth.privacyPage.version', { effectiveDate }) }}</p>
 
       <section>
-        <h2>1. Who We Are</h2>
-        <p>
-          Purplex is an educational coding challenge platform. We act as a
-          <strong>data controller</strong> for direct student signups and as a
-          <strong>data processor</strong> for institutional deployments.
-        </p>
+        <h2>{{ t('auth.privacyPage.section1.title') }}</h2>
+        <p v-html="t('auth.privacyPage.section1.content')"></p>
       </section>
 
       <section>
-        <h2>2. Data We Collect</h2>
+        <h2>{{ t('auth.privacyPage.section2.title') }}</h2>
         <ul>
-          <li><strong>Identity Data:</strong> email, username, name (from registration or Google OAuth)</li>
-          <li><strong>Submission Data:</strong> code you write, plain-language explanations</li>
-          <li><strong>Progress Data:</strong> scores, attempts, time spent, hints used</li>
-          <li><strong>AI Analysis Data:</strong> comprehension analysis of your submissions (with your consent)</li>
-          <li><strong>Technical Data:</strong> IP addresses, browser type (from server logs)</li>
+          <li v-html="t('auth.privacyPage.section2.items.identityData')"></li>
+          <li v-html="t('auth.privacyPage.section2.items.submissionData')"></li>
+          <li v-html="t('auth.privacyPage.section2.items.progressData')"></li>
+          <li v-html="t('auth.privacyPage.section2.items.aiAnalysisData')"></li>
+          <li v-html="t('auth.privacyPage.section2.items.technicalData')"></li>
         </ul>
       </section>
 
       <section>
-        <h2>3. How We Use Your Data</h2>
+        <h2>{{ t('auth.privacyPage.section3.title') }}</h2>
         <ul>
-          <li>Provide the educational coding platform</li>
-          <li>Track your progress and provide feedback</li>
-          <li>Generate AI-powered comprehension analysis (with consent)</li>
-          <li>Improve the platform through anonymized research (with consent)</li>
+          <li>{{ t('auth.privacyPage.section3.items.providePlatform') }}</li>
+          <li>{{ t('auth.privacyPage.section3.items.trackProgress') }}</li>
+          <li>{{ t('auth.privacyPage.section3.items.aiAnalysis') }}</li>
+          <li>{{ t('auth.privacyPage.section3.items.improvePlatform') }}</li>
         </ul>
       </section>
 
       <section>
-        <h2>4. Third-Party Data Processors</h2>
-        <p>With your consent, we share data with:</p>
+        <h2>{{ t('auth.privacyPage.section4.title') }}</h2>
+        <p>{{ t('auth.privacyPage.section4.intro') }}</p>
         <ul>
-          <li><strong>Firebase (Google):</strong> Authentication services — your email and display name</li>
-          <li><strong>OpenAI:</strong> Your code submissions and explanations for AI analysis</li>
+          <li v-html="t('auth.privacyPage.section4.items.firebase')"></li>
+          <li v-html="t('auth.privacyPage.section4.items.openai')"></li>
         </ul>
-        <p>
-          These processors are based in the United States. Data transfers are governed
-          by Standard Contractual Clauses and Data Processing Agreements.
-        </p>
+        <p>{{ t('auth.privacyPage.section4.transfers') }}</p>
       </section>
 
       <section>
-        <h2>5. Your Rights</h2>
-        <p>Under GDPR, CCPA, and DPDPA, you have the right to:</p>
+        <h2>{{ t('auth.privacyPage.section5.title') }}</h2>
+        <p>{{ t('auth.privacyPage.section5.intro') }}</p>
         <ul>
-          <li><strong>Access:</strong> Download all your data (Settings → Privacy)</li>
-          <li><strong>Rectification:</strong> Update your profile information</li>
-          <li><strong>Erasure:</strong> Delete your account (30-day grace period)</li>
-          <li><strong>Portability:</strong> Export your data in JSON format</li>
-          <li><strong>Object:</strong> Withdraw consent for AI processing at any time</li>
-          <li><strong>Restrict Processing:</strong> Opt out of behavioral tracking</li>
+          <li v-html="t('auth.privacyPage.section5.items.access')"></li>
+          <li v-html="t('auth.privacyPage.section5.items.rectification')"></li>
+          <li v-html="t('auth.privacyPage.section5.items.erasure')"></li>
+          <li v-html="t('auth.privacyPage.section5.items.portability')"></li>
+          <li v-html="t('auth.privacyPage.section5.items.object')"></li>
+          <li v-html="t('auth.privacyPage.section5.items.restrictProcessing')"></li>
         </ul>
       </section>
 
       <section>
-        <h2>6. Data Retention</h2>
+        <h2>{{ t('auth.privacyPage.section6.title') }}</h2>
         <ul>
-          <li>Submissions: retained for 3 years after course completion</li>
-          <li>Progress snapshots: retained for 2 years</li>
-          <li>Server logs: 90 days</li>
-          <li>Inactive accounts: warning at 12 months, deletion at 24 months</li>
+          <li>{{ t('auth.privacyPage.section6.items.submissions') }}</li>
+          <li>{{ t('auth.privacyPage.section6.items.progressSnapshots') }}</li>
+          <li>{{ t('auth.privacyPage.section6.items.serverLogs') }}</li>
+          <li>{{ t('auth.privacyPage.section6.items.inactiveAccounts') }}</li>
         </ul>
       </section>
 
       <section>
-        <h2>7. Children's Privacy</h2>
-        <p>
-          Users under 13 (COPPA) require verifiable parental consent.
-          Users under 18 in India (DPDPA) have additional protections including
-          restrictions on behavioral tracking and AI profiling.
-        </p>
+        <h2>{{ t('auth.privacyPage.section7.title') }}</h2>
+        <p>{{ t('auth.privacyPage.section7.content') }}</p>
       </section>
 
       <section>
-        <h2>8. Do Not Sell or Share</h2>
-        <p>
-          We do not sell your personal information. When we share data with AI providers
-          (OpenAI), this is for service functionality only and requires your explicit consent.
-        </p>
+        <h2>{{ t('auth.privacyPage.section8.title') }}</h2>
+        <p>{{ t('auth.privacyPage.section8.content') }}</p>
       </section>
 
       <section>
-        <h2>9. Cookies</h2>
-        <p>
-          We use essential cookies for authentication and session management.
-          Optional analytics cookies are only set with your consent.
-        </p>
+        <h2>{{ t('auth.privacyPage.section9.title') }}</h2>
+        <p>{{ t('auth.privacyPage.section9.content') }}</p>
       </section>
 
       <section>
-        <h2>10. Contact & Grievance Officer</h2>
-        <p>
-          For privacy inquiries or to exercise your rights, contact our
-          Data Protection Officer / Grievance Officer at the contact information
-          provided in your institutional agreement or platform settings.
-        </p>
+        <h2>{{ t('auth.privacyPage.section10.title') }}</h2>
+        <p>{{ t('auth.privacyPage.section10.content') }}</p>
       </section>
 
       <section>
-        <h2>11. Changes to This Policy</h2>
-        <p>
-          We will notify you of material changes and may request re-consent
-          for significant updates to data processing practices.
-        </p>
+        <h2>{{ t('auth.privacyPage.section11.title') }}</h2>
+        <p>{{ t('auth.privacyPage.section11.content') }}</p>
       </section>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
 const effectiveDate = new Date().toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',

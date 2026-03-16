@@ -8,9 +8,13 @@
       class="spinner"
       aria-hidden="true"
     />
-    <span class="visually-hidden">Loading...</span>
+    <span class="visually-hidden">{{ $t('common.loading') }}</span>
   </div>
 </template>
+
+<script setup lang="ts">
+// Template uses $t() for i18n — no additional setup needed
+</script>
 
 <style scoped>
 .async-loader {

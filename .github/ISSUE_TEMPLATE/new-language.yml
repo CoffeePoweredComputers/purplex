@@ -1,0 +1,56 @@
+name: New Language Request
+description: Request or volunteer to add a new language translation
+title: "[Translation] Add <language name> (<locale code>)"
+labels: ["translation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping make Purplex available in more languages!
+        Please fill out the details below so we can coordinate the effort.
+
+  - type: input
+    id: language-name
+    attributes:
+      label: Language Name (English)
+      description: The English name for the language
+      placeholder: e.g., Spanish
+    validations:
+      required: true
+
+  - type: input
+    id: native-name
+    attributes:
+      label: Native Name
+      description: The language name as written by native speakers
+      placeholder: e.g., Espanol
+    validations:
+      required: true
+
+  - type: input
+    id: locale-code
+    attributes:
+      label: Locale Code
+      description: ISO 639-1 code, optionally with region (e.g., es, pt-BR)
+      placeholder: e.g., es
+    validations:
+      required: true
+
+  - type: dropdown
+    id: contribution-type
+    attributes:
+      label: Are you volunteering to translate?
+      options:
+        - "Yes, I will submit the translation"
+        - "No, I am requesting someone else translate"
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional Notes
+      description: Any context about dialect preferences, partial progress, etc.
+      placeholder: Optional
+    validations:
+      required: false

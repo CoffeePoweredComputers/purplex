@@ -1,41 +1,294 @@
 {
-  "status": {
-    "completed": "Completed",
-    "inProgress": "In Progress",
-    "remaining": "Remaining",
-    "notStarted": "Not Started"
-  },
-  "problemSet": {
-    "title": "Problem Set",
-    "progress": "Progress",
-    "problems": "Problems"
-  },
-  "editor": {
-    "copy": "Copy",
-    "copied": "Copied",
-    "lines": "Lines",
-    "noLines": "No Lines",
-    "theme": {
-      "dark": "Dark",
-      "light": "Light"
+  "problems": {
+    "status": {
+      "completed": "Completed",
+      "inProgress": "In Progress",
+      "remaining": "Remaining",
+      "notStarted": "Not Started"
     },
-    "size": {
-      "small": "Small",
-      "medium": "Medium",
-      "large": "Large"
+    "home": {
+      "welcome": "Welcome to Purplex!",
+      "welcomeMessage": "Get started by joining a course to access problem sets.",
+      "joinCourse": "Join a Course",
+      "completed": "{completed} / {total} completed",
+      "noProblems": "No problems yet",
+      "noSetsAvailable": "No problem sets available in this course yet.",
+      "reviewAction": "Review →",
+      "continueAction": "Continue →",
+      "startAction": "Start →",
+      "closedBadge": "🔒 Closed",
+      "aria": {
+        "courseProgress": "Course progress: {completed} of {total} problem sets completed",
+        "loadingProblemSets": "Loading problem sets",
+        "problemSetProgress": "{title}: {completed} of {total} completed",
+        "progressPercent": "Progress: {percent}%"
+      }
+    },
+    "dueDate": {
+      "pastDue": "Past due",
+      "today": "Due today",
+      "tomorrow": "Due tomorrow",
+      "inDays": "Due in {days} days",
+      "onDate": "Due {date}"
+    },
+    "enrollment": {
+      "title": "Join a Course",
+      "courseIdLabel": "Course ID",
+      "courseIdPlaceholder": "Enter Course ID (e.g., CS101-FALL2024)",
+      "lookupButton": "Lookup Course",
+      "lookingUp": "Looking up...",
+      "instructor": "Instructor:",
+      "problemSets": "Problem Sets:",
+      "status": "Status:",
+      "openForEnrollment": "Open for Enrollment",
+      "alreadyEnrolled": "✓ You are already enrolled in this course",
+      "enrollButton": "Join Course",
+      "enrolling": "Enrolling..."
+    },
+    "problemSet": {
+      "title": "Problem Set",
+      "progress": "Progress",
+      "problems": "Problems",
+      "loading": "Loading problem set...",
+      "noProblems": "No problems found in this set.",
+      "skipToEditor": "Skip to code editor",
+      "codeEditor": "Code Editor",
+      "problemImage": "Problem Image",
+      "problemImageAlt": "Problem image",
+      "noImageConfigured": "No image configured for this problem",
+      "question": "Question",
+      "noQuestionText": "No question text provided. Please add a description in the admin panel.",
+      "submissionResults": "Submission & Results",
+      "completedCount": "{count} completed",
+      "inProgressCount": "{count} in progress",
+      "remainingCount": "{count} remaining",
+      "editorThemeLabel": "Editor theme",
+      "selectEditorTheme": "Select editor theme",
+      "aria": {
+        "previousProblem": "Previous problem",
+        "nextProblem": "Next problem",
+        "problemNav": "Problem navigation",
+        "codeCopied": "Code copied to clipboard",
+        "copyCode": "Copy code to clipboard",
+        "hideLineNumbers": "Hide line numbers",
+        "showLineNumbers": "Show line numbers",
+        "decreaseFont": "Decrease font size",
+        "increaseFont": "Increase font size"
+      },
+      "deadline": {
+        "submissionsClosed": "Submissions Closed",
+        "closedOn": "This problem set closed on {date}",
+        "lateSubmission": "Late Submission",
+        "dueDateWas": "Due date was {date}. Submissions will be marked as late.",
+        "due": "Due {date}",
+        "submitSoon": "Submit soon!",
+        "tomorrow": "Tomorrow ({date})",
+        "inDays": "in {days} days ({date})"
+      },
+      "tooltip": {
+        "notAttempted": "{name} - Not attempted",
+        "inProgress": "{name} - In Progress (Score: {score}%)",
+        "completed": "{name} - Completed (Score: {score}%)"
+      },
+      "notify": {
+        "problemIdentifier": "Problem {number}",
+        "submission": "Submission",
+        "navigationError": "Navigation Error",
+        "failedToLoadProblemData": "Failed to load problem data",
+        "failedToLoadAttempt": "Failed to load attempt",
+        "dataMissingOrCorrupted": "Submission data is missing or corrupted",
+        "dataIncomplete": "Submission data is incomplete",
+        "failedToGetResults": "Failed to get results",
+        "connectionTimeout": "Connection timeout. Please try again.",
+        "serverError": "Server Error",
+        "aiServiceUnavailable": "The AI service might be unavailable.",
+        "authenticationError": "Authentication Error",
+        "pleaseLogInAgain": "Please log in again.",
+        "invalidRequest": "Invalid Request",
+        "pleaseCheckInput": "Please check your input.",
+        "unknownError": "An unknown error occurred.",
+        "networkError": "Network Error",
+        "unableToReachServer": "Unable to reach the server.",
+        "loadError": "Load Error",
+        "failedToLoadProblemSet": "Failed to load problem set.",
+        "mcqCorrect": "{problem}: Correct!",
+        "mcqIncorrect": "{problem}: Incorrect",
+        "testsPassed": "{problem}: {passed}/{total} tests passed",
+        "variationsPassing": "{problem}: Variations: {passed}/{total} passing",
+        "variationsWithSegmentation": "{problem}: Variations: {passed}/{total} passing, {segmentation}",
+        "segmentationPassed": "✓ High-level ({count} segments)",
+        "segmentationPassedSingular": "✓ High-level (1 segment)",
+        "segmentationFailed": "✗ High-level ({count} segments, need ≤{threshold})",
+        "segmentationFailedNeedOne": "✗ High-level ({count} segments, need 1)"
+      },
+      "theme": {
+        "dark": "🌙 Dark",
+        "light": "☀️ Light",
+        "monokai": "🎨 Monokai",
+        "github": "🐙 GitHub",
+        "solarizedDark": "🌅 Solarized Dark",
+        "solarizedLight": "🌅 Solarized Light",
+        "dracula": "🧛 Dracula",
+        "tomorrowNight": "🌃 Tomorrow Night"
+      }
+    },
+    "editor": {
+      "copy": "Copy",
+      "copied": "Copied",
+      "lines": "Lines",
+      "noLines": "No Lines",
+      "theme": {
+        "dark": "Dark",
+        "light": "Light"
+      },
+      "size": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large",
+        "fullscreen": "Fullscreen"
+      }
+    },
+    "submission": {
+      "submit": "Submit",
+      "submitting": "Submitting...",
+      "runTests": "Run Tests",
+      "running": "Running...",
+      "placeholder": "Describe what this code does in your own words...",
+      "submitSolution": "Submit Solution",
+      "submittingWait": "Submitting solution, please wait",
+      "draftSaved": "Draft saved",
+      "minLength": "Enter at least 10 characters to submit",
+      "testSolution": "Test Solution",
+      "testingWait": "Testing code, please wait",
+      "codeTooShort": "Code must be at least 10 characters",
+      "resetToOriginal": "Reset to Original"
+    },
+    "hints": {
+      "title": "Hints",
+      "showHint": "Show Hint",
+      "hideHint": "Hide Hint",
+      "noHints": "No hints available",
+      "suggestedTrace": {
+        "tryTracing": "Try tracing:",
+        "traceInPythonTutor": "Trace in Python Tutor"
+      }
+    },
+    "eipl": {
+      "sectionLabel": "Describe the code here"
+    },
+    "prompt": {
+      "sectionLabel": "Describe the image here"
+    },
+    "mcq": {
+      "sectionLabel": "Select your answer",
+      "submitAnswer": "Submit Answer",
+      "checkingWait": "Checking answer, please wait",
+      "selectFirst": "Please select an answer before submitting"
+    },
+    "probeableCode": {
+      "sectionLabel": "Discover Function Behavior and Replicate Implementation"
+    },
+    "probeableSpec": {
+      "sectionLabel": "Discover and explain the function",
+      "describeFunction": "Describe What the Function Does"
+    },
+    "debugFix": {
+      "sectionLabel": "Fix the buggy code"
+    },
+    "probe": {
+      "history": "History ({count})",
+      "historyAriaLabel": "View probe history ({count} unique entries)",
+      "probeHistory": "Probe History",
+      "probing": "Probing",
+      "alreadyProbed": "Already probed",
+      "probe": "Probe",
+      "noProbesYet": "No probes yet. Enter values and click Probe to discover function behavior.",
+      "tooltipDuplicate": "You already probed these inputs - result shown above",
+      "tooltipUnlimited": "Unlimited probes available",
+      "tooltipExhausted": "No probes remaining",
+      "tooltipDefault": "Query the oracle with these inputs",
+      "srDuplicate": "These inputs were already probed. Result: {result}",
+      "paramAriaLabel": "Enter value for {name} (type: {type})",
+      "cachedResultAriaLabel": "Cached result: {result}"
+    },
+    "refute": {
+      "disprove": "Disprove:",
+      "testing": "Testing",
+      "test": "Test",
+      "disproves": "✓ DISPROVES",
+      "claimHolds": "claim holds",
+      "submitCounterexample": "Submit {call} as counterexample",
+      "keepTrying": "Keep trying! Find an input that makes the claim false."
+    },
+    "activity": {
+      "unknownType": "Unknown activity type: {type}",
+      "noFeedbackComponent": "No feedback component available for activity type: {type}"
+    },
+    "pytutor": {
+      "title": "Step-by-Step Debugger",
+      "srDescription": "Interactive Python code debugger powered by Python Tutor",
+      "sizeLabel": "Size",
+      "sizeView": "{size} view",
+      "setSizeAriaLabel": "Set {size} window size",
+      "openNewTab": "Open in new tab",
+      "openNewTabAriaLabel": "Open Python Tutor in new tab",
+      "closeEsc": "Close (ESC)",
+      "closeModal": "Close modal",
+      "loadingDebugger": "Loading debugger...",
+      "pythonTutorVisualizer": "Python Tutor Visualizer",
+      "switchTheme": "Switch to {theme} background",
+      "codeTooLarge": "Code is too large for direct debugging",
+      "urlLengthExceeded": "The code exceeds the URL length limit ({length} characters)",
+      "copyCodeAndOpen": "Copy Code & Open Python Tutor",
+      "loadingTimeout": "Loading Timeout",
+      "connectionError": "Connection Error",
+      "failedToLoad": "Failed to Load Debugger",
+      "timeoutMessage": "Python Tutor is taking too long to load. This might be due to slow internet or service issues.",
+      "networkMessage": "Unable to connect to Python Tutor. Please check your internet connection.",
+      "openDirectly": "Open Python Tutor directly",
+      "iframeTitle": "Python Tutor Code Visualizer"
+    },
+    "hintButton": {
+      "buttonText": "Hints",
+      "menuAriaLabel": "Hints menu, {count} available",
+      "closeAriaLabel": "Close hints menu",
+      "availableHints": "Available Hints",
+      "noHintsConfigured": "No hints are configured for this problem.",
+      "requiresAttempts": "Requires {required} attempts ({current}/{required})",
+      "toggleAriaLabel": "Toggle {title}",
+      "lockedAriaLabel": "Locked",
+      "example": "Example:",
+      "attempts": "Attempts: {count}",
+      "nextHintUnlocks": "Next hint unlocks after {count} attempts",
+      "showOriginal": "Show Original",
+      "clearAllHints": "Clear All Hints",
+      "hintTypes": {
+        "variable_fade": "Variable Fade",
+        "subgoal_highlight": "Subgoal Highlighting",
+        "suggested_trace": "Suggested Trace",
+        "structural": "Structural",
+        "implementation": "Implementation",
+        "edge_case": "Edge Case",
+        "default": "Hint"
+      }
+    },
+    "courseDetail": {
+      "loadingCourse": "Loading course...",
+      "backToCourses": "Back to Courses",
+      "courseIdLabel": "Course ID:",
+      "instructorLabel": "Instructor:",
+      "unknownInstructor": "Unknown",
+      "problemSetsLabel": "Problem Sets:",
+      "studentsEnrolledLabel": "Students Enrolled:",
+      "problemSetsHeading": "Problem Sets",
+      "noProblemSets": "No problem sets have been added to this course yet.",
+      "closed": "Closed",
+      "required": "Required",
+      "problemsCount": "{count} problems",
+      "courseNotFound": "Course Not Found",
+      "courseNotFoundMessage": "The course you're looking for doesn't exist or you don't have access to it.",
+      "goBackToCourses": "Go back to courses",
+      "dueInDays": "Due in {days} days"
     }
-  },
-  "submission": {
-    "submit": "Submit",
-    "submitting": "Submitting...",
-    "runTests": "Run Tests",
-    "running": "Running...",
-    "placeholder": "Describe what this code does in your own words..."
-  },
-  "hints": {
-    "title": "Hints",
-    "showHint": "Show Hint",
-    "hideHint": "Hide Hint",
-    "noHints": "No hints available"
   }
 }

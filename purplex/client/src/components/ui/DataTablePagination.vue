@@ -1,26 +1,26 @@
 <template>
   <nav class="pagination" role="navigation" aria-label="Table pagination">
     <div class="pagination-left">
-      <label for="page-size" class="page-size-label">Show:</label>
+      <label for="page-size" class="page-size-label">{{ $t('common.pagination.show') }}</label>
       <select
         id="page-size"
         :value="pageSize"
         class="page-size-select"
-        aria-label="Number of items per page"
+        :aria-label="$t('common.pagination.itemsPerPage')"
         @change="handlePageSizeChange"
       >
         <option v-for="size in pageSizeOptions" :key="size" :value="size">
           {{ size }}
         </option>
       </select>
-      <span class="page-size-suffix">per page</span>
+      <span class="page-size-suffix">{{ $t('common.pagination.perPage') }}</span>
     </div>
 
     <div class="pagination-center">
       <button
         class="pagination-btn"
         :disabled="!hasPrevious"
-        title="First page"
+        :title="$t('common.pagination.firstPage')"
         @click="$emit('go-to-page', 1)"
       >
         &laquo;
@@ -28,7 +28,7 @@
       <button
         class="pagination-btn"
         :disabled="!hasPrevious"
-        title="Previous page"
+        :title="$t('common.pagination.previousPage')"
         @click="$emit('go-to-page', currentPage - 1)"
       >
         &lsaquo;
@@ -47,7 +47,7 @@
       <button
         class="pagination-btn"
         :disabled="!hasNext"
-        title="Next page"
+        :title="$t('common.pagination.nextPage')"
         @click="$emit('go-to-page', currentPage + 1)"
       >
         &rsaquo;
@@ -55,7 +55,7 @@
       <button
         class="pagination-btn"
         :disabled="!hasNext"
-        title="Last page"
+        :title="$t('common.pagination.lastPage')"
         @click="$emit('go-to-page', totalPages)"
       >
         &raquo;
@@ -64,7 +64,7 @@
 
     <div class="pagination-right">
       <span class="pagination-info">
-        {{ rangeStart }}-{{ rangeEnd }} of {{ totalCount }}
+        {{ $t('common.pagination.rangeOf', { start: rangeStart, end: rangeEnd, total: totalCount }) }}
       </span>
     </div>
   </nav>

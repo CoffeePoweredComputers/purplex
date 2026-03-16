@@ -1,17 +1,17 @@
 <template>
   <div class="team-manager">
-    <h3>Course Team</h3>
+    <h3>{{ $t('admin.courseTeam.title') }}</h3>
 
     <!-- Loading -->
     <div v-if="loading" class="team-loading">
       <div class="loading-spinner" />
-      <span>Loading team...</span>
+      <span>{{ $t('admin.courseTeam.loadingTeam') }}</span>
     </div>
 
     <!-- Error -->
     <div v-else-if="error" class="team-error" role="alert">
       <p>{{ error }}</p>
-      <button class="btn-retry" @click="fetchTeam">Retry</button>
+      <button class="btn-retry" @click="fetchTeam">{{ $t('common.retry') }}</button>
     </div>
 
     <!-- Team List -->
@@ -19,11 +19,11 @@
       <table class="team-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Added</th>
-            <th v-if="isPrimary">Actions</th>
+            <th>{{ $t('admin.courseTeam.name') }}</th>
+            <th>{{ $t('admin.courseTeam.email') }}</th>
+            <th>{{ $t('admin.courseTeam.role') }}</th>
+            <th>{{ $t('admin.courseTeam.added') }}</th>
+            <th v-if="isPrimary">{{ $t('admin.courseTeam.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -32,7 +32,7 @@
             <td>{{ member.email }}</td>
             <td>
               <span :class="['role-badge', `role-${member.role}`]">
-                {{ member.role === 'primary' ? 'Primary' : 'TA' }}
+                {{ member.role === 'primary' ? $t('admin.instructor.roles.primary') : $t('admin.instructor.roles.ta') }}
               </span>
             </td>
             <td>{{ formatDate(member.added_at) }}</td>
@@ -42,14 +42,14 @@
                 class="role-select"
                 @change="changeRole(member, ($event.target as HTMLSelectElement).value)"
               >
-                <option value="primary">Primary</option>
-                <option value="ta">TA</option>
+                <option value="primary">{{ $t('admin.instructor.roles.primary') }}</option>
+                <option value="ta">{{ $t('admin.instructor.roles.ta') }}</option>
               </select>
               <button
                 class="btn-remove"
                 @click="confirmRemove(member)"
               >
-                Remove
+                {{ $t('common.remove') }}
               </button>
             </td>
           </tr>
@@ -58,24 +58,24 @@
 
       <!-- Add Member (primary only) -->
       <div v-if="isPrimary" class="add-member">
-        <h4>Add Team Member</h4>
+        <h4>{{ $t('admin.courseTeam.addTeamMember') }}</h4>
         <div class="add-form">
           <input
             v-model.trim="newEmail"
             type="email"
-            placeholder="Email address"
+            :placeholder="$t('admin.courseTeam.emailPlaceholder')"
             class="input-email"
           />
           <select v-model="newRole" class="role-select">
-            <option value="ta">TA</option>
-            <option value="primary">Primary</option>
+            <option value="ta">{{ $t('admin.instructor.roles.ta') }}</option>
+            <option value="primary">{{ $t('admin.instructor.roles.primary') }}</option>
           </select>
           <button
             class="btn-add"
             :disabled="!newEmail || addingMember"
             @click="addMember"
           >
-            {{ addingMember ? 'Adding...' : 'Add' }}
+            {{ addingMember ? $t('admin.courseTeam.adding') : $t('common.add') }}
           </button>
         </div>
         <p v-if="actionError" class="action-error" role="alert">{{ actionError }}</p>
@@ -87,6 +87,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { createContentService } from '@/services/contentService';
 import { log } from '@/utils/logger';
 import type { CourseInstructorMember, CourseInstructorRole } from '@/types';
@@ -96,6 +97,7 @@ const props = defineProps<{
   myRole?: CourseInstructorRole;
 }>();
 
+const { t } = useI18n();
 const api = createContentService('instructor');
 
 const team = ref<CourseInstructorMember[]>([]);
@@ -126,7 +128,7 @@ async function fetchTeam(): Promise<void> {
     team.value = await api.getCourseTeam(props.courseId);
   } catch (err: any) {
     log.error('Failed to load course team', { courseId: props.courseId, error: err });
-    error.value = 'Failed to load team members.';
+    error.value = t('admin.courseTeam.failedToLoadTeam');
   } finally {
     loading.value = false;
   }
@@ -143,11 +145,11 @@ async function addMember(): Promise<void> {
       role: newRole.value,
     });
     team.value.push(member);
-    actionSuccess.value = `Added ${member.full_name} as ${member.role}.`;
+    actionSuccess.value = t('admin.courseTeam.addedMessage', { name: member.full_name, role: member.role });
     newEmail.value = '';
     newRole.value = 'ta';
   } catch (err: any) {
-    const msg = err.response?.data?.error || 'Failed to add team member.';
+    const msg = err.response?.data?.error || t('admin.courseTeam.addFailed');
     actionError.value = msg;
   } finally {
     addingMember.value = false;
@@ -164,9 +166,9 @@ async function changeRole(member: CourseInstructorMember, role: string): Promise
     });
     const idx = team.value.findIndex((m) => m.user_id === member.user_id);
     if (idx !== -1) team.value[idx] = updated;
-    actionSuccess.value = `Changed ${updated.full_name} to ${updated.role}.`;
+    actionSuccess.value = t('admin.courseTeam.changedRole', { name: updated.full_name, role: updated.role });
   } catch (err: any) {
-    const msg = err.response?.data?.error || 'Failed to update role.';
+    const msg = err.response?.data?.error || t('admin.courseTeam.updateFailed');
     actionError.value = msg;
     // Revert select in UI by re-fetching
     await fetchTeam();
@@ -174,15 +176,15 @@ async function changeRole(member: CourseInstructorMember, role: string): Promise
 }
 
 async function confirmRemove(member: CourseInstructorMember): Promise<void> {
-  if (!confirm(`Remove ${member.full_name} from this course?`)) return;
+  if (!confirm(t('admin.courseTeam.removeConfirm', { name: member.full_name }))) return;
   actionError.value = null;
   actionSuccess.value = null;
   try {
     await api.removeCourseTeamMember(props.courseId, member.user_id);
     team.value = team.value.filter((m) => m.user_id !== member.user_id);
-    actionSuccess.value = `Removed ${member.full_name}.`;
+    actionSuccess.value = t('admin.courseTeam.removedMessage', { name: member.full_name });
   } catch (err: any) {
-    const msg = err.response?.data?.error || 'Failed to remove team member.';
+    const msg = err.response?.data?.error || t('admin.courseTeam.removeFailed');
     actionError.value = msg;
   }
 }

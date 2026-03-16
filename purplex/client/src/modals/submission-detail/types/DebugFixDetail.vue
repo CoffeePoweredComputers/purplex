@@ -4,7 +4,7 @@
     <div class="code-comparison">
       <div class="code-panel">
         <div class="panel-header buggy">
-          <span class="panel-label">Buggy Code (Original)</span>
+          <span class="panel-label">{{ $t('admin.submissions.detail.buggyCodeOriginal') }}</span>
         </div>
         <Editor
           :value="typeData.buggy_code || '# No buggy code available'"
@@ -16,7 +16,7 @@
       </div>
       <div class="code-panel">
         <div class="panel-header fixed">
-          <span class="panel-label">Student's Fix</span>
+          <span class="panel-label">{{ $t('admin.submissions.detail.studentsFix') }}</span>
         </div>
         <Editor
           :value="submission.raw_input || submission.processed_code || '# No code submitted'"

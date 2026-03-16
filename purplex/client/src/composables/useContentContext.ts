@@ -28,6 +28,7 @@ import {
   type ComputedRef,
   type InjectionKey
 } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import store from '@/store';
 import {
@@ -91,6 +92,7 @@ const ContentContextKey: InjectionKey<ContentContext> = Symbol('ContentContext')
  * @returns ContentContext that's also provided to descendants
  */
 export function provideContentContext(): ContentContext {
+  const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
 
@@ -159,9 +161,9 @@ export function provideContentContext(): ContentContext {
   const getPageTitle = (base: string) => computed(() => {
     if (role.value === 'instructor') {
       // Instructor sees "My X" instead of "X"
-      if (base === 'Problems') return 'My Problems';
-      if (base === 'Problem Sets') return 'My Problem Sets';
-      if (base === 'Courses') return 'My Courses';
+      if (base === 'Problems') return t('admin.contentContext.myProblems');
+      if (base === 'Problem Sets') return t('admin.contentContext.myProblemSets');
+      if (base === 'Courses') return t('admin.contentContext.myCourses');
     }
     return base;
   });

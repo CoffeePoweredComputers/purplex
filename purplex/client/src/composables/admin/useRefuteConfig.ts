@@ -7,6 +7,7 @@
  */
 
 import { computed, type ComputedRef, type DeepReadonly, reactive, readonly } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // ===== TYPES =====
 
@@ -77,6 +78,7 @@ const GOOD_CLAIM_PATTERNS = [
 // ===== COMPOSABLE =====
 
 export const useRefuteConfig = (): UseRefuteConfigReturn => {
+  const { t } = useI18n();
   const state = reactive<RefuteConfig>({
     claim_text: '',
     claim_predicate: '',
@@ -99,14 +101,14 @@ export const useRefuteConfig = (): UseRefuteConfigReturn => {
 
     // Check for common dangerous patterns
     if (predicate.includes('import ') || predicate.includes('__')) {
-      return 'Predicate cannot contain import statements or dunder methods';
+      return t('admin.editors.refuteValidation.predicateDangerousPattern');
     }
 
     // Check for basic syntax issues
     const openParens = (predicate.match(/\(/g) || []).length;
     const closeParens = (predicate.match(/\)/g) || []).length;
     if (openParens !== closeParens) {
-      return 'Mismatched parentheses';
+      return t('admin.editors.refuteValidation.mismatchedParentheses');
     }
 
     return null;
@@ -120,7 +122,7 @@ export const useRefuteConfig = (): UseRefuteConfigReturn => {
   const claimWarning = computed((): string | null => {
     if (!hasClaim.value) {return null;}
     if (hasGoodClaimPattern.value) {return null;}
-    return 'Consider using absolute terms like "always", "never", "for all", or "every" to make the claim easier to disprove.';
+    return t('admin.editors.refuteValidation.claimWarning');
   });
 
   const parsedCounterexample = computed((): Record<string, unknown> | null => {
@@ -149,11 +151,11 @@ export const useRefuteConfig = (): UseRefuteConfigReturn => {
     try {
       const parsed = JSON.parse(json);
       if (typeof parsed !== 'object' || parsed === null) {
-        return 'Expected counterexample must be a JSON object';
+        return t('admin.editors.refuteValidation.expectedJsonObject');
       }
       return null;
     } catch (e) {
-      return `Invalid JSON: ${(e as Error).message}`;
+      return t('admin.editors.refuteValidation.invalidJson', { message: (e as Error).message });
     }
   });
 

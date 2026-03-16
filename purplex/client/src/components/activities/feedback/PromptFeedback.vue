@@ -13,7 +13,7 @@
     :is-loading="isLoading"
     :is-navigating="isNavigating"
     :submission-history="submissionHistory"
-    :title="title"
+    :title="effectiveTitle"
     @load-attempt="$emit('load-attempt', $event)"
   />
 </template>
@@ -25,8 +25,12 @@
  * Reuses the same feedback display as EiPL since the processing pipeline and
  * result structure are identical. The only difference is the problem_type prop.
  */
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Feedback from '@/components/Feedback.vue'
 import type { CodeResult, SegmentationData, SubmissionHistoryItem, TestResultDisplay } from '../types'
+
+const { t } = useI18n()
 
 interface Props {
   /** Overall correctness score */
@@ -57,7 +61,7 @@ interface Props {
   title?: string
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   progress: 0,
   notches: 6,
   codeResults: () => [],
@@ -70,8 +74,10 @@ withDefaults(defineProps<Props>(), {
   isLoading: false,
   isNavigating: false,
   submissionHistory: () => [],
-  title: 'Submission & Results',
+  title: '',
 })
+
+const effectiveTitle = computed(() => props.title || t('problems.problemSet.submissionResults'))
 
 defineEmits<{
   (e: 'load-attempt', attemptId: string): void

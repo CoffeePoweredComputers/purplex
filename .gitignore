@@ -184,3 +184,6 @@ cython_debug/
 # Package manager lock files (using Yarn only)
 package-lock.json
 purplex/client/package-lock.json
+
+# i18n coverage report (generated)
+i18n-coverage.json

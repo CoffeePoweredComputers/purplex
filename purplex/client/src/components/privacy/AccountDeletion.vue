@@ -1,32 +1,29 @@
 <template>
   <div class="account-deletion">
-    <h3 class="account-deletion__title">Delete Account</h3>
+    <h3 class="account-deletion__title">{{ t('auth.deletion.title') }}</h3>
 
     <template v-if="!deletionPending">
       <p class="account-deletion__description">
-        Requesting account deletion will deactivate your account immediately.
-        After a 30-day grace period, all your data will be permanently deleted.
-        During the grace period, you can cancel the deletion by logging in.
+        {{ t('auth.deletion.description') }}
       </p>
 
       <div class="account-deletion__warning">
-        <strong>This action will permanently remove:</strong>
+        <strong>{{ t('auth.deletion.warningHeader') }}</strong>
         <ul>
-          <li>Your profile and account information</li>
-          <li>All consent records</li>
-          <li>Course enrollments</li>
-          <li>Hint activation history</li>
-          <li>AI analysis results</li>
+          <li>{{ t('auth.deletion.items.profile') }}</li>
+          <li>{{ t('auth.deletion.items.consents') }}</li>
+          <li>{{ t('auth.deletion.items.enrollments') }}</li>
+          <li>{{ t('auth.deletion.items.hints') }}</li>
+          <li>{{ t('auth.deletion.items.aiResults') }}</li>
         </ul>
         <p>
-          <em>Note: Anonymized submission data may be retained for research purposes
-          (scores, code, timestamps) but will no longer be linked to your identity.</em>
+          <em>{{ t('auth.deletion.retentionNote') }}</em>
         </p>
       </div>
 
       <label class="account-deletion__confirm">
         <input type="checkbox" v-model="confirmed">
-        <span>I understand this action cannot be undone after the grace period.</span>
+        <span>{{ t('auth.deletion.confirmCheckbox') }}</span>
       </label>
 
       <button
@@ -34,25 +31,25 @@
         :disabled="!confirmed || loading"
         @click="requestDeletion"
       >
-        {{ loading ? 'Processing...' : 'Request Account Deletion' }}
+        {{ loading ? t('common.processing') : t('auth.deletion.requestButton') }}
       </button>
     </template>
 
     <template v-else>
       <div class="account-deletion__pending">
         <p>
-          <strong>Deletion scheduled.</strong>
-          Your account will be permanently deleted on
+          <strong>{{ t('auth.deletion.scheduledTitle') }}</strong>
+          {{ t('auth.deletion.scheduledMessage') }}
           <strong>{{ formatDate(deletionScheduledAt) }}</strong>.
         </p>
-        <p>You can cancel this request before then.</p>
+        <p>{{ t('auth.deletion.scheduledCancel') }}</p>
 
         <button
           class="account-deletion__btn account-deletion__btn--cancel"
           :disabled="loading"
           @click="cancelDeletion"
         >
-          {{ loading ? 'Processing...' : 'Cancel Deletion' }}
+          {{ loading ? t('common.processing') : t('auth.deletion.cancelButton') }}
         </button>
       </div>
     </template>
@@ -64,7 +61,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import privacyService from '../../services/privacyService';
+
+const { t, locale } = useI18n();
 
 const confirmed = ref(false);
 const loading = ref(false);
@@ -83,10 +83,10 @@ async function requestDeletion() {
         if (result.status === 'deletion_scheduled' || result.status === 'already_requested') {
             deletionPending.value = true;
             deletionScheduledAt.value = result.deletion_scheduled_at || '';
-            success.value = 'Account deletion has been scheduled.';
+            success.value = t('auth.deletion.successScheduled');
         }
     } catch (e: unknown) {
-        error.value = 'Failed to request deletion. Please try again later.';
+        error.value = t('auth.deletion.errorRequest');
     } finally {
         loading.value = false;
     }
@@ -102,9 +102,9 @@ async function cancelDeletion() {
         deletionPending.value = false;
         deletionScheduledAt.value = '';
         confirmed.value = false;
-        success.value = 'Deletion cancelled. Your account is active again.';
+        success.value = t('auth.deletion.successCancelled');
     } catch (e: unknown) {
-        error.value = 'Failed to cancel deletion. Please try again.';
+        error.value = t('auth.deletion.errorCancel');
     } finally {
         loading.value = false;
     }
@@ -112,7 +112,7 @@ async function cancelDeletion() {
 
 function formatDate(isoDate: string): string {
     if (!isoDate) return '';
-    return new Date(isoDate).toLocaleDateString(undefined, {
+    return new Date(isoDate).toLocaleDateString(locale.value, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',

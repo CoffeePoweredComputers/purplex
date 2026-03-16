@@ -1,25 +1,25 @@
 <template>
   <ContentEditorLayout
     :back-path="ctx.paths.courses.value"
-    :back-label="ctx.isInstructor.value ? 'Back to My Courses' : 'Back to Courses'"
+    :back-label="ctx.isInstructor.value ? $t('admin.contentLayout.backToMyCourses') : $t('admin.contentLayout.backToCourses')"
     :show-header="false"
   >
     <div class="header rounded-lg border-default">
-      <h2>{{ isEditing ? 'Edit Course' : 'Create New Course' }}</h2>
+      <h2>{{ isEditing ? $t('admin.courseEditor.editCourse') : $t('admin.courseEditor.createNewCourse') }}</h2>
       <div class="actions">
         <button
           v-if="isEditing"
           class="btn btn-danger"
           @click="showDeleteDialog = true"
         >
-          Delete
+          {{ $t('common.delete') }}
         </button>
         <button
           :disabled="saving || !canSave"
           class="btn btn-primary rounded-base"
           @click="handleSave"
         >
-          {{ saving ? 'Saving...' : (isEditing ? 'Update Course' : 'Create Course') }}
+          {{ saving ? $t('admin.courseEditor.saving') : (isEditing ? $t('admin.courseEditor.updateCourse') : $t('admin.courses.createCourse')) }}
         </button>
       </div>
     </div>
@@ -27,65 +27,66 @@
     <!-- Loading State -->
     <div v-if="loading" class="loading-container">
       <div class="loading-spinner" />
-      <p>Loading course...</p>
+      <p>{{ $t('admin.courseEditor.loadingCourse') }}</p>
     </div>
 
     <!-- Error State -->
     <div v-else-if="loadError" class="error-container">
       <p class="error-message">{{ loadError }}</p>
       <router-link :to="ctx.paths.courses.value" class="btn btn-secondary">
-        Back to Courses
+        {{ $t('admin.courseEditor.backToCourses') }}
       </router-link>
     </div>
 
     <!-- Course Form -->
     <form v-else class="course-form" @submit.prevent="handleSave">
       <div class="form-section rounded-lg border-default">
-        <h3>Course Details</h3>
+        <h3>{{ $t('admin.courseEditor.courseDetails') }}</h3>
 
         <div class="form-group">
-          <label for="course_id">Course ID *</label>
+          <label for="course_id">{{ $t('admin.courseEditor.courseIdLabel') }}</label>
           <input
             id="course_id"
             v-model="formData.course_id"
             type="text"
-            placeholder="e.g., CS101-FALL2024"
+            :placeholder="$t('admin.courseEditor.courseIdPlaceholder')"
             :disabled="isEditing"
             required
           >
-          <small>Unique identifier for the course{{ isEditing ? ' (cannot be changed)' : '' }}</small>
+          <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
+          <small>{{ $t('admin.courseEditor.courseIdHint') }}{{ isEditing ? $t('admin.courseEditor.courseIdCannotChange') : '' }}</small>
         </div>
 
         <div class="form-group">
-          <label for="name">Course Name *</label>
+          <label for="name">{{ $t('admin.courseEditor.courseNameLabel') }}</label>
           <input
             id="name"
             v-model="formData.name"
             type="text"
-            placeholder="e.g., Introduction to Computer Science"
+            :placeholder="$t('admin.courseEditor.courseNamePlaceholder')"
             required
           >
         </div>
 
         <div class="form-group">
-          <label for="description">Description</label>
+          <label for="description">{{ $t('admin.courseEditor.descriptionLabel') }}</label>
           <textarea
             id="description"
             v-model="formData.description"
             rows="4"
-            placeholder="Brief description of the course..."
+            :placeholder="$t('admin.courseEditor.descriptionPlaceholder')"
           />
         </div>
 
         <!-- Instructor selection (admin only) -->
         <div v-if="ctx.isAdmin.value" class="form-group">
-          <label for="instructor">Instructor *</label>
+          <label for="instructor">{{ $t('admin.courseEditor.instructorLabel') }}</label>
           <select
             id="instructor"
             v-model="formData.instructor_id"
             required
           >
-            <option :value="null" disabled>Select an instructor...</option>
+            <option :value="null" disabled>{{ $t('admin.courseEditor.selectInstructor') }}</option>
             <option
               v-for="instructor in instructors"
               :key="instructor.id"
@@ -94,27 +95,27 @@
               {{ instructor.full_name }} ({{ instructor.username }})
             </option>
           </select>
-          <small>Select the primary instructor for this course</small>
+          <small>{{ $t('admin.courseEditor.selectInstructorHint') }}</small>
         </div>
       </div>
 
       <div class="form-section rounded-lg border-default">
-        <h3>Course Settings</h3>
+        <h3>{{ $t('admin.courseEditor.courseSettings') }}</h3>
 
         <div class="checkbox-group">
           <label class="checkbox-label">
             <input v-model="formData.is_active" type="checkbox">
-            <span>Course is active</span>
+            <span>{{ $t('admin.courseEditor.courseIsActive') }}</span>
           </label>
-          <small>Active courses are visible to enrolled students</small>
+          <small>{{ $t('admin.courseEditor.activeHint') }}</small>
         </div>
 
         <div class="checkbox-group">
           <label class="checkbox-label">
             <input v-model="formData.enrollment_open" type="checkbox">
-            <span>Enrollment is open</span>
+            <span>{{ $t('admin.courseEditor.enrollmentOpen') }}</span>
           </label>
-          <small>Allow new students to enroll in this course</small>
+          <small>{{ $t('admin.courseEditor.enrollmentHint') }}</small>
         </div>
       </div>
     </form>
@@ -122,17 +123,16 @@
     <!-- Delete Confirmation Dialog -->
     <div v-if="showDeleteDialog" class="dialog-overlay">
       <div class="dialog">
-        <h3>Delete Course?</h3>
+        <h3>{{ $t('admin.courses.deleteConfirm') }}</h3>
         <p>
-          Are you sure you want to delete "{{ formData.name }}"?
-          This action cannot be undone.
+          {{ $t('admin.courses.deleteConfirmMessage', { name: formData.name }) }}
         </p>
         <div class="dialog-actions">
           <button class="btn btn-secondary" @click="showDeleteDialog = false">
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button class="btn btn-danger" :disabled="deleting" @click="handleDelete">
-            {{ deleting ? 'Deleting...' : 'Delete' }}
+            {{ deleting ? $t('admin.courseEditor.deleting') : $t('common.delete') }}
           </button>
         </div>
       </div>
@@ -142,6 +142,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
 import { provideContentContext } from '@/composables/useContentContext';
@@ -151,6 +152,8 @@ import type { Instructor } from '@/types';
 // Router
 const route = useRoute();
 const router = useRouter();
+
+const { t } = useI18n();
 
 // Provide role-aware context
 const ctx = provideContentContext();
@@ -210,7 +213,7 @@ async function loadCourse(courseId: string): Promise<void> {
     formData.enrollment_open = course.enrollment_open;
   } catch (err) {
     const apiError = err as { error?: string };
-    loadError.value = apiError.error || `Failed to load course: ${courseId}`;
+    loadError.value = apiError.error || t('admin.courseEditor.loadingCourse');
     log.error('Failed to load course', { courseId, error: err });
   } finally {
     loading.value = false;
@@ -246,7 +249,7 @@ async function handleSave(): Promise<void> {
     router.push(ctx.paths.courses.value);
   } catch (err) {
     const apiError = err as { error?: string };
-    loadError.value = apiError.error || 'Failed to save course';
+    loadError.value = apiError.error || t('admin.courseEditor.failedToSaveCourse');
     log.error('Failed to save course', { error: err });
   } finally {
     saving.value = false;
@@ -264,7 +267,7 @@ async function handleDelete(): Promise<void> {
     router.push(ctx.paths.courses.value);
   } catch (err) {
     const apiError = err as { error?: string };
-    loadError.value = apiError.error || 'Failed to delete course';
+    loadError.value = apiError.error || t('admin.courseEditor.failedToDeleteCourse');
     log.error('Failed to delete course', { error: err });
   } finally {
     deleting.value = false;

@@ -2,13 +2,13 @@
   <div class="mcq-detail">
     <!-- Question -->
     <div class="detail-section">
-      <h4 class="section-label">Question</h4>
+      <h4 class="section-label">{{ $t('admin.submissions.detail.question') }}</h4>
       <div class="question-box">{{ typeData.question_text }}</div>
     </div>
 
     <!-- Options -->
     <div class="detail-section">
-      <h4 class="section-label">Options</h4>
+      <h4 class="section-label">{{ $t('admin.submissions.detail.options') }}</h4>
       <div class="options-list">
         <div
           v-for="option in typeData.options"
@@ -38,7 +38,7 @@
     <!-- Result -->
     <div class="detail-section">
       <div class="result-banner" :class="typeData.is_correct ? 'correct' : 'incorrect'">
-        {{ typeData.is_correct ? 'Correct Answer' : 'Incorrect Answer' }}
+        {{ typeData.is_correct ? $t('admin.submissions.detail.correctAnswer') : $t('admin.submissions.detail.incorrectAnswer') }}
       </div>
     </div>
   </div>

@@ -22,20 +22,20 @@
                 id="correctness-modal-title"
                 class="modal-title"
               >
-                Correctness Analysis
+                {{ $t('feedback.correctnessModal.title') }}
               </h3>
               <div class="header-badges">
                 <span
                   class="badge-level"
                   :class="headerBadgeClass"
                 >
-                  {{ passingVariants }}/{{ totalVariants }} Versions Pass
+                  {{ $t('feedback.correctnessModal.versionPass', { passing: passingVariants, total: totalVariants }) }}
                 </span>
               </div>
             </div>
             <div class="modal-actions">
               <div class="size-controls-group" aria-hidden="true">
-                <span class="size-label">Size</span>
+                <span class="size-label">{{ $t('feedback.correctnessModal.sizeLabel') }}</span>
                 <div class="size-controls">
                   <button
                     v-for="size in sizePresets"
@@ -51,8 +51,8 @@
               </div>
               <button
                 class="close-button"
-                title="Close (ESC)"
-                aria-label="Close modal"
+                :title="$t('feedback.correctnessModal.closeEsc')"
+                :aria-label="$t('feedback.correctnessModal.closeModal')"
                 @click="closeModal"
               >
                 &times;
@@ -87,11 +87,11 @@
           <div class="modal-body">
             <!-- Version Selector Pills -->
             <div class="version-selector">
-              <span id="version-selector-label" class="selector-label">View version:</span>
+              <span id="version-selector-label" class="selector-label">{{ $t('feedback.correctnessModal.viewVersion') }}</span>
               <div
                 class="version-pills"
                 role="tablist"
-                aria-label="Code versions"
+                :aria-label="$t('feedback.correctnessModal.codeVersions')"
               >
                 <button
                   v-for="(v, i) in variants"
@@ -118,7 +118,7 @@
                     aria-hidden="true"
                   >{{ v.passing ? '✓' : '✗' }}</span>
                   <span class="pill-label">{{ i + 1 }}</span>
-                  <span class="sr-only">{{ v.passing ? 'Passing' : 'Failing' }}</span>
+                  <span class="sr-only">{{ v.passing ? $t('feedback.correctnessModal.passing') : $t('feedback.correctnessModal.failing') }}</span>
                 </button>
               </div>
             </div>
@@ -137,12 +137,12 @@
               <div class="version-details">
                 <div class="details-code">
                   <div class="section-header">
-                    <h4 class="section-title">Generated Code</h4>
+                    <h4 class="section-title">{{ $t('feedback.correctnessModal.generatedCode') }}</h4>
                     <span
                       class="section-meta"
                       :class="{ passing: v.passing, failing: !v.passing }"
                     >
-                      {{ v.passing ? 'All tests pass' : `${v.testsTotal - v.testsPassed} failing` }}
+                      {{ v.passing ? $t('feedback.correctnessModal.allTestsPass') : $t('feedback.correctnessModal.failingCount', { count: v.testsTotal - v.testsPassed }) }}
                     </span>
                   </div>
                   <div class="code-wrapper">
@@ -168,7 +168,7 @@
 
                 <div class="details-tests">
                   <div class="section-header">
-                    <h4 class="section-title">Test Results</h4>
+                    <h4 class="section-title">{{ $t('feedback.correctnessModal.testResults') }}</h4>
                     <span class="section-meta">{{ v.testsPassed }}/{{ v.testsTotal }}</span>
                   </div>
                   <ul class="tests-list">
@@ -190,11 +190,11 @@
                       </div>
                       <div class="test-values-row">
                         <span class="test-value">
-                          <span class="value-label">Expected</span>
+                          <span class="value-label">{{ $t('feedback.correctnessModal.expected') }}</span>
                           <code class="value-content">{{ test.expected }}</code>
                         </span>
                         <span class="test-value">
-                          <span class="value-label">Got</span>
+                          <span class="value-label">{{ $t('feedback.correctnessModal.got') }}</span>
                           <code
                             class="value-content"
                             :class="{ mismatch: !test.passed, 'is-error': test.error }"
@@ -224,6 +224,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, toRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Editor from '@/features/editor/Editor.vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 
@@ -265,6 +266,8 @@ const emit = defineEmits<{
   (e: 'debug', variant: Variant): void
 }>()
 
+const { t } = useI18n()
+
 // Focus trap composable
 const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
 
@@ -273,16 +276,16 @@ const localSelectedVersion = ref(props.selectedVersion ?? 0)
 const currentSize = ref<SizePreset>('medium')
 const versionAnnouncement = ref('')
 
-const sizePresets: SizePresetConfig[] = [
-  { name: 'small', label: 'Small', icon: '◻', width: '800px', height: 'auto' },
-  { name: 'medium', label: 'Medium', icon: '◼', width: '1000px', height: 'auto' },
-  { name: 'large', label: 'Large', icon: '⬛', width: '1200px', height: 'auto' },
-  { name: 'fullscreen', label: 'Fullscreen', icon: '⛶', width: '100%', height: '100vh' }
-]
+const sizePresets = computed<SizePresetConfig[]>(() => [
+  { name: 'small', label: t('feedback.correctnessModal.sizePresets.small'), icon: '◻', width: '800px', height: 'auto' },
+  { name: 'medium', label: t('feedback.correctnessModal.sizePresets.medium'), icon: '◼', width: '1000px', height: 'auto' },
+  { name: 'large', label: t('feedback.correctnessModal.sizePresets.large'), icon: '⬛', width: '1200px', height: 'auto' },
+  { name: 'fullscreen', label: t('feedback.correctnessModal.sizePresets.fullscreen'), icon: '⛶', width: '100%', height: '100vh' }
+])
 
 // Computed
 const modalStyle = computed(() => {
-  const preset = sizePresets.find(s => s.name === currentSize.value)
+  const preset = sizePresets.value.find(s => s.name === currentSize.value)
   if (!preset) {
     return {}
   }
@@ -330,22 +333,23 @@ const summaryIcon = computed(() => {
 
 const summaryHeadline = computed(() => {
   if (passingVariants.value === 0) {
-    return 'Your explanation didn\'t produce working code yet.'
+    return t('feedback.correctnessModal.summaryHeadlineNone')
   }
   if (passingVariants.value < totalVariants.value) {
-    return 'Your explanation is ambiguous — it can be interpreted differently.'
+    return t('feedback.correctnessModal.summaryHeadlinePartial')
   }
-  return 'Excellent! Your explanation is clear and unambiguous.'
+  return t('feedback.correctnessModal.summaryHeadlineAll')
 })
 
 const summaryExplanation = computed(() => {
+  const params = { total: totalVariants.value, passing: passingVariants.value }
   if (passingVariants.value === 0) {
-    return `I generated ${totalVariants.value} different code versions from your explanation, but none passed all tests. Review the failing tests to see what's missing from your description.`
+    return t('feedback.correctnessModal.summaryExplanationNone', params)
   }
   if (passingVariants.value < totalVariants.value) {
-    return `I generated ${totalVariants.value} code versions and ${passingVariants.value} passed. One version interpreted your words differently, causing test failures. Click on the failing version to see what was ambiguous.`
+    return t('feedback.correctnessModal.summaryExplanationPartial', params)
   }
-  return `I generated ${totalVariants.value} independent code versions from your explanation, and all of them passed every test. This means your description captured the algorithm's logic precisely.`
+  return t('feedback.correctnessModal.summaryExplanationAll', params)
 })
 
 // Methods
@@ -411,7 +415,7 @@ watch(() => props.selectedVersion, (newVal) => {
 // Lifecycle
 onMounted(() => {
   const savedSize = localStorage.getItem('correctness-modal-size') as SizePreset | null
-  if (savedSize && sizePresets.find(s => s.name === savedSize)) {
+  if (savedSize && sizePresets.value.find(s => s.name === savedSize)) {
     currentSize.value = savedSize
   }
 })

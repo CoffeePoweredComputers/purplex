@@ -1,14 +1,13 @@
 <template>
   <div class="age-gate">
-    <h3 class="age-gate__title">Age Verification</h3>
+    <h3 class="age-gate__title">{{ t('auth.ageGate.title') }}</h3>
     <p class="age-gate__description">
-      We need to verify your age to comply with data protection regulations.
-      This information is used to determine applicable privacy protections.
+      {{ t('auth.ageGate.description') }}
     </p>
 
     <div class="age-gate__form">
       <label class="age-gate__label">
-        Date of Birth
+        {{ t('auth.ageGate.dateOfBirth') }}
         <input
           type="date"
           v-model="dateOfBirth"
@@ -29,7 +28,7 @@
         :disabled="!dateOfBirth"
         @click="submitAge"
       >
-        Continue
+        {{ t('common.continue') }}
       </button>
     </div>
   </div>
@@ -37,6 +36,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
     (e: 'age-verified', data: { date_of_birth: string; is_minor: boolean; is_child: boolean }): void;
@@ -65,17 +67,17 @@ const isChild = computed(() => age.value !== null && age.value < 13);
 const ageMessage = computed(() => {
     if (age.value === null) return '';
     if (isChild.value) {
-        return 'Users under 13 require parental or guardian consent (COPPA). A parent or guardian must approve your account.';
+        return t('auth.ageGate.childMessage');
     }
     if (isMinor.value) {
-        return 'Users under 18 have additional privacy protections. Some features may require parental consent.';
+        return t('auth.ageGate.minorMessage');
     }
     return '';
 });
 
 function submitAge() {
     if (!dateOfBirth.value) {
-        error.value = 'Please enter your date of birth.';
+        error.value = t('auth.ageGate.errorRequired');
         return;
     }
 

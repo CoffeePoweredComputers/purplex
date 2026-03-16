@@ -8,7 +8,7 @@
       <div class="response-panel" role="region" aria-label="Your explanation">
         <h4 class="panel-title">
           <span class="title-icon" aria-hidden="true">💭</span>
-          Your Explanation
+          {{ $t('feedback.segmentMapping.yourExplanation') }}
         </h4>
         <div class="response-text">
           <span
@@ -59,7 +59,7 @@
       <div class="code-panel" role="region" aria-label="Reference code">
         <h4 class="panel-title">
           <span class="title-icon" aria-hidden="true">📝</span>
-          Reference Code
+          {{ $t('feedback.segmentMapping.referenceCode') }}
         </h4>
         <div class="code-display">
           <div

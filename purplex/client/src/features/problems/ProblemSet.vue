@@ -7,7 +7,7 @@
     aria-busy="true"
   >
     <div class="loading-message">
-      Loading problem set...
+      {{ $t('problems.problemSet.loading') }}
     </div>
   </div>
   <div
@@ -16,7 +16,7 @@
     role="status"
   >
     <div class="loading-message">
-      No problems found in this set.
+      {{ $t('problems.problemSet.noProblems') }}
     </div>
   </div>
   <div
@@ -27,7 +27,7 @@
     <a
       href="#code-editor"
       class="skip-link"
-    >Skip to code editor</a>
+    >{{ $t('problems.problemSet.skipToEditor') }}</a>
 
     <!-- Navigation Progress Bar - Thin top indicator -->
     <div
@@ -46,7 +46,7 @@
           class="nav-button"
           :disabled="isNavigating"
           :class="{ 'is-loading': isNavigating }"
-          aria-label="Previous problem"
+          :aria-label="$t('problems.problemSet.aria.previousProblem')"
           @click="prevProblem"
         >
           <span
@@ -56,13 +56,13 @@
         </button>
         <div class="problem-info">
           <div class="progress-summary">
-            <span class="progress-stat completed">{{ completedCount }} completed</span>
-            <span class="progress-stat in_progress">{{ inProgressCount }} in progress</span>
-            <span class="progress-stat remaining">{{ remainingCount }} remaining</span>
+            <span class="progress-stat completed">{{ $t('problems.problemSet.completedCount', { count: completedCount }) }}</span>
+            <span class="progress-stat in_progress">{{ $t('problems.problemSet.inProgressCount', { count: inProgressCount }) }}</span>
+            <span class="progress-stat remaining">{{ $t('problems.problemSet.remainingCount', { count: remainingCount }) }}</span>
           </div>
           <nav
             class="problem-progress"
-            aria-label="Problem navigation"
+            :aria-label="$t('problems.problemSet.aria.problemNav')"
           >
             <button
               v-for="(problem, index) in problems"
@@ -84,7 +84,7 @@
           class="nav-button"
           :disabled="isNavigating"
           :class="{ 'is-loading': isNavigating }"
-          aria-label="Next problem"
+          :aria-label="$t('problems.problemSet.aria.nextProblem')"
           @click="nextProblem"
         >
           <span
@@ -110,14 +110,14 @@
       <span class="deadline-icon">{{ deadline.is_locked ? '🔒' : deadline.is_past_due ? '⚠️' : '⏰' }}</span>
       <span class="deadline-text">
         <template v-if="deadline.is_locked">
-          <strong>Submissions Closed</strong> — This problem set closed on {{ formatDeadline(deadline.due_date) }}
+          <strong>{{ $t('problems.problemSet.deadline.submissionsClosed') }}</strong> — {{ $t('problems.problemSet.deadline.closedOn', { date: formatDeadline(deadline.due_date) }) }}
         </template>
         <template v-else-if="deadline.is_past_due && deadline.deadline_type === 'soft'">
-          <strong>Late Submission</strong> — Due date was {{ formatDeadline(deadline.due_date) }}. Submissions will be marked as late.
+          <strong>{{ $t('problems.problemSet.deadline.lateSubmission') }}</strong> — {{ $t('problems.problemSet.deadline.dueDateWas', { date: formatDeadline(deadline.due_date) }) }}
         </template>
         <template v-else>
-          <strong>Due {{ formatDeadline(deadline.due_date) }}</strong>
-          <span v-if="isDeadlineUrgent" class="urgency-note">— Submit soon!</span>
+          <strong>{{ $t('problems.problemSet.deadline.due', { date: formatDeadline(deadline.due_date) }) }}</strong>
+          <span v-if="isDeadlineUrgent" class="urgency-note">— {{ $t('problems.problemSet.deadline.submitSoon') }}</span>
         </template>
       </span>
     </div>
@@ -141,14 +141,14 @@
         >
           <div class="section-header">
             <div class="section-label">
-              Problem Image
+              {{ $t('problems.problemSet.problemImage') }}
             </div>
           </div>
           <div class="problem-image-wrapper">
             <img
               v-if="getCurrentProblem()?.display_config?.image_url"
               :src="getCurrentProblem()?.display_config?.image_url"
-              :alt="getCurrentProblem()?.display_config?.image_alt_text || 'Problem image'"
+              :alt="getCurrentProblem()?.display_config?.image_alt_text || $t('problems.problemSet.problemImageAlt')"
               class="problem-image"
               loading="lazy"
             >
@@ -156,7 +156,7 @@
               v-else
               class="problem-image-placeholder"
             >
-              No image configured for this problem
+              {{ $t('problems.problemSet.noImageConfigured') }}
             </div>
           </div>
         </div>
@@ -170,7 +170,7 @@
         >
           <div class="section-header">
             <div class="section-label">
-              {{ getCurrentProblem()?.title || 'Question' }}
+              {{ getCurrentProblem()?.title || $t('problems.problemSet.question') }}
             </div>
           </div>
           <div class="problem-description-content">
@@ -183,7 +183,7 @@
               v-else
               class="problem-description-missing"
             >
-              No question text provided. Please add a description in the admin panel.
+              {{ $t('problems.problemSet.noQuestionText') }}
             </div>
           </div>
         </div>
@@ -196,7 +196,7 @@
         >
           <div class="section-header">
             <div class="section-label">
-              Code Editor
+              {{ $t('problems.problemSet.codeEditor') }}
             </div>
             <HintButton
               :problem-slug="getCurrentProblem().slug"
@@ -231,55 +231,55 @@
             <div class="toolbar-options">
               <button
                 class="toolbar-btn"
-                :aria-label="codeCopied ? 'Code copied to clipboard' : 'Copy code to clipboard'"
+                :aria-label="codeCopied ? $t('problems.problemSet.aria.codeCopied') : $t('problems.problemSet.aria.copyCode')"
                 @click="copyCode"
               >
                 <span aria-hidden="true">{{ codeCopied ? '✓' : '📋' }}</span>
-                <span class="btn-text">{{ codeCopied ? 'Copied' : 'Copy' }}</span>
+                <span class="btn-text">{{ codeCopied ? $t('problems.editor.copied') : $t('problems.editor.copy') }}</span>
               </button>
               <button
                 class="toolbar-btn"
-                :aria-label="showLineNumbers ? 'Hide line numbers' : 'Show line numbers'"
+                :aria-label="showLineNumbers ? $t('problems.problemSet.aria.hideLineNumbers') : $t('problems.problemSet.aria.showLineNumbers')"
                 @click="toggleLineNumbers"
               >
                 <span aria-hidden="true">{{ showLineNumbers ? '🔢' : '➖' }}</span>
-                <span class="btn-text">{{ showLineNumbers ? 'Lines' : 'No Lines' }}</span>
+                <span class="btn-text">{{ showLineNumbers ? $t('problems.editor.lines') : $t('problems.editor.noLines') }}</span>
               </button>
               <div class="theme-selector">
                 <label
                   for="editor-theme"
                   class="visually-hidden"
-                >Editor theme</label>
+                >{{ $t('problems.problemSet.editorThemeLabel') }}</label>
                 <select
                   id="editor-theme"
                   v-model="editorTheme"
                   class="theme-dropdown"
-                  aria-label="Select editor theme"
+                  :aria-label="$t('problems.problemSet.selectEditorTheme')"
                   @change="updateTheme"
                 >
                   <option value="dark">
-                    🌙 Dark
+                    {{ $t('problems.problemSet.theme.dark') }}
                   </option>
                   <option value="light">
-                    ☀️ Light
+                    {{ $t('problems.problemSet.theme.light') }}
                   </option>
                   <option value="monokai">
-                    🎨 Monokai
+                    {{ $t('problems.problemSet.theme.monokai') }}
                   </option>
                   <option value="github">
-                    🐙 GitHub
+                    {{ $t('problems.problemSet.theme.github') }}
                   </option>
                   <option value="solarized-dark">
-                    🌅 Solarized Dark
+                    {{ $t('problems.problemSet.theme.solarizedDark') }}
                   </option>
                   <option value="solarized-light">
-                    🌅 Solarized Light
+                    {{ $t('problems.problemSet.theme.solarizedLight') }}
                   </option>
                   <option value="dracula">
-                    🧛 Dracula
+                    {{ $t('problems.problemSet.theme.dracula') }}
                   </option>
                   <option value="tomorrow-night">
-                    🌃 Tomorrow Night
+                    {{ $t('problems.problemSet.theme.tomorrowNight') }}
                   </option>
                 </select>
               </div>
@@ -288,7 +288,7 @@
               <button
                 class="zoom-btn"
                 :disabled="editorFontSize <= 12"
-                aria-label="Decrease font size"
+                :aria-label="$t('problems.problemSet.aria.decreaseFont')"
                 @click="decreaseFontSize"
               >
                 <span
@@ -303,7 +303,7 @@
               <button
                 class="zoom-btn"
                 :disabled="editorFontSize >= 35"
-                aria-label="Increase font size"
+                :aria-label="$t('problems.problemSet.aria.increaseFont')"
                 @click="increaseFontSize"
               >
                 <span
@@ -356,7 +356,7 @@
           :is-loading="loading"
           :is-navigating="isNavigating"
           :submission-history="submissionHistory"
-          title="Submission & Results"
+          :title="$t('problems.problemSet.submissionResults')"
           @load-attempt="loadSpecificAttempt"
           @next-problem="nextProblem"
         />
@@ -675,9 +675,9 @@ export default {
             // Add relative indicator for upcoming deadlines
             if (diffDays > 0 && diffDays <= 7) {
                 if (diffDays === 1) {
-                    return `Tomorrow (${formatted})`;
+                    return this.$t('problems.problemSet.deadline.tomorrow', { date: formatted });
                 }
-                return `in ${diffDays} days (${formatted})`;
+                return this.$t('problems.problemSet.deadline.inDays', { days: diffDays, date: formatted });
             }
 
             return formatted;
@@ -836,7 +836,7 @@ export default {
 
             } catch (error) {
                 this.logger.error('Navigation failed', error);
-                this.notify.error('Navigation Error', 'Failed to load problem data');
+                this.notify.error(this.$t('problems.problemSet.notify.navigationError'), this.$t('problems.problemSet.notify.failedToLoadProblemData'));
                 this.isNavigating = false; // Always clear loading state on error
             }
         },
@@ -1056,7 +1056,7 @@ export default {
             // Validate attempt data exists
             if (!attempt || !attempt.data) {
                 this.logger.error('Cannot load attempt: missing data', { attempt });
-                this.notify.error('Failed to load attempt', 'Submission data is missing or corrupted');
+                this.notify.error(this.$t('problems.problemSet.notify.failedToLoadAttempt'), this.$t('problems.problemSet.notify.dataMissingOrCorrupted'));
                 this.clearFeedbackData();
                 return;
             }
@@ -1067,7 +1067,7 @@ export default {
             // Validate required fields in data
             if (!data.raw_input && !data.processed_code && (!data.variations || data.variations.length === 0)) {
                 this.logger.error('Cannot load attempt: data is empty', { data });
-                this.notify.error('Failed to load attempt', 'Submission data is incomplete');
+                this.notify.error(this.$t('problems.problemSet.notify.failedToLoadAttempt'), this.$t('problems.problemSet.notify.dataIncomplete'));
                 this.clearFeedbackData();
                 return;
             }
@@ -1351,7 +1351,7 @@ export default {
 
                         // Get the problem index for clearer messaging
                         const problemIndex = this.problems.findIndex(p => p.slug === currentProblemSlug);
-                        const problemIdentifier = problemIndex >= 0 ? `Problem ${problemIndex + 1}` : 'Submission';
+                        const problemIdentifier = problemIndex >= 0 ? this.$t('problems.problemSet.notify.problemIdentifier', { number: problemIndex + 1 }) : this.$t('problems.problemSet.notify.submission');
 
                         // Process based on problem type
                         if (problemType === 'mcq') {
@@ -1413,7 +1413,7 @@ export default {
                             });
 
                             // Show notification
-                            const message = `${problemIdentifier}: ${mcqResult.is_correct ? 'Correct!' : 'Incorrect'}`;
+                            const message = mcqResult.is_correct ? this.$t('problems.problemSet.notify.mcqCorrect', { problem: problemIdentifier }) : this.$t('problems.problemSet.notify.mcqIncorrect', { problem: problemIdentifier });
                             if (mcqResult.is_correct) {
                                 this.notify.success(message);
                             } else {
@@ -1481,7 +1481,7 @@ export default {
 
                             // Show notification
                             const allPassed = totalTestsRun > 0 && totalTestsPassed === totalTestsRun;
-                            const message = `${problemIdentifier}: ${totalTestsPassed}/${totalTestsRun} tests passed`;
+                            const message = this.$t('problems.problemSet.notify.testsPassed', { problem: problemIdentifier, passed: totalTestsPassed, total: totalTestsRun });
                             if (allPassed) {
                                 this.notify.success(message);
                             } else {
@@ -1577,7 +1577,7 @@ export default {
                             });
 
                             // Build notification message
-                            let message = `${problemIdentifier}: `;
+                            let message;
                             let notificationType = 'info';
 
                             // Use handler config instead of hardcoded type checks
@@ -1586,14 +1586,20 @@ export default {
                                 const segmentCount = segmentation.segment_count || 0;
                                 // Read threshold from segmentation result (backend uses DB field as single source of truth)
                                 const threshold = segmentation.threshold ?? 2;
-                                const thresholdText = threshold === 1 ? 'need 1' : `need ≤${threshold}`;
-                                const highLevelText = segmentationPassed
-                                    ? `✓ High-level (${segmentCount} segment${segmentCount !== 1 ? 's' : ''})`
-                                    : `✗ High-level (${segmentCount} segments, ${thresholdText})`;
-                                message += `Variations: ${perfectVariations}/${variations.length} passing, ${highLevelText}`;
+                                let highLevelText;
+                                if (segmentationPassed) {
+                                    highLevelText = segmentCount === 1
+                                        ? this.$t('problems.problemSet.notify.segmentationPassedSingular')
+                                        : this.$t('problems.problemSet.notify.segmentationPassed', { count: segmentCount });
+                                } else {
+                                    highLevelText = threshold === 1
+                                        ? this.$t('problems.problemSet.notify.segmentationFailedNeedOne', { count: segmentCount })
+                                        : this.$t('problems.problemSet.notify.segmentationFailed', { count: segmentCount, threshold });
+                                }
+                                message = this.$t('problems.problemSet.notify.variationsWithSegmentation', { problem: problemIdentifier, passed: perfectVariations, total: variations.length, segmentation: highLevelText });
                                 notificationType = (perfectVariations === variations.length && segmentationPassed) ? 'success' : 'warning';
                             } else {
-                                message += `Variations: ${perfectVariations}/${variations.length} passing`;
+                                message = this.$t('problems.problemSet.notify.variationsPassing', { problem: problemIdentifier, passed: perfectVariations, total: variations.length });
                                 notificationType = (perfectVariations === variations.length) ? 'success' : 'warning';
                             }
 
@@ -1624,7 +1630,7 @@ export default {
                     {
                         onError: (error) => {
                             this.logger.error('SSE connection error', error);
-                            this.notify.error(error.error || 'Failed to get results');
+                            this.notify.error(error.error || this.$t('problems.problemSet.notify.failedToGetResults'));
                             this.submissionTracking.removeSubmission(currentProblemSlug);
                             this.loading = this.submissionTracking.isSubmitting(this.getCurrentProblem().slug);
                             if (rollback) { rollback(); }
@@ -1636,7 +1642,7 @@ export default {
                         },
                         onTimeout: () => {
                             this.logger.warn('SSE connection timeout');
-                            this.notify.warning('Connection timeout. Please try again.');
+                            this.notify.warning(this.$t('problems.problemSet.notify.connectionTimeout'));
                             this.submissionTracking.removeSubmission(currentProblemSlug);
                             this.loading = this.submissionTracking.isSubmitting(this.getCurrentProblem().slug);
                             if (rollback) { rollback(); }
@@ -1663,18 +1669,18 @@ export default {
                 // Handle errors
                 if (error.response) {
                     if (error.response.status === 500) {
-                        this.notify.error('Server Error', 'The AI service might be unavailable.');
+                        this.notify.error(this.$t('problems.problemSet.notify.serverError'), this.$t('problems.problemSet.notify.aiServiceUnavailable'));
                     } else if (error.response.status === 401) {
-                        this.notify.error('Authentication Error', 'Please log in again.');
+                        this.notify.error(this.$t('problems.problemSet.notify.authenticationError'), this.$t('problems.problemSet.notify.pleaseLogInAgain'));
                     } else if (error.response.status === 400) {
-                        this.notify.warning('Invalid Request', error.response.data.error || 'Please check your input.');
+                        this.notify.warning(this.$t('problems.problemSet.notify.invalidRequest'), error.response.data.error || this.$t('problems.problemSet.notify.pleaseCheckInput'));
                     } else {
-                        this.notify.error('Error', error.response.data.error || 'An unknown error occurred.');
+                        this.notify.error(this.$t('common.error'), error.response.data.error || this.$t('problems.problemSet.notify.unknownError'));
                     }
                 } else if (error.request) {
-                    this.notify.error('Network Error', 'Unable to reach the server.');
+                    this.notify.error(this.$t('problems.problemSet.notify.networkError'), this.$t('problems.problemSet.notify.unableToReachServer'));
                 } else {
-                    this.notify.error('Error', error.message);
+                    this.notify.error(this.$t('common.error'), error.message);
                 }
                 // Reset loading state on error during initial submission
                 this.submissionTracking.removeSubmission(currentProblemSlug);
@@ -1701,7 +1707,7 @@ export default {
              */
             const problemType = response.problem_type || 'mcq';
             const problemIndex = this.problems.findIndex(p => p.slug === problemSlug);
-            const problemIdentifier = problemIndex >= 0 ? `Problem ${problemIndex + 1}` : 'Submission';
+            const problemIdentifier = problemIndex >= 0 ? this.$t('problems.problemSet.notify.problemIdentifier', { number: problemIndex + 1 }) : this.$t('problems.problemSet.notify.submission');
 
             // Build MCQ result from response
             const mcqResult = {
@@ -1754,7 +1760,7 @@ export default {
             });
 
             // Show notification
-            const message = `${problemIdentifier}: ${mcqResult.is_correct ? 'Correct!' : 'Incorrect'}`;
+            const message = mcqResult.is_correct ? this.$t('problems.problemSet.notify.mcqCorrect', { problem: problemIdentifier }) : this.$t('problems.problemSet.notify.mcqIncorrect', { problem: problemIdentifier });
             if (mcqResult.is_correct) {
                 this.notify.success(message);
             } else {
@@ -1813,7 +1819,7 @@ export default {
 
             } catch (error) {
                 this.logger.error('Error fetching problem set', error);
-                this.notify.error('Load Error', 'Failed to load problem set.');
+                this.notify.error(this.$t('problems.problemSet.notify.loadError'), this.$t('problems.problemSet.notify.failedToLoadProblemSet'));
             } finally {
                 this.isLoading = false;
             }
@@ -1908,11 +1914,11 @@ export default {
             const problemName = problem.title || `Problem ${index + 1}`;
 
             if (!status || status.status === 'not_started') {
-                return `${problemName} - Not attempted`;
+                return this.$t('problems.problemSet.tooltip.notAttempted', { name: problemName });
             } else if (status.status === 'in_progress') {
-                return `${problemName} - In Progress (Score: ${status.score}%)`;
+                return this.$t('problems.problemSet.tooltip.inProgress', { name: problemName, score: status.score });
             } else if (status.status === 'completed') {
-                return `${problemName} - Completed (Score: ${status.score}%)`;
+                return this.$t('problems.problemSet.tooltip.completed', { name: problemName, score: status.score });
             }
             return problemName;
         },

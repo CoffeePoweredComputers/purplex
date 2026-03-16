@@ -8,6 +8,27 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+# ISO 639-1 code → human-readable language name (used for AI prompt localisation)
+LANGUAGE_NAMES = {
+    "en": "English",
+    "hi": "Hindi",
+    "bn": "Bengali",
+    "te": "Telugu",
+    "pa": "Punjabi",
+    "mr": "Marathi",
+    "kn": "Kannada",
+    "ta": "Tamil",
+    "ja": "Japanese",
+    "zh": "Chinese",
+    "pt": "Portuguese",
+    "vi": "Vietnamese",
+    "th": "Thai",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "mi": "Māori",
+}
+
 
 class SegmentationService:
     """
@@ -140,7 +161,11 @@ class SegmentationService:
             raise  # Fail immediately - no fallback
 
     def segment_prompt(
-        self, user_prompt: str, reference_code: str, problem_config: dict = None
+        self,
+        user_prompt: str,
+        reference_code: str,
+        problem_config: dict = None,
+        language: str = "en",
     ) -> dict:
         """
         Segment user prompt and map to code lines using AI (Llama or OpenAI)
@@ -149,6 +174,7 @@ class SegmentationService:
             user_prompt: User's explanation of the code
             reference_code: Reference solution code
             problem_config: Problem-specific segmentation configuration
+            language: ISO 639-1 language code (default 'en')
 
         Returns:
             {
@@ -183,7 +209,7 @@ class SegmentationService:
 
             # Create segmentation prompt with few-shot examples
             system_prompt = self._create_segmentation_prompt(
-                reference_code, custom_examples
+                reference_code, custom_examples, language=language
             )
 
             # Make API call using unified wrapper (handles both Llama and OpenAI)
@@ -253,7 +279,10 @@ class SegmentationService:
             }
 
     def _create_segmentation_prompt(
-        self, reference_code: str, custom_examples: dict = None
+        self,
+        reference_code: str,
+        custom_examples: dict = None,
+        language: str = "en",
     ) -> str:
         """Build few-shot prompt with examples for consistent one-to-one segmentation"""
 
@@ -344,6 +373,15 @@ INSTRUCTIONS:
 
 CRITICAL: Each line number must appear in at most ONE segment. Overlapping line numbers will invalidate the segmentation."""
         )
+
+        # Append localisation instruction for non-English languages
+        if language != "en":
+            language_name = LANGUAGE_NAMES.get(language, language)
+            prompt_parts.append(
+                f"\n\nIMPORTANT: Write all segment descriptions in {language_name}. "
+                f"Keep JSON structure keys in English, but all human-readable text "
+                f"values (descriptions, explanations) must be in {language_name}."
+            )
 
         return "\n".join(prompt_parts)
 

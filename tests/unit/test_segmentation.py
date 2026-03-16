@@ -8,7 +8,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from purplex.problems_app.services.segmentation_service import SegmentationService
+from purplex.problems_app.services.segmentation_service import (
+    LANGUAGE_NAMES,
+    SegmentationService,
+)
 
 
 @pytest.fixture
@@ -305,3 +308,62 @@ class TestIsValidExample:
 
 # NOTE: TestThresholdPrioritization class was removed as part of threshold consolidation.
 # Threshold now only comes from segmentation_threshold DB field (no JSON fallback).
+
+
+class TestSegmentationLanguageLocalisation:
+    """Tests for language localisation in _create_segmentation_prompt."""
+
+    def test_default_english_no_language_instruction(self, segmentation_service):
+        """When language='en' (default), no extra language instruction is appended."""
+        code = "print('hello')"
+        prompt = segmentation_service._create_segmentation_prompt(code, language="en")
+        assert "IMPORTANT: Write all segment descriptions in" not in prompt
+
+    def test_spanish_appends_language_instruction(self, segmentation_service):
+        """When language='es', the prompt includes a Spanish language instruction."""
+        code = "print('hello')"
+        prompt = segmentation_service._create_segmentation_prompt(code, language="es")
+        assert "IMPORTANT: Write all segment descriptions in Spanish" in prompt
+        assert "must be in Spanish" in prompt
+
+    def test_hindi_appends_language_instruction(self, segmentation_service):
+        """When language='hi', the prompt includes a Hindi language instruction."""
+        code = "x = 1"
+        prompt = segmentation_service._create_segmentation_prompt(code, language="hi")
+        assert "IMPORTANT: Write all segment descriptions in Hindi" in prompt
+
+    def test_unknown_code_falls_back_to_raw_code(self, segmentation_service):
+        """When language code is not in LANGUAGE_NAMES, use the raw code string."""
+        code = "x = 1"
+        prompt = segmentation_service._create_segmentation_prompt(code, language="xx")
+        assert "IMPORTANT: Write all segment descriptions in xx" in prompt
+
+    def test_json_keys_stay_english_instruction(self, segmentation_service):
+        """Language instruction should tell the AI to keep JSON keys in English."""
+        code = "x = 1"
+        prompt = segmentation_service._create_segmentation_prompt(code, language="fr")
+        assert "Keep JSON structure keys in English" in prompt
+
+    def test_language_names_mapping_completeness(self):
+        """LANGUAGE_NAMES should contain all expected language codes."""
+        expected_codes = [
+            "en",
+            "hi",
+            "bn",
+            "te",
+            "pa",
+            "mr",
+            "kn",
+            "ta",
+            "ja",
+            "zh",
+            "pt",
+            "vi",
+            "th",
+            "es",
+            "fr",
+            "de",
+            "mi",
+        ]
+        for code in expected_codes:
+            assert code in LANGUAGE_NAMES, f"Missing language code: {code}"

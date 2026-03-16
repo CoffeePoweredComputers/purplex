@@ -5,28 +5,29 @@
 
     <!-- Function Configuration -->
     <div class="form-section rounded-lg border-default">
-      <h3>Function Configuration</h3>
+      <h3>{{ $t('admin.editors.debugFix.functionConfiguration') }}</h3>
       <p class="section-description">
-        Define the function signature and reference solution (correct code).
+        {{ $t('admin.editors.debugFix.functionConfigDescription') }}
       </p>
 
       <div class="form-group">
-        <label for="function_signature">Function Signature *</label>
+        <label for="function_signature">{{ $t('admin.editors.debugFix.functionSignatureLabel') }}</label>
         <input
           id="function_signature"
           :value="editor.form.form.function_signature"
           type="text"
           required
-          placeholder="e.g., def calculate_average(numbers: list) -> float:"
+          :placeholder="$t('admin.editors.debugFix.functionSignaturePlaceholder')"
           @input="updateField('function_signature', ($event.target as HTMLInputElement).value)"
         >
-        <p class="field-hint">
-          Include type hints (e.g., <code>def f(x: int, y: str) -> bool:</code>)
-        </p>
+        <p
+          class="field-hint"
+          v-html="$t('admin.editors.debugFix.functionSignatureHint', { example: '<code>def f(x: int, y: str) -&gt; bool:</code>' })"
+        />
       </div>
 
       <div class="form-group">
-        <label for="reference_solution">Reference Solution (Correct Code) *</label>
+        <label for="reference_solution">{{ $t('admin.editors.debugFix.referenceSolutionLabel') }}</label>
         <EditorToolbar :editor="editor" />
         <div class="code-editor">
           <Editor
@@ -46,9 +47,9 @@
 
     <!-- Buggy Code Configuration -->
     <div class="form-section rounded-lg border-default">
-      <h3>Buggy Code</h3>
+      <h3>{{ $t('admin.editors.debugFix.buggyCode') }}</h3>
       <p class="section-description">
-        Enter the code with intentional bugs. This is what students will see and need to fix.
+        {{ $t('admin.editors.debugFix.buggyCodeDescription') }}
       </p>
 
       <!-- Side-by-side view toggle -->
@@ -58,14 +59,14 @@
           :class="['toggle-btn', { active: viewMode === 'single' }]"
           @click="viewMode = 'single'"
         >
-          Single View
+          {{ $t('admin.editors.debugFix.singleView') }}
         </button>
         <button
           type="button"
           :class="['toggle-btn', { active: viewMode === 'side-by-side' }]"
           @click="viewMode = 'side-by-side'"
         >
-          Side-by-Side Comparison
+          {{ $t('admin.editors.debugFix.sideBySideComparison') }}
         </button>
       </div>
 
@@ -74,7 +75,7 @@
         v-if="viewMode === 'single'"
         class="form-group"
       >
-        <label for="buggy_code">Buggy Code *</label>
+        <label for="buggy_code">{{ $t('admin.editors.debugFix.buggyCodeLabel') }}</label>
         <EditorToolbar :editor="editor" />
         <div class="code-editor">
           <Editor
@@ -98,8 +99,8 @@
       >
         <div class="code-panel">
           <div class="panel-header buggy-header">
-            <span class="panel-title">Buggy Code (Student Sees)</span>
-            <span class="panel-badge buggy-badge">Has Bugs</span>
+            <span class="panel-title">{{ $t('admin.editors.debugFix.buggyCodeStudentSees') }}</span>
+            <span class="panel-badge buggy-badge">{{ $t('admin.editors.debugFix.hasBugs') }}</span>
           </div>
           <div class="code-editor">
             <Editor
@@ -118,8 +119,8 @@
 
         <div class="code-panel">
           <div class="panel-header reference-header">
-            <span class="panel-title">Reference Solution</span>
-            <span class="panel-badge reference-badge">Correct</span>
+            <span class="panel-title">{{ $t('admin.editors.debugFix.referenceSolution') }}</span>
+            <span class="panel-badge reference-badge">{{ $t('admin.editors.debugFix.correct') }}</span>
           </div>
           <div class="code-editor readonly-editor">
             <Editor
@@ -142,7 +143,7 @@
         class="validation-warning"
       >
         <span class="warning-icon">!</span>
-        Buggy code is identical to reference solution. Students need code with actual bugs to fix.
+        {{ $t('admin.editors.debugFix.identicalWarning') }}
       </div>
 
       <div
@@ -154,10 +155,10 @@
           class="btn-secondary btn-sm"
           @click="copyReferenceAsBuggy"
         >
-          Copy Reference as Starting Point
+          {{ $t('admin.editors.debugFix.copyReferenceAsStarting') }}
         </button>
         <span class="hint-text">
-          Start with the correct code and introduce bugs
+          {{ $t('admin.editors.debugFix.startWithCorrectCode') }}
         </span>
       </div>
     </div>
@@ -169,7 +170,7 @@
         @click="hintsExpanded = !hintsExpanded"
       >
         <h3>
-          Bug Hints
+          {{ $t('admin.editors.debugFix.bugHints') }}
           <span class="hint-count">
             ({{ editor.debugFixConfig.bugHints.value.length }})
           </span>
@@ -187,8 +188,7 @@
         class="section-content"
       >
         <p class="section-description">
-          Add progressive hints that help students find bugs.
-          Level 1 = vague hint, Level 2 = more specific, Level 3 = very specific.
+          {{ $t('admin.editors.debugFix.bugHintsDescription') }}
         </p>
 
         <!-- Existing hints -->
@@ -204,36 +204,38 @@
           >
             <div class="hint-header">
               <div class="hint-level-selector">
-                <label>Level:</label>
+                <label>{{ $t('admin.editors.debugFix.level') }}</label>
                 <select
                   :value="hint.level"
                   class="level-select"
                   @change="updateHintLevel(index, parseInt(($event.target as HTMLSelectElement).value) as 1 | 2 | 3)"
                 >
                   <option :value="1">
-                    1 - Vague
+                    {{ $t('admin.editors.debugFix.levelVague') }}
                   </option>
                   <option :value="2">
-                    2 - Moderate
+                    {{ $t('admin.editors.debugFix.levelModerate') }}
                   </option>
                   <option :value="3">
-                    3 - Specific
+                    {{ $t('admin.editors.debugFix.levelSpecific') }}
                   </option>
                 </select>
               </div>
               <button
                 type="button"
                 class="remove-btn"
-                title="Remove hint"
+                :title="$t('admin.editors.debugFix.removeHint')"
                 @click="editor.debugFixConfig.removeHint(index)"
               >
+                <!-- eslint-disable @intlify/vue-i18n/no-raw-text -->
                 x
+                <!-- eslint-enable @intlify/vue-i18n/no-raw-text -->
               </button>
             </div>
             <textarea
               :value="hint.text"
               rows="2"
-              placeholder="Enter hint text..."
+              :placeholder="$t('admin.editors.debugFix.enterHintText')"
               class="hint-text-input"
               @input="updateHintText(index, ($event.target as HTMLTextAreaElement).value)"
             />
@@ -244,27 +246,27 @@
           v-else
           class="no-hints-message"
         >
-          No hints added yet. Hints help struggling students find bugs.
+          {{ $t('admin.editors.debugFix.noHintsMessage') }}
         </div>
 
         <!-- Add new hint -->
         <div class="add-hint-form">
-          <h4>Add New Hint</h4>
+          <h4>{{ $t('admin.editors.debugFix.addNewHint') }}</h4>
           <div class="new-hint-row">
             <div class="level-field">
-              <label>Level:</label>
+              <label>{{ $t('admin.editors.debugFix.levelLabel') }}</label>
               <select
                 v-model.number="editor.debugFixConfig.newHint.value.level"
                 class="level-select"
               >
                 <option :value="1">
-                  1 - Vague
+                  {{ $t('admin.editors.debugFix.levelOptionVague') }}
                 </option>
                 <option :value="2">
-                  2 - Moderate
+                  {{ $t('admin.editors.debugFix.levelOptionModerate') }}
                 </option>
                 <option :value="3">
-                  3 - Specific
+                  {{ $t('admin.editors.debugFix.levelOptionSpecific') }}
                 </option>
               </select>
             </div>
@@ -272,7 +274,7 @@
               <textarea
                 v-model="editor.debugFixConfig.newHint.value.text"
                 rows="2"
-                placeholder="e.g., Check the loop condition on line 5"
+                :placeholder="$t('admin.editors.debugFix.hintPlaceholder')"
                 class="hint-text-input"
                 @keydown.enter.ctrl="addNewHint"
               />
@@ -283,14 +285,14 @@
               :disabled="!editor.debugFixConfig.newHint.value.text.trim()"
               @click="addNewHint"
             >
-              Add Hint
+              {{ $t('admin.editors.debugFix.addHint') }}
             </button>
           </div>
-          <p class="level-guide">
-            <strong>Level 1:</strong> "There's an off-by-one error somewhere"<br>
-            <strong>Level 2:</strong> "Check the loop bounds"<br>
-            <strong>Level 3:</strong> "Line 5: the loop should use &lt; instead of &lt;="
-          </p>
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <p
+            class="level-guide"
+            v-html="$t('admin.editors.debugFix.levelGuide')"
+          />
         </div>
 
         <button
@@ -299,14 +301,14 @@
           class="btn-secondary btn-sm sort-btn"
           @click="editor.debugFixConfig.sortHintsByLevel"
         >
-          Sort Hints by Level
+          {{ $t('admin.editors.debugFix.sortHintsByLevel') }}
         </button>
       </div>
     </div>
 
     <!-- Behavior Settings -->
     <div class="form-section rounded-lg border-default">
-      <h3>Behavior Settings</h3>
+      <h3>{{ $t('admin.editors.debugFix.behaviorSettings') }}</h3>
 
       <div class="toggle-setting">
         <label class="toggle-label">
@@ -316,15 +318,14 @@
             class="toggle-checkbox"
             @change="editor.debugFixConfig.setAllowCompleteRewrite(($event.target as HTMLInputElement).checked)"
           >
-          <span class="toggle-text">Allow Complete Rewrite</span>
+          <span class="toggle-text">{{ $t('admin.editors.debugFix.allowCompleteRewrite') }}</span>
         </label>
         <p class="setting-description">
           <span v-if="editor.debugFixConfig.allowCompleteRewrite.value">
-            Students can rewrite the entire function from scratch.
+            {{ $t('admin.editors.debugFix.allowRewriteDescription') }}
           </span>
           <span v-else>
-            Students should make minimal, targeted fixes to the buggy code.
-            This is recommended for teaching debugging skills.
+            {{ $t('admin.editors.debugFix.minimalFixesDescription') }}
           </span>
         </p>
       </div>

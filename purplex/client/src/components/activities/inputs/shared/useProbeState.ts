@@ -5,10 +5,12 @@
  * Used by both ProbeableCodeInput and ProbeableSpecInput.
  */
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import type { ActivityProblem, ProbeHistoryEntry, ProbeParameter, ProbeStatus } from '../../types'
 
 export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)) {
+  const { t } = useI18n()
   // Probe state
   const probing = ref(false)
   const probeError = ref<string | null>(null)
@@ -83,7 +85,7 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
 
   const probeStatusText = computed(() => {
     if (!probeStatus.value) {
-      return 'Loading...'
+      return t('feedback.codeSubmission.probeLoading')
     }
     return probeStatus.value.message
   })

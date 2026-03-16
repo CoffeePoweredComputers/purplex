@@ -5,18 +5,17 @@
 
     <!-- Claim Configuration -->
     <div class="form-section rounded-lg border-default">
-      <h3>Claim to Disprove</h3>
+      <h3>{{ $t('admin.editors.refute.claimToDisprove') }}</h3>
       <p class="section-description">
-        Enter a false claim about the function that students must find a counterexample for.
-        The claim should be specific and testable.
+        {{ $t('admin.editors.refute.claimDescription') }}
       </p>
 
       <div class="form-group">
-        <label for="claim_text">Claim Text (Display) *</label>
+        <label for="claim_text">{{ $t('admin.editors.refute.claimTextLabel') }}</label>
         <textarea
           id="claim_text"
           :value="editor.refuteConfig.claimText.value"
-          placeholder="e.g., The function always returns a positive number"
+          :placeholder="$t('admin.editors.refute.claimTextPlaceholder')"
           rows="3"
           required
           @input="editor.refuteConfig.setClaimText(($event.target as HTMLTextAreaElement).value)"
@@ -28,19 +27,19 @@
           {{ editor.refuteConfig.claimWarning.value }}
         </div>
         <p class="field-hint">
-          Human-readable claim shown to students
+          {{ $t('admin.editors.refute.claimTextHint') }}
         </p>
       </div>
 
       <div class="form-group">
-        <label for="claim_predicate">Claim Predicate (Evaluation) *</label>
+        <label for="claim_predicate">{{ $t('admin.editors.refute.claimPredicateLabel') }}</label>
         <input
           id="claim_predicate"
           :value="editor.refuteConfig.claimPredicate.value"
           :class="{ 'input-error': editor.refuteConfig.predicateError.value }"
           type="text"
           required
-          placeholder="e.g., result > 0"
+          :placeholder="$t('admin.editors.refute.claimPredicatePlaceholder')"
           @input="editor.refuteConfig.setClaimPredicate(($event.target as HTMLInputElement).value)"
         >
         <div
@@ -52,77 +51,76 @@
         <p
           v-else
           class="field-hint"
-        >
-          Python expression that's <code>True</code> when claim holds.
-          Available variables: <code>result</code> (function output) and all input argument names.
-        </p>
+          v-html="$t('admin.editors.refute.predicateHint', { true: '<code>True</code>', result: '<code>result</code>' })"
+        />
       </div>
 
       <div class="predicate-examples">
-        <h4>Predicate Examples</h4>
+        <h4>{{ $t('admin.editors.refute.predicateExamples') }}</h4>
         <table class="examples-table">
           <tr>
-            <th>Claim</th>
-            <th>Predicate</th>
+            <th>{{ $t('admin.editors.refute.claim') }}</th>
+            <th>{{ $t('admin.editors.refute.predicate') }}</th>
           </tr>
           <tr>
-            <td>Always returns positive</td>
-            <td><code>result > 0</code></td>
+            <td>{{ $t('admin.editors.refute.exampleClaimAlwaysPositive') }}</td>
+            <td><code>{{ $t('admin.editors.refute.examplePredicatePositive') }}</code></td>
           </tr>
           <tr>
-            <td>Never returns None</td>
-            <td><code>result is not None</code></td>
+            <td>{{ $t('admin.editors.refute.exampleClaimNeverNone') }}</td>
+            <td><code>{{ $t('admin.editors.refute.examplePredicateNone') }}</code></td>
           </tr>
           <tr>
-            <td>Output > input</td>
-            <td><code>result > x</code></td>
+            <td>{{ $t('admin.editors.refute.exampleClaimOutputGtInput') }}</td>
+            <td><code>{{ $t('admin.editors.refute.examplePredicateGt') }}</code></td>
           </tr>
           <tr>
-            <td>Returns sorted list</td>
-            <td><code>result == sorted(result)</code></td>
+            <td>{{ $t('admin.editors.refute.exampleClaimReturnsSorted') }}</td>
+            <td><code>{{ $t('admin.editors.refute.examplePredicateSorted') }}</code></td>
           </tr>
           <tr>
-            <td>Sum equals length</td>
-            <td><code>sum(result) == len(items)</code></td>
+            <td>{{ $t('admin.editors.refute.exampleClaimSumEqualsLength') }}</td>
+            <td><code>{{ $t('admin.editors.refute.examplePredicateSum') }}</code></td>
           </tr>
         </table>
       </div>
 
       <div class="claim-examples">
-        <h4>Good Claim Examples</h4>
+        <h4>{{ $t('admin.editors.refute.goodClaimExamples') }}</h4>
         <ul>
-          <li><code>f(x) always returns a positive number</code></li>
-          <li><code>The function never returns None</code></li>
-          <li><code>For all inputs, the output is greater than the input</code></li>
-          <li><code>The function will always terminate in O(n) time</code></li>
+          <li><code>{{ $t('admin.editors.refute.exampleGoodClaim1') }}</code></li>
+          <li><code>{{ $t('admin.editors.refute.exampleGoodClaim2') }}</code></li>
+          <li><code>{{ $t('admin.editors.refute.exampleGoodClaim3') }}</code></li>
+          <li><code>{{ $t('admin.editors.refute.exampleGoodClaim4') }}</code></li>
         </ul>
       </div>
     </div>
 
     <!-- Function Configuration -->
     <div class="form-section rounded-lg border-default">
-      <h3>Function Configuration</h3>
+      <h3>{{ $t('admin.editors.refute.functionConfiguration') }}</h3>
       <p class="section-description">
-        Define the function that students will test against the claim.
+        {{ $t('admin.editors.refute.functionConfigDescription') }}
       </p>
 
       <div class="form-group">
-        <label for="function_signature">Function Signature *</label>
+        <label for="function_signature">{{ $t('admin.editors.refute.functionSignatureLabel') }}</label>
         <input
           id="function_signature"
           :value="editor.form.form.function_signature"
           type="text"
           required
-          placeholder="e.g., def f(x: int) -> int:"
+          :placeholder="$t('admin.editors.refute.functionSignaturePlaceholder')"
           @input="updateField('function_signature', ($event.target as HTMLInputElement).value)"
         >
-        <p class="field-hint">
-          Include type hints to help parse student input (e.g., <code>f(x: int, y: str) -> bool</code>)
-        </p>
+        <p
+          class="field-hint"
+          v-html="$t('admin.editors.refute.functionSignatureHint', { example: '<code>f(x: int, y: str) -&gt; bool</code>' })"
+        />
       </div>
 
       <div class="form-group">
-        <label for="reference_solution">Reference Solution (Function Code) *</label>
+        <label for="reference_solution">{{ $t('admin.editors.refute.referenceSolutionLabel') }}</label>
         <EditorToolbar :editor="editor" />
 
         <div class="code-editor">
@@ -140,7 +138,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 

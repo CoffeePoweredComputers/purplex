@@ -2,12 +2,12 @@
   <ContentEditorLayout
     :page-title="ctx.getPageTitle('Courses').value"
     :back-path="ctx.basePath.value"
-    :back-label="ctx.isInstructor.value ? 'Back to Dashboard' : 'Back to Admin'"
+    :back-label="ctx.isInstructor.value ? $t('admin.contentLayout.backToDashboard') : $t('admin.contentLayout.backToAdmin')"
     :show-breadcrumb="false"
   >
     <template #header-actions>
       <router-link :to="ctx.paths.newCourse.value" class="action-button add-button">
-        Create Course
+        {{ $t('admin.courses.createCourse') }}
       </router-link>
     </template>
 
@@ -25,12 +25,12 @@
       :page-numbers="pageNumbers"
       :range-start="rangeStart"
       :range-end="rangeEnd"
-      item-label="courses"
+      :item-label="$t('admin.courses.itemLabel')"
       row-key="id"
-      empty-title="No Courses Yet"
+      :empty-title="$t('admin.courses.noCourses')"
       :empty-message="ctx.isInstructor.value
-        ? 'You haven\'t created any courses yet. Create your first one!'
-        : 'No courses found. Create your first one!'"
+        ? $t('admin.courses.emptyInstructor')
+        : $t('admin.courses.emptyAdmin')"
       @go-to-page="goToPage"
       @page-size-change="handlePageSizeChange"
       @retry="refresh"
@@ -42,7 +42,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Search by name or course ID..."
+              :placeholder="$t('admin.courses.searchPlaceholder')"
               class="search-input"
               @input="debouncedSearch"
             >
@@ -58,7 +58,7 @@
       <!-- Status badge -->
       <template #cell-status="{ item }">
         <StatusBadge
-          :value="item.is_active ? 'Active' : 'Inactive'"
+          :value="item.is_active ? $t('common.active') : $t('common.inactive')"
           :variant="item.is_active ? 'success' : 'error'"
         />
       </template>
@@ -69,27 +69,27 @@
           <router-link
             :to="ctx.paths.editCourse(item.course_id)"
             class="icon-button"
-            title="Edit Course"
+            :title="$t('admin.courses.editCourse')"
           >
             <span class="icon">&#x270E;</span>
           </router-link>
           <router-link
             :to="ctx.paths.courseProblemSets(item.course_id)"
             class="icon-button"
-            title="Manage Problem Sets"
+            :title="$t('admin.courses.manageProblemSets')"
           >
             <span class="icon">&#x1F4DA;</span>
           </router-link>
           <router-link
             :to="ctx.paths.courseStudents(item.course_id)"
             class="icon-button"
-            title="View Students"
+            :title="$t('admin.courses.viewStudents')"
           >
             <span class="icon">&#x1F465;</span>
           </router-link>
           <button
             class="icon-button delete"
-            title="Delete Course"
+            :title="$t('admin.courses.deleteCourse')"
             @click="confirmDelete(item)"
           >
             <span class="icon">&#x1F5D1;</span>
@@ -100,7 +100,7 @@
       <!-- Empty state action -->
       <template #empty-actions>
         <router-link :to="ctx.paths.newCourse.value" class="action-button add-button">
-          Create Course
+          {{ $t('admin.courses.createCourse') }}
         </router-link>
       </template>
     </DataTable>
@@ -108,9 +108,9 @@
     <!-- Delete Confirmation Dialog -->
     <ConfirmDialog
       :visible="showDeleteDialog"
-      title="Delete Course?"
-      :message="`Are you sure you want to delete &quot;${deleteTarget?.name}&quot;? This action cannot be undone.`"
-      confirm-label="Delete"
+      :title="$t('admin.courses.deleteConfirm')"
+      :message="$t('admin.courses.deleteConfirmMessage', { name: deleteTarget?.name })"
+      :confirm-label="$t('common.delete')"
       :loading="deleting"
       @confirm="performDelete"
       @cancel="showDeleteDialog = false"
@@ -120,6 +120,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import ContentEditorLayout from './ContentEditorLayout.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -131,6 +132,7 @@ import { log } from '@/utils/logger';
 import type { Course } from '@/types';
 import type { DataTableColumn } from '@/types/datatable';
 
+const { t } = useI18n();
 const ctx = provideContentContext();
 
 // Cached data for client-side pagination
@@ -162,26 +164,26 @@ const {
 // Column definitions — conditionally include Instructor for admins
 const columns = computed<DataTableColumn<Course>[]>(() => {
   const cols: DataTableColumn<Course>[] = [
-    { key: 'course_id', label: 'Course ID', slot: 'cell-course-id', width: '120px' },
-    { key: 'name', label: 'Name' },
+    { key: 'course_id', label: t('admin.courses.columnCourseId'), slot: 'cell-course-id', width: '120px' },
+    { key: 'name', label: t('admin.courses.columnName') },
   ];
 
   if (ctx.isAdmin.value) {
     cols.push({
       key: 'instructor_name',
-      label: 'Instructor',
+      label: t('admin.courses.columnInstructor'),
       hideOnMobile: true,
-      render: (value) => (value as string) || 'Not assigned',
+      render: (value) => (value as string) || t('admin.courses.notAssigned'),
     });
   }
 
   cols.push(
-    { key: 'problem_sets_count', label: 'Problem Sets', align: 'center', width: '120px',
+    { key: 'problem_sets_count', label: t('admin.courses.columnProblemSets'), align: 'center', width: '120px',
       render: (value) => String(value ?? 0) },
-    { key: 'enrolled_students_count', label: 'Students', align: 'center', width: '100px',
+    { key: 'enrolled_students_count', label: t('admin.courses.columnStudents'), align: 'center', width: '100px',
       render: (value) => String(value ?? 0) },
-    { key: 'is_active', label: 'Status', align: 'center', width: '110px', slot: 'cell-status' },
-    { key: 'actions', label: 'Actions', slot: 'cell-actions', width: '170px' },
+    { key: 'is_active', label: t('admin.courses.columnStatus'), align: 'center', width: '110px', slot: 'cell-status' },
+    { key: 'actions', label: t('admin.courses.columnActions'), slot: 'cell-actions', width: '170px' },
   );
 
   return cols;
@@ -209,7 +211,7 @@ async function performDelete(): Promise<void> {
     await fetchTable();
   } catch (err) {
     const apiError = err as { error?: string };
-    error.value = apiError.error || 'Failed to delete course';
+    error.value = apiError.error || t('admin.courseEditor.failedToDeleteCourse');
     log.error('Error deleting course', { error: err });
   } finally {
     deleting.value = false;

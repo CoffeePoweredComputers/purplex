@@ -5,7 +5,7 @@
     :submission-history="submissionHistory"
     :is-loading="isLoading"
     :is-navigating="isNavigating"
-    :title="title"
+    :title="effectiveTitle"
     @load-attempt="$emit('load-attempt', $event)"
   />
 </template>
@@ -22,8 +22,11 @@
  * - Test results showing which tests pass/fail
  */
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import CodeSubmissionFeedback from './CodeSubmissionFeedback.vue'
 import type { CodeResult, SubmissionHistoryItem, TestResultDisplay } from '../types'
+
+const { t } = useI18n()
 
 interface TestResultFromBackend {
   success?: boolean
@@ -80,8 +83,10 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   isNavigating: false,
   submissionHistory: () => [],
-  title: 'Test Results',
+  title: '',
 })
+
+const effectiveTitle = computed(() => props.title || t('feedback.correctnessModal.testResults'))
 
 defineEmits<{
   (e: 'load-attempt', attemptId: string): void

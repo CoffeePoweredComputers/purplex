@@ -17,53 +17,53 @@
       :page-numbers="pageNumbers"
       :range-start="rangeStart"
       :range-end="rangeEnd"
-      item-label="submissions"
+      :item-label="$t('admin.submissions.itemLabel')"
       row-key="id"
-      empty-title="No Submissions Found"
+      :empty-title="$t('admin.submissions.noSubmissions')"
       :empty-message="hasFilters
-        ? 'Try adjusting your filters to see more results.'
-        : 'No students have submitted solutions yet.'"
+        ? $t('admin.submissions.emptyFiltered')
+        : $t('admin.submissions.emptyDefault')"
       @go-to-page="goToPage"
       @page-size-change="handlePageSizeChange"
       @retry="fetchSubmissions"
     >
       <!-- Filters -->
       <template #filters>
-        <div class="filters-section" role="search" aria-label="Filter submissions">
+        <div class="filters-section" role="search" :aria-label="$t('admin.submissions.filterSubmissions')">
           <div class="filter-group">
-            <label for="search">Search</label>
+            <label for="search">{{ $t('common.search') }}</label>
             <input
               id="search"
               v-model="searchQuery"
               type="text"
-              placeholder="Search by student or problem..."
-              aria-label="Search submissions by student name or problem"
+              :placeholder="$t('admin.submissions.searchPlaceholder')"
+              :aria-label="$t('admin.submissions.searchAriaLabel')"
               @input="debouncedSearch"
             >
           </div>
 
           <div class="filter-group">
-            <label for="status">Status</label>
+            <label for="status">{{ $t('common.status') }}</label>
             <select
               id="status"
               v-model="statusFilter"
               @change="handleFilterChange"
             >
-              <option value="">All Statuses</option>
-              <option value="complete">Complete</option>
-              <option value="partial">Partial</option>
-              <option value="incomplete">Incomplete</option>
+              <option value="">{{ $t('admin.submissions.allStatuses') }}</option>
+              <option value="complete">{{ $t('admin.submissions.complete') }}</option>
+              <option value="partial">{{ $t('admin.submissions.partial') }}</option>
+              <option value="incomplete">{{ $t('admin.submissions.incomplete') }}</option>
             </select>
           </div>
 
           <div class="filter-group">
-            <label for="problem-set">Problem Set</label>
+            <label for="problem-set">{{ $t('admin.submissions.chipProblemSet').replace(':', '') }}</label>
             <select
               id="problem-set"
               v-model="problemSetFilter"
               @change="handleFilterChange"
             >
-              <option value="">All Problem Sets</option>
+              <option value="">{{ $t('admin.submissions.allProblemSets') }}</option>
               <option
                 v-for="ps in filterOptions.problem_sets"
                 :key="ps.slug"
@@ -76,13 +76,13 @@
 
           <!-- Admin only: Course filter -->
           <div v-if="ctx.isAdmin.value && !isCourseScoped" class="filter-group">
-            <label for="course">Course</label>
+            <label for="course">{{ $t('admin.submissions.chipCourse').replace(':', '') }}</label>
             <select
               id="course"
               v-model="courseFilter"
               @change="handleFilterChange"
             >
-              <option value="">All Courses</option>
+              <option value="">{{ $t('admin.submissions.allCourses') }}</option>
               <option
                 v-for="course in filterOptions.courses"
                 :key="course.id"
@@ -98,20 +98,20 @@
               <button
                 v-if="hasFilters"
                 class="clear-filters-btn"
-                aria-label="Clear all filters"
+                :aria-label="$t('admin.submissions.clearAllFilters')"
                 @click="clearFilters"
               >
-                Clear Filters
+                {{ $t('admin.submissions.clearFilters') }}
               </button>
             </Transition>
             <button
               v-if="ctx.isAdmin.value"
               class="action-button export-button"
               :disabled="totalCount === 0"
-              title="Export filtered submissions to CSV"
+              :title="$t('admin.submissions.exportTitle')"
               @click="exportToCSV"
             >
-              Export CSV ({{ totalCount }})
+              {{ $t('admin.submissions.exportCsv', { count: totalCount }) }}
             </button>
           </div>
         </div>
@@ -122,48 +122,52 @@
             v-if="hasFilters"
             class="active-filters"
             role="region"
-            aria-label="Active filters"
+            :aria-label="$t('admin.submissions.activeFiltersRegion')"
           >
-            <span class="active-filters-label">Active filters:</span>
+            <span class="active-filters-label">{{ $t('admin.submissions.activeFilters') }}</span>
             <div class="filter-chips">
               <button
                 v-if="searchQuery"
                 class="filter-chip"
-                :aria-label="`Remove search filter: ${searchQuery}`"
+                :aria-label="$t('admin.submissions.removeSearchFilter', { query: searchQuery })"
                 @click="clearSearchFilter"
               >
-                <span class="chip-label">Search:</span>
+                <span class="chip-label">{{ $t('admin.submissions.chipSearch') }}</span>
                 <span class="chip-value">{{ searchQuery }}</span>
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                 <span class="chip-remove" aria-hidden="true">x</span>
               </button>
               <button
                 v-if="statusFilter"
                 class="filter-chip"
-                :aria-label="`Remove status filter: ${formatStatus(statusFilter)}`"
+                :aria-label="$t('admin.submissions.removeStatusFilter', { status: formatStatus(statusFilter) })"
                 @click="clearStatusFilter"
               >
-                <span class="chip-label">Status:</span>
+                <span class="chip-label">{{ $t('admin.submissions.chipStatus') }}</span>
                 <span class="chip-value">{{ formatStatus(statusFilter) }}</span>
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                 <span class="chip-remove" aria-hidden="true">x</span>
               </button>
               <button
                 v-if="problemSetFilter"
                 class="filter-chip"
-                :aria-label="`Remove problem set filter: ${getProblemSetTitle(problemSetFilter)}`"
+                :aria-label="$t('admin.submissions.removeProblemSetFilter', { title: getProblemSetTitle(problemSetFilter) })"
                 @click="clearProblemSetFilter"
               >
-                <span class="chip-label">Problem Set:</span>
+                <span class="chip-label">{{ $t('admin.submissions.chipProblemSet') }}</span>
                 <span class="chip-value">{{ getProblemSetTitle(problemSetFilter) }}</span>
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                 <span class="chip-remove" aria-hidden="true">x</span>
               </button>
               <button
                 v-if="courseFilter && ctx.isAdmin.value"
                 class="filter-chip"
-                :aria-label="`Remove course filter`"
+                :aria-label="$t('admin.submissions.removeCourseFilter')"
                 @click="clearCourseFilter"
               >
-                <span class="chip-label">Course:</span>
+                <span class="chip-label">{{ $t('admin.submissions.chipCourse') }}</span>
                 <span class="chip-value">{{ getCourseName(courseFilter) }}</span>
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                 <span class="chip-remove" aria-hidden="true">x</span>
               </button>
             </div>
@@ -199,7 +203,7 @@
 
       <!-- Course cell (admin only) -->
       <template #cell-course="{ item }">
-        <span class="course-tag">{{ item.course || 'No Course' }}</span>
+        <span class="course-tag">{{ item.course || $t('admin.submissions.noCourse') }}</span>
       </template>
 
       <!-- Score badge -->
@@ -243,18 +247,18 @@
         <div class="actions-cell">
           <button
             class="action-button view-button"
-            title="View Details"
+            :title="$t('admin.submissions.viewDetails')"
             @click="viewSubmission(item.id)"
           >
-            View
+            {{ $t('admin.submissions.view') }}
           </button>
           <button
             v-if="ctx.isAdmin.value"
             class="action-button download-button"
-            title="Download Data"
+            :title="$t('admin.submissions.downloadData')"
             @click="downloadSubmissionData(item)"
           >
-            Download
+            {{ $t('admin.submissions.download') }}
           </button>
         </div>
       </template>
@@ -272,6 +276,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
 import DataTable from '@/components/ui/DataTable.vue';
@@ -280,6 +285,8 @@ import { provideContentContext } from '@/composables/useContentContext';
 import { useSubmissions } from '@/composables/useSubmissions';
 import type { DataTableColumn } from '@/types/datatable';
 import type { SubmissionSummary } from '@/services/contentService';
+
+const { t } = useI18n();
 
 // Provide role-aware context
 const ctx = provideContentContext();
@@ -345,33 +352,33 @@ const {
 // Column definitions — built dynamically based on admin/instructor role and filters
 const columns = computed<DataTableColumn<SubmissionSummary>[]>(() => {
   const cols: DataTableColumn<SubmissionSummary>[] = [
-    { key: 'user', label: 'Student', slot: 'cell-student' },
-    { key: 'problem', label: 'Problem' },
-    { key: 'problem_set', label: 'Problem Set', hideOnMobile: true, slot: 'cell-problem-set' },
+    { key: 'user', label: t('admin.submissions.columnStudent'), slot: 'cell-student' },
+    { key: 'problem', label: t('admin.submissions.columnProblem') },
+    { key: 'problem_set', label: t('admin.submissions.columnProblemSet'), hideOnMobile: true, slot: 'cell-problem-set' },
   ];
 
   // Admin: Show course column when not filtered to single course
   if (ctx.isAdmin.value && !isCourseScoped.value && !courseFilter.value) {
-    cols.push({ key: 'course', label: 'Course', hideOnMobile: true, slot: 'cell-course' });
+    cols.push({ key: 'course', label: t('admin.submissions.columnCourse'), hideOnMobile: true, slot: 'cell-course' });
   }
 
   // Submission type column (instructor + admin)
   if (ctx.isInstructor.value || ctx.isAdmin.value) {
-    cols.push({ key: 'submission_type', label: 'Type', align: 'center', hideOnMobile: true, width: '110px', slot: 'cell-type' });
+    cols.push({ key: 'submission_type', label: t('admin.submissions.columnType'), align: 'center', hideOnMobile: true, width: '110px', slot: 'cell-type' });
   }
 
-  cols.push({ key: 'score', label: 'Score', align: 'center', width: '100px', slot: 'cell-score' });
+  cols.push({ key: 'score', label: t('admin.submissions.columnScore'), align: 'center', width: '100px', slot: 'cell-score' });
 
   // Admin: comprehension column
   if (ctx.isAdmin.value) {
-    cols.push({ key: 'comprehension_level', label: 'Comprehension', align: 'center', hideOnMobile: true, slot: 'cell-comprehension' });
+    cols.push({ key: 'comprehension_level', label: t('admin.submissions.columnComprehension'), align: 'center', hideOnMobile: true, slot: 'cell-comprehension' });
   }
 
   cols.push(
-    { key: 'status', label: 'Status', align: 'center', width: '110px', slot: 'cell-status' },
+    { key: 'status', label: t('admin.submissions.columnStatus'), align: 'center', width: '110px', slot: 'cell-status' },
     {
       key: 'submitted_at',
-      label: 'Submitted',
+      label: t('admin.submissions.columnSubmitted'),
       hideOnMobile: true,
       render: (value) => formatDate(value as string),
     },
@@ -381,7 +388,7 @@ const columns = computed<DataTableColumn<SubmissionSummary>[]>(() => {
   if (ctx.isAdmin.value || ctx.isInstructor.value) {
     cols.push({
       key: 'actions',
-      label: 'Actions',
+      label: t('admin.submissions.columnActions'),
       align: 'center',
       slot: 'cell-actions',
       width: ctx.isAdmin.value ? '160px' : '80px',

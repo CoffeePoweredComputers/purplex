@@ -2,12 +2,12 @@
   <ContentEditorLayout
     :page-title="ctx.getPageTitle('Problem Sets').value"
     :back-path="ctx.basePath.value"
-    :back-label="ctx.isInstructor.value ? 'Back to Dashboard' : 'Back to Admin'"
+    :back-label="ctx.isInstructor.value ? $t('admin.contentLayout.backToDashboard') : $t('admin.contentLayout.backToAdmin')"
     :show-breadcrumb="false"
   >
     <template #header-actions>
       <router-link :to="ctx.paths.newProblemSet.value" class="action-button add-button">
-        Add New Problem Set
+        {{ $t('admin.problemSets.addNew') }}
       </router-link>
     </template>
 
@@ -25,12 +25,12 @@
       :page-numbers="pageNumbers"
       :range-start="rangeStart"
       :range-end="rangeEnd"
-      item-label="problem sets"
+      :item-label="$t('admin.problemSets.itemLabel')"
       row-key="slug"
-      empty-title="No Problem Sets"
+      :empty-title="$t('admin.problemSets.noProblemSets')"
       :empty-message="ctx.isInstructor.value
-        ? 'You haven\'t created any problem sets yet. Create your first one!'
-        : 'No problem sets found. Create your first one!'"
+        ? $t('admin.problemSets.emptyInstructor')
+        : $t('admin.problemSets.emptyAdmin')"
       @go-to-page="goToPage"
       @page-size-change="handlePageSizeChange"
       @retry="refresh"
@@ -42,7 +42,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Search by title or description..."
+              :placeholder="$t('admin.problemSets.searchByTitleOrDesc')"
               class="search-input"
               @input="debouncedSearch"
             >
@@ -53,7 +53,7 @@
       <!-- Visibility badge -->
       <template #cell-visibility="{ item }">
         <StatusBadge
-          :value="item.is_public ? 'Public' : 'Private'"
+          :value="item.is_public ? $t('admin.problemSets.public') : $t('admin.problemSets.private')"
           :variant="item.is_public ? 'success' : 'error'"
         />
       </template>
@@ -65,10 +65,10 @@
             :to="ctx.paths.editProblemSet(item.slug)"
             class="action-button edit-button"
           >
-            Edit
+            {{ $t('common.edit') }}
           </router-link>
           <button class="action-button delete-button" @click="confirmDelete(item)">
-            Delete
+            {{ $t('common.delete') }}
           </button>
         </div>
       </template>
@@ -77,9 +77,9 @@
     <!-- Delete Confirmation Dialog -->
     <ConfirmDialog
       :visible="showDeleteDialog"
-      title="Delete Problem Set?"
-      :message="`Are you sure you want to delete &quot;${deleteTarget?.title}&quot;? This will not delete the problems inside.`"
-      confirm-label="Delete"
+      :title="$t('admin.problemSets.deleteProblemSet')"
+      :message="$t('admin.problemSets.deleteConfirmMessage', { title: deleteTarget?.title })"
+      :confirm-label="$t('common.delete')"
       :loading="deleting"
       @confirm="performDelete"
       @cancel="showDeleteDialog = false"
@@ -88,7 +88,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import ContentEditorLayout from './ContentEditorLayout.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
@@ -100,6 +101,7 @@ import { log } from '@/utils/logger';
 import type { ProblemSet } from '@/types';
 import type { DataTableColumn } from '@/types/datatable';
 
+const { t } = useI18n();
 const ctx = provideContentContext();
 
 // Cached data for client-side pagination
@@ -129,24 +131,24 @@ const {
 });
 
 // Column definitions
-const columns: DataTableColumn<ProblemSet>[] = [
-  { key: 'title', label: 'Title' },
+const columns = computed<DataTableColumn<ProblemSet>[]>(() => [
+  { key: 'title', label: t('admin.problemSets.columnTitle') },
   {
     key: 'description',
-    label: 'Description',
+    label: t('admin.problemSets.columnDescription'),
     hideOnMobile: true,
-    render: (value) => (value as string) || 'No description',
+    render: (value) => (value as string) || t('admin.problemSets.noDescription'),
   },
   {
     key: 'problems_count',
-    label: 'Problems',
+    label: t('admin.problemSets.columnProblems'),
     align: 'center',
     width: '100px',
     render: (value, row) => String(value ?? row.problems?.length ?? 0),
   },
-  { key: 'is_public', label: 'Visibility', align: 'center', width: '120px', slot: 'cell-visibility' },
-  { key: 'actions', label: 'Actions', slot: 'cell-actions', width: '160px' },
-];
+  { key: 'is_public', label: t('admin.problemSets.columnVisibility'), align: 'center', width: '120px', slot: 'cell-visibility' },
+  { key: 'actions', label: t('admin.problemSets.columnActions'), slot: 'cell-actions', width: '160px' },
+]);
 
 // Delete dialog state
 const showDeleteDialog = ref(false);
@@ -170,7 +172,7 @@ async function performDelete(): Promise<void> {
     await fetchTable();
   } catch (err) {
     const apiError = err as { error?: string };
-    error.value = apiError.error || 'Failed to delete problem set';
+    error.value = apiError.error || t('admin.problemSets.deleting');
     log.error('Error deleting problem set', { error: err });
   } finally {
     deleting.value = false;

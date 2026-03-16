@@ -7,14 +7,14 @@
           <p>{{ message }}</p>
           <div class="dialog-actions">
             <button class="btn btn-secondary" @click="$emit('cancel')">
-              Cancel
+              {{ $t('common.cancel') }}
             </button>
             <button
               :class="['btn', confirmVariant === 'warning' ? 'btn-warning' : 'btn-danger']"
               :disabled="loading"
               @click="$emit('confirm')"
             >
-              {{ loading ? 'Please wait...' : confirmLabel }}
+              {{ loading ? $t('common.pleaseWait') : resolvedConfirmLabel }}
             </button>
           </div>
         </div>
@@ -24,6 +24,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
 interface Props {
   visible: boolean;
   title: string;
@@ -33,11 +38,12 @@ interface Props {
   loading?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
-  confirmLabel: 'Confirm',
+const props = withDefaults(defineProps<Props>(), {
   confirmVariant: 'danger',
   loading: false,
 });
+
+const resolvedConfirmLabel = computed(() => props.confirmLabel ?? t('common.confirm'));
 
 defineEmits<{
   confirm: [];

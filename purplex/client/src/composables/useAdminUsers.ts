@@ -11,6 +11,7 @@
  *   const { items: users, loading, changeRole, ... } = useAdminUsers();
  */
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import axios from 'axios';
 import { useDataTable, type UseDataTableReturn } from './useDataTable';
 import type { BadgeVariant, DataTableQueryParams, PaginatedResponseWithFilters } from '@/types/datatable';
@@ -76,6 +77,7 @@ async function fetchUsers(
 }
 
 export function useAdminUsers(): UseAdminUsersReturn {
+  const { t } = useI18n();
   const table = useDataTable<AdminUser, UserFilterOptions>({
     fetchFn: fetchUsers,
     initialPageSize: 25,
@@ -119,7 +121,7 @@ export function useAdminUsers(): UseAdminUsersReturn {
       return true;
     } catch (error) {
       log.error('Failed to update user role', { error, userId, newRole });
-      table.error.value = 'Failed to update user role. Please try again.';
+      table.error.value = t('admin.users.failedToUpdateRole');
       return false;
     } finally {
       updatingUsers.value = { ...updatingUsers.value, [userId]: false };

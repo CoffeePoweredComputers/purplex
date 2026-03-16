@@ -27,6 +27,7 @@
 
 <script setup lang="ts">
 import { type Component, computed, markRaw } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   type ContentContext,
   provideContentContext,
@@ -54,6 +55,8 @@ const props = withDefaults(defineProps<{
   showHeader: true,
 });
 
+const { t } = useI18n();
+
 // Use existing context if parent provided it, otherwise provide our own
 // (Page-level components should call provideContentContext() before rendering this)
 const ctx: ContentContext = useContentContextOptional() ?? provideContentContext();
@@ -78,12 +81,12 @@ const backLabel = computed(() => {
   if (props.backLabel) {
     return props.backLabel;
   }
-  return ctx.isInstructor.value ? 'Back to My Problems' : 'Back to Problems';
+  return ctx.isInstructor.value ? t('admin.contentLayout.backToMyProblems') : t('admin.contentLayout.backToProblems');
 });
 
 // Page title with role awareness
 const pageTitle = computed(() => {
-  return props.pageTitle ?? 'Content Management';
+  return props.pageTitle ?? t('admin.contentLayout.contentManagement');
 });
 
 // Expose context for parent component if needed

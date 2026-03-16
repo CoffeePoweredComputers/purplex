@@ -9,7 +9,7 @@
         class="loading-container"
       >
         <div class="loading-spinner" />
-        <p>Loading course overview...</p>
+        <p>{{ $t('admin.courseOverview.loadingOverview') }}</p>
       </div>
 
       <!-- Error State -->
@@ -34,14 +34,14 @@
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
         </div>
-        <span class="visually-hidden">Error:</span>
-        <h3>Unable to Load Course</h3>
+        <span class="visually-hidden">{{ $t('admin.courseOverview.errorLabel') }}</span>
+        <h3>{{ $t('admin.courseOverview.unableToLoadCourse') }}</h3>
         <p>{{ error }}</p>
         <router-link
           to="/instructor"
           class="back-btn"
         >
-          Back to My Courses
+          {{ $t('admin.courseOverview.backToMyCourses') }}
         </router-link>
       </div>
 
@@ -53,16 +53,16 @@
           <header class="course-header">
             <div class="header-identity">
               <h1>{{ overview.course_name }}</h1>
-              <span class="course-code">Course ID: {{ overview.course_id }}</span>
+              <span class="course-code">{{ $t('admin.courseOverview.courseIdLabel') }} {{ overview.course_id }}</span>
             </div>
             <div class="header-stats">
               <div class="header-stat">
                 <span class="stat-value">{{ overview.total_students }}</span>
-                <span class="stat-label">students</span>
+                <span class="stat-label">{{ $t('admin.courseOverview.students') }}</span>
               </div>
               <div class="header-stat">
                 <span class="stat-value">{{ overview.avg_score }}%</span>
-                <span class="stat-label">avg score</span>
+                <span class="stat-label">{{ $t('admin.courseOverview.avgScore') }}</span>
               </div>
             </div>
           </header>
@@ -74,7 +74,7 @@
             v-if="overview.problem_set_stats.length === 0"
             class="empty-journey"
           >
-            <p>No problem sets assigned to this course yet.</p>
+            <p>{{ $t('admin.courseOverview.noProblemSetsAssigned') }}</p>
           </div>
 
           <div
@@ -114,7 +114,7 @@
                     >
                       {{ formatDueDate(ps.due_date) }}
                     </span>
-                    <span v-else class="due-badge no-due">No due date</span>
+                    <span v-else class="due-badge no-due">{{ $t('admin.courseOverview.noDueDate') }}</span>
                     <span
                       :class="['completion-badge', getCompletionClass(ps.avg_completion)]"
                     >
@@ -161,11 +161,11 @@
                 </div>
                 <div class="journey-stats">
                   <span class="stat-item">
-                    {{ ps.students_completed }} of {{ overview.total_students }} finished
+                    {{ $t('admin.courseOverview.studentsFinished', { completed: ps.students_completed, total: overview.total_students }) }}
                   </span>
                   <span class="stat-separator">·</span>
                   <span class="stat-item">
-                    avg score {{ ps.avg_score }}%
+                    {{ $t('admin.courseOverview.avgScoreValue', { score: ps.avg_score }) }}
                   </span>
                 </div>
               </div>
@@ -180,13 +180,13 @@
             class="filter-indicator"
           >
             <span class="filter-text">
-              Showing: <strong>{{ displayedMetrics?.title }}</strong>
+              {{ $t('admin.courseOverview.showingFilter') }} <strong>{{ displayedMetrics?.title }}</strong>
             </span>
             <button
               class="clear-filter-btn"
               @click="clearSelection"
             >
-              Clear filter
+              {{ $t('admin.courseOverview.clearFilter') }}
             </button>
           </div>
 
@@ -211,7 +211,7 @@
                         <span class="chart-label">{{ ['M', 'T', 'W', 'T', 'F', 'S', 'S'][i - 1] }}</span>
                       </div>
                     </div>
-                    <p class="activity-summary muted-text">~ submissions this week</p>
+                    <p class="activity-summary muted-text">{{ $t('admin.courseOverview.submissionsThisWeek') }}</p>
                   </div>
                 </template>
 
@@ -219,7 +219,7 @@
                 <template v-else-if="loadingActivity">
                   <div class="activity-loading">
                     <div class="loading-spinner small" />
-                    <span>Loading activity...</span>
+                    <span>{{ $t('admin.courseOverview.loadingActivity') }}</span>
                   </div>
                 </template>
 
@@ -291,7 +291,7 @@
                     </div>
                   </div>
                   <p class="activity-summary">
-                    {{ displayedMetrics.recent_submissions }} submissions this week
+                    {{ $t('admin.courseOverview.submissionsThisWeekCount', { count: displayedMetrics.recent_submissions }) }}
                   </p>
                 </template>
 
@@ -300,44 +300,44 @@
                   v-else
                   class="activity-empty"
                 >
-                  <p>No submissions in the last 7 days</p>
+                  <p>{{ $t('admin.courseOverview.noSubmissions7Days') }}</p>
                 </div>
               </div>
-              <h3 class="section-label bottom-label">Activity (7 days)</h3>
+              <h3 class="section-label bottom-label">{{ $t('admin.courseOverview.activityLabel') }}</h3>
             </div>
 
             <!-- Class Snapshot -->
             <div class="metrics-section snapshot-section">
               <h3 class="section-label">
-                {{ selectedProblemSetSlug ? 'Problem Set Snapshot' : 'Select a Problem Set' }}
+                {{ selectedProblemSetSlug ? $t('admin.courseOverview.problemSetSnapshot') : $t('admin.courseOverview.selectAProblemSet') }}
               </h3>
 
               <!-- Placeholder state when nothing selected -->
               <template v-if="!selectedProblemSetSlug">
                 <div class="snapshot-placeholder">
-                  <p class="placeholder-hint">Click a problem set above to see detailed metrics</p>
+                  <p class="placeholder-hint">{{ $t('admin.courseOverview.clickProblemSetHint') }}</p>
                   <div class="snapshot-metrics muted">
                     <div class="snapshot-item">
                       <span class="snapshot-value placeholder">~</span>
-                      <span class="snapshot-label">Avg Progress</span>
+                      <span class="snapshot-label">{{ $t('admin.courseOverview.avgProgress') }}</span>
                     </div>
                     <div class="snapshot-item">
                       <span class="snapshot-value placeholder">~</span>
-                      <span class="snapshot-label">Avg Score</span>
+                      <span class="snapshot-label">{{ $t('admin.courseOverview.avgScoreLabel') }}</span>
                     </div>
                   </div>
                   <div class="snapshot-distribution muted">
                     <div class="distribution-item completed">
                       <span class="dist-count">~</span>
-                      <span class="dist-label">Completed</span>
+                      <span class="dist-label">{{ $t('admin.courseOverview.completed') }}</span>
                     </div>
                     <div class="distribution-item in-progress">
                       <span class="dist-count">~</span>
-                      <span class="dist-label">In progress</span>
+                      <span class="dist-label">{{ $t('admin.courseOverview.inProgress') }}</span>
                     </div>
                     <div class="distribution-item not-started">
                       <span class="dist-count">~</span>
-                      <span class="dist-label">Not started</span>
+                      <span class="dist-label">{{ $t('admin.courseOverview.notStarted') }}</span>
                     </div>
                   </div>
                 </div>
@@ -348,25 +348,25 @@
                 <div class="snapshot-metrics">
                   <div class="snapshot-item">
                     <span class="snapshot-value">{{ displayedMetrics?.completion_rate }}%</span>
-                    <span class="snapshot-label">Avg Progress</span>
+                    <span class="snapshot-label">{{ $t('admin.courseOverview.avgProgress') }}</span>
                   </div>
                   <div class="snapshot-item">
                     <span class="snapshot-value">{{ displayedMetrics?.avg_score }}%</span>
-                    <span class="snapshot-label">Avg Score</span>
+                    <span class="snapshot-label">{{ $t('admin.courseOverview.avgScoreLabel') }}</span>
                   </div>
                 </div>
                 <div class="snapshot-distribution">
                   <div class="distribution-item completed">
                     <span class="dist-count">{{ displayedMetrics?.student_distribution.completed_all }}</span>
-                    <span class="dist-label">Completed</span>
+                    <span class="dist-label">{{ $t('admin.courseOverview.completed') }}</span>
                   </div>
                   <div class="distribution-item in-progress">
                     <span class="dist-count">{{ displayedMetrics?.student_distribution.in_progress }}</span>
-                    <span class="dist-label">In progress</span>
+                    <span class="dist-label">{{ $t('admin.courseOverview.inProgress') }}</span>
                   </div>
                   <div class="distribution-item not-started">
                     <span class="dist-count">{{ displayedMetrics?.student_distribution.not_started }}</span>
-                    <span class="dist-label">Not started</span>
+                    <span class="dist-label">{{ $t('admin.courseOverview.notStarted') }}</span>
                   </div>
                 </div>
               </template>
@@ -389,6 +389,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import axios from 'axios';
 import InstructorNavBar from './InstructorNavBar.vue';
 import CourseTeamManager from './CourseTeamManager.vue';
@@ -432,6 +433,7 @@ interface CourseOverview {
 }
 
 const route = useRoute();
+const { t } = useI18n();
 const courseId = computed(() => route.params.courseId as string);
 
 const overview = ref<CourseOverview | null>(null);
@@ -587,10 +589,10 @@ function formatDueDate(dueDateStr: string): string {
   const diffMs = due.getTime() - now.getTime();
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0) return 'OVERDUE';
-  if (diffDays === 0) return 'Due today';
-  if (diffDays === 1) return 'Due tomorrow';
-  return `Due ${due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  if (diffDays < 0) return t('common.dueDate.overdue');
+  if (diffDays === 0) return t('common.dueDate.dueToday');
+  if (diffDays === 1) return t('common.dueDate.dueTomorrow');
+  return t('common.dueDate.dueOn', { date: due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) });
 }
 
 function getDueDateDetail(dueDateStr: string): string {
@@ -599,9 +601,14 @@ function getDueDateDetail(dueDateStr: string): string {
   const diffMs = due.getTime() - now.getTime();
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0) return `by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`;
+  if (diffDays < 0) {
+    const absDays = Math.abs(diffDays);
+    return absDays === 1 ? t('common.dueDate.byOneDay') : t('common.dueDate.byDays', { days: absDays });
+  }
   if (diffDays === 0) return '';
-  if (diffDays <= 7) return `in ${diffDays} day${diffDays === 1 ? '' : 's'}`;
+  if (diffDays <= 7) {
+    return diffDays === 1 ? t('common.dueDate.inOneDay') : t('common.dueDate.inDays', { days: diffDays });
+  }
   return '';
 }
 

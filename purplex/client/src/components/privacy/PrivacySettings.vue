@@ -1,16 +1,15 @@
 <template>
   <div class="privacy-settings">
-    <h2 class="privacy-settings__title">Privacy & Data Settings</h2>
+    <h2 class="privacy-settings__title">{{ t('auth.privacy.title') }}</h2>
 
     <!-- Consent Management -->
     <section class="privacy-settings__section">
-      <h3 class="privacy-settings__section-title">Consent Preferences</h3>
+      <h3 class="privacy-settings__section-title">{{ t('auth.privacy.consentPreferences') }}</h3>
       <p class="privacy-settings__section-desc">
-        Manage your data processing preferences. Required consents cannot be withdrawn
-        without deleting your account.
+        {{ t('auth.privacy.consentDescription') }}
       </p>
 
-      <div v-if="loadingConsents" class="privacy-settings__loading">Loading...</div>
+      <div v-if="loadingConsents" class="privacy-settings__loading">{{ t('common.loading') }}</div>
 
       <div v-else class="consent-toggles">
         <div
@@ -20,7 +19,7 @@
         >
           <div class="consent-toggle__info">
             <span class="consent-toggle__label">{{ consentLabels[type] || type }}</span>
-            <span v-if="isRequired(type)" class="consent-toggle__required">Required</span>
+            <span v-if="isRequired(type)" class="consent-toggle__required">{{ t('common.required') }}</span>
           </div>
           <label class="consent-toggle__switch">
             <input
@@ -37,13 +36,13 @@
 
     <!-- FERPA Directory Info -->
     <section class="privacy-settings__section">
-      <h3 class="privacy-settings__section-title">Directory Information</h3>
+      <h3 class="privacy-settings__section-title">{{ t('auth.privacy.directoryInfo') }}</h3>
       <p class="privacy-settings__section-desc">
-        Control whether your name and email are visible to instructors in course rosters.
+        {{ t('auth.privacy.directoryDescription') }}
       </p>
       <label class="consent-toggle">
         <div class="consent-toggle__info">
-          <span class="consent-toggle__label">Show my name and email in course rosters</span>
+          <span class="consent-toggle__label">{{ t('auth.privacy.directoryToggle') }}</span>
         </div>
         <label class="consent-toggle__switch">
           <input
@@ -69,23 +68,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import privacyService, { type ConsentType, type ConsentStatus } from '../../services/privacyService';
 import DataExport from './DataExport.vue';
 import AccountDeletion from './AccountDeletion.vue';
+
+const { t } = useI18n();
 
 const consents = ref<Record<ConsentType, ConsentStatus>>({} as Record<ConsentType, ConsentStatus>);
 const loadingConsents = ref(true);
 const directoryInfoVisible = ref(true);
 
-const consentLabels: Record<string, string> = {
-    privacy_policy: 'Privacy Policy',
-    terms_of_service: 'Terms of Service',
-    ai_processing: 'AI Code Analysis',
-    third_party_sharing: 'Third-Party Data Sharing',
-    research_use: 'Research Data Use',
-    behavioral_tracking: 'Progress Tracking',
-};
+const consentLabels = computed<Record<string, string>>(() => ({
+    privacy_policy: t('auth.privacy.consentLabels.privacyPolicy'),
+    terms_of_service: t('auth.privacy.consentLabels.termsOfService'),
+    ai_processing: t('auth.privacy.consentLabels.aiProcessing'),
+    third_party_sharing: t('auth.privacy.consentLabels.thirdPartySharing'),
+    research_use: t('auth.privacy.consentLabels.researchUse'),
+    behavioral_tracking: t('auth.privacy.consentLabels.behavioralTracking'),
+}));
 
 const requiredTypes = ['privacy_policy', 'terms_of_service'];
 

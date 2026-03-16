@@ -10,7 +10,7 @@
     class="draft-indicator"
     role="status"
     aria-live="polite"
-  >Draft saved</span>
+  >{{ $t('problems.submission.draftSaved') }}</span>
   <div
     id="promptEditor"
     class="prompt-editor-wrapper"
@@ -33,13 +33,13 @@
     class="submit-button"
     :disabled="disabled || !isValid"
     :aria-busy="disabled"
-    :aria-label="disabled ? 'Submitting solution, please wait' : (isValid ? 'Submit Solution' : 'Enter at least 10 characters to submit')"
+    :aria-label="disabled ? $t('problems.submission.submittingWait') : (isValid ? $t('problems.submission.submitSolution') : $t('problems.submission.minLength'))"
     @click="handleSubmit"
   >
     <span
       v-if="!disabled"
       class="button-text"
-    >Submit Solution</span>
+    >{{ $t('problems.submission.submitSolution') }}</span>
     <div
       v-if="disabled"
       class="loading-content"
@@ -54,7 +54,7 @@
         <span class="dot" />
         <span class="dot" />
       </div>
-      <span class="visually-hidden">Submitting solution, please wait</span>
+      <span class="visually-hidden">{{ $t('problems.submission.submittingWait') }}</span>
     </div>
   </button>
   </div>
