@@ -38,7 +38,7 @@
         </div>
         <div v-if="submission.execution_time_ms" class="metric">
           <span class="metric-label">{{ $t('admin.submissions.time') }}</span>
-          <span class="metric-value">{{ submission.execution_time_ms }}ms</span>
+          <span class="metric-value">{{ $t('common.units.ms', { value: submission.execution_time_ms }) }}</span>
         </div>
         <div class="metric">
           <span class="metric-label">{{ $t('admin.submissions.studentLabel') }}</span>

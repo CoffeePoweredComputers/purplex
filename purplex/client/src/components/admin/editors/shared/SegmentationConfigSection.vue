@@ -39,8 +39,8 @@
               @input="editor.segmentation.setThreshold(parseInt(($event.target as HTMLInputElement).value) || 3)"
             >
             <span class="threshold-help">
-              <template v-if="useUnicodeSymbols">≤</template><template v-else>&lt;=</template> {{ editor.segmentation.threshold.value }} segments = {{ $t('admin.editors.segmentation.goodRelational') }}<br>
-              > {{ editor.segmentation.threshold.value }} segments = {{ $t('admin.editors.segmentation.needsWorkMulti') }}
+              <template v-if="useUnicodeSymbols">≤</template><template v-else>&lt;=</template> {{ editor.segmentation.threshold.value }} {{ $t('admin.editors.segmentation.segmentsEquals') }} {{ $t('admin.editors.segmentation.goodRelational') }}<br>
+              > {{ editor.segmentation.threshold.value }} {{ $t('admin.editors.segmentation.segmentsEquals') }} {{ $t('admin.editors.segmentation.needsWorkMulti') }}
             </span>
           </div>
         </div>

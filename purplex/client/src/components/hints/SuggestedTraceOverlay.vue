@@ -1,14 +1,14 @@
 <template>
   <div class="suggested-trace">
     <div class="trace-content">
-      <span class="trace-label">💡 Try tracing:</span>
+      <span class="trace-label">{{ $t('problems.hints.suggestedTrace.tryTracing') }}</span>
       <code class="trace-function">{{ functionCall }}</code>
       <button
         class="trace-btn"
         :disabled="!canTrace"
         @click="openInPyTutor"
       >
-        <span>🔍</span> Trace in Python Tutor
+        <span>🔍</span> {{ $t('problems.hints.suggestedTrace.traceInPythonTutor') }}
       </button>
     </div>
   </div>

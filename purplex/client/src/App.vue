@@ -6,7 +6,7 @@
       :href="skipLinkTarget"
       class="skip-link"
       @click.prevent="handleSkipLink"
-    >Skip to main content</a>
+    >{{ $t('common.skipNav') }}</a>
 
     <!-- Loading state while determining auth -->
     <div
@@ -37,12 +37,12 @@
     <footer class="app-footer">
       <div class="footer-content">
         <div class="footer-left">
-          <span class="copyright">&copy; 2025 Purplex. All rights reserved.</span>
-          <router-link to="/privacy" class="footer-link">Privacy Policy</router-link>
-          <router-link to="/terms" class="footer-link">Terms of Service</router-link>
+          <span class="copyright">{{ $t('common.footer.copyright', { year: new Date().getFullYear() }) }}</span>
+          <router-link to="/privacy" class="footer-link">{{ $t('common.footer.privacyPolicy') }}</router-link>
+          <router-link to="/terms" class="footer-link">{{ $t('common.footer.termsOfService') }}</router-link>
         </div>
         <div class="footer-right">
-          <span class="sponsor">Sponsored by Meta</span>
+          <span class="sponsor">{{ $t('common.footer.sponsoredBy') }}</span>
           <img
             class="meta-logo"
             src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/2560px-Meta_Platforms_Inc._logo.svg.png"

@@ -5,7 +5,7 @@
       class="loading-container"
     >
       <div class="loading-spinner" />
-      <p>Loading course...</p>
+      <p>{{ $t('problems.courseDetail.loadingCourse') }}</p>
     </div>
 
     <div
@@ -19,13 +19,13 @@
           class="back-link"
         >
           <span class="back-arrow">←</span>
-          Back to Courses
+          {{ $t('problems.courseDetail.backToCourses') }}
         </router-link>
 
         <div class="course-info">
           <h1>{{ course.name }}</h1>
           <p class="course-id">
-            Course ID: {{ course.course_id }}
+            {{ $t('problems.courseDetail.courseIdLabel') }} {{ course.course_id }}
           </p>
           <p
             v-if="course.description"
@@ -36,18 +36,18 @@
 
           <div class="course-meta">
             <div class="meta-item">
-              <span class="label">Instructor:</span>
+              <span class="label">{{ $t('problems.courseDetail.instructorLabel') }}</span>
               <span v-if="course.instructors?.length" class="value">
                 {{ course.instructors.filter(i => i.role === 'primary').map(i => i.full_name).join(', ') }}
               </span>
-              <span v-else class="value">Unknown</span>
+              <span v-else class="value">{{ $t('problems.courseDetail.unknownInstructor') }}</span>
             </div>
             <div class="meta-item">
-              <span class="label">Problem Sets:</span>
+              <span class="label">{{ $t('problems.courseDetail.problemSetsLabel') }}</span>
               <span class="value">{{ course.problem_sets.length }}</span>
             </div>
             <div class="meta-item">
-              <span class="label">Students Enrolled:</span>
+              <span class="label">{{ $t('problems.courseDetail.studentsEnrolledLabel') }}</span>
               <span class="value">{{ course.enrolled_students_count }}</span>
             </div>
           </div>
@@ -58,13 +58,13 @@
 
       <!-- Problem Sets -->
       <div class="problem-sets-section">
-        <h2>Problem Sets</h2>
+        <h2>{{ $t('problems.courseDetail.problemSetsHeading') }}</h2>
 
         <div
           v-if="course.problem_sets.length === 0"
           class="empty-state"
         >
-          <p>No problem sets have been added to this course yet.</p>
+          <p>{{ $t('problems.courseDetail.noProblemSets') }}</p>
         </div>
 
         <div
@@ -85,12 +85,12 @@
                     v-if="psData.due_date"
                     :class="['due-badge', getDueDateClass(psData)]"
                   >
-                    {{ isLocked(psData) ? '🔒 Closed' : formatDueDate(psData.due_date) }}
+                    {{ isLocked(psData) ? '🔒 ' + $t('problems.courseDetail.closed') : formatDueDate(psData.due_date) }}
                   </span>
                   <span
                     v-if="psData.is_required"
                     class="required-badge"
-                  >Required</span>
+                  >{{ $t('problems.courseDetail.required') }}</span>
                 </div>
               </div>
 
@@ -103,7 +103,7 @@
 
               <div class="card-footer">
                 <span class="problems-count">
-                  {{ psData.problem_set.problems_count }} problems
+                  {{ $t('problems.courseDetail.problemsCount', { count: psData.problem_set.problems_count }) }}
                 </span>
                 <span class="order-badge">
                   #{{ psData.order + 1 }}
@@ -119,13 +119,13 @@
       v-else
       class="error-container"
     >
-      <h2>Course Not Found</h2>
-      <p>The course you're looking for doesn't exist or you don't have access to it.</p>
+      <h2>{{ $t('problems.courseDetail.courseNotFound') }}</h2>
+      <p>{{ $t('problems.courseDetail.courseNotFoundMessage') }}</p>
       <router-link
         to="/home"
         class="home-link"
       >
-        Go back to courses
+        {{ $t('problems.courseDetail.goBackToCourses') }}
       </router-link>
     </div>
   </div>

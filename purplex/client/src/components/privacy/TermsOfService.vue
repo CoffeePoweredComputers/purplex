@@ -1,113 +1,79 @@
 <template>
   <div class="policy-page">
     <div class="policy-page__content">
-      <h1>Terms of Service</h1>
-      <p class="policy-page__version">Version 1.0 — Effective {{ effectiveDate }}</p>
+      <h1>{{ t('auth.termsPage.title') }}</h1>
+      <p class="policy-page__version">{{ t('auth.termsPage.version', { effectiveDate }) }}</p>
 
       <section>
-        <h2>1. Acceptance of Terms</h2>
-        <p>
-          By creating an account on Purplex, you agree to these Terms of Service
-          and our <a href="/privacy">Privacy Policy</a>.
-        </p>
+        <h2>{{ t('auth.termsPage.section1.title') }}</h2>
+        <p v-html="t('auth.termsPage.section1.content', { privacyPolicyLink: `<a href=&quot;/privacy&quot;>${t('auth.privacyPage.title')}</a>` })"></p>
       </section>
 
       <section>
-        <h2>2. Service Description</h2>
-        <p>
-          Purplex is an educational platform for practicing coding challenges.
-          The platform includes AI-powered features that analyze code submissions
-          for comprehension assessment.
-        </p>
+        <h2>{{ t('auth.termsPage.section2.title') }}</h2>
+        <p>{{ t('auth.termsPage.section2.content') }}</p>
       </section>
 
       <section>
-        <h2>3. AI Processing Disclosure</h2>
-        <p>
-          With your consent, code you submit may be sent to third-party AI services
-          (including OpenAI) for analysis. This processing includes:
-        </p>
+        <h2>{{ t('auth.termsPage.section3.title') }}</h2>
+        <p>{{ t('auth.termsPage.section3.intro') }}</p>
         <ul>
-          <li>Generating code variations from natural language descriptions</li>
-          <li>Analyzing comprehension levels through segmentation analysis</li>
-          <li>Generating educational feedback</li>
+          <li>{{ t('auth.termsPage.section3.items.codeVariations') }}</li>
+          <li>{{ t('auth.termsPage.section3.items.comprehensionAnalysis') }}</li>
+          <li>{{ t('auth.termsPage.section3.items.educationalFeedback') }}</li>
         </ul>
-        <p>
-          You can opt out of AI processing at any time in your Privacy Settings.
-          Core platform functionality (submitting code, viewing results) remains
-          available without AI processing.
-        </p>
+        <p>{{ t('auth.termsPage.section3.optOut') }}</p>
       </section>
 
       <section>
-        <h2>4. Age Restrictions</h2>
-        <p>
-          Users under 13 years of age require verifiable parental consent
-          before using this platform. Users under 18 in certain jurisdictions
-          may have additional restrictions on data processing.
-        </p>
+        <h2>{{ t('auth.termsPage.section4.title') }}</h2>
+        <p>{{ t('auth.termsPage.section4.content') }}</p>
       </section>
 
       <section>
-        <h2>5. User Conduct</h2>
-        <p>You agree not to:</p>
+        <h2>{{ t('auth.termsPage.section5.title') }}</h2>
+        <p>{{ t('auth.termsPage.section5.intro') }}</p>
         <ul>
-          <li>Submit malicious code designed to exploit the execution environment</li>
-          <li>Attempt to access other users' data</li>
-          <li>Use the platform for purposes unrelated to educational coding practice</li>
-          <li>Share your account credentials with others</li>
+          <li>{{ t('auth.termsPage.section5.items.maliciousCode') }}</li>
+          <li>{{ t('auth.termsPage.section5.items.accessOthersData') }}</li>
+          <li>{{ t('auth.termsPage.section5.items.unrelatedUse') }}</li>
+          <li>{{ t('auth.termsPage.section5.items.shareCredentials') }}</li>
         </ul>
       </section>
 
       <section>
-        <h2>6. Intellectual Property</h2>
-        <p>
-          Code you submit remains your intellectual property. By submitting code,
-          you grant Purplex a license to process it for the purposes of grading,
-          feedback, and (with your consent) research.
-        </p>
+        <h2>{{ t('auth.termsPage.section6.title') }}</h2>
+        <p>{{ t('auth.termsPage.section6.content') }}</p>
       </section>
 
       <section>
-        <h2>7. Account Termination</h2>
-        <p>
-          You may delete your account at any time through Privacy Settings.
-          We may suspend accounts that violate these terms.
-          See our Privacy Policy for data retention details upon account deletion.
-        </p>
+        <h2>{{ t('auth.termsPage.section7.title') }}</h2>
+        <p>{{ t('auth.termsPage.section7.content') }}</p>
       </section>
 
       <section>
-        <h2>8. Limitation of Liability</h2>
-        <p>
-          Purplex is provided "as is" for educational purposes. We are not liable
-          for any loss of data, grades, or academic consequences arising from
-          platform use or unavailability.
-        </p>
+        <h2>{{ t('auth.termsPage.section8.title') }}</h2>
+        <p>{{ t('auth.termsPage.section8.content') }}</p>
       </section>
 
       <section>
-        <h2>9. FERPA Notice</h2>
-        <p>
-          For institutional deployments, Purplex operates as a "school official"
-          with a legitimate educational interest under FERPA. Students have
-          the right to inspect their educational records and request corrections.
-          Contact your institution's registrar for FERPA-related requests.
-        </p>
+        <h2>{{ t('auth.termsPage.section9.title') }}</h2>
+        <p>{{ t('auth.termsPage.section9.content') }}</p>
       </section>
 
       <section>
-        <h2>10. Changes to Terms</h2>
-        <p>
-          We may update these terms with notice. Continued use after changes
-          constitutes acceptance. Material changes may require re-consent.
-        </p>
+        <h2>{{ t('auth.termsPage.section10.title') }}</h2>
+        <p>{{ t('auth.termsPage.section10.content') }}</p>
       </section>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
 const effectiveDate = new Date().toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',

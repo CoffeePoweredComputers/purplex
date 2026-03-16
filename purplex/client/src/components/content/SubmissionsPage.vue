@@ -134,6 +134,7 @@
               >
                 <span class="chip-label">{{ $t('admin.submissions.chipSearch') }}</span>
                 <span class="chip-value">{{ searchQuery }}</span>
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                 <span class="chip-remove" aria-hidden="true">x</span>
               </button>
               <button
@@ -144,6 +145,7 @@
               >
                 <span class="chip-label">{{ $t('admin.submissions.chipStatus') }}</span>
                 <span class="chip-value">{{ formatStatus(statusFilter) }}</span>
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                 <span class="chip-remove" aria-hidden="true">x</span>
               </button>
               <button
@@ -154,6 +156,7 @@
               >
                 <span class="chip-label">{{ $t('admin.submissions.chipProblemSet') }}</span>
                 <span class="chip-value">{{ getProblemSetTitle(problemSetFilter) }}</span>
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                 <span class="chip-remove" aria-hidden="true">x</span>
               </button>
               <button
@@ -164,6 +167,7 @@
               >
                 <span class="chip-label">{{ $t('admin.submissions.chipCourse') }}</span>
                 <span class="chip-value">{{ getCourseName(courseFilter) }}</span>
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                 <span class="chip-remove" aria-hidden="true">x</span>
               </button>
             </div>

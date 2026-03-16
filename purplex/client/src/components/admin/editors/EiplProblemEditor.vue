@@ -246,30 +246,30 @@
             <h5>{{ $t('admin.editors.eipl.addNewSubgoal') }}</h5>
             <input
               v-model="newSubgoal.title"
-              placeholder="Subgoal title"
+              :placeholder="$t('admin.editors.eipl.subgoalTitle')"
               class="subgoal-title-input"
             >
             <div class="subgoal-lines">
-              <label>Lines:</label>
+              <label>{{ $t('admin.editors.eipl.lines') }}</label>
               <input
                 v-model.number="newSubgoal.line_start"
                 type="number"
                 min="1"
-                placeholder="Start"
+                :placeholder="$t('admin.editors.eipl.start')"
                 class="line-input"
               >
-              <span>to</span>
+              <span>{{ $t('admin.editors.eipl.to') }}</span>
               <input
                 v-model.number="newSubgoal.line_end"
                 type="number"
                 :min="newSubgoal.line_start"
-                placeholder="End"
+                :placeholder="$t('admin.editors.eipl.end')"
                 class="line-input"
               >
             </div>
             <textarea
               v-model="newSubgoal.explanation"
-              placeholder="Explanation of this subgoal"
+              :placeholder="$t('admin.editors.eipl.subgoalExplanation')"
               rows="2"
               class="subgoal-explanation"
             />

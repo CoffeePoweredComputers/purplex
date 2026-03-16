@@ -63,24 +63,24 @@
             <th>{{ $t('admin.editors.refute.predicate') }}</th>
           </tr>
           <tr>
-            <td>Always returns positive</td>
-            <td><code>result > 0</code></td>
+            <td>{{ $t('admin.editors.refute.exampleClaimAlwaysPositive') }}</td>
+            <td><code>{{ $t('admin.editors.refute.examplePredicatePositive') }}</code></td>
           </tr>
           <tr>
-            <td>Never returns None</td>
-            <td><code>result is not None</code></td>
+            <td>{{ $t('admin.editors.refute.exampleClaimNeverNone') }}</td>
+            <td><code>{{ $t('admin.editors.refute.examplePredicateNone') }}</code></td>
           </tr>
           <tr>
-            <td>Output > input</td>
-            <td><code>result > x</code></td>
+            <td>{{ $t('admin.editors.refute.exampleClaimOutputGtInput') }}</td>
+            <td><code>{{ $t('admin.editors.refute.examplePredicateGt') }}</code></td>
           </tr>
           <tr>
-            <td>Returns sorted list</td>
-            <td><code>result == sorted(result)</code></td>
+            <td>{{ $t('admin.editors.refute.exampleClaimReturnsSorted') }}</td>
+            <td><code>{{ $t('admin.editors.refute.examplePredicateSorted') }}</code></td>
           </tr>
           <tr>
-            <td>Sum equals length</td>
-            <td><code>sum(result) == len(items)</code></td>
+            <td>{{ $t('admin.editors.refute.exampleClaimSumEqualsLength') }}</td>
+            <td><code>{{ $t('admin.editors.refute.examplePredicateSum') }}</code></td>
           </tr>
         </table>
       </div>
@@ -88,10 +88,10 @@
       <div class="claim-examples">
         <h4>{{ $t('admin.editors.refute.goodClaimExamples') }}</h4>
         <ul>
-          <li><code>f(x) always returns a positive number</code></li>
-          <li><code>The function never returns None</code></li>
-          <li><code>For all inputs, the output is greater than the input</code></li>
-          <li><code>The function will always terminate in O(n) time</code></li>
+          <li><code>{{ $t('admin.editors.refute.exampleGoodClaim1') }}</code></li>
+          <li><code>{{ $t('admin.editors.refute.exampleGoodClaim2') }}</code></li>
+          <li><code>{{ $t('admin.editors.refute.exampleGoodClaim3') }}</code></li>
+          <li><code>{{ $t('admin.editors.refute.exampleGoodClaim4') }}</code></li>
         </ul>
       </div>
     </div>

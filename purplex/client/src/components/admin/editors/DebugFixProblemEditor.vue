@@ -227,6 +227,7 @@
                 :title="$t('admin.editors.debugFix.removeHint')"
                 @click="editor.debugFixConfig.removeHint(index)"
               >
+                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
                 x
               </button>
             </div>
@@ -252,19 +253,19 @@
           <h4>{{ $t('admin.editors.debugFix.addNewHint') }}</h4>
           <div class="new-hint-row">
             <div class="level-field">
-              <label>Level:</label>
+              <label>{{ $t('admin.editors.debugFix.levelLabel') }}</label>
               <select
                 v-model.number="editor.debugFixConfig.newHint.value.level"
                 class="level-select"
               >
                 <option :value="1">
-                  1 - Vague
+                  {{ $t('admin.editors.debugFix.levelOptionVague') }}
                 </option>
                 <option :value="2">
-                  2 - Moderate
+                  {{ $t('admin.editors.debugFix.levelOptionModerate') }}
                 </option>
                 <option :value="3">
-                  3 - Specific
+                  {{ $t('admin.editors.debugFix.levelOptionSpecific') }}
                 </option>
               </select>
             </div>
@@ -286,11 +287,11 @@
               {{ $t('admin.editors.debugFix.addHint') }}
             </button>
           </div>
-          <p class="level-guide">
-            <strong>Level 1:</strong> "There's an off-by-one error somewhere"<br>
-            <strong>Level 2:</strong> "Check the loop bounds"<br>
-            <strong>Level 3:</strong> "Line 5: the loop should use &lt; instead of &lt;="
-          </p>
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <p
+            class="level-guide"
+            v-html="$t('admin.editors.debugFix.levelGuide')"
+          />
         </div>
 
         <button

@@ -30,28 +30,28 @@
           @change="editor.editorSettings.setTheme(($event.target as HTMLSelectElement).value)"
         >
           <option value="monokai">
-            Monokai
+            {{ $t('admin.editors.themes.monokai') }}
           </option>
           <option value="github">
-            GitHub
+            {{ $t('admin.editors.themes.github') }}
           </option>
           <option value="clouds_midnight">
-            Clouds Midnight
+            {{ $t('admin.editors.themes.cloudsMidnight') }}
           </option>
           <option value="chrome">
-            Chrome
+            {{ $t('admin.editors.themes.chrome') }}
           </option>
           <option value="solarized_dark">
-            Solarized Dark
+            {{ $t('admin.editors.themes.solarizedDark') }}
           </option>
           <option value="solarized_light">
-            Solarized Light
+            {{ $t('admin.editors.themes.solarizedLight') }}
           </option>
           <option value="dracula">
-            Dracula
+            {{ $t('admin.editors.themes.dracula') }}
           </option>
           <option value="tomorrow_night">
-            Tomorrow Night
+            {{ $t('admin.editors.themes.tomorrowNight') }}
           </option>
         </select>
       </div>

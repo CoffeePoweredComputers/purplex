@@ -7,7 +7,7 @@
       class="hint-button"
       :disabled="loading || !hasUnlockedHints"
       :class="{ 'pulse': hasNewUnlockedHints }"
-      :aria-label="`Hints menu, ${availableHintsCount} available`"
+      :aria-label="$t('problems.hintButton.menuAriaLabel', { count: availableHintsCount })"
       :aria-expanded="showMenu"
       :aria-haspopup="true"
       @click="toggleHintMenu"
@@ -17,7 +17,7 @@
         class="hint-icon"
         aria-hidden="true"
       >💡</span>
-      <span class="hint-text">Hints</span>
+      <span class="hint-text">{{ $t('problems.hintButton.buttonText') }}</span>
       <span
         v-if="availableHintsCount > 0"
         class="hint-badge"
@@ -32,10 +32,10 @@
         :style="{ top: menuPosition.top, left: menuPosition.left }"
       >
         <div class="hint-menu-header">
-          <h4>Available Hints</h4>
+          <h4>{{ $t('problems.hintButton.availableHints') }}</h4>
           <button
             class="close-btn"
-            aria-label="Close hints menu"
+            :aria-label="$t('problems.hintButton.closeAriaLabel')"
             @click="showMenu = false"
           >
             <span aria-hidden="true">×</span>
@@ -47,7 +47,7 @@
             v-if="availableHints.length === 0"
             class="no-hints-message"
           >
-            <p>No hints are configured for this problem.</p>
+            <p>{{ $t('problems.hintButton.noHintsConfigured') }}</p>
           </div>
           <div
             v-for="hint in availableHints"
@@ -72,7 +72,7 @@
                   v-if="!hint.unlocked"
                   class="hint-requirement"
                 >
-                  Requires {{ getMinAttemptsForHint(hint.type) }} attempts ({{ currentAttempts }}/{{ getMinAttemptsForHint(hint.type) }})
+                  {{ $t('problems.hintButton.requiresAttempts', { required: getMinAttemptsForHint(hint.type), current: currentAttempts }) }}
                 </p>
               </div>
               <div class="hint-controls">
@@ -85,7 +85,7 @@
                     :id="`hint-toggle-${hint.type}`"
                     type="checkbox"
                     :checked="isHintActive(hint.type)"
-                    :aria-label="`Toggle ${hint.title}`"
+                    :aria-label="$t('problems.hintButton.toggleAriaLabel', { title: hint.title })"
                     class="hint-checkbox"
                     @change="toggleHint(hint.type)"
                     @keydown.enter.prevent="toggleHint(hint.type)"
@@ -96,7 +96,7 @@
                 <span
                   v-else
                   class="status-icon locked"
-                  aria-label="Locked"
+                  :aria-label="$t('problems.hintButton.lockedAriaLabel')"
                 >🔒</span>
               </div>
             </div>
@@ -112,7 +112,7 @@
                     v-if="hintContent[hint.type].example"
                     class="hint-example"
                   >
-                    <h6>Example:</h6>
+                    <h6>{{ $t('problems.hintButton.example') }}</h6>
                     <pre><code>{{ hintContent[hint.type].example }}</code></pre>
                   </div>
                 </div>
@@ -124,10 +124,10 @@
         <div class="hint-footer">
           <div class="hint-stats">
             <p class="hint-attempts">
-              Attempts: {{ currentAttempts }}
+              {{ $t('problems.hintButton.attempts', { count: currentAttempts }) }}
             </p>
             <p class="hint-note">
-              Next hint unlocks after {{ getMinAttemptsForNextHint() }} attempts
+              {{ $t('problems.hintButton.nextHintUnlocks', { count: getMinAttemptsForNextHint() }) }}
             </p>
           </div>
           <div
@@ -139,14 +139,14 @@
               :disabled="!hasAnyActiveHints"
               @click="showOriginalCode"
             >
-              Show Original
+              {{ $t('problems.hintButton.showOriginal') }}
             </button>
             <button
               class="action-btn danger"
               :disabled="!hasAnyActiveHints"
               @click="removeAllHints"
             >
-              Clear All Hints
+              {{ $t('problems.hintButton.clearAllHints') }}
             </button>
           </div>
         </div>
@@ -356,16 +356,16 @@ export default {
           timestamp: new Date().toISOString()
         })
 
-        this.notify.info('Hint Unlocked', 'Hint content has been revealed')
+        this.notify.info(this.$t('problems.hintButton.buttonText'), this.$t('problems.hintButton.availableHints'))
       } catch (error: unknown) {
         log.error('Error getting hint', error)
 
         // Handle 403 errors specially - these are expected when hints aren't unlocked yet
         const apiError = error as { status?: number; error?: string }
         if (apiError.status === 403 && apiError.error) {
-          this.notify.info('Hint Locked', apiError.error)
+          this.notify.info(this.$t('problems.hintButton.lockedAriaLabel'), apiError.error)
         } else {
-          this.notify.error('Error', apiError.error || 'Failed to load hint content')
+          this.notify.error(this.$t('problems.hintButton.lockedAriaLabel'), apiError.error || this.$t('problems.hintButton.noHintsConfigured'))
         }
       } finally {
         this.loading = false
@@ -399,7 +399,7 @@ export default {
         // Handle 403 errors silently during initial load - hints may be locked
         const apiError = error as { status?: number; error?: string }
         if (apiError.status !== 403) {
-          this.notify.error('Error', apiError.error || 'Failed to load hint content')
+          this.notify.error(this.$t('problems.hintButton.lockedAriaLabel'), apiError.error || this.$t('problems.hintButton.noHintsConfigured'))
         }
       }
     },

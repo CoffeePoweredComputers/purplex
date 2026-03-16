@@ -9,7 +9,7 @@
         class="loading-container"
       >
         <div class="loading-spinner" />
-        <p>Loading students...</p>
+        <p>{{ $t('admin.courseStudents.loadingStudents') }}</p>
       </div>
 
       <!-- Error State -->
@@ -24,15 +24,15 @@
         >
           ⚠️
         </div>
-        <span class="visually-hidden">Error:</span>
-        <h3>Unable to Load Students</h3>
+        <span class="visually-hidden">{{ $t('admin.courseStudents.errorLabel') }}</span>
+        <h3>{{ $t('admin.courseStudents.unableToLoadStudents') }}</h3>
         <p>{{ error }}</p>
         <button
           class="retry-btn"
           aria-label="Retry loading students"
           @click="fetchStudents"
         >
-          Try Again
+          {{ $t('admin.courseStudents.tryAgain') }}
         </button>
       </div>
 
@@ -51,8 +51,7 @@
             >
           </div>
           <span class="results-count">
-            {{ filteredStudents.length }} student{{ filteredStudents.length !== 1 ? 's' : '' }}
-            {{ searchQuery ? 'found' : 'enrolled' }}
+            {{ $t('admin.courseStudents.studentsEnrolled', { count: filteredStudents.length }) }}
           </span>
         </div>
 
@@ -61,7 +60,7 @@
             <thead>
               <tr>
                 <th class="sticky-col">
-                  Student
+                  {{ $t('admin.courseStudents.studentHeader') }}
                 </th>
                 <th
                   v-for="ps in problemSets"
@@ -72,7 +71,7 @@
                   {{ ps.title }}
                 </th>
                 <th class="center">
-                  Overall
+                  {{ $t('admin.courseStudents.overallHeader') }}
                 </th>
               </tr>
             </thead>
@@ -105,7 +104,7 @@
                   <div
                     v-else
                     class="progress-indicator progress-none"
-                    title="Not started"
+                    :title="$t('admin.courseStudents.notStartedTitle')"
                   >
                     —
                   </div>
@@ -128,7 +127,7 @@
             v-if="filteredStudents.length === 0 && searchQuery"
             class="no-filter-results"
           >
-            <p>No students match "{{ searchQuery }}"</p>
+            <p>{{ $t('admin.courseStudents.noSearchResults', { query: searchQuery }) }}</p>
           </div>
         </div>
       </template>
@@ -144,9 +143,9 @@
         >
           👥
         </div>
-        <span class="visually-hidden">Information:</span>
-        <h3>No Students Enrolled</h3>
-        <p>No students have enrolled in this course yet.</p>
+        <span class="visually-hidden">{{ $t('admin.courseStudents.informationLabel') }}</span>
+        <h3>{{ $t('admin.courseStudents.noStudents') }}</h3>
+        <p>{{ $t('admin.courseStudents.noStudentsMessage') }}</p>
       </div>
     </div>
   </div>
