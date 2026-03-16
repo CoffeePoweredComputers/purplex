@@ -289,9 +289,9 @@ function formatLevel(level: ComprehensionLevel): string {
 function getExplanation(): string {
   switch (props.segmentation.comprehension_level) {
     case 'relational':
-      return 'You focused on the overall purpose. This shows strong conceptual understanding.'
+      return t('feedback.segmentModal.explanationRelational')
     case 'multi_structural':
-      return 'You provided line-by-line detail. Try focusing on the main goal instead.'
+      return t('feedback.segmentModal.explanationMultiStructural')
     default:
       return ''
   }

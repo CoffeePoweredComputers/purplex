@@ -333,22 +333,23 @@ const summaryIcon = computed(() => {
 
 const summaryHeadline = computed(() => {
   if (passingVariants.value === 0) {
-    return 'Your explanation didn\'t produce working code yet.'
+    return t('feedback.correctnessModal.summaryHeadlineNone')
   }
   if (passingVariants.value < totalVariants.value) {
-    return 'Your explanation is ambiguous — it can be interpreted differently.'
+    return t('feedback.correctnessModal.summaryHeadlinePartial')
   }
-  return 'Excellent! Your explanation is clear and unambiguous.'
+  return t('feedback.correctnessModal.summaryHeadlineAll')
 })
 
 const summaryExplanation = computed(() => {
+  const params = { total: totalVariants.value, passing: passingVariants.value }
   if (passingVariants.value === 0) {
-    return `I generated ${totalVariants.value} different code versions from your explanation, but none passed all tests. Review the failing tests to see what's missing from your description.`
+    return t('feedback.correctnessModal.summaryExplanationNone', params)
   }
   if (passingVariants.value < totalVariants.value) {
-    return `I generated ${totalVariants.value} code versions and ${passingVariants.value} passed. One version interpreted your words differently, causing test failures. Click on the failing version to see what was ambiguous.`
+    return t('feedback.correctnessModal.summaryExplanationPartial', params)
   }
-  return `I generated ${totalVariants.value} independent code versions from your explanation, and all of them passed every test. This means your description captured the algorithm's logic precisely.`
+  return t('feedback.correctnessModal.summaryExplanationAll', params)
 })
 
 // Methods

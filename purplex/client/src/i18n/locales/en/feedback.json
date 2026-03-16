@@ -119,6 +119,28 @@
       "noClaimSpecified": "No claim specified",
       "enterAndSubmit": "Enter function arguments and submit to find a counterexample."
     },
+    "segmentModal": {
+      "title": "Comprehension Level Analysis",
+      "levelUnderstanding": "{level} Understanding",
+      "sizeLabel": "Size",
+      "openInNewTab": "Open in new tab",
+      "openInNewTabAriaLabel": "Open understanding analysis in new tab",
+      "closeEsc": "Close (ESC)",
+      "closeModal": "Close modal",
+      "relationalFeedback": "Excellent! Your {count} segments show high-level understanding.",
+      "multiStructuralFeedback": "Your {count} segments are too detailed. Try to describe the overall purpose in {goal} or fewer segments.",
+      "explanationRelational": "You focused on the overall purpose. This shows strong conceptual understanding.",
+      "explanationMultiStructural": "You provided line-by-line detail. Try focusing on the main goal instead.",
+      "levelExcellent": "Excellent",
+      "levelDetailed": "Detailed",
+      "levelUnknown": "Unknown",
+      "sizePresets": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large",
+        "fullscreen": "Fullscreen"
+      }
+    },
     "correctnessModal": {
       "title": "Correctness Analysis",
       "versionPass": "{passing}/{total} Versions Pass",
@@ -135,26 +157,12 @@
       "testResults": "Test Results",
       "expected": "Expected",
       "got": "Got",
-      "sizePresets": {
-        "small": "Small",
-        "medium": "Medium",
-        "large": "Large",
-        "fullscreen": "Fullscreen"
-      }
-    },
-    "segmentModal": {
-      "title": "Comprehension Level Analysis",
-      "levelUnderstanding": "{level} Understanding",
-      "sizeLabel": "Size",
-      "openInNewTab": "Open in new tab",
-      "openInNewTabAriaLabel": "Open understanding analysis in new tab",
-      "closeEsc": "Close (ESC)",
-      "closeModal": "Close modal",
-      "relationalFeedback": "Excellent! Your {count} segments show high-level understanding.",
-      "multiStructuralFeedback": "Your {count} segments are too detailed. Try to describe the overall purpose in {goal} or fewer segments.",
-      "levelExcellent": "Excellent",
-      "levelDetailed": "Detailed",
-      "levelUnknown": "Unknown",
+      "summaryHeadlineNone": "Your explanation didn't produce working code yet.",
+      "summaryHeadlinePartial": "Your explanation is ambiguous — it can be interpreted differently.",
+      "summaryHeadlineAll": "Excellent! Your explanation is clear and unambiguous.",
+      "summaryExplanationNone": "I generated {total} different code versions from your explanation, but none passed all tests. Review the failing tests to see what's missing from your description.",
+      "summaryExplanationPartial": "I generated {total} code versions and {passing} passed. One version interpreted your words differently, causing test failures. Click on the failing version to see what was ambiguous.",
+      "summaryExplanationAll": "I generated {total} independent code versions from your explanation, and all of them passed every test. This means your description captured the algorithm's logic precisely.",
       "sizePresets": {
         "small": "Small",
         "medium": "Medium",
