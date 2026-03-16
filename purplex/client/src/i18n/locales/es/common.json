@@ -5,8 +5,8 @@
   },
   "nav": {
     "home": "Inicio",
-    "admin": "Admin",
-    "instructor": "Instructor",
+    "admin": "Administración",
+    "instructor": "Docente",
     "account": "Cuenta",
     "signOut": "Cerrar Sesión"
   },
