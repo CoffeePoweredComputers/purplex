@@ -100,7 +100,6 @@ export const problemTypeHandlers: Record<string, ProblemTypeHandler> = {
       c.debugFixConfig.loadConfig({
         buggy_code: data.buggy_code || '',
         bug_hints: data.bug_hints || [],
-        allow_complete_rewrite: data.allow_complete_rewrite ?? false,
       });
     },
     save: (c) => ({ ...c.debugFixConfig.getConfigForApi() }),

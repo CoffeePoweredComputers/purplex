@@ -4,7 +4,6 @@
  * This composable handles the configuration for debug_fix-type problems:
  * - buggyCode: The intentionally buggy code students see initially
  * - bugHints: Progressive hints array [{ level: 1, text: "Check line 5" }]
- * - allowCompleteRewrite: Whether student can rewrite entirely or must make minimal fixes
  *
  * Note: reference_solution and function_signature are handled by the main form composable
  * since they are inherited from SpecProblem (shared with eipl, refute, etc.)
@@ -23,7 +22,6 @@ export interface BugHint {
 export interface DebugFixConfig {
   buggy_code: string;
   bug_hints: BugHint[];
-  allow_complete_rewrite: boolean;
 }
 
 export interface UseDebugFixConfigReturn {
@@ -33,8 +31,6 @@ export interface UseDebugFixConfigReturn {
   buggyCode: ComputedRef<string>;
   /** Progressive hints array */
   bugHints: ComputedRef<BugHint[]>;
-  /** Whether student can rewrite entirely */
-  allowCompleteRewrite: ComputedRef<boolean>;
   /** Whether config has buggy code */
   hasBuggyCode: ComputedRef<boolean>;
   /** Whether buggy code differs from reference solution */
@@ -46,8 +42,6 @@ export interface UseDebugFixConfigReturn {
 
   /** Set buggy code */
   setBuggyCode: (code: string) => void;
-  /** Set allow complete rewrite */
-  setAllowCompleteRewrite: (allow: boolean) => void;
   /** Add a bug hint */
   addHint: (hint: BugHint) => void;
   /** Remove a bug hint by index */
@@ -80,7 +74,6 @@ export const useDebugFixConfig = (): UseDebugFixConfigReturn => {
   const state = reactive<DebugFixConfig>({
     buggy_code: '',
     bug_hints: [],
-    allow_complete_rewrite: false,
   });
 
   // New hint being edited (for add form)
@@ -90,7 +83,6 @@ export const useDebugFixConfig = (): UseDebugFixConfigReturn => {
 
   const buggyCode = computed(() => state.buggy_code);
   const bugHints = computed(() => state.bug_hints);
-  const allowCompleteRewrite = computed(() => state.allow_complete_rewrite);
 
   const hasBuggyCode = computed(() => state.buggy_code.trim().length > 0);
 
@@ -111,10 +103,6 @@ export const useDebugFixConfig = (): UseDebugFixConfigReturn => {
 
   const setBuggyCode = (code: string): void => {
     state.buggy_code = code;
-  };
-
-  const setAllowCompleteRewrite = (allow: boolean): void => {
-    state.allow_complete_rewrite = allow;
   };
 
   const addHint = (hint: BugHint): void => {
@@ -156,7 +144,6 @@ export const useDebugFixConfig = (): UseDebugFixConfigReturn => {
     }
 
     state.buggy_code = config.buggy_code || '';
-    state.allow_complete_rewrite = config.allow_complete_rewrite ?? false;
 
     // Load hints, ensuring proper structure
     if (Array.isArray(config.bug_hints)) {
@@ -176,7 +163,6 @@ export const useDebugFixConfig = (): UseDebugFixConfigReturn => {
         level: h.level,
         text: h.text.trim(),
       })),
-      allow_complete_rewrite: state.allow_complete_rewrite,
     };
   };
 
@@ -208,7 +194,6 @@ export const useDebugFixConfig = (): UseDebugFixConfigReturn => {
   const reset = (): void => {
     state.buggy_code = '';
     state.bug_hints = [];
-    state.allow_complete_rewrite = false;
     newHint.value = { ...DEFAULT_NEW_HINT };
   };
 
@@ -216,13 +201,11 @@ export const useDebugFixConfig = (): UseDebugFixConfigReturn => {
     config: readonly(state),
     buggyCode,
     bugHints,
-    allowCompleteRewrite,
     hasBuggyCode,
     codesDiffer,
     validationError,
     newHint,
     setBuggyCode,
-    setAllowCompleteRewrite,
     addHint,
     removeHint,
     updateHint,

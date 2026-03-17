@@ -500,7 +500,6 @@ interface RefuteConfig {
 interface DebugFixConfig {
   buggy_code: string
   bug_hints?: string[]       // Hints about the bugs
-  allow_complete_rewrite: boolean  // Allow full replacement vs minimal fix
 }
 ```
 

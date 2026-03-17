@@ -1060,10 +1060,6 @@ bug_hints = models.JSONField(
     default=list, blank=True,
     help_text="Progressive hints: [{level: 1, text: 'Check line 5'}, ...]"
 )
-allow_complete_rewrite = models.BooleanField(
-    default=True,
-    help_text="If False, require minimal diff from buggy_code"
-)
 ```
 
 ---

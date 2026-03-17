@@ -13,7 +13,6 @@ describe('useDebugFixConfig', () => {
     it('should initialize with empty values', () => {
       expect(debugFix.buggyCode.value).toBe('')
       expect(debugFix.bugHints.value).toHaveLength(0)
-      expect(debugFix.allowCompleteRewrite.value).toBe(false)
       expect(debugFix.hasBuggyCode.value).toBe(false)
     })
   })
@@ -26,8 +25,7 @@ describe('useDebugFixConfig', () => {
           { level: 1, text: 'Check the variable name' },
           { level: 2, text: 'x is undefined' },
         ],
-        allow_complete_rewrite: true,
-      }
+              }
 
       debugFix.loadConfig(config)
 
@@ -35,7 +33,6 @@ describe('useDebugFixConfig', () => {
       expect(debugFix.bugHints.value).toHaveLength(2)
       expect(debugFix.bugHints.value[0].level).toBe(1)
       expect(debugFix.bugHints.value[0].text).toBe('Check the variable name')
-      expect(debugFix.allowCompleteRewrite.value).toBe(true)
       expect(debugFix.hasBuggyCode.value).toBe(true)
     })
 
@@ -111,8 +108,7 @@ describe('useDebugFixConfig', () => {
           { level: 1, text: 'Level 1 hint' },
           { level: 2, text: 'Level 2 hint' },
         ],
-        allow_complete_rewrite: false,
-      })
+              })
 
       debugFix.sortHintsByLevel()
 
@@ -151,8 +147,7 @@ describe('useDebugFixConfig', () => {
         bug_hints: [
           { level: 1, text: '' },
         ],
-        allow_complete_rewrite: false,
-      })
+              })
 
       const result = debugFix.validate('def correct(): return y')
 
@@ -166,8 +161,7 @@ describe('useDebugFixConfig', () => {
         bug_hints: [
           { level: 1, text: 'Check variable' },
         ],
-        allow_complete_rewrite: false,
-      })
+              })
 
       const result = debugFix.validate('def correct(): return y')
 
@@ -230,14 +224,12 @@ describe('useDebugFixConfig', () => {
         bug_hints: [
           { level: 1, text: '  Hint with spaces  ' },
         ],
-        allow_complete_rewrite: true,
-      })
+              })
 
       const apiConfig = debugFix.getConfigForApi()
 
       expect(apiConfig.buggy_code).toBe('def test(): pass')
       expect(apiConfig.bug_hints[0].text).toBe('Hint with spaces')
-      expect(apiConfig.allow_complete_rewrite).toBe(true)
     })
   })
 
@@ -246,14 +238,12 @@ describe('useDebugFixConfig', () => {
       debugFix.loadConfig({
         buggy_code: 'def test(): pass',
         bug_hints: [{ level: 1, text: 'Hint' }],
-        allow_complete_rewrite: true,
-      })
+              })
 
       debugFix.reset()
 
       expect(debugFix.buggyCode.value).toBe('')
       expect(debugFix.bugHints.value).toHaveLength(0)
-      expect(debugFix.allowCompleteRewrite.value).toBe(false)
     })
   })
 })

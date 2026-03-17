@@ -531,11 +531,7 @@
       "addNewHint": "Add New Hint",
       "hintPlaceholder": "e.g., Check the loop condition on line 5",
       "addHint": "Add Hint",
-      "sortHintsByLevel": "Sort Hints by Level",
-      "behaviorSettings": "Behavior Settings",
-      "allowCompleteRewrite": "Allow Complete Rewrite",
-      "allowRewriteDescription": "Students can rewrite the entire function from scratch.",
-      "minimalFixesDescription": "Students should make minimal, targeted fixes to the buggy code. This is recommended for teaching debugging skills."
+      "sortHintsByLevel": "Sort Hints by Level"
     },
     "probeable": {
       "functionConfiguration": "Function Configuration",

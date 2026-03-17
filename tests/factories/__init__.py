@@ -208,7 +208,6 @@ class DebugFixProblemFactory(DjangoModelFactory):
             {"level": 2, "text": "The function should add, not subtract"},
         ]
     )
-    allow_complete_rewrite = True
 
 
 class ProbeableCodeProblemFactory(DjangoModelFactory):

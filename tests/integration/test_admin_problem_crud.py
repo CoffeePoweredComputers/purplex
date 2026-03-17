@@ -64,9 +64,9 @@ class TestEiplProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert response.status_code == status.HTTP_201_CREATED, (
-            f"Failed: {response.data}"
-        )
+        assert (
+            response.status_code == status.HTTP_201_CREATED
+        ), f"Failed: {response.data}"
         assert response.data["function_name"] == "add"
         assert response.data["function_signature"] == "def add(a: int, b: int) -> int"
 
@@ -89,9 +89,9 @@ class TestEiplProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert response.status_code == status.HTTP_201_CREATED, (
-            f"Failed: {response.data}"
-        )
+        assert (
+            response.status_code == status.HTTP_201_CREATED
+        ), f"Failed: {response.data}"
         problem = EiplProblem.objects.get(title="Regression EiPL Minimal")
         assert problem.function_name == "foo"
 
@@ -129,9 +129,9 @@ class TestPromptProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert response.status_code == status.HTTP_201_CREATED, (
-            f"Failed: {response.data}"
-        )
+        assert (
+            response.status_code == status.HTTP_201_CREATED
+        ), f"Failed: {response.data}"
 
         problem = PromptProblem.objects.get(title="Regression Prompt Image")
         assert problem.image_url == "https://example.com/regression-test.png"
@@ -148,7 +148,7 @@ class TestDebugFixProblemCreationRegression:
     """
     Regression tests for DebugFix problem creation.
 
-    DebugFix problems have buggy_code, bug_hints, and allow_complete_rewrite
+    DebugFix problems have buggy_code and bug_hints
     fields that must be saved to DebugFixProblem model.
 
     KNOWN ISSUE: AdminProblemSerializer.create() hardcodes EiplProblem.objects.create()
@@ -169,20 +169,18 @@ class TestDebugFixProblemCreationRegression:
                 {"level": 1, "text": "Check the operator"},
                 {"level": 2, "text": "Should add, not subtract"},
             ],
-            "allow_complete_rewrite": False,
             "difficulty": "intermediate",
         }
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert response.status_code == status.HTTP_201_CREATED, (
-            f"Failed: {response.data}"
-        )
+        assert (
+            response.status_code == status.HTTP_201_CREATED
+        ), f"Failed: {response.data}"
 
         problem = DebugFixProblem.objects.get(title="Regression DebugFix")
         assert "return a - b" in problem.buggy_code
         assert len(problem.bug_hints) == 2
-        assert problem.allow_complete_rewrite is False
 
 
 # =============================================================================
@@ -217,9 +215,9 @@ class TestMcqProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert response.status_code == status.HTTP_201_CREATED, (
-            f"Failed: {response.data}"
-        )
+        assert (
+            response.status_code == status.HTTP_201_CREATED
+        ), f"Failed: {response.data}"
 
         problem = McqProblem.objects.get(title="Regression MCQ")
         assert problem.question_text == "What is 2 + 2?"
@@ -258,9 +256,9 @@ class TestRefuteProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert response.status_code == status.HTTP_201_CREATED, (
-            f"Failed: {response.data}"
-        )
+        assert (
+            response.status_code == status.HTTP_201_CREATED
+        ), f"Failed: {response.data}"
 
         problem = RefuteProblem.objects.get(title="Regression Refute")
         assert problem.claim_text == "The function always returns a positive number"
@@ -301,9 +299,9 @@ class TestProbeableCodeProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert response.status_code == status.HTTP_201_CREATED, (
-            f"Failed: {response.data}"
-        )
+        assert (
+            response.status_code == status.HTTP_201_CREATED
+        ), f"Failed: {response.data}"
 
         problem = ProbeableCodeProblem.objects.get(title="Regression ProbeableCode")
         assert problem.probe_mode == "cooldown"
@@ -347,9 +345,9 @@ class TestProbeableSpecProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert response.status_code == status.HTTP_201_CREATED, (
-            f"Failed: {response.data}"
-        )
+        assert (
+            response.status_code == status.HTTP_201_CREATED
+        ), f"Failed: {response.data}"
 
         problem = ProbeableSpecProblem.objects.get(title="Regression ProbeableSpec")
         assert problem.probe_mode == "explore"
@@ -512,8 +510,8 @@ class TestDebugFixProblemUpdateRegression:
     """
     UPDATE regression tests for DebugFix problem.
 
-    These tests verify type-specific fields (buggy_code, bug_hints,
-    allow_complete_rewrite) are correctly updated via PUT.
+    These tests verify type-specific fields (buggy_code, bug_hints)
+    are correctly updated via PUT.
     """
 
     def test_update_debug_fix_buggy_code(self, admin_client, debug_fix_problem):
@@ -526,7 +524,6 @@ class TestDebugFixProblemUpdateRegression:
             "difficulty": "intermediate",
             "buggy_code": "def add(a, b):\n    return a * b  # New bug: multiplication",
             "bug_hints": debug_fix_problem.bug_hints,
-            "allow_complete_rewrite": debug_fix_problem.allow_complete_rewrite,
         }
 
         response = admin_client.put(
@@ -553,7 +550,6 @@ class TestDebugFixProblemUpdateRegression:
             "difficulty": "intermediate",
             "buggy_code": debug_fix_problem.buggy_code,
             "bug_hints": new_hints,
-            "allow_complete_rewrite": debug_fix_problem.allow_complete_rewrite,
         }
 
         response = admin_client.put(
@@ -565,31 +561,6 @@ class TestDebugFixProblemUpdateRegression:
         debug_fix_problem.refresh_from_db()
         assert len(debug_fix_problem.bug_hints) == 3
         assert debug_fix_problem.bug_hints[2]["text"] == "Added third hint"
-
-    def test_update_debug_fix_allow_complete_rewrite(
-        self, admin_client, debug_fix_problem
-    ):
-        """Update allow_complete_rewrite boolean and verify persistence."""
-        # Factory default is True, update to False
-        data = {
-            "title": debug_fix_problem.title,
-            "reference_solution": debug_fix_problem.reference_solution,
-            "function_signature": debug_fix_problem.function_signature,
-            "function_name": debug_fix_problem.function_name,
-            "difficulty": "intermediate",
-            "buggy_code": debug_fix_problem.buggy_code,
-            "bug_hints": debug_fix_problem.bug_hints,
-            "allow_complete_rewrite": False,
-        }
-
-        response = admin_client.put(
-            f"/api/admin/problems/{debug_fix_problem.slug}/", data, format="json"
-        )
-
-        assert response.status_code == status.HTTP_200_OK, f"Failed: {response.data}"
-
-        debug_fix_problem.refresh_from_db()
-        assert debug_fix_problem.allow_complete_rewrite is False
 
     def test_update_debug_fix_preserves_type_specific_fields_on_base_update(
         self, admin_client, debug_fix_problem
@@ -606,7 +577,6 @@ class TestDebugFixProblemUpdateRegression:
             "difficulty": "advanced",
             "buggy_code": debug_fix_problem.buggy_code,
             "bug_hints": debug_fix_problem.bug_hints,
-            "allow_complete_rewrite": debug_fix_problem.allow_complete_rewrite,
         }
 
         response = admin_client.put(

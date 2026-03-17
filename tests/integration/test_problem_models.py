@@ -1437,16 +1437,6 @@ class TestUserProgressGradeChoices:
 class TestDebugFixProblemFieldDefaults:
     """Tests for DebugFixProblem field defaults."""
 
-    def test_allow_complete_rewrite_defaults_to_true(self, db):
-        """Default allow_complete_rewrite should be True."""
-        problem = DebugFixProblem.objects.create(
-            title="Test Debug Fix",
-            reference_solution="def x(): pass",
-            function_signature="def x() -> None",
-            buggy_code="def x(): return None",
-        )
-        assert problem.allow_complete_rewrite is True
-
     def test_bug_hints_defaults_to_empty_list(self, db):
         """Default bug_hints should be empty list."""
         problem = DebugFixProblem.objects.create(
