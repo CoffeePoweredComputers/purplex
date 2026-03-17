@@ -783,7 +783,6 @@ class AdminDebugFixProblemSerializer(serializers.ModelSerializer):
             # DebugFix-specific fields
             "buggy_code",
             "bug_hints",
-            "allow_complete_rewrite",
             # Admin fields
             "test_cases",
             "completion_threshold",

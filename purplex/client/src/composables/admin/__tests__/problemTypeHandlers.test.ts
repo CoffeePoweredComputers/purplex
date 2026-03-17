@@ -173,24 +173,20 @@ describe('problemTypeHandlers', () => {
           { level: 1, text: 'Check line 2' },
           { level: 2, text: 'x is undefined' },
         ],
-        allow_complete_rewrite: true,
       } as unknown as ProblemDetailed
 
       problemTypeHandlers.debug_fix.load(mockData, composables)
 
       expect(composables.debugFixConfig.buggyCode.value).toBe('def broken():\n    return x')
       expect(composables.debugFixConfig.bugHints.value).toHaveLength(2)
-      expect(composables.debugFixConfig.allowCompleteRewrite.value).toBe(true)
     })
 
     it('should save debug fix config', () => {
       composables.debugFixConfig.setBuggyCode('def test(): pass')
-      composables.debugFixConfig.setAllowCompleteRewrite(false)
 
       const saved = problemTypeHandlers.debug_fix.save(composables)
 
       expect(saved.buggy_code).toBe('def test(): pass')
-      expect(saved.allow_complete_rewrite).toBe(false)
     })
 
     it('should handle missing debug fix fields gracefully', () => {
@@ -203,7 +199,6 @@ describe('problemTypeHandlers', () => {
 
       expect(composables.debugFixConfig.buggyCode.value).toBe('')
       expect(composables.debugFixConfig.bugHints.value).toHaveLength(0)
-      expect(composables.debugFixConfig.allowCompleteRewrite.value).toBe(false)
     })
   })
 

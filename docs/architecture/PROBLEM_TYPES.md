@@ -158,7 +158,6 @@ Each problem type has a corresponding handler in `purplex/problems_app/handlers/
 - `function_signature` - Function signature with type hints
 - `buggy_code` - Code with intentional bug(s) for student to fix
 - `bug_hints` - Progressive hints: `[{level: 1, text: "Check line 5"}, ...]`
-- `allow_complete_rewrite` - If False, require minimal diff from buggy_code
 
 **Pipeline**:
 1. Display buggy code with failing test cases

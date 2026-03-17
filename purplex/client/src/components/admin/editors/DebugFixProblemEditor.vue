@@ -306,31 +306,6 @@
       </div>
     </div>
 
-    <!-- Behavior Settings -->
-    <div class="form-section rounded-lg border-default">
-      <h3>{{ $t('admin.editors.debugFix.behaviorSettings') }}</h3>
-
-      <div class="toggle-setting">
-        <label class="toggle-label">
-          <input
-            :checked="editor.debugFixConfig.allowCompleteRewrite.value"
-            type="checkbox"
-            class="toggle-checkbox"
-            @change="editor.debugFixConfig.setAllowCompleteRewrite(($event.target as HTMLInputElement).checked)"
-          >
-          <span class="toggle-text">{{ $t('admin.editors.debugFix.allowCompleteRewrite') }}</span>
-        </label>
-        <p class="setting-description">
-          <span v-if="editor.debugFixConfig.allowCompleteRewrite.value">
-            {{ $t('admin.editors.debugFix.allowRewriteDescription') }}
-          </span>
-          <span v-else>
-            {{ $t('admin.editors.debugFix.minimalFixesDescription') }}
-          </span>
-        </p>
-      </div>
-    </div>
-
     <!-- Test Cases -->
     <TestCasesSection
       :editor="editor"

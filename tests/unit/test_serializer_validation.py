@@ -534,8 +534,7 @@ class TestAdminPromptProblemSerializerValidation:
 class TestAdminDebugFixProblemSerializerValidation:
     """Tests for DebugFix problem validation rules.
 
-    DebugFix problems have buggy_code (required), bug_hints (optional),
-    and allow_complete_rewrite (optional, default True).
+    DebugFix problems have buggy_code (required) and bug_hints (optional).
     """
 
     def test_valid_debug_fix_problem_data_with_all_fields(self):
@@ -551,7 +550,6 @@ class TestAdminDebugFixProblemSerializerValidation:
                 {"level": 1, "text": "Check the operator"},
                 {"level": 2, "text": "Should add, not subtract"},
             ],
-            "allow_complete_rewrite": False,
             "difficulty": "intermediate",
             "tags": ["python", "debugging"],
             "is_active": True,
@@ -638,20 +636,6 @@ class TestAdminDebugFixProblemSerializerValidation:
         serializer = AdminDebugFixProblemSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
 
-    def test_debug_fix_optional_allow_complete_rewrite(self):
-        """DebugFix problem should work without allow_complete_rewrite."""
-        data = {
-            "title": "Test DebugFix Problem",
-            "reference_solution": "def add(a, b):\n    return a + b",
-            "function_signature": "def add(a: int, b: int) -> int",
-            "function_name": "add",
-            "buggy_code": "def add(a, b):\n    return a - b  # Bug!",
-            "difficulty": "intermediate",
-            # No allow_complete_rewrite - should still be valid
-        }
-        serializer = AdminDebugFixProblemSerializer(data=data)
-        assert serializer.is_valid(), serializer.errors
-
     def test_debug_fix_bug_hints_accepts_valid_format(self):
         """DebugFix problem should accept valid bug_hints array."""
         data = {
@@ -664,7 +648,6 @@ class TestAdminDebugFixProblemSerializerValidation:
                 {"level": 1, "text": "Check the operator"},
                 {"level": 2, "text": "Should add, not subtract"},
             ],
-            "allow_complete_rewrite": False,
             "difficulty": "intermediate",
         }
         serializer = AdminDebugFixProblemSerializer(data=data)

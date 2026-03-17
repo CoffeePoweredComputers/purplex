@@ -215,7 +215,6 @@ class DebugFixHandler(ActivityHandler):
                 "tags",
                 "categories",
                 "bug_hints",
-                "allow_complete_rewrite",
             ],
             "type_specific_section": "debug_fix_config",
             "supports": {

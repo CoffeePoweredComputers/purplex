@@ -121,7 +121,7 @@ purplex/problems_app/models/
 | **SpecProblem (abstract)** | reference_solution, function_signature, function_name, memory_limit, llm_config, segmentation_config, segmentation_threshold, requires_highlevel_comprehension |
 | **EiplProblem** | (inherits all SpecProblem fields) |
 | **PromptProblem** | image_url, image_alt_text |
-| **DebugFixProblem** | buggy_code, bug_hints, allow_complete_rewrite |
+| **DebugFixProblem** | buggy_code, bug_hints |
 | **ProbeableCodeProblem** | show_function_signature, probe_mode, max_probes, cooldown_attempts, cooldown_refill |
 | **ProbeableSpecProblem** | show_function_signature, probe_mode, max_probes, cooldown_attempts, cooldown_refill |
 
