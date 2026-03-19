@@ -647,7 +647,7 @@ export default {
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
+    box-shadow: 0 0 0 0 var(--color-warning-pulse);
   }
   70% {
     box-shadow: 0 0 0 10px rgba(251, 191, 36, 0);

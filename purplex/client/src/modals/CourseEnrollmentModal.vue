@@ -151,7 +151,7 @@ async function enrollInCourse(): Promise<void> {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--color-backdrop-heavy);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;

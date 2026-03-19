@@ -1290,7 +1290,7 @@ onMounted(() => {
 }
 
 .chart-line {
-  filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.3));
+  filter: drop-shadow(0 1px 2px var(--color-primary-glow));
 }
 
 .chart-bars {

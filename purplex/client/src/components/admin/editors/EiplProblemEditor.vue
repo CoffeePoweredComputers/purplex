@@ -885,7 +885,7 @@ defineExpose({
 .test-loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--color-backdrop-heavy);
   display: flex;
   align-items: center;
   justify-content: center;

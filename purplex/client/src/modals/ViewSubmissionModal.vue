@@ -816,7 +816,7 @@ watch(() => props.submission, () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1383,14 +1383,14 @@ details[open] .group-icon {
   font-size: 16px;
   font-weight: 700;
   border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(159, 122, 234, 0.3);
+  box-shadow: 0 2px 8px var(--color-segment-shadow);
   animation: pulse-glow 2s ease-in-out infinite;
   margin: 0 2px;
 }
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 2px 8px rgba(159, 122, 234, 0.3);
+    box-shadow: 0 2px 8px var(--color-segment-shadow);
   }
   50% {
     box-shadow: 0 4px 16px rgba(159, 122, 234, 0.5);

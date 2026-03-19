@@ -152,7 +152,7 @@ function getMemberSince(): string {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: var(--color-backdrop-heavy);
     backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
@@ -338,7 +338,7 @@ function getMemberSince(): string {
 .role-badge.admin {
     background: linear-gradient(135deg, var(--color-admin) 0%, var(--color-admin-hover) 100%);
     color: var(--color-text-primary);
-    box-shadow: 0 2px 8px rgba(103, 58, 183, 0.3);
+    box-shadow: 0 2px 8px var(--color-admin-shadow);
 }
 
 .role-badge.user {

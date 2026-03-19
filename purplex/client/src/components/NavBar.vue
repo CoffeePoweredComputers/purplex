@@ -419,7 +419,7 @@ onUnmounted(() => {
     background: var(--color-primary);
     color: var(--color-text-primary);
     border-color: transparent;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 8px var(--color-info-shadow);
 }
 
 .instructor-item:hover {
@@ -437,7 +437,7 @@ onUnmounted(() => {
     background: var(--color-admin);
     color: var(--color-text-primary);
     border-color: transparent;
-    box-shadow: 0 2px 8px rgba(103, 58, 183, 0.3);
+    box-shadow: 0 2px 8px var(--color-admin-shadow);
 }
 
 .admin-item:hover {

@@ -141,7 +141,7 @@ async function handleLanguageChange() {
 .language-select:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
 .language-select:disabled {

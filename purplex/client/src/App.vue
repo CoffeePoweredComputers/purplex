@@ -242,6 +242,17 @@ export default defineComponent({
     --color-error-border: rgba(220, 53, 69, 0.4);
     --color-info-border: rgba(33, 150, 243, 0.4);
 
+    /* Modal Backdrops */
+    --color-backdrop: rgba(0, 0, 0, 0.5);
+    --color-backdrop-heavy: rgba(0, 0, 0, 0.75);
+
+    /* Colored Glows (box-shadows) */
+    --color-primary-shadow: rgba(102, 126, 234, 0.4);
+    --color-admin-shadow: rgba(103, 58, 183, 0.3);
+    --color-info-shadow: rgba(59, 130, 246, 0.3);
+    --color-segment-shadow: rgba(159, 122, 234, 0.3);
+    --color-warning-pulse: rgba(251, 191, 36, 0.7);
+
     /* Ace Editor */
     --color-ace-selection: rgba(128, 0, 128, 0.3);
 
