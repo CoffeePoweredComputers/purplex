@@ -444,8 +444,8 @@ onMounted(() => {
 }
 
 .badge-count {
-  background: #404040;
-  color: #b0b0b0;
+  background: var(--color-bg-border);
+  color: var(--color-text-muted);
 }
 
 
@@ -455,8 +455,8 @@ onMounted(() => {
 }
 
 .badge-level.badge-multi-structural {
-  background: #6b2d2d;
-  color: #ffc5c5;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
 }
 
 .modal-actions {
@@ -479,7 +479,7 @@ onMounted(() => {
 
 .size-label {
   font-size: var(--font-size-sm);
-  color: #b0b0b0;
+  color: var(--color-text-muted);
   font-weight: 500;
   user-select: none;
   letter-spacing: 0.5px;
@@ -497,7 +497,7 @@ onMounted(() => {
 .size-btn {
   background: transparent;
   border: none;
-  color: #b0b0b0;
+  color: var(--color-text-muted);
   width: 28px;
   height: 28px;
   border-radius: var(--radius-xs);
@@ -613,20 +613,20 @@ onMounted(() => {
 }
 
 .segment-badge-success {
-  background: #1e6f3f;
-  color: #ffffff;
+  background: var(--color-success-dark);
+  color: var(--color-text-primary);
   box-shadow: none;
 }
 
 .segment-badge-warning {
-  background: #9a4419;
-  color: #ffffff;
+  background: var(--color-warning-dark);
+  color: var(--color-text-primary);
   box-shadow: none;
 }
 
 .segment-badge-goal {
-  background: #5a3a9d;
-  color: #ffffff;
+  background: var(--color-admin);
+  color: var(--color-text-primary);
   box-shadow: none;
 }
 

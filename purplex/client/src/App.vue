@@ -208,6 +208,33 @@ export default defineComponent({
     --color-admin: #673ab7;
     --color-admin-hover: #5e35b1;
 
+    /* Overlay Colors */
+    --color-overlay-subtle: rgba(255, 255, 255, 0.05);
+    --color-overlay-medium: rgba(255, 255, 255, 0.1);
+    --color-overlay-strong: rgba(255, 255, 255, 0.15);
+
+    /* Status Overlays (low-alpha backgrounds) */
+    --color-success-overlay: rgba(76, 175, 80, 0.15);
+    --color-warning-overlay: rgba(255, 193, 7, 0.15);
+    --color-error-overlay: rgba(220, 53, 69, 0.15);
+    --color-info-overlay: rgba(33, 150, 243, 0.15);
+
+    /* Primary Overlays */
+    --color-primary-overlay: rgba(102, 126, 234, 0.1);
+    --color-primary-glow: rgba(102, 126, 234, 0.3);
+
+    /* Status Gradient Endpoints */
+    --color-success-accent: #34d399;
+    --color-warning-accent: #fbbf24;
+    --color-error-accent: #f87171;
+    --color-error-dark: #c82333;
+    --color-warning-dark: #e0a800;
+    --color-success-dark: #218838;
+    --color-info-dark: #1976d2;
+
+    /* Ace Editor */
+    --color-ace-selection: rgba(128, 0, 128, 0.3);
+
     /* Spacing */
     --spacing-xs: 4px;
     --spacing-sm: 8px;

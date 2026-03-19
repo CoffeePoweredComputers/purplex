@@ -515,14 +515,3 @@
     background: white !important;
   }
 }
-
-/* Dark Mode Enhancements (if needed) */
-@media (prefers-color-scheme: dark) {
-  .seg-tooltip {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  }
-
-  .seg-code-highlight {
-    background: rgba(102, 126, 234, 0.2);
-  }
-}

@@ -673,7 +673,7 @@ onMounted(async () => {
   width: 28px;
   height: 28px;
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -744,7 +744,7 @@ onMounted(async () => {
 
 .remove-btn:hover {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .add-indicator {
@@ -789,7 +789,7 @@ onMounted(async () => {
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 25px var(--color-primary-glow);
 }
 
 .btn-secondary {

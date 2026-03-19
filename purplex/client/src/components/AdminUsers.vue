@@ -242,7 +242,7 @@ onMounted(() => {
 .search-input:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
 .filter-select {
@@ -303,7 +303,7 @@ onMounted(() => {
 
 .role-dropdown:focus {
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
 .role-dropdown:disabled {
@@ -324,7 +324,7 @@ onMounted(() => {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid var(--color-overlay-strong);
   border-radius: 50%;
   border-top-color: var(--color-text-primary);
   animation: dropdown-spin 1s linear infinite;

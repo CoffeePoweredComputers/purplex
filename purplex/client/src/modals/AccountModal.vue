@@ -256,7 +256,7 @@ function getMemberSince(): string {
     font-size: var(--font-size-xl);
     font-weight: 600;
     color: var(--color-text-primary);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px var(--color-primary-glow);
 }
 
 .user-info {
@@ -377,7 +377,7 @@ function getMemberSince(): string {
     background: var(--color-error);
     color: var(--color-text-primary);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    box-shadow: 0 4px 12px var(--color-error-overlay);
 }
 
 .logout-button svg {

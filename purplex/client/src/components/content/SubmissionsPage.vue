@@ -464,9 +464,9 @@ onMounted(fetchSubmissions);
 .filter-group input,
 .filter-group select {
   padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--color-border, var(--color-bg-input));
+  border: 1px solid var(--color-bg-input);
   border-radius: var(--radius-base);
-  background: var(--color-surface, var(--color-bg-hover));
+  background: var(--color-bg-hover);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   height: 38px;
@@ -500,7 +500,7 @@ onMounted(fetchSubmissions);
 .clear-filters-btn {
   padding: var(--spacing-sm) var(--spacing-md);
   background: transparent;
-  border: 1px solid var(--color-border, var(--color-bg-input));
+  border: 1px solid var(--color-bg-input);
   border-radius: var(--radius-base);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
@@ -542,7 +542,7 @@ onMounted(fetchSubmissions);
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-sm);
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--color-primary-overlay);
   border: 1px solid var(--color-primary-gradient-start);
   border-radius: var(--radius-xl);
   font-size: var(--font-size-xs);
@@ -552,7 +552,7 @@ onMounted(fetchSubmissions);
 }
 
 .filter-chip:hover {
-  background: rgba(102, 126, 234, 0.2);
+  background: var(--color-primary-overlay);
 }
 
 .chip-label {
@@ -575,7 +575,7 @@ onMounted(fetchSubmissions);
   margin-left: var(--spacing-xs);
   border-radius: 50%;
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-primary);
   font-size: 10px;
   font-weight: bold;
   line-height: 1;
@@ -804,7 +804,7 @@ onMounted(fetchSubmissions);
 
 .export-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 .export-button:disabled {

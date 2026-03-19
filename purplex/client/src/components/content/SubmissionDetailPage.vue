@@ -272,7 +272,7 @@ onMounted(fetchSubmission);
   margin-top: 16px;
   padding: 8px 20px;
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-primary);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -415,12 +415,12 @@ onMounted(fetchSubmission);
 
 .test-item.passing {
   background: var(--color-success-bg);
-  border-color: rgba(76, 175, 80, 0.3);
+  border-color: var(--color-success-overlay);
 }
 
 .test-item.failing {
   background: var(--color-error-bg);
-  border-color: rgba(220, 53, 69, 0.3);
+  border-color: var(--color-error-overlay);
 }
 
 .test-status {

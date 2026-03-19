@@ -324,7 +324,7 @@ async function confirmDelete() {
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 25px var(--color-primary-glow);
 }
 
 .btn-secondary {

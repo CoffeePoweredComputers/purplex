@@ -449,13 +449,13 @@ defineExpose({
 
   /* Selection styling */
   :deep(.ace_selection) {
-    background: rgba(128, 0, 128, 0.3) !important;
+    background: var(--color-ace-selection) !important;
     color: var(--color-text-primary) !important;
   }
 
   /* Active line highlighting */
   :deep(.ace_active-line) {
-    background: rgba(102, 126, 234, 0.1);
+    background: var(--color-primary-overlay);
   }
 
   /* Cursor styling */
@@ -468,13 +468,13 @@ defineExpose({
   :deep(.ace_bracket) {
     margin: -1px -1px 0 -1px;
     border: 1px solid var(--color-primary-gradient-start);
-    background: rgba(102, 126, 234, 0.2);
+    background: var(--color-primary-overlay);
   }
 
   /* Search highlights */
   :deep(.ace_selected-word) {
     border: 1px solid var(--color-primary-gradient-start);
-    background: rgba(102, 126, 234, 0.2);
+    background: var(--color-primary-overlay);
   }
 
 
@@ -539,19 +539,19 @@ defineExpose({
 
   @keyframes pulse-subgoal {
     0% {
-      background: rgba(255, 193, 7, 0.2);
+      background: var(--color-warning-overlay);
     }
     50% {
-      background: rgba(255, 193, 7, 0.3);
+      background: var(--color-warning-overlay);
     }
     100% {
-      background: rgba(255, 193, 7, 0.2);
+      background: var(--color-warning-overlay);
     }
   }
 
   :deep(.suggested-trace) {
-    background: rgba(255, 193, 7, 0.1);
-    border-right: 3px solid #ffc107;
+    background: var(--color-warning-overlay);
+    border-right: 3px solid var(--color-warning);
     font-style: italic;
     position: relative;
   }
@@ -566,18 +566,18 @@ defineExpose({
   }
 
   :deep(.suggestion-instructions) {
-    background: rgba(33, 150, 243, 0.1);
-    border-right: 3px solid #2196f3;
+    background: var(--color-info-overlay);
+    border-right: 3px solid var(--color-info);
   }
 
   :deep(.suggestion-test_case) {
-    background: rgba(255, 193, 7, 0.1);
-    border-right: 3px solid #ffc107;
+    background: var(--color-warning-overlay);
+    border-right: 3px solid var(--color-warning);
   }
 
   /* Annotation styles for hint system */
   :deep(.ace_gutter .subgoal-annotation) {
-    background: rgba(76, 175, 80, 0.1);
+    background: var(--color-success-overlay);
     border-radius: 3px;
     padding: 2px 4px;
     margin: 1px 0;

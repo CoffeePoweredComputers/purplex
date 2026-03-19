@@ -429,13 +429,13 @@ export default defineComponent({
 /* Hover: invert circle, number turns black */
 .segment-span:hover .segment-marker {
   background: var(--segment-bg-color) !important;
-  color: #000000 !important;
+  color: var(--color-bg-dark) !important;
 }
 
 /* Active state */
 .segment-span.active .segment-marker {
   background: var(--segment-bg-color) !important;
-  color: #000000 !important;
+  color: var(--color-bg-dark) !important;
 }
 
 
@@ -464,19 +464,19 @@ export default defineComponent({
 }
 
 .code-line:hover .line-content {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-overlay-subtle);
 }
 
 .code-line.highlighted {
-  background: rgba(102, 126, 234, 0.05);
+  background: var(--color-primary-overlay);
 }
 
 .code-line.highlighted .line-number {
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--color-primary-overlay);
 }
 
 .code-line.highlighted .line-content {
-  background: rgba(102, 126, 234, 0.05);
+  background: var(--color-primary-overlay);
 }
 
 .code-line.dimmed {
@@ -513,7 +513,7 @@ export default defineComponent({
 /* Active state: wider stripe and subtle background tint */
 .code-line.highlighted .line-number[data-segment-id] {
   border-left-width: 6px;
-  background: rgba(102, 126, 234, 0.15);
+  background: var(--color-overlay-strong);
 }
 
 .line-content {

@@ -406,8 +406,8 @@ function formatOutput(value: unknown): string {
 /* Claim Banner */
 .claim-banner {
   padding: var(--spacing-md) var(--spacing-lg);
-  background: rgba(234, 102, 102, 0.1);
-  border-bottom: 2px solid rgba(234, 102, 102, 0.3);
+  background: var(--color-error-overlay);
+  border-bottom: 2px solid var(--color-error);
   display: flex;
   align-items: baseline;
   gap: var(--spacing-sm);
@@ -495,7 +495,7 @@ function formatOutput(value: unknown): string {
 .param-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
 .param-input:disabled {
@@ -541,14 +541,14 @@ function formatOutput(value: unknown): string {
   width: 100%;
   padding: var(--spacing-xs) var(--spacing-lg);
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: white;
+  color: var(--color-text-primary);
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px var(--color-primary-glow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -557,7 +557,7 @@ function formatOutput(value: unknown): string {
 
 .test-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px var(--color-primary-glow);
 }
 
 .test-btn:disabled {
@@ -569,8 +569,8 @@ function formatOutput(value: unknown): string {
 .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border: 2px solid var(--color-overlay-strong);
+  border-top-color: var(--color-text-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -583,7 +583,7 @@ function formatOutput(value: unknown): string {
 .test-error {
   margin: 0 var(--spacing-lg) var(--spacing-md);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-overlay);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-sm);
   color: var(--color-error);
@@ -641,7 +641,7 @@ function formatOutput(value: unknown): string {
 }
 
 .badge-success {
-  background: rgba(16, 185, 129, 0.2);
+  background: var(--color-success-overlay);
   color: var(--color-success);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
@@ -661,20 +661,20 @@ function formatOutput(value: unknown): string {
   margin: var(--spacing-md) var(--spacing-lg);
   width: calc(100% - calc(var(--spacing-lg) * 2));
   padding: var(--spacing-md) var(--spacing-xl);
-  background: linear-gradient(135deg, var(--color-success) 0%, #059669 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);
+  color: var(--color-text-primary);
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px var(--color-success-overlay);
 }
 
 .submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 6px 20px var(--color-success-overlay);
 }
 
 .submit-button:disabled {
@@ -698,7 +698,7 @@ function formatOutput(value: unknown): string {
 .dot {
   width: 8px;
   height: 8px;
-  background: white;
+  background: var(--color-text-primary);
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out both;
 }

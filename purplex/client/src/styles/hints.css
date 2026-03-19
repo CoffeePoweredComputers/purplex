@@ -320,20 +320,3 @@
 .hint-content:focus {
   outline: none;
 }
-
-/* Dark mode support (if implemented) */
-@media (prefers-color-scheme: dark) {
-  .hint-code-highlight {
-    background: linear-gradient(
-      to right,
-      transparent 0%,
-      rgba(96, 165, 250, 0.15) 5%,
-      rgba(96, 165, 250, 0.15) 95%,
-      transparent 100%
-    );
-  }
-
-  .variable-meaningful {
-    background: rgba(96, 165, 250, 0.2);
-  }
-}

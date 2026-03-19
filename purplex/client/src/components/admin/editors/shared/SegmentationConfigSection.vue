@@ -365,13 +365,13 @@ const props = withDefaults(defineProps<Props>(), {
 }
 
 .example-block.relational {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: var(--color-success-overlay);
+  border: 1px solid var(--color-success-accent);
 }
 
 .example-block.multi-structural {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--color-error-overlay);
+  border: 1px solid var(--color-error-accent);
 }
 
 .example-block h5 {
@@ -466,7 +466,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 .btn-icon:hover {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-primary);
   border-color: var(--color-error);
 }
 

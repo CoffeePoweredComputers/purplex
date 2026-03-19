@@ -2120,7 +2120,7 @@ export default {
     left: 0;
     right: 0;
     height: 3px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-overlay-medium);
     z-index: 1000;
     overflow: hidden;
 }
@@ -2132,7 +2132,7 @@ export default {
         var(--color-primary-gradient-end) 100%);
     animation: progressSlide 1.5s ease-in-out infinite;
     transform-origin: left;
-    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 0 10px var(--color-primary-glow);
 }
 
 @keyframes progressSlide {
@@ -2156,8 +2156,8 @@ export default {
     margin: 0 1rem 1rem 1rem;
     border-radius: 8px;
     font-size: 0.9rem;
-    background: var(--color-surface-elevated, #2a2d3a);
-    border: 1px solid var(--color-border, #3a3d4a);
+    background: var(--color-bg-hover);
+    border: 1px solid var(--color-bg-border);
 }
 
 .deadline-banner .deadline-icon {
@@ -2169,25 +2169,25 @@ export default {
 }
 
 .deadline-banner .urgency-note {
-    color: var(--color-warning, #f5a623);
+    color: var(--color-warning);
     font-weight: 500;
 }
 
 .deadline-banner.deadline-locked {
-    background: rgba(220, 53, 69, 0.15);
+    background: var(--color-error-overlay);
     border-color: rgba(220, 53, 69, 0.4);
-    color: #ff6b6b;
+    color: var(--color-error-accent);
 }
 
 .deadline-banner.deadline-past,
 .deadline-banner.deadline-soft {
-    background: rgba(245, 166, 35, 0.15);
+    background: var(--color-warning-overlay);
     border-color: rgba(245, 166, 35, 0.4);
-    color: #f5a623;
+    color: var(--color-warning);
 }
 
 .deadline-banner.deadline-urgent {
-    background: rgba(245, 166, 35, 0.1);
+    background: var(--color-warning-overlay);
     border-color: rgba(245, 166, 35, 0.3);
 }
 
@@ -2347,7 +2347,7 @@ export default {
 
 /* Status styles */
 .progress-bar.not_started {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--color-overlay-strong);
     border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
@@ -2360,7 +2360,7 @@ export default {
 }
 
 .progress-bar.submitting {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
     position: relative;
     overflow: hidden;
 }
@@ -2422,7 +2422,7 @@ export default {
 }
 
 .progress-bar.active.not_started {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--color-overlay-strong);
     border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
@@ -2437,7 +2437,7 @@ export default {
 }
 
 .progress-bar.active.submitting {
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px #667eea;
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-primary-gradient-start);
 }
 
 /* Hover effects */
@@ -2753,7 +2753,7 @@ export default {
 .theme-dropdown:focus {
     outline: none;
     border-color: var(--color-primary-gradient-start);
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
 .theme-dropdown option {

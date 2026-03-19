@@ -405,7 +405,7 @@ onMounted(loadInstructors);
 .form-group select:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px var(--color-primary-overlay);
 }
 
 .form-group input:disabled {
@@ -475,7 +475,7 @@ onMounted(loadInstructors);
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 .btn-secondary {

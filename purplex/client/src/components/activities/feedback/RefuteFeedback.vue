@@ -266,12 +266,12 @@ const resultInterpretation = computed(() => {
 }
 
 .result-banner--success {
-  background: rgba(72, 187, 120, 0.15);
+  background: var(--color-success-overlay);
   border: 1px solid var(--color-success);
 }
 
 .result-banner--failure {
-  background: rgba(237, 137, 54, 0.15);
+  background: var(--color-warning-overlay);
   border: 1px solid var(--color-warning);
 }
 
@@ -288,12 +288,12 @@ const resultInterpretation = computed(() => {
 
 .result-banner--success .result-icon {
   background: var(--color-success);
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .result-banner--failure .result-icon {
   background: var(--color-warning);
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .result-text {
@@ -326,7 +326,7 @@ const resultInterpretation = computed(() => {
 /* Claim Reminder */
 .claim-reminder {
   padding: var(--spacing-md);
-  background: rgba(234, 102, 102, 0.1);
+  background: var(--color-error-overlay);
   border-left: 4px solid var(--color-danger);
   border-radius: var(--radius-base);
 }
@@ -370,12 +370,12 @@ const resultInterpretation = computed(() => {
 }
 
 .output-display--disproves {
-  background: rgba(72, 187, 120, 0.1);
+  background: var(--color-success-overlay);
   border: 1px solid var(--color-success);
 }
 
 .output-display--supports {
-  background: rgba(237, 137, 54, 0.1);
+  background: var(--color-warning-overlay);
   border: 1px solid var(--color-warning);
 }
 
@@ -393,7 +393,7 @@ const resultInterpretation = computed(() => {
 
 .error-display {
   padding: var(--spacing-md);
-  background: rgba(245, 101, 101, 0.1);
+  background: var(--color-error-overlay);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-base);
   font-family: var(--font-mono);

@@ -338,12 +338,12 @@ function removeTestCase(index: number) {
 
 .test-case.passed {
   border-color: var(--color-success);
-  background: rgba(16, 185, 129, 0.05);
+  background: var(--color-success-overlay);
 }
 
 .test-case.failed {
   border-color: var(--color-error);
-  background: rgba(239, 68, 68, 0.05);
+  background: var(--color-error-overlay);
 }
 
 /* Test Case Row */
@@ -402,7 +402,7 @@ function removeTestCase(index: number) {
 .param-input:focus {
   border-color: var(--color-primary-gradient-start);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
 .param-input.param-error {
@@ -453,27 +453,27 @@ function removeTestCase(index: number) {
 }
 
 .type-number {
-  background: #dbeafe;
-  color: #1e40af;
-  border: 1px solid #3b82f6;
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
 }
 
 .type-string {
-  background: #dcfce7;
-  color: #166534;
-  border: 1px solid #22c55e;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
 }
 
 .type-boolean {
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #f59e0b;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 .type-collection {
-  background: #ede9fe;
-  color: #6b21a8;
-  border: 1px solid #8b5cf6;
+  background: var(--color-primary-overlay);
+  color: var(--color-admin);
+  border: 1px solid var(--color-admin);
 }
 
 .type-none {
@@ -501,9 +501,9 @@ function removeTestCase(index: number) {
 }
 
 .type-optional {
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #f59e0b;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 /* Output Field Container */
@@ -548,15 +548,15 @@ function removeTestCase(index: number) {
 }
 
 .status-badge.passed {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);
+  color: var(--color-text-primary);
+  box-shadow: 0 2px 8px var(--color-success-overlay);
 }
 
 .status-badge.failed {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, var(--color-error) 0%, var(--color-error-dark) 100%);
+  color: var(--color-text-primary);
+  box-shadow: 0 2px 8px var(--color-error-overlay);
 }
 
 .status-icon {
@@ -612,7 +612,7 @@ function removeTestCase(index: number) {
 }
 
 .failure-msg {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-overlay);
   color: var(--color-error-text);
   border-left: 3px solid var(--color-error);
 }
@@ -653,7 +653,7 @@ function removeTestCase(index: number) {
 }
 
 .loading-text {
-  color: white;
+  color: var(--color-text-primary);
   font-size: var(--font-size-sm);
 }
 
@@ -672,7 +672,7 @@ function removeTestCase(index: number) {
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 25px var(--color-primary-glow);
 }
 
 .btn-primary:disabled {

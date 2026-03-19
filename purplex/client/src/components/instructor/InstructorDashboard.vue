@@ -346,7 +346,7 @@ onMounted(() => {
 
 .instructor-dashboard {
   min-height: 100vh;
-  background: var(--color-background, var(--color-bg-main));
+  background: var(--color-bg-main);
 }
 
 .content-container {
@@ -368,7 +368,7 @@ onMounted(() => {
 .loading-spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid var(--color-border, var(--color-bg-border));
+  border: 4px solid var(--color-bg-border);
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -403,7 +403,7 @@ onMounted(() => {
 .retry-btn {
   padding: var(--spacing-md) var(--spacing-xl);
   background: var(--color-admin);
-  color: white;
+  color: var(--color-text-primary);
   border: none;
   border-radius: var(--radius-base);
   cursor: pointer;
@@ -432,7 +432,7 @@ onMounted(() => {
   display: flex;
   align-items: stretch;
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-border, var(--color-bg-border));
+  border: 1px solid var(--color-bg-border);
   border-radius: var(--radius-lg);
   transition: var(--transition-base);
   overflow: hidden;
@@ -445,7 +445,7 @@ onMounted(() => {
 .course-card:focus-visible {
   transform: translateY(-2px);
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
+  box-shadow: 0 4px 16px var(--color-primary-glow);
 }
 
 .course-card:focus-visible {
@@ -560,18 +560,18 @@ onMounted(() => {
 }
 
 .role-primary {
-  background: rgba(102, 126, 234, 0.15);
+  background: var(--color-primary-overlay);
   color: var(--color-primary-gradient-start);
 }
 
 .role-ta {
-  background: rgba(76, 175, 80, 0.15);
+  background: var(--color-success-overlay);
   color: var(--color-success);
 }
 
 /* Add Course Card - Ghost/Shadow style */
 .add-course-card {
-  border: 2px dashed var(--color-border, var(--color-bg-border));
+  border: 2px dashed var(--color-bg-border);
   background: transparent;
   min-height: 80px;
 }
@@ -580,7 +580,7 @@ onMounted(() => {
 .add-course-card:focus-visible {
   border-color: var(--color-primary-gradient-start);
   border-style: solid;
-  background: rgba(102, 126, 234, 0.05);
+  background: var(--color-primary-overlay);
 }
 
 .add-course-card .hover-arrow {
@@ -729,7 +729,7 @@ onMounted(() => {
 .form-field input:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px var(--color-primary-overlay);
 }
 
 .form-field input:disabled {
@@ -821,7 +821,7 @@ onMounted(() => {
 
 .btn-create:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 .btn-create:disabled {

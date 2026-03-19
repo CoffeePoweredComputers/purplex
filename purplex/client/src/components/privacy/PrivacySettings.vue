@@ -154,7 +154,7 @@ async function updateDirectoryInfo() {
 
 .privacy-settings__section--danger {
     padding-top: var(--spacing-base);
-    border-top: 1px solid rgba(220, 53, 69, 0.3);
+    border-top: 1px solid var(--color-error-overlay);
 }
 
 .privacy-settings__section-title {
@@ -209,7 +209,7 @@ async function updateDirectoryInfo() {
 .consent-toggle__required {
     font-size: var(--font-size-xs);
     padding: 2px var(--spacing-xs);
-    background: rgba(102, 126, 234, 0.15);
+    background: var(--color-primary-overlay);
     color: var(--color-primary-gradient-start);
     border-radius: var(--radius-xs);
     font-weight: 600;

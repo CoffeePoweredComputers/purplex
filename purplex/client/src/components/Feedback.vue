@@ -850,9 +850,9 @@ export default defineComponent({
   height: 20px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
+    var(--color-overlay-subtle) 0%,
+    var(--color-overlay-medium) 50%,
+    var(--color-overlay-subtle) 100%
   );
   background-size: 200% 100%;
   border-radius: var(--radius-xs);
@@ -965,27 +965,27 @@ export default defineComponent({
 }
 
 .attempt-score-badge.score-perfect {
-  background: rgba(76, 175, 80, 0.15);
+  background: var(--color-success-overlay);
   color: var(--color-success);
 }
 
 .attempt-score-badge.score-good {
-  background: rgba(76, 175, 80, 0.1);
-  color: rgb(76, 175, 80);
+  background: var(--color-success-overlay);
+  color: var(--color-success);
 }
 
 .attempt-score-badge.score-partial {
-  background: rgba(255, 193, 7, 0.1);
-  color: rgb(255, 193, 7);
+  background: var(--color-warning-overlay);
+  color: var(--color-warning);
 }
 
 .attempt-score-badge.score-low {
-  background: rgba(220, 53, 69, 0.1);
+  background: var(--color-error-overlay);
   color: var(--color-error);
 }
 
 .attempt-score-badge.is-partial {
-  background: rgba(255, 152, 0, 0.15);
+  background: var(--color-warning-overlay);
   border: 1px solid rgba(255, 152, 0, 0.5);
 }
 
@@ -1010,7 +1010,7 @@ export default defineComponent({
   width: 240px;
   max-height: 200px;
   background: var(--color-bg-panel);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-overlay-subtle);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 99999;
@@ -1048,12 +1048,12 @@ export default defineComponent({
 }
 
 .attempt-item-minimal:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-overlay-subtle);
   color: var(--color-text-secondary);
 }
 
 .attempt-item-minimal.is-current {
-  background: rgba(102, 126, 234, 0.08);
+  background: var(--color-primary-overlay);
   color: var(--color-text-primary);
 }
 
@@ -1091,11 +1091,11 @@ export default defineComponent({
 }
 
 .attempt-score-minimal.score-good {
-  color: rgb(76, 175, 80);
+  color: var(--color-success);
 }
 
 .attempt-score-minimal.score-partial {
-  color: rgb(255, 193, 7);
+  color: var(--color-warning);
 }
 
 .attempt-score-minimal.score-low {
@@ -1232,15 +1232,15 @@ export default defineComponent({
 }
 
 .progress-bar-fill.bar-error {
-  background: linear-gradient(90deg, var(--color-error), #c82333);
+  background: linear-gradient(90deg, var(--color-error), var(--color-error-dark));
 }
 
 .progress-bar-fill.bar-warning {
-  background: linear-gradient(90deg, var(--color-warning), #e0a800);
+  background: linear-gradient(90deg, var(--color-warning), var(--color-warning-dark));
 }
 
 .progress-bar-fill.bar-success {
-  background: linear-gradient(90deg, var(--color-success), #218838);
+  background: linear-gradient(90deg, var(--color-success), var(--color-success-dark));
 }
 
 .progress-bar-fill.bar-locked {
@@ -1288,24 +1288,24 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
   align-self: stretch;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid var(--color-overlay-medium);
   transition: all 0.2s ease;
   flex-shrink: 0;
   margin: 0;
 }
 
 .card-action.status-success {
-  background: rgba(76, 175, 80, 0.08);
+  background: var(--color-success-overlay);
   border-left-color: rgba(76, 175, 80, 0.3);
 }
 
 .card-action.status-warning {
-  background: rgba(255, 193, 7, 0.08);
+  background: var(--color-warning-overlay);
   border-left-color: rgba(255, 193, 7, 0.3);
 }
 
 .card-action.status-error {
-  background: rgba(220, 53, 69, 0.08);
+  background: var(--color-error-overlay);
   border-left-color: rgba(220, 53, 69, 0.3);
 }
 
@@ -1329,15 +1329,15 @@ export default defineComponent({
 
 /* Hover effects */
 .metric-card:hover .card-action.status-success {
-  background: rgba(76, 175, 80, 0.2);
+  background: var(--color-success-overlay);
 }
 
 .metric-card:hover .card-action.status-warning {
-  background: rgba(255, 193, 7, 0.2);
+  background: var(--color-warning-overlay);
 }
 
 .metric-card:hover .card-action.status-error {
-  background: rgba(220, 53, 69, 0.2);
+  background: var(--color-error-overlay);
 }
 
 .metric-card:hover .card-action .action-icon {
@@ -1358,25 +1358,25 @@ export default defineComponent({
 }
 
 .next-step-banner.urgency-high {
-  background: rgba(220, 53, 69, 0.15);
+  background: var(--color-error-overlay);
   border-color: rgba(220, 53, 69, 0.5);
   font-size: var(--font-size-sm);
 }
 
 .next-step-banner.urgency-medium {
-  background: rgba(255, 193, 7, 0.15);
+  background: var(--color-warning-overlay);
   border-color: rgba(255, 193, 7, 0.5);
   font-size: var(--font-size-sm);
 }
 
 .next-step-banner.urgency-low {
-  background: rgba(33, 150, 243, 0.15);
+  background: var(--color-info-overlay);
   border-color: rgba(33, 150, 243, 0.5);
   font-size: var(--font-size-sm);
 }
 
 .next-step-banner.urgency-success {
-  background: rgba(76, 175, 80, 0.15);
+  background: var(--color-success-overlay);
   border-color: rgba(76, 175, 80, 0.5);
 }
 
@@ -1410,16 +1410,16 @@ export default defineComponent({
 }
 
 .urgency-high .banner-button:hover {
-  background: #c82333;
+  background: var(--color-error-dark);
 }
 
 .urgency-medium .banner-button {
   background: var(--color-warning);
-  color: #1a1a1a;
+  color: var(--color-bg-dark);
 }
 
 .urgency-medium .banner-button:hover {
-  background: #e0a800;
+  background: var(--color-warning-dark);
 }
 
 .urgency-low .banner-button {
@@ -1428,7 +1428,7 @@ export default defineComponent({
 }
 
 .urgency-low .banner-button:hover {
-  background: #1976d2;
+  background: var(--color-info-dark);
 }
 
 .urgency-success .banner-button {
@@ -1437,7 +1437,7 @@ export default defineComponent({
 }
 
 .urgency-success .banner-button:hover {
-  background: #43a047;
+  background: var(--color-success-dark);
 }
 
 .banner-button:focus {

@@ -411,23 +411,23 @@ onMounted(async () => {
 }
 
 .due-badge.due-soon {
-  background-color: rgba(234, 179, 8, 0.15);
-  color: #ca8a04;
+  background-color: var(--color-warning-overlay);
+  color: var(--color-warning);
 }
 
 .due-badge.due-urgent {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #dc2626;
+  background-color: var(--color-error-overlay);
+  color: var(--color-error);
 }
 
 .due-badge.due-past {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: var(--color-error-overlay);
   color: var(--color-text-muted);
   text-decoration: line-through;
 }
 
 .due-badge.due-locked {
-  background-color: rgba(107, 114, 128, 0.15);
+  background-color: var(--color-overlay-medium);
   color: var(--color-text-muted);
 }
 
@@ -502,7 +502,7 @@ onMounted(async () => {
 
 .home-link:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 /* Responsive Design */

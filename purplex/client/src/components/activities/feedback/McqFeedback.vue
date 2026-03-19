@@ -233,23 +233,23 @@ const bannerClass = computed(() => {
 }
 
 .result-banner--correct {
-  background: rgba(72, 187, 120, 0.15);
+  background: var(--color-success-overlay);
   border: 1px solid var(--color-success);
 }
 
 .result-banner--incorrect {
-  background: rgba(245, 101, 101, 0.15);
+  background: var(--color-error-overlay);
   border: 1px solid var(--color-error);
 }
 
 .result-banner--partial {
-  background: rgba(237, 187, 51, 0.15);
-  border: 1px solid var(--color-warning, #edbb33);
+  background: var(--color-warning-overlay);
+  border: 1px solid var(--color-warning);
 }
 
 .result-banner--partial .result-icon {
-  background: var(--color-warning, #edbb33);
-  color: white;
+  background: var(--color-warning);
+  color: var(--color-text-primary);
 }
 
 .result-icon {
@@ -265,12 +265,12 @@ const bannerClass = computed(() => {
 
 .result-banner--correct .result-icon {
   background: var(--color-success);
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .result-banner--incorrect .result-icon {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .result-text {
@@ -329,7 +329,7 @@ const bannerClass = computed(() => {
 }
 
 .answer-value--partial {
-  border-left-color: var(--color-warning, #edbb33);
+  border-left-color: var(--color-warning);
 }
 
 /* Explanation */

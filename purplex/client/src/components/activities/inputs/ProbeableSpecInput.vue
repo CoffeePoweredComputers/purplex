@@ -282,7 +282,7 @@ function handleSubmit() {
 
 .submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 .submit-button:disabled {

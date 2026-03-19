@@ -932,7 +932,7 @@ watch(() => props.submission, () => {
 .download-btn {
   padding: 6px 12px;
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-primary);
   border: none;
   border-radius: 4px;
   font-size: 13px;
@@ -1272,12 +1272,12 @@ details[open] .group-icon {
 }
 
 .test-item.failing {
-  border-color: rgba(220, 53, 69, 0.3);
+  border-color: var(--color-error-overlay);
   background: var(--color-error-bg);
 }
 
 .test-item.passing {
-  border-color: rgba(76, 175, 80, 0.3);
+  border-color: var(--color-success-overlay);
   background: var(--color-success-bg);
 }
 
@@ -1353,7 +1353,7 @@ details[open] .group-icon {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  color: #fff;
+  color: var(--color-text-primary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -1378,8 +1378,8 @@ details[open] .group-icon {
   min-width: 28px;
   height: 28px;
   padding: 0 8px;
-  background: linear-gradient(135deg, #9f7aea 0%, #667eea 100%);
-  color: white;
+  background: linear-gradient(135deg, #9f7aea 0%, var(--color-primary-gradient-start) 100%);
+  color: var(--color-text-primary);
   font-size: 16px;
   font-weight: 700;
   border-radius: 6px;
@@ -1424,7 +1424,7 @@ details[open] .group-icon {
 
 .hint-item:hover {
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 2px 8px var(--color-primary-overlay);
 }
 
 .hint-icon {

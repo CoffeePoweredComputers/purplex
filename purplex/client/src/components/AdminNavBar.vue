@@ -100,7 +100,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-overlay-medium);
     border-radius: var(--radius-base);
     opacity: 0;
     transition: var(--transition-base);
@@ -112,7 +112,7 @@
 
 .admin-link:hover {
     transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: var(--color-overlay-strong);
 }
 
 .admin-link:focus-visible {
@@ -121,8 +121,8 @@
 }
 
 .admin-link.router-link-active {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
+    background: var(--color-overlay-strong);
+    border-color: var(--color-overlay-strong);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 

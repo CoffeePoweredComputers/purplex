@@ -541,13 +541,13 @@ onMounted(() => {
 }
 
 .badge-level.badge-warning {
-  background: #6b4d00;
-  color: #ffc107;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .badge-level.badge-error {
-  background: #6b2d2d;
-  color: #ffc5c5;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
 }
 
 .modal-actions {
@@ -570,7 +570,7 @@ onMounted(() => {
 
 .size-label {
   font-size: var(--font-size-sm);
-  color: #b0b0b0;
+  color: var(--color-text-muted);
   font-weight: 500;
   user-select: none;
   letter-spacing: 0.5px;
@@ -588,7 +588,7 @@ onMounted(() => {
 .size-btn {
   background: transparent;
   border: none;
-  color: #b0b0b0;
+  color: var(--color-text-muted);
   width: 28px;
   height: 28px;
   border-radius: var(--radius-xs);
@@ -641,19 +641,19 @@ onMounted(() => {
 }
 
 .analysis-summary.summary-success {
-  background: rgba(76, 175, 80, 0.15);
+  background: var(--color-success-overlay);
   border: 1px solid rgba(76, 175, 80, 0.4);
   border-bottom: 1px solid rgba(76, 175, 80, 0.4);
 }
 
 .analysis-summary.summary-warning {
-  background: rgba(255, 193, 7, 0.15);
+  background: var(--color-warning-overlay);
   border: 1px solid rgba(255, 193, 7, 0.4);
   border-bottom: 1px solid rgba(255, 193, 7, 0.4);
 }
 
 .analysis-summary.summary-error {
-  background: rgba(220, 53, 69, 0.15);
+  background: var(--color-error-overlay);
   border: 1px solid rgba(220, 53, 69, 0.4);
   border-bottom: 1px solid rgba(220, 53, 69, 0.4);
 }
@@ -964,7 +964,7 @@ ul.tests-list {
 
 .value-content.mismatch {
   color: var(--color-error);
-  background: rgba(220, 53, 69, 0.2);
+  background: var(--color-error-overlay);
 }
 
 .value-content.is-error {

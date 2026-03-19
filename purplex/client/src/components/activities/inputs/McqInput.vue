@@ -256,7 +256,7 @@ function getButtonAriaLabel(): string {
 
 .mcq-option--selected {
   border-color: var(--color-primary-gradient-start);
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--color-primary-overlay);
 }
 
 .mcq-option--disabled {
@@ -336,7 +336,7 @@ function getButtonAriaLabel(): string {
 
 .submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 .submit-button:disabled {

@@ -591,9 +591,9 @@ onBeforeUnmount(() => {
   height: 20px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
+    var(--color-overlay-subtle) 0%,
+    var(--color-overlay-medium) 50%,
+    var(--color-overlay-subtle) 100%
   );
   background-size: 200% 100%;
   border-radius: var(--radius-xs);
@@ -633,9 +633,9 @@ onBeforeUnmount(() => {
   height: 60px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
+    var(--color-overlay-subtle) 0%,
+    var(--color-overlay-medium) 50%,
+    var(--color-overlay-subtle) 100%
   );
   background-size: 200% 100%;
   border-radius: var(--radius-xs);
@@ -740,22 +740,22 @@ onBeforeUnmount(() => {
 }
 
 .attempt-score-badge.score-perfect {
-  background: rgba(76, 175, 80, 0.15);
+  background: var(--color-success-overlay);
   color: var(--color-success);
 }
 
 .attempt-score-badge.score-good {
-  background: rgba(76, 175, 80, 0.1);
-  color: rgb(76, 175, 80);
+  background: var(--color-success-overlay);
+  color: var(--color-success);
 }
 
 .attempt-score-badge.score-partial {
-  background: rgba(255, 193, 7, 0.1);
-  color: rgb(255, 193, 7);
+  background: var(--color-warning-overlay);
+  color: var(--color-warning);
 }
 
 .attempt-score-badge.score-low {
-  background: rgba(220, 53, 69, 0.1);
+  background: var(--color-error-overlay);
   color: var(--color-error);
 }
 
@@ -775,7 +775,7 @@ onBeforeUnmount(() => {
   width: 240px;
   max-height: 200px;
   background: var(--color-bg-panel);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-overlay-subtle);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 99999;
@@ -835,7 +835,7 @@ onBeforeUnmount(() => {
 }
 
 .attempt-item-minimal.is-current {
-  background: rgba(102, 126, 234, 0.08);
+  background: var(--color-primary-overlay);
   color: var(--color-text-primary);
 }
 
@@ -873,7 +873,7 @@ onBeforeUnmount(() => {
 }
 
 .attempt-score-minimal.score-good {
-  color: rgb(76, 175, 80);
+  color: var(--color-success);
 }
 
 .attempt-score-minimal.score-partial {
@@ -1031,11 +1031,11 @@ details:not([open]) .group-icon {
 }
 
 .test-item.failing {
-  border-color: rgba(220, 53, 69, 0.3);
+  border-color: var(--color-error-overlay);
 }
 
 .test-item.passing {
-  border-color: rgba(76, 175, 80, 0.3);
+  border-color: var(--color-success-overlay);
 }
 
 .test-content {
@@ -1104,7 +1104,7 @@ details:not([open]) .group-icon {
 }
 
 .debug-btn:hover {
-  background: #1976d2;
+  background: var(--color-info-dark);
   transform: translateY(-1px);
 }
 

@@ -219,7 +219,7 @@ defineExpose({
 
 .mcq-option-item.is-correct {
   border-color: var(--color-success);
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-overlay);
 }
 
 .mcq-option-header {
@@ -233,7 +233,7 @@ defineExpose({
   width: 28px;
   height: 28px;
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -275,7 +275,7 @@ defineExpose({
 
 .remove-btn:hover:not(:disabled) {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-primary);
   border-color: var(--color-error);
 }
 
@@ -346,8 +346,8 @@ defineExpose({
 .validation-warning {
   margin-top: var(--spacing-md);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: var(--color-warning-overlay);
+  border: 1px solid var(--color-warning-accent);
   border-radius: var(--radius-base);
   color: var(--color-warning);
   font-size: var(--font-size-sm);

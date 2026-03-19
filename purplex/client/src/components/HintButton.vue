@@ -608,8 +608,8 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: #4a5568;
-  color: white;
+  background: var(--color-bg-disabled);
+  color: var(--color-text-primary);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -618,7 +618,7 @@ export default {
 }
 
 .hint-button:hover:not(:disabled) {
-  background: #2d3748;
+  background: var(--color-bg-input);
   transform: translateY(-1px);
 }
 
@@ -628,7 +628,7 @@ export default {
 }
 
 .hint-button:focus {
-  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
 }
 
@@ -637,7 +637,7 @@ export default {
 }
 
 .hint-button:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
 }
 
@@ -662,8 +662,8 @@ export default {
 }
 
 .hint-badge {
-  background: #f59e0b;
-  color: white;
+  background: var(--color-warning);
+  color: var(--color-text-primary);
   border-radius: 10px;
   padding: 2px 6px;
   font-size: 12px;
@@ -672,9 +672,9 @@ export default {
 
 .hint-menu {
   position: fixed;
-  background: white;
+  background: var(--color-bg-panel);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-base);
   min-width: 350px;
   max-width: 450px;
   z-index: 1000;
@@ -686,20 +686,20 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-bg-border);
 }
 
 .hint-menu-header h4 {
   margin: 0;
   font-size: 16px;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .close-btn {
   background: none;
   border: none;
   font-size: 24px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   cursor: pointer;
   width: 32px;
   height: 32px;
@@ -711,11 +711,11 @@ export default {
 }
 
 .close-btn:hover {
-  background: #f3f4f6;
+  background: var(--color-bg-hover);
 }
 
 .close-btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
 }
 
@@ -724,7 +724,7 @@ export default {
 }
 
 .close-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
 }
 
@@ -734,7 +734,7 @@ export default {
 }
 
 .hint-item {
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--color-bg-hover);
 }
 
 .hint-item:last-child {
@@ -754,8 +754,8 @@ export default {
 }
 
 .hint-item.active .hint-header {
-  background: rgba(102, 126, 234, 0.1);
-  border-left: 3px solid #667eea;
+  background: var(--color-primary-overlay);
+  border-left: 3px solid var(--color-primary-gradient-start);
 }
 
 .hint-type-icon {
@@ -771,19 +771,19 @@ export default {
   margin: 0 0 4px 0;
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .hint-description {
   margin: 0;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .hint-requirement {
   margin: 4px 0 0 0;
   font-size: 11px;
-  color: #f59e0b;
+  color: var(--color-warning);
   font-weight: 500;
 }
 
@@ -796,20 +796,20 @@ export default {
 }
 
 .status-icon.used {
-  color: #10b981;
+  color: var(--color-success);
 }
 
 .status-icon.locked {
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 .status-icon.available {
-  color: #3b82f6;
+  color: var(--color-info);
 }
 
 .hint-content {
-  background: #f9fafb;
-  border-top: 1px solid #e5e7eb;
+  background: var(--color-bg-hover);
+  border-top: 1px solid var(--color-bg-border);
 }
 
 .hint-content-body {
@@ -820,7 +820,7 @@ export default {
   margin: 0 0 12px 0;
   font-size: 14px;
   line-height: 1.6;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .hint-example {
@@ -831,14 +831,14 @@ export default {
   margin: 0 0 8px 0;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-muted);
   text-transform: uppercase;
 }
 
 .hint-example pre {
   margin: 0;
-  background: #1f2937;
-  color: #f3f4f6;
+  background: var(--color-bg-dark);
+  color: var(--color-text-primary);
   padding: 12px;
   border-radius: 4px;
   overflow-x: auto;
@@ -847,8 +847,8 @@ export default {
 
 .hint-footer {
   padding: 12px 16px;
-  background: #f9fafb;
-  border-top: 1px solid #e5e7eb;
+  background: var(--color-bg-hover);
+  border-top: 1px solid var(--color-bg-border);
 }
 
 .hint-footer {
@@ -860,7 +860,7 @@ export default {
 .hint-stats p {
   margin: 0;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .hint-actions {
@@ -880,21 +880,21 @@ export default {
 }
 
 .action-btn.secondary {
-  background: #6b7280;
-  color: white;
+  background: var(--color-bg-disabled);
+  color: var(--color-text-primary);
 }
 
 .action-btn.secondary:hover:not(:disabled) {
-  background: #4b5563;
+  background: var(--color-bg-border);
 }
 
 .action-btn.danger {
-  background: #dc2626;
-  color: white;
+  background: var(--color-error);
+  color: var(--color-text-primary);
 }
 
 .action-btn.danger:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--color-error-dark);
 }
 
 .action-btn:disabled {
@@ -903,7 +903,7 @@ export default {
 }
 
 .action-btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
 }
 
@@ -912,7 +912,7 @@ export default {
 }
 
 .action-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
 }
 
@@ -943,7 +943,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #cbd5e0;
+  background-color: var(--color-bg-border);
   transition: 0.3s;
   border-radius: 24px;
 }
@@ -955,14 +955,14 @@ export default {
   width: 18px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
+  background-color: var(--color-text-primary);
   transition: 0.3s;
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .hint-checkbox:checked + .toggle-slider {
-  background-color: #667eea;
+  background-color: var(--color-primary-gradient-start);
 }
 
 .hint-checkbox:checked + .toggle-slider:before {
@@ -970,12 +970,12 @@ export default {
 }
 
 .hint-toggle:hover .toggle-slider {
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 0 0 3px var(--color-primary-overlay);
 }
 
 .hint-checkbox:focus + .toggle-slider {
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
-  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
 }
 
@@ -985,8 +985,8 @@ export default {
 }
 
 .hint-checkbox:focus-visible + .toggle-slider {
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
-  outline: 2px solid var(--color-primary-gradient-start, #667eea);
+  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
 }
 
@@ -998,7 +998,7 @@ export default {
 .no-hints-message {
   padding: 24px;
   text-align: center;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
@@ -1030,59 +1030,5 @@ export default {
 .expand-leave-from {
   max-height: 500px;
   opacity: 1;
-}
-
-/* Dark theme adjustments if needed */
-@media (prefers-color-scheme: dark) {
-  .hint-menu {
-    background: #1f2937;
-    color: #f3f4f6;
-  }
-
-  .hint-menu-header {
-    border-bottom-color: #374151;
-  }
-
-  .hint-menu-header h4 {
-    color: #f3f4f6;
-  }
-
-  .close-btn {
-    color: #9ca3af;
-  }
-
-  .close-btn:hover {
-    background: #374151;
-  }
-
-  .hint-header.clickable:hover {
-    background: #374151;
-  }
-
-  .hint-info h5 {
-    color: #f3f4f6;
-  }
-
-  .hint-description {
-    color: #9ca3af;
-  }
-
-  .hint-content {
-    background: #374151;
-    border-top-color: #4b5563;
-  }
-
-  .hint-content-body p {
-    color: #e5e7eb;
-  }
-
-  .hint-footer {
-    background: #374151;
-    border-top-color: #4b5563;
-  }
-
-  .hint-footer p {
-    color: #9ca3af;
-  }
 }
 </style>

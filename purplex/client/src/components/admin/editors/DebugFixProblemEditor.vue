@@ -597,11 +597,11 @@ onMounted(() => {
 }
 
 .buggy-header {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-overlay);
 }
 
 .reference-header {
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-overlay);
 }
 
 .panel-title {
@@ -619,12 +619,12 @@ onMounted(() => {
 
 .buggy-badge {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .reference-badge {
   background: var(--color-success);
-  color: white;
+  color: var(--color-text-primary);
 }
 
 /* Validation Warning */
@@ -634,8 +634,8 @@ onMounted(() => {
   gap: var(--spacing-sm);
   margin-top: var(--spacing-md);
   padding: var(--spacing-md);
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: var(--color-warning-overlay);
+  border: 1px solid var(--color-warning-accent);
   border-radius: var(--radius-base);
   color: var(--color-warning);
   font-size: var(--font-size-sm);
@@ -648,7 +648,7 @@ onMounted(() => {
   width: 20px;
   height: 20px;
   background: var(--color-warning);
-  color: white;
+  color: var(--color-text-primary);
   border-radius: 50%;
   font-weight: bold;
   font-size: var(--font-size-xs);
@@ -711,7 +711,7 @@ onMounted(() => {
 
 .expand-btn:hover {
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-primary);
   border-color: var(--color-primary-gradient-start);
 }
 
@@ -737,15 +737,15 @@ onMounted(() => {
 }
 
 .hint-item.level-1 {
-  border-left-color: #10b981;
+  border-left-color: var(--color-success-accent);
 }
 
 .hint-item.level-2 {
-  border-left-color: #f59e0b;
+  border-left-color: var(--color-warning-accent);
 }
 
 .hint-item.level-3 {
-  border-left-color: #ef4444;
+  border-left-color: var(--color-error-accent);
 }
 
 .hint-header {
@@ -928,7 +928,7 @@ onMounted(() => {
 
 .remove-btn:hover {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-primary);
   border-color: var(--color-error);
 }
 </style>
