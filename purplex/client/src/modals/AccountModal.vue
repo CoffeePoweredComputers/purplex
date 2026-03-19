@@ -58,6 +58,7 @@
           </div>
 
           <LanguageSwitcher />
+          <ThemeSwitcher />
 
           <div class="info-item info-item--link" @click="goToPrivacySettings">
             <span class="info-label">{{ t('auth.account.privacySettings') }}</span>
@@ -103,6 +104,7 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
+import ThemeSwitcher from '../components/ThemeSwitcher.vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 
 const props = defineProps<{

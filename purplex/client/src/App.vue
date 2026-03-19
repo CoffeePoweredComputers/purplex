@@ -61,6 +61,7 @@ import { computed, defineComponent, getCurrentInstance } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import { useTokenRefresh } from './composables/useTokenRefresh';
+import { useTheme } from './composables/useTheme';
 
 /* Components */
 import Login from './features/auth/Login.vue';
@@ -80,6 +81,7 @@ export default defineComponent({
         const store = useStore();
         const router = useRouter();
         const tokenRefresh = useTokenRefresh();
+        useTheme();
 
         // Make available globally for axios interceptors
         const instance = getCurrentInstance();
