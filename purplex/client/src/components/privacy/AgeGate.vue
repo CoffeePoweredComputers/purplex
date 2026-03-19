@@ -158,7 +158,7 @@ function submitAge() {
 .age-gate__message--warning {
     color: var(--color-warning-text);
     background: var(--color-warning-bg);
-    border: 1px solid rgba(255, 193, 7, 0.3);
+    border: 1px solid var(--color-warning-border);
 }
 
 .age-gate__error {

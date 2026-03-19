@@ -986,7 +986,7 @@ export default defineComponent({
 
 .attempt-score-badge.is-partial {
   background: var(--color-warning-overlay);
-  border: 1px solid rgba(255, 152, 0, 0.5);
+  border: 1px solid var(--color-warning-border);
 }
 
 .partial-indicator {
@@ -1296,17 +1296,17 @@ export default defineComponent({
 
 .card-action.status-success {
   background: var(--color-success-overlay);
-  border-left-color: rgba(76, 175, 80, 0.3);
+  border-left-color: var(--color-success-border);
 }
 
 .card-action.status-warning {
   background: var(--color-warning-overlay);
-  border-left-color: rgba(255, 193, 7, 0.3);
+  border-left-color: var(--color-warning-border);
 }
 
 .card-action.status-error {
   background: var(--color-error-overlay);
-  border-left-color: rgba(220, 53, 69, 0.3);
+  border-left-color: var(--color-error-border);
 }
 
 .action-icon {
@@ -1359,25 +1359,25 @@ export default defineComponent({
 
 .next-step-banner.urgency-high {
   background: var(--color-error-overlay);
-  border-color: rgba(220, 53, 69, 0.5);
+  border-color: var(--color-error-border);
   font-size: var(--font-size-sm);
 }
 
 .next-step-banner.urgency-medium {
   background: var(--color-warning-overlay);
-  border-color: rgba(255, 193, 7, 0.5);
+  border-color: var(--color-warning-border);
   font-size: var(--font-size-sm);
 }
 
 .next-step-banner.urgency-low {
   background: var(--color-info-overlay);
-  border-color: rgba(33, 150, 243, 0.5);
+  border-color: var(--color-info-border);
   font-size: var(--font-size-sm);
 }
 
 .next-step-banner.urgency-success {
   background: var(--color-success-overlay);
-  border-color: rgba(76, 175, 80, 0.5);
+  border-color: var(--color-success-border);
 }
 
 .banner-icon {

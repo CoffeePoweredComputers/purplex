@@ -642,20 +642,20 @@ onMounted(() => {
 
 .analysis-summary.summary-success {
   background: var(--color-success-overlay);
-  border: 1px solid rgba(76, 175, 80, 0.4);
-  border-bottom: 1px solid rgba(76, 175, 80, 0.4);
+  border: 1px solid var(--color-success-border);
+  border-bottom: 1px solid var(--color-success-border);
 }
 
 .analysis-summary.summary-warning {
   background: var(--color-warning-overlay);
-  border: 1px solid rgba(255, 193, 7, 0.4);
-  border-bottom: 1px solid rgba(255, 193, 7, 0.4);
+  border: 1px solid var(--color-warning-border);
+  border-bottom: 1px solid var(--color-warning-border);
 }
 
 .analysis-summary.summary-error {
   background: var(--color-error-overlay);
-  border: 1px solid rgba(220, 53, 69, 0.4);
-  border-bottom: 1px solid rgba(220, 53, 69, 0.4);
+  border: 1px solid var(--color-error-border);
+  border-bottom: 1px solid var(--color-error-border);
 }
 
 .summary-icon {

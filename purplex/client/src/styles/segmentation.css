@@ -61,7 +61,7 @@
   inset: 0;
   border-radius: inherit;
   background: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.2) 0%,
+    var(--color-overlay-strong) 0%,
     transparent 50%
   );
   opacity: 0;
@@ -176,7 +176,7 @@
   inset: 0;
   background: linear-gradient(135deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.3) 50%,
+    var(--color-overlay-shimmer) 50%,
     transparent 100%
   );
   animation: segmentationShimmer 0.6s ease-out;
@@ -262,24 +262,24 @@
 
 .seg-feedback.excellent {
   background: linear-gradient(135deg,
-    rgba(76, 175, 80, 0.1) 0%,
-    rgba(76, 175, 80, 0.05) 100%
+    var(--color-success-overlay) 0%,
+    var(--color-success-overlay) 100%
   );
   border-left: 4px solid var(--seg-color-excellent);
 }
 
 .seg-feedback.good {
   background: linear-gradient(135deg,
-    rgba(255, 193, 7, 0.1) 0%,
-    rgba(255, 193, 7, 0.05) 100%
+    var(--color-warning-overlay) 0%,
+    var(--color-warning-overlay) 100%
   );
   border-left: 4px solid var(--seg-color-good);
 }
 
 .seg-feedback.needs-work {
   background: linear-gradient(135deg,
-    rgba(220, 53, 69, 0.1) 0%,
-    rgba(220, 53, 69, 0.05) 100%
+    var(--color-error-overlay) 0%,
+    var(--color-error-overlay) 100%
   );
   border-left: 4px solid var(--seg-color-needs-work);
 }
@@ -308,7 +308,7 @@
 
 /* Segmentation Code Highlighting */
 .seg-code-highlight {
-  background: rgba(102, 126, 234, 0.15);
+  background: var(--color-primary-overlay);
   border-left: 3px solid var(--color-primary-gradient-start);
   padding-left: calc(var(--spacing-sm) - 3px);
   transition: var(--seg-transition-fast);

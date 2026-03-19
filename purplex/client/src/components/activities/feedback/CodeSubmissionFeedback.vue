@@ -619,9 +619,9 @@ onBeforeUnmount(() => {
   height: 250px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.03) 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.03) 100%
+    var(--color-overlay-subtle) 0%,
+    var(--color-overlay-subtle) 50%,
+    var(--color-overlay-subtle) 100%
   );
   background-size: 200% 100%;
   border-radius: var(--radius-base);
@@ -830,7 +830,7 @@ onBeforeUnmount(() => {
 }
 
 .attempt-item-minimal:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-overlay-subtle);
   color: var(--color-text-secondary);
 }
 

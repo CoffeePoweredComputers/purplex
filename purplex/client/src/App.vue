@@ -232,6 +232,16 @@ export default defineComponent({
     --color-success-dark: #218838;
     --color-info-dark: #1976d2;
 
+    /* Extended Overlays (white on dark, black on light) */
+    --color-overlay-border: rgba(255, 255, 255, 0.25);
+    --color-overlay-shimmer: rgba(255, 255, 255, 0.35);
+
+    /* Status Borders (colored border accents) */
+    --color-success-border: rgba(76, 175, 80, 0.4);
+    --color-warning-border: rgba(255, 193, 7, 0.4);
+    --color-error-border: rgba(220, 53, 69, 0.4);
+    --color-info-border: rgba(33, 150, 243, 0.4);
+
     /* Ace Editor */
     --color-ace-selection: rgba(128, 0, 128, 0.3);
 

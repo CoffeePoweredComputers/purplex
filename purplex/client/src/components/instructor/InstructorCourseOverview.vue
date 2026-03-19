@@ -1068,19 +1068,19 @@ onMounted(() => {
 .completion-badge.high {
   background: linear-gradient(135deg, var(--color-success-overlay), var(--color-success-overlay));
   color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid var(--color-success-border);
 }
 
 .completion-badge.medium {
   background: linear-gradient(135deg, var(--color-warning-overlay), var(--color-warning-overlay));
   color: var(--color-warning);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid var(--color-warning-border);
 }
 
 .completion-badge.low {
   background: linear-gradient(135deg, var(--color-error-overlay), var(--color-error-overlay));
   color: var(--color-error);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid var(--color-error-border);
 }
 
 /* Download button */

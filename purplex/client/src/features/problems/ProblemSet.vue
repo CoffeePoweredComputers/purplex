@@ -2175,20 +2175,20 @@ export default {
 
 .deadline-banner.deadline-locked {
     background: var(--color-error-overlay);
-    border-color: rgba(220, 53, 69, 0.4);
+    border-color: var(--color-error-border);
     color: var(--color-error-accent);
 }
 
 .deadline-banner.deadline-past,
 .deadline-banner.deadline-soft {
     background: var(--color-warning-overlay);
-    border-color: rgba(245, 166, 35, 0.4);
+    border-color: var(--color-warning-border);
     color: var(--color-warning);
 }
 
 .deadline-banner.deadline-urgent {
     background: var(--color-warning-overlay);
-    border-color: rgba(245, 166, 35, 0.3);
+    border-color: var(--color-warning-border);
 }
 
 /* No transitions - keep content completely static during navigation */
@@ -2348,7 +2348,7 @@ export default {
 /* Status styles */
 .progress-bar.not_started {
     background: var(--color-overlay-strong);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid var(--color-overlay-border);
 }
 
 .progress-bar.in_progress {
@@ -2375,7 +2375,7 @@ export default {
     height: 100%;
     background: linear-gradient(90deg,
         transparent,
-        rgba(255, 255, 255, 0.4),
+        var(--color-overlay-shimmer),
         transparent
     );
     animation: rippleWave 1.5s linear infinite;
@@ -2389,7 +2389,7 @@ export default {
     width: 100%;
     height: 200%;
     background: radial-gradient(circle,
-        rgba(255, 255, 255, 0.3) 0%,
+        var(--color-overlay-shimmer) 0%,
         transparent 70%
     );
     transform: translate(-50%, -50%) scale(0);
@@ -2423,7 +2423,7 @@ export default {
 
 .progress-bar.active.not_started {
     background: var(--color-overlay-strong);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid var(--color-overlay-border);
 }
 
 .progress-bar.active.in_progress {
