@@ -832,7 +832,7 @@ watch(() => props.submission, () => {
 .modal-content {
   background: var(--color-bg-panel);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-modal);
   max-width: 1400px;
   width: 95vw;
   max-height: 85vh;
@@ -1393,7 +1393,7 @@ details[open] .group-icon {
     box-shadow: 0 2px 8px var(--color-segment-shadow);
   }
   50% {
-    box-shadow: 0 4px 16px rgba(159, 122, 234, 0.5);
+    box-shadow: var(--shadow-segment-hover);
   }
 }
 

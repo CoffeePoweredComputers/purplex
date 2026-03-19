@@ -650,10 +650,10 @@ export default {
     box-shadow: 0 0 0 0 var(--color-warning-pulse);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(251, 191, 36, 0);
+    box-shadow: 0 0 0 10px var(--color-warning-pulse-end);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+    box-shadow: 0 0 0 0 var(--color-warning-pulse-end);
   }
 }
 
@@ -958,7 +958,7 @@ export default {
   background-color: var(--color-text-primary);
   transition: 0.3s;
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-subtle);
 }
 
 .hint-checkbox:checked + .toggle-slider {

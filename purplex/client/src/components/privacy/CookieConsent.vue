@@ -69,7 +69,7 @@ function acceptAll() {
     background: var(--color-bg-header);
     border-top: 1px solid var(--color-bg-border);
     padding: var(--spacing-base) var(--spacing-xl);
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-up);
 }
 
 .cookie-consent__content {

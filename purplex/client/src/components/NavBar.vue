@@ -144,7 +144,7 @@ onUnmounted(() => {
     z-index: 999;
     background: linear-gradient(180deg, var(--color-bg-panel) 0%, var(--color-bg-dark) 100%);
     border-bottom: 1px solid var(--color-primary-overlay);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-nav);
 }
 
 /* Inner container for content centering */
@@ -210,7 +210,7 @@ onUnmounted(() => {
     font-family: 'Exo 2', sans-serif;
     font-weight: 800;
     font-size: 3rem;
-    background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 50%, var(--color-primary-gradient-end) 100%);
+    background: linear-gradient(135deg, var(--color-logo-start), var(--color-logo-mid), var(--color-logo-end));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -269,7 +269,7 @@ onUnmounted(() => {
     background: var(--color-bg-panel);
     border: 1px solid var(--color-primary-glow);
     border-radius: var(--radius-lg);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+    box-shadow: var(--shadow-dropdown),
                 0 0 0 1px var(--color-primary-overlay);
     z-index: 1000;
     animation: panelFadeIn 0.15s ease-out;
@@ -425,11 +425,11 @@ onUnmounted(() => {
 .instructor-item:hover {
     background: var(--color-primary-hover);
     border-color: transparent;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+    box-shadow: var(--shadow-info-hover);
 }
 
 .instructor-item.router-link-active {
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.6);
+    box-shadow: var(--shadow-info-active);
 }
 
 /* Admin item styling */
@@ -443,11 +443,11 @@ onUnmounted(() => {
 .admin-item:hover {
     background: var(--color-admin-hover);
     border-color: transparent;
-    box-shadow: 0 4px 12px rgba(103, 58, 183, 0.5);
+    box-shadow: var(--shadow-admin-hover);
 }
 
 .admin-item.router-link-active {
-    box-shadow: 0 4px 16px rgba(103, 58, 183, 0.6);
+    box-shadow: var(--shadow-admin-active);
 }
 
 /* Account button styling */

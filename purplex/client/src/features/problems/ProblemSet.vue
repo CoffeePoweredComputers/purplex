@@ -2249,7 +2249,7 @@ export default {
     background: var(--color-bg-panel);
     padding: var(--spacing-md) var(--spacing-xl);
     border-bottom: 1px solid var(--color-bg-input);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-xs);
 }
 
 .problem-selector {

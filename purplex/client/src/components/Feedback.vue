@@ -1012,7 +1012,7 @@ export default defineComponent({
   background: var(--color-bg-panel);
   border: 1px solid var(--color-overlay-subtle);
   border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-base);
   z-index: 99999;
   overflow: hidden;
 }

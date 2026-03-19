@@ -539,7 +539,7 @@ watch(() => props.probeHistory.length, () => {
   max-height: 70vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-float);
 }
 
 .modal-header {

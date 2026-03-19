@@ -245,7 +245,7 @@ const isActiveRoute = (path: string): boolean => {
     background: var(--color-overlay-strong);
     border-color: var(--color-overlay-strong);
     box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.2),
+        var(--shadow-base),
         0 0 20px var(--color-overlay-strong);
 }
 

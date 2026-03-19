@@ -170,6 +170,9 @@ export default defineComponent({
     --color-primary-hover: #9b009b;
     --color-primary-gradient-start: #667eea;
     --color-primary-gradient-end: #764ba2;
+    --color-logo-start: #a78bfa;
+    --color-logo-mid: #c4b5fd;
+    --color-logo-end: #8b7ec8;
 
     /* Background Colors */
     --color-bg-main: #242424;
@@ -252,6 +255,7 @@ export default defineComponent({
     --color-info-shadow: rgba(59, 130, 246, 0.3);
     --color-segment-shadow: rgba(159, 122, 234, 0.3);
     --color-warning-pulse: rgba(251, 191, 36, 0.7);
+    --color-warning-pulse-end: rgba(251, 191, 36, 0);
 
     /* Ace Editor */
     --color-ace-selection: rgba(128, 0, 128, 0.3);
@@ -275,11 +279,26 @@ export default defineComponent({
     --radius-circle: 50%;
 
     /* Shadows */
+    --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.1);
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
     --shadow-base: 0 4px 12px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.3);
     --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.4);
     --shadow-colored: 0 4px 15px rgba(102, 126, 234, 0.3);
+
+    /* One-off shadows */
+    --shadow-nav: 0 2px 10px rgba(0, 0, 0, 0.3);
+    --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-modal: 0 4px 20px rgba(0, 0, 0, 0.15);
+    --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.5);
+    --shadow-up: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    --shadow-info-hover: 0 4px 12px rgba(59, 130, 246, 0.5);
+    --shadow-info-active: 0 4px 16px rgba(59, 130, 246, 0.6);
+    --shadow-admin-hover: 0 4px 12px rgba(103, 58, 183, 0.5);
+    --shadow-admin-active: 0 4px 16px rgba(103, 58, 183, 0.6);
+    --shadow-segment-hover: 0 4px 16px rgba(159, 122, 234, 0.5);
 
     /* Transitions */
     --transition-fast: all 0.2s ease;
@@ -300,6 +319,131 @@ export default defineComponent({
     --font-size-xl: 1.75rem;
     --font-size-xxl: 2rem;
     --font-size-title: 5rem;
+}
+
+/* ──────────────────────────────────────────────
+   Light theme overrides
+   Only color and shadow variables are re-declared.
+   Spacing, radius, transitions, layout, and typography
+   are inherited unchanged from :root.
+   ────────────────────────────────────────────── */
+[data-theme="light"] {
+    /* Primary Colors */
+    --color-primary: #6b006b;
+    --color-primary-hover: #570057;
+    --color-primary-gradient-start: #4f46e5;
+    --color-primary-gradient-end: #6d28d9;
+    --color-logo-start: #7c3aed;
+    --color-logo-mid: #8b5cf6;
+    --color-logo-end: #6d28d9;
+
+    /* Background Colors */
+    --color-bg-main: #f8f9fa;
+    --color-bg-dark: #e9ecef;
+    --color-bg-panel: #ffffff;
+    --color-bg-panel-light: #ffffff;
+    --color-bg-header: #ffffff;
+    --color-bg-table: #f1f3f5;
+    --color-bg-hover: #e9ecef;
+    --color-bg-input: #e9ecef;
+    --color-bg-border: #d1d5db;
+    --color-bg-disabled: #9ca3af;
+
+    /* Text Colors */
+    --color-text-primary: #1a1a2e;
+    --color-text-secondary: #374151;
+    --color-text-tertiary: #4b5563;
+    --color-text-muted: #6b7280;
+    --color-text-default: rgba(26, 26, 46, 0.87);
+
+    /* Status Colors */
+    --color-success: #15803d;
+    --color-success-bg: #dcfce7;
+    --color-success-text: #14532d;
+    --color-warning: #b45309;
+    --color-warning-bg: #fef3c7;
+    --color-warning-text: #78350f;
+    --color-error: #dc2626;
+    --color-error-bg: #fee2e2;
+    --color-error-text: #7f1d1d;
+    --color-info: #1d4ed8;
+    --color-info-bg: #dbeafe;
+    --color-info-text: #1e3a5f;
+
+    /* Admin Colors */
+    --color-admin: #5b21b6;
+    --color-admin-hover: #4c1d95;
+
+    /* Overlay Colors (white-alpha → black-alpha) */
+    --color-overlay-subtle: rgba(0, 0, 0, 0.03);
+    --color-overlay-medium: rgba(0, 0, 0, 0.05);
+    --color-overlay-strong: rgba(0, 0, 0, 0.08);
+
+    /* Status Overlays */
+    --color-success-overlay: rgba(21, 128, 61, 0.08);
+    --color-warning-overlay: rgba(180, 83, 9, 0.08);
+    --color-error-overlay: rgba(220, 38, 38, 0.08);
+    --color-info-overlay: rgba(29, 78, 216, 0.08);
+
+    /* Primary Overlays */
+    --color-primary-overlay: rgba(79, 70, 229, 0.07);
+    --color-primary-glow: rgba(79, 70, 229, 0.15);
+
+    /* Status Gradient Endpoints */
+    --color-success-accent: #059669;
+    --color-warning-accent: #d97706;
+    --color-error-accent: #ef4444;
+    --color-error-dark: #b91c1c;
+    --color-warning-dark: #92400e;
+    --color-success-dark: #065f46;
+    --color-info-dark: #1e40af;
+
+    /* Extended Overlays */
+    --color-overlay-border: rgba(0, 0, 0, 0.12);
+    --color-overlay-shimmer: rgba(0, 0, 0, 0.06);
+
+    /* Status Borders */
+    --color-success-border: rgba(21, 128, 61, 0.3);
+    --color-warning-border: rgba(180, 83, 9, 0.3);
+    --color-error-border: rgba(220, 38, 38, 0.3);
+    --color-info-border: rgba(29, 78, 216, 0.3);
+
+    /* Modal Backdrops (reduced — less darkening over light content) */
+    --color-backdrop: rgba(0, 0, 0, 0.3);
+    --color-backdrop-heavy: rgba(0, 0, 0, 0.5);
+
+    /* Colored Glows (~50% opacity reduction) */
+    --color-primary-shadow: rgba(79, 70, 229, 0.2);
+    --color-admin-shadow: rgba(91, 33, 182, 0.15);
+    --color-info-shadow: rgba(29, 78, 216, 0.15);
+    --color-segment-shadow: rgba(124, 58, 237, 0.15);
+    --color-warning-pulse: rgba(180, 83, 9, 0.5);
+    --color-warning-pulse-end: rgba(180, 83, 9, 0);
+
+    /* Ace Editor */
+    --color-ace-selection: rgba(107, 0, 107, 0.2);
+
+    /* Shadows (same geometry, ~60-70% opacity reduction) */
+    --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-base: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.1);
+    --shadow-colored: 0 4px 15px rgba(79, 70, 229, 0.15);
+
+    /* One-off shadows */
+    --shadow-nav: 0 2px 10px rgba(0, 0, 0, 0.06);
+    --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.1);
+    --shadow-modal: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.12);
+    --shadow-up: 0 -2px 10px rgba(0, 0, 0, 0.06);
+    --shadow-info-hover: 0 4px 12px rgba(29, 78, 216, 0.2);
+    --shadow-info-active: 0 4px 16px rgba(29, 78, 216, 0.25);
+    --shadow-admin-hover: 0 4px 12px rgba(91, 33, 182, 0.2);
+    --shadow-admin-active: 0 4px 16px rgba(91, 33, 182, 0.25);
+    --shadow-segment-hover: 0 4px 16px rgba(124, 58, 237, 0.2);
 }
 
 /* Skip to main content link - WCAG 2.1 compliant */
@@ -541,6 +685,14 @@ export default defineComponent({
 .meta-logo:hover {
     opacity: 1;
     filter: brightness(0) invert(0.9);  /* Even lighter on hover */
+}
+
+[data-theme="light"] .meta-logo {
+    filter: brightness(0) invert(0.3);  /* Dark gray for light theme */
+}
+
+[data-theme="light"] .meta-logo:hover {
+    filter: brightness(0) invert(0.1);  /* Near-black on hover */
 }
 
 /* Add padding to body to account for fixed footer */

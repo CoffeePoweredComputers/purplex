@@ -917,7 +917,7 @@ onMounted(() => {
   /* At-rest card appearance - clearly clickable */
   background: var(--color-overlay-subtle);
   border: 1px solid var(--color-primary-overlay);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-xs);
 }
 
 .journey-item:hover {
@@ -1062,7 +1062,7 @@ onMounted(() => {
   border-radius: var(--radius-xl);
   font-size: var(--font-size-sm);
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-subtle);
 }
 
 .completion-badge.high {
@@ -1125,14 +1125,14 @@ onMounted(() => {
   background: var(--color-overlay-medium);
   border-radius: var(--radius-base);
   overflow: visible;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-inset);
 }
 
 .progress-fill {
   height: 100%;
   border-radius: var(--radius-base);
   transition: width 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-subtle);
 }
 
 .progress-fill.high {
@@ -1348,7 +1348,7 @@ onMounted(() => {
   border-radius: 50%;
   z-index: 2;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xs);
 }
 
 .chart-bar-container:hover .chart-point {

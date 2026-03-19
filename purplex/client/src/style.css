@@ -22,6 +22,10 @@ body {
   position: relative;
 }
 
+html[data-theme="light"] body {
+  color-scheme: light;
+}
+
 a {
   font-weight: 500;
   color: var(--color-primary-gradient-start);
@@ -160,6 +164,15 @@ input::selection,
 textarea::selection {
   background-color: var(--color-primary);
   color: var(--color-text-primary);
+}
+
+/* Light mode selection: force white text on purple bg (dark text on dark purple fails contrast) */
+html[data-theme="light"] ::selection {
+  color: #ffffff;
+}
+html[data-theme="light"] input::selection,
+html[data-theme="light"] textarea::selection {
+  color: #ffffff;
 }
 
 /* Ace Editor specific selection styling - ensures text is visible when selected */

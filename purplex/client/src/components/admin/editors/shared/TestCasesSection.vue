@@ -544,7 +544,7 @@ function removeTestCase(index: number) {
   height: 28px;
   border-radius: var(--radius-circle);
   transition: var(--transition-fast);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-subtle);
 }
 
 .status-badge.passed {

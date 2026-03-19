@@ -123,7 +123,7 @@
 .admin-link.router-link-active {
     background: var(--color-overlay-strong);
     border-color: var(--color-overlay-strong);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-base);
 }
 
 .admin-link.router-link-active::after {
