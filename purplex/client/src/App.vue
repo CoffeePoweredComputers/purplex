@@ -281,6 +281,9 @@ export default defineComponent({
     /* Ace Editor */
     --color-ace-selection: rgba(128, 0, 128, 0.3);
 
+    /* Focus Ring */
+    --color-focus-ring: var(--color-primary-gradient-start);
+
     /* Spacing */
     --spacing-xs: 4px;
     --spacing-sm: 8px;
@@ -465,6 +468,9 @@ export default defineComponent({
     /* Ace Editor */
     --color-ace-selection: rgba(107, 0, 107, 0.2);
 
+    /* Focus Ring */
+    --color-focus-ring: var(--color-primary-gradient-start);
+
     /* Shadows (same geometry, ~60-70% opacity reduction) */
     --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.04);
     --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -506,7 +512,7 @@ export default defineComponent({
 
 .skip-link:focus {
   top: 0;
-  outline: 3px solid var(--color-text-primary);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -739,6 +745,12 @@ export default defineComponent({
 body {
     margin: 0;
     padding-bottom: 60px; /* Space for fixed footer */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    transition: background-color 0.3s ease, color 0.2s ease;
+  }
 }
 
 /* Auth Loading State */

@@ -116,7 +116,7 @@
 }
 
 .admin-link:focus-visible {
-    outline: 2px solid var(--color-text-primary);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -135,34 +135,6 @@
     height: 3px;
     background: var(--color-text-primary);
     border-radius: var(--radius-xs);
-}
-
-/* Light mode: invert bar — soft purple bg, dark purple text, solid active tab */
-[data-theme="light"] .admin-nav {
-    background: var(--color-admin-bg);
-    color: var(--color-admin);
-}
-
-[data-theme="light"] .admin-link {
-    color: var(--color-admin);
-}
-
-[data-theme="light"] .admin-link:hover {
-    border-color: var(--color-admin-shadow);
-}
-
-[data-theme="light"] .admin-link:focus-visible {
-    outline-color: var(--color-admin);
-}
-
-[data-theme="light"] .admin-link.router-link-active {
-    background: var(--color-admin);
-    color: var(--color-text-on-filled);
-    border-color: transparent;
-}
-
-[data-theme="light"] .admin-link.router-link-active::after {
-    background: var(--color-text-on-filled);
 }
 
 /* Mobile responsive */
@@ -191,5 +163,36 @@
         width: 100%;
         justify-content: center;
     }
+}
+</style>
+
+<!-- Unscoped: theme overrides must reach [data-theme] on <html> -->
+<style>
+/* Light mode: invert bar — soft purple bg, dark purple text, solid active tab */
+[data-theme="light"] .admin-nav {
+    background: var(--color-admin-bg);
+    color: var(--color-admin);
+}
+
+[data-theme="light"] .admin-link {
+    color: var(--color-admin);
+}
+
+[data-theme="light"] .admin-link:hover {
+    border-color: var(--color-admin-shadow);
+}
+
+[data-theme="light"] .admin-link:focus-visible {
+    outline-color: var(--color-admin);
+}
+
+[data-theme="light"] .admin-link.router-link-active {
+    background: var(--color-admin);
+    color: var(--color-text-on-filled);
+    border-color: transparent;
+}
+
+[data-theme="light"] .admin-link.router-link-active::after {
+    background: var(--color-text-on-filled);
 }
 </style>

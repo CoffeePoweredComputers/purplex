@@ -1487,34 +1487,6 @@ onMounted(() => {
   font-style: italic;
 }
 
-/* Light mode: flatten gradients on colored fills and decorative elements */
-[data-theme="light"] .back-btn {
-  background: var(--color-admin);
-}
-
-[data-theme="light"] .back-btn:hover {
-  background: var(--color-admin-hover);
-}
-
-[data-theme="light"] .marker-number {
-  background: var(--color-admin);
-}
-
-[data-theme="light"] .marker-line {
-  background: var(--color-admin);
-  opacity: 0.3;
-}
-
-[data-theme="light"] .progress-marker {
-  background: var(--color-admin);
-}
-
-[data-theme="light"] .snapshot-value {
-  background: none;
-  -webkit-text-fill-color: var(--color-admin);
-  color: var(--color-admin);
-}
-
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .content-container {
@@ -1564,5 +1536,36 @@ onMounted(() => {
     gap: var(--spacing-sm);
     text-align: center;
   }
+}
+</style>
+
+<!-- Unscoped: theme overrides must reach [data-theme] on <html> -->
+<style>
+/* Light mode: flatten gradients on colored fills and decorative elements */
+[data-theme="light"] .back-btn {
+  background: var(--color-admin);
+}
+
+[data-theme="light"] .back-btn:hover {
+  background: var(--color-admin-hover);
+}
+
+[data-theme="light"] .marker-number {
+  background: var(--color-admin);
+}
+
+[data-theme="light"] .marker-line {
+  background: var(--color-admin);
+  opacity: 0.3;
+}
+
+[data-theme="light"] .progress-marker {
+  background: var(--color-admin);
+}
+
+[data-theme="light"] .snapshot-value {
+  background: none;
+  -webkit-text-fill-color: var(--color-admin);
+  color: var(--color-admin);
 }
 </style>

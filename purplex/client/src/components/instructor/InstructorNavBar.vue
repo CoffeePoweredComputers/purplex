@@ -237,7 +237,7 @@ const isActiveRoute = (path: string): boolean => {
 }
 
 .instructor-link:focus-visible {
-    outline: 2px solid var(--color-text-primary);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -259,34 +259,6 @@ const isActiveRoute = (path: string): boolean => {
     background: var(--color-text-primary);
     border-radius: var(--radius-xs);
     box-shadow: 0 0 8px var(--color-overlay-strong);
-}
-
-/* Light mode: invert bar — soft purple bg, dark purple text, solid active tab */
-[data-theme="light"] .instructor-nav {
-    background: var(--color-admin-bg);
-    color: var(--color-admin);
-}
-
-[data-theme="light"] .instructor-link {
-    color: var(--color-admin);
-}
-
-[data-theme="light"] .instructor-link:hover {
-    border-color: var(--color-admin-shadow);
-}
-
-[data-theme="light"] .instructor-link:focus-visible {
-    outline-color: var(--color-admin);
-}
-
-[data-theme="light"] .instructor-link.router-link-active {
-    background: var(--color-admin);
-    color: var(--color-text-on-filled);
-    border-color: transparent;
-}
-
-[data-theme="light"] .instructor-link.router-link-active::after {
-    background: var(--color-text-on-filled);
 }
 
 /* Medium viewport - reduce spacing */
@@ -336,5 +308,36 @@ const isActiveRoute = (path: string): boolean => {
         width: 100%;
         justify-content: center;
     }
+}
+</style>
+
+<!-- Unscoped: theme overrides must reach [data-theme] on <html> -->
+<style>
+/* Light mode: invert bar — soft purple bg, dark purple text, solid active tab */
+[data-theme="light"] .instructor-nav {
+    background: var(--color-admin-bg);
+    color: var(--color-admin);
+}
+
+[data-theme="light"] .instructor-link {
+    color: var(--color-admin);
+}
+
+[data-theme="light"] .instructor-link:hover {
+    border-color: var(--color-admin-shadow);
+}
+
+[data-theme="light"] .instructor-link:focus-visible {
+    outline-color: var(--color-admin);
+}
+
+[data-theme="light"] .instructor-link.router-link-active {
+    background: var(--color-admin);
+    color: var(--color-text-on-filled);
+    border-color: transparent;
+}
+
+[data-theme="light"] .instructor-link.router-link-active::after {
+    background: var(--color-text-on-filled);
 }
 </style>

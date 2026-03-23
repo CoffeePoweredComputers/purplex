@@ -480,12 +480,6 @@ onUnmounted(() => {
     border-radius: var(--radius-xs);
 }
 
-/* Light mode: force white text on dark-filled buttons */
-[data-theme="light"] .instructor-item,
-[data-theme="light"] .admin-item {
-    color: var(--color-text-on-filled);
-}
-
 /* Mobile responsive */
 @media (max-width: 768px) {
     .navbar-container {
@@ -557,5 +551,14 @@ onUnmounted(() => {
     .nav-item {
         padding: var(--spacing-xs) var(--spacing-sm);
     }
+}
+</style>
+
+<!-- Unscoped: theme overrides must reach [data-theme] on <html> -->
+<style>
+/* Light mode: force white text on dark-filled buttons */
+[data-theme="light"] .instructor-item,
+[data-theme="light"] .admin-item {
+    color: var(--color-text-on-filled);
 }
 </style>
