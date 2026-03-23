@@ -252,7 +252,7 @@ const selectedModeDescription = computed(() => {
 
 .segment.selected {
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .mode-description-text {
@@ -335,7 +335,7 @@ const selectedModeDescription = computed(() => {
   width: 18px;
   height: 18px;
   background: var(--color-warning);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-radius: 50%;
   font-weight: bold;
   font-size: var(--font-size-xs);

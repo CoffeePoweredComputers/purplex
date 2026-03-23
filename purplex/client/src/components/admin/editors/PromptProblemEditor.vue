@@ -337,7 +337,7 @@ onMounted(() => {
   left: 50%;
   transform: translate(-50%, -50%);
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);

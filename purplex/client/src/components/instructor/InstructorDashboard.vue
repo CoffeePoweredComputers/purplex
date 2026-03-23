@@ -403,7 +403,7 @@ onMounted(() => {
 .retry-btn {
   padding: var(--spacing-md) var(--spacing-xl);
   background: var(--color-admin);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   cursor: pointer;
@@ -432,20 +432,20 @@ onMounted(() => {
   display: flex;
   align-items: stretch;
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 2px solid var(--color-bg-border);
   border-radius: var(--radius-lg);
   transition: var(--transition-base);
   overflow: hidden;
   text-decoration: none;
   color: inherit;
   cursor: pointer;
+  box-shadow: var(--shadow-base);
 }
 
 .course-card:hover,
 .course-card:focus-visible {
-  transform: translateY(-2px);
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 4px 16px var(--color-primary-glow);
+  box-shadow: var(--shadow-lg);
 }
 
 .course-card:focus-visible {
@@ -463,8 +463,9 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   width: 0;
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  background: var(--color-primary-glow);
+  backdrop-filter: blur(8px);
+  color: var(--color-primary-gradient-start);
   overflow: hidden;
   transition: width 0.25s ease;
 }
@@ -810,7 +811,7 @@ onMounted(() => {
 .btn-create {
   padding: var(--spacing-sm) var(--spacing-xl);
   background: linear-gradient(135deg, var(--color-admin) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-weight: 600;

@@ -654,7 +654,7 @@ onBeforeUnmount(() => {
 
 /* Header - Aligned with Feedback.vue */
 .feedback-header {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -909,7 +909,7 @@ onBeforeUnmount(() => {
 
 .code-header {
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   font-weight: 600;
@@ -922,7 +922,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-top: 1px solid var(--color-bg-input);
   border-bottom: 1px solid var(--color-bg-input);
 }
@@ -1024,7 +1024,7 @@ details:not([open]) .group-icon {
   justify-content: space-between;
   align-items: flex-start;
   padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-radius: var(--radius-xs);
   border: 1px solid var(--color-bg-input);
   gap: var(--spacing-md);
@@ -1089,7 +1089,7 @@ details:not([open]) .group-icon {
 
 .debug-btn {
   background: var(--color-info);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   padding: var(--spacing-xs);
   border-radius: var(--radius-xs);

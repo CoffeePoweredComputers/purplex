@@ -142,7 +142,7 @@ onUnmounted(() => {
     top: 0;
     width: 100%;
     z-index: 999;
-    background: linear-gradient(180deg, var(--color-bg-panel) 0%, var(--color-bg-dark) 100%);
+    background: var(--color-bg-header);
     border-bottom: 1px solid var(--color-primary-overlay);
     box-shadow: var(--shadow-nav);
 }
@@ -417,7 +417,7 @@ onUnmounted(() => {
 /* Instructor item styling */
 .instructor-item {
     background: var(--color-primary);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     border-color: transparent;
     box-shadow: 0 2px 8px var(--color-info-shadow);
 }
@@ -435,7 +435,7 @@ onUnmounted(() => {
 /* Admin item styling */
 .admin-item {
     background: var(--color-admin);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     border-color: transparent;
     box-shadow: 0 2px 8px var(--color-admin-shadow);
 }
@@ -478,6 +478,12 @@ onUnmounted(() => {
     height: 2px;
     background: linear-gradient(90deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
     border-radius: var(--radius-xs);
+}
+
+/* Light mode: force white text on dark-filled buttons */
+[data-theme="light"] .instructor-item,
+[data-theme="light"] .admin-item {
+    color: var(--color-text-on-filled);
 }
 
 /* Mobile responsive */

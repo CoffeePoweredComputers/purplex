@@ -452,7 +452,7 @@ onMounted(() => {
 
 .zoom-btn:hover:not(:disabled) {
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-color: var(--color-primary-gradient-start);
 }
 

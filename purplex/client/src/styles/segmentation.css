@@ -89,19 +89,19 @@
 .seg-progress-block.excellent {
   background: var(--seg-color-excellent);
   border: 2px solid var(--seg-color-excellent);
-  color: white;
+  color: var(--color-text-on-filled);
 }
 
 .seg-progress-block.good {
   background: var(--seg-color-good);
   border: 2px solid var(--seg-color-good);
-  color: var(--color-bg-dark);
+  color: var(--color-text-on-filled);
 }
 
 .seg-progress-block.needs-work {
   background: var(--seg-color-needs-work);
   border: 2px solid var(--seg-color-needs-work);
-  color: white;
+  color: var(--color-text-on-filled);
 }
 
 /* Segmentation Animations */

@@ -469,7 +469,7 @@ onMounted(loadInstructors);
 
 .btn-primary {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   box-shadow: var(--shadow-colored);
 }
 
@@ -497,7 +497,7 @@ onMounted(loadInstructors);
 
 .btn-danger:hover:not(:disabled) {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .btn:disabled {

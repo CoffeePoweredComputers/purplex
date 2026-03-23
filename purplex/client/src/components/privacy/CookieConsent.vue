@@ -131,7 +131,7 @@ function acceptAll() {
 
 .cookie-consent__btn--accept {
     background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     border-color: transparent;
 }
 

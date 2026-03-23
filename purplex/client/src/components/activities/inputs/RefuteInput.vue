@@ -541,7 +541,7 @@ function formatOutput(value: unknown): string {
   width: 100%;
   padding: var(--spacing-xs) var(--spacing-lg);
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
@@ -662,7 +662,7 @@ function formatOutput(value: unknown): string {
   width: calc(100% - calc(var(--spacing-lg) * 2));
   padding: var(--spacing-md) var(--spacing-xl);
   background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
@@ -673,7 +673,6 @@ function formatOutput(value: unknown): string {
 }
 
 .submit-button:hover:not(:disabled) {
-  transform: translateY(-2px);
   box-shadow: 0 6px 20px var(--color-success-overlay);
 }
 
@@ -721,7 +720,7 @@ function formatOutput(value: unknown): string {
 .hint-message {
   margin: 0 var(--spacing-lg) var(--spacing-md);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);

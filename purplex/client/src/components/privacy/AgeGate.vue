@@ -169,7 +169,7 @@ function submitAge() {
 .age-gate__submit {
     padding: var(--spacing-md);
     background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     border: none;
     border-radius: var(--radius-sm);
     font-size: var(--font-size-base);

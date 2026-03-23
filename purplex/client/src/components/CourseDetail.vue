@@ -492,7 +492,7 @@ onMounted(async () => {
   display: inline-block;
   padding: var(--spacing-md) var(--spacing-xl);
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   text-decoration: none;
   border-radius: var(--radius-base);
   font-weight: 600;

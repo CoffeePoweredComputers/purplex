@@ -452,7 +452,7 @@ onMounted(() => {
 
 .btn-icon:hover {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-color: var(--color-error);
 }
 

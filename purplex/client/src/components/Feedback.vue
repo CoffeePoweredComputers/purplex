@@ -898,7 +898,7 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-bottom: 1px solid var(--color-bg-input);
 }
 
@@ -1117,7 +1117,7 @@ export default defineComponent({
 .explanation-section {
   margin: var(--spacing-md) var(--spacing-lg);
   padding: var(--spacing-md);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-radius: var(--radius-base);
   border-left: 3px solid var(--color-primary);
 }
@@ -1148,7 +1148,7 @@ export default defineComponent({
   line-height: 1.6;
   margin: 0;
   padding: var(--spacing-sm);
-  background: var(--color-bg-dark);
+  background: var(--color-bg-panel);
   border-radius: var(--radius-xs);
   font-style: italic;
 }
@@ -1160,7 +1160,7 @@ export default defineComponent({
   width: calc(100% - calc(var(--spacing-lg) * 2));
   margin: var(--spacing-md) var(--spacing-lg);
   padding: 0;
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-radius: var(--radius-xs);
   cursor: pointer;
   transition: var(--transition-fast);
@@ -1205,7 +1205,7 @@ export default defineComponent({
 }
 
 .metric-card.status-locked:hover {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
 }
 
 .card-label {
@@ -1406,7 +1406,7 @@ export default defineComponent({
 
 .urgency-high .banner-button {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-on-filled);
 }
 
 .urgency-high .banner-button:hover {
@@ -1415,7 +1415,7 @@ export default defineComponent({
 
 .urgency-medium .banner-button {
   background: var(--color-warning);
-  color: var(--color-bg-dark);
+  color: var(--color-text-on-filled);
 }
 
 .urgency-medium .banner-button:hover {
@@ -1424,7 +1424,7 @@ export default defineComponent({
 
 .urgency-low .banner-button {
   background: var(--color-info);
-  color: white;
+  color: var(--color-text-on-filled);
 }
 
 .urgency-low .banner-button:hover {
@@ -1433,7 +1433,7 @@ export default defineComponent({
 
 .urgency-success .banner-button {
   background: var(--color-success);
-  color: white;
+  color: var(--color-text-on-filled);
 }
 
 .urgency-success .banner-button:hover {

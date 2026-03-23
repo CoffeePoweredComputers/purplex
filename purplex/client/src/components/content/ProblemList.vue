@@ -273,6 +273,7 @@ onMounted(fetchTable);
 .add-button {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
   box-shadow: var(--shadow-colored);
+  color: var(--color-text-on-filled);
 }
 
 .add-button:hover {
@@ -306,7 +307,7 @@ onMounted(fetchTable);
 
 .delete-button:hover {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   transform: translateY(-1px);
 }
 

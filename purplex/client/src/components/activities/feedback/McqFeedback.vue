@@ -180,7 +180,7 @@ const bannerClass = computed(() => {
 
 .feedback-header {
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-bottom: 1px solid var(--color-bg-input);
 }
 
@@ -249,7 +249,7 @@ const bannerClass = computed(() => {
 
 .result-banner--partial .result-icon {
   background: var(--color-warning);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .result-icon {
@@ -265,12 +265,12 @@ const bannerClass = computed(() => {
 
 .result-banner--correct .result-icon {
   background: var(--color-success);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .result-banner--incorrect .result-icon {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .result-text {
@@ -341,7 +341,7 @@ const bannerClass = computed(() => {
 
 .explanation-text {
   padding: var(--spacing-md);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);

@@ -182,6 +182,7 @@ export default defineComponent({
     --color-bg-header: #191919;
     --color-bg-table: #272727;
     --color-bg-hover: #2a2a2a;
+    --color-bg-section: #2a2a2a;
     --color-bg-input: #333;
     --color-bg-border: #444;
     --color-bg-disabled: #555;
@@ -192,6 +193,17 @@ export default defineComponent({
     --color-text-tertiary: #ddd;
     --color-text-muted: #999;
     --color-text-default: rgba(255, 255, 255, 0.87);
+    --color-text-on-filled: #ffffff;
+
+    /* Syntax highlighting (token colors — tomorrow_night palette) */
+    --color-syntax-keyword: #B294BB;
+    --color-syntax-string: #B5BD68;
+    --color-syntax-comment: #969896;
+    --color-syntax-number: #DE935F;
+    --color-syntax-builtin: #81A2BE;
+    --color-syntax-variable: #CC6666;
+    --color-syntax-operator: #8ABEB7;
+    --color-syntax-punctuation: #C5C8C6;
 
     /* Status Colors */
     --color-success: #4CAF50;
@@ -210,6 +222,7 @@ export default defineComponent({
     /* Admin Colors */
     --color-admin: #673ab7;
     --color-admin-hover: #5e35b1;
+    --color-admin-bg: #673ab7;
 
     /* Overlay Colors */
     --color-overlay-subtle: rgba(255, 255, 255, 0.05);
@@ -256,6 +269,14 @@ export default defineComponent({
     --color-segment-shadow: rgba(159, 122, 234, 0.3);
     --color-warning-pulse: rgba(251, 191, 36, 0.7);
     --color-warning-pulse-end: rgba(251, 191, 36, 0);
+
+    /* Segment Colors (used by SegmentMapping and ViewSubmissionModal) */
+    --color-segment-1: #9f7aea;
+    --color-segment-2: #4299e1;
+    --color-segment-3: #4fd1c5;
+    --color-segment-4: #68d391;
+    --color-segment-5: #f6ad55;
+    --color-segment-6: #fc8181;
 
     /* Ace Editor */
     --color-ace-selection: rgba(128, 0, 128, 0.3);
@@ -342,19 +363,31 @@ export default defineComponent({
     --color-bg-dark: #e9ecef;
     --color-bg-panel: #ffffff;
     --color-bg-panel-light: #ffffff;
-    --color-bg-header: #ffffff;
+    --color-bg-header: #f1f3f5;
     --color-bg-table: #f1f3f5;
-    --color-bg-hover: #e9ecef;
+    --color-bg-hover: #dde1e6;
+    --color-bg-section: #f5f5f7;
     --color-bg-input: #e9ecef;
     --color-bg-border: #d1d5db;
     --color-bg-disabled: #9ca3af;
 
     /* Text Colors */
     --color-text-primary: #1a1a2e;
-    --color-text-secondary: #374151;
-    --color-text-tertiary: #4b5563;
-    --color-text-muted: #6b7280;
+    --color-text-secondary: #1f2937;
+    --color-text-tertiary: #374151;
+    --color-text-muted: #4b5563;
     --color-text-default: rgba(26, 26, 46, 0.87);
+    --color-text-on-filled: #ffffff;
+
+    /* Syntax highlighting (token colors — chrome palette) */
+    --color-syntax-keyword: #930f80;
+    --color-syntax-string: #1A1AA6;
+    --color-syntax-comment: #236e24;
+    --color-syntax-number: #0000CD;
+    --color-syntax-builtin: #3c4c72;
+    --color-syntax-variable: #318495;
+    --color-syntax-operator: #687687;
+    --color-syntax-punctuation: #333333;
 
     /* Status Colors */
     --color-success: #15803d;
@@ -371,8 +404,9 @@ export default defineComponent({
     --color-info-text: #1e3a5f;
 
     /* Admin Colors */
-    --color-admin: #5b21b6;
-    --color-admin-hover: #4c1d95;
+    --color-admin: #7c3aed;
+    --color-admin-hover: #6d28d9;
+    --color-admin-bg: #ede9fe;
 
     /* Overlay Colors (white-alpha → black-alpha) */
     --color-overlay-subtle: rgba(0, 0, 0, 0.03);
@@ -410,7 +444,7 @@ export default defineComponent({
 
     /* Modal Backdrops (reduced — less darkening over light content) */
     --color-backdrop: rgba(0, 0, 0, 0.3);
-    --color-backdrop-heavy: rgba(0, 0, 0, 0.5);
+    --color-backdrop-heavy: rgba(0, 0, 0, 0.6);
 
     /* Colored Glows (~50% opacity reduction) */
     --color-primary-shadow: rgba(79, 70, 229, 0.2);
@@ -419,6 +453,14 @@ export default defineComponent({
     --color-segment-shadow: rgba(124, 58, 237, 0.15);
     --color-warning-pulse: rgba(180, 83, 9, 0.5);
     --color-warning-pulse-end: rgba(180, 83, 9, 0);
+
+    /* Segment Colors (deeper for contrast on light backgrounds) */
+    --color-segment-1: #7c3aed;
+    --color-segment-2: #2563eb;
+    --color-segment-3: #0d9488;
+    --color-segment-4: #16a34a;
+    --color-segment-5: #ea580c;
+    --color-segment-6: #dc2626;
 
     /* Ace Editor */
     --color-ace-selection: rgba(107, 0, 107, 0.2);
@@ -452,7 +494,7 @@ export default defineComponent({
   top: -100%;
   left: 0;
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   padding: var(--spacing-md) var(--spacing-lg);
   text-decoration: none;
   font-weight: 600;
@@ -579,7 +621,7 @@ export default defineComponent({
 
 .action-button {
     background-color: var(--color-primary);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     padding: var(--spacing-sm) var(--spacing-lg);
     border: none;
     border-radius: var(--radius-xs);
@@ -655,23 +697,21 @@ export default defineComponent({
 }
 
 .copyright {
-    opacity: 0.8;
+    color: var(--color-text-muted);
 }
 
 .footer-link {
     color: var(--color-text-muted);
     text-decoration: none;
-    opacity: 0.8;
-    transition: opacity 0.2s;
+    transition: color 0.2s;
 }
 
 .footer-link:hover {
-    opacity: 1;
     color: var(--color-text-secondary);
 }
 
 .sponsor {
-    opacity: 0.8;
+    color: var(--color-text-muted);
     margin-right: 8px;
 }
 

@@ -317,7 +317,7 @@ async function confirmDelete() {
 
 .btn-primary {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-color: var(--color-primary-gradient-start);
   box-shadow: var(--shadow-colored);
 }
@@ -346,7 +346,7 @@ async function confirmDelete() {
 
 .btn-danger:hover:not(:disabled) {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .btn:disabled {

@@ -559,7 +559,7 @@ watch(
 }
 
 .problem-sets-table th {
-  background-color: var(--color-bg-hover);
+  background-color: var(--color-bg-section);
   padding: var(--spacing-lg) var(--spacing-xl);
   text-align: left;
   font-weight: 600;
@@ -787,7 +787,7 @@ watch(
 
 .add-button {
   background-color: var(--color-success);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .add-button:hover:not(:disabled) {
@@ -867,7 +867,7 @@ watch(
 
 .btn-danger {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .btn:disabled {

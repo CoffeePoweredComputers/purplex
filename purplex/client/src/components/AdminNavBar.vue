@@ -54,7 +54,7 @@
 <style scoped>
 .admin-nav {
     background: linear-gradient(135deg, var(--color-admin) 0%, var(--color-admin-hover) 100%);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     width: 100%;
     padding: var(--spacing-lg) 0;
     margin-bottom: var(--spacing-xl);
@@ -84,7 +84,7 @@
 .admin-link {
     display: flex;
     align-items: center;
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     text-decoration: none;
     padding: var(--spacing-md) var(--spacing-xl);
     border-radius: var(--radius-base);
@@ -135,6 +135,34 @@
     height: 3px;
     background: var(--color-text-primary);
     border-radius: var(--radius-xs);
+}
+
+/* Light mode: invert bar — soft purple bg, dark purple text, solid active tab */
+[data-theme="light"] .admin-nav {
+    background: var(--color-admin-bg);
+    color: var(--color-admin);
+}
+
+[data-theme="light"] .admin-link {
+    color: var(--color-admin);
+}
+
+[data-theme="light"] .admin-link:hover {
+    border-color: var(--color-admin-shadow);
+}
+
+[data-theme="light"] .admin-link:focus-visible {
+    outline-color: var(--color-admin);
+}
+
+[data-theme="light"] .admin-link.router-link-active {
+    background: var(--color-admin);
+    color: var(--color-text-on-filled);
+    border-color: transparent;
+}
+
+[data-theme="light"] .admin-link.router-link-active::after {
+    background: var(--color-text-on-filled);
 }
 
 /* Mobile responsive */

@@ -549,13 +549,13 @@ function removeTestCase(index: number) {
 
 .status-badge.passed {
   background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   box-shadow: 0 2px 8px var(--color-success-overlay);
 }
 
 .status-badge.failed {
   background: linear-gradient(135deg, var(--color-error) 0%, var(--color-error-dark) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   box-shadow: 0 2px 8px var(--color-error-overlay);
 }
 
@@ -660,7 +660,7 @@ function removeTestCase(index: number) {
 /* Buttons */
 .btn-primary {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: 2px solid var(--color-primary-gradient-start);
   padding: var(--spacing-md) var(--spacing-lg);
   font-weight: 600;

@@ -33,13 +33,15 @@ export interface UseEditorSettingsReturn {
 const MIN_FONT_SIZE = 10;
 const MAX_FONT_SIZE = 24;
 const DEFAULT_FONT_SIZE = 14;
-const DEFAULT_THEME = 'monokai';
+const DEFAULT_THEME_DARK = 'monokai';
+const DEFAULT_THEME_LIGHT = 'chrome';
 
 // ===== COMPOSABLE =====
 
 export const useEditorSettings = (): UseEditorSettingsReturn => {
   const fontSize = ref(DEFAULT_FONT_SIZE);
-  const theme = ref(DEFAULT_THEME);
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const theme = ref(isLight ? DEFAULT_THEME_LIGHT : DEFAULT_THEME_DARK);
 
   /**
    * Increase font size (max 24)
@@ -78,7 +80,8 @@ export const useEditorSettings = (): UseEditorSettingsReturn => {
    */
   const reset = (): void => {
     fontSize.value = DEFAULT_FONT_SIZE;
-    theme.value = DEFAULT_THEME;
+    const currentIsLight = document.documentElement.getAttribute('data-theme') === 'light';
+    theme.value = currentIsLight ? DEFAULT_THEME_LIGHT : DEFAULT_THEME_DARK;
   };
 
   return {

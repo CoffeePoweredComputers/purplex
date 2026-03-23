@@ -85,7 +85,7 @@ function isSelected(optionId: string): boolean {
 }
 
 .question-box {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-bg-input);
   border-radius: 4px;
   padding: 12px;
@@ -135,7 +135,7 @@ function isSelected(optionId: string): boolean {
 
 .indicator-icon.correct {
   background: var(--color-success);
-  color: white;
+  color: var(--color-text-on-filled);
   border-radius: 50%;
   width: 28px;
   height: 28px;
@@ -146,7 +146,7 @@ function isSelected(optionId: string): boolean {
 
 .indicator-icon.wrong {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-on-filled);
   border-radius: 50%;
   width: 28px;
   height: 28px;

@@ -619,7 +619,6 @@ export default {
 
 .hint-button:hover:not(:disabled) {
   background: var(--color-bg-input);
-  transform: translateY(-1px);
 }
 
 .hint-button:disabled {
@@ -663,7 +662,7 @@ export default {
 
 .hint-badge {
   background: var(--color-warning);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-radius: 10px;
   padding: 2px 6px;
   font-size: 12px;
@@ -808,7 +807,7 @@ export default {
 }
 
 .hint-content {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-top: 1px solid var(--color-bg-border);
 }
 
@@ -847,7 +846,7 @@ export default {
 
 .hint-footer {
   padding: 12px 16px;
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-top: 1px solid var(--color-bg-border);
 }
 
@@ -890,7 +889,7 @@ export default {
 
 .action-btn.danger {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .action-btn.danger:hover:not(:disabled) {

@@ -80,7 +80,7 @@ const displayLabel = computed(() => props.label || props.value);
 /* Admin - gradient purple (matches AdminUsers badge) */
 .status-admin {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   box-shadow: 0 2px 8px var(--color-primary-glow);
   border: none;
 }
@@ -88,7 +88,7 @@ const displayLabel = computed(() => props.label || props.value);
 /* Instructor - gradient blue (matches AdminUsers badge) */
 .status-instructor {
   background: linear-gradient(135deg, var(--color-info) 0%, var(--color-info-dark) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   box-shadow: 0 2px 8px var(--color-info-overlay);
   border: none;
 }

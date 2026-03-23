@@ -342,7 +342,7 @@ watch(() => props.probeHistory.length, () => {
   width: 72px;
   height: 28px;
   padding: 0 var(--spacing-sm);
-  background: var(--color-bg-primary);
+  background: var(--color-bg-input);
   border: 1px solid var(--color-bg-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
@@ -418,7 +418,7 @@ watch(() => props.probeHistory.length, () => {
   margin-top: var(--spacing-sm);
   padding: var(--spacing-xs) var(--spacing-lg);
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
@@ -574,7 +574,7 @@ watch(() => props.probeHistory.length, () => {
 
 .modal-close:hover {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .modal-body {

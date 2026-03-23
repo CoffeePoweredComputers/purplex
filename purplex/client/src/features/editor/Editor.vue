@@ -146,6 +146,7 @@ function editorInit(editorInstance: AceEditor): void {
 
   editorInstance.setOptions({
     showGutter: props.showGutter,
+    showFoldWidgets: !props.readOnly,
     minLines: effectiveMinLines,
     maxLines: baseMaxLines ? baseMaxLines + props.extraLines : undefined,
     readOnly: props.readOnly,
@@ -410,7 +411,7 @@ defineExpose({
 
   /* Gutter styling */
   :deep(.ace_gutter) {
-    background: var(--color-bg-hover);
+    background: var(--color-bg-section);
     color: var(--color-text-muted);
     border-right: 1px solid var(--color-bg-input);
   }
@@ -433,7 +434,7 @@ defineExpose({
   }
 
   :deep(.ace_scrollbar::-webkit-scrollbar-track) {
-    background: var(--color-bg-hover);
+    background: var(--color-bg-section);
     border-radius: var(--radius-sm);
   }
 

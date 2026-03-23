@@ -233,7 +233,7 @@ defineExpose({
   width: 28px;
   height: 28px;
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -275,7 +275,7 @@ defineExpose({
 
 .remove-btn:hover:not(:disabled) {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-color: var(--color-error);
 }
 

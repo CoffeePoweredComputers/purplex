@@ -69,9 +69,14 @@ function initialize(): void {
 export function useTheme() {
   initialize()
 
+  const editorTheme = computed(() =>
+    effectiveTheme.value === 'light' ? 'chrome' : 'tomorrow_night'
+  )
+
   return {
     theme: readonly(theme),
     effectiveTheme: computed(() => effectiveTheme.value),
+    editorTheme,
     setTheme,
   }
 }

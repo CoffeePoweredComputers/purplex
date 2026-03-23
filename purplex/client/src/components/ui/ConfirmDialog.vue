@@ -105,12 +105,12 @@ defineEmits<{
 
 .btn-danger {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .btn-warning {
   background: var(--color-warning);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .btn:disabled {

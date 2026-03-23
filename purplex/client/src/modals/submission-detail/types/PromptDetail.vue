@@ -51,7 +51,7 @@ defineProps<{
 }
 
 .image-container {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-bg-input);
   border-radius: 4px;
   padding: 12px;
@@ -66,7 +66,7 @@ defineProps<{
 }
 
 .prompt-box {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-bg-input);
   border-radius: 4px;
   padding: 12px;

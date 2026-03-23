@@ -296,6 +296,7 @@ main {
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0;
+  text-align: left;
 }
 
 .progress-indicator {
@@ -333,7 +334,6 @@ main {
 }
 
 .problem-set-card:hover {
-  transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
   border-color: var(--color-primary-gradient-start);
 }
@@ -443,13 +443,17 @@ main {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
-  padding: var(--spacing-md);
+  background: var(--color-primary-glow);
+  backdrop-filter: blur(8px);
+  color: var(--color-primary-gradient-start);
+  padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
   text-align: center;
   font-weight: 600;
   transform: translateY(100%);
   transition: transform 0.3s ease;
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .problem-set-card:hover .card-hover-text {
@@ -528,7 +532,7 @@ main {
 /* Add Course Button */
 .add-course-btn {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   padding: var(--spacing-md) var(--spacing-xl);

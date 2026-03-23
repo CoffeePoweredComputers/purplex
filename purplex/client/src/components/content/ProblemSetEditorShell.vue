@@ -673,7 +673,7 @@ onMounted(async () => {
   width: 28px;
   height: 28px;
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -744,7 +744,7 @@ onMounted(async () => {
 
 .remove-btn:hover {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .add-indicator {
@@ -782,7 +782,7 @@ onMounted(async () => {
 
 .btn-primary {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-color: var(--color-primary-gradient-start);
   box-shadow: var(--shadow-colored);
 }
@@ -811,7 +811,7 @@ onMounted(async () => {
 
 .btn-danger:hover:not(:disabled) {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .btn:disabled {

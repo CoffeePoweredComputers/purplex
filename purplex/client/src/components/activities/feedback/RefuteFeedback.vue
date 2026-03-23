@@ -211,7 +211,7 @@ const resultInterpretation = computed(() => {
 
 .feedback-header {
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-bottom: 1px solid var(--color-bg-input);
 }
 
@@ -288,12 +288,12 @@ const resultInterpretation = computed(() => {
 
 .result-banner--success .result-icon {
   background: var(--color-success);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .result-banner--failure .result-icon {
   background: var(--color-warning);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .result-text {
@@ -409,12 +409,12 @@ const resultInterpretation = computed(() => {
 }
 
 .success-explanation {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-left: 4px solid var(--color-success);
 }
 
 .failure-explanation {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-left: 4px solid var(--color-warning);
 }
 

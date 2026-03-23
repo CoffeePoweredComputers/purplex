@@ -274,7 +274,7 @@ function getRowKey(item: T, index: number): string | number {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
   border: none;
   border-radius: var(--radius-base);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition-base);

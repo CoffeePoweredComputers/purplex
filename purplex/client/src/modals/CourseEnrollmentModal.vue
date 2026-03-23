@@ -261,7 +261,7 @@ async function enrollInCourse(): Promise<void> {
 .lookup-btn {
   padding: var(--spacing-md) var(--spacing-lg);
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-weight: 600;
@@ -342,7 +342,7 @@ async function enrollInCourse(): Promise<void> {
   width: 100%;
   padding: var(--spacing-md);
   background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);

@@ -36,8 +36,15 @@
   },
   "overrides": [
     {
-      "files": ["*.vue"],
+      "files": ["**/*.vue"],
       "customSyntax": "postcss-html"
+    },
+    {
+      "files": ["src/App.vue", "src/style.css"],
+      "rules": {
+        "color-no-hex": null,
+        "function-disallowed-list": null
+      }
     }
   ]
 }

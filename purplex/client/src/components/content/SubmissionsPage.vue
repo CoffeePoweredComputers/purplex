@@ -575,7 +575,7 @@ onMounted(fetchSubmissions);
   margin-left: var(--spacing-xs);
   border-radius: 50%;
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   font-size: 10px;
   font-weight: bold;
   line-height: 1;
@@ -627,7 +627,7 @@ onMounted(fetchSubmissions);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   font-weight: 600;
   font-size: var(--font-size-xs);
   box-shadow: var(--shadow-sm);
@@ -796,7 +796,7 @@ onMounted(fetchSubmissions);
 
 .export-button {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   box-shadow: var(--shadow-colored);
   padding: var(--spacing-sm) var(--spacing-lg);
   font-size: var(--font-size-sm);
@@ -821,7 +821,7 @@ onMounted(fetchSubmissions);
 
 .view-button:hover {
   background: var(--color-info);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .download-button {
@@ -832,7 +832,7 @@ onMounted(fetchSubmissions);
 
 .download-button:hover {
   background: var(--color-success);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 /* Responsive */

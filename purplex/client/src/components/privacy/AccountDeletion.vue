@@ -192,7 +192,7 @@ function formatDate(isoDate: string): string {
 
 .account-deletion__btn--danger {
     background: var(--color-error);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
 }
 
 .account-deletion__btn--danger:hover:not(:disabled) {
@@ -202,7 +202,7 @@ function formatDate(isoDate: string): string {
 
 .account-deletion__btn--cancel {
     background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
 }
 
 .account-deletion__btn--cancel:hover:not(:disabled) {

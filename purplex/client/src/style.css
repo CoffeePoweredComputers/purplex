@@ -156,23 +156,14 @@ select:-webkit-autofill {
 /* Selection styling */
 ::selection {
   background-color: var(--color-primary);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 /* Ensure selection works properly in input fields */
 input::selection,
 textarea::selection {
   background-color: var(--color-primary);
-  color: var(--color-text-primary);
-}
-
-/* Light mode selection: force white text on purple bg (dark text on dark purple fails contrast) */
-html[data-theme="light"] ::selection {
-  color: #ffffff;
-}
-html[data-theme="light"] input::selection,
-html[data-theme="light"] textarea::selection {
-  color: #ffffff;
+  color: var(--color-text-on-filled);
 }
 
 /* Ace Editor specific selection styling - ensures text is visible when selected */

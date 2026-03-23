@@ -101,7 +101,7 @@
               :read-only="true"
               height="450px"
               width="100%"
-              theme="tomorrow_night"
+              :theme="editorTheme"
             />
           </div>
 
@@ -165,6 +165,9 @@ import SubmissionDetailContent from '@/modals/submission-detail/SubmissionDetail
 import { provideContentContext } from '@/composables/useContentContext';
 import { formatTestValue } from '@/utils/testValueFormatter';
 import { log } from '@/utils/logger';
+import { useTheme } from '@/composables/useTheme';
+
+const { editorTheme } = useTheme();
 
 const ctx = provideContentContext();
 const route = useRoute();
@@ -272,7 +275,7 @@ onMounted(fetchSubmission);
   margin-top: 16px;
   padding: 8px 20px;
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -283,7 +286,7 @@ onMounted(fetchSubmission);
   display: flex;
   gap: 24px;
   padding: 16px 20px;
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-bg-input);
   border-radius: 8px;
   flex-wrap: wrap;
@@ -347,7 +350,7 @@ onMounted(fetchSubmission);
 }
 
 .prompt-box {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-bg-input);
   border-radius: 4px;
   padding: 12px;
@@ -361,7 +364,7 @@ onMounted(fetchSubmission);
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-bg-input);
   border-radius: 4px;
 }
@@ -449,7 +452,7 @@ onMounted(fetchSubmission);
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-bg-input);
   border-radius: 4px;
 }

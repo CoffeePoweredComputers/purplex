@@ -255,7 +255,7 @@ function getMemberSince(): string {
     justify-content: center;
     font-size: var(--font-size-xl);
     font-weight: 600;
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     box-shadow: 0 4px 12px var(--color-primary-glow);
 }
 
@@ -337,7 +337,7 @@ function getMemberSince(): string {
 
 .role-badge.admin {
     background: linear-gradient(135deg, var(--color-admin) 0%, var(--color-admin-hover) 100%);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     box-shadow: 0 2px 8px var(--color-admin-shadow);
 }
 
@@ -375,7 +375,7 @@ function getMemberSince(): string {
 
 .logout-button:hover {
     background: var(--color-error);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px var(--color-error-overlay);
 }

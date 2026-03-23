@@ -471,7 +471,7 @@ input::placeholder {
 
 .login-btns button:first-child {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   box-shadow: var(--shadow-colored);
 }
 

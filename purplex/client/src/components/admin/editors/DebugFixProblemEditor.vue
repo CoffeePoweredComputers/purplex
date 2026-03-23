@@ -619,12 +619,12 @@ onMounted(() => {
 
 .buggy-badge {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .reference-badge {
   background: var(--color-success);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 /* Validation Warning */
@@ -648,7 +648,7 @@ onMounted(() => {
   width: 20px;
   height: 20px;
   background: var(--color-warning);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-radius: 50%;
   font-weight: bold;
   font-size: var(--font-size-xs);
@@ -711,7 +711,7 @@ onMounted(() => {
 
 .expand-btn:hover {
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-color: var(--color-primary-gradient-start);
 }
 
@@ -928,7 +928,7 @@ onMounted(() => {
 
 .remove-btn:hover {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-color: var(--color-error);
 }
 </style>

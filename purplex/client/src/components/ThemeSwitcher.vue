@@ -14,6 +14,7 @@
       <button
         v-for="option in options"
         :key="option.value"
+        type="button"
         role="radio"
         :aria-checked="theme === option.value"
         :aria-label="option.label"
@@ -94,7 +95,7 @@ const options = computed<{ value: ThemePreference; label: string }[]>(() => [
 .theme-option.active {
   background: var(--color-bg-panel);
   color: var(--color-text-primary);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), 0 0 0 1px var(--color-bg-border);
 }
 
 @media (width <= 480px) {

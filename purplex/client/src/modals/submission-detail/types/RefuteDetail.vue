@@ -71,7 +71,7 @@ defineProps<{
 
 .signature-box {
   display: block;
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-bg-input);
   border-radius: 4px;
   padding: 8px 12px;
@@ -81,7 +81,7 @@ defineProps<{
 }
 
 .input-box {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-bg-input);
   border-radius: 4px;
   padding: 12px;

@@ -152,7 +152,7 @@
                         :read-only="true"
                         height="100%"
                         width="100%"
-                        theme="tomorrow_night"
+                        :theme="editorTheme"
                         :show-gutter="true"
                       />
                     </div>
@@ -227,6 +227,9 @@ import { computed, nextTick, onMounted, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Editor from '@/features/editor/Editor.vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
+import { useTheme } from '@/composables/useTheme'
+
+const { editorTheme } = useTheme()
 
 type SizePreset = 'small' | 'medium' | 'large' | 'fullscreen'
 
@@ -607,8 +610,9 @@ onMounted(() => {
 }
 
 .size-btn.active {
-  background: var(--color-primary);
+  background: var(--color-bg-panel);
   color: var(--color-text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .close-button {

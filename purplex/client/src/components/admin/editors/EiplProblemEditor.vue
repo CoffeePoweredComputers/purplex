@@ -573,7 +573,7 @@ defineExpose({
 
 .zoom-btn:hover:not(:disabled) {
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-color: var(--color-primary-gradient-start);
 }
 
@@ -643,7 +643,7 @@ defineExpose({
 .btn-primary {
   padding: var(--spacing-sm) var(--spacing-md);
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   cursor: pointer;
@@ -699,7 +699,7 @@ defineExpose({
 
 .test-number {
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -851,7 +851,7 @@ defineExpose({
 
 .remove-btn:hover {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-color: var(--color-error);
 }
 
@@ -1190,7 +1190,7 @@ defineExpose({
 .trace-btn {
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-xs);
   cursor: pointer;
@@ -1362,7 +1362,7 @@ defineExpose({
 
 .btn-icon:hover {
   background: var(--color-error);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border-color: var(--color-error);
 }
 
