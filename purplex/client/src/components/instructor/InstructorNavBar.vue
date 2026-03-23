@@ -237,7 +237,7 @@ const isActiveRoute = (path: string): boolean => {
 }
 
 .instructor-link:focus-visible {
-    outline: 2px solid var(--color-text-primary);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -261,6 +261,58 @@ const isActiveRoute = (path: string): boolean => {
     box-shadow: 0 0 8px var(--color-overlay-strong);
 }
 
+/* Medium viewport - reduce spacing */
+@media (width <= 1024px) {
+    .instructor-nav-list {
+        gap: var(--spacing-md);
+    }
+
+    .instructor-link {
+        padding: var(--spacing-sm) var(--spacing-lg);
+    }
+}
+
+/* Small viewport - further reduce */
+@media (width <= 768px) {
+    .instructor-nav-container {
+        padding: 0 var(--spacing-md);
+    }
+
+    .instructor-nav-list {
+        gap: var(--spacing-sm);
+    }
+
+    .instructor-link {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--font-size-sm);
+    }
+
+    .nav-icon {
+        width: 14px;
+        height: 14px;
+    }
+
+    .instructor-nav-header {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+}
+
+@media (width <= 480px) {
+    .instructor-nav-list {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .instructor-link {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<!-- Unscoped: theme overrides must reach [data-theme] on <html> -->
+<style>
 /* Light mode: invert bar — soft purple bg, dark purple text, solid active tab */
 [data-theme="light"] .instructor-nav {
     background: var(--color-admin-bg);
@@ -287,54 +339,5 @@ const isActiveRoute = (path: string): boolean => {
 
 [data-theme="light"] .instructor-link.router-link-active::after {
     background: var(--color-text-on-filled);
-}
-
-/* Medium viewport - reduce spacing */
-@media (max-width: 1024px) {
-    .instructor-nav-list {
-        gap: var(--spacing-md);
-    }
-
-    .instructor-link {
-        padding: var(--spacing-sm) var(--spacing-lg);
-    }
-}
-
-/* Small viewport - further reduce */
-@media (max-width: 768px) {
-    .instructor-nav-container {
-        padding: 0 var(--spacing-md);
-    }
-
-    .instructor-nav-list {
-        gap: var(--spacing-sm);
-    }
-
-    .instructor-link {
-        padding: var(--spacing-sm) var(--spacing-md);
-        font-size: var(--font-size-sm);
-    }
-
-    .nav-icon {
-        width: 14px;
-        height: 14px;
-    }
-
-    .instructor-nav-header {
-        flex-direction: column;
-        gap: var(--spacing-xs);
-    }
-}
-
-@media (max-width: 480px) {
-    .instructor-nav-list {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .instructor-link {
-        width: 100%;
-        justify-content: center;
-    }
 }
 </style>

@@ -188,12 +188,12 @@ export default defineComponent({
     --color-bg-disabled: #555;
 
     /* Text Colors */
-    --color-text-primary: #ffffff;
+    --color-text-primary: #fff;
     --color-text-secondary: #e0e0e0;
     --color-text-tertiary: #ddd;
     --color-text-muted: #999;
-    --color-text-default: rgba(255, 255, 255, 0.87);
-    --color-text-on-filled: #ffffff;
+    --color-text-default: rgb(255 255 255 / 87%);
+    --color-text-on-filled: #fff;
 
     /* Syntax highlighting (token colors — tomorrow_night palette) */
     --color-syntax-keyword: #B294BB;
@@ -201,7 +201,7 @@ export default defineComponent({
     --color-syntax-comment: #969896;
     --color-syntax-number: #DE935F;
     --color-syntax-builtin: #81A2BE;
-    --color-syntax-variable: #CC6666;
+    --color-syntax-variable: #C66;
     --color-syntax-operator: #8ABEB7;
     --color-syntax-punctuation: #C5C8C6;
 
@@ -225,19 +225,19 @@ export default defineComponent({
     --color-admin-bg: #673ab7;
 
     /* Overlay Colors */
-    --color-overlay-subtle: rgba(255, 255, 255, 0.05);
-    --color-overlay-medium: rgba(255, 255, 255, 0.1);
-    --color-overlay-strong: rgba(255, 255, 255, 0.15);
+    --color-overlay-subtle: rgb(255 255 255 / 5%);
+    --color-overlay-medium: rgb(255 255 255 / 10%);
+    --color-overlay-strong: rgb(255 255 255 / 15%);
 
     /* Status Overlays (low-alpha backgrounds) */
-    --color-success-overlay: rgba(76, 175, 80, 0.15);
-    --color-warning-overlay: rgba(255, 193, 7, 0.15);
-    --color-error-overlay: rgba(220, 53, 69, 0.15);
-    --color-info-overlay: rgba(33, 150, 243, 0.15);
+    --color-success-overlay: rgb(76 175 80 / 15%);
+    --color-warning-overlay: rgb(255 193 7 / 15%);
+    --color-error-overlay: rgb(220 53 69 / 15%);
+    --color-info-overlay: rgb(33 150 243 / 15%);
 
     /* Primary Overlays */
-    --color-primary-overlay: rgba(102, 126, 234, 0.1);
-    --color-primary-glow: rgba(102, 126, 234, 0.3);
+    --color-primary-overlay: rgb(102 126 234 / 10%);
+    --color-primary-glow: rgb(102 126 234 / 30%);
 
     /* Status Gradient Endpoints */
     --color-success-accent: #34d399;
@@ -249,26 +249,26 @@ export default defineComponent({
     --color-info-dark: #1976d2;
 
     /* Extended Overlays (white on dark, black on light) */
-    --color-overlay-border: rgba(255, 255, 255, 0.25);
-    --color-overlay-shimmer: rgba(255, 255, 255, 0.35);
+    --color-overlay-border: rgb(255 255 255 / 25%);
+    --color-overlay-shimmer: rgb(255 255 255 / 35%);
 
     /* Status Borders (colored border accents) */
-    --color-success-border: rgba(76, 175, 80, 0.4);
-    --color-warning-border: rgba(255, 193, 7, 0.4);
-    --color-error-border: rgba(220, 53, 69, 0.4);
-    --color-info-border: rgba(33, 150, 243, 0.4);
+    --color-success-border: rgb(76 175 80 / 40%);
+    --color-warning-border: rgb(255 193 7 / 40%);
+    --color-error-border: rgb(220 53 69 / 40%);
+    --color-info-border: rgb(33 150 243 / 40%);
 
     /* Modal Backdrops */
-    --color-backdrop: rgba(0, 0, 0, 0.5);
-    --color-backdrop-heavy: rgba(0, 0, 0, 0.75);
+    --color-backdrop: rgb(0 0 0 / 50%);
+    --color-backdrop-heavy: rgb(0 0 0 / 75%);
 
     /* Colored Glows (box-shadows) */
-    --color-primary-shadow: rgba(102, 126, 234, 0.4);
-    --color-admin-shadow: rgba(103, 58, 183, 0.3);
-    --color-info-shadow: rgba(59, 130, 246, 0.3);
-    --color-segment-shadow: rgba(159, 122, 234, 0.3);
-    --color-warning-pulse: rgba(251, 191, 36, 0.7);
-    --color-warning-pulse-end: rgba(251, 191, 36, 0);
+    --color-primary-shadow: rgb(102 126 234 / 40%);
+    --color-admin-shadow: rgb(103 58 183 / 30%);
+    --color-info-shadow: rgb(59 130 246 / 30%);
+    --color-segment-shadow: rgb(159 122 234 / 30%);
+    --color-warning-pulse: rgb(251 191 36 / 70%);
+    --color-warning-pulse-end: rgb(251 191 36 / 0%);
 
     /* Segment Colors (used by SegmentMapping and ViewSubmissionModal) */
     --color-segment-1: #9f7aea;
@@ -279,7 +279,10 @@ export default defineComponent({
     --color-segment-6: #fc8181;
 
     /* Ace Editor */
-    --color-ace-selection: rgba(128, 0, 128, 0.3);
+    --color-ace-selection: rgb(128 0 128 / 30%);
+
+    /* Focus Ring */
+    --color-focus-ring: var(--color-primary-gradient-start);
 
     /* Spacing */
     --spacing-xs: 4px;
@@ -300,26 +303,26 @@ export default defineComponent({
     --radius-circle: 50%;
 
     /* Shadows */
-    --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.1);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-    --shadow-base: 0 4px 12px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.4);
-    --shadow-colored: 0 4px 15px rgba(102, 126, 234, 0.3);
+    --shadow-xs: 0 1px 3px rgb(0 0 0 / 10%);
+    --shadow-subtle: 0 2px 4px rgb(0 0 0 / 10%);
+    --shadow-sm: 0 2px 8px rgb(0 0 0 / 20%);
+    --shadow-base: 0 4px 12px rgb(0 0 0 / 30%);
+    --shadow-md: 0 4px 10px rgb(0 0 0 / 30%);
+    --shadow-lg: 0 8px 25px rgb(0 0 0 / 40%);
+    --shadow-colored: 0 4px 15px rgb(102 126 234 / 30%);
 
     /* One-off shadows */
-    --shadow-nav: 0 2px 10px rgba(0, 0, 0, 0.3);
-    --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --shadow-modal: 0 4px 20px rgba(0, 0, 0, 0.15);
-    --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-    --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.5);
-    --shadow-up: 0 -2px 10px rgba(0, 0, 0, 0.3);
-    --shadow-info-hover: 0 4px 12px rgba(59, 130, 246, 0.5);
-    --shadow-info-active: 0 4px 16px rgba(59, 130, 246, 0.6);
-    --shadow-admin-hover: 0 4px 12px rgba(103, 58, 183, 0.5);
-    --shadow-admin-active: 0 4px 16px rgba(103, 58, 183, 0.6);
-    --shadow-segment-hover: 0 4px 16px rgba(159, 122, 234, 0.5);
+    --shadow-nav: 0 2px 10px rgb(0 0 0 / 30%);
+    --shadow-dropdown: 0 8px 32px rgb(0 0 0 / 40%);
+    --shadow-modal: 0 4px 20px rgb(0 0 0 / 15%);
+    --shadow-inset: inset 0 1px 3px rgb(0 0 0 / 20%);
+    --shadow-float: 0 24px 64px rgb(0 0 0 / 50%);
+    --shadow-up: 0 -2px 10px rgb(0 0 0 / 30%);
+    --shadow-info-hover: 0 4px 12px rgb(59 130 246 / 50%);
+    --shadow-info-active: 0 4px 16px rgb(59 130 246 / 60%);
+    --shadow-admin-hover: 0 4px 12px rgb(103 58 183 / 50%);
+    --shadow-admin-active: 0 4px 16px rgb(103 58 183 / 60%);
+    --shadow-segment-hover: 0 4px 16px rgb(159 122 234 / 50%);
 
     /* Transitions */
     --transition-fast: all 0.2s ease;
@@ -361,8 +364,8 @@ export default defineComponent({
     /* Background Colors */
     --color-bg-main: #f8f9fa;
     --color-bg-dark: #e9ecef;
-    --color-bg-panel: #ffffff;
-    --color-bg-panel-light: #ffffff;
+    --color-bg-panel: #fff;
+    --color-bg-panel-light: #fff;
     --color-bg-header: #f1f3f5;
     --color-bg-table: #f1f3f5;
     --color-bg-hover: #dde1e6;
@@ -376,8 +379,8 @@ export default defineComponent({
     --color-text-secondary: #1f2937;
     --color-text-tertiary: #374151;
     --color-text-muted: #4b5563;
-    --color-text-default: rgba(26, 26, 46, 0.87);
-    --color-text-on-filled: #ffffff;
+    --color-text-default: rgb(26 26 46 / 87%);
+    --color-text-on-filled: #fff;
 
     /* Syntax highlighting (token colors — chrome palette) */
     --color-syntax-keyword: #930f80;
@@ -387,7 +390,7 @@ export default defineComponent({
     --color-syntax-builtin: #3c4c72;
     --color-syntax-variable: #318495;
     --color-syntax-operator: #687687;
-    --color-syntax-punctuation: #333333;
+    --color-syntax-punctuation: #333;
 
     /* Status Colors */
     --color-success: #15803d;
@@ -409,19 +412,19 @@ export default defineComponent({
     --color-admin-bg: #ede9fe;
 
     /* Overlay Colors (white-alpha → black-alpha) */
-    --color-overlay-subtle: rgba(0, 0, 0, 0.03);
-    --color-overlay-medium: rgba(0, 0, 0, 0.05);
-    --color-overlay-strong: rgba(0, 0, 0, 0.08);
+    --color-overlay-subtle: rgb(0 0 0 / 3%);
+    --color-overlay-medium: rgb(0 0 0 / 5%);
+    --color-overlay-strong: rgb(0 0 0 / 8%);
 
     /* Status Overlays */
-    --color-success-overlay: rgba(21, 128, 61, 0.08);
-    --color-warning-overlay: rgba(180, 83, 9, 0.08);
-    --color-error-overlay: rgba(220, 38, 38, 0.08);
-    --color-info-overlay: rgba(29, 78, 216, 0.08);
+    --color-success-overlay: rgb(21 128 61 / 8%);
+    --color-warning-overlay: rgb(180 83 9 / 8%);
+    --color-error-overlay: rgb(220 38 38 / 8%);
+    --color-info-overlay: rgb(29 78 216 / 8%);
 
     /* Primary Overlays */
-    --color-primary-overlay: rgba(79, 70, 229, 0.07);
-    --color-primary-glow: rgba(79, 70, 229, 0.15);
+    --color-primary-overlay: rgb(79 70 229 / 7%);
+    --color-primary-glow: rgb(79 70 229 / 15%);
 
     /* Status Gradient Endpoints */
     --color-success-accent: #059669;
@@ -433,26 +436,26 @@ export default defineComponent({
     --color-info-dark: #1e40af;
 
     /* Extended Overlays */
-    --color-overlay-border: rgba(0, 0, 0, 0.12);
-    --color-overlay-shimmer: rgba(0, 0, 0, 0.06);
+    --color-overlay-border: rgb(0 0 0 / 12%);
+    --color-overlay-shimmer: rgb(0 0 0 / 6%);
 
     /* Status Borders */
-    --color-success-border: rgba(21, 128, 61, 0.3);
-    --color-warning-border: rgba(180, 83, 9, 0.3);
-    --color-error-border: rgba(220, 38, 38, 0.3);
-    --color-info-border: rgba(29, 78, 216, 0.3);
+    --color-success-border: rgb(21 128 61 / 30%);
+    --color-warning-border: rgb(180 83 9 / 30%);
+    --color-error-border: rgb(220 38 38 / 30%);
+    --color-info-border: rgb(29 78 216 / 30%);
 
     /* Modal Backdrops (reduced — less darkening over light content) */
-    --color-backdrop: rgba(0, 0, 0, 0.3);
-    --color-backdrop-heavy: rgba(0, 0, 0, 0.6);
+    --color-backdrop: rgb(0 0 0 / 30%);
+    --color-backdrop-heavy: rgb(0 0 0 / 60%);
 
     /* Colored Glows (~50% opacity reduction) */
-    --color-primary-shadow: rgba(79, 70, 229, 0.2);
-    --color-admin-shadow: rgba(91, 33, 182, 0.15);
-    --color-info-shadow: rgba(29, 78, 216, 0.15);
-    --color-segment-shadow: rgba(124, 58, 237, 0.15);
-    --color-warning-pulse: rgba(180, 83, 9, 0.5);
-    --color-warning-pulse-end: rgba(180, 83, 9, 0);
+    --color-primary-shadow: rgb(79 70 229 / 20%);
+    --color-admin-shadow: rgb(91 33 182 / 15%);
+    --color-info-shadow: rgb(29 78 216 / 15%);
+    --color-segment-shadow: rgb(124 58 237 / 15%);
+    --color-warning-pulse: rgb(180 83 9 / 50%);
+    --color-warning-pulse-end: rgb(180 83 9 / 0%);
 
     /* Segment Colors (deeper for contrast on light backgrounds) */
     --color-segment-1: #7c3aed;
@@ -463,29 +466,32 @@ export default defineComponent({
     --color-segment-6: #dc2626;
 
     /* Ace Editor */
-    --color-ace-selection: rgba(107, 0, 107, 0.2);
+    --color-ace-selection: rgb(107 0 107 / 20%);
+
+    /* Focus Ring */
+    --color-focus-ring: var(--color-primary-gradient-start);
 
     /* Shadows (same geometry, ~60-70% opacity reduction) */
-    --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.04);
-    --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.04);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-    --shadow-base: 0 4px 12px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.1);
-    --shadow-colored: 0 4px 15px rgba(79, 70, 229, 0.15);
+    --shadow-xs: 0 1px 3px rgb(0 0 0 / 4%);
+    --shadow-subtle: 0 2px 4px rgb(0 0 0 / 4%);
+    --shadow-sm: 0 2px 8px rgb(0 0 0 / 6%);
+    --shadow-base: 0 4px 12px rgb(0 0 0 / 8%);
+    --shadow-md: 0 4px 10px rgb(0 0 0 / 8%);
+    --shadow-lg: 0 8px 25px rgb(0 0 0 / 10%);
+    --shadow-colored: 0 4px 15px rgb(79 70 229 / 15%);
 
     /* One-off shadows */
-    --shadow-nav: 0 2px 10px rgba(0, 0, 0, 0.06);
-    --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.1);
-    --shadow-modal: 0 4px 20px rgba(0, 0, 0, 0.08);
-    --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.06);
-    --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.12);
-    --shadow-up: 0 -2px 10px rgba(0, 0, 0, 0.06);
-    --shadow-info-hover: 0 4px 12px rgba(29, 78, 216, 0.2);
-    --shadow-info-active: 0 4px 16px rgba(29, 78, 216, 0.25);
-    --shadow-admin-hover: 0 4px 12px rgba(91, 33, 182, 0.2);
-    --shadow-admin-active: 0 4px 16px rgba(91, 33, 182, 0.25);
-    --shadow-segment-hover: 0 4px 16px rgba(124, 58, 237, 0.2);
+    --shadow-nav: 0 2px 10px rgb(0 0 0 / 6%);
+    --shadow-dropdown: 0 8px 32px rgb(0 0 0 / 10%);
+    --shadow-modal: 0 4px 20px rgb(0 0 0 / 8%);
+    --shadow-inset: inset 0 1px 3px rgb(0 0 0 / 6%);
+    --shadow-float: 0 24px 64px rgb(0 0 0 / 12%);
+    --shadow-up: 0 -2px 10px rgb(0 0 0 / 6%);
+    --shadow-info-hover: 0 4px 12px rgb(29 78 216 / 20%);
+    --shadow-info-active: 0 4px 16px rgb(29 78 216 / 25%);
+    --shadow-admin-hover: 0 4px 12px rgb(91 33 182 / 20%);
+    --shadow-admin-active: 0 4px 16px rgb(91 33 182 / 25%);
+    --shadow-segment-hover: 0 4px 16px rgb(124 58 237 / 20%);
 }
 
 /* Skip to main content link - WCAG 2.1 compliant */
@@ -506,7 +512,7 @@ export default defineComponent({
 
 .skip-link:focus {
   top: 0;
-  outline: 3px solid var(--color-text-primary);
+  outline: 3px solid var(--color-text-on-filled);
   outline-offset: 2px;
 }
 
@@ -514,7 +520,7 @@ export default defineComponent({
 .main-content {
     max-width: var(--max-width-app);
     margin: 0 auto;
-    padding: 0 2rem 80px 2rem; /* No top padding to eliminate gap below navbar */
+    padding: 0 2rem 80px; /* No top padding to eliminate gap below navbar */
     scroll-margin-top: 120px; /* Account for sticky navbar height */
 }
 
@@ -588,6 +594,7 @@ export default defineComponent({
     0%, 80%, 100% {
         transform: scale(0);
     }
+
     40% {
         transform: scale(1.0);
     }
@@ -741,6 +748,12 @@ body {
     padding-bottom: 60px; /* Space for fixed footer */
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    transition: background-color 0.3s ease, color 0.2s ease;
+  }
+}
+
 /* Auth Loading State */
 .auth-loading {
   display: flex;
@@ -766,7 +779,7 @@ body {
 }
 
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .footer-content {
         flex-direction: column;
         gap: var(--spacing-sm);

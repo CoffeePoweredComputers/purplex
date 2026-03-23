@@ -58,6 +58,7 @@ jobs:
         run: |
           yarn lint:check
           yarn typecheck
+          yarn stylelint:check
 
       - name: i18n coverage report
         working-directory: purplex/client

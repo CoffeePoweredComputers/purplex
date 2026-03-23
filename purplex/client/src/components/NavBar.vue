@@ -211,9 +211,10 @@ onUnmounted(() => {
     font-weight: 800;
     font-size: 3rem;
     background: linear-gradient(135deg, var(--color-logo-start), var(--color-logo-mid), var(--color-logo-end));
+    /* stylelint-disable-next-line property-no-vendor-prefix -- needed for Safari */
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
     letter-spacing: 1px;
     margin: 0;
     line-height: 1.4;
@@ -280,6 +281,7 @@ onUnmounted(() => {
         opacity: 0;
         transform: translateY(-4px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -480,14 +482,8 @@ onUnmounted(() => {
     border-radius: var(--radius-xs);
 }
 
-/* Light mode: force white text on dark-filled buttons */
-[data-theme="light"] .instructor-item,
-[data-theme="light"] .admin-item {
-    color: var(--color-text-on-filled);
-}
-
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .navbar-container {
         padding: var(--spacing-sm) var(--spacing-lg);
     }
@@ -528,7 +524,7 @@ onUnmounted(() => {
 }
 
 /* Smaller mobile - hide text, show icons only */
-@media (max-width: 480px) {
+@media (width <= 480px) {
     .navbar-container {
         padding: var(--spacing-sm) var(--spacing-md);
     }
@@ -557,5 +553,14 @@ onUnmounted(() => {
     .nav-item {
         padding: var(--spacing-xs) var(--spacing-sm);
     }
+}
+</style>
+
+<!-- Unscoped: theme overrides must reach [data-theme] on <html> -->
+<style>
+/* Light mode: force white text on dark-filled buttons */
+[data-theme="light"] .instructor-item,
+[data-theme="light"] .admin-item {
+    color: var(--color-text-on-filled);
 }
 </style>

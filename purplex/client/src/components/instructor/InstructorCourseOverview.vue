@@ -375,7 +375,7 @@
         </div>
 
         <!-- Course Team Section -->
-        <div class="course-card" style="margin-top: var(--spacing-xl);">
+        <div class="course-card course-card-team">
           <CourseTeamManager
             :course-id="courseId"
             :my-role="myRole"
@@ -739,7 +739,7 @@ onMounted(() => {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -806,7 +806,7 @@ onMounted(() => {
   display: inline-block;
   padding: var(--spacing-md) var(--spacing-xl);
   background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end));
-  color: white;
+  color: var(--color-text-on-filled);
   text-decoration: none;
   border-radius: var(--radius-base);
   font-weight: 600;
@@ -827,6 +827,10 @@ onMounted(() => {
   box-shadow: var(--shadow-base);
   padding: var(--spacing-xl);
   margin-bottom: var(--spacing-xxl);
+}
+
+.course-card-team {
+  margin-top: var(--spacing-xl);
 }
 
 .card-divider {
@@ -914,6 +918,7 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   padding: var(--spacing-md) var(--spacing-lg);
   position: relative;
+
   /* At-rest card appearance - clearly clickable */
   background: var(--color-overlay-subtle);
   border: 1px solid var(--color-primary-overlay);
@@ -960,7 +965,7 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end));
-  color: white;
+  color: var(--color-text-on-filled);
   font-weight: 600;
   font-size: var(--font-size-sm);
   border-radius: 50%;
@@ -1205,7 +1210,7 @@ onMounted(() => {
 
 .clear-filter-btn:hover {
   background: var(--color-admin);
-  color: white;
+  color: var(--color-text-on-filled);
 }
 
 /* Activity Loading/Empty States */
@@ -1389,9 +1394,10 @@ onMounted(() => {
   font-size: var(--font-size-xxl);
   font-weight: 700;
   background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end));
+  /* stylelint-disable-next-line property-no-vendor-prefix -- needed for Safari */
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .snapshot-label {
@@ -1459,12 +1465,14 @@ onMounted(() => {
 
 .snapshot-value.placeholder {
   background: none;
+  /* stylelint-disable-next-line property-no-vendor-prefix -- needed for Safari */
   -webkit-background-clip: unset;
-  -webkit-text-fill-color: var(--color-text-tertiary);
   background-clip: unset;
+  -webkit-text-fill-color: var(--color-text-tertiary);
   color: var(--color-text-tertiary);
 }
 
+/* stylelint-disable-next-line no-descending-specificity -- .muted overrides distribution item colors */
 .muted .dist-count {
   color: var(--color-text-tertiary) !important;
 }
@@ -1487,36 +1495,8 @@ onMounted(() => {
   font-style: italic;
 }
 
-/* Light mode: flatten gradients on colored fills and decorative elements */
-[data-theme="light"] .back-btn {
-  background: var(--color-admin);
-}
-
-[data-theme="light"] .back-btn:hover {
-  background: var(--color-admin-hover);
-}
-
-[data-theme="light"] .marker-number {
-  background: var(--color-admin);
-}
-
-[data-theme="light"] .marker-line {
-  background: var(--color-admin);
-  opacity: 0.3;
-}
-
-[data-theme="light"] .progress-marker {
-  background: var(--color-admin);
-}
-
-[data-theme="light"] .snapshot-value {
-  background: none;
-  -webkit-text-fill-color: var(--color-admin);
-  color: var(--color-admin);
-}
-
 /* Mobile Responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .content-container {
     padding: 0 var(--spacing-md) var(--spacing-xl);
   }
@@ -1564,5 +1544,36 @@ onMounted(() => {
     gap: var(--spacing-sm);
     text-align: center;
   }
+}
+</style>
+
+<!-- Unscoped: theme overrides must reach [data-theme] on <html> -->
+<style>
+/* Light mode: flatten gradients on colored fills and decorative elements */
+[data-theme="light"] .instructor-overview .back-btn {
+  background: var(--color-admin);
+}
+
+[data-theme="light"] .instructor-overview .back-btn:hover {
+  background: var(--color-admin-hover);
+}
+
+[data-theme="light"] .marker-number {
+  background: var(--color-admin);
+}
+
+[data-theme="light"] .marker-line {
+  background: var(--color-admin);
+  opacity: 0.3;
+}
+
+[data-theme="light"] .progress-marker {
+  background: var(--color-admin);
+}
+
+[data-theme="light"] .snapshot-value {
+  background: none;
+  -webkit-text-fill-color: var(--color-admin);
+  color: var(--color-admin);
 }
 </style>
