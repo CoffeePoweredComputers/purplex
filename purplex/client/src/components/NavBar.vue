@@ -211,9 +211,10 @@ onUnmounted(() => {
     font-weight: 800;
     font-size: 3rem;
     background: linear-gradient(135deg, var(--color-logo-start), var(--color-logo-mid), var(--color-logo-end));
+    /* stylelint-disable-next-line property-no-vendor-prefix -- needed for Safari */
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
     letter-spacing: 1px;
     margin: 0;
     line-height: 1.4;
@@ -280,6 +281,7 @@ onUnmounted(() => {
         opacity: 0;
         transform: translateY(-4px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -481,7 +483,7 @@ onUnmounted(() => {
 }
 
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .navbar-container {
         padding: var(--spacing-sm) var(--spacing-lg);
     }
@@ -522,7 +524,7 @@ onUnmounted(() => {
 }
 
 /* Smaller mobile - hide text, show icons only */
-@media (max-width: 480px) {
+@media (width <= 480px) {
     .navbar-container {
         padding: var(--spacing-sm) var(--spacing-md);
     }

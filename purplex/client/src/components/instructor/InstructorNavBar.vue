@@ -262,7 +262,7 @@ const isActiveRoute = (path: string): boolean => {
 }
 
 /* Medium viewport - reduce spacing */
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
     .instructor-nav-list {
         gap: var(--spacing-md);
     }
@@ -273,7 +273,7 @@ const isActiveRoute = (path: string): boolean => {
 }
 
 /* Small viewport - further reduce */
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .instructor-nav-container {
         padding: 0 var(--spacing-md);
     }
@@ -298,7 +298,7 @@ const isActiveRoute = (path: string): boolean => {
     }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
     .instructor-nav-list {
         flex-direction: column;
         width: 100%;

@@ -71,7 +71,7 @@ repos:
     hooks:
       - id: stylelint
         name: Stylelint CSS
-        entry: bash -c 'cd purplex/client && npx stylelint --allow-empty-input "$@"' --
+        entry: npx --prefix purplex/client stylelint --allow-empty-input
         language: system
         files: \.(vue|css)$
         pass_filenames: true

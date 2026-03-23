@@ -138,7 +138,7 @@
 }
 
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .admin-nav-container {
         padding: 0 var(--spacing-md);
     }
@@ -153,7 +153,7 @@
     }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
     .admin-nav-list {
         flex-direction: column;
         width: 100%;
