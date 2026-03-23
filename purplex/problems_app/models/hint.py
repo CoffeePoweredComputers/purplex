@@ -13,6 +13,7 @@ class ProblemHint(models.Model):
         ("variable_fade", "Variable Fade"),
         ("subgoal_highlight", "Subgoal Highlighting"),
         ("suggested_trace", "Suggested Trace"),
+        ("counterexample", "Counterexample"),
     ]
 
     problem = models.ForeignKey(Problem, on_delete=models.CASCADE, related_name="hints")
@@ -66,6 +67,12 @@ class ProblemHint(models.Model):
                 )
             if not isinstance(self.content.get("suggested_call"), str):
                 raise ValidationError("Suggested call must be a string")
+
+        elif self.hint_type == "counterexample":
+            if "input" not in self.content:
+                raise ValidationError("Counterexample hint must contain input")
+            if not isinstance(self.content.get("input"), dict):
+                raise ValidationError("Counterexample input must be a dict")
 
     def __str__(self):
         return f"{self.problem.title} - {self.get_hint_type_display()}"
