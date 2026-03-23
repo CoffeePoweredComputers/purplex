@@ -180,7 +180,7 @@ const bannerClass = computed(() => {
 
 .feedback-header {
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-bottom: 1px solid var(--color-bg-input);
 }
 
@@ -233,23 +233,23 @@ const bannerClass = computed(() => {
 }
 
 .result-banner--correct {
-  background: rgba(72, 187, 120, 0.15);
+  background: var(--color-success-overlay);
   border: 1px solid var(--color-success);
 }
 
 .result-banner--incorrect {
-  background: rgba(245, 101, 101, 0.15);
+  background: var(--color-error-overlay);
   border: 1px solid var(--color-error);
 }
 
 .result-banner--partial {
-  background: rgba(237, 187, 51, 0.15);
-  border: 1px solid var(--color-warning, #edbb33);
+  background: var(--color-warning-overlay);
+  border: 1px solid var(--color-warning);
 }
 
 .result-banner--partial .result-icon {
-  background: var(--color-warning, #edbb33);
-  color: white;
+  background: var(--color-warning);
+  color: var(--color-text-on-filled);
 }
 
 .result-icon {
@@ -265,12 +265,12 @@ const bannerClass = computed(() => {
 
 .result-banner--correct .result-icon {
   background: var(--color-success);
-  color: white;
+  color: var(--color-text-on-filled);
 }
 
 .result-banner--incorrect .result-icon {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-on-filled);
 }
 
 .result-text {
@@ -329,7 +329,7 @@ const bannerClass = computed(() => {
 }
 
 .answer-value--partial {
-  border-left-color: var(--color-warning, #edbb33);
+  border-left-color: var(--color-warning);
 }
 
 /* Explanation */
@@ -341,7 +341,7 @@ const bannerClass = computed(() => {
 
 .explanation-text {
   padding: var(--spacing-md);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);

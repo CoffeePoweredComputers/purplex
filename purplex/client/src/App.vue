@@ -61,6 +61,7 @@ import { computed, defineComponent, getCurrentInstance } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import { useTokenRefresh } from './composables/useTokenRefresh';
+import { useTheme } from './composables/useTheme';
 
 /* Components */
 import Login from './features/auth/Login.vue';
@@ -80,6 +81,7 @@ export default defineComponent({
         const store = useStore();
         const router = useRouter();
         const tokenRefresh = useTokenRefresh();
+        useTheme();
 
         // Make available globally for axios interceptors
         const instance = getCurrentInstance();
@@ -168,6 +170,9 @@ export default defineComponent({
     --color-primary-hover: #9b009b;
     --color-primary-gradient-start: #667eea;
     --color-primary-gradient-end: #764ba2;
+    --color-logo-start: #a78bfa;
+    --color-logo-mid: #c4b5fd;
+    --color-logo-end: #8b7ec8;
 
     /* Background Colors */
     --color-bg-main: #242424;
@@ -177,6 +182,7 @@ export default defineComponent({
     --color-bg-header: #191919;
     --color-bg-table: #272727;
     --color-bg-hover: #2a2a2a;
+    --color-bg-section: #2a2a2a;
     --color-bg-input: #333;
     --color-bg-border: #444;
     --color-bg-disabled: #555;
@@ -187,6 +193,17 @@ export default defineComponent({
     --color-text-tertiary: #ddd;
     --color-text-muted: #999;
     --color-text-default: rgba(255, 255, 255, 0.87);
+    --color-text-on-filled: #ffffff;
+
+    /* Syntax highlighting (token colors — tomorrow_night palette) */
+    --color-syntax-keyword: #B294BB;
+    --color-syntax-string: #B5BD68;
+    --color-syntax-comment: #969896;
+    --color-syntax-number: #DE935F;
+    --color-syntax-builtin: #81A2BE;
+    --color-syntax-variable: #CC6666;
+    --color-syntax-operator: #8ABEB7;
+    --color-syntax-punctuation: #C5C8C6;
 
     /* Status Colors */
     --color-success: #4CAF50;
@@ -205,6 +222,64 @@ export default defineComponent({
     /* Admin Colors */
     --color-admin: #673ab7;
     --color-admin-hover: #5e35b1;
+    --color-admin-bg: #673ab7;
+
+    /* Overlay Colors */
+    --color-overlay-subtle: rgba(255, 255, 255, 0.05);
+    --color-overlay-medium: rgba(255, 255, 255, 0.1);
+    --color-overlay-strong: rgba(255, 255, 255, 0.15);
+
+    /* Status Overlays (low-alpha backgrounds) */
+    --color-success-overlay: rgba(76, 175, 80, 0.15);
+    --color-warning-overlay: rgba(255, 193, 7, 0.15);
+    --color-error-overlay: rgba(220, 53, 69, 0.15);
+    --color-info-overlay: rgba(33, 150, 243, 0.15);
+
+    /* Primary Overlays */
+    --color-primary-overlay: rgba(102, 126, 234, 0.1);
+    --color-primary-glow: rgba(102, 126, 234, 0.3);
+
+    /* Status Gradient Endpoints */
+    --color-success-accent: #34d399;
+    --color-warning-accent: #fbbf24;
+    --color-error-accent: #f87171;
+    --color-error-dark: #c82333;
+    --color-warning-dark: #e0a800;
+    --color-success-dark: #218838;
+    --color-info-dark: #1976d2;
+
+    /* Extended Overlays (white on dark, black on light) */
+    --color-overlay-border: rgba(255, 255, 255, 0.25);
+    --color-overlay-shimmer: rgba(255, 255, 255, 0.35);
+
+    /* Status Borders (colored border accents) */
+    --color-success-border: rgba(76, 175, 80, 0.4);
+    --color-warning-border: rgba(255, 193, 7, 0.4);
+    --color-error-border: rgba(220, 53, 69, 0.4);
+    --color-info-border: rgba(33, 150, 243, 0.4);
+
+    /* Modal Backdrops */
+    --color-backdrop: rgba(0, 0, 0, 0.5);
+    --color-backdrop-heavy: rgba(0, 0, 0, 0.75);
+
+    /* Colored Glows (box-shadows) */
+    --color-primary-shadow: rgba(102, 126, 234, 0.4);
+    --color-admin-shadow: rgba(103, 58, 183, 0.3);
+    --color-info-shadow: rgba(59, 130, 246, 0.3);
+    --color-segment-shadow: rgba(159, 122, 234, 0.3);
+    --color-warning-pulse: rgba(251, 191, 36, 0.7);
+    --color-warning-pulse-end: rgba(251, 191, 36, 0);
+
+    /* Segment Colors (used by SegmentMapping and ViewSubmissionModal) */
+    --color-segment-1: #9f7aea;
+    --color-segment-2: #4299e1;
+    --color-segment-3: #4fd1c5;
+    --color-segment-4: #68d391;
+    --color-segment-5: #f6ad55;
+    --color-segment-6: #fc8181;
+
+    /* Ace Editor */
+    --color-ace-selection: rgba(128, 0, 128, 0.3);
 
     /* Spacing */
     --spacing-xs: 4px;
@@ -225,11 +300,26 @@ export default defineComponent({
     --radius-circle: 50%;
 
     /* Shadows */
+    --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.1);
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
     --shadow-base: 0 4px 12px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.3);
     --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.4);
     --shadow-colored: 0 4px 15px rgba(102, 126, 234, 0.3);
+
+    /* One-off shadows */
+    --shadow-nav: 0 2px 10px rgba(0, 0, 0, 0.3);
+    --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-modal: 0 4px 20px rgba(0, 0, 0, 0.15);
+    --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.5);
+    --shadow-up: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    --shadow-info-hover: 0 4px 12px rgba(59, 130, 246, 0.5);
+    --shadow-info-active: 0 4px 16px rgba(59, 130, 246, 0.6);
+    --shadow-admin-hover: 0 4px 12px rgba(103, 58, 183, 0.5);
+    --shadow-admin-active: 0 4px 16px rgba(103, 58, 183, 0.6);
+    --shadow-segment-hover: 0 4px 16px rgba(159, 122, 234, 0.5);
 
     /* Transitions */
     --transition-fast: all 0.2s ease;
@@ -252,13 +342,159 @@ export default defineComponent({
     --font-size-title: 5rem;
 }
 
+/* ──────────────────────────────────────────────
+   Light theme overrides
+   Only color and shadow variables are re-declared.
+   Spacing, radius, transitions, layout, and typography
+   are inherited unchanged from :root.
+   ────────────────────────────────────────────── */
+[data-theme="light"] {
+    /* Primary Colors */
+    --color-primary: #6b006b;
+    --color-primary-hover: #570057;
+    --color-primary-gradient-start: #4f46e5;
+    --color-primary-gradient-end: #6d28d9;
+    --color-logo-start: #7c3aed;
+    --color-logo-mid: #8b5cf6;
+    --color-logo-end: #6d28d9;
+
+    /* Background Colors */
+    --color-bg-main: #f8f9fa;
+    --color-bg-dark: #e9ecef;
+    --color-bg-panel: #ffffff;
+    --color-bg-panel-light: #ffffff;
+    --color-bg-header: #f1f3f5;
+    --color-bg-table: #f1f3f5;
+    --color-bg-hover: #dde1e6;
+    --color-bg-section: #f5f5f7;
+    --color-bg-input: #e9ecef;
+    --color-bg-border: #d1d5db;
+    --color-bg-disabled: #9ca3af;
+
+    /* Text Colors */
+    --color-text-primary: #1a1a2e;
+    --color-text-secondary: #1f2937;
+    --color-text-tertiary: #374151;
+    --color-text-muted: #4b5563;
+    --color-text-default: rgba(26, 26, 46, 0.87);
+    --color-text-on-filled: #ffffff;
+
+    /* Syntax highlighting (token colors — chrome palette) */
+    --color-syntax-keyword: #930f80;
+    --color-syntax-string: #1A1AA6;
+    --color-syntax-comment: #236e24;
+    --color-syntax-number: #0000CD;
+    --color-syntax-builtin: #3c4c72;
+    --color-syntax-variable: #318495;
+    --color-syntax-operator: #687687;
+    --color-syntax-punctuation: #333333;
+
+    /* Status Colors */
+    --color-success: #15803d;
+    --color-success-bg: #dcfce7;
+    --color-success-text: #14532d;
+    --color-warning: #b45309;
+    --color-warning-bg: #fef3c7;
+    --color-warning-text: #78350f;
+    --color-error: #dc2626;
+    --color-error-bg: #fee2e2;
+    --color-error-text: #7f1d1d;
+    --color-info: #1d4ed8;
+    --color-info-bg: #dbeafe;
+    --color-info-text: #1e3a5f;
+
+    /* Admin Colors */
+    --color-admin: #7c3aed;
+    --color-admin-hover: #6d28d9;
+    --color-admin-bg: #ede9fe;
+
+    /* Overlay Colors (white-alpha → black-alpha) */
+    --color-overlay-subtle: rgba(0, 0, 0, 0.03);
+    --color-overlay-medium: rgba(0, 0, 0, 0.05);
+    --color-overlay-strong: rgba(0, 0, 0, 0.08);
+
+    /* Status Overlays */
+    --color-success-overlay: rgba(21, 128, 61, 0.08);
+    --color-warning-overlay: rgba(180, 83, 9, 0.08);
+    --color-error-overlay: rgba(220, 38, 38, 0.08);
+    --color-info-overlay: rgba(29, 78, 216, 0.08);
+
+    /* Primary Overlays */
+    --color-primary-overlay: rgba(79, 70, 229, 0.07);
+    --color-primary-glow: rgba(79, 70, 229, 0.15);
+
+    /* Status Gradient Endpoints */
+    --color-success-accent: #059669;
+    --color-warning-accent: #d97706;
+    --color-error-accent: #ef4444;
+    --color-error-dark: #b91c1c;
+    --color-warning-dark: #92400e;
+    --color-success-dark: #065f46;
+    --color-info-dark: #1e40af;
+
+    /* Extended Overlays */
+    --color-overlay-border: rgba(0, 0, 0, 0.12);
+    --color-overlay-shimmer: rgba(0, 0, 0, 0.06);
+
+    /* Status Borders */
+    --color-success-border: rgba(21, 128, 61, 0.3);
+    --color-warning-border: rgba(180, 83, 9, 0.3);
+    --color-error-border: rgba(220, 38, 38, 0.3);
+    --color-info-border: rgba(29, 78, 216, 0.3);
+
+    /* Modal Backdrops (reduced — less darkening over light content) */
+    --color-backdrop: rgba(0, 0, 0, 0.3);
+    --color-backdrop-heavy: rgba(0, 0, 0, 0.6);
+
+    /* Colored Glows (~50% opacity reduction) */
+    --color-primary-shadow: rgba(79, 70, 229, 0.2);
+    --color-admin-shadow: rgba(91, 33, 182, 0.15);
+    --color-info-shadow: rgba(29, 78, 216, 0.15);
+    --color-segment-shadow: rgba(124, 58, 237, 0.15);
+    --color-warning-pulse: rgba(180, 83, 9, 0.5);
+    --color-warning-pulse-end: rgba(180, 83, 9, 0);
+
+    /* Segment Colors (deeper for contrast on light backgrounds) */
+    --color-segment-1: #7c3aed;
+    --color-segment-2: #2563eb;
+    --color-segment-3: #0d9488;
+    --color-segment-4: #16a34a;
+    --color-segment-5: #ea580c;
+    --color-segment-6: #dc2626;
+
+    /* Ace Editor */
+    --color-ace-selection: rgba(107, 0, 107, 0.2);
+
+    /* Shadows (same geometry, ~60-70% opacity reduction) */
+    --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-base: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.1);
+    --shadow-colored: 0 4px 15px rgba(79, 70, 229, 0.15);
+
+    /* One-off shadows */
+    --shadow-nav: 0 2px 10px rgba(0, 0, 0, 0.06);
+    --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.1);
+    --shadow-modal: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.12);
+    --shadow-up: 0 -2px 10px rgba(0, 0, 0, 0.06);
+    --shadow-info-hover: 0 4px 12px rgba(29, 78, 216, 0.2);
+    --shadow-info-active: 0 4px 16px rgba(29, 78, 216, 0.25);
+    --shadow-admin-hover: 0 4px 12px rgba(91, 33, 182, 0.2);
+    --shadow-admin-active: 0 4px 16px rgba(91, 33, 182, 0.25);
+    --shadow-segment-hover: 0 4px 16px rgba(124, 58, 237, 0.2);
+}
+
 /* Skip to main content link - WCAG 2.1 compliant */
 .skip-link {
   position: fixed;
   top: -100%;
   left: 0;
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   padding: var(--spacing-md) var(--spacing-lg);
   text-decoration: none;
   font-weight: 600;
@@ -385,7 +621,7 @@ export default defineComponent({
 
 .action-button {
     background-color: var(--color-primary);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     padding: var(--spacing-sm) var(--spacing-lg);
     border: none;
     border-radius: var(--radius-xs);
@@ -461,23 +697,21 @@ export default defineComponent({
 }
 
 .copyright {
-    opacity: 0.8;
+    color: var(--color-text-muted);
 }
 
 .footer-link {
     color: var(--color-text-muted);
     text-decoration: none;
-    opacity: 0.8;
-    transition: opacity 0.2s;
+    transition: color 0.2s;
 }
 
 .footer-link:hover {
-    opacity: 1;
     color: var(--color-text-secondary);
 }
 
 .sponsor {
-    opacity: 0.8;
+    color: var(--color-text-muted);
     margin-right: 8px;
 }
 
@@ -491,6 +725,14 @@ export default defineComponent({
 .meta-logo:hover {
     opacity: 1;
     filter: brightness(0) invert(0.9);  /* Even lighter on hover */
+}
+
+[data-theme="light"] .meta-logo {
+    filter: brightness(0) invert(0.3);  /* Dark gray for light theme */
+}
+
+[data-theme="light"] .meta-logo:hover {
+    filter: brightness(0) invert(0.1);  /* Near-black on hover */
 }
 
 /* Add padding to body to account for fixed footer */

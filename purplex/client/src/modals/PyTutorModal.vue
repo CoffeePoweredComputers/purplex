@@ -427,7 +427,7 @@ onBeforeUnmount(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: var(--color-backdrop-heavy);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -535,8 +535,9 @@ onBeforeUnmount(() => {
 }
 
 .size-btn.active {
-  background: var(--color-primary);
+  background: var(--color-bg-panel);
   color: var(--color-text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .action-button {
@@ -555,7 +556,7 @@ onBeforeUnmount(() => {
 
 .action-button:hover {
   background: var(--color-primary);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   transform: translateY(-1px);
 }
 
@@ -653,7 +654,7 @@ onBeforeUnmount(() => {
 
 .retry-button {
   background: var(--color-primary);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   padding: var(--spacing-sm) var(--spacing-lg);
   border-radius: var(--radius-sm);
@@ -789,7 +790,7 @@ onBeforeUnmount(() => {
 
 .action-btn.primary {
   background: var(--color-primary);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .action-btn.primary:hover {

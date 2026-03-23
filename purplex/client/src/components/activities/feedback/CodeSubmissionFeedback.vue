@@ -591,9 +591,9 @@ onBeforeUnmount(() => {
   height: 20px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
+    var(--color-overlay-subtle) 0%,
+    var(--color-overlay-medium) 50%,
+    var(--color-overlay-subtle) 100%
   );
   background-size: 200% 100%;
   border-radius: var(--radius-xs);
@@ -619,9 +619,9 @@ onBeforeUnmount(() => {
   height: 250px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.03) 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.03) 100%
+    var(--color-overlay-subtle) 0%,
+    var(--color-overlay-subtle) 50%,
+    var(--color-overlay-subtle) 100%
   );
   background-size: 200% 100%;
   border-radius: var(--radius-base);
@@ -633,9 +633,9 @@ onBeforeUnmount(() => {
   height: 60px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
+    var(--color-overlay-subtle) 0%,
+    var(--color-overlay-medium) 50%,
+    var(--color-overlay-subtle) 100%
   );
   background-size: 200% 100%;
   border-radius: var(--radius-xs);
@@ -654,7 +654,7 @@ onBeforeUnmount(() => {
 
 /* Header - Aligned with Feedback.vue */
 .feedback-header {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -740,22 +740,22 @@ onBeforeUnmount(() => {
 }
 
 .attempt-score-badge.score-perfect {
-  background: rgba(76, 175, 80, 0.15);
+  background: var(--color-success-overlay);
   color: var(--color-success);
 }
 
 .attempt-score-badge.score-good {
-  background: rgba(76, 175, 80, 0.1);
-  color: rgb(76, 175, 80);
+  background: var(--color-success-overlay);
+  color: var(--color-success);
 }
 
 .attempt-score-badge.score-partial {
-  background: rgba(255, 193, 7, 0.1);
-  color: rgb(255, 193, 7);
+  background: var(--color-warning-overlay);
+  color: var(--color-warning);
 }
 
 .attempt-score-badge.score-low {
-  background: rgba(220, 53, 69, 0.1);
+  background: var(--color-error-overlay);
   color: var(--color-error);
 }
 
@@ -775,9 +775,9 @@ onBeforeUnmount(() => {
   width: 240px;
   max-height: 200px;
   background: var(--color-bg-panel);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-overlay-subtle);
   border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-base);
   z-index: 99999;
   overflow: hidden;
   transition: opacity 0.15s ease, visibility 0.15s ease;
@@ -830,12 +830,12 @@ onBeforeUnmount(() => {
 }
 
 .attempt-item-minimal:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-overlay-subtle);
   color: var(--color-text-secondary);
 }
 
 .attempt-item-minimal.is-current {
-  background: rgba(102, 126, 234, 0.08);
+  background: var(--color-primary-overlay);
   color: var(--color-text-primary);
 }
 
@@ -873,7 +873,7 @@ onBeforeUnmount(() => {
 }
 
 .attempt-score-minimal.score-good {
-  color: rgb(76, 175, 80);
+  color: var(--color-success);
 }
 
 .attempt-score-minimal.score-partial {
@@ -909,7 +909,7 @@ onBeforeUnmount(() => {
 
 .code-header {
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   font-weight: 600;
@@ -922,7 +922,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-top: 1px solid var(--color-bg-input);
   border-bottom: 1px solid var(--color-bg-input);
 }
@@ -1024,18 +1024,18 @@ details:not([open]) .group-icon {
   justify-content: space-between;
   align-items: flex-start;
   padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-radius: var(--radius-xs);
   border: 1px solid var(--color-bg-input);
   gap: var(--spacing-md);
 }
 
 .test-item.failing {
-  border-color: rgba(220, 53, 69, 0.3);
+  border-color: var(--color-error-overlay);
 }
 
 .test-item.passing {
-  border-color: rgba(76, 175, 80, 0.3);
+  border-color: var(--color-success-overlay);
 }
 
 .test-content {
@@ -1089,7 +1089,7 @@ details:not([open]) .group-icon {
 
 .debug-btn {
   background: var(--color-info);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   padding: var(--spacing-xs);
   border-radius: var(--radius-xs);
@@ -1104,7 +1104,7 @@ details:not([open]) .group-icon {
 }
 
 .debug-btn:hover {
-  background: #1976d2;
+  background: var(--color-info-dark);
   transform: translateY(-1px);
 }
 

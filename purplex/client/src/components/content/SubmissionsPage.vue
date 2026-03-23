@@ -464,9 +464,9 @@ onMounted(fetchSubmissions);
 .filter-group input,
 .filter-group select {
   padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--color-border, var(--color-bg-input));
+  border: 1px solid var(--color-bg-input);
   border-radius: var(--radius-base);
-  background: var(--color-surface, var(--color-bg-hover));
+  background: var(--color-bg-hover);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   height: 38px;
@@ -500,7 +500,7 @@ onMounted(fetchSubmissions);
 .clear-filters-btn {
   padding: var(--spacing-sm) var(--spacing-md);
   background: transparent;
-  border: 1px solid var(--color-border, var(--color-bg-input));
+  border: 1px solid var(--color-bg-input);
   border-radius: var(--radius-base);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
@@ -542,7 +542,7 @@ onMounted(fetchSubmissions);
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-sm);
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--color-primary-overlay);
   border: 1px solid var(--color-primary-gradient-start);
   border-radius: var(--radius-xl);
   font-size: var(--font-size-xs);
@@ -552,7 +552,7 @@ onMounted(fetchSubmissions);
 }
 
 .filter-chip:hover {
-  background: rgba(102, 126, 234, 0.2);
+  background: var(--color-primary-overlay);
 }
 
 .chip-label {
@@ -575,7 +575,7 @@ onMounted(fetchSubmissions);
   margin-left: var(--spacing-xs);
   border-radius: 50%;
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-on-filled);
   font-size: 10px;
   font-weight: bold;
   line-height: 1;
@@ -627,7 +627,7 @@ onMounted(fetchSubmissions);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   font-weight: 600;
   font-size: var(--font-size-xs);
   box-shadow: var(--shadow-sm);
@@ -796,7 +796,7 @@ onMounted(fetchSubmissions);
 
 .export-button {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   box-shadow: var(--shadow-colored);
   padding: var(--spacing-sm) var(--spacing-lg);
   font-size: var(--font-size-sm);
@@ -804,7 +804,7 @@ onMounted(fetchSubmissions);
 
 .export-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 .export-button:disabled {
@@ -821,7 +821,7 @@ onMounted(fetchSubmissions);
 
 .view-button:hover {
   background: var(--color-info);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 .download-button {
@@ -832,7 +832,7 @@ onMounted(fetchSubmissions);
 
 .download-button:hover {
   background: var(--color-success);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 /* Responsive */

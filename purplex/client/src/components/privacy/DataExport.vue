@@ -71,7 +71,7 @@ async function exportData() {
 .data-export__btn {
     padding: var(--spacing-sm) var(--spacing-lg);
     background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;

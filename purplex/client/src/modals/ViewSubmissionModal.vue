@@ -126,8 +126,10 @@
 
           <!-- Main Grid: code+tests group | segmentation -->
           <div
+            ref="outerGridRef"
             class="main-grid"
-            :class="{ 'has-segmentation': submission?.segmentation?.segments?.length }"
+            :class="{ 'has-segmentation': hasSegmentation }"
+            :style="hasSegmentation ? { gridTemplateColumns: outerResize.gridTemplate.value } : undefined"
           >
             <!-- Left group: Code + Tests -->
             <div class="code-tests-group">
@@ -165,7 +167,11 @@
                 </div>
               </div>
 
-              <div class="code-tests-columns">
+              <div
+                ref="innerGridRef"
+                class="code-tests-columns"
+                :style="{ gridTemplateColumns: innerResize.gridTemplate.value }"
+              >
                 <!-- Code -->
                 <div class="code-column">
                   <div class="code-section">
@@ -186,10 +192,18 @@
                       :min-lines="3"
                       :max-lines="30"
                       width="100%"
-                      theme="tomorrow_night"
+                      :theme="editorTheme"
                     />
                   </div>
                 </div>
+
+                <!-- Inner resize handle -->
+                <div
+                  class="resize-handle"
+                  @pointerdown="innerResize.onPointerDown"
+                  @pointermove="innerResize.onPointerMove"
+                  @pointerup="innerResize.onPointerUp"
+                />
 
                 <!-- Tests -->
                 <div class="tests-panel">
@@ -303,9 +317,18 @@
               </div>
             </div>
 
+            <!-- Outer resize handle -->
+            <div
+              v-if="hasSegmentation"
+              class="resize-handle"
+              @pointerdown="outerResize.onPointerDown"
+              @pointermove="outerResize.onPointerMove"
+              @pointerup="outerResize.onPointerUp"
+            />
+
             <!-- Right: Segmentation (only for EiPL) -->
             <div
-              v-if="submission?.segmentation?.segments?.length"
+              v-if="hasSegmentation"
               class="segmentation-panel"
             >
               <div class="section-header">
@@ -354,6 +377,10 @@ import SubmissionDetailContent from '@/modals/submission-detail/SubmissionDetail
 import { formatTestValue, getValueDisplayClass } from '@/utils/testValueFormatter'
 import { log } from '@/utils/logger'
 import { useFocusTrap } from '@/composables/useFocusTrap'
+import { useTheme } from '@/composables/useTheme'
+import { useResizableColumns } from '@/composables/useResizableColumns'
+
+const { editorTheme } = useTheme()
 
 interface TestResult {
   passed?: boolean
@@ -469,10 +496,28 @@ const submissionTypeLabel = computed(() => {
   return st ? (typeMap[st] || st) : ''
 })
 
+// Resizable column grids
+const innerGridRef = ref<HTMLElement | null>(null)
+const outerGridRef = ref<HTMLElement | null>(null)
+
+const innerResize = useResizableColumns(innerGridRef, {
+  storageKey: 'purplex_submission_inner_split',
+  initialRatios: [1, 1],
+})
+
+const outerResize = useResizableColumns(outerGridRef, {
+  storageKey: 'purplex_submission_outer_split',
+  initialRatios: [2, 1],
+})
+
 // State
 const currentVariationIndex = ref(0)
 
 // Computed
+const hasSegmentation = computed(() =>
+  (props.submission?.segmentation?.segments?.length ?? 0) > 0
+)
+
 const hasVariations = computed(() => {
   if (props.submission?.data?.variations?.length && props.submission.data.variations.length >= 1) {
     return true
@@ -777,10 +822,10 @@ function formatHintTime(timestamp: string | undefined): string {
 }
 
 // Segment display helpers
-const SEGMENT_COLORS = ['#9f7aea', '#4299e1', '#4fd1c5', '#68d391', '#f6ad55', '#fc8181']
-
 function getSegmentColor(index: number): string {
-  return SEGMENT_COLORS[index % SEGMENT_COLORS.length]
+  const varIndex = (index % 6) + 1
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(`--color-segment-${varIndex}`).trim() || '#9f7aea'
 }
 
 function formatCodeLines(lines: number[]): string {
@@ -816,7 +861,7 @@ watch(() => props.submission, () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -832,7 +877,7 @@ watch(() => props.submission, () => {
 .modal-content {
   background: var(--color-bg-panel);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-modal);
   max-width: 1400px;
   width: 95vw;
   max-height: 85vh;
@@ -932,7 +977,7 @@ watch(() => props.submission, () => {
 .download-btn {
   padding: 6px 12px;
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: 4px;
   font-size: 13px;
@@ -955,7 +1000,7 @@ watch(() => props.submission, () => {
   display: flex;
   gap: 24px;
   padding: 16px 20px;
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-bottom: 1px solid var(--color-bg-input);
   flex-wrap: wrap;
 }
@@ -988,7 +1033,7 @@ watch(() => props.submission, () => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 20px;
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-bottom: 1px solid var(--color-bg-input);
 }
 
@@ -1065,7 +1110,9 @@ watch(() => props.submission, () => {
 }
 
 .main-grid.has-segmentation {
-  grid-template-columns: 2fr 1fr;
+  /* Default fallback; overridden by inline style from useResizableColumns */
+  grid-template-columns: 2fr 6px 1fr;
+  gap: 7px;
 }
 
 .code-tests-group {
@@ -1082,8 +1129,9 @@ watch(() => props.submission, () => {
 
 .code-tests-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  /* Default fallback; overridden by inline style from useResizableColumns */
+  grid-template-columns: 1fr 6px 1fr;
+  gap: 7px;
 }
 
 .tests-panel {
@@ -1162,7 +1210,7 @@ watch(() => props.submission, () => {
 }
 
 .prompt-box {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-bg-input);
   border-radius: 4px;
   padding: 12px;
@@ -1183,7 +1231,7 @@ watch(() => props.submission, () => {
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-bottom: 1px solid var(--color-bg-input);
   margin-bottom: var(--spacing-md);
 }
@@ -1265,19 +1313,19 @@ details[open] .group-icon {
   justify-content: space-between;
   align-items: flex-start;
   padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-radius: var(--radius-xs);
   border: 1px solid var(--color-bg-input);
   gap: var(--spacing-md);
 }
 
 .test-item.failing {
-  border-color: rgba(220, 53, 69, 0.3);
+  border-color: var(--color-error-overlay);
   background: var(--color-error-bg);
 }
 
 .test-item.passing {
-  border-color: rgba(76, 175, 80, 0.3);
+  border-color: var(--color-success-overlay);
   background: var(--color-success-bg);
 }
 
@@ -1353,7 +1401,7 @@ details[open] .group-icon {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  color: #fff;
+  color: var(--color-text-on-filled);
   font-size: 12px;
   font-weight: 600;
 }
@@ -1378,28 +1426,28 @@ details[open] .group-icon {
   min-width: 28px;
   height: 28px;
   padding: 0 8px;
-  background: linear-gradient(135deg, #9f7aea 0%, #667eea 100%);
-  color: white;
+  background: linear-gradient(135deg, #9f7aea 0%, var(--color-primary-gradient-start) 100%);
+  color: var(--color-text-on-filled);
   font-size: 16px;
   font-weight: 700;
   border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(159, 122, 234, 0.3);
+  box-shadow: 0 2px 8px var(--color-segment-shadow);
   animation: pulse-glow 2s ease-in-out infinite;
   margin: 0 2px;
 }
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 2px 8px rgba(159, 122, 234, 0.3);
+    box-shadow: 0 2px 8px var(--color-segment-shadow);
   }
   50% {
-    box-shadow: 0 4px 16px rgba(159, 122, 234, 0.5);
+    box-shadow: var(--shadow-segment-hover);
   }
 }
 
 /* Hints Section */
 .hints-section {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-radius: 6px;
   padding: 16px;
 }
@@ -1424,7 +1472,7 @@ details[open] .group-icon {
 
 .hint-item:hover {
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 2px 8px var(--color-primary-overlay);
 }
 
 .hint-icon {
@@ -1469,6 +1517,35 @@ details[open] .group-icon {
   font-size: 14px;
 }
 
+/* Resize Handle */
+.resize-handle {
+  cursor: col-resize;
+  position: relative;
+  z-index: 1;
+  touch-action: none;
+}
+
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--color-bg-border);
+  border-radius: 1px;
+  opacity: 0.4;
+  transition: opacity 0.2s, background-color 0.2s, width 0.2s;
+}
+
+.resize-handle:hover::before,
+.resize-handle:active::before {
+  opacity: 1;
+  background: var(--color-primary-gradient-start);
+  width: 3px;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .modal-content {
@@ -1504,14 +1581,18 @@ details[open] .group-icon {
     padding: 16px;
   }
 
+  .resize-handle {
+    display: none;
+  }
+
   .main-grid,
   .main-grid.has-segmentation {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 16px;
   }
 
   .code-tests-columns {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 16px;
   }
 

@@ -123,7 +123,7 @@ const isActiveRoute = (path: string): boolean => {
     top: -100%;
     left: 0;
     background: var(--color-primary-gradient-start);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     padding: var(--spacing-md) var(--spacing-lg);
     text-decoration: none;
     font-weight: 600;
@@ -141,7 +141,7 @@ const isActiveRoute = (path: string): boolean => {
 
 .instructor-nav {
     background: linear-gradient(135deg, var(--color-admin) 0%, var(--color-admin-hover) 100%);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     width: 100%;
     padding: var(--spacing-lg) 0;
     margin-bottom: var(--spacing-xl);
@@ -176,8 +176,8 @@ const isActiveRoute = (path: string): boolean => {
     background: linear-gradient(
         90deg,
         transparent 0%,
-        rgba(255, 255, 255, 0.3) 20%,
-        rgba(255, 255, 255, 0.3) 80%,
+        var(--color-overlay-strong) 20%,
+        var(--color-overlay-strong) 80%,
         transparent 100%
     );
     margin-bottom: var(--spacing-lg);
@@ -221,7 +221,7 @@ const isActiveRoute = (path: string): boolean => {
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-overlay-medium);
     border-radius: var(--radius-base);
     opacity: 0;
     transition: var(--transition-base);
@@ -233,7 +233,7 @@ const isActiveRoute = (path: string): boolean => {
 
 .instructor-link:hover {
     transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: var(--color-overlay-strong);
 }
 
 .instructor-link:focus-visible {
@@ -242,11 +242,11 @@ const isActiveRoute = (path: string): boolean => {
 }
 
 .instructor-link.router-link-active {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
+    background: var(--color-overlay-strong);
+    border-color: var(--color-overlay-strong);
     box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.2),
-        0 0 20px rgba(255, 255, 255, 0.15);
+        var(--shadow-base),
+        0 0 20px var(--color-overlay-strong);
 }
 
 .instructor-link.router-link-active::after {
@@ -258,7 +258,35 @@ const isActiveRoute = (path: string): boolean => {
     height: 4px;
     background: var(--color-text-primary);
     border-radius: var(--radius-xs);
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 8px var(--color-overlay-strong);
+}
+
+/* Light mode: invert bar — soft purple bg, dark purple text, solid active tab */
+[data-theme="light"] .instructor-nav {
+    background: var(--color-admin-bg);
+    color: var(--color-admin);
+}
+
+[data-theme="light"] .instructor-link {
+    color: var(--color-admin);
+}
+
+[data-theme="light"] .instructor-link:hover {
+    border-color: var(--color-admin-shadow);
+}
+
+[data-theme="light"] .instructor-link:focus-visible {
+    outline-color: var(--color-admin);
+}
+
+[data-theme="light"] .instructor-link.router-link-active {
+    background: var(--color-admin);
+    color: var(--color-text-on-filled);
+    border-color: transparent;
+}
+
+[data-theme="light"] .instructor-link.router-link-active::after {
+    background: var(--color-text-on-filled);
 }
 
 /* Medium viewport - reduce spacing */

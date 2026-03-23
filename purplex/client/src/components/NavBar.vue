@@ -142,9 +142,9 @@ onUnmounted(() => {
     top: 0;
     width: 100%;
     z-index: 999;
-    background: linear-gradient(180deg, var(--color-bg-panel) 0%, var(--color-bg-dark) 100%);
-    border-bottom: 1px solid rgba(139, 126, 200, 0.2);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    background: var(--color-bg-header);
+    border-bottom: 1px solid var(--color-primary-overlay);
+    box-shadow: var(--shadow-nav);
 }
 
 /* Inner container for content centering */
@@ -179,7 +179,7 @@ onUnmounted(() => {
     left: 0;
     width: 0;
     height: 2px;
-    background: linear-gradient(90deg, #8b7ec8, #9b8fd4);
+    background: linear-gradient(90deg, var(--color-primary-gradient-end), var(--color-primary-gradient-start));
     transition: var(--transition-base);
 }
 
@@ -188,7 +188,7 @@ onUnmounted(() => {
 }
 
 .logo-link:hover {
-    background: rgba(139, 126, 200, 0.1);
+    background: var(--color-primary-overlay);
 }
 
 .logo-link:focus-visible {
@@ -210,7 +210,7 @@ onUnmounted(() => {
     font-family: 'Exo 2', sans-serif;
     font-weight: 800;
     font-size: 3rem;
-    background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 50%, #8b7ec8 100%);
+    background: linear-gradient(135deg, var(--color-logo-start), var(--color-logo-mid), var(--color-logo-end));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -240,7 +240,7 @@ onUnmounted(() => {
     margin-left: 0.1em;
     background: none;
     border: none;
-    color: rgba(167, 139, 250, 0.7);
+    color: var(--color-text-muted);
     cursor: pointer;
     transition: var(--transition-fast);
     line-height: 1;
@@ -266,11 +266,11 @@ onUnmounted(() => {
     padding: var(--spacing-md) var(--spacing-lg);
     min-width: 280px;
     max-width: 340px;
-    background: rgba(30, 27, 38, 0.98);
-    border: 1px solid rgba(139, 126, 200, 0.3);
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-primary-glow);
     border-radius: var(--radius-lg);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
-                0 0 0 1px rgba(139, 126, 200, 0.1);
+    box-shadow: var(--shadow-dropdown),
+                0 0 0 1px var(--color-primary-overlay);
     z-index: 1000;
     animation: panelFadeIn 0.15s ease-out;
 }
@@ -294,9 +294,9 @@ onUnmounted(() => {
     left: 24px;
     width: 12px;
     height: 12px;
-    background: rgba(30, 27, 38, 0.98);
-    border-left: 1px solid rgba(139, 126, 200, 0.3);
-    border-top: 1px solid rgba(139, 126, 200, 0.3);
+    background: var(--color-bg-panel);
+    border-left: 1px solid var(--color-primary-glow);
+    border-top: 1px solid var(--color-primary-glow);
     transform: rotate(45deg);
 }
 
@@ -319,7 +319,7 @@ onUnmounted(() => {
 }
 
 .etymology-close:hover {
-    background: rgba(139, 126, 200, 0.2);
+    background: var(--color-primary-overlay);
     color: var(--color-text-primary);
 }
 
@@ -356,7 +356,7 @@ onUnmounted(() => {
     top: 8px;
     width: 6px;
     height: 6px;
-    background: linear-gradient(135deg, #a78bfa, #8b7ec8);
+    background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
     border-radius: 50%;
 }
 
@@ -364,7 +364,7 @@ onUnmounted(() => {
 .etymology-note {
     margin: 0;
     padding-top: var(--spacing-md);
-    border-top: 1px solid rgba(139, 126, 200, 0.2);
+    border-top: 1px solid var(--color-primary-overlay);
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
     line-height: 1.6;
@@ -384,9 +384,9 @@ onUnmounted(() => {
     align-items: center;
     gap: var(--spacing-xs);
     padding: var(--spacing-sm) var(--spacing-lg);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--color-overlay-subtle);
     color: var(--color-text-secondary);
-    border: 1px solid rgba(139, 126, 200, 0.15);
+    border: 1px solid var(--color-primary-overlay);
     border-radius: var(--radius-base);
     font-weight: 600;
     font-size: var(--font-size-base);
@@ -399,9 +399,9 @@ onUnmounted(() => {
 
 .nav-item:hover {
     color: var(--color-text-primary);
-    background: rgba(139, 126, 200, 0.15);
-    border-color: rgba(139, 126, 200, 0.4);
-    box-shadow: 0 2px 8px rgba(139, 126, 200, 0.2);
+    background: var(--color-primary-overlay);
+    border-color: var(--color-primary-glow);
+    box-shadow: 0 2px 8px var(--color-primary-overlay);
 }
 
 .nav-item:focus-visible {
@@ -417,37 +417,37 @@ onUnmounted(() => {
 /* Instructor item styling */
 .instructor-item {
     background: var(--color-primary);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     border-color: transparent;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 8px var(--color-info-shadow);
 }
 
 .instructor-item:hover {
     background: var(--color-primary-hover);
     border-color: transparent;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+    box-shadow: var(--shadow-info-hover);
 }
 
 .instructor-item.router-link-active {
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.6);
+    box-shadow: var(--shadow-info-active);
 }
 
 /* Admin item styling */
 .admin-item {
     background: var(--color-admin);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     border-color: transparent;
-    box-shadow: 0 2px 8px rgba(103, 58, 183, 0.3);
+    box-shadow: 0 2px 8px var(--color-admin-shadow);
 }
 
 .admin-item:hover {
     background: var(--color-admin-hover);
     border-color: transparent;
-    box-shadow: 0 4px 12px rgba(103, 58, 183, 0.5);
+    box-shadow: var(--shadow-admin-hover);
 }
 
 .admin-item.router-link-active {
-    box-shadow: 0 4px 16px rgba(103, 58, 183, 0.6);
+    box-shadow: var(--shadow-admin-active);
 }
 
 /* Account button styling */
@@ -478,6 +478,12 @@ onUnmounted(() => {
     height: 2px;
     background: linear-gradient(90deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
     border-radius: var(--radius-xs);
+}
+
+/* Light mode: force white text on dark-filled buttons */
+[data-theme="light"] .instructor-item,
+[data-theme="light"] .admin-item {
+    color: var(--color-text-on-filled);
 }
 
 /* Mobile responsive */

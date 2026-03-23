@@ -51,14 +51,6 @@
                 </div>
               </div>
               <button
-                class="action-button"
-                :title="$t('feedback.segmentModal.openInNewTab')"
-                :aria-label="$t('feedback.segmentModal.openInNewTabAriaLabel')"
-                @click="openInNewTab"
-              >
-                <span class="icon" aria-hidden="true">⬈</span>
-              </button>
-              <button
                 ref="closeButtonRef"
                 class="close-button"
                 :title="$t('feedback.segmentModal.closeEsc')"
@@ -221,89 +213,6 @@ function setModalSize(sizeName: SizePreset): void {
   }
 }
 
-function openInNewTab(): void {
-  const newWindow = window.open('', '_blank', 'width=1200,height=800')
-  if (!newWindow) { closeModal(); return }
-
-  const title = t('feedback.segmentModal.newTabTitle')
-  const levelText = t('feedback.segmentModal.levelUnderstanding', { level: formatLevel(props.segmentation.comprehension_level) })
-  const feedbackLabel = t('feedback.segmentModal.feedbackLabel')
-  const explanationLabel = t('feedback.segmentModal.explanationLabel')
-  const segmentsHeading = t('feedback.segmentModal.segmentsHeading')
-  const linesLabel = t('feedback.segmentModal.linesLabel')
-  const refCodeHeading = t('feedback.segmentModal.referenceCodeHeading')
-
-  const doc = newWindow.document
-  doc.title = `${title} - ${formatLevel(props.segmentation.comprehension_level)}`
-
-  const style = doc.createElement('style')
-  style.textContent = `
-    body { font-family: Inter, system-ui, sans-serif; margin: 20px; }
-    .header { margin-bottom: 20px; }
-    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px; }
-    .segments { margin: 20px 0; }
-    .segment { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-    .code { font-family: Monaco, monospace; background: #f5f5f5; padding: 10px; border-radius: 4px; }
-  `
-  doc.head.appendChild(style)
-
-  const header = doc.createElement('div')
-  header.className = 'header'
-  const h1 = doc.createElement('h1')
-  h1.textContent = title
-  header.appendChild(h1)
-  const badge = doc.createElement('span')
-  badge.className = 'badge'
-  badge.textContent = levelText
-  header.appendChild(badge)
-  const feedbackP = doc.createElement('p')
-  const feedbackStrong = doc.createElement('strong')
-  feedbackStrong.textContent = `${feedbackLabel}: `
-  feedbackP.appendChild(feedbackStrong)
-  feedbackP.appendChild(doc.createTextNode(props.segmentation.feedback))
-  header.appendChild(feedbackP)
-  const explanationP = doc.createElement('p')
-  const explanationStrong = doc.createElement('strong')
-  explanationStrong.textContent = `${explanationLabel}: `
-  explanationP.appendChild(explanationStrong)
-  explanationP.appendChild(doc.createTextNode(getExplanation()))
-  header.appendChild(explanationP)
-  doc.body.appendChild(header)
-
-  const segmentsDiv = doc.createElement('div')
-  segmentsDiv.className = 'segments'
-  const h2 = doc.createElement('h2')
-  h2.textContent = segmentsHeading
-  segmentsDiv.appendChild(h2)
-  for (const segment of props.segmentation.segments) {
-    const segDiv = doc.createElement('div')
-    segDiv.className = 'segment'
-    const strong = doc.createElement('strong')
-    strong.textContent = `${t('feedback.segmentModal.segmentLabel', { id: segment.id })}: `
-    segDiv.appendChild(strong)
-    segDiv.appendChild(doc.createTextNode(segment.text))
-    const br = doc.createElement('br')
-    segDiv.appendChild(br)
-    const small = doc.createElement('small')
-    small.textContent = `${linesLabel}: ${segment.code_lines.join(', ')}`
-    segDiv.appendChild(small)
-    segmentsDiv.appendChild(segDiv)
-  }
-  doc.body.appendChild(segmentsDiv)
-
-  const codeDiv = doc.createElement('div')
-  codeDiv.className = 'code'
-  const codeH2 = doc.createElement('h2')
-  codeH2.textContent = refCodeHeading
-  codeDiv.appendChild(codeH2)
-  const pre = doc.createElement('pre')
-  pre.textContent = props.referenceCode
-  codeDiv.appendChild(pre)
-  doc.body.appendChild(codeDiv)
-
-  closeModal()
-}
-
 function getFeedbackIcon(): string {
   switch (props.segmentation.comprehension_level) {
     case 'relational':
@@ -373,7 +282,7 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: var(--color-backdrop-heavy);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -444,8 +353,8 @@ onMounted(() => {
 }
 
 .badge-count {
-  background: #404040;
-  color: #b0b0b0;
+  background: var(--color-bg-border);
+  color: var(--color-text-muted);
 }
 
 
@@ -455,8 +364,8 @@ onMounted(() => {
 }
 
 .badge-level.badge-multi-structural {
-  background: #6b2d2d;
-  color: #ffc5c5;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
 }
 
 .modal-actions {
@@ -479,7 +388,7 @@ onMounted(() => {
 
 .size-label {
   font-size: var(--font-size-sm);
-  color: #b0b0b0;
+  color: var(--color-text-muted);
   font-weight: 500;
   user-select: none;
   letter-spacing: 0.5px;
@@ -497,7 +406,7 @@ onMounted(() => {
 .size-btn {
   background: transparent;
   border: none;
-  color: #b0b0b0;
+  color: var(--color-text-muted);
   width: 28px;
   height: 28px;
   border-radius: var(--radius-xs);
@@ -516,32 +425,9 @@ onMounted(() => {
 }
 
 .size-btn.active {
-  background: var(--color-primary);
+  background: var(--color-bg-panel);
   color: var(--color-text-primary);
-}
-
-.action-button {
-  background: var(--color-bg-input);
-  border: none;
-  color: var(--color-text-secondary);
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: var(--transition-fast);
-}
-
-.action-button:hover {
-  background: var(--color-primary);
-  color: var(--color-text-primary);
-  transform: translateY(-1px);
-}
-
-.icon {
-  font-size: 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .close-button {
@@ -613,20 +499,20 @@ onMounted(() => {
 }
 
 .segment-badge-success {
-  background: #1e6f3f;
-  color: #ffffff;
+  background: var(--color-success-dark);
+  color: var(--color-text-on-filled);
   box-shadow: none;
 }
 
 .segment-badge-warning {
-  background: #9a4419;
-  color: #ffffff;
+  background: var(--color-warning-dark);
+  color: var(--color-text-on-filled);
   box-shadow: none;
 }
 
 .segment-badge-goal {
-  background: #5a3a9d;
-  color: #ffffff;
+  background: var(--color-admin);
+  color: var(--color-text-on-filled);
   box-shadow: none;
 }
 

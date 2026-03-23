@@ -151,7 +151,7 @@ async function enrollInCourse(): Promise<void> {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--color-backdrop-heavy);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -249,7 +249,7 @@ async function enrollInCourse(): Promise<void> {
 .course-input:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px var(--color-primary-overlay);
 }
 
 .course-input:disabled {
@@ -261,7 +261,7 @@ async function enrollInCourse(): Promise<void> {
 .lookup-btn {
   padding: var(--spacing-md) var(--spacing-lg);
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-weight: 600;
@@ -273,7 +273,7 @@ async function enrollInCourse(): Promise<void> {
 
 .lookup-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 .lookup-btn:disabled {
@@ -341,8 +341,8 @@ async function enrollInCourse(): Promise<void> {
 .enroll-btn {
   width: 100%;
   padding: var(--spacing-md);
-  background: linear-gradient(135deg, var(--color-success) 0%, #0e9f6e 100%);
-  color: var(--color-text-primary);
+  background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
@@ -354,7 +354,7 @@ async function enrollInCourse(): Promise<void> {
 
 .enroll-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+  box-shadow: 0 6px 20px var(--color-success-overlay);
 }
 
 .enroll-btn:disabled {

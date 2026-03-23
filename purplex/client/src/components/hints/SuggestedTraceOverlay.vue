@@ -94,7 +94,7 @@ function openInPyTutor(): void {
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-md);
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   cursor: pointer;

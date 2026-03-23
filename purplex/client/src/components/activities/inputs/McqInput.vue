@@ -218,7 +218,7 @@ function getButtonAriaLabel(): string {
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-bottom: 1px solid var(--color-bg-input);
   margin-bottom: var(--spacing-sm);
 }
@@ -256,7 +256,7 @@ function getButtonAriaLabel(): string {
 
 .mcq-option--selected {
   border-color: var(--color-primary-gradient-start);
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--color-primary-overlay);
 }
 
 .mcq-option--disabled {
@@ -303,7 +303,7 @@ function getButtonAriaLabel(): string {
 
 .mcq-option--selected .option-marker {
   background: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 /* Option Text */
@@ -319,7 +319,7 @@ function getButtonAriaLabel(): string {
   width: calc(100% - calc(var(--spacing-xl) * 2));
   padding: var(--spacing-md) var(--spacing-xl);
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
@@ -335,8 +335,7 @@ function getButtonAriaLabel(): string {
 }
 
 .submit-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 .submit-button:disabled {

@@ -342,7 +342,7 @@ watch(() => props.probeHistory.length, () => {
   width: 72px;
   height: 28px;
   padding: 0 var(--spacing-sm);
-  background: var(--color-bg-primary);
+  background: var(--color-bg-input);
   border: 1px solid var(--color-bg-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
@@ -361,7 +361,7 @@ watch(() => props.probeHistory.length, () => {
 .param-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
 .param-input:disabled {
@@ -418,14 +418,14 @@ watch(() => props.probeHistory.length, () => {
   margin-top: var(--spacing-sm);
   padding: var(--spacing-xs) var(--spacing-lg);
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: white;
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px var(--color-primary-glow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -434,7 +434,7 @@ watch(() => props.probeHistory.length, () => {
 
 .probe-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px var(--color-primary-glow);
 }
 
 .probe-btn:active:not(:disabled) {
@@ -474,8 +474,8 @@ watch(() => props.probeHistory.length, () => {
 .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border: 2px solid var(--color-overlay-strong);
+  border-top-color: var(--color-text-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -492,11 +492,11 @@ watch(() => props.probeHistory.length, () => {
 }
 
 .probe-count-badge.status-explore {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-primary);
 }
 
 .probe-count-badge.status-available {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-primary);
 }
 
 .probe-count-badge.status-exhausted {
@@ -509,7 +509,7 @@ watch(() => props.probeHistory.length, () => {
 .probe-error {
   margin: 0 var(--spacing-lg) var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-overlay);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-sm);
   color: var(--color-error);
@@ -522,7 +522,7 @@ watch(() => props.probeHistory.length, () => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: var(--color-backdrop-heavy);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -539,7 +539,7 @@ watch(() => props.probeHistory.length, () => {
   max-height: 70vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-float);
 }
 
 .modal-header {
@@ -574,7 +574,7 @@ watch(() => props.probeHistory.length, () => {
 
 .modal-close:hover {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-on-filled);
 }
 
 .modal-body {

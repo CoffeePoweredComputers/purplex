@@ -79,7 +79,11 @@
             >
               {{ index + 1 }}
             </span>
-            <code class="line-content">{{ line }}</code>
+            <code class="line-content"><span
+                v-for="(token, tIdx) in tokenizedLines[index]"
+                :key="tIdx"
+                :class="tokenClass(token.type)"
+              >{{ token.value }}</span></code>
           </div>
         </div>
       </div>
@@ -89,6 +93,7 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
+import { tokenizePython, type TokenizedLine } from '@/utils/pythonTokenizer';
 
 // Define types for the component
 interface Segment {
@@ -128,22 +133,17 @@ export default defineComponent({
       selectedSegment: null as number | null,
       canvasWidth: 200 as number,
       canvasHeight: 400 as number,
-      connectionColor: '#667eea' as string,
-      // Subway Map color palette - soft, distinct colors
-      segmentColors: [
-        '#9f7aea', // Purple
-        '#4299e1', // Blue
-        '#4fd1c5', // Teal
-        '#68d391', // Green
-        '#f6ad55', // Orange
-        '#fc8181'  // Coral
-      ]
+      connectionColor: '#667eea' as string
     };
   },
   computed: {
     codeLines(): string[] {
       // Don't filter out empty lines to maintain line numbering
       return this.referenceCode.split('\n');
+    },
+
+    tokenizedLines(): TokenizedLine[] {
+      return tokenizePython(this.referenceCode);
     },
 
     segmentAnnouncement(): string {
@@ -273,9 +273,10 @@ export default defineComponent({
     },
 
     getSegmentColor(segmentId: number): string {
-      // Get color for segment (cycling through palette)
-      const index = (segmentId - 1) % this.segmentColors.length;
-      return this.segmentColors[index];
+      // Read segment color from CSS variables (theme-aware)
+      const index = ((segmentId - 1) % 6) + 1;
+      return getComputedStyle(document.documentElement)
+        .getPropertyValue(`--color-segment-${index}`).trim() || '#9f7aea';
     },
 
     getSegmentNumber(segmentId: number): number {
@@ -298,6 +299,14 @@ export default defineComponent({
       }
       const segment = this.segments.find(s => s.id === this.activeSegment);
       return !!segment?.code_lines?.includes(lineNumber);
+    },
+
+    tokenClass(type: string): string {
+      // Convert Ace token types like 'keyword.operator' to CSS classes 'ace_keyword ace_operator'
+      if (!type || type === 'text' || type === 'identifier') {
+        return '';
+      }
+      return type.split('.').map(part => `ace_${part}`).join(' ');
     },
 
     getLineClass(lineNumber: number): string[] {
@@ -356,7 +365,7 @@ export default defineComponent({
 }
 
 .response-panel {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border-right: 1px solid var(--color-bg-input);
 }
 
@@ -426,16 +435,16 @@ export default defineComponent({
   padding-bottom: 1px;
 }
 
-/* Hover: invert circle, number turns black */
+/* Hover: invert circle, contrasting text */
 .segment-span:hover .segment-marker {
   background: var(--segment-bg-color) !important;
-  color: #000000 !important;
+  color: var(--color-text-on-filled) !important;
 }
 
 /* Active state */
 .segment-span.active .segment-marker {
   background: var(--segment-bg-color) !important;
-  color: #000000 !important;
+  color: var(--color-text-on-filled) !important;
 }
 
 
@@ -464,19 +473,19 @@ export default defineComponent({
 }
 
 .code-line:hover .line-content {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-overlay-subtle);
 }
 
 .code-line.highlighted {
-  background: rgba(102, 126, 234, 0.05);
+  background: var(--color-primary-overlay);
 }
 
 .code-line.highlighted .line-number {
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--color-primary-overlay);
 }
 
 .code-line.highlighted .line-content {
-  background: rgba(102, 126, 234, 0.05);
+  background: var(--color-primary-overlay);
 }
 
 .code-line.dimmed {
@@ -496,7 +505,7 @@ export default defineComponent({
   font-size: var(--font-size-xs);
   user-select: none;
   flex-shrink: 0;
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   padding: 2px 8px 2px 4px;
   border-right: 1px solid var(--color-bg-border);
   border-left: 3px solid transparent;
@@ -513,7 +522,7 @@ export default defineComponent({
 /* Active state: wider stripe and subtle background tint */
 .code-line.highlighted .line-number[data-segment-id] {
   border-left-width: 6px;
-  background: rgba(102, 126, 234, 0.15);
+  background: var(--color-overlay-strong);
 }
 
 .line-content {
@@ -569,4 +578,19 @@ export default defineComponent({
   background: var(--color-bg-border);
   border-radius: 2px;
 }
+
+/* Syntax highlighting */
+.line-content .ace_keyword { color: var(--color-syntax-keyword); }
+.line-content .ace_keyword.ace_operator { color: var(--color-syntax-operator); }
+.line-content .ace_string { color: var(--color-syntax-string); }
+.line-content .ace_constant.ace_language.ace_escape { color: var(--color-syntax-string); }
+.line-content .ace_comment { color: var(--color-syntax-comment); font-style: italic; }
+.line-content .ace_constant.ace_numeric { color: var(--color-syntax-number); }
+.line-content .ace_constant.ace_language { color: var(--color-syntax-number); }
+.line-content .ace_support.ace_function { color: var(--color-syntax-builtin); }
+.line-content .ace_variable.ace_language { color: var(--color-syntax-variable); }
+.line-content .ace_punctuation,
+.line-content .ace_paren.ace_lparen,
+.line-content .ace_paren.ace_rparen { color: var(--color-syntax-punctuation); }
+
 </style>

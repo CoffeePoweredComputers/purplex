@@ -296,6 +296,7 @@ main {
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0;
+  text-align: left;
 }
 
 .progress-indicator {
@@ -333,7 +334,6 @@ main {
 }
 
 .problem-set-card:hover {
-  transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
   border-color: var(--color-primary-gradient-start);
 }
@@ -386,23 +386,23 @@ main {
 }
 
 .due-badge.due-soon {
-  background-color: rgba(234, 179, 8, 0.15);
-  color: #ca8a04;
+  background-color: var(--color-warning-overlay);
+  color: var(--color-warning);
 }
 
 .due-badge.due-urgent {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #dc2626;
+  background-color: var(--color-error-overlay);
+  color: var(--color-error);
 }
 
 .due-badge.due-past {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: var(--color-error-overlay);
   color: var(--color-text-muted);
   text-decoration: line-through;
 }
 
 .due-badge.due-locked {
-  background-color: rgba(107, 114, 128, 0.15);
+  background-color: var(--color-overlay-medium);
   color: var(--color-text-muted);
 }
 
@@ -427,7 +427,7 @@ main {
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-success) 0%, #0e9f6e 100%);
+  background: linear-gradient(90deg, var(--color-success) 0%, var(--color-success-dark) 100%);
   transition: width 0.3s ease;
   border-radius: var(--radius-xs);
 }
@@ -443,13 +443,17 @@ main {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
-  padding: var(--spacing-md);
+  background: var(--color-primary-glow);
+  backdrop-filter: blur(8px);
+  color: var(--color-primary-gradient-start);
+  padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
   text-align: center;
   font-weight: 600;
   transform: translateY(100%);
   transition: transform 0.3s ease;
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .problem-set-card:hover .card-hover-text {
@@ -528,7 +532,7 @@ main {
 /* Add Course Button */
 .add-course-btn {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   padding: var(--spacing-md) var(--spacing-xl);
@@ -544,7 +548,7 @@ main {
 
 .add-course-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 .add-course-btn:focus {

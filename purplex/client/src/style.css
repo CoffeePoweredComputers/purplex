@@ -22,6 +22,10 @@ body {
   position: relative;
 }
 
+html[data-theme="light"] body {
+  color-scheme: light;
+}
+
 a {
   font-weight: 500;
   color: var(--color-primary-gradient-start);
@@ -152,25 +156,25 @@ select:-webkit-autofill {
 /* Selection styling */
 ::selection {
   background-color: var(--color-primary);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 /* Ensure selection works properly in input fields */
 input::selection,
 textarea::selection {
   background-color: var(--color-primary);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
 }
 
 /* Ace Editor specific selection styling - ensures text is visible when selected */
 .ace_editor .ace_selection {
-  background-color: rgba(128, 0, 128, 0.3) !important;
+  background-color: var(--color-ace-selection) !important;
   color: var(--color-text-primary) !important;
 }
 
 /* Ace Editor text layer selection styling */
 .ace_editor .ace_selected-word {
-  background-color: rgba(128, 0, 128, 0.3) !important;
+  background-color: var(--color-ace-selection) !important;
   color: var(--color-text-primary) !important;
 }
 

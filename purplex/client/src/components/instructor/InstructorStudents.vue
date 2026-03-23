@@ -362,7 +362,7 @@ onMounted(() => {
 .retry-btn {
   padding: var(--spacing-md) var(--spacing-xl);
   background: var(--color-admin);
-  color: white;
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   cursor: pointer;
@@ -406,7 +406,7 @@ onMounted(() => {
 .search-input:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px var(--color-primary-overlay);
 }
 
 .search-input::placeholder {

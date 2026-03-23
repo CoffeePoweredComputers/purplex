@@ -129,6 +129,12 @@ $RECYCLE.BIN/
 
 # Demo/screenshot artifacts
 demo-screenshots/
+visual-tests/screenshots/
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/
 
 # Root package.json (not part of the build system)
 /package.json

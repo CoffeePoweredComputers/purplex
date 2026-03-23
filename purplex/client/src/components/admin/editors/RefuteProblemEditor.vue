@@ -303,21 +303,21 @@ onMounted(() => {
 }
 
 .input-error {
-  border-color: var(--color-error, #e74c3c) !important;
+  border-color: var(--color-error) !important;
 }
 
 .field-error {
-  color: var(--color-error, #e74c3c);
+  color: var(--color-error);
   font-size: var(--font-size-xs);
   margin-top: var(--spacing-xs);
 }
 
 .field-warning {
-  color: var(--color-warning, #f59e0b);
+  color: var(--color-warning);
   font-size: var(--font-size-xs);
   margin-top: var(--spacing-xs);
   padding: var(--spacing-sm);
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--color-warning-overlay);
   border-radius: var(--radius-xs);
 }
 
@@ -370,8 +370,8 @@ onMounted(() => {
 .predicate-examples {
   margin-top: var(--spacing-lg);
   padding: var(--spacing-md);
-  background: rgba(59, 130, 246, 0.05);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: var(--color-info-overlay);
+  border: 1px solid var(--color-info);
   border-radius: var(--radius-base);
 }
 
@@ -452,7 +452,7 @@ onMounted(() => {
 
 .zoom-btn:hover:not(:disabled) {
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-on-filled);
   border-color: var(--color-primary-gradient-start);
 }
 

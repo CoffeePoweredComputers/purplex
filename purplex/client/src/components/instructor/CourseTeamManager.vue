@@ -247,13 +247,13 @@ onMounted(fetchTeam);
 }
 
 .role-primary {
-  background: rgba(102, 126, 234, 0.15);
+  background: var(--color-primary-overlay);
   color: var(--color-primary-gradient-start);
 }
 
 .role-ta {
-  background: rgba(234, 179, 8, 0.15);
-  color: #ca8a04;
+  background: var(--color-warning-overlay);
+  color: var(--color-warning);
 }
 
 .role-select {
@@ -323,7 +323,7 @@ onMounted(fetchTeam);
 .btn-add {
   padding: var(--spacing-sm) var(--spacing-md);
   background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
-  color: white;
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-xs);
   cursor: pointer;

@@ -10,6 +10,14 @@
         <title>Purplex</title>
     </head>
     <body>
+        <script>
+        (function(){var t;
+        try{t=localStorage.getItem('purplex_theme')}catch(e){}
+        if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);
+        else if(matchMedia('(prefers-color-scheme:light)').matches)document.documentElement.setAttribute('data-theme','light');
+        else document.documentElement.setAttribute('data-theme','dark');
+        })();
+        </script>
         <div id="app"></div>
         <script type="module" src="/src/main.ts"></script>
     </body>

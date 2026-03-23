@@ -145,7 +145,7 @@ function formatDate(isoDate: string): string {
     padding: var(--spacing-base);
     margin-bottom: var(--spacing-base);
     background: var(--color-error-bg);
-    border: 1px solid rgba(220, 53, 69, 0.25);
+    border: 1px solid var(--color-error-overlay);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
@@ -192,17 +192,17 @@ function formatDate(isoDate: string): string {
 
 .account-deletion__btn--danger {
     background: var(--color-error);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
 }
 
 .account-deletion__btn--danger:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+    box-shadow: 0 4px 15px var(--color-error-overlay);
 }
 
 .account-deletion__btn--cancel {
     background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
 }
 
 .account-deletion__btn--cancel:hover:not(:disabled) {
@@ -213,7 +213,7 @@ function formatDate(isoDate: string): string {
 .account-deletion__pending {
     padding: var(--spacing-base);
     background: var(--color-warning-bg);
-    border: 1px solid rgba(255, 193, 7, 0.25);
+    border: 1px solid var(--color-warning-overlay);
     border-radius: var(--radius-sm);
     margin-bottom: var(--spacing-base);
     color: var(--color-text-secondary);

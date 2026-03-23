@@ -573,7 +573,7 @@ defineExpose({
 
 .zoom-btn:hover:not(:disabled) {
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-on-filled);
   border-color: var(--color-primary-gradient-start);
 }
 
@@ -643,7 +643,7 @@ defineExpose({
 .btn-primary {
   padding: var(--spacing-sm) var(--spacing-md);
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: white;
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   cursor: pointer;
@@ -653,7 +653,7 @@ defineExpose({
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 25px var(--color-primary-glow);
 }
 
 .btn-primary:disabled {
@@ -677,17 +677,17 @@ defineExpose({
 
 .test-case.passed {
   border-color: var(--color-success);
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--color-success-overlay);
 }
 
 .test-case.failed {
   border-color: var(--color-error);
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-overlay);
 }
 
 .test-case.error {
   border-color: var(--color-warning);
-  background: rgba(245, 158, 11, 0.1);
+  background: var(--color-warning-overlay);
 }
 
 .test-case-row {
@@ -699,7 +699,7 @@ defineExpose({
 
 .test-number {
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-on-filled);
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -760,48 +760,48 @@ defineExpose({
 }
 
 .type-number {
-  background: rgba(59, 130, 246, 0.2);
-  color: #3b82f6;
+  background: var(--color-info-overlay);
+  color: var(--color-info);
 }
 
 .type-string {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  background: var(--color-success-overlay);
+  color: var(--color-success);
 }
 
 .type-boolean {
-  background: rgba(139, 92, 246, 0.2);
-  color: #8b5cf6;
+  background: var(--color-primary-overlay);
+  color: var(--color-admin);
 }
 
 .type-list {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
+  background: var(--color-warning-overlay);
+  color: var(--color-warning);
 }
 
 .type-tuple {
-  background: rgba(6, 182, 212, 0.2);
-  color: #06b6d4;
+  background: var(--color-info-overlay);
+  color: var(--color-info);
 }
 
 .type-dict {
-  background: rgba(236, 72, 153, 0.2);
-  color: #ec4899;
+  background: var(--color-error-overlay);
+  color: var(--color-error-accent);
 }
 
 .type-none {
-  background: rgba(107, 114, 128, 0.2);
-  color: #6b7280;
+  background: var(--color-overlay-medium);
+  color: var(--color-text-muted);
 }
 
 .type-unknown {
-  background: rgba(107, 114, 128, 0.2);
-  color: #6b7280;
+  background: var(--color-overlay-medium);
+  color: var(--color-text-muted);
 }
 
 .type-error {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--color-error-overlay);
+  color: var(--color-error);
 }
 
 .param-label {
@@ -851,7 +851,7 @@ defineExpose({
 
 .remove-btn:hover {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-on-filled);
   border-color: var(--color-error);
 }
 
@@ -863,20 +863,20 @@ defineExpose({
 }
 
 .status-passed {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  background: var(--color-success-overlay);
+  color: var(--color-success);
 }
 
 .status-failed {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  background: var(--color-error-overlay);
+  color: var(--color-error);
 }
 
 .error-msg,
 .failure-msg {
   margin-top: var(--spacing-sm);
   padding: var(--spacing-sm);
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-error-overlay);
   border-radius: var(--radius-xs);
   font-size: var(--font-size-xs);
   color: var(--color-error);
@@ -885,7 +885,7 @@ defineExpose({
 .test-loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--color-backdrop-heavy);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1162,7 +1162,7 @@ defineExpose({
 
 .suggested-trace {
   padding: var(--spacing-md);
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--color-primary-overlay);
   border-radius: var(--radius-base);
   border-left: 4px solid var(--color-primary-gradient-start);
 }
@@ -1190,7 +1190,7 @@ defineExpose({
 .trace-btn {
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-xs);
   cursor: pointer;
@@ -1263,13 +1263,13 @@ defineExpose({
 }
 
 .example-block.relational {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: var(--color-success-overlay);
+  border: 1px solid var(--color-success-accent);
 }
 
 .example-block.multi-structural {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--color-error-overlay);
+  border: 1px solid var(--color-error-accent);
 }
 
 .example-block h5 {
@@ -1362,7 +1362,7 @@ defineExpose({
 
 .btn-icon:hover {
   background: var(--color-error);
-  color: white;
+  color: var(--color-text-on-filled);
   border-color: var(--color-error);
 }
 

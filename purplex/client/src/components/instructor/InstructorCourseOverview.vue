@@ -770,11 +770,11 @@ onMounted(() => {
   height: 48px;
   border: 4px solid var(--color-bg-border);
   border-top-color: var(--color-admin);
-  border-right-color: var(--color-primary-gradient-end, #8b5cf6);
+  border-right-color: var(--color-primary-gradient-end);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: var(--spacing-lg);
-  box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 15px var(--color-primary-overlay);
 }
 
 @keyframes spin {
@@ -805,18 +805,18 @@ onMounted(() => {
 .back-btn {
   display: inline-block;
   padding: var(--spacing-md) var(--spacing-xl);
-  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end, #8b5cf6));
+  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end));
   color: white;
   text-decoration: none;
   border-radius: var(--radius-base);
   font-weight: 600;
   transition: var(--transition-base);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2px 8px var(--color-primary-glow);
 }
 
 .back-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 12px var(--color-primary-glow);
 }
 
 /* Unified Course Card */
@@ -915,9 +915,9 @@ onMounted(() => {
   padding: var(--spacing-md) var(--spacing-lg);
   position: relative;
   /* At-rest card appearance - clearly clickable */
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(99, 102, 241, 0.15);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  background: var(--color-overlay-subtle);
+  border: 1px solid var(--color-primary-overlay);
+  box-shadow: var(--shadow-xs);
 }
 
 .journey-item:hover {
@@ -927,7 +927,7 @@ onMounted(() => {
 }
 
 .journey-item.selected {
-  background: rgba(99, 102, 241, 0.08);
+  background: var(--color-primary-overlay);
   border-color: var(--color-admin);
   box-shadow: var(--shadow-lg);
 }
@@ -959,12 +959,12 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end, #8b5cf6));
+  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end));
   color: white;
   font-weight: 600;
   font-size: var(--font-size-sm);
   border-radius: 50%;
-  box-shadow: 0 3px 8px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 3px 8px var(--color-primary-glow);
 }
 
 .marker-line {
@@ -1015,29 +1015,29 @@ onMounted(() => {
 
 .due-badge.due-later {
   color: var(--color-text-secondary);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-overlay-subtle);
 }
 
 .due-badge.due-soon {
   color: var(--color-warning);
-  background: rgba(245, 158, 11, 0.15);
+  background: var(--color-warning-overlay);
 }
 
 .due-badge.due-tomorrow {
   color: var(--color-warning);
-  background: rgba(245, 158, 11, 0.2);
+  background: var(--color-warning-overlay);
   font-weight: 600;
 }
 
 .due-badge.due-today {
   color: var(--color-error);
-  background: rgba(239, 68, 68, 0.15);
+  background: var(--color-error-overlay);
   font-weight: 600;
 }
 
 .due-badge.overdue {
   color: var(--color-error);
-  background: rgba(239, 68, 68, 0.2);
+  background: var(--color-error-overlay);
   font-weight: 700;
 }
 
@@ -1062,25 +1062,25 @@ onMounted(() => {
   border-radius: var(--radius-xl);
   font-size: var(--font-size-sm);
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-subtle);
 }
 
 .completion-badge.high {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1));
+  background: linear-gradient(135deg, var(--color-success-overlay), var(--color-success-overlay));
   color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid var(--color-success-border);
 }
 
 .completion-badge.medium {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+  background: linear-gradient(135deg, var(--color-warning-overlay), var(--color-warning-overlay));
   color: var(--color-warning);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid var(--color-warning-border);
 }
 
 .completion-badge.low {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+  background: linear-gradient(135deg, var(--color-error-overlay), var(--color-error-overlay));
   color: var(--color-error);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid var(--color-error-border);
 }
 
 /* Download button */
@@ -1090,8 +1090,8 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: var(--color-primary-overlay);
+  border: 1px solid var(--color-primary-overlay);
   border-radius: var(--radius-base);
   color: var(--color-admin);
   cursor: pointer;
@@ -1100,7 +1100,7 @@ onMounted(() => {
 }
 
 .download-btn:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: var(--color-primary-overlay);
   border-color: var(--color-admin);
   opacity: 1;
   transform: translateY(-1px);
@@ -1122,29 +1122,29 @@ onMounted(() => {
 .progress-track {
   position: relative;
   height: 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-overlay-medium);
   border-radius: var(--radius-base);
   overflow: visible;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-inset);
 }
 
 .progress-fill {
   height: 100%;
   border-radius: var(--radius-base);
   transition: width 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-subtle);
 }
 
 .progress-fill.high {
-  background: linear-gradient(90deg, var(--color-success), #34d399);
+  background: linear-gradient(90deg, var(--color-success), var(--color-success-accent));
 }
 
 .progress-fill.medium {
-  background: linear-gradient(90deg, var(--color-warning), #fbbf24);
+  background: linear-gradient(90deg, var(--color-warning), var(--color-warning-accent));
 }
 
 .progress-fill.low {
-  background: linear-gradient(90deg, var(--color-error), #f87171);
+  background: linear-gradient(90deg, var(--color-error), var(--color-error-accent));
 }
 
 .progress-marker {
@@ -1153,10 +1153,10 @@ onMounted(() => {
   transform: translate(-50%, -50%);
   width: 16px;
   height: 16px;
-  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end, #8b5cf6));
+  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end));
   border: 3px solid var(--color-bg-panel);
   border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 2px 6px var(--color-primary-glow);
 }
 
 .journey-stats {
@@ -1176,8 +1176,8 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, var(--color-primary-overlay), var(--color-primary-overlay));
+  border: 1px solid var(--color-primary-glow);
   border-radius: var(--radius-base);
   margin-bottom: var(--spacing-lg);
 }
@@ -1290,7 +1290,7 @@ onMounted(() => {
 }
 
 .chart-line {
-  filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.3));
+  filter: drop-shadow(0 1px 2px var(--color-primary-glow));
 }
 
 .chart-bars {
@@ -1316,8 +1316,8 @@ onMounted(() => {
   max-width: 20px;
   background: linear-gradient(
     to top,
-    rgba(99, 102, 241, 0.4),
-    rgba(139, 92, 246, 0.2)
+    var(--color-primary-glow),
+    var(--color-primary-overlay)
   );
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   min-height: 4px;
@@ -1331,9 +1331,9 @@ onMounted(() => {
   background: linear-gradient(
     to top,
     var(--color-admin),
-    var(--color-primary-gradient-end, #8b5cf6)
+    var(--color-primary-gradient-end)
   );
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 2px 8px var(--color-primary-glow);
 }
 
 /* Data point dots at bar tops */
@@ -1348,13 +1348,13 @@ onMounted(() => {
   border-radius: 50%;
   z-index: 2;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xs);
 }
 
 .chart-bar-container:hover .chart-point {
   transform: translate(-50%, 50%) scale(1.3);
   background: var(--color-admin);
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 8px var(--color-primary-glow);
 }
 
 .chart-label {
@@ -1388,7 +1388,7 @@ onMounted(() => {
 .snapshot-value {
   font-size: var(--font-size-xxl);
   font-weight: 700;
-  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end, #8b5cf6));
+  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1415,7 +1415,7 @@ onMounted(() => {
 }
 
 .distribution-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-overlay-subtle);
 }
 
 .dist-count {
@@ -1485,6 +1485,34 @@ onMounted(() => {
 .muted-text {
   color: var(--color-text-tertiary);
   font-style: italic;
+}
+
+/* Light mode: flatten gradients on colored fills and decorative elements */
+[data-theme="light"] .back-btn {
+  background: var(--color-admin);
+}
+
+[data-theme="light"] .back-btn:hover {
+  background: var(--color-admin-hover);
+}
+
+[data-theme="light"] .marker-number {
+  background: var(--color-admin);
+}
+
+[data-theme="light"] .marker-line {
+  background: var(--color-admin);
+  opacity: 0.3;
+}
+
+[data-theme="light"] .progress-marker {
+  background: var(--color-admin);
+}
+
+[data-theme="light"] .snapshot-value {
+  background: none;
+  -webkit-text-fill-color: var(--color-admin);
+  color: var(--color-admin);
 }
 
 /* Mobile Responsive */

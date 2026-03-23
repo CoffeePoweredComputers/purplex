@@ -286,11 +286,11 @@ onMounted(() => {
 }
 
 .input-error {
-  border-color: var(--color-error, #e74c3c) !important;
+  border-color: var(--color-error) !important;
 }
 
 .field-error {
-  color: var(--color-error, #e74c3c);
+  color: var(--color-error);
   font-size: var(--font-size-xs);
   margin-top: var(--spacing-xs);
 }
@@ -336,8 +336,8 @@ onMounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(231, 76, 60, 0.9);
-  color: white;
+  background: var(--color-error);
+  color: var(--color-text-on-filled);
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);

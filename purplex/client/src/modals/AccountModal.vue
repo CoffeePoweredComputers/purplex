@@ -58,6 +58,7 @@
           </div>
 
           <LanguageSwitcher />
+          <ThemeSwitcher />
 
           <div class="info-item info-item--link" @click="goToPrivacySettings">
             <span class="info-label">{{ t('auth.account.privacySettings') }}</span>
@@ -103,6 +104,7 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
+import ThemeSwitcher from '../components/ThemeSwitcher.vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 
 const props = defineProps<{
@@ -150,7 +152,7 @@ function getMemberSince(): string {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: var(--color-backdrop-heavy);
     backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
@@ -253,8 +255,8 @@ function getMemberSince(): string {
     justify-content: center;
     font-size: var(--font-size-xl);
     font-weight: 600;
-    color: var(--color-text-primary);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    color: var(--color-text-on-filled);
+    box-shadow: 0 4px 12px var(--color-primary-glow);
 }
 
 .user-info {
@@ -335,8 +337,8 @@ function getMemberSince(): string {
 
 .role-badge.admin {
     background: linear-gradient(135deg, var(--color-admin) 0%, var(--color-admin-hover) 100%);
-    color: var(--color-text-primary);
-    box-shadow: 0 2px 8px rgba(103, 58, 183, 0.3);
+    color: var(--color-text-on-filled);
+    box-shadow: 0 2px 8px var(--color-admin-shadow);
 }
 
 .role-badge.user {
@@ -373,9 +375,9 @@ function getMemberSince(): string {
 
 .logout-button:hover {
     background: var(--color-error);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    box-shadow: 0 4px 12px var(--color-error-overlay);
 }
 
 .logout-button svg {

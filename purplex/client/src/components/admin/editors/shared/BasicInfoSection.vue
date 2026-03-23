@@ -155,7 +155,7 @@ function removeTag(index: number) {
 .form-group textarea:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
 .form-group input::placeholder,
@@ -222,7 +222,7 @@ function removeTag(index: number) {
 .tag-input:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
 .tag-input::placeholder {

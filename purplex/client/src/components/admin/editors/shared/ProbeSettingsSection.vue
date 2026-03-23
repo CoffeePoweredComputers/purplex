@@ -252,7 +252,7 @@ const selectedModeDescription = computed(() => {
 
 .segment.selected {
   background: var(--color-primary-gradient-start);
-  color: white;
+  color: var(--color-text-on-filled);
 }
 
 .mode-description-text {
@@ -321,8 +321,8 @@ const selectedModeDescription = computed(() => {
   gap: var(--spacing-sm);
   margin-top: var(--spacing-md);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: var(--color-warning-overlay);
+  border: 1px solid var(--color-warning-accent);
   border-radius: var(--radius-base);
   color: var(--color-warning);
   font-size: var(--font-size-sm);
@@ -335,7 +335,7 @@ const selectedModeDescription = computed(() => {
   width: 18px;
   height: 18px;
   background: var(--color-warning);
-  color: white;
+  color: var(--color-text-on-filled);
   border-radius: 50%;
   font-weight: bold;
   font-size: var(--font-size-xs);

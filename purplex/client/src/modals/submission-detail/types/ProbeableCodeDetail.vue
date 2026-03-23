@@ -14,7 +14,7 @@
         :read-only="true"
         height="350px"
         width="100%"
-        theme="tomorrow_night"
+        :theme="editorTheme"
       />
     </div>
   </div>
@@ -23,6 +23,9 @@
 <script setup lang="ts">
 import Editor from '@/features/editor/Editor.vue';
 import type { ProbeableTypeData } from '@/types';
+import { useTheme } from '@/composables/useTheme';
+
+const { editorTheme } = useTheme();
 
 defineProps<{
   typeData: ProbeableTypeData;
@@ -52,7 +55,7 @@ defineProps<{
 
 .signature-box {
   display: block;
-  background: var(--color-bg-hover);
+  background: var(--color-bg-section);
   border: 1px solid var(--color-bg-input);
   border-radius: 4px;
   padding: 8px 12px;

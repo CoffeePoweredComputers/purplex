@@ -362,7 +362,7 @@ export default {
   font-family: 'Exo 2', sans-serif;
   font-size: var(--font-size-title);
   margin: 0;
-  background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 50%, #8b7ec8 100%);
+  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 50%, var(--color-admin-hover) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -441,7 +441,7 @@ input {
 input:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px var(--color-primary-overlay);
 }
 
 input::placeholder {
@@ -471,13 +471,13 @@ input::placeholder {
 
 .login-btns button:first-child {
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-filled);
   box-shadow: var(--shadow-colored);
 }
 
 .login-btns button:first-child:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 
@@ -554,13 +554,13 @@ input::placeholder {
 }
 
 .info-message {
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--color-primary-overlay);
   color: var(--color-text-secondary);
   padding: var(--spacing-md);
   border-radius: var(--radius-base);
   text-align: center;
   font-size: var(--font-size-sm);
-  border: 1px solid rgba(102, 126, 234, 0.3);
+  border: 1px solid var(--color-primary-glow);
   line-height: 1.5;
 }
 
@@ -603,7 +603,7 @@ input::placeholder {
   padding: var(--spacing-xl);
   background: var(--color-bg-panel);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(243, 156, 18, 0.3);
+  border: 1px solid var(--color-warning-overlay);
   text-align: center;
 }
 

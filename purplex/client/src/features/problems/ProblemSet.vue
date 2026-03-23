@@ -389,6 +389,7 @@ import { useEditorHints } from '@/composables/useEditorHints'
 import { useFeedbackState } from '@/composables/useFeedbackState'
 import { useSubmissionCache } from '@/composables/useSubmissionCache'
 import { useSubmissionTracking } from '@/composables/useSubmissionTracking'
+import { useTheme } from '@/composables/useTheme'
 import { parseProblemQueryParam } from './problemNavigation'
 import { sseService } from '@/services/sseService'
 import { submissionService } from '@/services/submissionService'
@@ -412,6 +413,7 @@ export default {
     },
     setup() {
         const { notify } = useNotification();
+        const { effectiveTheme } = useTheme();
         const logger = useLogger();
         const { updateProgress, getProgress, clearOptimistic } = useOptimisticProgress();
         const { trackHintUsage, getHintsUsed } = useHintTracking();
@@ -447,6 +449,7 @@ export default {
 
         return {
             notify,
+            effectiveTheme,
             logger,
             updateProgress,
             getProgress,
@@ -514,7 +517,7 @@ export default {
             editorFontSize: 14,
             codeCopied: false,
             showLineNumbers: true,
-            editorTheme: 'tomorrow-night',
+            editorTheme: document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'tomorrow-night',
 
             /* Draft Management */
             autoSaveInterval: null,
@@ -626,6 +629,9 @@ export default {
                     this.updateTheme();
                 });
             }
+        },
+        effectiveTheme(newTheme) {
+            this.editorTheme = newTheme === 'light' ? 'light' : 'tomorrow-night';
         }
     },
 
@@ -2120,7 +2126,7 @@ export default {
     left: 0;
     right: 0;
     height: 3px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-overlay-medium);
     z-index: 1000;
     overflow: hidden;
 }
@@ -2132,7 +2138,7 @@ export default {
         var(--color-primary-gradient-end) 100%);
     animation: progressSlide 1.5s ease-in-out infinite;
     transform-origin: left;
-    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 0 10px var(--color-primary-glow);
 }
 
 @keyframes progressSlide {
@@ -2156,8 +2162,8 @@ export default {
     margin: 0 1rem 1rem 1rem;
     border-radius: 8px;
     font-size: 0.9rem;
-    background: var(--color-surface-elevated, #2a2d3a);
-    border: 1px solid var(--color-border, #3a3d4a);
+    background: var(--color-bg-section);
+    border: 1px solid var(--color-bg-border);
 }
 
 .deadline-banner .deadline-icon {
@@ -2169,26 +2175,26 @@ export default {
 }
 
 .deadline-banner .urgency-note {
-    color: var(--color-warning, #f5a623);
+    color: var(--color-warning);
     font-weight: 500;
 }
 
 .deadline-banner.deadline-locked {
-    background: rgba(220, 53, 69, 0.15);
-    border-color: rgba(220, 53, 69, 0.4);
-    color: #ff6b6b;
+    background: var(--color-error-overlay);
+    border-color: var(--color-error-border);
+    color: var(--color-error-accent);
 }
 
 .deadline-banner.deadline-past,
 .deadline-banner.deadline-soft {
-    background: rgba(245, 166, 35, 0.15);
-    border-color: rgba(245, 166, 35, 0.4);
-    color: #f5a623;
+    background: var(--color-warning-overlay);
+    border-color: var(--color-warning-border);
+    color: var(--color-warning);
 }
 
 .deadline-banner.deadline-urgent {
-    background: rgba(245, 166, 35, 0.1);
-    border-color: rgba(245, 166, 35, 0.3);
+    background: var(--color-warning-overlay);
+    border-color: var(--color-warning-border);
 }
 
 /* No transitions - keep content completely static during navigation */
@@ -2249,7 +2255,7 @@ export default {
     background: var(--color-bg-panel);
     padding: var(--spacing-md) var(--spacing-xl);
     border-bottom: 1px solid var(--color-bg-input);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-xs);
 }
 
 .problem-selector {
@@ -2277,7 +2283,7 @@ export default {
 
 .nav-button:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     border-color: var(--color-primary-gradient-start);
     transform: translateY(-1px);
 }
@@ -2347,8 +2353,8 @@ export default {
 
 /* Status styles */
 .progress-bar.not_started {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: var(--color-overlay-strong);
+    border: 1px solid var(--color-overlay-border);
 }
 
 .progress-bar.in_progress {
@@ -2360,7 +2366,7 @@ export default {
 }
 
 .progress-bar.submitting {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
     position: relative;
     overflow: hidden;
 }
@@ -2375,7 +2381,7 @@ export default {
     height: 100%;
     background: linear-gradient(90deg,
         transparent,
-        rgba(255, 255, 255, 0.4),
+        var(--color-overlay-shimmer),
         transparent
     );
     animation: rippleWave 1.5s linear infinite;
@@ -2389,7 +2395,7 @@ export default {
     width: 100%;
     height: 200%;
     background: radial-gradient(circle,
-        rgba(255, 255, 255, 0.3) 0%,
+        var(--color-overlay-shimmer) 0%,
         transparent 70%
     );
     transform: translate(-50%, -50%) scale(0);
@@ -2422,8 +2428,8 @@ export default {
 }
 
 .progress-bar.active.not_started {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: var(--color-overlay-strong);
+    border: 1px solid var(--color-overlay-border);
 }
 
 .progress-bar.active.in_progress {
@@ -2437,7 +2443,7 @@ export default {
 }
 
 .progress-bar.active.submitting {
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px #667eea;
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-primary-gradient-start);
 }
 
 /* Hover effects */
@@ -2480,7 +2486,7 @@ export default {
     justify-content: space-between;
     align-items: center;
     padding: var(--spacing-md) var(--spacing-lg);
-    background: var(--color-bg-hover);
+    background: var(--color-bg-section);
     border-bottom: 1px solid var(--color-bg-input);
     margin-bottom: 0px !important;
 }
@@ -2497,7 +2503,6 @@ export default {
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-md);
-    border: 2px solid transparent;
     transition: var(--transition-base);
     display: flex;
     flex-direction: column;
@@ -2507,7 +2512,7 @@ export default {
 }
 
 .editor-section:hover {
-    border-color: var(--color-bg-input);
+    box-shadow: inset 0 0 0 2px var(--color-bg-input), var(--shadow-md);
 }
 
 /* Image Section (for prompt problems) */
@@ -2516,7 +2521,6 @@ export default {
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-md);
-    border: 2px solid transparent;
     transition: var(--transition-base);
     display: flex;
     flex-direction: column;
@@ -2526,7 +2530,7 @@ export default {
 }
 
 .image-section:hover {
-    border-color: var(--color-bg-input);
+    box-shadow: inset 0 0 0 2px var(--color-bg-input), var(--shadow-md);
 }
 
 .problem-image-wrapper {
@@ -2558,7 +2562,6 @@ export default {
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-md);
-    border: 2px solid transparent;
     transition: var(--transition-base);
     display: flex;
     flex-direction: column;
@@ -2568,7 +2571,7 @@ export default {
 }
 
 .description-section:hover {
-    border-color: var(--color-bg-input);
+    box-shadow: inset 0 0 0 2px var(--color-bg-input), var(--shadow-md);
 }
 
 .problem-description-content {
@@ -2642,7 +2645,7 @@ export default {
 }
 
 .editor-toolbar {
-    background: var(--color-bg-hover);
+    background: var(--color-bg-section);
     border-top: 1px solid var(--color-bg-input);
     padding: var(--spacing-sm) var(--spacing-xl);
     display: flex;
@@ -2753,7 +2756,7 @@ export default {
 .theme-dropdown:focus {
     outline: none;
     border-color: var(--color-primary-gradient-start);
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
 .theme-dropdown option {
@@ -2768,7 +2771,6 @@ export default {
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-md);
-    border: 2px solid transparent;
     transition: var(--transition-base);
     display: flex;
     flex-direction: column;
@@ -2776,7 +2778,7 @@ export default {
 }
 
 .submission-section:hover {
-    border-color: var(--color-bg-input);
+    box-shadow: inset 0 0 0 2px var(--color-bg-input), var(--shadow-md);
 }
 
 /* Input-specific styles moved to EiplInput.vue */
@@ -2980,7 +2982,7 @@ export default {
     top: -40px;
     left: 0;
     background: var(--color-primary);
-    color: var(--color-text-primary);
+    color: var(--color-text-on-filled);
     padding: var(--spacing-sm) var(--spacing-md);
     text-decoration: none;
     border-radius: var(--radius-xs);

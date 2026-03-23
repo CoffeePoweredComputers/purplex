@@ -204,6 +204,7 @@ describe('Editor Component', () => {
 
       expect(mockEditor.setOptions).toHaveBeenCalledWith({
         showGutter: true,
+        showFoldWidgets: true,
         minLines: undefined,
         maxLines: undefined,
         readOnly: false,

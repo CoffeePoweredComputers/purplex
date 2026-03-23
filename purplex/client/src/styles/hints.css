@@ -85,8 +85,8 @@
   background: linear-gradient(
     to right,
     transparent 0%,
-    rgba(59, 130, 246, 0.1) 5%,
-    rgba(59, 130, 246, 0.1) 95%,
+    var(--color-info-overlay) 5%,
+    var(--color-info-overlay) 95%,
     transparent 100%
   );
   border-left: 3px solid var(--color-primary-gradient-start);
@@ -106,29 +106,29 @@
 .variable-meaningful {
   color: var(--color-primary-gradient-start);
   font-weight: 600;
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--color-info-overlay);
   padding: 0 var(--spacing-xs);
   border-radius: var(--radius-sm);
 }
 
 /* ACE Editor specific hint styles */
 .ace_variable-meaningful {
-  color: #3b82f6 !important;
+  color: var(--color-info) !important;
   font-weight: 600;
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: var(--color-info-overlay);
   border-radius: 2px;
   padding: 0 2px;
 }
 
 /* Subgoal highlighting in ACE Editor — applied as fullLine markers */
 .ace_subgoal-comment {
-  background-color: rgba(59, 130, 246, 0.18) !important;
-  border-left: 3px solid #3b82f6 !important;
+  background-color: var(--color-info-overlay) !important;
+  border-left: 3px solid var(--color-info) !important;
 }
 
 .ace_subgoal-highlight {
-  background-color: rgba(59, 130, 246, 0.08) !important;
-  border-left: 3px solid rgba(59, 130, 246, 0.4) !important;
+  background-color: var(--color-info-overlay) !important;
+  border-left: 3px solid var(--color-info-border) !important;
 }
 
 /* Subgoal gutter indicators */
@@ -140,21 +140,21 @@
 }
 
 .ace_gutter-cell.subgoal-indicator:hover {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: var(--color-info-overlay);
 }
 
 /* Active subgoal highlighting */
 .ace_subgoal-active {
-  background-color: rgba(59, 130, 246, 0.2) !important;
+  background-color: var(--color-info-overlay) !important;
   animation: subtlePulse 1.5s ease-in-out;
 }
 
 @keyframes subtlePulse {
   0%, 100% {
-    background-color: rgba(59, 130, 246, 0.2);
+    background-color: var(--color-info-overlay);
   }
   50% {
-    background-color: rgba(59, 130, 246, 0.3);
+    background-color: var(--color-primary-glow);
   }
 }
 
@@ -257,8 +257,8 @@
 
 /* Hint error state */
 .hint-error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--color-error-overlay);
+  border: 1px solid var(--color-error-border);
   border-radius: var(--radius-base);
   padding: var(--spacing-lg);
   text-align: center;
@@ -319,21 +319,4 @@
 
 .hint-content:focus {
   outline: none;
-}
-
-/* Dark mode support (if implemented) */
-@media (prefers-color-scheme: dark) {
-  .hint-code-highlight {
-    background: linear-gradient(
-      to right,
-      transparent 0%,
-      rgba(96, 165, 250, 0.15) 5%,
-      rgba(96, 165, 250, 0.15) 95%,
-      transparent 100%
-    );
-  }
-
-  .variable-meaningful {
-    background: rgba(96, 165, 250, 0.2);
-  }
 }
