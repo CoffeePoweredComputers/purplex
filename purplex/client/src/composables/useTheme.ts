@@ -6,9 +6,13 @@ export type EffectiveTheme = 'light' | 'dark'
 const STORAGE_KEY = 'purplex_theme'
 
 function getStoredPreference(): ThemePreference {
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored === 'light' || stored === 'dark' || stored === 'auto') {
-    return stored
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored === 'light' || stored === 'dark' || stored === 'auto') {
+      return stored
+    }
+  } catch {
+    // localStorage may be unavailable in test environments or restricted browsers
   }
   return 'auto'
 }
