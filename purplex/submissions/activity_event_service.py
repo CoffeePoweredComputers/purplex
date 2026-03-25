@@ -45,9 +45,7 @@ class ActivityEventService:
         prefix = event_type.split(".")[0]
         if prefix not in _VALID_PREFIXES:
             raise ValueError(
-                "event_type prefix must be one of %s, got '%s'",
-                _VALID_PREFIXES,
-                prefix,
+                f"event_type prefix must be one of {_VALID_PREFIXES}, got '{prefix}'"
             )
 
     @classmethod
@@ -138,7 +136,7 @@ class ActivityEventService:
                 return existing
             raise
 
-        logger.info(
+        logger.debug(
             "Recorded %s event for user %s (problem=%s, course=%s)",
             event_type,
             user.id if user else None,
