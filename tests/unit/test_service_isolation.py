@@ -106,6 +106,35 @@ ALLOWED_RUNTIME_MODEL_IMPORTS = {
     "services.py": {"ProblemHint"},
     # Repository may need related models for prefetch
     "submission_repository.py": {"UserProgress"},
+    # Activity event service - direct ORM for append-only event recording
+    "activity_event_service.py": {"ActivityEvent"},
+    # Data deletion service - needs models for anonymization/deletion pipeline
+    "data_deletion_service.py": {
+        "HintActivation",
+        "SegmentationAnalysis",
+        "Submission",
+        "SubmissionFeedback",
+        "ActivityEvent",
+        "CourseEnrollment",
+        "ProgressSnapshot",
+        "UserProblemSetProgress",
+        "UserProgress",
+        "AgeVerification",
+        "AuditAction",
+        "DataAccessAuditLog",
+        "DataPrincipalNominee",
+        "UserConsent",
+        "UserProfile",
+    },
+    # Data export service - needs models for GDPR Art. 15 export
+    "data_export_service.py": {
+        "Submission",
+        "UserProgress",
+        "CourseEnrollment",
+        "HintActivation",
+        "SegmentationAnalysis",
+        "ActivityEvent",
+    },
 }
 
 

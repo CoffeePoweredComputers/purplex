@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from .models import (
+    ActivityEvent,
     CodeVariation,
     HintActivation,
     SegmentationAnalysis,
@@ -263,6 +264,56 @@ class SubmissionFeedbackAdmin(admin.ModelAdmin):
         )
 
     submission_link.short_description = "Submission"
+
+
+@admin.register(ActivityEvent)
+class ActivityEventAdmin(admin.ModelAdmin):
+    """Read-only admin for activity event inspection."""
+
+    list_display = [
+        "event_type",
+        "user",
+        "problem",
+        "course",
+        "timestamp",
+        "anonymous_user_id",
+        "schema_version",
+    ]
+
+    list_filter = [
+        "event_type",
+        "schema_version",
+        "course",
+        "timestamp",
+    ]
+
+    search_fields = [
+        "user__username",
+        "anonymous_user_id",
+        "event_type",
+        "idempotency_key",
+    ]
+
+    readonly_fields = [
+        "user",
+        "event_type",
+        "timestamp",
+        "problem",
+        "course",
+        "payload",
+        "anonymous_user_id",
+        "schema_version",
+        "idempotency_key",
+    ]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 # Register remaining models with basic admin

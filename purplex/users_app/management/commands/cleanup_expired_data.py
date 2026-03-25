@@ -54,6 +54,9 @@ class Command(BaseCommand):
         # 4. Clean up old progress snapshots
         self._cleanup_progress_snapshots(retention, dry_run)
 
+        # 5. Report on old activity events (deletion deferred until archival exists)
+        self._report_old_activity_events(retention)
+
         self.stdout.write(self.style.SUCCESS("Retention cleanup completed"))
 
     def _process_pending_deletions(self, dry_run: bool):
@@ -148,3 +151,25 @@ class Command(BaseCommand):
                 old_snapshots.delete()
         else:
             self.stdout.write("No expired progress snapshots")
+
+    def _report_old_activity_events(self, retention: dict):
+        """Report activity events past retention window.
+
+        Actual deletion is deferred until archival infrastructure exists —
+        the database immutability trigger blocks DELETE. This method only
+        counts and logs events that exceed the retention window.
+        """
+        retention_years = retention.get("ACTIVITY_EVENTS_YEARS", 3)
+        cutoff = timezone.now() - timedelta(days=retention_years * 365)
+
+        from purplex.submissions.models import ActivityEvent
+
+        count = ActivityEvent.objects.filter(timestamp__lt=cutoff).count()
+
+        if count > 0:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"{count} activity event(s) exceed {retention_years}-year retention. "
+                    "Archival + deletion not yet implemented (trigger blocks DELETE)."
+                )
+            )

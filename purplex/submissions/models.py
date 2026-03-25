@@ -395,3 +395,102 @@ class SubmissionFeedback(models.Model):
 
     def __str__(self):
         return f"{self.feedback_type} feedback for {self.submission.submission_id}"
+
+
+class ActivityEvent(models.Model):
+    """
+    Append-only activity event log for durable user action tracking.
+    Records must not be updated or deleted after creation.
+
+    Event types use dot-separated namespaces (e.g., probe.execute, hint.view).
+    New types can be added without migration — naming convention enforced in
+    ActivityEventService.
+
+    Retention: DATA_RETENTION["ACTIVITY_EVENTS_YEARS"] (3 years).
+    Estimated volume: ~6M rows/semester (500 students x 100 events/hr x 4hr x 30d).
+    """
+
+    # Core relationships — all SET_NULL to preserve events for research
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activity_events",
+        help_text="SET_NULL preserves event for research when user deleted",
+    )
+    problem = models.ForeignKey(
+        "problems_app.Problem",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activity_events",
+        help_text="SET_NULL preserves event when problem deleted",
+    )
+    course = models.ForeignKey(
+        "problems_app.Course",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activity_events",
+        help_text="SET_NULL preserves event when course deleted",
+    )
+
+    # Event metadata
+    event_type = models.CharField(
+        max_length=80,
+        db_index=True,
+        help_text="Dot-separated namespace: probe.execute, hint.view, refute.attempt, etc.",
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    payload = models.JSONField(
+        default=dict,
+        help_text="Event-specific data. Schema varies by event_type: "
+        "probe.execute: {input: str, output: str, probe_index: int}; "
+        "hint.view: {hint_type: str, problem_slug: str}; "
+        "refute.attempt: {counterexample: dict, result: dict}",
+    )
+
+    # Research & privacy
+    anonymous_user_id = models.CharField(
+        max_length=16,
+        db_index=True,
+        blank=True,
+        default="",
+        help_text="SHA-256 hash (16 chars) via AnonymizationService, set at creation. "
+        "Survives user deletion for research correlation.",
+    )
+    schema_version = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="Payload schema version for forward-compatible evolution",
+    )
+
+    # Deduplication
+    idempotency_key = models.CharField(
+        max_length=64,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Optional deduplication key, prevents duplicate recording on retry",
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "-timestamp"]),
+            models.Index(fields=["event_type", "-timestamp"]),
+            models.Index(fields=["course", "event_type", "-timestamp"]),
+        ]
+        ordering = ["-timestamp"]
+
+    def save(self, *args, **kwargs):
+        """Enforce append-only: existing records cannot be modified."""
+        if self.pk and not self._state.adding:
+            raise ValueError("ActivityEvent records are immutable")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        """Prevent deletion of activity event records (research data)."""
+        raise ValueError("ActivityEvent records cannot be deleted")
+
+    def __str__(self):
+        return f"{self.event_type} at {self.timestamp} (user={self.user_id})"

@@ -33,6 +33,7 @@ class DataExportService:
             "hint_activations": DataExportService._export_hint_activations(user),
             "ai_analyses": DataExportService._export_ai_analyses(user),
             "consent_history": ConsentService.get_consent_history(user),
+            "activity_events": DataExportService._export_activity_events(user),
         }
 
         # Include age verification if it exists
@@ -157,6 +158,28 @@ class DataExportService:
                 "was_helpful": a.was_helpful,
             }
             for a in activations
+        ]
+
+    @staticmethod
+    def _export_activity_events(user: User) -> list[dict]:
+        """Export activity event records."""
+        from purplex.submissions.models import ActivityEvent
+
+        events = (
+            ActivityEvent.objects.filter(user=user)
+            .select_related("problem", "course")
+            .order_by("timestamp")
+        )
+        return [
+            {
+                "event_type": e.event_type,
+                "timestamp": e.timestamp.isoformat(),
+                "problem": e.problem.title if e.problem else None,
+                "course": e.course.name if e.course else None,
+                "payload": e.payload,
+                "schema_version": e.schema_version,
+            }
+            for e in events
         ]
 
     @staticmethod
