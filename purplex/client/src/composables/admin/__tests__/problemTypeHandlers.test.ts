@@ -159,8 +159,8 @@ describe('problemTypeHandlers', () => {
 
       const saved = problemTypeHandlers.prompt.save(composables)
 
-      expect((saved.prompt_config as {image_url: string}).image_url).toBe('https://new-url.com/img.jpg')
-      expect((saved.prompt_config as {image_alt_text: string}).image_alt_text).toBe('New alt text')
+      expect(saved.image_url).toBe('https://new-url.com/img.jpg')
+      expect(saved.image_alt_text).toBe('New alt text')
     })
   })
 
