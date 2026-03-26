@@ -446,9 +446,9 @@ class ActivityEvent(models.Model):
     payload = models.JSONField(
         default=dict,
         help_text="Event-specific data. Schema varies by event_type: "
-        "probe.execute: {input: str, output: str, probe_index: int}; "
+        "probe.execute: {input: dict, output: str, success: bool, probe_mode: str, probes_remaining: int}; "
         "hint.view: {hint_type: str, problem_slug: str}; "
-        "refute.attempt: {counterexample: dict, result: dict}",
+        "refute.attempt: {input: dict, output: str, claim_disproven: bool, success: bool}",
     )
 
     # Research & privacy

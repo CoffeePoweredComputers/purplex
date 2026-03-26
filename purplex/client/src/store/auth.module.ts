@@ -496,11 +496,15 @@ export const auth: Module<AuthState, RootState> = {
     },
 
     async logout({ commit }: AuthActionContext): Promise<void> {
-      // Record session.end before auth token expires (best-effort)
-      activityEventService.record({
-        event_type: 'session.end',
-        payload: { page: window.location.pathname },
-      })
+      // Record session.end before auth token expires (consent-gated, best-effort)
+      privacyService.getConsents().then(consents => {
+        if (consents.behavioral_tracking?.granted) {
+          activityEventService.record({
+            event_type: 'session.end',
+            payload: { page: window.location.pathname },
+          })
+        }
+      }).catch(() => { /* consent check failure is non-blocking */ })
 
       try {
         // Use the auth service to sign out
