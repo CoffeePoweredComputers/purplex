@@ -113,6 +113,31 @@ class ProblemHintDetailView(APIView):
                     {"error": message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
+        # Record durable activity event for hint delivery
+        try:
+            from purplex.submissions.activity_event_service import (
+                ActivityEventService,
+            )
+
+            ActivityEventService.record(
+                user=request.user,
+                event_type="hint.view",
+                payload={
+                    "hint_type": hint_type,
+                    "problem_slug": slug,
+                    "course_id": course_id,
+                    "min_attempts": hint_data.get("min_attempts"),
+                },
+            )
+        except Exception:
+            logger.warning(
+                "Failed to record hint.view event for problem=%s hint=%s user=%s",
+                slug,
+                hint_type,
+                request.user.id,
+                exc_info=True,
+            )
+
         # Return successful response
         return Response(hint_data)
 
