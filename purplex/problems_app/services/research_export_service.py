@@ -314,20 +314,16 @@ class ResearchExportService:
         Uses the pre-computed anonymous_user_id field rather than re-computing
         from the user FK, because the user may have been deleted (SET_NULL).
         """
-        from purplex.submissions.models import ActivityEvent
+        from purplex.submissions.activity_event_repository import (
+            ActivityEventRepository,
+        )
 
-        queryset = ActivityEvent.objects.select_related("user", "problem", "course")
-
-        if course:
-            queryset = queryset.filter(course=course)
-        if start_date:
-            queryset = queryset.filter(timestamp__gte=start_date)
-        if end_date:
-            queryset = queryset.filter(timestamp__lte=end_date)
-        if event_types:
-            queryset = queryset.filter(event_type__in=event_types)
-
-        queryset = queryset.order_by("timestamp")
+        queryset = ActivityEventRepository.get_for_research_export(
+            course=course,
+            start_date=start_date,
+            end_date=end_date,
+            event_types=event_types,
+        )
 
         events = []
         for event in queryset:

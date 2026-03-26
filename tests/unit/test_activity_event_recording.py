@@ -11,14 +11,16 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
-from purplex.problems_app.models import ProblemHint, ProblemSetMembership, UserProgress
 from purplex.submissions.models import ActivityEvent
 from tests.factories import (
     EiplProblemFactory,
     ProbeableCodeProblemFactory,
+    ProblemHintFactory,
     ProblemSetFactory,
+    ProblemSetMembershipFactory,
     RefuteProblemFactory,
     UserFactory,
+    UserProgressFactory,
 )
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
@@ -123,17 +125,14 @@ class TestHintViewEventRecording:
         user = UserFactory()
         problem = EiplProblemFactory()
         problem_set = ProblemSetFactory()
-        ProblemSetMembership.objects.create(
-            problem=problem, problem_set=problem_set, order=1
-        )
-        ProblemHint.objects.create(
+        ProblemSetMembershipFactory(problem=problem, problem_set=problem_set, order=1)
+        ProblemHintFactory(
             problem=problem,
             hint_type="variable_fade",
-            is_enabled=True,
             min_attempts=1,
             content={"mappings": [{"from": "x", "to": "count"}]},
         )
-        UserProgress.objects.create(
+        UserProgressFactory(
             user=user,
             problem=problem,
             problem_set=problem_set,
@@ -179,17 +178,14 @@ class TestHintViewEventRecording:
         user = UserFactory()
         problem = EiplProblemFactory()
         problem_set = ProblemSetFactory()
-        ProblemSetMembership.objects.create(
-            problem=problem, problem_set=problem_set, order=1
-        )
-        ProblemHint.objects.create(
+        ProblemSetMembershipFactory(problem=problem, problem_set=problem_set, order=1)
+        ProblemHintFactory(
             problem=problem,
             hint_type="variable_fade",
-            is_enabled=True,
             min_attempts=1,
             content={"mappings": []},
         )
-        UserProgress.objects.create(
+        UserProgressFactory(
             user=user,
             problem=problem,
             problem_set=problem_set,

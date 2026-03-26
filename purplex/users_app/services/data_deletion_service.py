@@ -175,11 +175,13 @@ class DataDeletionService:
                 Submission.objects.filter(user=user).update(user=None)
 
                 # 3b. Anonymize activity events (SET_NULL preserves for research)
-                from purplex.submissions.models import ActivityEvent
+                from purplex.submissions.activity_event_repository import (
+                    ActivityEventRepository,
+                )
 
-                stats["activity_events_anonymized"] = ActivityEvent.objects.filter(
-                    user=user
-                ).update(user=None)
+                stats["activity_events_anonymized"] = (
+                    ActivityEventRepository.anonymize_for_user(user)
+                )
 
                 # 4. Delete progress records
                 from purplex.problems_app.models import (

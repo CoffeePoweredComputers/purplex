@@ -89,7 +89,6 @@ ALLOWED_RUNTIME_MODEL_IMPORTS = {
         "ProgressSnapshot",
         "Submission",
         "HintActivation",
-        "ActivityEvent",
     },
     "course_export_service.py": {
         "Course",
@@ -107,15 +106,16 @@ ALLOWED_RUNTIME_MODEL_IMPORTS = {
     "services.py": {"ProblemHint"},
     # Repository may need related models for prefetch
     "submission_repository.py": {"UserProgress"},
-    # Activity event service - direct ORM for append-only event recording
-    "activity_event_service.py": {"ActivityEvent"},
+    # Activity event service - model import for _prepare_event, consent check
+    "activity_event_service.py": {"ActivityEvent", "ConsentType"},
+    # Activity event repository - data access layer for append-only events
+    "activity_event_repository.py": {"ActivityEvent"},
     # Data deletion service - needs models for anonymization/deletion pipeline
     "data_deletion_service.py": {
         "HintActivation",
         "SegmentationAnalysis",
         "Submission",
         "SubmissionFeedback",
-        "ActivityEvent",
         "CourseEnrollment",
         "ProgressSnapshot",
         "UserProblemSetProgress",
@@ -134,7 +134,6 @@ ALLOWED_RUNTIME_MODEL_IMPORTS = {
         "CourseEnrollment",
         "HintActivation",
         "SegmentationAnalysis",
-        "ActivityEvent",
     },
 }
 

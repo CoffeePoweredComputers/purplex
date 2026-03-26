@@ -114,5 +114,5 @@ class TestActivityEventServiceRecord:
     def test_record_default_payload_is_empty_dict(self):
         """record() defaults payload to empty dict when not provided."""
         user = UserFactory()
-        event = ActivityEventService.record(user=user, event_type="session.start")
+        event = ActivityEventService.record(user=user, event_type="probe.execute")
         assert event.payload == {}

@@ -163,13 +163,11 @@ class DataExportService:
     @staticmethod
     def _export_activity_events(user: User) -> list[dict]:
         """Export activity event records."""
-        from purplex.submissions.models import ActivityEvent
-
-        events = (
-            ActivityEvent.objects.filter(user=user)
-            .select_related("problem", "course")
-            .order_by("timestamp")
+        from purplex.submissions.activity_event_repository import (
+            ActivityEventRepository,
         )
+
+        events = ActivityEventRepository.get_for_user_export(user)
         return [
             {
                 "event_type": e.event_type,
