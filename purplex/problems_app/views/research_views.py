@@ -49,6 +49,12 @@ class ResearchDataExportView(APIView):
         )
         anonymize = request.query_params.get("anonymize", "false").lower() == "true"
         export_format = request.query_params.get("format", "json").lower()
+        event_types_param = request.query_params.get("event_types")
+        event_types = (
+            [t.strip() for t in event_types_param.split(",")]
+            if event_types_param
+            else None
+        )
 
         # Get course and problem set objects
         course = None
@@ -100,6 +106,7 @@ class ResearchDataExportView(APIView):
             end_date=end_date,
             include_code=include_code,
             anonymize=anonymize,
+            event_types=event_types,
         )
 
         # Return appropriate format

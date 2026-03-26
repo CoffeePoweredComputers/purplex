@@ -32,6 +32,7 @@ class ResearchExportService:
         end_date: datetime | None = None,
         include_code: bool = False,
         anonymize: bool = True,  # FERPA U4: Default anonymized to protect PII
+        event_types: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Export complete research dataset with all metrics.
@@ -43,12 +44,15 @@ class ResearchExportService:
             end_date: Optional end date filter
             include_code: Whether to include student code (privacy consideration)
             anonymize: Whether to anonymize user data
+            event_types: Optional list of event types to filter activity events
 
         Returns:
             Dictionary with complete research data
         """
         dataset = {
-            "metadata": cls._build_metadata(course, problem_set, start_date, end_date),
+            "metadata": cls._build_metadata(
+                course, problem_set, start_date, end_date, event_types
+            ),
             "submissions": cls._export_submissions(
                 course, problem_set, start_date, end_date, include_code, anonymize
             ),
@@ -57,6 +61,9 @@ class ResearchExportService:
                 course, problem_set, start_date, end_date, anonymize
             ),
             "hint_usage": cls._export_hint_usage(course, problem_set, anonymize),
+            "activity_events": cls._export_activity_events(
+                course, start_date, end_date, event_types, anonymize
+            ),
         }
 
         return dataset
@@ -68,6 +75,7 @@ class ResearchExportService:
         problem_set: ProblemSet | None,
         start_date: datetime | None,
         end_date: datetime | None,
+        event_types: list[str] | None = None,
     ) -> dict[str, Any]:
         """Build export metadata."""
         return {
@@ -78,6 +86,7 @@ class ResearchExportService:
                 "problem_set": problem_set.slug if problem_set else None,
                 "start_date": start_date.isoformat() if start_date else None,
                 "end_date": end_date.isoformat() if end_date else None,
+                "event_types": event_types,
             },
             "schema_version": "1.0.0",
         }
@@ -290,6 +299,60 @@ class ResearchExportService:
             )
 
         return hint_usage
+
+    @classmethod
+    def _export_activity_events(
+        cls,
+        course: Course | None,
+        start_date: datetime | None,
+        end_date: datetime | None,
+        event_types: list[str] | None,
+        anonymize: bool,
+    ) -> list[dict[str, Any]]:
+        """Export activity events (probes, hints, refute trials).
+
+        Uses the pre-computed anonymous_user_id field rather than re-computing
+        from the user FK, because the user may have been deleted (SET_NULL).
+        """
+        from purplex.submissions.models import ActivityEvent
+
+        queryset = ActivityEvent.objects.select_related("user", "problem", "course")
+
+        if course:
+            queryset = queryset.filter(course=course)
+        if start_date:
+            queryset = queryset.filter(timestamp__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(timestamp__lte=end_date)
+        if event_types:
+            queryset = queryset.filter(event_type__in=event_types)
+
+        queryset = queryset.order_by("timestamp")
+
+        events = []
+        for event in queryset:
+            if anonymize:
+                user_id = event.anonymous_user_id or "deleted"
+            else:
+                user_id = (
+                    event.user.username
+                    if event.user
+                    else event.anonymous_user_id or "deleted"
+                )
+
+            events.append(
+                {
+                    "user_id": user_id,
+                    "event_type": event.event_type,
+                    "timestamp": event.timestamp.isoformat(),
+                    "problem_slug": event.problem.slug if event.problem else None,
+                    "course_id": (event.course.course_id if event.course else None),
+                    "payload": event.payload,
+                    "schema_version": event.schema_version,
+                }
+            )
+
+        return events
 
     @classmethod
     def _format_test_results(cls, test_executions) -> list[dict[str, Any]]:

@@ -89,6 +89,7 @@ ALLOWED_RUNTIME_MODEL_IMPORTS = {
         "ProgressSnapshot",
         "Submission",
         "HintActivation",
+        "ActivityEvent",
     },
     "course_export_service.py": {
         "Course",
