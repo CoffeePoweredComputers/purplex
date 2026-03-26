@@ -99,6 +99,29 @@ COMPOSE_PROFILES=development docker-compose build web-dev celery-dev
 - Services layer for API calls
 - Composables with `use` prefix (e.g., `useTaskPolling`)
 
+## Architectural Rules (Enforced)
+
+These rules are tested by `pytest -m architecture` and reviewed by Copilot. Violating them will fail CI and block the PR.
+
+### Three-Layer Separation
+- **Views** must not call Django ORM (`Model.objects.*`, `.save()`, `.delete()`). Use service/repository methods.
+- **Services** must not call Django ORM directly. Use repository methods. Exceptions must be whitelisted in `test_service_isolation.py`.
+- **Repositories** centralize all ORM access.
+
+### No bare `except Exception` in views
+Views must not swallow exceptions. If a service call should be fire-and-forget, the service must provide a `*_best_effort()` wrapper that handles errors internally.
+
+### Tests use factories, never `Model.objects.create()`
+All test data comes from Factory Boy factories in `tests/factories/__init__.py`.
+
+### Consent before behavioral data
+`session.*` events require `BEHAVIORAL_TRACKING` consent. Check in the service (defense in depth), not just the view.
+
+### Full review rules
+- `.github/instructions/python-backend.instructions.md`
+- `.github/instructions/data-models.instructions.md`
+- `.github/instructions/tests.instructions.md`
+
 ## Code Conventions
 
 - **Python**: PEP 8, Google-style docstrings, type hints
