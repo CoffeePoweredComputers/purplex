@@ -1,4 +1,5 @@
 import { computed, ComputedRef, ref } from 'vue'
+import { activityEventService } from '../services/activityEventService'
 import { log } from '../utils/logger'
 
 // Types
@@ -88,6 +89,19 @@ export function useHintTracking() {
 
     // Persist to localStorage for research data
     persistHintData()
+
+    // Send enriched hint data to backend for durable research storage
+    activityEventService.record({
+      event_type: 'hint.track',
+      payload: {
+        hint_type: hintType,
+        attempt_number: metadata.attemptNumber || 0,
+        first_hint_time: problemData.firstHintTime,
+        hints_used_count: problemData.hintsUsed.length,
+      },
+      problem_slug: problemSlug,
+      course_id: metadata.courseId || undefined,
+    })
   }
 
   /**

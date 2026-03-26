@@ -4,8 +4,25 @@ import axios from 'axios';
 import { log } from '../utils/logger';
 import { ensureFirebaseInitialized } from '../firebaseConfig';
 import { environment } from '../services/environment';
+import { activityEventService } from '../services/activityEventService';
+import privacyService from '../services/privacyService';
 import { isValidLocale, setLocale, type SupportedLocale } from '../i18n';
 import type { Auth, AuthProvider, User as FirebaseUser, UserCredential } from 'firebase/auth';
+
+/**
+ * Fire session.start event if user has behavioral tracking consent.
+ * Fire-and-forget — failures are silently caught.
+ */
+function fireSessionStart(): void {
+  privacyService.getConsents().then(consents => {
+    if (consents.behavioral_tracking?.granted) {
+      activityEventService.record({
+        event_type: 'session.start',
+        payload: { page: window.location.pathname },
+      })
+    }
+  }).catch(() => { /* consent check failure is non-blocking */ })
+}
 
 // Type for Firebase auth functions (works for both real and mock Firebase)
 type SignInWithEmailFn = (auth: Auth, email: string, password: string) => Promise<UserCredential>;
@@ -211,6 +228,7 @@ export const auth: Module<AuthState, RootState> = {
               commit('loginSuccess', userData);
             }
 
+            fireSessionStart();
             commit('setAuthReady', true);
             return;
           } else {
@@ -304,6 +322,7 @@ export const auth: Module<AuthState, RootState> = {
 
               commit('loginSuccess', userData);
             }
+            fireSessionStart();
             return;
           }
         } catch (error) {
@@ -334,6 +353,7 @@ export const auth: Module<AuthState, RootState> = {
           };
           commit('loginSuccess', userData);
         }
+        fireSessionStart();
       } catch (error) {
         throw { code: 'auth/invalid-credentials', message: 'Invalid email or password', num: 401 } as AuthError;
       }
@@ -396,6 +416,7 @@ export const auth: Module<AuthState, RootState> = {
             };
             commit('loginSuccess', userData);
           }
+          fireSessionStart();
         }
       } catch (error) {
         log.error('Google sign-in popup failed', error);
@@ -475,6 +496,12 @@ export const auth: Module<AuthState, RootState> = {
     },
 
     async logout({ commit }: AuthActionContext): Promise<void> {
+      // Record session.end before auth token expires (best-effort)
+      activityEventService.record({
+        event_type: 'session.end',
+        payload: { page: window.location.pathname },
+      })
+
       try {
         // Use the auth service to sign out
         await AuthService.logout();
