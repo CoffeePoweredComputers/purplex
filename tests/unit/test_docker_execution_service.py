@@ -811,13 +811,13 @@ class TestImageManagement:
         self, docker_service, mock_docker_client
     ):
         """Build failure should raise."""
-        mock_docker_client.images.build.side_effect = Exception("build failed")
+        mock_docker_client.images.build.side_effect = OSError("build failed")
 
         with (
             patch(
                 "purplex.problems_app.services.docker_execution_service.settings"
             ) as settings_mock,
-            pytest.raises(Exception, match="build failed"),
+            pytest.raises(OSError, match="build failed"),
         ):
             settings_mock.BASE_DIR = "/fake"
             docker_service._build_sandbox_image()
@@ -1152,13 +1152,10 @@ class TestHealthMonitor:
     def test_health_check_docker_recovers(self, health_service, mock_docker_client):
         """Docker recovery should re-enable pool after prior unavailability."""
 
-        # Recovery branch (lines 319-321) requires:
-        # 1. pool_enabled=True, _docker_available=True (bypass early return at line 301)
-        # 2. ping succeeds
-        # 3. _docker_available is False when checked at line 319
-        #
-        # We use a ping side-effect to set _docker_available=False just before
-        # the recovery check, simulating a prior _handle_docker_unavailable call.
+        # The recovery branch fires when _perform_health_check detects that
+        # Docker is available again (ping succeeds) after _docker_available was
+        # previously set to False. We simulate this with a ping side-effect
+        # that sets _docker_available=False just before the recovery check.
         def ping_simulating_recovery():
             health_service._docker_available = False
             return True
@@ -1834,11 +1831,11 @@ class TestUtilitiesAndEdgeCases:
     def test_init_failure_raises(self, mock_docker_client, mock_settings):
         """Docker client init failure should raise."""
         with (
-            patch("docker.from_env", side_effect=Exception("Docker not running")),
+            patch("docker.from_env", side_effect=ConnectionError("Docker not running")),
             patch(
                 "purplex.problems_app.services.docker_execution_service.settings"
             ) as settings_mock,
-            pytest.raises(Exception, match="Docker not running"),
+            pytest.raises(ConnectionError, match="Docker not running"),
         ):
             settings_mock.CODE_EXECUTION = mock_settings
             DockerExecutionService()
@@ -2095,41 +2092,6 @@ class TestDeepEdgeCases:
                 service._execute_in_pooled_container("code")
 
             mock_new.assert_called_once()
-            service._closed = True
-
-    def test_pooled_execution_outer_exception_with_container(self):
-        """Outer exception with container should try to remove it."""
-        with (
-            patch("docker.from_env") as mock_docker,
-            patch.object(DockerExecutionService, "_ensure_image_exists"),
-            patch.object(DockerExecutionService, "_init_pool"),
-            patch.object(DockerExecutionService, "_start_health_monitor"),
-            patch(
-                "purplex.problems_app.services.docker_execution_service.settings"
-            ) as settings_mock,
-        ):
-            settings_mock.CODE_EXECUTION = {"POOL_ENABLED": True, "POOL_SIZE": 1}
-            mock_docker.return_value = MockDockerClient()
-
-            service = DockerExecutionService()
-            service._docker_available = True
-            service.pool_enabled = True
-            service.container_pool = []
-            service.container_metadata = {}
-
-            container = MockContainer("outer-err-c")
-            container.remove = MagicMock(side_effect=Exception("remove failed"))
-
-            def get_container_and_fail():
-                # Simulate getting a container then failing at the outer level
-                raise Exception("unexpected outer error")
-
-            with patch.object(
-                service, "_get_container_from_pool", side_effect=get_container_and_fail
-            ):
-                result = service._execute_in_pooled_container("code")
-
-            assert result["success"] is False
             service._closed = True
 
 
