@@ -2131,3 +2131,216 @@ class TestDeepEdgeCases:
 
             assert result["success"] is False
             service._closed = True
+
+
+# =============================================================================
+# Final Coverage Gap Tests
+# =============================================================================
+
+
+class TestFinalCoverageGaps:
+    """Tests targeting the last uncovered lines for 100% coverage."""
+
+    def test_docker_import_missing_raises(self):
+        """When docker SDK is not installed, __init__ should raise ImportError."""
+        with patch(
+            "purplex.problems_app.services.docker_execution_service.docker", None
+        ):
+            with pytest.raises(ImportError, match="Docker SDK is not installed"):
+                DockerExecutionService()
+
+    def test_start_health_monitor_already_running_warns(
+        self, mock_docker_client, mock_settings
+    ):
+        """Calling _start_health_monitor when thread exists should warn and return."""
+        mock_settings["POOL_ENABLED"] = True
+
+        with (
+            patch("docker.from_env", return_value=mock_docker_client),
+            patch.object(DockerExecutionService, "_ensure_image_exists"),
+            patch.object(DockerExecutionService, "_init_pool"),
+            patch(
+                "purplex.problems_app.services.docker_execution_service.settings"
+            ) as settings_mock,
+        ):
+            settings_mock.CODE_EXECUTION = mock_settings
+            # Don't patch _start_health_monitor — let __init__ call the real one
+            service = DockerExecutionService()
+
+            # Thread is now set from __init__
+            assert service._health_monitor_thread is not None
+            existing = service._health_monitor_thread
+
+            # Call again — should hit lines 249-250
+            with patch(
+                "purplex.problems_app.services.docker_execution_service.logger"
+            ) as mock_logger:
+                service._start_health_monitor()
+
+            mock_logger.warning.assert_any_call("Health monitor already running")
+            assert service._health_monitor_thread is existing
+
+            # Cleanup
+            service._stop_health_monitor.set()
+            service._health_monitor_thread.join(timeout=2)
+            service._closed = True
+
+    def test_cleanup_pool_orphan_remove_exception(
+        self, docker_service, mock_docker_client
+    ):
+        """Orphan container remove failure should be silently caught."""
+        docker_service._do_orphan_cleanup = True
+        docker_service.container_pool = []
+
+        orphan = MockContainer("orphan-1")
+        orphan.remove = MagicMock(side_effect=Exception("remove failed"))
+        mock_docker_client.containers.list.return_value = [orphan]
+
+        docker_service._cleanup_pool()  # Should not raise
+
+    def test_del_suppresses_close_exception(self):
+        """__del__ should suppress exceptions from close()."""
+        with (
+            patch("docker.from_env") as mock_docker,
+            patch.object(DockerExecutionService, "_ensure_image_exists"),
+            patch.object(DockerExecutionService, "_init_pool"),
+            patch.object(DockerExecutionService, "_start_health_monitor"),
+            patch(
+                "purplex.problems_app.services.docker_execution_service.settings"
+            ) as settings_mock,
+        ):
+            settings_mock.CODE_EXECUTION = {"POOL_ENABLED": False}
+            mock_docker.return_value = MockDockerClient()
+
+            service = DockerExecutionService()
+            service._closed = False
+
+            # Make close() raise
+            with patch.object(
+                service, "close", side_effect=RuntimeError("close exploded")
+            ):
+                service.__del__()  # Should not raise
+
+    def test_pooled_timeout_kill_succeeds_remove_runs(self):
+        """In timeout handler, when kill succeeds, remove should also run (line 1129)."""
+        from gevent import Timeout as GeventTimeout
+
+        with (
+            patch("docker.from_env") as mock_docker,
+            patch.object(DockerExecutionService, "_ensure_image_exists"),
+            patch.object(DockerExecutionService, "_init_pool"),
+            patch.object(DockerExecutionService, "_start_health_monitor"),
+            patch(
+                "purplex.problems_app.services.docker_execution_service.settings"
+            ) as settings_mock,
+        ):
+            settings_mock.CODE_EXECUTION = {"POOL_ENABLED": True, "POOL_SIZE": 1}
+            mock_docker.return_value = MockDockerClient()
+
+            service = DockerExecutionService()
+            service._docker_available = True
+            service.pool_enabled = True
+            service.container_pool = []
+            service.container_metadata = {}
+
+            container = MockContainer("timeout-c")
+            container.exec_run = MagicMock(side_effect=GeventTimeout)
+            # kill succeeds (default mock), remove also succeeds
+            container.kill = MagicMock()
+            container.remove = MagicMock()
+
+            with patch.object(
+                service, "_get_container_from_pool", return_value=container
+            ):
+                result = service._execute_in_pooled_container("code")
+
+            assert result["success"] is False
+            assert "timed out" in result["error"]
+            container.kill.assert_called_once()
+            container.remove.assert_called_once_with(force=True)
+            service._closed = True
+
+    def test_pooled_outer_exception_with_container_remove_succeeds(self):
+        """Outer exception when container was acquired should remove it (lines 1187-1190)."""
+        with (
+            patch("docker.from_env") as mock_docker,
+            patch.object(DockerExecutionService, "_ensure_image_exists"),
+            patch.object(DockerExecutionService, "_init_pool"),
+            patch.object(DockerExecutionService, "_start_health_monitor"),
+            patch(
+                "purplex.problems_app.services.docker_execution_service.settings"
+            ) as settings_mock,
+        ):
+            settings_mock.CODE_EXECUTION = {"POOL_ENABLED": True, "POOL_SIZE": 1}
+            mock_docker.return_value = MockDockerClient()
+
+            service = DockerExecutionService()
+            service._docker_available = True
+            service.pool_enabled = True
+            service.container_pool = []
+            service.container_metadata = {}
+
+            container = MockContainer("doomed-c")
+
+            # _get_container_from_pool returns the container, but the outer try
+            # block catches the exception. We need the exception AFTER container
+            # is assigned (line 1094) but BEFORE the inner try (line 1103).
+            # The simplest way: mock _get_container_from_pool to return container,
+            # then make the inner try's GeventTimeout constructor raise.
+            with (
+                patch.object(
+                    service, "_get_container_from_pool", return_value=container
+                ),
+                patch(
+                    "purplex.problems_app.services.docker_execution_service.GeventTimeout",
+                    side_effect=Exception("timeout init failed"),
+                ),
+            ):
+                result = service._execute_in_pooled_container("code")
+
+            assert result["success"] is False
+            assert container._removed is True
+            service._closed = True
+
+    def test_pooled_outer_exception_with_container_and_remove_failure(self):
+        """Outer except (line 1184) with container remove failure (line 1189)."""
+        with (
+            patch("docker.from_env") as mock_docker,
+            patch.object(DockerExecutionService, "_ensure_image_exists"),
+            patch.object(DockerExecutionService, "_init_pool"),
+            patch.object(DockerExecutionService, "_start_health_monitor"),
+            patch(
+                "purplex.problems_app.services.docker_execution_service.settings"
+            ) as settings_mock,
+        ):
+            settings_mock.CODE_EXECUTION = {"POOL_ENABLED": True, "POOL_SIZE": 1}
+            mock_docker.return_value = MockDockerClient()
+
+            service = DockerExecutionService()
+            service._docker_available = True
+            service.pool_enabled = True
+            service.container_pool = []
+            service.container_metadata = {}
+
+            container = MockContainer("doomed-c")
+            container.remove = MagicMock(side_effect=Exception("remove failed"))
+            container.exec_run = MagicMock(side_effect=Exception("exec boom"))
+
+            # Inner except (1173) catches exec_run exception and calls
+            # _execute_in_new_container. If THAT also raises, the outer
+            # except (1184) catches it — which is the path we need.
+            with (
+                patch.object(
+                    service, "_get_container_from_pool", return_value=container
+                ),
+                patch.object(
+                    service,
+                    "_execute_in_new_container",
+                    side_effect=Exception("fallback also failed"),
+                ),
+            ):
+                result = service._execute_in_pooled_container("code")
+
+            assert result["success"] is False
+            assert "Unexpected" in result["error"]
+            service._closed = True
