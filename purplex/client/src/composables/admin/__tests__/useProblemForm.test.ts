@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useProblemForm, type ProblemFormState } from '../useProblemForm'
-import type { ProblemDetailed, ProblemCategory } from '@/types'
+import { type ProblemFormState, useProblemForm } from '../useProblemForm'
+import type { ProblemCategory, ProblemDetailed } from '@/types'
 
 // ===== TEST FIXTURES =====
 

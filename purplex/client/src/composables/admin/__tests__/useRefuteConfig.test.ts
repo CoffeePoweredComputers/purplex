@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useRefuteConfig, type RefuteConfig } from '../useRefuteConfig'
+import { type RefuteConfig, useRefuteConfig } from '../useRefuteConfig'
 import { withSetup } from '@/test/setup'
 
 describe('useRefuteConfig', () => {

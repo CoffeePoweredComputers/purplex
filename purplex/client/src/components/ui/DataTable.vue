@@ -4,7 +4,11 @@
     <slot name="filters" />
 
     <!-- Results summary bar -->
-    <div v-if="!loading && !error && totalCount > 0" class="results-bar" aria-live="polite">
+    <div
+      v-if="!loading && !error && totalCount > 0"
+      class="results-bar"
+      aria-live="polite"
+    >
       <span class="results-count">
         {{ $t('common.dataTable.showing', { start: rangeStart, end: rangeEnd, total: totalCount, label: effectiveItemLabel }) }}
       </span>
@@ -12,17 +16,33 @@
     </div>
 
     <!-- Loading state -->
-    <div v-if="loading" class="loading-container">
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
       <AsyncLoader />
-      <p class="loading-text">{{ $t('common.dataTable.loading', { label: effectiveItemLabel }) }}</p>
+      <p class="loading-text">
+        {{ $t('common.dataTable.loading', { label: effectiveItemLabel }) }}
+      </p>
     </div>
 
     <!-- Error state -->
-    <div v-else-if="error" class="error-state">
-      <div class="error-icon" aria-hidden="true">!</div>
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
+      <div
+        class="error-icon"
+        aria-hidden="true"
+      >
+        !
+      </div>
       <h3>{{ $t('common.dataTable.errorTitle') }}</h3>
       <p>{{ error }}</p>
-      <button class="retry-button" @click="$emit('retry')">
+      <button
+        class="retry-button"
+        @click="$emit('retry')"
+      >
         {{ $t('common.dataTable.tryAgain') }}
       </button>
     </div>
@@ -48,7 +68,10 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, index) in items" :key="getRowKey(item, index)">
+            <tr
+              v-for="(item, index) in items"
+              :key="getRowKey(item, index)"
+            >
               <td
                 v-for="col in columns"
                 :key="col.key"
@@ -98,8 +121,16 @@
     </template>
 
     <!-- Empty state -->
-    <div v-else class="empty-state">
-      <div class="empty-icon" aria-hidden="true">[ ]</div>
+    <div
+      v-else
+      class="empty-state"
+    >
+      <div
+        class="empty-icon"
+        aria-hidden="true"
+      >
+        [ ]
+      </div>
       <h3>{{ effectiveEmptyTitle }}</h3>
       <p>{{ effectiveEmptyMessage }}</p>
       <slot name="empty-actions" />

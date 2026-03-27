@@ -26,8 +26,14 @@
               <span class="meta-item">{{ submission?.user || $t('admin.submissions.unknownUser') }}</span>
               <span class="meta-separator">•</span>
               <span class="meta-item">{{ submission?.problem?.title || submission?.problem || $t('admin.submissions.unknownProblem') }}</span>
-              <span v-if="submissionTypeLabel" class="meta-separator">•</span>
-              <span v-if="submissionTypeLabel" class="meta-item type-badge">{{ submissionTypeLabel }}</span>
+              <span
+                v-if="submissionTypeLabel"
+                class="meta-separator"
+              >•</span>
+              <span
+                v-if="submissionTypeLabel"
+                class="meta-item type-badge"
+              >{{ submissionTypeLabel }}</span>
               <span class="meta-separator">•</span>
               <span class="meta-item">{{ formatDate(submission?.submitted_at) }}</span>
             </div>
@@ -113,201 +119,202 @@
             v-if="submission"
             :submission="(submission as Record<string, unknown>)"
           >
-          <!-- Natural Language Prompt (EiPL/Prompt types) - full-width above grid -->
-          <div
-            v-if="submission?.raw_input"
-            class="prompt-section"
-          >
-            <span class="section-title">{{ $t('admin.submissions.naturalLanguagePrompt') }}</span>
-            <div class="prompt-box">
-              {{ submission.raw_input }}
+            <!-- Natural Language Prompt (EiPL/Prompt types) - full-width above grid -->
+            <div
+              v-if="submission?.raw_input"
+              class="prompt-section"
+            >
+              <span class="section-title">{{ $t('admin.submissions.naturalLanguagePrompt') }}</span>
+              <div class="prompt-box">
+                {{ submission.raw_input }}
+              </div>
             </div>
-          </div>
 
-          <!-- Main Grid: code+tests group | segmentation -->
-          <div
-            ref="outerGridRef"
-            class="main-grid"
-            :class="{ 'has-segmentation': hasSegmentation }"
-            :style="hasSegmentation ? { gridTemplateColumns: outerResize.gridTemplate.value } : undefined"
-          >
-            <!-- Left group: Code + Tests -->
-            <div class="code-tests-group">
-              <!-- Variation nav (scoped to code+tests) -->
-              <div
-                v-if="hasVariations"
-                class="variation-nav"
-              >
-                <div class="nav-info">
-                  <span class="variation-label">{{ $t('admin.submissions.variationOf', { current: currentVariationIndex + 1, total: totalVariationsCount }) }}</span>
-                  <div
-                    class="variation-status"
-                    :class="currentVariationStatusClass"
-                  >
-                    {{ currentVariationData?.success ? $t('admin.submissions.allTestsPassed') : $t('admin.submissions.testsPassedOf', { passed: currentVariationData?.testsPassed || 0, total: currentVariationData?.totalTests || 0 }) }}
+            <!-- Main Grid: code+tests group | segmentation -->
+            <div
+              ref="outerGridRef"
+              class="main-grid"
+              :class="{ 'has-segmentation': hasSegmentation }"
+              :style="hasSegmentation ? { gridTemplateColumns: outerResize.gridTemplate.value } : undefined"
+            >
+              <!-- Left group: Code + Tests -->
+              <div class="code-tests-group">
+                <!-- Variation nav (scoped to code+tests) -->
+                <div
+                  v-if="hasVariations"
+                  class="variation-nav"
+                >
+                  <div class="nav-info">
+                    <span class="variation-label">{{ $t('admin.submissions.variationOf', { current: currentVariationIndex + 1, total: totalVariationsCount }) }}</span>
+                    <div
+                      class="variation-status"
+                      :class="currentVariationStatusClass"
+                    >
+                      {{ currentVariationData?.success ? $t('admin.submissions.allTestsPassed') : $t('admin.submissions.testsPassedOf', { passed: currentVariationData?.testsPassed || 0, total: currentVariationData?.totalTests || 0 }) }}
+                    </div>
+                  </div>
+                  <div class="nav-controls">
+                    <button
+                      class="nav-btn"
+                      :disabled="currentVariationIndex === 0"
+                      :title="$t('admin.submissions.previousVariation')"
+                      @click="prevVariation"
+                    >
+                      {{ $t('admin.submissions.previousArrow') }}
+                    </button>
+                    <button
+                      class="nav-btn"
+                      :disabled="currentVariationIndex >= totalVariationsCount - 1"
+                      :title="$t('admin.submissions.nextVariation')"
+                      @click="nextVariation"
+                    >
+                      {{ $t('admin.submissions.nextArrow') }}
+                    </button>
                   </div>
                 </div>
-                <div class="nav-controls">
-                  <button
-                    class="nav-btn"
-                    :disabled="currentVariationIndex === 0"
-                    :title="$t('admin.submissions.previousVariation')"
-                    @click="prevVariation"
-                  >
-                    {{ $t('admin.submissions.previousArrow') }}
-                  </button>
-                  <button
-                    class="nav-btn"
-                    :disabled="currentVariationIndex >= totalVariationsCount - 1"
-                    :title="$t('admin.submissions.nextVariation')"
-                    @click="nextVariation"
-                  >
-                    {{ $t('admin.submissions.nextArrow') }}
-                  </button>
-                </div>
-              </div>
 
-              <div
-                ref="innerGridRef"
-                class="code-tests-columns"
-                :style="{ gridTemplateColumns: innerResize.gridTemplate.value }"
-              >
-                <!-- Code -->
-                <div class="code-column">
-                  <div class="code-section">
+                <div
+                  ref="innerGridRef"
+                  class="code-tests-columns"
+                  :style="{ gridTemplateColumns: innerResize.gridTemplate.value }"
+                >
+                  <!-- Code -->
+                  <div class="code-column">
+                    <div class="code-section">
+                      <div class="section-header">
+                        <span class="section-title">
+                          {{ hasVariations ? $t('admin.submissions.generatedCodeVariation', { index: currentVariationIndex + 1 }) : (submission?.raw_input ? $t('admin.submissions.generatedCode') : $t('admin.submissions.submittedCode')) }}
+                        </span>
+                        <button
+                          class="copy-btn"
+                          @click="copyCode(currentCodeToDisplay)"
+                        >
+                          {{ $t('admin.submissions.copy') }}
+                        </button>
+                      </div>
+                      <Editor
+                        :value="currentCodeToDisplay || '# No code available'"
+                        :read-only="true"
+                        :min-lines="3"
+                        :max-lines="30"
+                        width="100%"
+                        :theme="editorTheme"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Inner resize handle -->
+                  <div
+                    class="resize-handle"
+                    @pointerdown="innerResize.onPointerDown"
+                    @pointermove="innerResize.onPointerMove"
+                    @pointerup="innerResize.onPointerUp"
+                  />
+
+                  <!-- Tests -->
+                  <div class="tests-panel">
                     <div class="section-header">
                       <span class="section-title">
-                        {{ hasVariations ? $t('admin.submissions.generatedCodeVariation', { index: currentVariationIndex + 1 }) : (submission?.raw_input ? $t('admin.submissions.generatedCode') : $t('admin.submissions.submittedCode')) }}
+                        {{ $t('admin.submissions.testResults', { passing: currentPassingTests, total: currentTestResults.length }) }}
                       </span>
-                      <button
-                        class="copy-btn"
-                        @click="copyCode(currentCodeToDisplay)"
-                      >
-                        {{ $t('admin.submissions.copy') }}
-                      </button>
-                    </div>
-                    <Editor
-                      :value="currentCodeToDisplay || '# No code available'"
-                      :read-only="true"
-                      :min-lines="3"
-                      :max-lines="30"
-                      width="100%"
-                      :theme="editorTheme"
-                    />
-                  </div>
-                </div>
-
-                <!-- Inner resize handle -->
-                <div
-                  class="resize-handle"
-                  @pointerdown="innerResize.onPointerDown"
-                  @pointermove="innerResize.onPointerMove"
-                  @pointerup="innerResize.onPointerUp"
-                />
-
-                <!-- Tests -->
-                <div class="tests-panel">
-                  <div class="section-header">
-                    <span class="section-title">
-                      {{ $t('admin.submissions.testResults', { passing: currentPassingTests, total: currentTestResults.length }) }}
-                    </span>
-                  </div>
-
-                  <div
-                    v-if="!currentTestResults || currentTestResults.length === 0"
-                    class="empty-state"
-                  >
-                    {{ hasVariations ? $t('admin.submissions.noTestResultsVariation') : $t('admin.submissions.noTestResults') }}
-                  </div>
-                  <div
-                    v-else
-                    class="test-results"
-                  >
-                    <!-- Test Summary Bar -->
-                    <div class="test-summary-bar">
-                      <div class="summary-counts">
-                        <span class="count-item passing">✓ {{ currentPassingTests }} {{ $t('admin.submissions.passing') }}</span>
-                        <span class="count-item failing">✗ {{ currentFailingTests }} {{ $t('admin.submissions.failing') }}</span>
-                      </div>
                     </div>
 
-                    <!-- Failing Tests (Expanded by default) -->
-                    <details
-                      v-if="currentFailingTests > 0"
-                      open
-                      class="test-group"
+                    <div
+                      v-if="!currentTestResults || currentTestResults.length === 0"
+                      class="empty-state"
                     >
-                      <summary class="test-group-header failing">
-                        <span class="group-icon">▶</span>
-                        {{ $t('admin.submissions.failingTests', { count: currentFailingTests }) }}
-                      </summary>
-                      <div class="test-list">
-                        <article
-                          v-for="(test, i) in currentFailingTestsList"
-                          :key="`fail-${i}`"
-                          class="test-item failing"
-                        >
-                          <div class="test-content">
-                            <code class="test-call">{{ formatTestCall(test) }}</code>
-                            <div class="test-diff">
-                              <div>{{ $t('admin.submissions.expected') }} <code class="expected">{{ formatValue(test.expected_output || test.expected) }}</code></div>
-                              <div>
-                                {{ $t('admin.submissions.got') }} <code
-                                  class="actual"
-                                  :class="getValueDisplayClass(test.actual_output || test.actual)"
-                                >{{ formatTestValue(test.actual_output || test.actual) }}</code>
+                      {{ hasVariations ? $t('admin.submissions.noTestResultsVariation') : $t('admin.submissions.noTestResults') }}
+                    </div>
+                    <div
+                      v-else
+                      class="test-results"
+                    >
+                      <!-- Test Summary Bar -->
+                      <div class="test-summary-bar">
+                        <div class="summary-counts">
+                          <span class="count-item passing">✓ {{ currentPassingTests }} {{ $t('admin.submissions.passing') }}</span>
+                          <span class="count-item failing">✗ {{ currentFailingTests }} {{ $t('admin.submissions.failing') }}</span>
+                        </div>
+                      </div>
+
+                      <!-- Failing Tests (Expanded by default) -->
+                      <details
+                        v-if="currentFailingTests > 0"
+                        open
+                        class="test-group"
+                      >
+                        <summary class="test-group-header failing">
+                          <span class="group-icon">▶</span>
+                          {{ $t('admin.submissions.failingTests', { count: currentFailingTests }) }}
+                        </summary>
+                        <div class="test-list">
+                          <article
+                            v-for="(test, i) in currentFailingTestsList"
+                            :key="`fail-${i}`"
+                            class="test-item failing"
+                          >
+                            <div class="test-content">
+                              <code class="test-call">{{ formatTestCall(test) }}</code>
+                              <div class="test-diff">
+                                <div>{{ $t('admin.submissions.expected') }} <code class="expected">{{ formatValue(test.expected_output || test.expected) }}</code></div>
+                                <div>
+                                  {{ $t('admin.submissions.got') }} <code
+                                    class="actual"
+                                    :class="getValueDisplayClass(test.actual_output || test.actual)"
+                                  >{{ formatTestValue(test.actual_output || test.actual) }}</code>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </article>
-                      </div>
-                    </details>
+                          </article>
+                        </div>
+                      </details>
 
-                    <!-- Passing Tests (Collapsed by default) -->
-                    <details
-                      v-if="currentPassingTests > 0"
-                      class="test-group"
-                    >
-                      <summary class="test-group-header passing">
-                        <span class="group-icon">▶</span>
-                        {{ $t('admin.submissions.passingTests', { count: currentPassingTests }) }}
-                      </summary>
-                      <div class="test-list">
-                        <article
-                          v-for="(test, i) in currentPassingTestsList"
-                          :key="`pass-${i}`"
-                          class="test-item passing"
-                        >
-                          <div class="test-content">
-                            <code class="test-call">{{ formatTestCall(test) }} → {{ formatValue(test.expected_output || test.expected) }}</code>
-                          </div>
-                        </article>
-                      </div>
-                    </details>
-                  </div>
-
-                  <!-- Hints (compact, inside tests panel) -->
-                  <div
-                    v-if="hasHintsActivated"
-                    class="hints-compact"
-                  >
-                    <div class="section-header">
-                      <span class="section-title">{{ $t('admin.submissions.hintsUsed', { count: hintsActivatedCount }) }}</span>
-                    </div>
-                    <div class="hints-list">
-                      <div
-                        v-for="(hint, idx) in submission.hints_activated"
-                        :key="idx"
-                        class="hint-item"
+                      <!-- Passing Tests (Collapsed by default) -->
+                      <details
+                        v-if="currentPassingTests > 0"
+                        class="test-group"
                       >
-                        <span class="hint-icon">{{ getHintIcon(hint.hint_type) }}</span>
-                        <div class="hint-details">
-                          <div class="hint-type-name">
-                            {{ formatHintType(hint.hint_type) }}
-                          </div>
-                          <div class="hint-meta">
-                            <span class="hint-trigger">{{ formatTriggerType(hint.trigger_type) }}</span>
-                            <span class="hint-time">{{ formatHintTime(hint.activated_at) }}</span>
+                        <summary class="test-group-header passing">
+                          <span class="group-icon">▶</span>
+                          {{ $t('admin.submissions.passingTests', { count: currentPassingTests }) }}
+                        </summary>
+                        <div class="test-list">
+                          <article
+                            v-for="(test, i) in currentPassingTestsList"
+                            :key="`pass-${i}`"
+                            class="test-item passing"
+                          >
+                            <div class="test-content">
+                              <code class="test-call">{{ formatTestCall(test) }} → {{ formatValue(test.expected_output || test.expected) }}</code>
+                            </div>
+                          </article>
+                        </div>
+                      </details>
+                    </div>
+
+                    <!-- Hints (compact, inside tests panel) -->
+                    <div
+                      v-if="hasHintsActivated"
+                      class="hints-compact"
+                    >
+                      <div class="section-header">
+                        <span class="section-title">{{ $t('admin.submissions.hintsUsed', { count: hintsActivatedCount }) }}</span>
+                      </div>
+                      <div class="hints-list">
+                        <div
+                          v-for="(hint, idx) in submission.hints_activated"
+                          :key="idx"
+                          class="hint-item"
+                        >
+                          <span class="hint-icon">{{ getHintIcon(hint.hint_type) }}</span>
+                          <div class="hint-details">
+                            <div class="hint-type-name">
+                              {{ formatHintType(hint.hint_type) }}
+                            </div>
+                            <div class="hint-meta">
+                              <span class="hint-trigger">{{ formatTriggerType(hint.trigger_type) }}</span>
+                              <span class="hint-time">{{ formatHintTime(hint.activated_at) }}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -315,52 +322,54 @@
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Outer resize handle -->
-            <div
-              v-if="hasSegmentation"
-              class="resize-handle"
-              @pointerdown="outerResize.onPointerDown"
-              @pointermove="outerResize.onPointerMove"
-              @pointerup="outerResize.onPointerUp"
-            />
+              <!-- Outer resize handle -->
+              <div
+                v-if="hasSegmentation"
+                class="resize-handle"
+                @pointerdown="outerResize.onPointerDown"
+                @pointermove="outerResize.onPointerMove"
+                @pointerup="outerResize.onPointerUp"
+              />
 
-            <!-- Right: Segmentation (only for EiPL) -->
-            <div
-              v-if="hasSegmentation"
-              class="segmentation-panel"
-            >
-              <div class="section-header">
-                <span class="section-title">
-                  {{ $t('admin.submissions.segmentation') }}
-                  <span class="segment-count-highlight">{{ submission.segmentation.segment_count || submission.segmentation.segments.length }}</span>
-                </span>
-              </div>
-              <div class="segments-list">
-                <div
-                  v-for="(segment, idx) in submission.segmentation.segments"
-                  :key="segment.id"
-                  class="segment-item"
-                  :style="{
-                    borderLeftColor: getSegmentColor(idx),
-                    backgroundColor: getSegmentColor(idx) + '10'
-                  }"
-                >
-                  <span
-                    class="segment-number"
-                    :style="{ backgroundColor: getSegmentColor(idx) }"
-                  >{{ idx + 1 }}</span>
-                  <span class="segment-body">
-                    <span class="segment-text">{{ segment.text }}</span>
-                    <span v-if="segment.code_lines?.length" class="segment-lines">
-                      {{ $t('admin.submissions.lines', { lines: formatCodeLines(segment.code_lines) }) }}
-                    </span>
+              <!-- Right: Segmentation (only for EiPL) -->
+              <div
+                v-if="hasSegmentation"
+                class="segmentation-panel"
+              >
+                <div class="section-header">
+                  <span class="section-title">
+                    {{ $t('admin.submissions.segmentation') }}
+                    <span class="segment-count-highlight">{{ submission.segmentation.segment_count || submission.segmentation.segments.length }}</span>
                   </span>
+                </div>
+                <div class="segments-list">
+                  <div
+                    v-for="(segment, idx) in submission.segmentation.segments"
+                    :key="segment.id"
+                    class="segment-item"
+                    :style="{
+                      borderLeftColor: getSegmentColor(idx),
+                      backgroundColor: getSegmentColor(idx) + '10'
+                    }"
+                  >
+                    <span
+                      class="segment-number"
+                      :style="{ backgroundColor: getSegmentColor(idx) }"
+                    >{{ idx + 1 }}</span>
+                    <span class="segment-body">
+                      <span class="segment-text">{{ segment.text }}</span>
+                      <span
+                        v-if="segment.code_lines?.length"
+                        class="segment-lines"
+                      >
+                        {{ $t('admin.submissions.lines', { lines: formatCodeLines(segment.code_lines) }) }}
+                      </span>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
           </SubmissionDetailContent>
         </div>
       </div>
@@ -466,7 +475,7 @@ const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
 const router = useRouter()
 
 const expandRoute = computed(() => {
-  if (!props.submission) return null
+  if (!props.submission) {return null}
   const subId = props.submission.submission_id || props.submission.id
   const courseData = (props.submission as Record<string, unknown>).course as { id?: string } | undefined
   if (courseData?.id) {
@@ -829,7 +838,7 @@ function getSegmentColor(index: number): string {
 }
 
 function formatCodeLines(lines: number[]): string {
-  if (!lines.length) return ''
+  if (!lines.length) {return ''}
   const sorted = [...lines].sort((a, b) => a - b)
   const ranges: string[] = []
   let start = sorted[0]

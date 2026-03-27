@@ -1,4 +1,4 @@
-import { ref, computed, type Ref } from 'vue'
+import { computed, type Ref, ref } from 'vue'
 
 interface ResizableColumnsOptions {
   /** localStorage key for persisting column proportions */
@@ -43,7 +43,7 @@ export function useResizableColumns(
   let startFraction = 0
 
   function onPointerDown(e: PointerEvent) {
-    if (!containerRef.value) return
+    if (!containerRef.value) {return}
     e.preventDefault()
     isDragging.value = true
     startX = e.clientX
@@ -54,7 +54,7 @@ export function useResizableColumns(
   }
 
   function onPointerMove(e: PointerEvent) {
-    if (!isDragging.value || !containerRef.value) return
+    if (!isDragging.value || !containerRef.value) {return}
     const containerWidth = containerRef.value.offsetWidth - handleWidth
     const delta = (e.clientX - startX) / containerWidth
     leftFraction.value = Math.max(
@@ -64,7 +64,7 @@ export function useResizableColumns(
   }
 
   function onPointerUp() {
-    if (!isDragging.value) return
+    if (!isDragging.value) {return}
     isDragging.value = false
     document.body.style.cursor = ''
     document.body.style.userSelect = ''

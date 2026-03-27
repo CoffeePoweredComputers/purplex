@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mount, VueWrapper } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
@@ -250,8 +250,8 @@ describe('Editor Component', () => {
 
   describe('Value Watcher — programmatic content updates', () => {
     it('should call setValue and resize(true) when value prop changes', async () => {
-      ;({ wrapper } = await mountAndInit({ value: 'original code' }))
-      const { mockEditor } = await mountAndInit({ value: 'original code' })
+      ({ wrapper } = await mountAndInit({ value: 'original code' }))
+      const { mockEditor: _mockEditor } = await mountAndInit({ value: 'original code' })
       // Re-do properly with the same wrapper
       wrapper.unmount()
       const result = await mountAndInit({ value: 'original code' })

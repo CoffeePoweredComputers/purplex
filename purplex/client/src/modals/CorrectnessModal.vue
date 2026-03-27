@@ -34,7 +34,10 @@
               </div>
             </div>
             <div class="modal-actions">
-              <div class="size-controls-group" aria-hidden="true">
+              <div
+                class="size-controls-group"
+                aria-hidden="true"
+              >
                 <span class="size-label">{{ $t('feedback.correctnessModal.sizeLabel') }}</span>
                 <div class="size-controls">
                   <button
@@ -87,7 +90,10 @@
           <div class="modal-body">
             <!-- Version Selector Pills -->
             <div class="version-selector">
-              <span id="version-selector-label" class="selector-label">{{ $t('feedback.correctnessModal.viewVersion') }}</span>
+              <span
+                id="version-selector-label"
+                class="selector-label"
+              >{{ $t('feedback.correctnessModal.viewVersion') }}</span>
               <div
                 class="version-pills"
                 role="tablist"
@@ -137,7 +143,9 @@
               <div class="version-details">
                 <div class="details-code">
                   <div class="section-header">
-                    <h4 class="section-title">{{ $t('feedback.correctnessModal.generatedCode') }}</h4>
+                    <h4 class="section-title">
+                      {{ $t('feedback.correctnessModal.generatedCode') }}
+                    </h4>
                     <span
                       class="section-meta"
                       :class="{ passing: v.passing, failing: !v.passing }"
@@ -146,7 +154,10 @@
                     </span>
                   </div>
                   <div class="code-wrapper">
-                    <div class="code-block" inert>
+                    <div
+                      class="code-block"
+                      inert
+                    >
                       <Editor
                         :value="v.code"
                         :read-only="true"
@@ -162,13 +173,15 @@
                       role="group"
                       :aria-label="`Generated code for version ${i + 1}, read-only`"
                       v-text="v.code"
-                    ></pre>
+                    />
                   </div>
                 </div>
 
                 <div class="details-tests">
                   <div class="section-header">
-                    <h4 class="section-title">{{ $t('feedback.correctnessModal.testResults') }}</h4>
+                    <h4 class="section-title">
+                      {{ $t('feedback.correctnessModal.testResults') }}
+                    </h4>
                     <span class="section-meta">{{ v.testsPassed }}/{{ v.testsTotal }}</span>
                   </div>
                   <ul class="tests-list">
@@ -364,7 +377,7 @@ function testAriaLabel(test: Test): string {
 
 function announceVersion(index: number): void {
   const v = props.variants[index]
-  if (!v) return
+  if (!v) {return}
   const status = v.passing ? 'passing' : 'failing'
   const msg = `Version ${index + 1} of ${props.variants.length}, ${status}, ${v.testsPassed} of ${v.testsTotal} tests passed`
   versionAnnouncement.value = ''

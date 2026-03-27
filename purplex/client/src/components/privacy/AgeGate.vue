@@ -1,6 +1,8 @@
 <template>
   <div class="age-gate">
-    <h3 class="age-gate__title">{{ t('auth.ageGate.title') }}</h3>
+    <h3 class="age-gate__title">
+      {{ t('auth.ageGate.title') }}
+    </h3>
     <p class="age-gate__description">
       {{ t('auth.ageGate.description') }}
     </p>
@@ -9,19 +11,29 @@
       <label class="age-gate__label">
         {{ t('auth.ageGate.dateOfBirth') }}
         <input
-          type="date"
           v-model="dateOfBirth"
+          type="date"
           :max="today"
           class="age-gate__input"
           required
         >
       </label>
 
-      <p v-if="ageMessage" class="age-gate__message" :class="{ 'age-gate__message--warning': isMinor }">
+      <p
+        v-if="ageMessage"
+        class="age-gate__message"
+        :class="{ 'age-gate__message--warning': isMinor }"
+      >
         {{ ageMessage }}
       </p>
 
-      <p v-if="error" class="age-gate__error" role="alert">{{ error }}</p>
+      <p
+        v-if="error"
+        class="age-gate__error"
+        role="alert"
+      >
+        {{ error }}
+      </p>
 
       <button
         class="age-gate__submit"
@@ -35,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -50,7 +62,7 @@ const error = ref('');
 const today = new Date().toISOString().split('T')[0];
 
 const age = computed(() => {
-    if (!dateOfBirth.value) return null;
+    if (!dateOfBirth.value) {return null;}
     const birth = new Date(dateOfBirth.value);
     const now = new Date();
     let years = now.getFullYear() - birth.getFullYear();
@@ -65,7 +77,7 @@ const isMinor = computed(() => age.value !== null && age.value < 18);
 const isChild = computed(() => age.value !== null && age.value < 13);
 
 const ageMessage = computed(() => {
-    if (age.value === null) return '';
+    if (age.value === null) {return '';}
     if (isChild.value) {
         return t('auth.ageGate.childMessage');
     }

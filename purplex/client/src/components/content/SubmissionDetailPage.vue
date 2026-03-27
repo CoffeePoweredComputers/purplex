@@ -6,13 +6,22 @@
     :show-header="true"
     :show-breadcrumb="true"
   >
-    <div v-if="loading" class="loading-state">
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
       {{ $t('admin.submissions.loadingDetails') }}
     </div>
 
-    <div v-else-if="error" class="error-state">
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
       <p>{{ error }}</p>
-      <button class="retry-btn" @click="fetchSubmission">
+      <button
+        class="retry-btn"
+        @click="fetchSubmission"
+      >
         {{ $t('common.retry') }}
       </button>
     </div>
@@ -22,7 +31,10 @@
       <div class="metrics-bar">
         <div class="metric">
           <span class="metric-label">{{ $t('admin.submissions.score') }}</span>
-          <span class="metric-value" :class="getScoreClass(submission.score)">
+          <span
+            class="metric-value"
+            :class="getScoreClass(submission.score)"
+          >
             {{ submission.score || 0 }}%
           </span>
         </div>
@@ -36,7 +48,10 @@
           <span class="metric-label">{{ $t('admin.submissions.typeLabel') }}</span>
           <span class="metric-value type-badge">{{ formatType(submission.submission_type) }}</span>
         </div>
-        <div v-if="submission.execution_time_ms" class="metric">
+        <div
+          v-if="submission.execution_time_ms"
+          class="metric"
+        >
           <span class="metric-label">{{ $t('admin.submissions.time') }}</span>
           <span class="metric-value">{{ $t('common.units.ms', { value: submission.execution_time_ms }) }}</span>
         </div>
@@ -59,15 +74,23 @@
         <!-- Generic code + tests layout -->
         <div class="full-page-content">
           <!-- NL Prompt -->
-          <div v-if="submission.raw_input" class="code-section">
+          <div
+            v-if="submission.raw_input"
+            class="code-section"
+          >
             <div class="section-header">
               <span class="section-title">{{ $t('admin.submissions.naturalLanguagePrompt') }}</span>
             </div>
-            <div class="prompt-box">{{ submission.raw_input }}</div>
+            <div class="prompt-box">
+              {{ submission.raw_input }}
+            </div>
           </div>
 
           <!-- Variation nav -->
-          <div v-if="hasVariations" class="variation-nav">
+          <div
+            v-if="hasVariations"
+            class="variation-nav"
+          >
             <span class="variation-label">
               {{ $t('admin.submissions.variationOf', { current: currentVariationIndex + 1, total: variationsCount }) }}
             </span>
@@ -106,7 +129,10 @@
           </div>
 
           <!-- Test results -->
-          <div v-if="currentTests.length > 0" class="code-section">
+          <div
+            v-if="currentTests.length > 0"
+            class="code-section"
+          >
             <div class="section-header">
               <span class="section-title">
                 {{ $t('admin.submissions.testResults', { passing: currentTests.filter(tc => tc.passed || tc.isSuccessful).length, total: currentTests.length }) }}
@@ -130,7 +156,10 @@
           </div>
 
           <!-- Segmentation -->
-          <div v-if="submission.segmentation" class="code-section">
+          <div
+            v-if="submission.segmentation"
+            class="code-section"
+          >
             <div class="section-header">
               <span class="section-title">{{ $t('admin.submissions.segmentationAnalysis') }}</span>
             </div>
@@ -144,7 +173,10 @@
                 <strong>{{ submission.segmentation.segment_count }}</strong>
                 ({{ $t('admin.submissions.threshold', { value: submission.segmentation.threshold }) }})
               </div>
-              <div v-if="submission.segmentation.feedback_message" class="seg-feedback">
+              <div
+                v-if="submission.segmentation.feedback_message"
+                class="seg-feedback"
+              >
                 {{ submission.segmentation.feedback_message }}
               </div>
             </div>
@@ -182,7 +214,7 @@ const error = ref<string | null>(null);
 const currentVariationIndex = ref(0);
 
 const pageTitle = computed(() => {
-  if (!submission.value) return t('admin.submissions.title');
+  if (!submission.value) {return t('admin.submissions.title');}
   const problem = submission.value.problem as { title?: string } | string | undefined;
   const title = typeof problem === 'object' ? problem?.title : problem;
   return t('admin.submissions.submissionTitle', { title: title || t('admin.submissions.unknown') });
@@ -234,9 +266,9 @@ async function fetchSubmission(): Promise<void> {
 }
 
 function getScoreClass(score: number | undefined): string {
-  if (!score) return 'error';
-  if (score >= 100) return 'success';
-  if (score >= 60) return 'warning';
+  if (!score) {return 'error';}
+  if (score >= 100) {return 'success';}
+  if (score >= 60) {return 'warning';}
   return 'error';
 }
 
@@ -249,7 +281,7 @@ function formatType(type: string | undefined): string {
 }
 
 function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return t('admin.submissions.unknown');
+  if (!dateStr) {return t('admin.submissions.unknown');}
   return new Date(dateStr as string).toLocaleString(undefined, {
     month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });

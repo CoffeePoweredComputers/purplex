@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useSegmentation, type SegmentationConfig } from '../useSegmentation'
+import { type SegmentationConfig, useSegmentation } from '../useSegmentation'
 
 describe('useSegmentation', () => {
   let segmentation: ReturnType<typeof useSegmentation>

@@ -578,16 +578,16 @@ class ContentServiceImpl implements ContentApiService {
     try {
       const queryParams = new URLSearchParams();
 
-      if (params.page) queryParams.append('page', params.page.toString());
-      if (params.page_size) queryParams.append('page_size', params.page_size.toString());
-      if (params.search) queryParams.append('search', params.search);
-      if (params.status) queryParams.append('status', params.status);
-      if (params.problem_set) queryParams.append('problem_set', params.problem_set);
+      if (params.page) {queryParams.append('page', params.page.toString());}
+      if (params.page_size) {queryParams.append('page_size', params.page_size.toString());}
+      if (params.search) {queryParams.append('search', params.search);}
+      if (params.status) {queryParams.append('status', params.status);}
+      if (params.problem_set) {queryParams.append('problem_set', params.problem_set);}
 
       let url: string;
       if (this.role === 'admin') {
         // Admin can view all submissions, optionally filtered by course
-        if (params.course) queryParams.append('course', params.course);
+        if (params.course) {queryParams.append('course', params.course);}
         url = `/api/admin/submissions/?${queryParams.toString()}`;
       } else {
         // Instructor must scope to a specific course

@@ -9,8 +9,7 @@
  * composable since they are inherited from SpecProblem (shared with eipl, refute, etc.)
  */
 
-import { useProbeConfig, PROBE_MODES as BASE_PROBE_MODES, type ProbeMode } from './useProbeConfig';
-import type { UseProbeConfigReturn } from './useProbeConfig';
+import { type ProbeMode, useProbeConfig, type UseProbeConfigReturn } from './useProbeConfig';
 
 // ===== TYPES =====
 

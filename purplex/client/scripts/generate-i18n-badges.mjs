@@ -9,7 +9,7 @@
  * Usage:  node scripts/generate-i18n-badges.mjs   (run from purplex/client/)
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 
 // ---------------------------------------------------------------------------
@@ -31,9 +31,9 @@ const LOCALE_LABELS = {
 };
 
 function badgeColor(percent) {
-  if (percent >= 100) return 'brightgreen';
-  if (percent >= 50) return 'yellow';
-  if (percent >= 1) return 'red';
+  if (percent >= 100) {return 'brightgreen';}
+  if (percent >= 50) {return 'yellow';}
+  if (percent >= 1) {return 'red';}
   return 'lightgrey';
 }
 

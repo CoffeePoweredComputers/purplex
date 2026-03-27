@@ -6,7 +6,10 @@
     :show-breadcrumb="true"
   >
     <template #header-actions>
-      <router-link :to="ctx.paths.editCourse(courseId)" class="action-button secondary-button">
+      <router-link
+        :to="ctx.paths.editCourse(courseId)"
+        class="action-button secondary-button"
+      >
         {{ $t('admin.courses.editCourse') }}
       </router-link>
     </template>
@@ -101,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
@@ -123,7 +126,7 @@ const course = ref<Course | null>(null);
 
 const courseId = computed(() => route.params.courseId as string);
 const pageTitle = computed(() => {
-  if (course.value) return t('admin.courseStudents.studentsDash', { name: course.value.name });
+  if (course.value) {return t('admin.courseStudents.studentsDash', { name: course.value.name });}
   return t('admin.courseStudents.title');
 });
 
@@ -205,7 +208,7 @@ function confirmRemove(student: CourseStudent): void {
 }
 
 async function performRemove(): Promise<void> {
-  if (!removeTarget.value) return;
+  if (!removeTarget.value) {return;}
 
   removing.value = true;
   try {

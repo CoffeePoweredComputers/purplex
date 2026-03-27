@@ -3,15 +3,27 @@
     <h3>{{ $t('admin.courseTeam.title') }}</h3>
 
     <!-- Loading -->
-    <div v-if="loading" class="team-loading">
+    <div
+      v-if="loading"
+      class="team-loading"
+    >
       <div class="loading-spinner" />
       <span>{{ $t('admin.courseTeam.loadingTeam') }}</span>
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="team-error" role="alert">
+    <div
+      v-else-if="error"
+      class="team-error"
+      role="alert"
+    >
       <p>{{ error }}</p>
-      <button class="btn-retry" @click="fetchTeam">{{ $t('common.retry') }}</button>
+      <button
+        class="btn-retry"
+        @click="fetchTeam"
+      >
+        {{ $t('common.retry') }}
+      </button>
     </div>
 
     <!-- Team List -->
@@ -23,11 +35,16 @@
             <th>{{ $t('admin.courseTeam.email') }}</th>
             <th>{{ $t('admin.courseTeam.role') }}</th>
             <th>{{ $t('admin.courseTeam.added') }}</th>
-            <th v-if="isPrimary">{{ $t('admin.courseTeam.actions') }}</th>
+            <th v-if="isPrimary">
+              {{ $t('admin.courseTeam.actions') }}
+            </th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="member in team" :key="member.user_id">
+          <tr
+            v-for="member in team"
+            :key="member.user_id"
+          >
             <td>{{ member.full_name }}</td>
             <td>{{ member.email }}</td>
             <td>
@@ -42,8 +59,12 @@
                 class="role-select"
                 @change="changeRole(member, ($event.target as HTMLSelectElement).value)"
               >
-                <option value="primary">{{ $t('admin.instructor.roles.primary') }}</option>
-                <option value="ta">{{ $t('admin.instructor.roles.ta') }}</option>
+                <option value="primary">
+                  {{ $t('admin.instructor.roles.primary') }}
+                </option>
+                <option value="ta">
+                  {{ $t('admin.instructor.roles.ta') }}
+                </option>
               </select>
               <button
                 class="btn-remove"
@@ -57,7 +78,10 @@
       </table>
 
       <!-- Add Member (primary only) -->
-      <div v-if="isPrimary" class="add-member">
+      <div
+        v-if="isPrimary"
+        class="add-member"
+      >
         <h4>{{ $t('admin.courseTeam.addTeamMember') }}</h4>
         <div class="add-form">
           <input
@@ -65,10 +89,17 @@
             type="email"
             :placeholder="$t('admin.courseTeam.emailPlaceholder')"
             class="input-email"
-          />
-          <select v-model="newRole" class="role-select">
-            <option value="ta">{{ $t('admin.instructor.roles.ta') }}</option>
-            <option value="primary">{{ $t('admin.instructor.roles.primary') }}</option>
+          >
+          <select
+            v-model="newRole"
+            class="role-select"
+          >
+            <option value="ta">
+              {{ $t('admin.instructor.roles.ta') }}
+            </option>
+            <option value="primary">
+              {{ $t('admin.instructor.roles.primary') }}
+            </option>
           </select>
           <button
             class="btn-add"
@@ -78,8 +109,19 @@
             {{ addingMember ? $t('admin.courseTeam.adding') : $t('common.add') }}
           </button>
         </div>
-        <p v-if="actionError" class="action-error" role="alert">{{ actionError }}</p>
-        <p v-if="actionSuccess" class="action-success">{{ actionSuccess }}</p>
+        <p
+          v-if="actionError"
+          class="action-error"
+          role="alert"
+        >
+          {{ actionError }}
+        </p>
+        <p
+          v-if="actionSuccess"
+          class="action-success"
+        >
+          {{ actionSuccess }}
+        </p>
       </div>
     </template>
   </div>
@@ -135,7 +177,7 @@ async function fetchTeam(): Promise<void> {
 }
 
 async function addMember(): Promise<void> {
-  if (!newEmail.value) return;
+  if (!newEmail.value) {return;}
   addingMember.value = true;
   actionError.value = null;
   actionSuccess.value = null;
@@ -157,7 +199,7 @@ async function addMember(): Promise<void> {
 }
 
 async function changeRole(member: CourseInstructorMember, role: string): Promise<void> {
-  if (role === member.role) return;
+  if (role === member.role) {return;}
   actionError.value = null;
   actionSuccess.value = null;
   try {
@@ -165,7 +207,7 @@ async function changeRole(member: CourseInstructorMember, role: string): Promise
       role: role as CourseInstructorRole,
     });
     const idx = team.value.findIndex((m) => m.user_id === member.user_id);
-    if (idx !== -1) team.value[idx] = updated;
+    if (idx !== -1) {team.value[idx] = updated;}
     actionSuccess.value = t('admin.courseTeam.changedRole', { name: updated.full_name, role: updated.role });
   } catch (err: any) {
     const msg = err.response?.data?.error || t('admin.courseTeam.updateFailed');
@@ -176,7 +218,7 @@ async function changeRole(member: CourseInstructorMember, role: string): Promise
 }
 
 async function confirmRemove(member: CourseInstructorMember): Promise<void> {
-  if (!confirm(t('admin.courseTeam.removeConfirm', { name: member.full_name }))) return;
+  if (!confirm(t('admin.courseTeam.removeConfirm', { name: member.full_name }))) {return;}
   actionError.value = null;
   actionSuccess.value = null;
   try {

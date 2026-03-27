@@ -6,7 +6,10 @@
     :show-breadcrumb="false"
   >
     <template #header-actions>
-      <router-link :to="ctx.paths.newCourse.value" class="action-button add-button">
+      <router-link
+        :to="ctx.paths.newCourse.value"
+        class="action-button add-button"
+      >
         {{ $t('admin.courses.createCourse') }}
       </router-link>
     </template>
@@ -99,7 +102,10 @@
 
       <!-- Empty state action -->
       <template #empty-actions>
-        <router-link :to="ctx.paths.newCourse.value" class="action-button add-button">
+        <router-link
+          :to="ctx.paths.newCourse.value"
+          class="action-button add-button"
+        >
           {{ $t('admin.courses.createCourse') }}
         </router-link>
       </template>
@@ -200,7 +206,7 @@ function confirmDelete(course: Course): void {
 }
 
 async function performDelete(): Promise<void> {
-  if (!deleteTarget.value) return;
+  if (!deleteTarget.value) {return;}
 
   deleting.value = true;
   try {

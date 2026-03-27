@@ -25,21 +25,36 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="loading-container">
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
       <div class="loading-spinner" />
       <p>{{ $t('admin.courseEditor.loadingCourse') }}</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="loadError" class="error-container">
-      <p class="error-message">{{ loadError }}</p>
-      <router-link :to="ctx.paths.courses.value" class="btn btn-secondary">
+    <div
+      v-else-if="loadError"
+      class="error-container"
+    >
+      <p class="error-message">
+        {{ loadError }}
+      </p>
+      <router-link
+        :to="ctx.paths.courses.value"
+        class="btn btn-secondary"
+      >
         {{ $t('admin.courseEditor.backToCourses') }}
       </router-link>
     </div>
 
     <!-- Course Form -->
-    <form v-else class="course-form" @submit.prevent="handleSave">
+    <form
+      v-else
+      class="course-form"
+      @submit.prevent="handleSave"
+    >
       <div class="form-section rounded-lg border-default">
         <h3>{{ $t('admin.courseEditor.courseDetails') }}</h3>
 
@@ -79,14 +94,22 @@
         </div>
 
         <!-- Instructor selection (admin only) -->
-        <div v-if="ctx.isAdmin.value" class="form-group">
+        <div
+          v-if="ctx.isAdmin.value"
+          class="form-group"
+        >
           <label for="instructor">{{ $t('admin.courseEditor.instructorLabel') }}</label>
           <select
             id="instructor"
             v-model="formData.instructor_id"
             required
           >
-            <option :value="null" disabled>{{ $t('admin.courseEditor.selectInstructor') }}</option>
+            <option
+              :value="null"
+              disabled
+            >
+              {{ $t('admin.courseEditor.selectInstructor') }}
+            </option>
             <option
               v-for="instructor in instructors"
               :key="instructor.id"
@@ -104,7 +127,10 @@
 
         <div class="checkbox-group">
           <label class="checkbox-label">
-            <input v-model="formData.is_active" type="checkbox">
+            <input
+              v-model="formData.is_active"
+              type="checkbox"
+            >
             <span>{{ $t('admin.courseEditor.courseIsActive') }}</span>
           </label>
           <small>{{ $t('admin.courseEditor.activeHint') }}</small>
@@ -112,7 +138,10 @@
 
         <div class="checkbox-group">
           <label class="checkbox-label">
-            <input v-model="formData.enrollment_open" type="checkbox">
+            <input
+              v-model="formData.enrollment_open"
+              type="checkbox"
+            >
             <span>{{ $t('admin.courseEditor.enrollmentOpen') }}</span>
           </label>
           <small>{{ $t('admin.courseEditor.enrollmentHint') }}</small>
@@ -121,17 +150,27 @@
     </form>
 
     <!-- Delete Confirmation Dialog -->
-    <div v-if="showDeleteDialog" class="dialog-overlay">
+    <div
+      v-if="showDeleteDialog"
+      class="dialog-overlay"
+    >
       <div class="dialog">
         <h3>{{ $t('admin.courses.deleteConfirm') }}</h3>
         <p>
           {{ $t('admin.courses.deleteConfirmMessage', { name: formData.name }) }}
         </p>
         <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="showDeleteDialog = false">
+          <button
+            class="btn btn-secondary"
+            @click="showDeleteDialog = false"
+          >
             {{ $t('common.cancel') }}
           </button>
-          <button class="btn btn-danger" :disabled="deleting" @click="handleDelete">
+          <button
+            class="btn btn-danger"
+            :disabled="deleting"
+            @click="handleDelete"
+          >
             {{ deleting ? $t('admin.courseEditor.deleting') : $t('common.delete') }}
           </button>
         </div>
@@ -141,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
@@ -222,7 +261,7 @@ async function loadCourse(courseId: string): Promise<void> {
 
 // Load instructors (admin only)
 async function loadInstructors(): Promise<void> {
-  if (!ctx.isAdmin.value) return;
+  if (!ctx.isAdmin.value) {return;}
 
   try {
     instructors.value = await ctx.api.value.getInstructors();
@@ -233,7 +272,7 @@ async function loadInstructors(): Promise<void> {
 
 // Save handler
 async function handleSave(): Promise<void> {
-  if (!canSave.value) return;
+  if (!canSave.value) {return;}
 
   saving.value = true;
   try {
@@ -258,7 +297,7 @@ async function handleSave(): Promise<void> {
 
 // Delete handler
 async function handleDelete(): Promise<void> {
-  if (!courseIdFromRoute.value) return;
+  if (!courseIdFromRoute.value) {return;}
 
   deleting.value = true;
   try {

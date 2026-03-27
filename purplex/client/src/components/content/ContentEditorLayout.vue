@@ -3,17 +3,31 @@
     <!-- Dynamic NavBar based on role -->
     <component :is="navComponent" />
 
-    <main id="main-content" class="content-container">
+    <main
+      id="main-content"
+      class="content-container"
+    >
       <!-- Breadcrumb navigation -->
-      <nav v-if="showBreadcrumb" class="breadcrumb border-default">
-        <router-link :to="backPath" class="breadcrumb-link transition-fast">
+      <nav
+        v-if="showBreadcrumb"
+        class="breadcrumb border-default"
+      >
+        <router-link
+          :to="backPath"
+          class="breadcrumb-link transition-fast"
+        >
           ← {{ backLabel }}
         </router-link>
       </nav>
 
       <!-- Page header with title and actions -->
-      <header v-if="showHeader" class="page-header">
-        <h1 class="page-title">{{ pageTitle }}</h1>
+      <header
+        v-if="showHeader"
+        class="page-header"
+      >
+        <h1 class="page-title">
+          {{ pageTitle }}
+        </h1>
         <div class="header-actions">
           <slot name="header-actions" />
         </div>

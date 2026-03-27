@@ -13,11 +13,11 @@ export function parseProblemQueryParam(
   problemsLength: number
 ): number {
   const problemParam = query.p
-  if (!problemParam) return 0
+  if (!problemParam) {return 0}
 
   // Handle array case (e.g., ?p=1&p=2)
   const paramValue = Array.isArray(problemParam) ? problemParam[0] : problemParam
-  if (!paramValue) return 0
+  if (!paramValue) {return 0}
 
   const index = parseInt(paramValue, 10)
   if (isNaN(index) || index < 0 || index >= problemsLength) {

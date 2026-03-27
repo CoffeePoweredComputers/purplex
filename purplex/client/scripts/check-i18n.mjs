@@ -10,7 +10,7 @@
  * Exit:   always 0 -- this is a report, not a gate.
  */
 
-import { readdirSync, readFileSync, writeFileSync, statSync } from 'fs';
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 
 // ---------------------------------------------------------------------------
@@ -74,7 +74,7 @@ console.log(`English (en): ${totalKeys} keys\n`);
 
 // 2. Discover non-English locale directories.
 const localeDirs = readdirSync(localesDir).filter((name) => {
-  if (name === 'en') return false;
+  if (name === 'en') {return false;}
   return statSync(join(localesDir, name)).isDirectory();
 });
 

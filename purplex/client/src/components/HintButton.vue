@@ -181,6 +181,7 @@ export default {
       validator: (value) => value >= 0
     }
   },
+  emits: ['hint-toggled', 'hint-used', 'show-original', 'remove-all-hints', 'clear-all-hints'],
   setup() {
     const { notify } = useNotification()
     return { notify }

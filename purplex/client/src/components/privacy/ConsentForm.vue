@@ -1,6 +1,8 @@
 <template>
   <div class="consent-form">
-    <h3 class="consent-form__title">{{ t('auth.consent.title') }}</h3>
+    <h3 class="consent-form__title">
+      {{ t('auth.consent.title') }}
+    </h3>
     <p class="consent-form__description">
       {{ t('auth.consent.description') }}
     </p>
@@ -9,25 +11,33 @@
       <!-- Required consents -->
       <label class="consent-item consent-item--required">
         <input
-          type="checkbox"
           v-model="consents.privacy_policy"
+          type="checkbox"
           required
         >
         <span class="consent-item__text">
           {{ t('auth.consent.privacyPolicy') }}
-          <a href="/privacy" target="_blank" rel="noopener">{{ t('auth.consent.privacyPolicyLink') }}</a> *
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener"
+          >{{ t('auth.consent.privacyPolicyLink') }}</a> *
         </span>
       </label>
 
       <label class="consent-item consent-item--required">
         <input
-          type="checkbox"
           v-model="consents.terms_of_service"
+          type="checkbox"
           required
         >
         <span class="consent-item__text">
           {{ t('auth.consent.termsOfService') }}
-          <a href="/terms" target="_blank" rel="noopener">{{ t('auth.consent.termsOfServiceLink') }}</a> *
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noopener"
+          >{{ t('auth.consent.termsOfServiceLink') }}</a> *
         </span>
       </label>
 
@@ -38,8 +48,8 @@
 
       <label class="consent-item">
         <input
-          type="checkbox"
           v-model="consents.ai_processing"
+          type="checkbox"
         >
         <span class="consent-item__text">
           {{ t('auth.consent.aiProcessing') }}
@@ -51,8 +61,8 @@
 
       <label class="consent-item">
         <input
-          type="checkbox"
           v-model="consents.research_use"
+          type="checkbox"
         >
         <span class="consent-item__text">
           {{ t('auth.consent.researchUse') }}
@@ -64,8 +74,8 @@
 
       <label class="consent-item">
         <input
-          type="checkbox"
           v-model="consents.behavioral_tracking"
+          type="checkbox"
         >
         <span class="consent-item__text">
           {{ t('auth.consent.behavioralTracking') }}
@@ -76,7 +86,13 @@
       </label>
     </div>
 
-    <p v-if="error" class="consent-form__error" role="alert">{{ error }}</p>
+    <p
+      v-if="error"
+      class="consent-form__error"
+      role="alert"
+    >
+      {{ error }}
+    </p>
 
     <button
       class="consent-form__submit"
@@ -89,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();

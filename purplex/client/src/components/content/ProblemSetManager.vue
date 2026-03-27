@@ -6,7 +6,10 @@
     :show-breadcrumb="false"
   >
     <template #header-actions>
-      <router-link :to="ctx.paths.newProblemSet.value" class="action-button add-button">
+      <router-link
+        :to="ctx.paths.newProblemSet.value"
+        class="action-button add-button"
+      >
         {{ $t('admin.problemSets.addNew') }}
       </router-link>
     </template>
@@ -67,7 +70,10 @@
           >
             {{ $t('common.edit') }}
           </router-link>
-          <button class="action-button delete-button" @click="confirmDelete(item)">
+          <button
+            class="action-button delete-button"
+            @click="confirmDelete(item)"
+          >
             {{ $t('common.delete') }}
           </button>
         </div>
@@ -161,7 +167,7 @@ function confirmDelete(set: ProblemSet): void {
 }
 
 async function performDelete(): Promise<void> {
-  if (!deleteTarget.value) return;
+  if (!deleteTarget.value) {return;}
 
   deleting.value = true;
   try {

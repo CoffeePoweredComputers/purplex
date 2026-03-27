@@ -311,7 +311,6 @@
       :editor="editor"
       @test="$emit('test')"
     />
-
   </div>
 </template>
 

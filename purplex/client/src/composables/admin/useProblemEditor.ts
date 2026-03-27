@@ -17,7 +17,7 @@
 import { computed, type ComputedRef, type Ref, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import axios from 'axios';
-import type { ProblemDetailed, ProblemType, TestExecutionResult } from '@/types';
+import type { ProblemDetailed, TestExecutionResult } from '@/types';
 import { problemService } from '@/services/problemService';
 import type { ContentApiService } from '@/services/contentService';
 import { log } from '@/utils/logger';
@@ -37,7 +37,7 @@ import { useRefuteConfig, type UseRefuteConfigReturn } from './useRefuteConfig';
 import { useDebugFixConfig, type UseDebugFixConfigReturn } from './useDebugFixConfig';
 import { useProbeableCodeConfig, type UseProbeableCodeConfigReturn } from './useProbeableCodeConfig';
 import { useProbeableSpecConfig, type UseProbeableSpecConfigReturn } from './useProbeableSpecConfig';
-import { problemTypeHandlers, type ComposableBundle } from './problemTypeHandlers';
+import { type ComposableBundle, problemTypeHandlers } from './problemTypeHandlers';
 
 // ===== TYPES =====
 
@@ -202,7 +202,7 @@ export const useProblemEditor = (options?: UseProblemEditorOptions): UseProblemE
 
   // ===== Load Problem =====
 
-  const loadProblem = async (slug: string): Promise<void> => {
+  const loadProblem = (slug: string): Promise<void> => {
     return ui.executeAction('load problem', async () => {
       // Use injected API if provided, otherwise fall back to problemService
       const problemData = api
@@ -238,7 +238,7 @@ export const useProblemEditor = (options?: UseProblemEditorOptions): UseProblemE
 
   // ===== Save Problem =====
 
-  const saveProblem = async (): Promise<ProblemDetailed> => {
+  const saveProblem = (): Promise<ProblemDetailed> => {
     return ui.executeAction('save problem', async () => {
       // Get handler config for this problem type (used for capability checks)
       const config = typeConfig.value;
@@ -298,7 +298,7 @@ export const useProblemEditor = (options?: UseProblemEditorOptions): UseProblemE
 
   // ===== Test Problem =====
 
-  const testProblem = async (): Promise<TestExecutionResult | undefined> => {
+  const testProblem = (): Promise<TestExecutionResult | undefined> => {
     return ui.executeAction('test problem', async () => {
       const testData = {
         title: form.form.title,

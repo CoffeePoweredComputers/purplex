@@ -441,7 +441,7 @@ export const useTestCases = (): UseTestCasesReturn => {
   }> => {
     return testCases.value.map(tc => {
       const convertedInputs = (tc.inputs || []).map(rawValue => {
-        if (rawValue == null || !String(rawValue).trim()) {
+        if (rawValue === null || rawValue === undefined || !String(rawValue).trim()) {
           return null;
         }
         try {
@@ -456,7 +456,7 @@ export const useTestCases = (): UseTestCasesReturn => {
 
       let convertedOutput: unknown;
       const rawOutput = tc.expected_output;
-      if (rawOutput == null || !String(rawOutput).trim()) {
+      if (rawOutput === null || rawOutput === undefined || !String(rawOutput).trim()) {
         convertedOutput = null;
       } else {
         try {

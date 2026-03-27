@@ -2,11 +2,13 @@
   <div class="policy-page">
     <div class="policy-page__content">
       <h1>{{ t('auth.termsPage.title') }}</h1>
-      <p class="policy-page__version">{{ t('auth.termsPage.version', { effectiveDate }) }}</p>
+      <p class="policy-page__version">
+        {{ t('auth.termsPage.version', { effectiveDate }) }}
+      </p>
 
       <section>
         <h2>{{ t('auth.termsPage.section1.title') }}</h2>
-        <p v-html="t('auth.termsPage.section1.content', { privacyPolicyLink: `<a href=&quot;/privacy&quot;>${t('auth.privacyPage.title')}</a>` })"></p>
+        <p v-html="t('auth.termsPage.section1.content', { privacyPolicyLink: `<a href=&quot;/privacy&quot;>${t('auth.privacyPage.title')}</a>` })" />
       </section>
 
       <section>

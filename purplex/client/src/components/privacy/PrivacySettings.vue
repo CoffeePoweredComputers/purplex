@@ -1,17 +1,29 @@
 <template>
   <div class="privacy-settings">
-    <h2 class="privacy-settings__title">{{ t('auth.privacy.title') }}</h2>
+    <h2 class="privacy-settings__title">
+      {{ t('auth.privacy.title') }}
+    </h2>
 
     <!-- Consent Management -->
     <section class="privacy-settings__section">
-      <h3 class="privacy-settings__section-title">{{ t('auth.privacy.consentPreferences') }}</h3>
+      <h3 class="privacy-settings__section-title">
+        {{ t('auth.privacy.consentPreferences') }}
+      </h3>
       <p class="privacy-settings__section-desc">
         {{ t('auth.privacy.consentDescription') }}
       </p>
 
-      <div v-if="loadingConsents" class="privacy-settings__loading">{{ t('common.loading') }}</div>
+      <div
+        v-if="loadingConsents"
+        class="privacy-settings__loading"
+      >
+        {{ t('common.loading') }}
+      </div>
 
-      <div v-else class="consent-toggles">
+      <div
+        v-else
+        class="consent-toggles"
+      >
         <div
           v-for="(status, type) in consents"
           :key="type"
@@ -19,7 +31,10 @@
         >
           <div class="consent-toggle__info">
             <span class="consent-toggle__label">{{ consentLabels[type] || type }}</span>
-            <span v-if="isRequired(type)" class="consent-toggle__required">{{ t('common.required') }}</span>
+            <span
+              v-if="isRequired(type)"
+              class="consent-toggle__required"
+            >{{ t('common.required') }}</span>
           </div>
           <label class="consent-toggle__switch">
             <input
@@ -28,7 +43,7 @@
               :disabled="isRequired(type)"
               @change="toggleConsent(type, $event)"
             >
-            <span class="consent-toggle__slider"></span>
+            <span class="consent-toggle__slider" />
           </label>
         </div>
       </div>
@@ -36,7 +51,9 @@
 
     <!-- FERPA Directory Info -->
     <section class="privacy-settings__section">
-      <h3 class="privacy-settings__section-title">{{ t('auth.privacy.directoryInfo') }}</h3>
+      <h3 class="privacy-settings__section-title">
+        {{ t('auth.privacy.directoryInfo') }}
+      </h3>
       <p class="privacy-settings__section-desc">
         {{ t('auth.privacy.directoryDescription') }}
       </p>
@@ -46,11 +63,11 @@
         </div>
         <label class="consent-toggle__switch">
           <input
-            type="checkbox"
             v-model="directoryInfoVisible"
+            type="checkbox"
             @change="updateDirectoryInfo"
           >
-          <span class="consent-toggle__slider"></span>
+          <span class="consent-toggle__slider" />
         </label>
       </label>
     </section>
@@ -68,9 +85,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import privacyService, { type ConsentType, type ConsentStatus } from '../../services/privacyService';
+import privacyService, { type ConsentStatus, type ConsentType } from '../../services/privacyService';
 import DataExport from './DataExport.vue';
 import AccountDeletion from './AccountDeletion.vue';
 

@@ -36,7 +36,11 @@
             <div class="modal-actions">
               <div class="size-controls-group">
                 <span class="size-label">{{ $t('feedback.segmentModal.sizeLabel') }}</span>
-                <div class="size-controls" role="group" aria-label="Modal size">
+                <div
+                  class="size-controls"
+                  role="group"
+                  aria-label="Modal size"
+                >
                   <button
                     v-for="size in sizePresets"
                     :key="size.name"
@@ -65,18 +69,30 @@
           <div class="modal-body">
             <div class="analysis-header">
               <div class="feedback-content">
-                <span class="feedback-icon" aria-hidden="true">{{ getFeedbackIcon() }}</span>
+                <span
+                  class="feedback-icon"
+                  aria-hidden="true"
+                >{{ getFeedbackIcon() }}</span>
                 <div class="feedback-text">
-                  <p id="segment-modal-description" class="feedback-message">
+                  <p
+                    id="segment-modal-description"
+                    class="feedback-message"
+                  >
                     <template v-if="segmentation.comprehension_level === 'relational'">
-                      <i18n-t keypath="feedback.segmentModal.relationalFeedback" tag="span">
+                      <i18n-t
+                        keypath="feedback.segmentModal.relationalFeedback"
+                        tag="span"
+                      >
                         <template #count>
                           <span class="segment-badge segment-badge-success">{{ segmentation.segment_count }}</span>
                         </template>
                       </i18n-t>
                     </template>
                     <template v-else-if="segmentation.comprehension_level === 'multi_structural'">
-                      <i18n-t keypath="feedback.segmentModal.multiStructuralFeedback" tag="span">
+                      <i18n-t
+                        keypath="feedback.segmentModal.multiStructuralFeedback"
+                        tag="span"
+                      >
                         <template #count>
                           <span class="segment-badge segment-badge-warning">{{ segmentation.segment_count }}</span>
                         </template>

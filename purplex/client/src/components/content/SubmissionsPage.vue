@@ -29,7 +29,11 @@
     >
       <!-- Filters -->
       <template #filters>
-        <div class="filters-section" role="search" :aria-label="$t('admin.submissions.filterSubmissions')">
+        <div
+          class="filters-section"
+          role="search"
+          :aria-label="$t('admin.submissions.filterSubmissions')"
+        >
           <div class="filter-group">
             <label for="search">{{ $t('common.search') }}</label>
             <input
@@ -49,10 +53,18 @@
               v-model="statusFilter"
               @change="handleFilterChange"
             >
-              <option value="">{{ $t('admin.submissions.allStatuses') }}</option>
-              <option value="complete">{{ $t('admin.submissions.complete') }}</option>
-              <option value="partial">{{ $t('admin.submissions.partial') }}</option>
-              <option value="incomplete">{{ $t('admin.submissions.incomplete') }}</option>
+              <option value="">
+                {{ $t('admin.submissions.allStatuses') }}
+              </option>
+              <option value="complete">
+                {{ $t('admin.submissions.complete') }}
+              </option>
+              <option value="partial">
+                {{ $t('admin.submissions.partial') }}
+              </option>
+              <option value="incomplete">
+                {{ $t('admin.submissions.incomplete') }}
+              </option>
             </select>
           </div>
 
@@ -63,7 +75,9 @@
               v-model="problemSetFilter"
               @change="handleFilterChange"
             >
-              <option value="">{{ $t('admin.submissions.allProblemSets') }}</option>
+              <option value="">
+                {{ $t('admin.submissions.allProblemSets') }}
+              </option>
               <option
                 v-for="ps in filterOptions.problem_sets"
                 :key="ps.slug"
@@ -75,14 +89,19 @@
           </div>
 
           <!-- Admin only: Course filter -->
-          <div v-if="ctx.isAdmin.value && !isCourseScoped" class="filter-group">
+          <div
+            v-if="ctx.isAdmin.value && !isCourseScoped"
+            class="filter-group"
+          >
             <label for="course">{{ $t('admin.submissions.chipCourse').replace(':', '') }}</label>
             <select
               id="course"
               v-model="courseFilter"
               @change="handleFilterChange"
             >
-              <option value="">{{ $t('admin.submissions.allCourses') }}</option>
+              <option value="">
+                {{ $t('admin.submissions.allCourses') }}
+              </option>
               <option
                 v-for="course in filterOptions.courses"
                 :key="course.id"
@@ -134,8 +153,10 @@
               >
                 <span class="chip-label">{{ $t('admin.submissions.chipSearch') }}</span>
                 <span class="chip-value">{{ searchQuery }}</span>
-                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span class="chip-remove" aria-hidden="true">x</span>
+                <span
+                  class="chip-remove"
+                  aria-hidden="true"
+                >×</span>
               </button>
               <button
                 v-if="statusFilter"
@@ -145,8 +166,10 @@
               >
                 <span class="chip-label">{{ $t('admin.submissions.chipStatus') }}</span>
                 <span class="chip-value">{{ formatStatus(statusFilter) }}</span>
-                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span class="chip-remove" aria-hidden="true">x</span>
+                <span
+                  class="chip-remove"
+                  aria-hidden="true"
+                >×</span>
               </button>
               <button
                 v-if="problemSetFilter"
@@ -156,8 +179,10 @@
               >
                 <span class="chip-label">{{ $t('admin.submissions.chipProblemSet') }}</span>
                 <span class="chip-value">{{ getProblemSetTitle(problemSetFilter) }}</span>
-                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span class="chip-remove" aria-hidden="true">x</span>
+                <span
+                  class="chip-remove"
+                  aria-hidden="true"
+                >×</span>
               </button>
               <button
                 v-if="courseFilter && ctx.isAdmin.value"
@@ -167,8 +192,10 @@
               >
                 <span class="chip-label">{{ $t('admin.submissions.chipCourse') }}</span>
                 <span class="chip-value">{{ getCourseName(courseFilter) }}</span>
-                <!-- eslint-disable-next-line @intlify/vue-i18n/no-raw-text -->
-                <span class="chip-remove" aria-hidden="true">x</span>
+                <span
+                  class="chip-remove"
+                  aria-hidden="true"
+                >×</span>
               </button>
             </div>
           </div>
@@ -187,7 +214,10 @@
 
       <!-- Student cell -->
       <template #cell-student="{ item }">
-        <div v-if="ctx.isAdmin.value" class="user-info">
+        <div
+          v-if="ctx.isAdmin.value"
+          class="user-info"
+        >
           <div class="user-avatar-small">
             {{ item.user.charAt(0).toUpperCase() }}
           </div>

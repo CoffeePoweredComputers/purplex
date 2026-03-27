@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { problemTypeHandlers, type ComposableBundle } from '../problemTypeHandlers'
+import { type ComposableBundle, problemTypeHandlers } from '../problemTypeHandlers'
 import { useMcqOptions } from '../useMcqOptions'
 import { usePromptConfig } from '../usePromptConfig'
 import { useDebugFixConfig } from '../useDebugFixConfig'

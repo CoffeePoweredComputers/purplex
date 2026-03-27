@@ -1,7 +1,10 @@
 <template>
   <div class="submission-detail-content">
     <!-- Type-specific content (before the generic code/test layout) -->
-    <div v-if="hasTypeData" class="type-specific-section">
+    <div
+      v-if="hasTypeData"
+      class="type-specific-section"
+    >
       <McqDetail
         v-if="submissionType === 'mcq'"
         :type-data="(submission.type_data as McqTypeData)"
@@ -52,11 +55,11 @@ import PromptDetail from './types/PromptDetail.vue';
 import ProbeableCodeDetail from './types/ProbeableCodeDetail.vue';
 import ProbeableSpecDetail from './types/ProbeableSpecDetail.vue';
 import type {
-  McqTypeData,
-  RefuteTypeData,
   DebugFixTypeData,
-  PromptTypeData,
+  McqTypeData,
   ProbeableTypeData,
+  PromptTypeData,
+  RefuteTypeData,
 } from '@/types';
 
 const props = defineProps<{
@@ -75,7 +78,7 @@ const hasTypeData = computed(() => {
 // MCQ and Refute don't show generic code/test layout — they have their own display
 // All other types show the generic two-column code+tests layout
 const showGenericLayout = computed(() => {
-  if (!submissionType.value) return true;
+  if (!submissionType.value) {return true;}
   return !['mcq', 'refute'].includes(submissionType.value);
 });
 </script>

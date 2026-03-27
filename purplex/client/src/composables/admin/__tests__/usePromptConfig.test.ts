@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { usePromptConfig, type PromptConfig } from '../usePromptConfig'
+import { type PromptConfig, usePromptConfig } from '../usePromptConfig'
 
 describe('usePromptConfig', () => {
   let prompt: ReturnType<typeof usePromptConfig>

@@ -249,18 +249,18 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
    * @param {Object} hintData - Hint data
    * @returns {boolean} Success status
    */
-  const toggleHint = async (hintData: HintData): Promise<boolean> => {
+  const toggleHint = (hintData: HintData): Promise<boolean> => {
     if (!hintData.hintType) {
       errorState.value = 'Hint type is required'
-      return false
+      return Promise.resolve(false)
     }
 
     const isActive = activeHints.value.some(h => h.hintType === hintData.hintType)
 
     if (isActive) {
-      return await removeHint(hintData.hintType)
+      return removeHint(hintData.hintType)
     } else {
-      return await applyHint(hintData.hintType, hintData)
+      return applyHint(hintData.hintType, hintData)
     }
   }
 
@@ -268,7 +268,7 @@ export function useEditorHints(editorRef: Ref<unknown>, originalCode: Ref<string
    * Remove all active hints
    * @returns {boolean} Success status
    */
-  const removeAllHints = async (): Promise<boolean> => {
+  const removeAllHints = (): boolean => {
     try {
       processingState.value = true
       errorState.value = null

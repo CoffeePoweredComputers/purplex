@@ -1,7 +1,14 @@
 <template>
-  <nav class="pagination" role="navigation" aria-label="Table pagination">
+  <nav
+    class="pagination"
+    role="navigation"
+    aria-label="Table pagination"
+  >
     <div class="pagination-left">
-      <label for="page-size" class="page-size-label">{{ $t('common.pagination.show') }}</label>
+      <label
+        for="page-size"
+        class="page-size-label"
+      >{{ $t('common.pagination.show') }}</label>
       <select
         id="page-size"
         :value="pageSize"
@@ -9,7 +16,11 @@
         :aria-label="$t('common.pagination.itemsPerPage')"
         @change="handlePageSizeChange"
       >
-        <option v-for="size in pageSizeOptions" :key="size" :value="size">
+        <option
+          v-for="size in pageSizeOptions"
+          :key="size"
+          :value="size"
+        >
           {{ size }}
         </option>
       </select>
@@ -84,7 +95,7 @@ interface Props {
   pageSizeOptions?: number[];
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   pageSizeOptions: () => [10, 25, 50, 100],
 });
 

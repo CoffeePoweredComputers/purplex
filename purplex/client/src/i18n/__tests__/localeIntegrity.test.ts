@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import en from '@/i18n/locales/en'
 import es from '@/i18n/locales/es'
 import bn from '@/i18n/locales/bn'
@@ -28,7 +28,7 @@ function flattenKeys(obj: Record<string, unknown>, prefix = ''): Set<string> {
  */
 function extractPlaceholders(str: string): string[] {
   const matches = str.match(/\{(\w+)\}/g)
-  if (!matches) return []
+  if (!matches) {return []}
   return matches.map(m => m.slice(1, -1)).sort()
 }
 
@@ -67,7 +67,7 @@ describe('Locale data integrity', () => {
   it('no empty string values in en', () => {
     const empties: string[] = []
     for (const [key, val] of enValues) {
-      if (val === '') empties.push(key)
+      if (val === '') {empties.push(key)}
     }
     expect(empties, `Empty string values found: ${empties.join(', ')}`).toEqual([])
   })
@@ -77,7 +77,7 @@ describe('Locale data integrity', () => {
 
     for (const [key, enVal] of enValues) {
       const esVal = esValues.get(key)
-      if (!esVal) continue // parity test catches missing keys
+      if (!esVal) {continue} // parity test catches missing keys
 
       const enPlaceholders = extractPlaceholders(enVal)
       const esPlaceholders = extractPlaceholders(esVal)

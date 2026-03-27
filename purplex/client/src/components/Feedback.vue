@@ -65,9 +65,16 @@
               :class="[getScoreClass(currentAttemptScore), { 'is-partial': currentAttemptStatus === 'partial' }]"
             >
               {{ currentAttemptScore }}%
-              <span v-if="currentAttemptStatus === 'partial'" class="partial-indicator" :title="$t('feedback.attempts.testsPassedButAbstraction')">⚠</span>
+              <span
+                v-if="currentAttemptStatus === 'partial'"
+                class="partial-indicator"
+                :title="$t('feedback.attempts.testsPassedButAbstraction')"
+              >⚠</span>
             </span>
-            <span class="dropdown-arrow" aria-hidden="true">▾</span>
+            <span
+              class="dropdown-arrow"
+              aria-hidden="true"
+            >▾</span>
           </button>
 
           <!-- Dropdown Panel -->
@@ -80,7 +87,7 @@
           >
             <div class="attempt-list-minimal">
               <button
-                v-for="(attempt, index) in submissionHistory"
+                v-for="attempt in submissionHistory"
                 :key="attempt.id"
                 class="attempt-item-minimal"
                 :class="{
@@ -96,7 +103,10 @@
                 @keydown.arrow-down.prevent="focusNextItem"
                 @keydown.arrow-up.prevent="focusPreviousItem"
               >
-                <span class="attempt-indicator" aria-hidden="true" />
+                <span
+                  class="attempt-indicator"
+                  aria-hidden="true"
+                />
                 <span class="attempt-num">{{ attempt.attempt_number }}</span>
                 <span
                   class="attempt-score-minimal"
@@ -122,24 +132,39 @@
         aria-labelledby="explanation-heading"
       >
         <div class="section-label">
-          <span class="label-icon" aria-hidden="true">💭</span>
-          <h3 id="explanation-heading" class="label-text">{{ $t('feedback.yourExplanation') }}</h3>
+          <span
+            class="label-icon"
+            aria-hidden="true"
+          >💭</span>
+          <h3
+            id="explanation-heading"
+            class="label-text"
+          >
+            {{ $t('feedback.yourExplanation') }}
+          </h3>
         </div>
-        <p class="explanation-text">{{ userPrompt }}</p>
+        <p class="explanation-text">
+          {{ userPrompt }}
+        </p>
       </div>
 
       <!-- Correctness Metric Card -->
       <button
         class="metric-card"
         :class="[correctnessClass, { 'expanded': showCorrectnessModal }]"
+        :aria-expanded="showCorrectnessModal"
+        aria-haspopup="dialog"
         @click="openCorrectnessModal"
         @keydown.enter="openCorrectnessModal"
         @keydown.space.prevent="openCorrectnessModal"
-        :aria-expanded="showCorrectnessModal"
-        aria-haspopup="dialog"
       >
         <div class="card-content">
-          <div class="card-label" id="correctness-label">{{ $t('feedback.correctness.label') }}</div>
+          <div
+            id="correctness-label"
+            class="card-label"
+          >
+            {{ $t('feedback.correctness.label') }}
+          </div>
 
           <div
             class="progress-bar-container"
@@ -153,17 +178,26 @@
               class="progress-bar-fill"
               :style="{ width: correctnessFill + '%' }"
               :class="correctnessBarClass"
-            ></div>
+            />
           </div>
 
           <div class="card-status">
-            <span class="status-icon" aria-hidden="true">{{ correctnessStatus.icon }}</span>
+            <span
+              class="status-icon"
+              aria-hidden="true"
+            >{{ correctnessStatus.icon }}</span>
             <span class="status-label">{{ correctnessStatus.label }}</span>
             <span class="status-metric">{{ $t('feedback.correctness.metric', { passing: passingVariants, total: totalVariants }) }}</span>
           </div>
-          <div class="card-description">{{ correctnessStatus.description }}</div>
+          <div class="card-description">
+            {{ correctnessStatus.description }}
+          </div>
         </div>
-        <div class="card-action" :class="correctnessClass" :title="$t('feedback.nextStep.viewAnalysis')">
+        <div
+          class="card-action"
+          :class="correctnessClass"
+          :title="$t('feedback.nextStep.viewAnalysis')"
+        >
           <span class="action-icon">→</span>
         </div>
       </button>
@@ -172,15 +206,20 @@
       <button
         class="metric-card"
         :class="[abstractionClass, { 'expanded': showSegmentAnalysisModal && !isAbstractionLocked }]"
-        @click="handleAbstractionClick"
-        @keydown.enter="handleAbstractionClick"
-        @keydown.space.prevent="handleAbstractionClick"
         :aria-expanded="showSegmentAnalysisModal"
         :aria-disabled="isAbstractionLocked"
         :aria-haspopup="isAbstractionLocked ? undefined : 'dialog'"
+        @click="handleAbstractionClick"
+        @keydown.enter="handleAbstractionClick"
+        @keydown.space.prevent="handleAbstractionClick"
       >
         <div class="card-content">
-          <div class="card-label" id="abstraction-label">{{ $t('feedback.abstraction.label') }}</div>
+          <div
+            id="abstraction-label"
+            class="card-label"
+          >
+            {{ $t('feedback.abstraction.label') }}
+          </div>
 
           <div
             class="progress-bar-container"
@@ -194,20 +233,36 @@
               class="progress-bar-fill"
               :style="{ width: abstractionFill + '%' }"
               :class="abstractionBarClass"
-            ></div>
+            />
           </div>
 
           <div class="card-status">
-            <span class="status-icon" aria-hidden="true">{{ abstractionStatus.icon }}</span>
+            <span
+              class="status-icon"
+              aria-hidden="true"
+            >{{ abstractionStatus.icon }}</span>
             <span class="status-label">{{ abstractionStatus.label }}</span>
-            <span v-if="!isAbstractionLocked" class="status-metric">
+            <span
+              v-if="!isAbstractionLocked"
+              class="status-metric"
+            >
               {{ $t('feedback.abstraction.segments', { count: segmentCount }) }}
-              <span v-if="segmentCount > segmentThreshold" class="metric-hint">{{ $t('feedback.abstraction.segmentThreshold', { threshold: segmentThreshold }) }}</span>
+              <span
+                v-if="segmentCount > segmentThreshold"
+                class="metric-hint"
+              >{{ $t('feedback.abstraction.segmentThreshold', { threshold: segmentThreshold }) }}</span>
             </span>
           </div>
-          <div class="card-description">{{ abstractionStatus.description }}</div>
+          <div class="card-description">
+            {{ abstractionStatus.description }}
+          </div>
         </div>
-        <div v-if="!isAbstractionLocked" class="card-action" :class="abstractionClass" :title="$t('feedback.nextStep.viewAnalysis')">
+        <div
+          v-if="!isAbstractionLocked"
+          class="card-action"
+          :class="abstractionClass"
+          :title="$t('feedback.nextStep.viewAnalysis')"
+        >
           <span class="action-icon">→</span>
         </div>
       </button>
@@ -219,9 +274,15 @@
         :class="nextStepUrgency"
         role="alert"
       >
-        <span class="banner-icon" aria-hidden="true">{{ nextStepUrgency === 'urgency-success' ? '🎉' : '💡' }}</span>
+        <span
+          class="banner-icon"
+          aria-hidden="true"
+        >{{ nextStepUrgency === 'urgency-success' ? '🎉' : '💡' }}</span>
         <span class="banner-text">{{ nextStepBannerText }}</span>
-        <button class="banner-button" @click="handleNextStepAction">
+        <button
+          class="banner-button"
+          @click="handleNextStepAction"
+        >
           {{ nextStepAction }}
         </button>
       </div>
@@ -276,7 +337,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, nextTick } from 'vue'
+import { defineComponent, nextTick, PropType } from 'vue'
 import CorrectnessModal from '../modals/CorrectnessModal.vue'
 import PyTutorModal from '../modals/PyTutorModal.vue'
 import SegmentAnalysisModal from './segmentation/SegmentAnalysisModal.vue'
@@ -474,7 +535,7 @@ export default defineComponent({
     },
 
     correctnessFill(): number {
-      if (this.totalVariants === 0) return 0
+      if (this.totalVariants === 0) {return 0}
       return (this.passingVariants / this.totalVariants) * 100
     },
 
@@ -492,8 +553,8 @@ export default defineComponent({
     },
 
     abstractionFill(): number {
-      if (this.isAbstractionLocked) return 0
-      if (this.segmentCount <= this.segmentThreshold) return 100
+      if (this.isAbstractionLocked) {return 0}
+      if (this.segmentCount <= this.segmentThreshold) {return 100}
       return Math.max(0, 100 - (this.segmentCount - this.segmentThreshold) * 20)
     },
 
@@ -518,26 +579,26 @@ export default defineComponent({
     },
 
     correctnessClass(): string {
-      if (this.passingVariants === 0) return 'status-error'
-      if (this.passingVariants < this.totalVariants) return 'status-warning'
+      if (this.passingVariants === 0) {return 'status-error'}
+      if (this.passingVariants < this.totalVariants) {return 'status-warning'}
       return 'status-success'
     },
 
     abstractionClass(): string {
-      if (this.isAbstractionLocked) return 'status-locked'
-      if (this.segmentCount <= this.segmentThreshold) return 'status-success'
+      if (this.isAbstractionLocked) {return 'status-locked'}
+      if (this.segmentCount <= this.segmentThreshold) {return 'status-success'}
       return 'status-error'
     },
 
     correctnessBarClass(): string {
-      if (this.passingVariants === 0) return 'bar-error'
-      if (this.passingVariants < this.totalVariants) return 'bar-warning'
+      if (this.passingVariants === 0) {return 'bar-error'}
+      if (this.passingVariants < this.totalVariants) {return 'bar-warning'}
       return 'bar-success'
     },
 
     abstractionBarClass(): string {
-      if (this.isAbstractionLocked) return 'bar-locked'
-      if (this.segmentCount <= this.segmentThreshold) return 'bar-success'
+      if (this.isAbstractionLocked) {return 'bar-locked'}
+      if (this.segmentCount <= this.segmentThreshold) {return 'bar-success'}
       return 'bar-error'
     },
 
@@ -580,9 +641,9 @@ export default defineComponent({
     },
 
     nextStepUrgency(): string {
-      if (this.passingVariants === 0) return 'urgency-high'
-      if (this.passingVariants < this.totalVariants) return 'urgency-medium'
-      if (!this.isAbstractionLocked && this.segmentCount > this.segmentThreshold) return 'urgency-low'
+      if (this.passingVariants === 0) {return 'urgency-high'}
+      if (this.passingVariants < this.totalVariants) {return 'urgency-medium'}
+      if (!this.isAbstractionLocked && this.segmentCount > this.segmentThreshold) {return 'urgency-low'}
       // Fully successful
       return 'urgency-success'
     }
@@ -646,10 +707,10 @@ export default defineComponent({
     positionDropdown(): void {
       nextTick(() => {
         const dropdown = this.$refs.dropdownPanel as HTMLElement
-        if (!dropdown || !this.$el) return
+        if (!dropdown || !this.$el) {return}
 
         const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement
-        if (!trigger) return
+        if (!trigger) {return}
 
         const rect = trigger.getBoundingClientRect()
         dropdown.style.top = `${rect.bottom + 4}px`
@@ -658,7 +719,7 @@ export default defineComponent({
     },
 
     handleClickOutside(event: MouseEvent): void {
-      if (!this.showAttemptDropdown || !this.$el) return
+      if (!this.showAttemptDropdown || !this.$el) {return}
 
       const dropdown = this.$refs.dropdownPanel as HTMLElement
       const trigger = this.$el.querySelector('.attempt-dropdown-trigger') as HTMLElement
@@ -695,9 +756,9 @@ export default defineComponent({
     },
 
     getScoreClass(score: number): string {
-      if (score >= 100) return 'score-perfect'
-      if (score >= 80) return 'score-good'
-      if (score >= 60) return 'score-partial'
+      if (score >= 100) {return 'score-perfect'}
+      if (score >= 80) {return 'score-good'}
+      if (score >= 60) {return 'score-partial'}
       return 'score-low'
     },
 
@@ -737,7 +798,7 @@ export default defineComponent({
     handleDebug(variant: Variant): void {
       // Find first failing test to debug
       const failingTest = variant.tests.find(t => !t.passed)
-      if (!failingTest) return
+      if (!failingTest) {return}
 
       const testCase = {
         function_call: failingTest.call,

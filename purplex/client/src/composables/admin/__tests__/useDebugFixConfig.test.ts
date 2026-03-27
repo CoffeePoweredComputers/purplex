@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useDebugFixConfig, type DebugFixConfig, type BugHint } from '../useDebugFixConfig'
+import { type DebugFixConfig, useDebugFixConfig } from '../useDebugFixConfig'
 import { withSetup } from '@/test/setup'
 
 describe('useDebugFixConfig', () => {

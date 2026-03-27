@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useProbeConfig, type ProbeConfig, type ProbeMode } from '../useProbeConfig'
+import { type ProbeConfig, type ProbeMode, useProbeConfig } from '../useProbeConfig'
 import { withSetup } from '@/test/setup'
 
 describe('useProbeConfig', () => {

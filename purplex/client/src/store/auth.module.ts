@@ -128,10 +128,20 @@ export interface CreateAccountCredentials {
   password: string;
 }
 
-export interface AuthError {
+export class AuthError extends Error {
   code: string;
-  message: string;
   num: number;
+  shouldUseRedirect?: boolean;
+
+  constructor(message: string, code: string, num: number, shouldUseRedirect?: boolean) {
+    super(message);
+    this.name = 'AuthError';
+    this.code = code;
+    this.num = num;
+    if (shouldUseRedirect !== undefined) {
+      this.shouldUseRedirect = shouldUseRedirect;
+    }
+  }
 }
 
 // Firebase errors have a code property
@@ -281,7 +291,7 @@ export const auth: Module<AuthState, RootState> = {
     async login({ commit }: AuthActionContext, user: LoginCredentials): Promise<void> {
       log.info('Login attempt', { email: user.email });
       if (!user.email || !user.password) {
-        throw { code: 'auth/missing-fields', message: 'Email and password are required', num: 400 } as AuthError;
+        throw new AuthError('Email and password are required', 'auth/missing-fields', 400);
       }
 
       // Ensure Firebase is initialized
@@ -327,7 +337,7 @@ export const auth: Module<AuthState, RootState> = {
           }
         } catch (error) {
           log.error('Mock login failed', error);
-          throw { code: 'auth/invalid-credentials', message: 'Invalid email or password', num: 401 } as AuthError;
+          throw new AuthError('Invalid email or password', 'auth/invalid-credentials', 401);
         }
       }
 
@@ -355,7 +365,7 @@ export const auth: Module<AuthState, RootState> = {
         }
         fireSessionStart();
       } catch (error) {
-        throw { code: 'auth/invalid-credentials', message: 'Invalid email or password', num: 401 } as AuthError;
+        throw new AuthError('Invalid email or password', 'auth/invalid-credentials', 401);
       }
     },
 
@@ -428,12 +438,7 @@ export const auth: Module<AuthState, RootState> = {
         // Handle popup timeout - automatically fallback to redirect
         if (errorCode === 'auth/popup-timeout') {
           log.warn('Popup timed out, falling back to redirect mode');
-          throw {
-            code: 'auth/popup-timeout-redirect',
-            message: 'Connection slow - please try again with redirect mode',
-            num: 408,
-            shouldUseRedirect: true
-          } as AuthError & { shouldUseRedirect: boolean };
+          throw new AuthError('Connection slow - please try again with redirect mode', 'auth/popup-timeout-redirect', 408, true);
         }
 
         // Handle popup blocked or closed
@@ -442,39 +447,24 @@ export const auth: Module<AuthState, RootState> = {
           // NOT the user actually closing it
           if (elapsedTime < 2000) {
             log.warn('Popup closed instantly - likely third-party cookie blocking', { elapsedTime });
-            throw {
-              code: 'auth/cookies-blocked',
-              message: 'Browser is blocking authentication cookies. Please try redirect mode or check your browser privacy settings.',
-              num: 403,
-              shouldUseRedirect: true
-            } as AuthError & { shouldUseRedirect: boolean };
+            throw new AuthError('Browser is blocking authentication cookies. Please try redirect mode or check your browser privacy settings.', 'auth/cookies-blocked', 403, true);
           }
           // User actually closed the popup
-          throw { code: 'auth/popup-closed', message: 'Sign-in popup was closed', num: 401 } as AuthError;
+          throw new AuthError('Sign-in popup was closed', 'auth/popup-closed', 401);
         } else if (errorCode === 'auth/popup-blocked') {
-          throw {
-            code: 'auth/popup-blocked',
-            message: 'Sign-in popup was blocked - please allow popups or try redirect mode',
-            num: 401,
-            shouldUseRedirect: true
-          } as AuthError & { shouldUseRedirect: boolean };
+          throw new AuthError('Sign-in popup was blocked - please allow popups or try redirect mode', 'auth/popup-blocked', 401, true);
         }
 
         // Handle network errors - suggest redirect
         if (errorCode === 'auth/network-request-failed') {
-          throw {
-            code: 'auth/network-error',
-            message: 'Network error - please check your connection or try redirect mode',
-            num: 503,
-            shouldUseRedirect: true
-          } as AuthError & { shouldUseRedirect: boolean };
+          throw new AuthError('Network error - please check your connection or try redirect mode', 'auth/network-error', 503, true);
         }
 
-        throw { code: 'auth/google-login-failed', message: 'Unable to login with Google', num: 401 } as AuthError;
+        throw new AuthError('Unable to login with Google', 'auth/google-login-failed', 401);
       }
     },
 
-    async loginWithGoogleRedirect({ commit }: AuthActionContext): Promise<void> {
+    async loginWithGoogleRedirect({ commit: _commit }: AuthActionContext): Promise<void> {
       // Ensure Firebase is initialized
       await initializeAuthFunctions();
 
@@ -491,7 +481,7 @@ export const auth: Module<AuthState, RootState> = {
       } catch (error) {
         log.error('Google sign-in redirect failed', error);
         sessionStorage.removeItem('pendingGoogleRedirect');
-        throw { code: 'auth/redirect-failed', message: 'Unable to initiate redirect login', num: 500 } as AuthError;
+        throw new AuthError('Unable to initiate redirect login', 'auth/redirect-failed', 500);
       }
     },
 
@@ -519,7 +509,7 @@ export const auth: Module<AuthState, RootState> = {
     async createAccount({ commit }: AuthActionContext, user: CreateAccountCredentials): Promise<boolean> {
       // Check for required fields
       if (!user.email || !user.password) {
-        throw { code: 'auth/missing-fields', message: 'Email and password are required', num: 400 } as AuthError;
+        throw new AuthError('Email and password are required', 'auth/missing-fields', 400);
       }
 
       // Ensure Firebase is initialized
@@ -535,7 +525,7 @@ export const auth: Module<AuthState, RootState> = {
           }
         } catch (error) {
           log.error('Mock account creation failed', error);
-          throw { code: 'auth/registration-failed', message: 'Unable to register user', num: 500 } as AuthError;
+          throw new AuthError('Unable to register user', 'auth/registration-failed', 500);
         }
       }
 
@@ -545,10 +535,10 @@ export const auth: Module<AuthState, RootState> = {
           commit('registerSuccess');
           return true;
         } else {
-          throw { code: 'auth/registration-failed', message: 'Unable to register user', num: 500 } as AuthError;
+          throw new AuthError('Unable to register user', 'auth/registration-failed', 500);
         }
       } catch (error) {
-        throw { code: 'auth/registration-failed', message: 'Unable to register user', num: 500 } as AuthError;
+        throw new AuthError('Unable to register user', 'auth/registration-failed', 500);
       }
     },
 

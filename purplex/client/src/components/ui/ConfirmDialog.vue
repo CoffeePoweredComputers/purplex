@@ -1,12 +1,23 @@
 <template>
   <Teleport to="body">
     <Transition name="dialog-fade">
-      <div v-if="visible" class="dialog-overlay" @click.self="$emit('cancel')">
-        <div class="dialog" role="alertdialog" :aria-label="title">
+      <div
+        v-if="visible"
+        class="dialog-overlay"
+        @click.self="$emit('cancel')"
+      >
+        <div
+          class="dialog"
+          role="alertdialog"
+          :aria-label="title"
+        >
           <h3>{{ title }}</h3>
           <p>{{ message }}</p>
           <div class="dialog-actions">
-            <button class="btn btn-secondary" @click="$emit('cancel')">
+            <button
+              class="btn btn-secondary"
+              @click="$emit('cancel')"
+            >
               {{ $t('common.cancel') }}
             </button>
             <button
@@ -39,6 +50,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  confirmLabel: undefined,
   confirmVariant: 'danger',
   loading: false,
 });

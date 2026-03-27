@@ -1,6 +1,13 @@
 <template>
-  <a href="#main-content" class="skip-link">{{ $t('admin.instructorNav.skipToContent') }}</a>
-  <nav class="instructor-nav" role="navigation" aria-label="Instructor navigation">
+  <a
+    href="#main-content"
+    class="skip-link"
+  >{{ $t('admin.instructorNav.skipToContent') }}</a>
+  <nav
+    class="instructor-nav"
+    role="navigation"
+    aria-label="Instructor navigation"
+  >
     <div class="instructor-nav-container">
       <ul class="instructor-nav-list">
         <li>
@@ -10,8 +17,15 @@
             :class="{ 'router-link-active': isExactDashboard }"
             :aria-current="isExactDashboard ? 'page' : undefined"
           >
-            <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/>
+            <svg
+              class="nav-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z" />
             </svg>
             {{ $t('admin.instructorNav.myCourses') }}
           </router-link>
@@ -23,8 +37,15 @@
               class="instructor-link"
               :aria-current="isActiveRoute('/instructor/problems') ? 'page' : undefined"
             >
-              <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm4 1h4a1 1 0 0 0 0-2H6a1 1 0 0 0 0 2zm0 3h4a1 1 0 0 0 0-2H6a1 1 0 0 0 0 2zm0 3h4a1 1 0 0 0 0-2H6a1 1 0 0 0 0 2zm0 3h4a1 1 0 0 0 0-2H6a1 1 0 0 0 0 2z"/>
+              <svg
+                class="nav-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm4 1h4a1 1 0 0 0 0-2H6a1 1 0 0 0 0 2zm0 3h4a1 1 0 0 0 0-2H6a1 1 0 0 0 0 2zm0 3h4a1 1 0 0 0 0-2H6a1 1 0 0 0 0 2zm0 3h4a1 1 0 0 0 0-2H6a1 1 0 0 0 0 2z" />
               </svg>
               {{ $t('admin.instructorNav.myProblems') }}
             </router-link>
@@ -35,8 +56,15 @@
               class="instructor-link"
               :aria-current="isActiveRoute('/instructor/problem-sets') ? 'page' : undefined"
             >
-              <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm4 1v2h8V3H4zm8 3H4v2h8V6zm0 3H4v2h8V9zm-8 3v2h4v-2H4z"/>
+              <svg
+                class="nav-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm4 1v2h8V3H4zm8 3H4v2h8V6zm0 3H4v2h8V9zm-8 3v2h4v-2H4z" />
               </svg>
               {{ $t('admin.instructorNav.problemSets') }}
             </router-link>
@@ -49,8 +77,15 @@
               class="instructor-link"
               :aria-current="isActiveRoute(`/instructor/courses/${courseId}`) ? 'page' : undefined"
             >
-              <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5h-2v12h2V2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/>
+              <svg
+                class="nav-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5h-2v12h2V2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z" />
               </svg>
               {{ $t('admin.instructorNav.overview') }}
             </router-link>
@@ -61,10 +96,20 @@
               class="instructor-link"
               :aria-current="isActiveRoute(`/instructor/courses/${courseId}/students`) ? 'page' : undefined"
             >
-              <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
-                <path fill-rule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"/>
-                <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+              <svg
+                class="nav-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                <path
+                  fill-rule="evenodd"
+                  d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"
+                />
+                <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
               </svg>
               {{ $t('admin.instructorNav.students') }}
             </router-link>
@@ -75,9 +120,19 @@
               class="instructor-link"
               :aria-current="isActiveRoute(`/instructor/courses/${courseId}/submissions`) ? 'page' : undefined"
             >
-              <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M5.523 12.424c.14-.082.293-.162.459-.238a7.878 7.878 0 0 1-.45.606c-.28.337-.498.516-.635.572a.266.266 0 0 1-.035.012.282.282 0 0 1-.026-.044c-.056-.11-.054-.216.04-.36.106-.165.319-.354.647-.548zm2.455-1.647c-.119.025-.237.05-.356.078a21.148 21.148 0 0 0 .5-1.05 12.045 12.045 0 0 0 .51.858c-.217.032-.436.07-.654.114zm2.525.939a3.881 3.881 0 0 1-.435-.41c.228.005.434.022.612.054.317.057.466.147.518.209a.095.095 0 0 1 .026.064.436.436 0 0 1-.06.2.307.307 0 0 1-.094.124.107.107 0 0 1-.069.015c-.09-.003-.258-.066-.498-.256zM8.278 6.97c-.04.244-.108.524-.2.829a4.86 4.86 0 0 1-.089-.346c-.076-.353-.087-.63-.046-.822.038-.177.11-.248.196-.283a.517.517 0 0 1 .145-.04c.013.03.028.092.032.198.005.122-.007.277-.038.465z"/>
-                <path fill-rule="evenodd" d="M4 0h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm.5 1.5v1a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-1h-7zm0 5h7v-1h-7v1zm0 3h7v-1h-7v1zm0 3h4v-1h-4v1z"/>
+              <svg
+                class="nav-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M5.523 12.424c.14-.082.293-.162.459-.238a7.878 7.878 0 0 1-.45.606c-.28.337-.498.516-.635.572a.266.266 0 0 1-.035.012.282.282 0 0 1-.026-.044c-.056-.11-.054-.216.04-.36.106-.165.319-.354.647-.548zm2.455-1.647c-.119.025-.237.05-.356.078a21.148 21.148 0 0 0 .5-1.05 12.045 12.045 0 0 0 .51.858c-.217.032-.436.07-.654.114zm2.525.939a3.881 3.881 0 0 1-.435-.41c.228.005.434.022.612.054.317.057.466.147.518.209a.095.095 0 0 1 .026.064.436.436 0 0 1-.06.2.307.307 0 0 1-.094.124.107.107 0 0 1-.069.015c-.09-.003-.258-.066-.498-.256zM8.278 6.97c-.04.244-.108.524-.2.829a4.86 4.86 0 0 1-.089-.346c-.076-.353-.087-.63-.046-.822.038-.177.11-.248.196-.283a.517.517 0 0 1 .145-.04c.013.03.028.092.032.198.005.122-.007.277-.038.465z" />
+                <path
+                  fill-rule="evenodd"
+                  d="M4 0h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm.5 1.5v1a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-1h-7zm0 5h7v-1h-7v1zm0 3h7v-1h-7v1zm0 3h4v-1h-4v1z"
+                />
               </svg>
               {{ $t('admin.instructorNav.submissions') }}
             </router-link>
@@ -88,8 +143,15 @@
               class="instructor-link"
               :aria-current="isActiveRoute(`/instructor/courses/${courseId}/problem-sets`) ? 'page' : undefined"
             >
-              <svg class="nav-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm4 1v2h8V3H4zm8 3H4v2h8V6zm0 3H4v2h8V9zm-8 3v2h4v-2H4z"/>
+              <svg
+                class="nav-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm4 1v2h8V3H4zm8 3H4v2h8V6zm0 3H4v2h8V9zm-8 3v2h4v-2H4z" />
               </svg>
               {{ $t('admin.instructorNav.courseProblemSets') }}
             </router-link>

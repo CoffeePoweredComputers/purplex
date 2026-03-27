@@ -138,7 +138,7 @@ defineEmits<{
 const hasResult = computed(() => props.mcqResult !== null)
 const isCorrect = computed(() => props.mcqResult?.is_correct ?? false)
 const score = computed(() => {
-  if (props.mcqResult?.score !== undefined) return props.mcqResult.score
+  if (props.mcqResult?.score !== undefined) {return props.mcqResult.score}
   return isCorrect.value ? 100 : 0
 })
 const isPartial = computed(() => !isCorrect.value && score.value > 0)
@@ -160,13 +160,13 @@ const explanation = computed(() => {
   const plural = props.mcqResult?.correct_options
   if (plural && plural.length > 0) {
     const explanations = plural.map(o => o.explanation).filter(Boolean)
-    if (explanations.length > 0) return explanations.join('; ')
+    if (explanations.length > 0) {return explanations.join('; ')}
   }
   return props.mcqResult?.correct_option?.explanation ?? ''
 })
 const bannerClass = computed(() => {
-  if (isCorrect.value) return 'result-banner--correct'
-  if (isPartial.value) return 'result-banner--partial'
+  if (isCorrect.value) {return 'result-banner--correct'}
+  if (isPartial.value) {return 'result-banner--partial'}
   return 'result-banner--incorrect'
 })
 </script>

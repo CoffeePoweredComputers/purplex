@@ -113,7 +113,7 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
 
   // Check if current inputs match any previous query (real-time duplicate detection)
   const duplicateEntry = computed(() => {
-    if (!hasValidInputs.value) return null
+    if (!hasValidInputs.value) {return null}
 
     // Parse current inputs
     const parsedInputs: Record<string, unknown> = {}

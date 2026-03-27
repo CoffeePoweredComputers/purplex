@@ -46,7 +46,9 @@
                 class="filter-select"
                 @change="handleRoleFilterChange"
               >
-                <option value="">{{ $t('admin.users.allRoles') }}</option>
+                <option value="">
+                  {{ $t('admin.users.allRoles') }}
+                </option>
                 <option
                   v-for="role in filterOptions?.roles || defaultRoles"
                   :key="role.value"
@@ -86,9 +88,15 @@
               :title="item.email === currentUserEmail ? $t('admin.users.cannotChangeOwnRole') : $t('admin.users.selectRole')"
               @change="handleRoleChange(item.id, ($event.target as HTMLSelectElement).value)"
             >
-              <option value="user">{{ $t('admin.users.roles.user') }}</option>
-              <option value="instructor">{{ $t('admin.users.roles.instructor') }}</option>
-              <option value="admin">{{ $t('admin.users.roles.admin') }}</option>
+              <option value="user">
+                {{ $t('admin.users.roles.user') }}
+              </option>
+              <option value="instructor">
+                {{ $t('admin.users.roles.instructor') }}
+              </option>
+              <option value="admin">
+                {{ $t('admin.users.roles.admin') }}
+              </option>
             </select>
             <span
               v-if="updatingUsers[item.id]"
@@ -109,7 +117,7 @@ import { useRouter } from 'vue-router';
 import AdminNavBar from './AdminNavBar.vue';
 import DataTable from './ui/DataTable.vue';
 import StatusBadge from './ui/StatusBadge.vue';
-import { useAdminUsers, type AdminUser } from '@/composables/useAdminUsers';
+import { type AdminUser, useAdminUsers } from '@/composables/useAdminUsers';
 import type { DataTableColumn } from '@/types/datatable';
 
 const { t } = useI18n();

@@ -23,19 +23,19 @@
  */
 import {
   computed,
-  inject,
-  provide,
   type ComputedRef,
-  type InjectionKey
+  inject,
+  type InjectionKey,
+  provide
 } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import store from '@/store';
 import {
   adminContentService,
-  instructorContentService,
   type ContentApiService,
-  type ContentRole
+  type ContentRole,
+  instructorContentService
 } from '@/services/contentService';
 
 /**
@@ -99,8 +99,8 @@ export function provideContentContext(): ContentContext {
   // Determine role from route prefix, fallback to user role
   const role = computed<ContentRole>(() => {
     const path = route.path;
-    if (path.startsWith('/admin')) return 'admin';
-    if (path.startsWith('/instructor')) return 'instructor';
+    if (path.startsWith('/admin')) {return 'admin';}
+    if (path.startsWith('/instructor')) {return 'instructor';}
 
     // Fallback to user's actual role
     const isAdminUser = store.getters['auth/isAdmin'];
@@ -161,9 +161,9 @@ export function provideContentContext(): ContentContext {
   const getPageTitle = (base: string) => computed(() => {
     if (role.value === 'instructor') {
       // Instructor sees "My X" instead of "X"
-      if (base === 'Problems') return t('admin.contentContext.myProblems');
-      if (base === 'Problem Sets') return t('admin.contentContext.myProblemSets');
-      if (base === 'Courses') return t('admin.contentContext.myCourses');
+      if (base === 'Problems') {return t('admin.contentContext.myProblems');}
+      if (base === 'Problem Sets') {return t('admin.contentContext.myProblemSets');}
+      if (base === 'Courses') {return t('admin.contentContext.myCourses');}
     }
     return base;
   });

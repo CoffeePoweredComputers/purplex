@@ -15,7 +15,7 @@
  * These tests scan the codebase to prevent singleton component duplication.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 

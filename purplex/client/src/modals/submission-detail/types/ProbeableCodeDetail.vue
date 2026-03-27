@@ -1,14 +1,21 @@
 <template>
   <div class="probeable-code-detail">
     <!-- Function context -->
-    <div v-if="typeData.function_signature" class="detail-section">
-      <h4 class="section-label">{{ $t('admin.submissions.detail.functionSignature') }}</h4>
+    <div
+      v-if="typeData.function_signature"
+      class="detail-section"
+    >
+      <h4 class="section-label">
+        {{ $t('admin.submissions.detail.functionSignature') }}
+      </h4>
       <code class="signature-box">{{ typeData.function_signature }}</code>
     </div>
 
     <!-- Submitted code -->
     <div class="detail-section">
-      <h4 class="section-label">{{ $t('admin.submissions.detail.submittedCode') }}</h4>
+      <h4 class="section-label">
+        {{ $t('admin.submissions.detail.submittedCode') }}
+      </h4>
       <Editor
         :value="submission.processed_code || submission.raw_input || '# No code available'"
         :read-only="true"

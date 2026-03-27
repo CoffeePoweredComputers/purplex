@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import store from "./store"; // Import the Vuex store
-import { ensureFirebaseInitialized } from "./firebaseConfig";
 import { waitForAuthState } from "./utils/auth-state";
 
 // Eagerly load only critical components

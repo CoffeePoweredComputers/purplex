@@ -1,9 +1,17 @@
 <template>
-  <div v-if="showBanner" class="cookie-consent" role="dialog" aria-label="Cookie consent">
+  <div
+    v-if="showBanner"
+    class="cookie-consent"
+    role="dialog"
+    aria-label="Cookie consent"
+  >
     <div class="cookie-consent__content">
       <p class="cookie-consent__text">
         {{ t('auth.cookie.message') }}
-        <a href="/privacy" class="cookie-consent__link">{{ t('auth.cookie.learnMore') }}</a>
+        <a
+          href="/privacy"
+          class="cookie-consent__link"
+        >{{ t('auth.cookie.learnMore') }}</a>
       </p>
       <div class="cookie-consent__actions">
         <button
@@ -24,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();

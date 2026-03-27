@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { VAceEditor } from 'vue3-ace-editor'
 import ace from 'ace-builds'
 import 'ace-builds/src-noconflict/mode-python'
@@ -98,7 +98,7 @@ const activeMarkerIds: number[] = []
 
 /** Clear all managed markers from the ACE session */
 function clearMarkers(): void {
-  if (!editor.value) return
+  if (!editor.value) {return}
   for (const id of activeMarkerIds) {
     editor.value.session.removeMarker(id)
   }
@@ -108,7 +108,7 @@ function clearMarkers(): void {
 /** Apply marker definitions to the ACE session as fullLine markers */
 function applyMarkers(): void {
   clearMarkers()
-  if (!editor.value || !props.markers?.length) return
+  if (!editor.value || !props.markers?.length) {return}
 
   const { Range } = ace.require('ace/range')
   for (const marker of props.markers) {
@@ -228,7 +228,7 @@ function editorInit(editorInstance: AceEditor): void {
           nextElement.focus()
         } else if (isInDialog && focusableElements.length > 0) {
           // Inside a dialog: wrap to first focusable element
-          ;(focusableElements[0] as HTMLElement).focus()
+          (focusableElements[0] as HTMLElement).focus()
         } else {
           // Main page: use custom tab target or fall back to submit button
           const targetId = props.tabTargetId || 'submitButton'
@@ -270,7 +270,7 @@ function editorInit(editorInstance: AceEditor): void {
           prevElement.focus()
         } else if (isInDialog && focusableElements.length > 0) {
           // Inside a dialog: wrap to last focusable element
-          ;(focusableElements[focusableElements.length - 1] as HTMLElement).focus()
+          (focusableElements[focusableElements.length - 1] as HTMLElement).focus()
         }
       }, 10)
     }

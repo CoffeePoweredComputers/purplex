@@ -18,11 +18,37 @@
         class="error-state"
         role="alert"
       >
-        <div class="error-icon" aria-hidden="true">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        <div
+          class="error-icon"
+          aria-hidden="true"
+        >
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <line
+              x1="12"
+              y1="8"
+              x2="12"
+              y2="12"
+            />
+            <line
+              x1="12"
+              y1="16"
+              x2="12.01"
+              y2="16"
+            />
           </svg>
         </div>
         <span class="visually-hidden">{{ $t('admin.instructor.error') }}</span>
@@ -50,21 +76,32 @@
           :aria-label="$t('admin.instructor.openCourse', { name: course.name })"
         >
           <div class="card-main">
-            <h3 class="course-title">{{ course.name }}</h3>
+            <h3 class="course-title">
+              {{ course.name }}
+            </h3>
 
             <div class="card-meta">
               <span class="course-code">{{ course.course_id }}</span>
-              <span class="meta-separator" aria-hidden="true">·</span>
+              <span
+                class="meta-separator"
+                aria-hidden="true"
+              >·</span>
               <span
                 :class="['status-indicator', course.is_active ? 'active' : 'inactive']"
                 role="status"
               >
                 {{ course.is_active ? $t('admin.instructor.active') : $t('admin.instructor.inactive') }}
               </span>
-              <span class="meta-separator" aria-hidden="true">·</span>
+              <span
+                class="meta-separator"
+                aria-hidden="true"
+              >·</span>
               <span class="student-count">{{ course.enrolled_students_count }} {{ $t('admin.instructor.students') }}</span>
               <template v-if="course.my_role">
-                <span class="meta-separator" aria-hidden="true">·</span>
+                <span
+                  class="meta-separator"
+                  aria-hidden="true"
+                >·</span>
                 <span :class="['role-badge', `role-${course.my_role}`]">
                   {{ course.my_role === 'primary' ? $t('admin.instructor.roles.primary') : $t('admin.instructor.roles.ta') }}
                 </span>
@@ -73,7 +110,10 @@
           </div>
 
           <!-- Hover arrow that grows from right -->
-          <div class="hover-arrow" aria-hidden="true">
+          <div
+            class="hover-arrow"
+            aria-hidden="true"
+          >
             <svg
               width="20"
               height="20"
@@ -84,8 +124,13 @@
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <line x1="5" y1="12" x2="19" y2="12"/>
-              <polyline points="12 5 19 12 12 19"/>
+              <line
+                x1="5"
+                y1="12"
+                x2="19"
+                y2="12"
+              />
+              <polyline points="12 5 19 12 12 19" />
             </svg>
           </div>
         </router-link>
@@ -106,10 +151,32 @@
             @click="toggleForm"
           >
             <div class="add-card-content">
-              <div class="add-icon" aria-hidden="true">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"/>
-                  <line x1="5" y1="12" x2="19" y2="12"/>
+              <div
+                class="add-icon"
+                aria-hidden="true"
+              >
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line
+                    x1="12"
+                    y1="5"
+                    x2="12"
+                    y2="19"
+                  />
+                  <line
+                    x1="5"
+                    y1="12"
+                    x2="19"
+                    y2="12"
+                  />
                 </svg>
               </div>
               <span class="add-text">{{ $t('admin.instructor.createCourse') }}</span>
@@ -130,9 +197,28 @@
                 :aria-label="$t('admin.instructor.cancelCreation')"
                 @click="toggleForm"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line
+                    x1="18"
+                    y1="6"
+                    x2="6"
+                    y2="18"
+                  />
+                  <line
+                    x1="6"
+                    y1="6"
+                    x2="18"
+                    y2="18"
+                  />
                 </svg>
               </button>
             </div>
@@ -184,7 +270,11 @@
               </div>
 
               <!-- Error message -->
-              <div v-if="formError" class="form-error" role="alert">
+              <div
+                v-if="formError"
+                class="form-error"
+                role="alert"
+              >
                 {{ formError }}
               </div>
             </div>
@@ -214,7 +304,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, reactive, computed } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import axios from 'axios';
 import InstructorNavBar from './InstructorNavBar.vue';
@@ -287,7 +377,7 @@ function resetForm(): void {
 }
 
 async function handleCreateCourse(): Promise<void> {
-  if (!isFormValid.value || isCreating.value) return;
+  if (!isFormValid.value || isCreating.value) {return;}
 
   isCreating.value = true;
   formError.value = null;

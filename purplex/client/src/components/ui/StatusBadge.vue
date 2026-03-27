@@ -21,6 +21,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'default',
+  label: undefined,
   uppercase: true,
 });
 

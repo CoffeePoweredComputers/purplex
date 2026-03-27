@@ -1,6 +1,8 @@
 <template>
   <div class="data-export">
-    <h3 class="data-export__title">{{ t('auth.dataExport.title') }}</h3>
+    <h3 class="data-export__title">
+      {{ t('auth.dataExport.title') }}
+    </h3>
     <p class="data-export__description">
       {{ t('auth.dataExport.description') }}
     </p>
@@ -13,8 +15,20 @@
       {{ loading ? t('auth.dataExport.preparing') : t('auth.dataExport.button') }}
     </button>
 
-    <p v-if="error" class="data-export__error" role="alert">{{ error }}</p>
-    <p v-if="success" class="data-export__success" role="status">{{ success }}</p>
+    <p
+      v-if="error"
+      class="data-export__error"
+      role="alert"
+    >
+      {{ error }}
+    </p>
+    <p
+      v-if="success"
+      class="data-export__success"
+      role="status"
+    >
+      {{ success }}
+    </p>
   </div>
 </template>
 

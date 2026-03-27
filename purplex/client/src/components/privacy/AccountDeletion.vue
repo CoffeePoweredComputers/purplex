@@ -1,6 +1,8 @@
 <template>
   <div class="account-deletion">
-    <h3 class="account-deletion__title">{{ t('auth.deletion.title') }}</h3>
+    <h3 class="account-deletion__title">
+      {{ t('auth.deletion.title') }}
+    </h3>
 
     <template v-if="!deletionPending">
       <p class="account-deletion__description">
@@ -22,7 +24,10 @@
       </div>
 
       <label class="account-deletion__confirm">
-        <input type="checkbox" v-model="confirmed">
+        <input
+          v-model="confirmed"
+          type="checkbox"
+        >
         <span>{{ t('auth.deletion.confirmCheckbox') }}</span>
       </label>
 
@@ -54,8 +59,20 @@
       </div>
     </template>
 
-    <p v-if="error" class="account-deletion__error" role="alert">{{ error }}</p>
-    <p v-if="success" class="account-deletion__success" role="status">{{ success }}</p>
+    <p
+      v-if="error"
+      class="account-deletion__error"
+      role="alert"
+    >
+      {{ error }}
+    </p>
+    <p
+      v-if="success"
+      class="account-deletion__success"
+      role="status"
+    >
+      {{ success }}
+    </p>
   </div>
 </template>
 
@@ -111,7 +128,7 @@ async function cancelDeletion() {
 }
 
 function formatDate(isoDate: string): string {
-    if (!isoDate) return '';
+    if (!isoDate) {return '';}
     return new Date(isoDate).toLocaleDateString(locale.value, {
         year: 'numeric',
         month: 'long',

@@ -37,6 +37,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import type { NotificationPayload, NotificationType } from '@/types'
+import { log } from '@/utils/logger'
 
 interface Notification extends NotificationPayload {
   id: number
@@ -54,10 +55,10 @@ export default defineComponent({
   mounted() {
     // Make this component globally accessible
     window.$notify = this.addNotification.bind(this);
-    console.log('[NotificationToast] Mounted, window.$notify set');
+    log.debug('[NotificationToast] Mounted, window.$notify set');
   },
   beforeUnmount() {
-    console.log('[NotificationToast] Unmounting, deleting window.$notify');
+    log.debug('[NotificationToast] Unmounting, deleting window.$notify');
     delete window.$notify;
   },
   methods: {

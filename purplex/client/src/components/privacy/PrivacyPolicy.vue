@@ -2,21 +2,23 @@
   <div class="policy-page">
     <div class="policy-page__content">
       <h1>{{ t('auth.privacyPage.title') }}</h1>
-      <p class="policy-page__version">{{ t('auth.privacyPage.version', { effectiveDate }) }}</p>
+      <p class="policy-page__version">
+        {{ t('auth.privacyPage.version', { effectiveDate }) }}
+      </p>
 
       <section>
         <h2>{{ t('auth.privacyPage.section1.title') }}</h2>
-        <p v-html="t('auth.privacyPage.section1.content')"></p>
+        <p v-html="t('auth.privacyPage.section1.content')" />
       </section>
 
       <section>
         <h2>{{ t('auth.privacyPage.section2.title') }}</h2>
         <ul>
-          <li v-html="t('auth.privacyPage.section2.items.identityData')"></li>
-          <li v-html="t('auth.privacyPage.section2.items.submissionData')"></li>
-          <li v-html="t('auth.privacyPage.section2.items.progressData')"></li>
-          <li v-html="t('auth.privacyPage.section2.items.aiAnalysisData')"></li>
-          <li v-html="t('auth.privacyPage.section2.items.technicalData')"></li>
+          <li v-html="t('auth.privacyPage.section2.items.identityData')" />
+          <li v-html="t('auth.privacyPage.section2.items.submissionData')" />
+          <li v-html="t('auth.privacyPage.section2.items.progressData')" />
+          <li v-html="t('auth.privacyPage.section2.items.aiAnalysisData')" />
+          <li v-html="t('auth.privacyPage.section2.items.technicalData')" />
         </ul>
       </section>
 
@@ -34,8 +36,8 @@
         <h2>{{ t('auth.privacyPage.section4.title') }}</h2>
         <p>{{ t('auth.privacyPage.section4.intro') }}</p>
         <ul>
-          <li v-html="t('auth.privacyPage.section4.items.firebase')"></li>
-          <li v-html="t('auth.privacyPage.section4.items.openai')"></li>
+          <li v-html="t('auth.privacyPage.section4.items.firebase')" />
+          <li v-html="t('auth.privacyPage.section4.items.openai')" />
         </ul>
         <p>{{ t('auth.privacyPage.section4.transfers') }}</p>
       </section>
@@ -44,12 +46,12 @@
         <h2>{{ t('auth.privacyPage.section5.title') }}</h2>
         <p>{{ t('auth.privacyPage.section5.intro') }}</p>
         <ul>
-          <li v-html="t('auth.privacyPage.section5.items.access')"></li>
-          <li v-html="t('auth.privacyPage.section5.items.rectification')"></li>
-          <li v-html="t('auth.privacyPage.section5.items.erasure')"></li>
-          <li v-html="t('auth.privacyPage.section5.items.portability')"></li>
-          <li v-html="t('auth.privacyPage.section5.items.object')"></li>
-          <li v-html="t('auth.privacyPage.section5.items.restrictProcessing')"></li>
+          <li v-html="t('auth.privacyPage.section5.items.access')" />
+          <li v-html="t('auth.privacyPage.section5.items.rectification')" />
+          <li v-html="t('auth.privacyPage.section5.items.erasure')" />
+          <li v-html="t('auth.privacyPage.section5.items.portability')" />
+          <li v-html="t('auth.privacyPage.section5.items.object')" />
+          <li v-html="t('auth.privacyPage.section5.items.restrictProcessing')" />
         </ul>
       </section>
 

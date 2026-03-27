@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useMcqOptions, type McqOption } from '../useMcqOptions'
+import { type McqOption, useMcqOptions } from '../useMcqOptions'
 
 describe('useMcqOptions', () => {
   let mcq: ReturnType<typeof useMcqOptions>

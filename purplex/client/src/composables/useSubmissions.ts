@@ -5,7 +5,7 @@
  * while keeping all domain-specific logic (filter summary, CSV export,
  * view modal, download, formatting helpers).
  */
-import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
+import { computed, type ComputedRef, type Ref, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ContentContext } from './useContentContext';
 import { useDataTable } from './useDataTable';
@@ -109,16 +109,16 @@ export function useSubmissions(
         page_size: params.page_size,
       };
 
-      if (params.search) apiParams.search = params.search;
-      if (statusFilter.value) apiParams.status = statusFilter.value;
-      if (problemSetFilter.value) apiParams.problem_set = problemSetFilter.value;
+      if (params.search) {apiParams.search = params.search;}
+      if (statusFilter.value) {apiParams.status = statusFilter.value;}
+      if (problemSetFilter.value) {apiParams.problem_set = problemSetFilter.value;}
 
       // Role-specific parameters
       if (ctx.isAdmin.value) {
-        if (courseFilter.value) apiParams.course = courseFilter.value;
+        if (courseFilter.value) {apiParams.course = courseFilter.value;}
       } else {
         const cid = courseId?.value;
-        if (!cid) throw new Error('Course ID is required for instructor submissions');
+        if (!cid) {throw new Error('Course ID is required for instructor submissions');}
         apiParams.course_id = cid;
       }
 
@@ -147,12 +147,12 @@ export function useSubmissions(
   // Filter summary for display
   const filterSummary = computed(() => {
     const parts: string[] = [];
-    if (table.searchQuery.value) parts.push(`"${table.searchQuery.value}"`);
-    if (statusFilter.value) parts.push(formatStatus(statusFilter.value));
-    if (problemSetFilter.value) parts.push(getProblemSetTitle(problemSetFilter.value));
+    if (table.searchQuery.value) {parts.push(`"${table.searchQuery.value}"`);}
+    if (statusFilter.value) {parts.push(formatStatus(statusFilter.value));}
+    if (problemSetFilter.value) {parts.push(getProblemSetTitle(problemSetFilter.value));}
     if (courseFilter.value) {
       const course = filterOptions.value.courses?.find((c: { id: string; name: string }) => c.id === courseFilter.value);
-      if (course) parts.push(course.name);
+      if (course) {parts.push(course.name);}
     }
     return parts.length > 0 ? `(filtered by ${parts.join(', ')})` : '';
   });
@@ -230,10 +230,10 @@ export function useSubmissions(
 
     try {
       const params: SubmissionQueryParams = {};
-      if (table.searchQuery.value.trim()) params.search = table.searchQuery.value.trim();
-      if (statusFilter.value) params.status = statusFilter.value;
-      if (problemSetFilter.value) params.problem_set = problemSetFilter.value;
-      if (courseFilter.value) params.course = courseFilter.value;
+      if (table.searchQuery.value.trim()) {params.search = table.searchQuery.value.trim();}
+      if (statusFilter.value) {params.status = statusFilter.value;}
+      if (problemSetFilter.value) {params.problem_set = problemSetFilter.value;}
+      if (courseFilter.value) {params.course = courseFilter.value;}
 
       const blob = await ctx.api.value.exportSubmissions(params);
 
@@ -241,7 +241,7 @@ export function useSubmissions(
       if (table.searchQuery.value) {
         filename += `_search-${table.searchQuery.value.replace(/[^a-zA-Z0-9]/g, '_')}`;
       }
-      if (statusFilter.value) filename += `_status-${statusFilter.value}`;
+      if (statusFilter.value) {filename += `_status-${statusFilter.value}`;}
       if (problemSetFilter.value) {
         filename += `_set-${problemSetFilter.value.replace(/[^a-zA-Z0-9]/g, '_')}`;
       }
@@ -306,8 +306,8 @@ export function useSubmissions(
 
   // Helper functions
   function getScoreClass(score: number): string {
-    if (score >= 80) return 'score-high';
-    if (score >= 50) return 'score-medium';
+    if (score >= 80) {return 'score-high';}
+    if (score >= 50) {return 'score-medium';}
     return 'score-low';
   }
 
@@ -327,7 +327,7 @@ export function useSubmissions(
   }
 
   function getComprehensionClass(level: string | null): string {
-    if (!level) return 'comprehension-not-evaluated';
+    if (!level) {return 'comprehension-not-evaluated';}
 
     switch (level.toLowerCase()) {
       case 'high-level':
@@ -347,7 +347,7 @@ export function useSubmissions(
   }
 
   function formatComprehensionLevel(level: string | null): string {
-    if (!level) return t('admin.submissions.comprehension.notEvaluated');
+    if (!level) {return t('admin.submissions.comprehension.notEvaluated');}
 
     switch (level.toLowerCase()) {
       case 'high-level':
@@ -373,7 +373,7 @@ export function useSubmissions(
   }
 
   function formatISODate(dateString: string | null): string {
-    if (!dateString) return t('admin.submissions.unknownDate');
+    if (!dateString) {return t('admin.submissions.unknownDate');}
     const date = new Date(dateString);
     return date.toISOString();
   }

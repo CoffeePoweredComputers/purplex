@@ -3,43 +3,43 @@
     <div class="probe-input-wrapper">
       <div class="probe-row">
         <div class="probe-call">
-        <span class="fn-name">{{ functionName }}</span>
-        <span class="fn-paren">(</span>
-        <template
-          v-for="(param, i) in probeParams"
-          :key="param.name"
-        >
-          <span
-            v-if="i > 0"
-            class="fn-comma"
-          >, </span>
-          <span class="param-name">{{ param.name }}</span>
-          <span class="param-eq">=</span>
-          <input
-            :id="`probe-${param.name}`"
-            :value="probeInputs[param.name]"
-            type="text"
-            class="param-input"
-            :placeholder="param.type"
-            :aria-label="$t('problems.probe.paramAriaLabel', { name: param.name, type: param.type })"
-            :disabled="!canProbe || isExecuting"
-            @input="$emit('update-input', param.name, ($event.target as HTMLInputElement).value)"
-            @keydown.enter="!isExecuting && canProbe && hasValidInputs && $emit('execute-probe')"
+          <span class="fn-name">{{ functionName }}</span>
+          <span class="fn-paren">(</span>
+          <template
+            v-for="(param, i) in probeParams"
+            :key="param.name"
           >
-        </template>
-        <span class="fn-paren">)</span>
-        <span class="fn-arrow">→</span>
-        <span
-          class="fn-result"
-          :class="{
-            'has-result': displayResult !== null,
-            'result-flash': showResultFlash,
-            'is-cached': isDuplicate
-          }"
-          :aria-label="isDuplicate ? $t('problems.probe.cachedResultAriaLabel', { result: formatOutput(cachedResult) }) : undefined"
-        >
-          {{ displayResult !== null ? formatOutput(displayResult) : '?' }}
-        </span>
+            <span
+              v-if="i > 0"
+              class="fn-comma"
+            >, </span>
+            <span class="param-name">{{ param.name }}</span>
+            <span class="param-eq">=</span>
+            <input
+              :id="`probe-${param.name}`"
+              :value="probeInputs[param.name]"
+              type="text"
+              class="param-input"
+              :placeholder="param.type"
+              :aria-label="$t('problems.probe.paramAriaLabel', { name: param.name, type: param.type })"
+              :disabled="!canProbe || isExecuting"
+              @input="$emit('update-input', param.name, ($event.target as HTMLInputElement).value)"
+              @keydown.enter="!isExecuting && canProbe && hasValidInputs && $emit('execute-probe')"
+            >
+          </template>
+          <span class="fn-paren">)</span>
+          <span class="fn-arrow">→</span>
+          <span
+            class="fn-result"
+            :class="{
+              'has-result': displayResult !== null,
+              'result-flash': showResultFlash,
+              'is-cached': isDuplicate
+            }"
+            :aria-label="isDuplicate ? $t('problems.probe.cachedResultAriaLabel', { result: formatOutput(cachedResult) }) : undefined"
+          >
+            {{ displayResult !== null ? formatOutput(displayResult) : '?' }}
+          </span>
         </div>
 
         <button
@@ -67,7 +67,10 @@
           <span>{{ $t('problems.probe.probing') }}</span>
         </template>
         <template v-else-if="isDuplicate">
-          <span class="duplicate-icon" aria-hidden="true">✓</span>
+          <span
+            class="duplicate-icon"
+            aria-hidden="true"
+          >✓</span>
           <span>{{ $t('problems.probe.alreadyProbed') }}</span>
         </template>
         <template v-else>
@@ -194,7 +197,7 @@ const uniqueHistory = computed(() => {
   const seen = new Set<string>()
   return props.probeHistory.filter(entry => {
     const key = JSON.stringify(entry.input)
-    if (seen.has(key)) return false
+    if (seen.has(key)) {return false}
     seen.add(key)
     return true
   })

@@ -174,10 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n';
 import type { UseProblemEditorReturn } from '@/composables/admin/useProblemEditor';
-
-const { t } = useI18n();
 
 interface Props {
   /** Editor composable with segmentation config */
@@ -192,7 +189,7 @@ interface Props {
   useUnicodeSymbols?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   title: undefined,
   relationalIcon: '✅',
   multiStructuralIcon: '❌',

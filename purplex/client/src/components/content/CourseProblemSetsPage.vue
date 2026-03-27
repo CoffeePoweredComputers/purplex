@@ -10,30 +10,46 @@
         <span class="count-badge">{{ currentProblemSets.length }}</span>
       </div>
 
-      <div v-if="loading.current" class="loading-container">
+      <div
+        v-if="loading.current"
+        class="loading-container"
+      >
         <div class="loading-spinner" />
         <p>{{ $t('admin.courseProblemSets.loading') }}</p>
       </div>
 
-      <div v-else-if="currentProblemSets.length === 0" class="empty-state">
+      <div
+        v-else-if="currentProblemSets.length === 0"
+        class="empty-state"
+      >
         <p>{{ $t('admin.courseProblemSets.noProblemSets') }}</p>
       </div>
 
-      <div v-else class="table-responsive">
+      <div
+        v-else
+        class="table-responsive"
+      >
         <table class="problem-sets-table">
           <thead>
             <tr>
               <th>{{ $t('admin.courseProblemSets.columnOrder') }}</th>
               <th>{{ $t('admin.courseProblemSets.columnProblemSet') }}</th>
-              <th class="center">{{ $t('admin.courseProblemSets.columnProblems') }}</th>
-              <th class="center">{{ $t('admin.courseProblemSets.columnRequired') }}</th>
+              <th class="center">
+                {{ $t('admin.courseProblemSets.columnProblems') }}
+              </th>
+              <th class="center">
+                {{ $t('admin.courseProblemSets.columnRequired') }}
+              </th>
               <th>{{ $t('admin.courseProblemSets.columnDueDate') }}</th>
               <th>{{ $t('admin.courseProblemSets.columnDeadline') }}</th>
               <th>{{ $t('admin.courseProblemSets.columnActions') }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, index) in currentProblemSets" :key="item.id">
+            <tr
+              v-for="(item, index) in currentProblemSets"
+              :key="item.id"
+            >
               <td class="order-cell">
                 <div class="order-controls">
                   <button
@@ -56,7 +72,9 @@
                 </div>
               </td>
               <td>{{ item.problem_set.title }}</td>
-              <td class="center">{{ item.problem_set.problems_count }}</td>
+              <td class="center">
+                {{ item.problem_set.problems_count }}
+              </td>
               <td class="center">
                 <input
                   v-model="item.is_required"
@@ -90,9 +108,15 @@
                   :title="!item.due_date ? $t('admin.courseProblemSets.setDueDateFirst') : ''"
                   @change="updateDeadlineType(item)"
                 >
-                  <option value="none">{{ $t('admin.courseProblemSets.none') }}</option>
-                  <option value="soft">{{ $t('admin.courseProblemSets.soft') }}</option>
-                  <option value="hard">{{ $t('admin.courseProblemSets.hard') }}</option>
+                  <option value="none">
+                    {{ $t('admin.courseProblemSets.none') }}
+                  </option>
+                  <option value="soft">
+                    {{ $t('admin.courseProblemSets.soft') }}
+                  </option>
+                  <option value="hard">
+                    {{ $t('admin.courseProblemSets.hard') }}
+                  </option>
                 </select>
               </td>
               <td>
@@ -119,20 +143,35 @@
         <span class="count-badge">{{ $t('admin.courseProblemSets.available', { count: availableProblemSets.length }) }}</span>
       </div>
 
-      <div v-if="loading.available" class="loading-container">
+      <div
+        v-if="loading.available"
+        class="loading-container"
+      >
         <div class="loading-spinner" />
         <p>{{ $t('admin.courseProblemSets.loadingAvailable') }}</p>
       </div>
 
-      <div v-else-if="availableProblemSets.length === 0" class="empty-state">
+      <div
+        v-else-if="availableProblemSets.length === 0"
+        class="empty-state"
+      >
         <p>{{ $t('admin.courseProblemSets.allAdded') }}</p>
       </div>
 
-      <div v-else class="available-grid">
-        <div v-for="ps in availableProblemSets" :key="ps.slug" class="available-item">
+      <div
+        v-else
+        class="available-grid"
+      >
+        <div
+          v-for="ps in availableProblemSets"
+          :key="ps.slug"
+          class="available-item"
+        >
           <div class="item-info">
             <h4>{{ ps.title }}</h4>
-            <p class="description">{{ ps.description || $t('admin.courseProblemSets.noDescription') }}</p>
+            <p class="description">
+              {{ ps.description || $t('admin.courseProblemSets.noDescription') }}
+            </p>
             <span class="problems-count">{{ $t('admin.courseProblemSets.problemsCount', { count: ps.problems_count || 0 }) }}</span>
           </div>
           <button
@@ -147,17 +186,27 @@
     </div>
 
     <!-- Remove Confirmation Dialog -->
-    <div v-if="showRemoveDialog" class="dialog-overlay">
+    <div
+      v-if="showRemoveDialog"
+      class="dialog-overlay"
+    >
       <div class="dialog">
         <h3>{{ $t('admin.courseProblemSets.removeProblemSet') }}</h3>
         <p>
           {{ $t('admin.courseProblemSets.removeConfirmMessage', { title: removeTarget?.problem_set.title }) }}
         </p>
         <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="showRemoveDialog = false">
+          <button
+            class="btn btn-secondary"
+            @click="showRemoveDialog = false"
+          >
             {{ $t('common.cancel') }}
           </button>
-          <button class="btn btn-danger" :disabled="removing" @click="performRemove">
+          <button
+            class="btn btn-danger"
+            :disabled="removing"
+            @click="performRemove"
+          >
             {{ removing ? $t('admin.courseProblemSets.removing') : $t('common.remove') }}
           </button>
         </div>
@@ -167,7 +216,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, nextTick } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
@@ -206,7 +255,7 @@ function setDateInputRef(itemId: number, el: unknown): void {
 
 // Computed
 const courseId = computed(() => route.params.courseId as string);
-const pageTitle = computed(() => {
+const _pageTitle = computed(() => {
   if (course.value) {
     return t('admin.courseProblemSets.problemSetsDash', { name: course.value.name });
   }
@@ -307,10 +356,10 @@ async function performRemove(): Promise<void> {
   }
 
   removing.value = true;
-  console.log('[performRemove] Removing:', courseId.value, removeTarget.value.id);
+  log.debug('[performRemove] Removing:', courseId.value, removeTarget.value.id);
   try {
     await ctx.api.value.removeCourseProblemSet(courseId.value, removeTarget.value.id);
-    console.log('[performRemove] Success!');
+    log.debug('[performRemove] Success!');
 
     // Move to available list
     const removedItem = removeTarget.value;
@@ -328,7 +377,7 @@ async function performRemove(): Promise<void> {
     showRemoveDialog.value = false;
     removeTarget.value = null;
   } catch (err) {
-    console.error('[performRemove] Error:', err);
+    log.error('[performRemove] Error:', err);
     log.error('Failed to remove problem set', { error: err });
   } finally {
     removing.value = false;
@@ -337,7 +386,7 @@ async function performRemove(): Promise<void> {
 
 // Reorder functions
 async function moveUp(index: number): Promise<void> {
-  if (index === 0) return;
+  if (index === 0) {return;}
 
   const items = [...currentProblemSets.value];
   const current = items[index];
@@ -365,7 +414,7 @@ async function moveUp(index: number): Promise<void> {
 }
 
 async function moveDown(index: number): Promise<void> {
-  if (index === currentProblemSets.value.length - 1) return;
+  if (index === currentProblemSets.value.length - 1) {return;}
 
   const items = [...currentProblemSets.value];
   const current = items[index];
@@ -419,10 +468,10 @@ async function initializeDateInputs(): Promise<void> {
 }
 
 async function saveDueDate(item: CourseProblemSet): Promise<void> {
-  console.log('[saveDueDate] Called for item:', item.id);
+  log.debug('[saveDueDate] Called for item:', item.id);
   const input = dateInputRefs.get(item.id);
   if (!input) {
-    console.log('[saveDueDate] No input ref found for item:', item.id);
+    log.debug('[saveDueDate] No input ref found for item:', item.id);
     return;
   }
 
@@ -431,22 +480,22 @@ async function saveDueDate(item: CourseProblemSet): Promise<void> {
 
   // Skip if unchanged
   const currentFormatted = formatDateForInput(item.due_date);
-  console.log('[saveDueDate] inputValue:', inputValue, 'currentFormatted:', currentFormatted);
+  log.debug('[saveDueDate] inputValue:', inputValue, 'currentFormatted:', currentFormatted);
   if (inputValue === currentFormatted) {
-    console.log('[saveDueDate] Skipping - unchanged');
+    log.debug('[saveDueDate] Skipping - unchanged');
     return;
   }
 
-  console.log('[saveDueDate] Saving newDate:', newDate);
+  log.debug('[saveDueDate] Saving newDate:', newDate);
   try {
     await ctx.api.value.updateCourseProblemSet(courseId.value, item.id, {
       due_date: newDate
     });
     item.due_date = newDate;
-    console.log('[saveDueDate] Success!');
+    log.debug('[saveDueDate] Success!');
     log.info('Updated due date', { problemSet: item.problem_set?.slug, dueDate: newDate });
   } catch (err) {
-    console.error('[saveDueDate] Error:', err);
+    log.error('[saveDueDate] Error:', err);
     log.error('Failed to update due date', { error: err });
     // Reset input to previous value
     input.value = formatDateForInput(item.due_date);

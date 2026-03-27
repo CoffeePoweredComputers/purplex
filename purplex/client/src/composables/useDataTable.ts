@@ -13,7 +13,7 @@
  *     initialPageSize: 25,
  *   });
  */
-import { computed, onUnmounted, ref, type ComputedRef, type Ref } from 'vue';
+import { computed, type ComputedRef, onUnmounted, type Ref, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type {
   DataTableQueryParams,
@@ -62,7 +62,7 @@ export function useDataTable<T, F = Record<string, unknown>>(
   options: UseDataTableOptions<T, F>
 ): UseDataTableReturn<T, F> {
   const { t } = useI18n();
-  const { fetchFn, initialPageSize = 25, debounceMs = 300, filterKeys = [] } = options;
+  const { fetchFn, initialPageSize = 25, debounceMs = 300, filterKeys: _filterKeys = [] } = options;
 
   // Data
   const items = ref<T[]>([]) as Ref<T[]>;
@@ -89,7 +89,7 @@ export function useDataTable<T, F = Record<string, unknown>>(
 
   // Computed: Pagination range for display
   const rangeStart = computed(() => {
-    if (totalCount.value === 0) return 0;
+    if (totalCount.value === 0) {return 0;}
     return (currentPage.value - 1) * pageSize.value + 1;
   });
 
@@ -120,7 +120,7 @@ export function useDataTable<T, F = Record<string, unknown>>(
 
   // Computed: Has any filters active
   const hasFilters = computed(() => {
-    if (searchQuery.value.trim()) return true;
+    if (searchQuery.value.trim()) {return true;}
     return Object.values(filters.value).some((v) => v && v.trim());
   });
 

@@ -2,13 +2,19 @@
   <div class="mcq-detail">
     <!-- Question -->
     <div class="detail-section">
-      <h4 class="section-label">{{ $t('admin.submissions.detail.question') }}</h4>
-      <div class="question-box">{{ typeData.question_text }}</div>
+      <h4 class="section-label">
+        {{ $t('admin.submissions.detail.question') }}
+      </h4>
+      <div class="question-box">
+        {{ typeData.question_text }}
+      </div>
     </div>
 
     <!-- Options -->
     <div class="detail-section">
-      <h4 class="section-label">{{ $t('admin.submissions.detail.options') }}</h4>
+      <h4 class="section-label">
+        {{ $t('admin.submissions.detail.options') }}
+      </h4>
       <div class="options-list">
         <div
           v-for="option in typeData.options"
@@ -21,13 +27,27 @@
           }"
         >
           <span class="option-indicator">
-            <span v-if="option.is_correct" class="indicator-icon correct">&#10003;</span>
-            <span v-else-if="isSelected(option.id)" class="indicator-icon wrong">&#10007;</span>
-            <span v-else class="indicator-icon neutral">{{ option.id }}</span>
+            <span
+              v-if="option.is_correct"
+              class="indicator-icon correct"
+            >&#10003;</span>
+            <span
+              v-else-if="isSelected(option.id)"
+              class="indicator-icon wrong"
+            >&#10007;</span>
+            <span
+              v-else
+              class="indicator-icon neutral"
+            >{{ option.id }}</span>
           </span>
           <div class="option-content">
-            <div class="option-text">{{ option.text }}</div>
-            <div v-if="option.explanation" class="option-explanation">
+            <div class="option-text">
+              {{ option.text }}
+            </div>
+            <div
+              v-if="option.explanation"
+              class="option-explanation"
+            >
               {{ option.explanation }}
             </div>
           </div>
@@ -37,7 +57,10 @@
 
     <!-- Result -->
     <div class="detail-section">
-      <div class="result-banner" :class="typeData.is_correct ? 'correct' : 'incorrect'">
+      <div
+        class="result-banner"
+        :class="typeData.is_correct ? 'correct' : 'incorrect'"
+      >
         {{ typeData.is_correct ? $t('admin.submissions.detail.correctAnswer') : $t('admin.submissions.detail.incorrectAnswer') }}
       </div>
     </div>
@@ -54,7 +77,7 @@ const props = defineProps<{
 
 const selectedIdSet = computed(() => {
   const ids = props.typeData.selected_option_ids;
-  if (ids) return new Set(ids);
+  if (ids) {return new Set(ids);}
   const single = props.typeData.selected_option_id;
   return single ? new Set([single]) : new Set<string>();
 });

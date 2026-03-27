@@ -17,7 +17,10 @@
     </div>
 
     <!-- Step 1: Credentials (login or start registration) -->
-    <div v-if="registrationStep === 'credentials'" id="login-form">
+    <div
+      v-if="registrationStep === 'credentials'"
+      id="login-form"
+    >
       <form>
         <div class="form-field">
           <label
@@ -106,15 +109,27 @@
       </form>
 
       <div class="login-footer-links">
-        <router-link to="/privacy">{{ $t('auth.login.privacyPolicy') }}</router-link>
+        <router-link to="/privacy">
+          {{ $t('auth.login.privacyPolicy') }}
+        </router-link>
         <span class="link-separator">|</span>
-        <router-link to="/terms">{{ $t('auth.login.termsOfService') }}</router-link>
+        <router-link to="/terms">
+          {{ $t('auth.login.termsOfService') }}
+        </router-link>
       </div>
     </div>
 
     <!-- Step 2: Age Verification (registration flow) -->
-    <div v-else-if="registrationStep === 'age-gate'" class="registration-step">
-      <button class="back-btn" @click="registrationStep = 'credentials'">{{ $t('common.back') }}</button>
+    <div
+      v-else-if="registrationStep === 'age-gate'"
+      class="registration-step"
+    >
+      <button
+        class="back-btn"
+        @click="registrationStep = 'credentials'"
+      >
+        {{ $t('common.back') }}
+      </button>
       <AgeGate
         @age-verified="onAgeVerified"
         @under-age="onUnderAge"
@@ -122,8 +137,16 @@
     </div>
 
     <!-- Step 3: Consent Form (registration flow) -->
-    <div v-else-if="registrationStep === 'consent'" class="registration-step">
-      <button class="back-btn" @click="registrationStep = 'age-gate'">{{ $t('common.back') }}</button>
+    <div
+      v-else-if="registrationStep === 'consent'"
+      class="registration-step"
+    >
+      <button
+        class="back-btn"
+        @click="registrationStep = 'age-gate'"
+      >
+        {{ $t('common.back') }}
+      </button>
       <ConsentForm @consent-granted="onConsentGranted" />
       <div
         v-if="errorMessage"
@@ -134,18 +157,25 @@
     </div>
 
     <!-- Under-age block (COPPA) -->
-    <div v-else-if="registrationStep === 'under-age'" class="registration-step">
+    <div
+      v-else-if="registrationStep === 'under-age'"
+      class="registration-step"
+    >
       <div class="under-age-notice">
         <h3>{{ $t('auth.coppa.title') }}</h3>
         <p>{{ $t('auth.coppa.message') }}</p>
-        <button class="back-btn" @click="registrationStep = 'credentials'">{{ $t('auth.coppa.backToLogin') }}</button>
+        <button
+          class="back-btn"
+          @click="registrationStep = 'credentials'"
+        >
+          {{ $t('auth.coppa.backToLogin') }}
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { GoogleAuthProvider } from 'firebase/auth';
 import ConsentForm from '../../components/privacy/ConsentForm.vue';
 import AgeGate from '../../components/privacy/AgeGate.vue';
 import privacyService, { type ConsentType } from '../../services/privacyService';
@@ -170,7 +200,7 @@ export default {
     };
   },
   methods: {
-      login: async function () {
+      login: function () {
         const { email, password } = this;
         this.isLoading = true;
         this.errorMessage = '';
@@ -187,7 +217,7 @@ export default {
             this.isLoading = false;
           });
       },
-      loginWithGoogle: async function (useRedirect = false) {
+      loginWithGoogle: function (useRedirect = false) {
         this.isLoading = true;
         this.errorMessage = '';
 

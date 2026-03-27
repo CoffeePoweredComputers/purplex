@@ -117,7 +117,10 @@
         </template>
         <template v-else>
           <strong>{{ $t('problems.problemSet.deadline.due', { date: formatDeadline(deadline.due_date) }) }}</strong>
-          <span v-if="isDeadlineUrgent" class="urgency-note">— {{ $t('problems.problemSet.deadline.submitSoon') }}</span>
+          <span
+            v-if="isDeadlineUrgent"
+            class="urgency-note"
+          >— {{ $t('problems.problemSet.deadline.submitSoon') }}</span>
         </template>
       </span>
     </div>
@@ -393,10 +396,11 @@ import { useTheme } from '@/composables/useTheme'
 import { parseProblemQueryParam } from './problemNavigation'
 import { sseService } from '@/services/sseService'
 import { submissionService } from '@/services/submissionService'
-import { computed, ref, watch } from 'vue'
+import { ref } from 'vue'
 
 export default {
     name: 'ProblemSet',
+    emits: ['hint-used'],
     components: {
         Editor,
         HintButton,
@@ -1051,7 +1055,7 @@ export default {
             }
         },
 
-        async loadSpecificAttempt(attempt) {
+        loadSpecificAttempt(attempt) {
             // Load data from specific attempt
             this.logger.info('Loading specific attempt', {
                 attemptId: attempt.id,
@@ -1292,7 +1296,7 @@ export default {
 
                 // Transform hint tracking data to match backend expectations
                 // Backend will look up hints by type, not ID
-                const activatedHints = hintsUsed.map((hintType, index) => ({
+                const activatedHints = hintsUsed.map((hintType, _index) => ({
                     hint_type: hintType,
                     trigger_type: 'manual'  // We can enhance this later to track actual trigger
                     // Note: Do not send hint_id - backend will look up by hint_type
@@ -1901,7 +1905,7 @@ export default {
             }
         },
 
-        mapStatusFromAPI(apiStatus, score) {
+        mapStatusFromAPI(apiStatus, _score) {
             // Direct pass-through - backend status is source of truth
             return apiStatus;
         },

@@ -38,8 +38,18 @@
       <div class="footer-content">
         <div class="footer-left">
           <span class="copyright">{{ $t('common.footer.copyright', { year: new Date().getFullYear() }) }}</span>
-          <router-link to="/privacy" class="footer-link">{{ $t('common.footer.privacyPolicy') }}</router-link>
-          <router-link to="/terms" class="footer-link">{{ $t('common.footer.termsOfService') }}</router-link>
+          <router-link
+            to="/privacy"
+            class="footer-link"
+          >
+            {{ $t('common.footer.privacyPolicy') }}
+          </router-link>
+          <router-link
+            to="/terms"
+            class="footer-link"
+          >
+            {{ $t('common.footer.termsOfService') }}
+          </router-link>
         </div>
         <div class="footer-right">
           <span class="sponsor">{{ $t('common.footer.sponsoredBy') }}</span>
@@ -144,7 +154,7 @@ export default defineComponent({
             if (firebaseAuth && firebaseAuth.onAuthStateChanged) {
                 // Create a promise that resolves when auth state is determined
                 await new Promise<void>((resolve) => {
-                    const unsubscribe = firebaseAuth.onAuthStateChanged((user: unknown) => {
+                    const unsubscribe = firebaseAuth.onAuthStateChanged((_user: unknown) => {
                         // Auth state has been determined (user is either signed in or null)
                         unsubscribe(); // Stop listening after first update
                         resolve();

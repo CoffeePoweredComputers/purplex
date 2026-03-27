@@ -18,7 +18,10 @@
         class="error-state"
         role="alert"
       >
-        <div class="error-icon" aria-hidden="true">
+        <div
+          class="error-icon"
+          aria-hidden="true"
+        >
           <svg
             width="48"
             height="48"
@@ -30,8 +33,18 @@
             stroke-linejoin="round"
           >
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
+            <line
+              x1="12"
+              y1="9"
+              x2="12"
+              y2="13"
+            />
+            <line
+              x1="12"
+              y1="17"
+              x2="12.01"
+              y2="17"
+            />
           </svg>
         </div>
         <span class="visually-hidden">{{ $t('admin.courseOverview.errorLabel') }}</span>
@@ -106,7 +119,9 @@
               </div>
               <div class="journey-content">
                 <div class="journey-header">
-                  <h3 class="ps-title">{{ ps.problem_set_title }}</h3>
+                  <h3 class="ps-title">
+                    {{ ps.problem_set_title }}
+                  </h3>
                   <div class="header-right">
                     <span
                       v-if="ps.due_date"
@@ -114,7 +129,10 @@
                     >
                       {{ formatDueDate(ps.due_date) }}
                     </span>
-                    <span v-else class="due-badge no-due">{{ $t('admin.courseOverview.noDueDate') }}</span>
+                    <span
+                      v-else
+                      class="due-badge no-due"
+                    >{{ $t('admin.courseOverview.noDueDate') }}</span>
                     <span
                       :class="['completion-badge', getCompletionClass(ps.avg_completion)]"
                     >
@@ -125,10 +143,24 @@
                       :title="`Download scores for ${ps.problem_set_title}`"
                       @click.stop="downloadProblemSetScores(ps.problem_set_slug, ps.problem_set_title)"
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
+                        <line
+                          x1="12"
+                          y1="15"
+                          x2="12"
+                          y2="3"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -211,7 +243,9 @@
                         <span class="chart-label">{{ ['M', 'T', 'W', 'T', 'F', 'S', 'S'][i - 1] }}</span>
                       </div>
                     </div>
-                    <p class="activity-summary muted-text">{{ $t('admin.courseOverview.submissionsThisWeek') }}</p>
+                    <p class="activity-summary muted-text">
+                      {{ $t('admin.courseOverview.submissionsThisWeek') }}
+                    </p>
                   </div>
                 </template>
 
@@ -303,7 +337,9 @@
                   <p>{{ $t('admin.courseOverview.noSubmissions7Days') }}</p>
                 </div>
               </div>
-              <h3 class="section-label bottom-label">{{ $t('admin.courseOverview.activityLabel') }}</h3>
+              <h3 class="section-label bottom-label">
+                {{ $t('admin.courseOverview.activityLabel') }}
+              </h3>
             </div>
 
             <!-- Class Snapshot -->
@@ -315,7 +351,9 @@
               <!-- Placeholder state when nothing selected -->
               <template v-if="!selectedProblemSetSlug">
                 <div class="snapshot-placeholder">
-                  <p class="placeholder-hint">{{ $t('admin.courseOverview.clickProblemSetHint') }}</p>
+                  <p class="placeholder-hint">
+                    {{ $t('admin.courseOverview.clickProblemSetHint') }}
+                  </p>
                   <div class="snapshot-metrics muted">
                     <div class="snapshot-item">
                       <span class="snapshot-value placeholder">~</span>
@@ -465,7 +503,7 @@ const displayedMetrics = computed(() => {
   const ps = overview.value.problem_set_stats.find(
     p => p.problem_set_slug === selectedProblemSetSlug.value
   );
-  if (!ps) return null;
+  if (!ps) {return null;}
 
   return {
     mode: 'problem_set' as const,
@@ -485,7 +523,7 @@ const displayedMetrics = computed(() => {
 // Calculate max submissions for bar chart scaling (uses displayedMetrics for correct scaling)
 const maxSubmissions = computed(() => {
   const activityData = displayedMetrics.value?.activity_by_day;
-  if (!activityData || activityData.length === 0) return 1;
+  if (!activityData || activityData.length === 0) {return 1;}
   return Math.max(...activityData.map(d => d.count), 1);
 });
 
@@ -495,7 +533,7 @@ function getBarHeight(count: number): number {
 
 // Generate SVG path for the line connecting bar tops
 function getLinePath(data: ActivityDay[]): string {
-  if (data.length === 0) return '';
+  if (data.length === 0) {return '';}
   if (data.length === 1) {
     // Single point - just a dot, no line needed
     const y = 100 - getBarHeight(data[0].count) * 0.85 - 5;
@@ -525,7 +563,7 @@ function getLinePath(data: ActivityDay[]): string {
 
 // Generate SVG path for the area fill under the line
 function getAreaPath(data: ActivityDay[]): string {
-  if (data.length === 0) return '';
+  if (data.length === 0) {return '';}
   if (data.length === 1) {
     // Single point - small area around the point
     const y = 100 - getBarHeight(data[0].count) * 0.85 - 5;
@@ -564,8 +602,8 @@ function hasActivityData(data: ActivityDay[]): boolean {
 }
 
 function getCompletionClass(completion: number): string {
-  if (completion >= 75) return 'high';
-  if (completion >= 40) return 'medium';
+  if (completion >= 75) {return 'high';}
+  if (completion >= 40) {return 'medium';}
   return 'low';
 }
 
@@ -576,10 +614,10 @@ function getDueDateClass(dueDateStr: string): string {
   const diffMs = due.getTime() - now.getTime();
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0) return 'overdue';
-  if (diffDays === 0) return 'due-today';
-  if (diffDays === 1) return 'due-tomorrow';
-  if (diffDays <= 7) return 'due-soon';
+  if (diffDays < 0) {return 'overdue';}
+  if (diffDays === 0) {return 'due-today';}
+  if (diffDays === 1) {return 'due-tomorrow';}
+  if (diffDays <= 7) {return 'due-soon';}
   return 'due-later';
 }
 
@@ -589,9 +627,9 @@ function formatDueDate(dueDateStr: string): string {
   const diffMs = due.getTime() - now.getTime();
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0) return t('common.dueDate.overdue');
-  if (diffDays === 0) return t('common.dueDate.dueToday');
-  if (diffDays === 1) return t('common.dueDate.dueTomorrow');
+  if (diffDays < 0) {return t('common.dueDate.overdue');}
+  if (diffDays === 0) {return t('common.dueDate.dueToday');}
+  if (diffDays === 1) {return t('common.dueDate.dueTomorrow');}
   return t('common.dueDate.dueOn', { date: due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) });
 }
 
@@ -605,7 +643,7 @@ function getDueDateDetail(dueDateStr: string): string {
     const absDays = Math.abs(diffDays);
     return absDays === 1 ? t('common.dueDate.byOneDay') : t('common.dueDate.byDays', { days: absDays });
   }
-  if (diffDays === 0) return '';
+  if (diffDays === 0) {return '';}
   if (diffDays <= 7) {
     return diffDays === 1 ? t('common.dueDate.inOneDay') : t('common.dueDate.inDays', { days: diffDays });
   }
@@ -636,7 +674,7 @@ function clearSelection() {
 }
 
 // Download problem set scores as CSV
-async function downloadProblemSetScores(slug: string, title: string) {
+async function downloadProblemSetScores(slug: string, _title: string) {
   try {
     const response = await axios.get(
       `/api/instructor/courses/${courseId.value}/problem-sets/${slug}/export/`,

@@ -1,62 +1,62 @@
 <template>
   <div class="description-input">
     <div class="section-header">
-    <div class="section-label">
-      {{ sectionLabel }}
+      <div class="section-label">
+        {{ sectionLabel }}
+      </div>
     </div>
-  </div>
-  <span
-    v-if="draftSaved"
-    class="draft-indicator"
-    role="status"
-    aria-live="polite"
-  >{{ $t('problems.submission.draftSaved') }}</span>
-  <div
-    id="promptEditor"
-    class="prompt-editor-wrapper"
-    tabindex="-1"
-  >
-    <Editor
-      ref="editorRef"
-      v-model:value="inputValue"
-      lang="text"
-      mode="text"
-      height="100px"
-      width="100%"
-      :show-gutter="false"
-      :wrap="true"
-      :theme="editorTheme"
-    />
-  </div>
-  <button
-    id="submitButton"
-    class="submit-button"
-    :disabled="disabled || !isValid"
-    :aria-busy="disabled"
-    :aria-label="disabled ? $t('problems.submission.submittingWait') : (isValid ? $t('problems.submission.submitSolution') : $t('problems.submission.minLength'))"
-    @click="handleSubmit"
-  >
     <span
-      v-if="!disabled"
-      class="button-text"
-    >{{ $t('problems.submission.submitSolution') }}</span>
-    <div
-      v-if="disabled"
-      class="loading-content"
+      v-if="draftSaved"
+      class="draft-indicator"
       role="status"
       aria-live="polite"
+    >{{ $t('problems.submission.draftSaved') }}</span>
+    <div
+      id="promptEditor"
+      class="prompt-editor-wrapper"
+      tabindex="-1"
     >
-      <div
-        class="bouncing-dots"
-        aria-hidden="true"
-      >
-        <span class="dot" />
-        <span class="dot" />
-        <span class="dot" />
-      </div>
-      <span class="visually-hidden">{{ $t('problems.submission.submittingWait') }}</span>
+      <Editor
+        ref="editorRef"
+        v-model:value="inputValue"
+        lang="text"
+        mode="text"
+        height="100px"
+        width="100%"
+        :show-gutter="false"
+        :wrap="true"
+        :theme="editorTheme"
+      />
     </div>
-  </button>
+    <button
+      id="submitButton"
+      class="submit-button"
+      :disabled="disabled || !isValid"
+      :aria-busy="disabled"
+      :aria-label="disabled ? $t('problems.submission.submittingWait') : (isValid ? $t('problems.submission.submitSolution') : $t('problems.submission.minLength'))"
+      @click="handleSubmit"
+    >
+      <span
+        v-if="!disabled"
+        class="button-text"
+      >{{ $t('problems.submission.submitSolution') }}</span>
+      <div
+        v-if="disabled"
+        class="loading-content"
+        role="status"
+        aria-live="polite"
+      >
+        <div
+          class="bouncing-dots"
+          aria-hidden="true"
+        >
+          <span class="dot" />
+          <span class="dot" />
+          <span class="dot" />
+        </div>
+        <span class="visually-hidden">{{ $t('problems.submission.submittingWait') }}</span>
+      </div>
+    </button>
   </div>
 </template>
 

@@ -134,7 +134,7 @@
  * Students test function inputs to find one that disproves the claim.
  * Uses function-call style interface similar to ProbePanel.
  */
-import { computed, ref, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import axios from 'axios'
 import type { ActivityProblem } from '../types'
 import { log } from '@/utils/logger'
@@ -200,7 +200,7 @@ const functionName = computed(() =>
 
 const parameters = computed<FunctionParam[]>(() => {
   const params = inputConfig.value.parameters as FunctionParam[] | undefined
-  if (params && params.length > 0) return params
+  if (params && params.length > 0) {return params}
   return parseParameters(functionSignature.value)
 })
 
@@ -222,12 +222,12 @@ const hasValidInputs = computed(() => {
 })
 
 const lastResult = computed(() => {
-  if (attempts.value.length === 0) return null
+  if (attempts.value.length === 0) {return null}
   return attempts.value[0].result
 })
 
 const lastDisproven = computed(() => {
-  if (attempts.value.length === 0) return false
+  if (attempts.value.length === 0) {return false}
   return attempts.value[0].disproven
 })
 
@@ -245,10 +245,10 @@ function extractFunctionName(signature: string): string {
 
 function parseParameters(signature: string): FunctionParam[] {
   const match = signature.match(/\(([^)]*)\)/)
-  if (!match) return []
+  if (!match) {return []}
 
   const paramsStr = match[1].trim()
-  if (!paramsStr) return []
+  if (!paramsStr) {return []}
 
   return paramsStr.split(',').map(p => {
     const parts = p.trim().split(':')
@@ -272,8 +272,8 @@ function parseInputValue(value: string, type: string): unknown {
     return isNaN(num) ? trimmed : num
   }
   if (type.toLowerCase().includes('bool')) {
-    if (trimmed.toLowerCase() === 'true') return true
-    if (trimmed.toLowerCase() === 'false') return false
+    if (trimmed.toLowerCase() === 'true') {return true}
+    if (trimmed.toLowerCase() === 'false') {return false}
     return trimmed
   }
   if (type.toLowerCase().includes('str')) {
@@ -316,7 +316,7 @@ function buildInputArgs(): Record<string, unknown> {
 }
 
 async function testInput() {
-  if (testing.value || !hasValidInputs.value) return
+  if (testing.value || !hasValidInputs.value) {return}
 
   testing.value = true
   testError.value = null
@@ -368,7 +368,7 @@ function selectAttempt(idx: number) {
 }
 
 function submitCounterexample() {
-  if (!counterexample.value || props.disabled) return
+  if (!counterexample.value || props.disabled) {return}
 
   // Set the model value to the counterexample JSON
   emit('update:modelValue', JSON.stringify(counterexample.value.input))
@@ -386,12 +386,12 @@ function formatCall(input: Record<string, unknown>): string {
 }
 
 function formatOutput(value: unknown): string {
-  if (value === null) return 'None'
-  if (value === undefined) return '?'
-  if (typeof value === 'string') return `"${value}"`
-  if (typeof value === 'boolean') return value ? 'True' : 'False'
-  if (Array.isArray(value)) return JSON.stringify(value)
-  if (typeof value === 'object') return JSON.stringify(value)
+  if (value === null) {return 'None'}
+  if (value === undefined) {return '?'}
+  if (typeof value === 'string') {return `"${value}"`}
+  if (typeof value === 'boolean') {return value ? 'True' : 'False'}
+  if (Array.isArray(value)) {return JSON.stringify(value)}
+  if (typeof value === 'object') {return JSON.stringify(value)}
   return String(value)
 }
 </script>

@@ -4,7 +4,10 @@
     :show-breadcrumb="false"
   >
     <template #header-actions>
-      <button class="action-button add-button" @click="createNewProblem">
+      <button
+        class="action-button add-button"
+        @click="createNewProblem"
+      >
         {{ $t('admin.problems.addNew') }}
       </button>
     </template>
@@ -68,10 +71,16 @@
       <!-- Actions -->
       <template #cell-actions="{ item }">
         <div class="actions-cell">
-          <button class="action-button edit-button" @click="editProblem(item.slug)">
+          <button
+            class="action-button edit-button"
+            @click="editProblem(item.slug)"
+          >
             {{ $t('common.edit') }}
           </button>
-          <button class="action-button delete-button" @click="confirmDelete(item)">
+          <button
+            class="action-button delete-button"
+            @click="confirmDelete(item)"
+          >
             {{ $t('common.delete') }}
           </button>
         </div>
@@ -93,7 +102,7 @@ import { clientSidePaginate } from '@/utils/clientSidePaginate';
 import { useNotification } from '@/composables/useNotification';
 import { log } from '@/utils/logger';
 import type { ProblemDetailed } from '@/types';
-import type { DataTableColumn, BadgeVariant } from '@/types/datatable';
+import type { BadgeVariant, DataTableColumn } from '@/types/datatable';
 
 const { t } = useI18n();
 const ctx = provideContentContext();
@@ -163,7 +172,7 @@ function getDifficultyVariant(difficulty: string): BadgeVariant {
 
 function getProblemSetNames(problem: ProblemDetailed): string {
   const sets = (problem as ProblemDetailed & { problem_sets?: Array<{ title?: string }> }).problem_sets;
-  if (!sets || sets.length === 0) return t('admin.problems.noProblemSets');
+  if (!sets || sets.length === 0) {return t('admin.problems.noProblemSets');}
   return sets.map(ps => ps.title || t('common.unknown')).join(', ');
 }
 

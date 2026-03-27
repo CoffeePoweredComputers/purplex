@@ -2,19 +2,30 @@
   <div class="refute-detail">
     <!-- Claim -->
     <div class="detail-section">
-      <h4 class="section-label">{{ $t('admin.submissions.detail.claimToDisprove') }}</h4>
-      <div class="claim-box">{{ typeData.claim_text }}</div>
+      <h4 class="section-label">
+        {{ $t('admin.submissions.detail.claimToDisprove') }}
+      </h4>
+      <div class="claim-box">
+        {{ typeData.claim_text }}
+      </div>
     </div>
 
     <!-- Function context -->
-    <div v-if="typeData.function_signature" class="detail-section">
-      <h4 class="section-label">{{ $t('admin.submissions.detail.functionSignature') }}</h4>
+    <div
+      v-if="typeData.function_signature"
+      class="detail-section"
+    >
+      <h4 class="section-label">
+        {{ $t('admin.submissions.detail.functionSignature') }}
+      </h4>
       <code class="signature-box">{{ typeData.function_signature }}</code>
     </div>
 
     <!-- Student's input (counterexample) -->
     <div class="detail-section">
-      <h4 class="section-label">{{ $t('admin.submissions.detail.studentsCounterexampleInput') }}</h4>
+      <h4 class="section-label">
+        {{ $t('admin.submissions.detail.studentsCounterexampleInput') }}
+      </h4>
       <div class="input-box">
         <code>{{ submission.raw_input }}</code>
       </div>
@@ -22,7 +33,10 @@
 
     <!-- Result -->
     <div class="detail-section">
-      <div class="result-banner" :class="submission.is_correct ? 'correct' : 'incorrect'">
+      <div
+        class="result-banner"
+        :class="submission.is_correct ? 'correct' : 'incorrect'"
+      >
         {{ submission.is_correct ? $t('admin.submissions.detail.validCounterexample') : $t('admin.submissions.detail.counterexampleNotValid') }}
       </div>
     </div>

@@ -26,18 +26,28 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="loading-container">
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
       <div class="spinner" />
       <p>{{ $t('admin.problemSets.loading') }}</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-message">
+    <div
+      v-else-if="error"
+      class="error-message"
+    >
       {{ error }}
     </div>
 
     <!-- Form -->
-    <form v-else class="problem-set-form" @submit.prevent="handleSave">
+    <form
+      v-else
+      class="problem-set-form"
+      @submit.prevent="handleSave"
+    >
       <!-- Basic Info Section -->
       <div class="form-section rounded-lg border-default">
         <h3>{{ $t('admin.problemSets.basicInfo') }}</h3>
@@ -51,11 +61,14 @@
               type="text"
               required
               :placeholder="$t('admin.problemSets.titlePlaceholder')"
-            />
+            >
           </div>
           <div class="form-group">
             <label class="checkbox-label">
-              <input v-model="formData.is_public" type="checkbox" />
+              <input
+                v-model="formData.is_public"
+                type="checkbox"
+              >
               <span>{{ $t('admin.problemSets.public') }}</span>
             </label>
           </div>
@@ -76,17 +89,26 @@
       <div class="form-section rounded-lg border-default">
         <h3>{{ $t('admin.problemSets.problemsSection') }}</h3>
 
-        <div v-if="loadingProblems" class="problems-loading">
+        <div
+          v-if="loadingProblems"
+          class="problems-loading"
+        >
           <div class="spinner-small" />
           <span>{{ $t('admin.problemSets.loadingProblems') }}</span>
         </div>
 
-        <div v-else class="problems-container">
+        <div
+          v-else
+          class="problems-container"
+        >
           <!-- Selected problems (sortable list) -->
           <div class="selected-problems-section">
             <label class="section-label">{{ $t('admin.problemSets.selectedProblems', { count: selectedProblemSlugs.length }) }}</label>
             <div class="selected-problems">
-              <div v-if="selectedProblemSlugs.length === 0" class="no-problems">
+              <div
+                v-if="selectedProblemSlugs.length === 0"
+                class="no-problems"
+              >
                 {{ $t('admin.problemSets.noProblemsSelected') }}
               </div>
               <div
@@ -137,7 +159,7 @@
               type="text"
               class="problem-search"
               :placeholder="$t('admin.problemSets.searchProblems')"
-            />
+            >
             <div class="problem-list">
               <div
                 v-for="problem in filteredAvailableProblems"
@@ -149,7 +171,10 @@
                 <span class="problem-type">{{ problem.problem_type }}</span>
                 <span class="add-indicator">+</span>
               </div>
-              <div v-if="filteredAvailableProblems.length === 0" class="no-problems">
+              <div
+                v-if="filteredAvailableProblems.length === 0"
+                class="no-problems"
+              >
                 {{ problemSearch ? $t('admin.problemSets.noMatchingProblems') : $t('admin.problemSets.allProblemsAdded') }}
               </div>
             </div>
@@ -159,17 +184,27 @@
     </form>
 
     <!-- Delete Confirmation Dialog -->
-    <div v-if="showDeleteDialog" class="dialog-overlay">
+    <div
+      v-if="showDeleteDialog"
+      class="dialog-overlay"
+    >
       <div class="dialog">
         <h3>{{ $t('admin.problemSets.deleteProblemSet') }}</h3>
         <p>
           {{ $t('admin.problemSets.deleteConfirmMessage', { title: formData.title }) }}
         </p>
         <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="showDeleteDialog = false">
+          <button
+            class="btn btn-secondary"
+            @click="showDeleteDialog = false"
+          >
             {{ $t('common.cancel') }}
           </button>
-          <button class="btn btn-danger" :disabled="deleting" @click="confirmDelete">
+          <button
+            class="btn btn-danger"
+            :disabled="deleting"
+            @click="confirmDelete"
+          >
             {{ deleting ? $t('admin.problemSets.deleting') : $t('common.delete') }}
           </button>
         </div>
@@ -179,13 +214,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import ContentEditorLayout from './ContentEditorLayout.vue';
 import { provideContentContext } from '@/composables/useContentContext';
 import { log } from '@/utils/logger';
-import type { ProblemSet, ProblemDetailed } from '@/types';
+import type { ProblemDetailed } from '@/types';
 
 // Router
 const route = useRoute();
@@ -321,7 +356,7 @@ function moveProblem(index: number, direction: number): void {
 
 // Save handler
 async function handleSave(): Promise<void> {
-  if (!canSave.value || saving.value) return;
+  if (!canSave.value || saving.value) {return;}
 
   saving.value = true;
   error.value = null;
@@ -359,7 +394,7 @@ function handleDelete(): void {
 }
 
 async function confirmDelete(): Promise<void> {
-  if (!slugFromRoute.value) return;
+  if (!slugFromRoute.value) {return;}
 
   deleting.value = true;
 

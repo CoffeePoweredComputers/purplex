@@ -109,10 +109,10 @@ class SubmissionService {
     } catch (error: unknown) {
       log.error('Failed to submit activity solution', error);
       const axiosError = error as { response?: { data?: { error?: string }; status?: number } };
-      throw {
-        error: axiosError.response?.data?.error || 'Failed to submit activity solution',
-        status: axiosError.response?.status || 500
-      };
+      const err = new Error(axiosError.response?.data?.error || 'Failed to submit activity solution');
+      (err as Error & { error: string; status: number }).error = axiosError.response?.data?.error || 'Failed to submit activity solution';
+      (err as Error & { error: string; status: number }).status = axiosError.response?.status || 500;
+      throw err;
     }
   }
 

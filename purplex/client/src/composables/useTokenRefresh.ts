@@ -81,7 +81,7 @@ export function useTokenRefresh() {
   /**
    * Refresh the token (private method)
    */
-  async function refreshToken(): Promise<string> {
+  function refreshToken(): Promise<string> {
     // Prevent concurrent refreshes
     if (tokenRefreshPromise) {
       return tokenRefreshPromise;

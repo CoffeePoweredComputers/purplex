@@ -1,4 +1,5 @@
 import type { NotificationPayload } from '../types';
+import { logger } from '@/utils/logger';
 
 export interface NotificationMethods {
   success: (message: string, details?: string | null) => void;
@@ -22,7 +23,7 @@ export const useNotification = (): UseNotificationReturn => {
           duration: 3000
         } as NotificationPayload);
       } else {
-        console.warn('[Toast] window.$notify not available, toast skipped:', message);
+        logger.warn('[Toast] window.$notify not available, toast skipped:', message);
       }
     },
 
@@ -35,7 +36,7 @@ export const useNotification = (): UseNotificationReturn => {
           duration: 5000
         } as NotificationPayload);
       } else {
-        console.warn('[Toast] window.$notify not available, toast skipped:', message);
+        logger.warn('[Toast] window.$notify not available, toast skipped:', message);
       }
     },
 

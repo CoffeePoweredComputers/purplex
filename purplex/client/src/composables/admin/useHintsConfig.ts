@@ -15,7 +15,6 @@ import type {
   SubgoalHighlightHint,
   SuggestedTraceHint,
   VariableFadeHint,
-  VariableFadeMapping,
 } from '@/types';
 import { problemService } from '@/services/problemService';
 import { log } from '@/utils/logger';

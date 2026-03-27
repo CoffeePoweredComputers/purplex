@@ -24,7 +24,10 @@
       </div>
     </div>
 
-    <form class="problem-form" @submit.prevent="handleSave">
+    <form
+      class="problem-form"
+      @submit.prevent="handleSave"
+    >
       <!-- Problem Type Selector - Always visible at top -->
       <div class="form-section rounded-lg border-default transition-fast">
         <h3>{{ $t('admin.problems.problemType') }}</h3>
@@ -44,7 +47,10 @@
               {{ actType.label }}
             </option>
           </select>
-          <p v-if="editor.isEditing.value" class="type-locked-hint">
+          <p
+            v-if="editor.isEditing.value"
+            class="type-locked-hint"
+          >
             {{ $t('admin.problems.typeLockedHint') }}
           </p>
         </div>
@@ -73,17 +79,26 @@
     </form>
 
     <!-- Delete confirmation dialog -->
-    <div v-if="showDeleteDialog" class="dialog-overlay">
+    <div
+      v-if="showDeleteDialog"
+      class="dialog-overlay"
+    >
       <div class="dialog">
         <h3>{{ $t('admin.problems.deleteProblemConfirm') }}</h3>
         <p>
           {{ $t('admin.problems.deleteConfirmMessage', { title: editor.form.form.title }) }}
         </p>
         <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="showDeleteDialog = false">
+          <button
+            class="btn btn-secondary"
+            @click="showDeleteDialog = false"
+          >
             {{ $t('common.cancel') }}
           </button>
-          <button class="btn btn-danger" @click="confirmDelete">
+          <button
+            class="btn btn-danger"
+            @click="confirmDelete"
+          >
             {{ $t('common.delete') }}
           </button>
         </div>

@@ -8,7 +8,7 @@
  * - The "morphing bean" animation for category creation form
  */
 
-import { type DeepReadonly, nextTick, reactive, readonly, type Ref, ref } from 'vue';
+import { type DeepReadonly, reactive, readonly, type Ref, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ProblemCategory } from '@/types';
 import { problemService } from '@/services/problemService';

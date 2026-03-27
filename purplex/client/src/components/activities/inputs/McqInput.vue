@@ -127,7 +127,7 @@ const selectedIds = ref<Set<string>>(new Set())
 
 // Sync selectedIds from modelValue when in checkbox mode
 watch(() => props.modelValue, (val) => {
-  if (!isCheckboxMode.value) return
+  if (!isCheckboxMode.value) {return}
   if (!val) {
     selectedIds.value = new Set()
     return
@@ -165,7 +165,7 @@ function getOptionMarker(optionId: string): string {
 }
 
 function selectOption(optionId: string) {
-  if (props.disabled) return
+  if (props.disabled) {return}
 
   if (isCheckboxMode.value) {
     const next = new Set(selectedIds.value)
@@ -182,11 +182,11 @@ function selectOption(optionId: string) {
 }
 
 function handleSubmit() {
-  if (props.disabled) return
+  if (props.disabled) {return}
   if (isCheckboxMode.value) {
-    if (selectedIds.value.size > 0) emit('submit')
+    if (selectedIds.value.size > 0) {emit('submit')}
   } else {
-    if (props.modelValue) emit('submit')
+    if (props.modelValue) {emit('submit')}
   }
 }
 

@@ -84,7 +84,7 @@ class MockFirebaseAuth {
   /**
    * Sign in with email and password
    */
-  async signInWithEmailAndPassword(email: string, password: string): Promise<MockUserCredential> {
+  signInWithEmailAndPassword(email: string, password: string): Promise<MockUserCredential> {
     mockLogger.info(`Signing in with email: ${email}`);
 
     // Check test users
@@ -94,14 +94,14 @@ class MockFirebaseAuth {
       this.persistAuthState();
       this.notifyAuthStateListeners();
 
-      return {
+      return Promise.resolve({
         user: this.currentUser,
         credential: {
           providerId: 'password',
           signInMethod: 'password'
         },
         operationType: 'signIn'
-      };
+      });
     }
 
     // In development, allow any email/password combination
@@ -117,23 +117,23 @@ class MockFirebaseAuth {
       this.persistAuthState();
       this.notifyAuthStateListeners();
 
-      return {
+      return Promise.resolve({
         user: this.currentUser,
         credential: {
           providerId: 'password',
           signInMethod: 'password'
         },
         operationType: 'signIn'
-      };
+      });
     }
 
-    throw new Error('Invalid email or password');
+    return Promise.reject(new Error('Invalid email or password'));
   }
 
   /**
    * Create a new user account
    */
-  async createUserWithEmailAndPassword(email: string, password: string): Promise<MockUserCredential> {
+  createUserWithEmailAndPassword(email: string, password: string): Promise<MockUserCredential> {
     mockLogger.info(`Creating account for: ${email}`);
 
     // In development, allow any email
@@ -148,20 +148,20 @@ class MockFirebaseAuth {
     this.persistAuthState();
     this.notifyAuthStateListeners();
 
-    return {
+    return Promise.resolve({
       user: this.currentUser,
       credential: {
         providerId: 'password',
         signInMethod: 'password'
       },
       operationType: 'signUp'
-    };
+    });
   }
 
   /**
    * Sign in with popup (mock Google sign-in)
    */
-  async signInWithPopup(_provider: MockGoogleAuthProvider): Promise<MockUserCredential> {
+  signInWithPopup(_provider: MockGoogleAuthProvider): Promise<MockUserCredential> {
     mockLogger.info('Mock Google sign-in');
 
     // Simulate Google sign-in with a test account
@@ -176,24 +176,25 @@ class MockFirebaseAuth {
     this.persistAuthState();
     this.notifyAuthStateListeners();
 
-    return {
+    return Promise.resolve({
       user: this.currentUser,
       credential: {
         providerId: 'google.com',
         signInMethod: 'popup'
       },
       operationType: 'signIn'
-    };
+    });
   }
 
   /**
    * Sign out the current user
    */
-  async signOut(): Promise<void> {
+  signOut(): Promise<void> {
     mockLogger.info('Signing out');
     this.currentUser = null;
     this.clearAuthState();
     this.notifyAuthStateListeners();
+    return Promise.resolve();
   }
 
   /**
@@ -243,20 +244,22 @@ class MockFirebaseAuth {
         lastSignInTime: new Date().toISOString()
       },
       refreshToken: 'mock-refresh-token',
-      getIdToken: async (forceRefresh?: boolean) => {
+      getIdToken: (forceRefresh?: boolean): Promise<string> => {
         if (forceRefresh) {
           log.debug('[MockFirebase] Force refresh requested, generating new token');
         }
         // Always generate a fresh token (mock doesn't cache)
-        return this.createMockToken(userData);
+        return Promise.resolve(this.createMockToken(userData));
       },
-      reload: async () => {
+      reload: (): Promise<void> => {
         // No-op in mock
+        return Promise.resolve();
       },
-      delete: async () => {
+      delete: (): Promise<void> => {
         this.currentUser = null;
         this.clearAuthState();
         this.notifyAuthStateListeners();
+        return Promise.resolve();
       }
     };
 
@@ -346,7 +349,7 @@ export class MockGoogleAuthProvider {
     // No configuration needed for mock
   }
 
-  addScope(scope: string): void {
+  addScope(_scope: string): void {
     // No-op in mock
   }
 

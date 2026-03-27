@@ -1,13 +1,24 @@
 <template>
   <div class="segment-mapping">
-    <div class="sr-only" aria-live="polite" aria-atomic="true">
+    <div
+      class="sr-only"
+      aria-live="polite"
+      aria-atomic="true"
+    >
       {{ segmentAnnouncement }}
     </div>
     <div class="mapping-grid-simplified">
       <!-- Left: Student Response with Inline Segments -->
-      <div class="response-panel" role="region" aria-label="Your explanation">
+      <div
+        class="response-panel"
+        role="region"
+        aria-label="Your explanation"
+      >
         <h4 class="panel-title">
-          <span class="title-icon" aria-hidden="true">💭</span>
+          <span
+            class="title-icon"
+            aria-hidden="true"
+          >💭</span>
           {{ $t('feedback.segmentMapping.yourExplanation') }}
         </h4>
         <div class="response-text">
@@ -56,9 +67,16 @@
       </div>
 
       <!-- Right: Code with Highlights -->
-      <div class="code-panel" role="region" aria-label="Reference code">
+      <div
+        class="code-panel"
+        role="region"
+        aria-label="Reference code"
+      >
         <h4 class="panel-title">
-          <span class="title-icon" aria-hidden="true">📝</span>
+          <span
+            class="title-icon"
+            aria-hidden="true"
+          >📝</span>
           {{ $t('feedback.segmentMapping.referenceCode') }}
         </h4>
         <div class="code-display">
@@ -80,10 +98,10 @@
               {{ index + 1 }}
             </span>
             <code class="line-content"><span
-                v-for="(token, tIdx) in tokenizedLines[index]"
-                :key="tIdx"
-                :class="tokenClass(token.type)"
-              >{{ token.value }}</span></code>
+              v-for="(token, tIdx) in tokenizedLines[index]"
+              :key="tIdx"
+              :class="tokenClass(token.type)"
+            >{{ token.value }}</span></code>
           </div>
         </div>
       </div>
@@ -93,7 +111,8 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
-import { tokenizePython, type TokenizedLine } from '@/utils/pythonTokenizer';
+import { type TokenizedLine, tokenizePython } from '@/utils/pythonTokenizer';
+import { log } from '@/utils/logger';
 
 // Define types for the component
 interface Segment {
@@ -226,7 +245,7 @@ export default defineComponent({
       // If we matched fewer segments than we have, use fallback approach
       // This handles cases where AI returns conceptual summaries instead of verbatim text
       if (matchedSegments < this.segments.length) {
-        console.warn(`Only matched ${matchedSegments}/${this.segments.length} segments in userPrompt. Using fallback display.`);
+        log.warn(`Only matched ${matchedSegments}/${this.segments.length} segments in userPrompt. Using fallback display.`);
 
         // Clear the result and rebuild showing all segments with their conceptual text
         result.length = 0;

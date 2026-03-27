@@ -22,7 +22,7 @@
  * The BUGGY extraction: `problems_detail.map(p => p.slug)` → [undefined, undefined]
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // Types matching the API response structure
 interface ProblemBasic {

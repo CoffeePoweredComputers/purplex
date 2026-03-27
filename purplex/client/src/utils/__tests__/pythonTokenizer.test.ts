@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock ace-builds with a fake Python tokenizer
 const mockGetLineTokens = vi.fn()

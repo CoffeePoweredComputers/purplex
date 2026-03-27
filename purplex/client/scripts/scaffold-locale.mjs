@@ -12,11 +12,11 @@
  */
 
 import {
+  existsSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   writeFileSync,
-  mkdirSync,
-  existsSync,
 } from 'fs';
 import { join, resolve } from 'path';
 

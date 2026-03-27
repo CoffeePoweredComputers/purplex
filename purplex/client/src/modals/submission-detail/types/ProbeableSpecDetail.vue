@@ -1,15 +1,27 @@
 <template>
   <div class="probeable-spec-detail">
     <!-- Function context -->
-    <div v-if="typeData.function_signature" class="detail-section">
-      <h4 class="section-label">{{ $t('admin.submissions.detail.functionSignature') }}</h4>
+    <div
+      v-if="typeData.function_signature"
+      class="detail-section"
+    >
+      <h4 class="section-label">
+        {{ $t('admin.submissions.detail.functionSignature') }}
+      </h4>
       <code class="signature-box">{{ typeData.function_signature }}</code>
     </div>
 
     <!-- NL prompt (student writes explanation like EiPL) -->
-    <div v-if="submission.raw_input" class="detail-section">
-      <h4 class="section-label">{{ $t('admin.submissions.detail.studentsExplanation') }}</h4>
-      <div class="prompt-box">{{ submission.raw_input }}</div>
+    <div
+      v-if="submission.raw_input"
+      class="detail-section"
+    >
+      <h4 class="section-label">
+        {{ $t('admin.submissions.detail.studentsExplanation') }}
+      </h4>
+      <div class="prompt-box">
+        {{ submission.raw_input }}
+      </div>
     </div>
   </div>
 </template>

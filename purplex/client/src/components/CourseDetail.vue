@@ -37,10 +37,16 @@
           <div class="course-meta">
             <div class="meta-item">
               <span class="label">{{ $t('problems.courseDetail.instructorLabel') }}</span>
-              <span v-if="course.instructors?.length" class="value">
+              <span
+                v-if="course.instructors?.length"
+                class="value"
+              >
                 {{ course.instructors.filter(i => i.role === 'primary').map(i => i.full_name).join(', ') }}
               </span>
-              <span v-else class="value">{{ $t('problems.courseDetail.unknownInstructor') }}</span>
+              <span
+                v-else
+                class="value"
+              >{{ $t('problems.courseDetail.unknownInstructor') }}</span>
             </div>
             <div class="meta-item">
               <span class="label">{{ $t('problems.courseDetail.problemSetsLabel') }}</span>

@@ -31,14 +31,14 @@ export function useFocusTrap(isVisible: Ref<boolean>, initialFocusRef?: Ref<HTML
   function getTabbableElements(container: HTMLElement): HTMLElement[] {
     return Array.from(container.querySelectorAll<HTMLElement>(candidateSelector)).filter(el => {
       // Must be visible (not in display:none ancestor, not hidden)
-      if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') return false
-      if (getComputedStyle(el).visibility === 'hidden') return false
+      if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') {return false}
+      if (getComputedStyle(el).visibility === 'hidden') {return false}
 
       // Must not be inside an inert subtree
-      if (el.closest('[inert]')) return false
+      if (el.closest('[inert]')) {return false}
 
       // Must not be an Ace editor internal element
-      if (el.classList.contains('ace_text-input') || el.classList.contains('ace_content')) return false
+      if (el.classList.contains('ace_text-input') || el.classList.contains('ace_content')) {return false}
 
       return true
     })

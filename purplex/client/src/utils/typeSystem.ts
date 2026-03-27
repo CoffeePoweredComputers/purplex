@@ -1150,7 +1150,7 @@ export function autoDetectTypeFromInput(inputValue: string): TypeDetectionResult
   }
 
   // Handle unquoted strings with more comprehensive patterns
-  if (/^[a-zA-Z_][a-zA-Z0-9_\s\-\.]*$/.test(trimmed) ||  // Basic identifiers with hyphens and dots
+  if (/^[a-zA-Z_][a-zA-Z0-9_\s\-.]*$/.test(trimmed) ||  // Basic identifiers with hyphens and dots
       /^[a-zA-Z0-9]+[a-zA-Z][a-zA-Z0-9]*$/.test(trimmed)) {  // Mixed alphanumeric (must contain at least one letter)
     return { detected: 'str', annotation: 'str', confidence: 'medium' };
   }
@@ -1206,10 +1206,11 @@ export function formatTypeSpec(typeSpec: TypeSpec): string {
     case 'list':
       return `List[${formatTypeSpec(typeSpec.elementType || { type: 'Any' })}]`;
 
-    case 'dict':
+    case 'dict': {
       const keyType = formatTypeSpec(typeSpec.keyType || { type: 'Any' });
       const valueType = formatTypeSpec(typeSpec.valueType || { type: 'Any' });
       return `Dict[${keyType}, ${valueType}]`;
+    }
 
     case 'set':
       return `Set[${formatTypeSpec(typeSpec.elementType || { type: 'Any' })}]`;

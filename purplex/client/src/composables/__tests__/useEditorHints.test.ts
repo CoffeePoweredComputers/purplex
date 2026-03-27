@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import { useEditorHints } from '../useEditorHints'
-import { HintType } from '../../types'
 
 describe('useEditorHints composable', () => {
   let editorRef: any
