@@ -1,11 +1,26 @@
-# Purplex
+<div align="center">
+  <img src="docs/assets/purplex-logo.png" alt="Purplex" width="150">
+  <h1>Purplex</h1>
+  <p><strong>An educational coding challenge platform with AI-powered problem generation, sandboxed Docker code execution, and a novel EiPL (Explain in Plain Language) submission system for assessing conceptual understanding.</strong></p>
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Django 5.0](https://img.shields.io/badge/django-5.0-green.svg)](https://www.djangoproject.com/)
-[![Vue 3](https://img.shields.io/badge/vue-3-brightgreen.svg)](https://vuejs.org/)
+  <p>
+    <a href="https://github.com/CoffeePoweredComputers/purplex/actions/workflows/ci.yml"><img src="https://github.com/CoffeePoweredComputers/purplex/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI"></a>
+    <a href="https://github.com/CoffeePoweredComputers/purplex/actions/workflows/security.yml"><img src="https://github.com/CoffeePoweredComputers/purplex/actions/workflows/security.yml/badge.svg?branch=master" alt="Security"></a>
+    <a href="https://codecov.io/gh/CoffeePoweredComputers/purplex"><img src="https://codecov.io/gh/CoffeePoweredComputers/purplex/branch/master/graph/badge.svg" alt="codecov"></a>
+  </p>
 
-An educational coding challenge platform with AI-powered problem generation, sandboxed Docker code execution, and a novel EiPL (Explain in Plain Language) submission system for assessing conceptual understanding.
+  <p>
+    <a href="https://www.gnu.org/licenses/gpl-3.0"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
+    <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"></a>
+    <a href="https://www.djangoproject.com/"><img src="https://img.shields.io/badge/django-5.0-green.svg" alt="Django 5.0"></a>
+    <a href="https://vuejs.org/"><img src="https://img.shields.io/badge/vue-3-brightgreen.svg" alt="Vue 3"></a>
+  </p>
+</div>
+
+<div align="center">
+  <img src="docs/assets/showcase.png" alt="Purplex platform showing EiPL, Prompt, Refute, and Probeable problem types" width="800">
+  <br><em>Four problem types: Explain in Plain Language, Prompt, Refute, and Probeable</em>
+</div>
 
 ## Features
 

@@ -1,6 +1,6 @@
 # Purplex Requirements
 # ====================
-# Updated: 2026-02-04
+# Updated: 2026-03-27
 # Policy: Use >= with minimum safe version for direct dependencies.
 #         Let pip resolve transitive dependencies (don't pin them here).
 #         Run `pip freeze > requirements.lock` for reproducible production deploys.
@@ -8,9 +8,8 @@
 # ---------------------------------------------------------------------------
 # Django Framework
 # ---------------------------------------------------------------------------
-# SECURITY: 5.2.11 fixes CVE-2026-1207, CVE-2026-1285, CVE-2026-1287,
-#           CVE-2026-1312 (SQL injection), CVE-2025-13473, CVE-2025-14550
-django>=5.2.11,<6.0
+# SECURITY: 5.2.12 fixes CVE-2026-25674 (race condition), CVE-2026-25673 (URLField DoS)
+django>=5.2.12,<6.0
 djangorestframework>=3.15.2          # 3.15.2 patches CVE-2024-21520 (XSS)
 django-cors-headers>=4.4.0
 django-redis>=5.4.0
@@ -51,7 +50,7 @@ sentry-sdk[django]>=2.19.0          # Error tracking; config in settings/product
 # ---------------------------------------------------------------------------
 # HTTP & Networking
 # ---------------------------------------------------------------------------
-requests>=2.32.4                     # SECURITY: 2.32.4 patches CVE-2024-47081
+requests>=2.33.0                     # SECURITY: 2.33.0 patches CVE-2026-25645 (temp file race)
 httpx>=0.28.1
 httpcore>=1.0.9
 # SECURITY: 2.6.0 patches CVE-2025-50182, CVE-2025-50181, CVE-2025-66418, CVE-2025-66471
@@ -67,9 +66,9 @@ pydantic>=2.8.2
 # ---------------------------------------------------------------------------
 python-dotenv>=1.0.0
 python-json-logger>=2.0.7
-# SECURITY: 2.10.1 patches CVE-2025-45768 (algorithm confusion)
-PyJWT>=2.10.1
-pillow>=11.3.0                       # SECURITY: 11.3.0 patches CVE-2025-48379 (heap buffer overflow)
+# SECURITY: 2.12.0 patches CVE-2026-32597 (crit header bypass)
+PyJWT>=2.12.0
+pillow>=12.1.1                       # SECURITY: 12.1.1 patches CVE-2026-25990 (PSD OOB write)
 whitenoise>=6.6.0                    # Serve static files in production
 
 # ---------------------------------------------------------------------------
@@ -103,6 +102,16 @@ h11>=0.16.0
 wheel>=0.46.2
 # SECURITY: 6.1.0 patches CVE-2026-23949 (path traversal via malicious tar)
 jaraco.context>=6.1.0
+
+# ---------------------------------------------------------------------------
+# Transitive deps with security floors
+# ---------------------------------------------------------------------------
+# SECURITY: 46.0.5 patches CVE-2026-26007 (SECT curve subgroup validation)
+cryptography>=46.0.5
+# SECURITY: 0.6.3 patches CVE-2026-30922 (recursion DoS in ASN.1 decoder)
+pyasn1>=0.6.3
+# SECURITY: 6.5.5 patches CVE-2026-31958 (multipart DoS), GHSA-78cv (cookie injection)
+tornado>=6.5.5
 
 # ---------------------------------------------------------------------------
 # Testing
