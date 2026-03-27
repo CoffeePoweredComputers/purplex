@@ -193,3 +193,12 @@ purplex/client/package-lock.json
 
 # i18n coverage report (generated)
 i18n-coverage.json
+
+# Development artifacts (screenshots, research, e2e)
+/*.png
+e2e/
+papers/
+playwright.config.ts
+docs/lessons/*.pdf
+docs/lessons/*.mjs
+docs/research/
