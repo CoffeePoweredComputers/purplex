@@ -5,7 +5,7 @@
 repos:
   # Ruff - replaces black, isort, flake8, pyupgrade
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6
+    rev: v0.15.0
     hooks:
       - id: ruff
         args: ["--fix"]

@@ -162,9 +162,9 @@ class DataDeletionService:
                 ).delete()[0]
 
                 stats["segmentation_analyses_deleted"] = (
-                    SegmentationAnalysis.objects.filter(
-                        submission__user=user
-                    ).delete()[0]
+                    SegmentationAnalysis.objects.filter(submission__user=user).delete()[
+                        0
+                    ]
                 )
 
                 stats["submission_feedback_deleted"] = (
