@@ -469,7 +469,7 @@ export default defineComponent({
 
 /* Code Display */
 .code-display {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-sm);
   line-height: 1.4;
   background: var(--color-bg-dark);
@@ -556,7 +556,7 @@ export default defineComponent({
 
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .mapping-grid-simplified {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
@@ -573,7 +573,7 @@ export default defineComponent({
   }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .response-panel,
   .code-panel {
     padding: var(--spacing-md);
@@ -608,6 +608,7 @@ export default defineComponent({
 .line-content .ace_constant.ace_language { color: var(--color-syntax-number); }
 .line-content .ace_support.ace_function { color: var(--color-syntax-builtin); }
 .line-content .ace_variable.ace_language { color: var(--color-syntax-variable); }
+
 .line-content .ace_punctuation,
 .line-content .ace_paren.ace_lparen,
 .line-content .ace_paren.ace_rparen { color: var(--color-syntax-punctuation); }

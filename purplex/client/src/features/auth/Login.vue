@@ -393,7 +393,6 @@ export default {
   font-size: var(--font-size-title);
   margin: 0;
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 50%, var(--color-admin-hover) 100%);
-  -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-weight: 800;
@@ -674,7 +673,7 @@ input::placeholder {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .login-title {
     font-size: calc(var(--font-size-title) * 0.75);
   }
@@ -697,7 +696,7 @@ input::placeholder {
   }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .login-title {
     font-size: calc(var(--font-size-title) * 0.6);
   }

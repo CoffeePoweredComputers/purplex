@@ -925,7 +925,7 @@ watch(
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .available-grid {
     grid-template-columns: 1fr;
   }

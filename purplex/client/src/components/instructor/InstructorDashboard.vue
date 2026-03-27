@@ -633,7 +633,7 @@ onMounted(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: currentColor;
+  background: currentcolor;
 }
 
 .student-count {
@@ -744,6 +744,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -923,7 +924,7 @@ onMounted(() => {
 }
 
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .content-container {
     padding: 0 var(--spacing-md);
   }

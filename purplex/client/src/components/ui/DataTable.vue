@@ -390,7 +390,7 @@ function getRowKey(item: T, index: number): string | number {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .data-table th,
   .data-table td {
     padding: var(--spacing-sm) var(--spacing-md);

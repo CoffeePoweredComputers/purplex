@@ -1,5 +1,5 @@
 /* Import CSS variables from App.vue */
-@import './styles/segmentation.css';
+@import url('./styles/segmentation.css');
 
 * {
   box-sizing: border-box;
@@ -13,7 +13,7 @@ body {
   color: var(--color-text-default);
   background-color: var(--color-bg-main);
   font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  text-rendering: optimizelegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
@@ -115,7 +115,7 @@ input:-webkit-autofill,
 textarea:-webkit-autofill,
 select:-webkit-autofill {
   -webkit-text-fill-color: var(--color-text-primary) !important;
-  -webkit-box-shadow: 0 0 0 1000px var(--color-bg-input) inset !important;
+  box-shadow: 0 0 0 1000px var(--color-bg-input) inset !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -196,4 +196,5 @@ textarea::selection {
 }
 
 /* Remove light mode for consistency */
+
 /* All components now use dark theme CSS variables */

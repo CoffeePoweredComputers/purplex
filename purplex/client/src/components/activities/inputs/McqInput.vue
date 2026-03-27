@@ -380,6 +380,7 @@ function getButtonAriaLabel(): string {
     transform: scale(0);
     opacity: 0.5;
   }
+
   40% {
     transform: scale(1);
     opacity: 1;

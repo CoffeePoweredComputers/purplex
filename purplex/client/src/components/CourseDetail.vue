@@ -512,7 +512,7 @@ onMounted(async () => {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .course-detail {
     padding: var(--spacing-lg);
   }

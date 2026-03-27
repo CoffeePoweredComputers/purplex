@@ -320,7 +320,7 @@ onMounted(fetchTable);
   transform: translateY(-1px);
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .actions-cell {
     flex-direction: column;
   }

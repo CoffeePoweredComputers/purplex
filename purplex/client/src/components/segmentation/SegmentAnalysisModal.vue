@@ -443,7 +443,7 @@ onMounted(() => {
 .size-btn.active {
   background: var(--color-bg-panel);
   color: var(--color-text-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 15%);
 }
 
 .close-button {
@@ -549,7 +549,7 @@ onMounted(() => {
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .modal-overlay {
     padding: var(--spacing-md);
   }
@@ -566,7 +566,7 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .modal-overlay {
     padding: 0;
   }

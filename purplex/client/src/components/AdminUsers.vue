@@ -357,7 +357,7 @@ onMounted(() => {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .filters-section {
     flex-direction: column;
   }

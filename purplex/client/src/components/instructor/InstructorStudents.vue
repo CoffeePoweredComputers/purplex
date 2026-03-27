@@ -592,7 +592,7 @@ onMounted(() => {
 }
 
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .content-container {
     padding: 0 var(--spacing-md) var(--spacing-xl);
   }

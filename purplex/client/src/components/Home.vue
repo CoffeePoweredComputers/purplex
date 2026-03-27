@@ -452,7 +452,6 @@ main {
   transform: translateY(100%);
   transition: transform 0.3s ease;
   will-change: transform;
-  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
@@ -489,6 +488,7 @@ main {
   0%, 100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -587,7 +587,7 @@ main {
 
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .home-container {
     padding: var(--spacing-lg);
   }

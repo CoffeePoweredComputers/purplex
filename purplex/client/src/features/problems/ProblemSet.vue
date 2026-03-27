@@ -2151,9 +2151,11 @@ export default {
     0% {
         transform: translateX(-100%) scaleX(0.3);
     }
+
     50% {
         transform: translateX(0%) scaleX(1);
     }
+
     100% {
         transform: translateX(100%) scaleX(0.3);
     }
@@ -2165,7 +2167,7 @@ export default {
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1.25rem;
-    margin: 0 1rem 1rem 1rem;
+    margin: 0 1rem 1rem;
     border-radius: 8px;
     font-size: 0.9rem;
     background: var(--color-bg-section);
@@ -2349,6 +2351,7 @@ export default {
     cursor: pointer;
     transition: background 0.2s ease, box-shadow 0.2s ease;
     position: relative;
+
     /* Button resets */
     border: none;
     padding: 0;
@@ -2412,6 +2415,7 @@ export default {
     0% {
         left: -100%;
     }
+
     100% {
         left: 200%;
     }
@@ -2422,6 +2426,7 @@ export default {
         transform: translate(-50%, -50%) scale(0);
         opacity: 0;
     }
+
     50% {
         transform: translate(-50%, -50%) scale(1);
         opacity: 1;
@@ -2494,7 +2499,7 @@ export default {
     padding: var(--spacing-md) var(--spacing-lg);
     background: var(--color-bg-section);
     border-bottom: 1px solid var(--color-bg-input);
-    margin-bottom: 0px !important;
+    margin-bottom: 0 !important;
 }
 
 .section-label {
@@ -2602,7 +2607,7 @@ export default {
     background: var(--color-bg-hover);
     padding: 2px 6px;
     border-radius: var(--radius-xs);
-    font-family: 'Fira Code', 'Monaco', monospace;
+    font-family: 'Fira Code', Monaco, monospace;
     font-size: 0.9em;
     color: var(--color-text-code);
 }
@@ -2790,7 +2795,7 @@ export default {
 /* Input-specific styles moved to EiplInput.vue */
 
 /* Responsive Design */
-@media (max-width: 1200px) {
+@media (width <= 1200px) {
     .workspace {
         flex-direction: column;
         padding: var(--spacing-lg);
@@ -2822,7 +2827,7 @@ export default {
     }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .problem-set-container {
         min-height: auto;
     }
@@ -3013,7 +3018,7 @@ export default {
     font-weight: 500;
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .toolbar-btn .btn-text {
         display: none;
     }

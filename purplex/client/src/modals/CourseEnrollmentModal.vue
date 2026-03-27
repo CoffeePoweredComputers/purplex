@@ -147,10 +147,7 @@ async function enrollInCourse(): Promise<void> {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: var(--color-backdrop-heavy);
   backdrop-filter: blur(4px);
   display: flex;
@@ -177,6 +174,7 @@ async function enrollInCourse(): Promise<void> {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -377,7 +375,7 @@ async function enrollInCourse(): Promise<void> {
   text-align: center;
 }
 
-@media (max-width: 640px) {
+@media (width <= 640px) {
   .modal-content {
     width: 95%;
     max-height: 90vh;

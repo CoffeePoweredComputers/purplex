@@ -866,10 +866,7 @@ watch(() => props.submission, () => {
 /* Base Modal Styles */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: var(--color-backdrop);
   display: flex;
   align-items: center;
@@ -1138,6 +1135,7 @@ watch(() => props.submission, () => {
 
 .code-tests-columns {
   display: grid;
+
   /* Default fallback; overridden by inline style from useResizableColumns */
   grid-template-columns: 1fr 6px 1fr;
   gap: 7px;
@@ -1346,7 +1344,7 @@ details[open] .group-icon {
 }
 
 .test-call {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-sm);
   background: var(--color-bg-input);
   padding: var(--spacing-xs) var(--spacing-sm);
@@ -1449,6 +1447,7 @@ details[open] .group-icon {
   0%, 100% {
     box-shadow: 0 2px 8px var(--color-segment-shadow);
   }
+
   50% {
     box-shadow: var(--shadow-segment-hover);
   }
@@ -1556,7 +1555,7 @@ details[open] .group-icon {
 }
 
 /* Mobile Responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .modal-content {
     width: 100vw;
     max-width: 100vw;
@@ -1611,7 +1610,7 @@ details[open] .group-icon {
     border-radius: 0;
     border: none;
     border-top: 1px solid var(--color-bg-input);
-    padding: 16px 0 0 0;
+    padding: 16px 0 0;
   }
 
   .prompt-section {

@@ -356,7 +356,7 @@ watch(
   background: var(--color-error-bg);
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .progress-info {
     flex-direction: column;
     align-items: flex-start;

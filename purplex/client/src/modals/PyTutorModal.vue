@@ -537,7 +537,7 @@ onBeforeUnmount(() => {
 .size-btn.active {
   background: var(--color-bg-panel);
   color: var(--color-text-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 15%);
 }
 
 .action-button {
@@ -686,10 +686,7 @@ onBeforeUnmount(() => {
 /* Iframe Wrapper */
 .iframe-wrapper {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   display: flex;
   flex-direction: column;
   background: white;
@@ -809,7 +806,7 @@ onBeforeUnmount(() => {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .modal-overlay {
     padding: 0;
   }

@@ -118,7 +118,7 @@ function openInPyTutor(): void {
   box-shadow: none;
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .suggested-trace {
     margin: var(--spacing-md);
   }

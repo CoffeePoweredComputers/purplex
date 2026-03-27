@@ -396,7 +396,7 @@ function removeTestCase(index: number) {
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   transition: var(--transition-fast);
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', 'Courier New', monospace;
 }
 
 .param-input:focus {
@@ -431,7 +431,7 @@ function removeTestCase(index: number) {
 
 .param-expected-type {
   color: var(--color-text-muted);
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', 'Courier New', monospace;
 }
 
 /* Type Badges */
@@ -445,7 +445,7 @@ function removeTestCase(index: number) {
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', 'Courier New', monospace;
   z-index: 10;
   pointer-events: none;
   transform: scale(0.9);
@@ -602,7 +602,7 @@ function removeTestCase(index: number) {
   margin: 0 var(--spacing-md) var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-xs);
   font-size: var(--font-size-sm);
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  font-family: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', 'Courier New', monospace;
 }
 
 .error-msg {
@@ -620,10 +620,7 @@ function removeTestCase(index: number) {
 /* Loading Overlay */
 .test-loading-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: var(--color-backdrop);
   display: flex;
   align-items: center;

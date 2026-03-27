@@ -405,9 +405,11 @@ watch(() => props.probeHistory.length, () => {
   0% {
     transform: scale(1);
   }
+
   30% {
     transform: scale(1.15);
   }
+
   100% {
     transform: scale(1);
   }

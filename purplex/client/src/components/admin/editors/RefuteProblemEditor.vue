@@ -302,7 +302,7 @@ onMounted(() => {
 }
 
 .code-textarea {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-sm);
 }
 
@@ -412,7 +412,7 @@ onMounted(() => {
   background: var(--color-bg-panel);
   padding: 2px 6px;
   border-radius: var(--radius-xs);
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   color: var(--color-primary-gradient-start);
 }
 

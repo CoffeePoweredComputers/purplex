@@ -179,7 +179,7 @@ defineExpose({ ctx });
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .content-container {
     padding: var(--spacing-md);
   }

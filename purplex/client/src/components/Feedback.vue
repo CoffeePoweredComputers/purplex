@@ -884,6 +884,7 @@ export default defineComponent({
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.8;
     transform: scale(1.05);
@@ -960,6 +961,7 @@ export default defineComponent({
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -1542,7 +1544,7 @@ export default defineComponent({
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .feedback-header {
     flex-direction: column;
     align-items: flex-start;

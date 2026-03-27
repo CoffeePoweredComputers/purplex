@@ -892,7 +892,7 @@ onMounted(async () => {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .header {
     flex-direction: column;
     align-items: flex-start;

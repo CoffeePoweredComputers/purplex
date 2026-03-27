@@ -511,6 +511,7 @@ onBeforeUnmount(() => {
   box-shadow: var(--shadow-md);
   overflow: hidden;
   position: relative;
+
   /* Removed min-height: 600px to prevent black space overflow */
 }
 
@@ -552,6 +553,7 @@ onBeforeUnmount(() => {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.8;
     transform: scale(1.05);
@@ -647,6 +649,7 @@ onBeforeUnmount(() => {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -1046,7 +1049,7 @@ details:not([open]) .group-icon {
 }
 
 .test-call {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-sm);
   background: var(--color-bg-input);
   padding: var(--spacing-xs) var(--spacing-sm);
@@ -1146,7 +1149,7 @@ details:not([open]) .group-icon {
 }
 
 /* Responsive Design - Aligned with Feedback.vue */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .test-summary-bar {
     padding: var(--spacing-sm) var(--spacing-md);
   }

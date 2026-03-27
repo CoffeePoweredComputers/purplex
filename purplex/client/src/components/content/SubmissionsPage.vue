@@ -866,7 +866,7 @@ onMounted(fetchSubmissions);
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .filters-section {
     flex-direction: column;
     align-items: stretch;

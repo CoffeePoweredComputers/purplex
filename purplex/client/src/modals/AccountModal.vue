@@ -175,6 +175,7 @@ function getMemberSince(): string {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -196,6 +197,7 @@ function getMemberSince(): string {
         transform: translateY(20px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -396,7 +398,7 @@ function getMemberSince(): string {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .modal-content {
         max-width: 95%;
     }

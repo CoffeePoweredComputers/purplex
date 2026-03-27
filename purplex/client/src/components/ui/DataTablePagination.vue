@@ -196,7 +196,7 @@ function handlePageSizeChange(event: Event) {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .pagination {
     flex-direction: column;
     gap: var(--spacing-md);

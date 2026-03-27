@@ -148,7 +148,7 @@ function acceptAll() {
     box-shadow: var(--shadow-colored);
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .cookie-consent__content {
         flex-direction: column;
         gap: var(--spacing-md);

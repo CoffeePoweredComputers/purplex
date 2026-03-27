@@ -467,7 +467,7 @@ onMounted(fetchSubmission);
 .test-item.failing .test-status { color: var(--color-error); }
 
 .test-call {
-  font-family: 'Monaco', 'Menlo', monospace;
+  font-family: Monaco, Menlo, monospace;
   font-size: 13px;
   color: var(--color-text-primary);
 }
