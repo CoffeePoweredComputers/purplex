@@ -20,7 +20,7 @@
           :placeholder="$t('admin.editors.debugFix.functionSignaturePlaceholder')"
           @input="updateField('function_signature', ($event.target as HTMLInputElement).value)"
         >
-        <!-- eslint-disable vue/no-v-html -->
+        <!-- eslint-disable vue/no-v-html -- trusted i18n translation with inline code examples -->
         <p
           class="field-hint"
           v-html="$t('admin.editors.debugFix.functionSignatureHint', { example: '<code>def f(x: int, y: str) -&gt; bool:</code>' })"
@@ -290,7 +290,7 @@
               {{ $t('admin.editors.debugFix.addHint') }}
             </button>
           </div>
-          <!-- eslint-disable vue/no-v-html -->
+          <!-- eslint-disable vue/no-v-html -- trusted i18n translation with inline code examples -->
           <p
             class="level-guide"
             v-html="$t('admin.editors.debugFix.levelGuide')"

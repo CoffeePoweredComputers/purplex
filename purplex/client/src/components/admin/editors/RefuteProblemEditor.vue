@@ -48,7 +48,7 @@
         >
           {{ editor.refuteConfig.predicateError.value }}
         </div>
-        <!-- eslint-disable vue/no-v-html -->
+        <!-- eslint-disable vue/no-v-html -- trusted i18n translation with inline code examples -->
         <p
           v-else
           class="field-hint"
@@ -115,7 +115,7 @@
           :placeholder="$t('admin.editors.refute.functionSignaturePlaceholder')"
           @input="updateField('function_signature', ($event.target as HTMLInputElement).value)"
         >
-        <!-- eslint-disable vue/no-v-html -->
+        <!-- eslint-disable vue/no-v-html -- trusted i18n translation with inline code examples -->
         <p
           class="field-hint"
           v-html="$t('admin.editors.refute.functionSignatureHint', { example: '<code>f(x: int, y: str) -&gt; bool</code>' })"

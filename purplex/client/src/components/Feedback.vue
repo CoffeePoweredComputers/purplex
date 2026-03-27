@@ -456,7 +456,7 @@ export default defineComponent({
       default: '',
     },
     segmentation: {
-      type: Object as PropType<SegmentationProp>,
+      type: Object as PropType<SegmentationProp | null>,
       default: null,
     },
     referenceCode: {

@@ -177,7 +177,7 @@
             </div>
           </div>
           <div class="problem-description-content">
-            <!-- eslint-disable vue/no-v-html -->
+            <!-- eslint-disable vue/no-v-html -- admin-authored markdown rendered via marked() -->
             <div
               v-if="getCurrentProblem()?.description"
               class="problem-description-markdown"
