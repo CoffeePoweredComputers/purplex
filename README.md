@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/assets/purplex-logo.png" alt="Purplex" width="150">
+  <img src="docs/assets/purplex-logo.png" alt="Purplex" width="250">
   <h1>Purplex</h1>
   <p><strong>An educational coding challenge platform with AI-powered problem generation, sandboxed Docker code execution, and a novel EiPL (Explain in Plain Language) submission system for assessing conceptual understanding.</strong></p>
 
