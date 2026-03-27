@@ -5,6 +5,18 @@ import type { BaseSubmission, CodeVariation, SubmissionDetailed, SubmissionHisto
 // Re-export submission types for convenience
 export type { BaseSubmission, SubmissionDetailed, CodeVariation, SubmissionTestResult };
 
+export class ServiceError extends Error {
+  error: string;
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ServiceError';
+    this.error = message;
+    this.status = status;
+  }
+}
+
 // ===== SUBMISSION TYPES =====
 
 /**
@@ -109,10 +121,10 @@ class SubmissionService {
     } catch (error: unknown) {
       log.error('Failed to submit activity solution', error);
       const axiosError = error as { response?: { data?: { error?: string }; status?: number } };
-      const err = new Error(axiosError.response?.data?.error || 'Failed to submit activity solution');
-      (err as Error & { error: string; status: number }).error = axiosError.response?.data?.error || 'Failed to submit activity solution';
-      (err as Error & { error: string; status: number }).status = axiosError.response?.status || 500;
-      throw err;
+      throw new ServiceError(
+        axiosError.response?.data?.error || 'Failed to submit activity solution',
+        axiosError.response?.status || 500
+      );
     }
   }
 

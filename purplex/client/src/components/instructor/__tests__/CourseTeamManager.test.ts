@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { AxiosError } from 'axios'
 import CourseTeamManager from '../CourseTeamManager.vue'
 import type { CourseInstructorMember } from '@/types'
 
@@ -159,9 +160,15 @@ describe('CourseTeamManager', () => {
   })
 
   it('displays last-primary error gracefully', async () => {
-    mockRemoveCourseTeamMember.mockRejectedValue({
-      response: { data: { error: 'Cannot remove the last primary instructor from a course' } },
-    })
+    mockRemoveCourseTeamMember.mockRejectedValue(
+      new AxiosError(
+        'Request failed',
+        'ERR_BAD_REQUEST',
+        undefined,
+        undefined,
+        { status: 400, data: { error: 'Cannot remove the last primary instructor from a course' } } as never
+      )
+    )
     vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     const wrapper = mountComponent('primary')
