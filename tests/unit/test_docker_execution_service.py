@@ -1047,14 +1047,20 @@ class TestHealthMonitor:
         assert health_service._health_monitor_thread is None
 
     def test_stop_health_monitor_timeout_warning(self, health_service):
-        """Thread that doesn't stop should log warning."""
+        """Thread that doesn't stop should log warning and still clear the reference."""
         mock_thread = MagicMock()
         mock_thread.is_alive.return_value = True
         health_service._health_monitor_thread = mock_thread
 
-        health_service._stop_health_monitor_thread()
+        with patch(
+            "purplex.problems_app.services.docker_execution_service.logger"
+        ) as mock_logger:
+            health_service._stop_health_monitor_thread()
 
         assert health_service._health_monitor_thread is None
+        mock_logger.warning.assert_any_call(
+            "Health monitor thread did not stop gracefully"
+        )
 
     def test_stop_health_monitor_noop_when_none(self, health_service):
         """Stop when no thread exists should be a no-op."""
