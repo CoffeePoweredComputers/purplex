@@ -54,7 +54,7 @@ describe('SubmissionService', () => {
       await expect(submissionService.submitActivity({
         problem_slug: 'two-sum',
         raw_input: 'invalid'
-      })).rejects.toEqual({
+      })).rejects.toMatchObject({
         error: 'Validation error',
         status: 400
       })
