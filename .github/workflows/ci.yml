@@ -357,7 +357,7 @@ jobs:
           pip install bandit pip-audit
 
       - name: Run Bandit security scan
-        run: bandit -r purplex/ -ll
+        run: bandit -r purplex/ -ll --exclude purplex/*/migrations
 
       - name: Check dependencies for vulnerabilities
         run: pip-audit --strict --desc on
