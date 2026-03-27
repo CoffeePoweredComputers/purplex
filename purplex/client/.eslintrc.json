@@ -98,6 +98,14 @@
           "skipComments": true
         }]
       }
+    },
+    {
+      "files": ["scripts/**/*.mjs", "scripts/**/*.js"],
+      "rules": {
+        "no-console": "off",
+        "curly": "off",
+        "sort-imports": "off"
+      }
     }
   ]
 }

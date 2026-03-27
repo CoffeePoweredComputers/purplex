@@ -1,0 +1,13 @@
+# Semgrep ignore patterns
+# https://semgrep.dev/docs/ignoring-files-folders-code
+
+# Test files — intentional use of exec/eval for testing generated code
+tests/
+
+# Migrations — auto-generated SQL
+*/migrations/
+
+# Virtual environments
+env/
+.venv/
+node_modules/

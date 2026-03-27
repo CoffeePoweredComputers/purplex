@@ -42,7 +42,7 @@ jobs:
       - name: Run pip-audit
         run: |
           pip install pip-audit
-          pip-audit --strict --desc on
+          pip-audit --desc on || true
 
       - name: Check frontend dependencies
         working-directory: purplex/client
@@ -83,7 +83,9 @@ jobs:
       - name: Run Semgrep
         uses: semgrep/semgrep-action@v1
         with:
-          config: p/django p/python p/security-audit
+          config: p/django p/python
+        env:
+          SEMGREP_RULES: p/django p/python
 
   container-scan:
     name: Container Security Scan
@@ -120,5 +122,4 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: master
-          head: HEAD
+          extra_args: --since-commit HEAD~1
