@@ -750,12 +750,13 @@ class TestServiceLifecycle:
 class TestImageManagement:
     """Tests for _ensure_image_exists() and _build_sandbox_image()."""
 
-    def test_image_exists(self, mock_docker_client, mock_settings):
-        """When image exists, should log and return."""
+    def test_image_exists_does_not_build(self, mock_docker_client, mock_settings):
+        """When image exists, should NOT trigger a build."""
         mock_docker_client.images.get.return_value = MagicMock()
 
         with (
             patch("docker.from_env", return_value=mock_docker_client),
+            patch.object(DockerExecutionService, "_build_sandbox_image") as mock_build,
             patch.object(DockerExecutionService, "_init_pool"),
             patch.object(DockerExecutionService, "_start_health_monitor"),
             patch(
@@ -767,6 +768,7 @@ class TestImageManagement:
             service._closed = True
 
         mock_docker_client.images.get.assert_called_once()
+        mock_build.assert_not_called()
 
     def test_image_not_found_triggers_build(self, mock_docker_client, mock_settings):
         """When image not found, should trigger build."""
@@ -790,7 +792,7 @@ class TestImageManagement:
         mock_build.assert_called_once()
 
     def test_build_sandbox_image_success(self, docker_service, mock_docker_client):
-        """Successful build should log streams."""
+        """Successful build should call images.build with correct image tag."""
         mock_image = MagicMock()
         mock_logs = [{"stream": "Step 1/5"}, {"stream": "Step 2/5"}]
         mock_docker_client.images.build.return_value = (mock_image, mock_logs)
@@ -801,7 +803,9 @@ class TestImageManagement:
             settings_mock.BASE_DIR = "/fake"
             docker_service._build_sandbox_image()
 
-        mock_docker_client.images.build.assert_called_once()
+        call_kwargs = mock_docker_client.images.build.call_args
+        assert call_kwargs[1]["tag"] == docker_service.docker_image
+        assert call_kwargs[1]["rm"] is True
 
     def test_build_sandbox_image_failure_raises(
         self, docker_service, mock_docker_client
@@ -853,13 +857,35 @@ class TestPoolInitialization:
             assert service._pool_initialized is True
             service._closed = True
 
-    def test_init_pool_idempotent(self, docker_service):
+    def test_init_pool_idempotent(self, mock_docker_client, mock_settings):
         """Second init call should be a no-op."""
-        docker_service._pool_initialized = True
+        mock_settings["POOL_ENABLED"] = True
+        mock_settings["POOL_SIZE"] = 3
 
-        with patch.object(docker_service, "_create_pool_container") as mock_create:
-            docker_service._init_pool()
-            mock_create.assert_not_called()
+        with (
+            patch("docker.from_env", return_value=mock_docker_client),
+            patch.object(DockerExecutionService, "_ensure_image_exists"),
+            patch.object(DockerExecutionService, "_start_health_monitor"),
+            patch.object(
+                DockerExecutionService,
+                "_create_pool_container",
+                return_value=MockContainer(),
+            ) as mock_create,
+            patch(
+                "purplex.problems_app.services.docker_execution_service.settings"
+            ) as settings_mock,
+        ):
+            settings_mock.CODE_EXECUTION = mock_settings
+            service = DockerExecutionService()
+
+            # First init happened during __init__, pool_initialized is True
+            assert service._pool_initialized is True
+            initial_call_count = mock_create.call_count
+
+            # Second call should be a no-op
+            service._init_pool()
+            assert mock_create.call_count == initial_call_count
+            service._closed = True
 
     def test_init_pool_partial_failure(self, mock_docker_client, mock_settings):
         """Partial failure during init should still initialize available containers."""
@@ -1001,9 +1027,12 @@ class TestHealthMonitor:
             service._closed = True
 
     def test_start_health_monitor_already_running(self, health_service):
-        """Starting monitor when already running should be a no-op."""
-        health_service._health_monitor_thread = MagicMock()
+        """Starting monitor when already running should not replace the thread."""
+        existing_thread = MagicMock()
+        health_service._health_monitor_thread = existing_thread
         health_service._start_health_monitor()
+
+        assert health_service._health_monitor_thread is existing_thread
 
     def test_stop_health_monitor_signals_and_joins(self, health_service):
         """Stopping monitor should signal and join."""
@@ -1115,32 +1144,26 @@ class TestHealthMonitor:
         assert len(health_service.container_pool) == 0
 
     def test_health_check_docker_recovers(self, health_service, mock_docker_client):
-        """Docker recovery should re-enable pool."""
-        # _perform_health_check returns early if _docker_available is False (line 301).
-        # The recovery path is: _docker_available was set to False by a previous call
-        # to _handle_docker_unavailable, but is temporarily set True to test ping.
-        # Actually, line 301 checks "not self._docker_available" → returns early.
-        # So recovery only happens inside the method when ping succeeds after
-        # _docker_available was already True but Docker failed previously.
-        # The real recovery path: _docker_available=True, ping succeeds after
-        # it was False → line 319-321 sets it back to True.
-        # To test: set _docker_available=True first so we don't hit the early return,
-        # but simulate the internal state where it was previously False.
-        health_service._docker_available = True  # Don't hit early return
-        mock_docker_client.ping = MagicMock(return_value=True)
+        """Docker recovery should re-enable pool after prior unavailability."""
 
-        # Temporarily make _docker_available False so the recovery branch triggers
-        original_ping = mock_docker_client.ping
-
-        def ping_and_recover():
+        # Recovery branch (lines 319-321) requires:
+        # 1. pool_enabled=True, _docker_available=True (bypass early return at line 301)
+        # 2. ping succeeds
+        # 3. _docker_available is False when checked at line 319
+        #
+        # We use a ping side-effect to set _docker_available=False just before
+        # the recovery check, simulating a prior _handle_docker_unavailable call.
+        def ping_simulating_recovery():
             health_service._docker_available = False
-            return original_ping()
+            return True
 
-        # Instead, just verify the normal path works when pool is enabled
+        mock_docker_client.ping = ping_simulating_recovery
+
         with patch.object(health_service, "_create_pool_container", return_value=None):
             health_service._perform_health_check()
 
-        assert health_service.pool_metrics["health_checks_performed"] == 1
+        # Recovery branch should have set it back to True
+        assert health_service._docker_available is True
 
     def test_health_check_exception_on_container_continues(
         self, health_service, mock_docker_client
@@ -1198,7 +1221,7 @@ class TestHealthMonitor:
         assert health_service.pool_metrics["docker_errors"] == initial_errors
 
     def test_health_monitor_loop_stops_on_signal(self, health_service):
-        """Loop should exit when stop signal is set."""
+        """Loop should exit when stop signal is set and call _perform_health_check."""
         health_service._stop_health_monitor = threading.Event()
         health_service.health_check_interval = 0.01
 
@@ -1209,9 +1232,14 @@ class TestHealthMonitor:
         t = threading.Thread(target=set_stop)
         t.start()
 
-        health_service._health_monitor_loop()
+        with patch.object(health_service, "_perform_health_check") as mock_check:
+            health_service._health_monitor_loop()
 
         t.join(timeout=1)
+
+        # Loop should have called health check at least once before stopping
+        assert mock_check.call_count >= 1
+        assert health_service._stop_health_monitor.is_set()
 
     def test_health_check_pool_disabled_noop(self, health_service):
         """Health check with pool disabled should be a no-op."""
@@ -1294,13 +1322,7 @@ class TestPooledExecution:
                 pooled_service, "_get_container_from_pool", return_value=container
             ),
             patch.object(pooled_service, "_return_container_to_pool") as mock_return,
-            patch(
-                "purplex.problems_app.services.docker_execution_service.GeventTimeout"
-            ) as mock_timeout,
         ):
-            mock_timeout.return_value.__enter__ = MagicMock()
-            mock_timeout.return_value.__exit__ = MagicMock(return_value=False)
-
             result = pooled_service._execute_in_pooled_container("code")
 
         assert result["success"] is True
@@ -1319,13 +1341,7 @@ class TestPooledExecution:
                 pooled_service, "_get_container_from_pool", return_value=container
             ),
             patch.object(pooled_service, "_return_container_to_pool"),
-            patch(
-                "purplex.problems_app.services.docker_execution_service.GeventTimeout"
-            ) as mock_timeout,
         ):
-            mock_timeout.return_value.__enter__ = MagicMock()
-            mock_timeout.return_value.__exit__ = MagicMock(return_value=False)
-
             result = pooled_service._execute_in_pooled_container("print(x)")
 
         assert result["success"] is False
@@ -1344,13 +1360,7 @@ class TestPooledExecution:
                 pooled_service, "_get_container_from_pool", return_value=container
             ),
             patch.object(pooled_service, "_return_container_to_pool"),
-            patch(
-                "purplex.problems_app.services.docker_execution_service.GeventTimeout"
-            ) as mock_timeout,
         ):
-            mock_timeout.return_value.__enter__ = MagicMock()
-            mock_timeout.return_value.__exit__ = MagicMock(return_value=False)
-
             result = pooled_service._execute_in_pooled_container("code")
 
         assert "truncated" in result["output"]
@@ -1365,13 +1375,7 @@ class TestPooledExecution:
                 pooled_service, "_get_container_from_pool", return_value=container
             ),
             patch.object(pooled_service, "_return_container_to_pool"),
-            patch(
-                "purplex.problems_app.services.docker_execution_service.GeventTimeout"
-            ) as mock_timeout,
         ):
-            mock_timeout.return_value.__enter__ = MagicMock()
-            mock_timeout.return_value.__exit__ = MagicMock(return_value=False)
-
             result = pooled_service._execute_in_pooled_container("code")
 
         assert result["success"] is True
@@ -1387,13 +1391,7 @@ class TestPooledExecution:
                 pooled_service, "_get_container_from_pool", return_value=container
             ),
             patch.object(pooled_service, "_execute_in_new_container") as mock_new,
-            patch(
-                "purplex.problems_app.services.docker_execution_service.GeventTimeout"
-            ) as mock_timeout,
         ):
-            mock_timeout.return_value.__enter__ = MagicMock()
-            mock_timeout.return_value.__exit__ = MagicMock(return_value=False)
-
             mock_new.return_value = {"success": True, "output": "ok", "error": None}
             pooled_service._execute_in_pooled_container("code")
 
@@ -1646,15 +1644,32 @@ class TestTestRunnerComparison:
 class TestUtilitiesAndEdgeCases:
     """Tests for _log_execution, log_metrics_if_needed, set_user_context, cleanup."""
 
-    def test_log_execution(self, docker_service):
-        docker_service._log_execution(
-            "user-1", "def foo(): pass", {"success": True, "error": None}
-        )
+    def test_log_execution_logs_code_hash(self, docker_service):
+        """_log_execution should log an entry with the user ID and code hash."""
+        with patch(
+            "purplex.problems_app.services.docker_execution_service.logger"
+        ) as mock_logger:
+            docker_service._log_execution(
+                "user-1", "def foo(): pass", {"success": True, "error": None}
+            )
 
-    def test_log_execution_suspicious_keywords(self, docker_service):
-        docker_service._log_execution(
-            "user-1", "system('ls')", {"success": True, "error": None}
-        )
+        mock_logger.info.assert_called_once()
+        log_msg = mock_logger.info.call_args[0][0]
+        assert "user-1" in log_msg
+        assert "code_hash" in log_msg
+
+    def test_log_execution_suspicious_keywords_warns(self, docker_service):
+        """Suspicious keywords should trigger a warning log."""
+        with patch(
+            "purplex.problems_app.services.docker_execution_service.logger"
+        ) as mock_logger:
+            docker_service._log_execution(
+                "user-1", "system('ls')", {"success": True, "error": None}
+            )
+
+        mock_logger.warning.assert_called_once()
+        warn_msg = mock_logger.warning.call_args[0][0]
+        assert "Suspicious" in warn_msg
 
     def test_log_metrics_if_needed_before_interval(self, docker_service):
         docker_service.pool_metrics["last_metrics_log"] = time.time()
@@ -2007,24 +2022,6 @@ class TestDeepEdgeCases:
 
         health_svc._cleanup_pool()  # Should not raise
 
-    def test_docker_recovery_in_health_check(self, health_svc, mock_docker_client):
-        """Docker becoming available again should set _docker_available."""
-        # Set up: previously unavailable, now ping succeeds
-        health_svc._docker_available = True  # Must be True to not early-return
-        mock_docker_client.ping = MagicMock(return_value=True)
-
-        # Simulate recovery: set to False right before the check
-        def ping_that_recovers():
-            health_svc._docker_available = False  # Simulate prior unavailability
-            return True
-
-        mock_docker_client.ping = ping_that_recovers
-
-        with patch.object(health_svc, "_create_pool_container", return_value=None):
-            health_svc._perform_health_check()
-
-        assert health_svc._docker_available is True
-
     def test_execute_in_new_container_finally_remove_failure(
         self, docker_service, mock_docker_client
     ):
@@ -2086,12 +2083,7 @@ class TestDeepEdgeCases:
                     service, "_get_container_from_pool", return_value=container
                 ),
                 patch.object(service, "_execute_in_new_container") as mock_new,
-                patch(
-                    "purplex.problems_app.services.docker_execution_service.GeventTimeout"
-                ) as mock_timeout,
             ):
-                mock_timeout.return_value.__enter__ = MagicMock()
-                mock_timeout.return_value.__exit__ = MagicMock(return_value=False)
                 mock_new.return_value = {"success": True, "output": "", "error": None}
 
                 service._execute_in_pooled_container("code")
