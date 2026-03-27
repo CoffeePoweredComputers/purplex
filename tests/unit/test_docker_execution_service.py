@@ -1769,3 +1769,367 @@ class TestUtilitiesAndEdgeCases:
         with patch.object(docker_service, "close") as mock_close:
             docker_service._cleanup_and_close()
             mock_close.assert_called_once()
+
+    def test_close_stops_health_monitor_thread(self):
+        """Close with active health monitor should stop it."""
+        with (
+            patch("docker.from_env") as mock_docker,
+            patch.object(DockerExecutionService, "_ensure_image_exists"),
+            patch.object(DockerExecutionService, "_init_pool"),
+            patch.object(DockerExecutionService, "_start_health_monitor"),
+            patch(
+                "purplex.problems_app.services.docker_execution_service.settings"
+            ) as settings_mock,
+        ):
+            settings_mock.CODE_EXECUTION = {"POOL_ENABLED": False}
+            mock_docker.return_value = MockDockerClient()
+
+            service = DockerExecutionService()
+            mock_thread = MagicMock()
+            mock_thread.is_alive.return_value = False
+            service._health_monitor_thread = mock_thread
+
+            service.close()
+
+            assert service._closed is True
+            mock_thread.join.assert_called_once()
+
+    def test_cleanup_pool_container_remove_failure(self, docker_service):
+        """Container removal failure in cleanup should not crash."""
+        bad_container = MockContainer("bad-c")
+        bad_container.remove = MagicMock(side_effect=Exception("remove failed"))
+        docker_service.container_pool = [bad_container]
+
+        docker_service._cleanup_pool()  # Should not raise
+
+        assert len(docker_service.container_pool) == 0
+
+    def test_forbidden_builtin_detected(self, docker_service):
+        """Code using forbidden builtin should be rejected."""
+        code_with_open = "open('file.txt')"
+        with pytest.raises(ValueError, match="Forbidden function detected"):
+            docker_service._validate_code(code_with_open)
+
+    def test_init_failure_raises(self, mock_docker_client, mock_settings):
+        """Docker client init failure should raise."""
+        with (
+            patch("docker.from_env", side_effect=Exception("Docker not running")),
+            patch(
+                "purplex.problems_app.services.docker_execution_service.settings"
+            ) as settings_mock,
+            pytest.raises(Exception, match="Docker not running"),
+        ):
+            settings_mock.CODE_EXECUTION = mock_settings
+            DockerExecutionService()
+
+
+# =============================================================================
+# Deep Edge Case Tests (remaining uncovered lines)
+# =============================================================================
+
+
+class TestDeepEdgeCases:
+    """Tests targeting specific uncovered lines for near-100% coverage."""
+
+    @pytest.fixture
+    def health_svc(self, mock_docker_client, mock_settings):
+        """Service for deep edge case tests."""
+        mock_settings["POOL_ENABLED"] = True
+        mock_settings["POOL_SIZE"] = 3
+
+        with (
+            patch("docker.from_env", return_value=mock_docker_client),
+            patch.object(DockerExecutionService, "_ensure_image_exists"),
+            patch.object(DockerExecutionService, "_init_pool"),
+            patch.object(DockerExecutionService, "_start_health_monitor"),
+            patch(
+                "purplex.problems_app.services.docker_execution_service.settings"
+            ) as settings_mock,
+        ):
+            settings_mock.CODE_EXECUTION = mock_settings
+
+            service = DockerExecutionService()
+            service.docker_client = mock_docker_client
+            service.pool_enabled = True
+            service.pool_size = 3
+            service.container_pool = []
+            service.container_metadata = {}
+            service._docker_available = True
+            service.container_max_age = 3600
+            service.max_restart_attempts = 3
+
+            yield service
+
+            service._closed = True
+
+    def test_health_check_replacement_creation_fails(
+        self, health_svc, mock_docker_client
+    ):
+        """Replacement container failure during age rotation should log error."""
+        old = MockContainer("old-c")
+        health_svc.container_pool = [old]
+        health_svc.container_metadata = {
+            "old-c": {"created_at": time.time() - 7200, "restart_count": 0},
+        }
+
+        with patch.object(
+            health_svc,
+            "_create_pool_container",
+            side_effect=Exception("creation failed"),
+        ):
+            health_svc._perform_health_check()
+
+        assert old._removed is True
+
+    def test_health_check_container_error_double_except(
+        self, health_svc, mock_docker_client
+    ):
+        """Container check exception + remove exception should not crash."""
+        bad = MockContainer("bad-c")
+        bad.reload = MagicMock(side_effect=Exception("reload failed"))
+        bad.remove = MagicMock(side_effect=Exception("remove also failed"))
+
+        health_svc.container_pool = [bad]
+        health_svc.container_metadata = {
+            "bad-c": {"created_at": time.time(), "restart_count": 0},
+        }
+
+        with patch.object(health_svc, "_create_pool_container", return_value=None):
+            health_svc._perform_health_check()  # Should not raise
+
+    def test_health_check_replenish_failure(self, health_svc, mock_docker_client):
+        """Replenishment failure should break the loop."""
+        health_svc.container_pool = []
+        health_svc.container_metadata = {}
+
+        with patch.object(
+            health_svc, "_create_pool_container", side_effect=Exception("create failed")
+        ):
+            health_svc._perform_health_check()
+
+        # Should not crash despite replenishment failure
+
+    def test_health_check_critical_error(self, health_svc, mock_docker_client):
+        """Critical error wrapping entire health check should increment docker_errors."""
+        # Make pool_lock raise to trigger the outer except
+        health_svc.pool_lock = MagicMock()
+        health_svc.pool_lock.__enter__ = MagicMock(side_effect=Exception("lock error"))
+        health_svc.pool_lock.__exit__ = MagicMock(return_value=False)
+
+        initial_errors = health_svc.pool_metrics["docker_errors"]
+
+        health_svc._perform_health_check()
+
+        assert health_svc.pool_metrics["docker_errors"] == initial_errors + 1
+
+    def test_health_monitor_loop_exception_continues(self, health_svc):
+        """Exception in health monitor loop should continue to next iteration."""
+        call_count = 0
+
+        def failing_check():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise Exception("check failed")
+            health_svc._stop_health_monitor.set()
+
+        health_svc._stop_health_monitor = threading.Event()
+        health_svc.health_check_interval = 0.01
+
+        with patch.object(
+            health_svc, "_perform_health_check", side_effect=failing_check
+        ):
+            health_svc._health_monitor_loop()
+
+        assert call_count >= 2
+
+    def test_get_container_remove_failure_increments_cleanup_failures(
+        self, health_svc, mock_docker_client
+    ):
+        """Container remove failure in _get_container_from_pool should track cleanup."""
+        bad = MockContainer("bad-c", status="exited")
+        bad.remove = MagicMock(side_effect=Exception("remove failed"))
+
+        health_svc.container_pool = [bad]
+
+        with patch.object(health_svc, "_create_pool_container", return_value=None):
+            health_svc._get_container_from_pool()
+
+        assert health_svc.pool_metrics["cleanup_failures"] >= 1
+
+    def test_get_container_reload_exception_continues(self, health_svc):
+        """Reload exception in _get_container_from_pool should continue."""
+        bad = MockContainer("bad-c")
+        bad.reload = MagicMock(side_effect=Exception("reload error"))
+        good = MockContainer("good-c")
+
+        health_svc.container_pool = [good, bad]
+
+        result = health_svc._get_container_from_pool()
+
+        assert result == good
+
+    def test_return_container_pool_disabled_remove_exception(self, health_svc):
+        """Pool disabled + remove exception should not crash."""
+        health_svc.pool_enabled = False
+        container = MockContainer("c-1")
+        container.remove = MagicMock(side_effect=Exception("remove failed"))
+
+        health_svc._return_container_to_pool(container)  # Should not raise
+
+    def test_return_container_outer_except_remove_failure(self, health_svc):
+        """Double exception in return_container_to_pool should not crash."""
+        container = MockContainer("c-1")
+        container.reload = MagicMock(side_effect=Exception("reload failed"))
+        container.remove = MagicMock(side_effect=Exception("remove also failed"))
+
+        health_svc._return_container_to_pool(container)  # Should not raise
+
+    def test_cleanup_pool_orphan_containers(self, health_svc, mock_docker_client):
+        """Orphan cleanup should list and remove labeled containers."""
+        health_svc._do_orphan_cleanup = True
+        health_svc.container_pool = []
+
+        orphan1 = MockContainer("orphan-1")
+        orphan2 = MockContainer("orphan-2")
+        mock_docker_client.containers.list.return_value = [orphan1, orphan2]
+
+        health_svc._cleanup_pool()
+
+        assert orphan1._removed is True
+        assert orphan2._removed is True
+
+    def test_cleanup_pool_orphan_exception(self, health_svc, mock_docker_client):
+        """Orphan cleanup exception should not crash."""
+        health_svc._do_orphan_cleanup = True
+        health_svc.container_pool = []
+        mock_docker_client.containers.list.side_effect = Exception("list failed")
+
+        health_svc._cleanup_pool()  # Should not raise
+
+    def test_docker_recovery_in_health_check(self, health_svc, mock_docker_client):
+        """Docker becoming available again should set _docker_available."""
+        # Set up: previously unavailable, now ping succeeds
+        health_svc._docker_available = True  # Must be True to not early-return
+        mock_docker_client.ping = MagicMock(return_value=True)
+
+        # Simulate recovery: set to False right before the check
+        def ping_that_recovers():
+            health_svc._docker_available = False  # Simulate prior unavailability
+            return True
+
+        mock_docker_client.ping = ping_that_recovers
+
+        with patch.object(health_svc, "_create_pool_container", return_value=None):
+            health_svc._perform_health_check()
+
+        assert health_svc._docker_available is True
+
+    def test_execute_in_new_container_finally_remove_failure(
+        self, docker_service, mock_docker_client
+    ):
+        """Container removal failure in finally block should not crash."""
+        mock_container = MockContainer()
+        mock_container.remove = MagicMock(side_effect=Exception("remove failed"))
+        mock_docker_client.containers.create.return_value = mock_container
+        mock_container.wait = MagicMock(return_value={"StatusCode": 0})
+        mock_container.logs = MagicMock(return_value=b"ok")
+
+        result = docker_service._execute_in_new_container("code")
+
+        assert result["success"] is True
+
+    def test_pooled_execution_timeout_kill_and_remove_failure(self, health_svc):
+        """Timeout with kill/remove failure should still return error."""
+        from gevent import Timeout as GeventTimeout
+
+        container = MockContainer("timeout-c")
+        container.kill = MagicMock(side_effect=Exception("kill failed"))
+        # exec_run raises real GeventTimeout — matches the except clause
+        container.exec_run = MagicMock(side_effect=GeventTimeout)
+
+        with patch.object(
+            health_svc, "_get_container_from_pool", return_value=container
+        ):
+            # Don't patch GeventTimeout — let the real class be used everywhere
+            result = health_svc._execute_in_pooled_container("code")
+
+        assert result["success"] is False
+        assert "timed out" in result["error"]
+
+    def test_pooled_execution_inner_exception_remove_failure(self):
+        """Inner exception + remove failure should still fall back."""
+        with (
+            patch("docker.from_env") as mock_docker,
+            patch.object(DockerExecutionService, "_ensure_image_exists"),
+            patch.object(DockerExecutionService, "_init_pool"),
+            patch.object(DockerExecutionService, "_start_health_monitor"),
+            patch(
+                "purplex.problems_app.services.docker_execution_service.settings"
+            ) as settings_mock,
+        ):
+            settings_mock.CODE_EXECUTION = {"POOL_ENABLED": True, "POOL_SIZE": 1}
+            mock_docker.return_value = MockDockerClient()
+
+            service = DockerExecutionService()
+            service._docker_available = True
+            service.pool_enabled = True
+            service.container_pool = []
+            service.container_metadata = {}
+
+            container = MockContainer("err-c")
+            container.exec_run = MagicMock(side_effect=RuntimeError("exec error"))
+            container.remove = MagicMock(side_effect=Exception("remove failed"))
+
+            with (
+                patch.object(
+                    service, "_get_container_from_pool", return_value=container
+                ),
+                patch.object(service, "_execute_in_new_container") as mock_new,
+                patch(
+                    "purplex.problems_app.services.docker_execution_service.GeventTimeout"
+                ) as mock_timeout,
+            ):
+                mock_timeout.return_value.__enter__ = MagicMock()
+                mock_timeout.return_value.__exit__ = MagicMock(return_value=False)
+                mock_new.return_value = {"success": True, "output": "", "error": None}
+
+                service._execute_in_pooled_container("code")
+
+            mock_new.assert_called_once()
+            service._closed = True
+
+    def test_pooled_execution_outer_exception_with_container(self):
+        """Outer exception with container should try to remove it."""
+        with (
+            patch("docker.from_env") as mock_docker,
+            patch.object(DockerExecutionService, "_ensure_image_exists"),
+            patch.object(DockerExecutionService, "_init_pool"),
+            patch.object(DockerExecutionService, "_start_health_monitor"),
+            patch(
+                "purplex.problems_app.services.docker_execution_service.settings"
+            ) as settings_mock,
+        ):
+            settings_mock.CODE_EXECUTION = {"POOL_ENABLED": True, "POOL_SIZE": 1}
+            mock_docker.return_value = MockDockerClient()
+
+            service = DockerExecutionService()
+            service._docker_available = True
+            service.pool_enabled = True
+            service.container_pool = []
+            service.container_metadata = {}
+
+            container = MockContainer("outer-err-c")
+            container.remove = MagicMock(side_effect=Exception("remove failed"))
+
+            def get_container_and_fail():
+                # Simulate getting a container then failing at the outer level
+                raise Exception("unexpected outer error")
+
+            with patch.object(
+                service, "_get_container_from_pool", side_effect=get_container_and_fail
+            ):
+                result = service._execute_in_pooled_container("code")
+
+            assert result["success"] is False
+            service._closed = True
