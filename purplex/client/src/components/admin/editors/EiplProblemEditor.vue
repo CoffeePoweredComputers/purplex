@@ -426,8 +426,8 @@ watch(isValid, (valid) => {
 }, { immediate: true })
 
 // Methods
-function updateField(key: string, value: string) {
-  editor.value.form.updateField(key as keyof ProblemFormState, value as ProblemFormState[keyof ProblemFormState])
+function updateField<K extends keyof ProblemFormState>(key: K, value: ProblemFormState[K]) {
+  editor.value.form.updateField(key, value)
 }
 
 // Hint management

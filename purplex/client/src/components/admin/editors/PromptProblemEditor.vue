@@ -138,8 +138,8 @@ const imageLoadError = ref(false)
 const editor = computed(() => props.editor)
 
 // Helper to update form fields (required for signature → test case parameter flow)
-function updateField(key: string, value: string) {
-  editor.value.form.updateField(key as keyof ProblemFormState, value as ProblemFormState[keyof ProblemFormState])
+function updateField<K extends keyof ProblemFormState>(key: K, value: ProblemFormState[K]) {
+  editor.value.form.updateField(key, value)
 }
 
 // Image handling
