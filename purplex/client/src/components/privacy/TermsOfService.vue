@@ -1,4 +1,5 @@
 <template>
+  <!-- eslint-disable vue/no-v-html -- Content from vue-i18n translations (trusted source) -->
   <div class="policy-page">
     <div class="policy-page__content">
       <h1>{{ t('auth.termsPage.title') }}</h1>

@@ -163,7 +163,7 @@ describe('PrivacyService', () => {
         href: '',
         download: '',
         click: mockClick,
-      }) as any
+      }) as unknown as typeof document.createElement
       document.body.appendChild = mockAppendChild
       document.body.removeChild = mockRemoveChild
       URL.createObjectURL = mockCreateObjectURL

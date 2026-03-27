@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import VariableFadeProcessor from '../hintProcessors/VariableFadeProcessor'
 import SubgoalHighlightProcessor from '../hintProcessors/SubgoalHighlightProcessor'
+import type { SubgoalData, VariableFadeData } from '../hintProcessors/types'
 
 describe('VariableFadeProcessor', () => {
   let processor: VariableFadeProcessor
@@ -49,10 +50,10 @@ describe('VariableFadeProcessor', () => {
     })
 
     it('should fail with invalid hint data structure', () => {
-      const hintData: any = {
+      const hintData = {
         code: 'def test(): pass'
         // Missing mappings
-      }
+      } as unknown as VariableFadeData
 
       const result = processor.processHint(hintData)
 
@@ -61,10 +62,10 @@ describe('VariableFadeProcessor', () => {
     })
 
     it('should fail with missing mappings', () => {
-      const hintData: any = {
+      const hintData = {
         code: 'def test(): pass',
         mappings: null
-      }
+      } as unknown as VariableFadeData
 
       const result = processor.processHint(hintData)
 
@@ -81,7 +82,7 @@ describe('VariableFadeProcessor', () => {
           { from: '', to: 'invalid' }, // Invalid - empty from
           { from: 'y', to: '' }, // Invalid - empty to
           { from: 'y', to: 'second' } // Valid
-        ] as any[]
+        ] as Array<{ from: string; to: string }>
       }
 
       const result = processor.processHint(hintData)
@@ -197,8 +198,8 @@ describe('VariableFadeProcessor', () => {
       expect(processor.isValidVariableName('with-dash')).toBe(false)
       expect(processor.isValidVariableName('with space')).toBe(false)
       expect(processor.isValidVariableName('')).toBe(false)
-      expect(processor.isValidVariableName(null as any)).toBe(false)
-      expect(processor.isValidVariableName(undefined as any)).toBe(false)
+      expect(processor.isValidVariableName(null as unknown as string)).toBe(false)
+      expect(processor.isValidVariableName(undefined as unknown as string)).toBe(false)
     })
   })
 })
@@ -338,10 +339,10 @@ describe('SubgoalHighlightProcessor', () => {
     })
 
     it('should fail with invalid subgoal data', () => {
-      const hintData: any = {
+      const hintData = {
         code: 'def test(): pass',
         subgoals: null
-      }
+      } as unknown as SubgoalData
 
       const result = processor.processHint(hintData)
 
@@ -479,7 +480,7 @@ line3`
     })
 
     it('should not include markers on failed processing', () => {
-      const result = processor.processHint({ code: '', subgoals: null as any })
+      const result = processor.processHint({ code: '', subgoals: null as unknown as SubgoalData['subgoals'] })
       expect(result.success).toBe(false)
       expect(result.metadata?.markers).toBeUndefined()
     })

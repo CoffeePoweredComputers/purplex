@@ -385,6 +385,18 @@ interface SubmissionHistoryItem {
   completion_status?: string
 }
 
+interface SegmentationProp {
+  segment_count: number
+  comprehension_level: string
+  passed?: boolean
+  threshold?: number
+  segments: Array<{ id: number; text: string; code_lines: number[] }>
+  code_mappings?: unknown
+  feedback_message?: string
+  confidence_score?: number
+  suggested_improvements?: string[]
+}
+
 interface ComponentData {
   showCorrectnessModal: boolean
   showSegmentAnalysisModal: boolean
@@ -444,7 +456,7 @@ export default defineComponent({
       default: '',
     },
     segmentation: {
-      type: Object as PropType<any>,
+      type: Object as PropType<SegmentationProp>,
       default: null,
     },
     referenceCode: {

@@ -177,11 +177,13 @@
             </div>
           </div>
           <div class="problem-description-content">
+            <!-- eslint-disable vue/no-v-html -->
             <div
               v-if="getCurrentProblem()?.description"
               class="problem-description-markdown"
               v-html="renderMarkdown(getCurrentProblem()?.description)"
             />
+            <!-- eslint-enable vue/no-v-html -->
             <div
               v-else
               class="problem-description-missing"
@@ -400,7 +402,6 @@ import { ref } from 'vue'
 
 export default {
     name: 'ProblemSet',
-    emits: ['hint-used'],
     components: {
         Editor,
         HintButton,
@@ -415,6 +416,7 @@ export default {
             default: null
         }
     },
+    emits: ['hint-used'],
     setup() {
         const { notify } = useNotification();
         const { effectiveTheme } = useTheme();

@@ -122,6 +122,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import type { ProblemEditorEmits, ProblemEditorProps } from './types'
+import type { ProblemFormState } from '@/composables/admin/useProblemForm'
 import { log } from '@/utils/logger'
 import Editor from '@/features/editor/Editor.vue'
 import BasicInfoSection from './shared/BasicInfoSection.vue'
@@ -138,7 +139,7 @@ const editor = computed(() => props.editor)
 
 // Helper to update form fields (required for signature → test case parameter flow)
 function updateField(key: string, value: string) {
-  editor.value.form.updateField(key as any, value as any)
+  editor.value.form.updateField(key as keyof ProblemFormState, value as ProblemFormState[keyof ProblemFormState])
 }
 
 // Image handling

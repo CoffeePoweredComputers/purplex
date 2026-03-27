@@ -384,6 +384,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import type { ProblemEditorEmits, ProblemEditorProps } from './types'
+import type { ProblemFormState } from '@/composables/admin/useProblemForm'
 import Editor from '@/features/editor/Editor.vue'
 import PyTutorModal from '@/modals/PyTutorModal.vue'
 import BasicInfoSection from './shared/BasicInfoSection.vue'
@@ -399,7 +400,7 @@ const emit = defineEmits<ProblemEditorEmits>()
 const editor = computed(() => props.editor)
 
 // Template refs
-const codeEditor = ref<any>(null)
+const codeEditor = ref<InstanceType<typeof Editor> | null>(null)
 
 // Local form state for adding new items
 const newVariableMapping = ref({ from: '', to: '' })
@@ -426,7 +427,7 @@ watch(isValid, (valid) => {
 
 // Methods
 function updateField(key: string, value: string) {
-  editor.value.form.updateField(key as any, value as any)
+  editor.value.form.updateField(key as keyof ProblemFormState, value as ProblemFormState[keyof ProblemFormState])
 }
 
 // Hint management
@@ -456,8 +457,9 @@ function previewInPyTutor() {
 // Lifecycle
 onMounted(() => {
   // Configure ACE editor
-  if ((window as any).ace) {
-    (window as any).ace.config.set('basePath', 'https://cdn.jsdelivr.net/npm/ace-builds@1.15.0/src-noconflict/')
+  const win = window as unknown as { ace?: { config: { set: (key: string, value: string) => void } } }
+  if (win.ace) {
+    win.ace.config.set('basePath', 'https://cdn.jsdelivr.net/npm/ace-builds@1.15.0/src-noconflict/')
   }
 })
 
