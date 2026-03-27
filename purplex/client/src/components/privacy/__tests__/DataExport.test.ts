@@ -10,7 +10,7 @@ vi.mock('../../../services/privacyService', () => ({
   },
 }))
 
-import privacyService from '../../../services/privacyService'
+import privacyService, { type UserDataExport } from '../../../services/privacyService'
 
 describe('DataExport', () => {
   beforeEach(() => {
@@ -36,8 +36,8 @@ describe('DataExport', () => {
   })
 
   it('calls exportData and downloadAsJson on success', async () => {
-    const mockData = { export_version: '1.0', user_id: 1 }
-    vi.mocked(privacyService.exportData).mockResolvedValue(mockData as any)
+    const mockData = { export_version: '1.0', user_id: 1 } as UserDataExport
+    vi.mocked(privacyService.exportData).mockResolvedValue(mockData)
 
     const wrapper = mount(DataExport)
     await wrapper.find('.data-export__btn').trigger('click')
@@ -51,7 +51,7 @@ describe('DataExport', () => {
   })
 
   it('shows success message after export', async () => {
-    vi.mocked(privacyService.exportData).mockResolvedValue({ export_version: '1.0' } as any)
+    vi.mocked(privacyService.exportData).mockResolvedValue({ export_version: '1.0' } as UserDataExport)
 
     const wrapper = mount(DataExport)
     await wrapper.find('.data-export__btn').trigger('click')

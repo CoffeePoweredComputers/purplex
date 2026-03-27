@@ -55,9 +55,27 @@ vi.mock('ace-builds/src-noconflict/theme-solarized_light', () => ({}))
 vi.mock('ace-builds/src-noconflict/theme-dracula', () => ({}))
 vi.mock('ace-builds/src-noconflict/theme-tomorrow_night', () => ({}))
 
+type Fn = ReturnType<typeof vi.fn>
+
+// Shape of the mock ACE editor returned by createMockEditor
+interface MockAceEditor {
+  setOptions: Fn; setOption: Fn; getValue: Fn; setValue: Fn
+  setTheme: Fn; setMode: Fn; resize: Fn; clearSelection: Fn
+  container: { setAttribute: Fn; getAttribute: Fn; closest: Fn; style: Record<string, string> }
+  commands: { addCommand: Fn; removeCommand: Fn }
+  renderer: {
+    $cursorLayer: { element: { style: { display: string } } }
+    container: { style: { pointerEvents: string; userSelect: string } }
+    $markerBack: { element: { style: { zIndex: string } } }
+    updateLines: Fn; freeze?: Fn; unfreeze?: Fn
+  }
+  session: { getMode: Fn; addMarker: Fn; removeMarker: Fn }
+  on: Fn; getCursorPosition: Fn; moveCursorToPosition: Fn; blur: Fn
+}
+
 // Factory for mock ACE editor instances
-const createMockEditor = (initialValue = 'test code') => {
-  const mock: any = {
+const createMockEditor = (initialValue = 'test code'): MockAceEditor => {
+  const mock: MockAceEditor = {
     setOptions: vi.fn(),
     setOption: vi.fn(),
     getValue: vi.fn().mockReturnValue(initialValue),
@@ -137,7 +155,7 @@ async function mountAndInit(props: Record<string, unknown> = {}, editorValue?: s
 }
 
 describe('Editor Component', () => {
-  let wrapper: VueWrapper<any>
+  let wrapper: VueWrapper
 
   afterEach(() => {
     if (wrapper) {
@@ -295,7 +313,7 @@ describe('Editor Component', () => {
       await nextTick()
 
       const vAce = wrapper.findComponent({ name: 'VAceEditor' })
-      expect((vAce.vm as any)._contentBackup).toBe('updated')
+      expect((vAce.vm as unknown as { _contentBackup: string })._contentBackup).toBe('updated')
     })
 
     it('should never call freeze or unfreeze on the renderer', async () => {

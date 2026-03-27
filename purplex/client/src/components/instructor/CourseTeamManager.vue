@@ -130,6 +130,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import axios from 'axios';
 import { createContentService } from '@/services/contentService';
 import { log } from '@/utils/logger';
 import type { CourseInstructorMember, CourseInstructorRole } from '@/types';
@@ -168,7 +169,7 @@ async function fetchTeam(): Promise<void> {
   error.value = null;
   try {
     team.value = await api.getCourseTeam(props.courseId);
-  } catch (err: any) {
+  } catch (err: unknown) {
     log.error('Failed to load course team', { courseId: props.courseId, error: err });
     error.value = t('admin.courseTeam.failedToLoadTeam');
   } finally {
@@ -190,8 +191,8 @@ async function addMember(): Promise<void> {
     actionSuccess.value = t('admin.courseTeam.addedMessage', { name: member.full_name, role: member.role });
     newEmail.value = '';
     newRole.value = 'ta';
-  } catch (err: any) {
-    const msg = err.response?.data?.error || t('admin.courseTeam.addFailed');
+  } catch (err: unknown) {
+    const msg = axios.isAxiosError(err) ? (err.response?.data?.error || t('admin.courseTeam.addFailed')) : t('admin.courseTeam.addFailed');
     actionError.value = msg;
   } finally {
     addingMember.value = false;
@@ -209,8 +210,8 @@ async function changeRole(member: CourseInstructorMember, role: string): Promise
     const idx = team.value.findIndex((m) => m.user_id === member.user_id);
     if (idx !== -1) {team.value[idx] = updated;}
     actionSuccess.value = t('admin.courseTeam.changedRole', { name: updated.full_name, role: updated.role });
-  } catch (err: any) {
-    const msg = err.response?.data?.error || t('admin.courseTeam.updateFailed');
+  } catch (err: unknown) {
+    const msg = axios.isAxiosError(err) ? (err.response?.data?.error || t('admin.courseTeam.updateFailed')) : t('admin.courseTeam.updateFailed');
     actionError.value = msg;
     // Revert select in UI by re-fetching
     await fetchTeam();
@@ -225,8 +226,8 @@ async function confirmRemove(member: CourseInstructorMember): Promise<void> {
     await api.removeCourseTeamMember(props.courseId, member.user_id);
     team.value = team.value.filter((m) => m.user_id !== member.user_id);
     actionSuccess.value = t('admin.courseTeam.removedMessage', { name: member.full_name });
-  } catch (err: any) {
-    const msg = err.response?.data?.error || t('admin.courseTeam.removeFailed');
+  } catch (err: unknown) {
+    const msg = axios.isAxiosError(err) ? (err.response?.data?.error || t('admin.courseTeam.removeFailed')) : t('admin.courseTeam.removeFailed');
     actionError.value = msg;
   }
 }

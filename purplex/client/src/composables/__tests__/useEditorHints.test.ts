@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { useEditorHints } from '../useEditorHints'
 
+interface MockEditor {
+  setHintMarkers: ReturnType<typeof vi.fn>
+  clearHintMarkers: ReturnType<typeof vi.fn>
+}
+
 describe('useEditorHints composable', () => {
-  let editorRef: any
-  let originalCode: any
+  let editorRef: Ref<MockEditor>
+  let originalCode: Ref<string>
   let composable: ReturnType<typeof useEditorHints>
 
   beforeEach(() => {
@@ -101,7 +106,7 @@ describe('useEditorHints composable', () => {
     })
 
     it('should handle missing hint data', async () => {
-      const result = await composable.applyHint('', null as any)
+      const result = await composable.applyHint('', null as unknown as Parameters<typeof composable.applyHint>[1])
 
       expect(result).toBe(false)
       expect(composable.errorState.value).toContain('Invalid hint type or data')

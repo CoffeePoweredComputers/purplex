@@ -64,7 +64,10 @@ describe('ConsentForm', () => {
     const wrapper = mountConsentForm()
     // Force click without checking required
     // The button is disabled, so we call submitConsent directly
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as {
+      consents: Record<string, boolean>
+      submitConsent: () => void
+    }
     vm.consents.privacy_policy = false
     vm.consents.terms_of_service = false
     vm.submitConsent()

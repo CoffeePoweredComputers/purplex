@@ -220,8 +220,8 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
       if (response.data.probe_status) {
         probeStatus.value = response.data.probe_status
       }
-    } catch (error: any) {
-      probeError.value = error.response?.data?.error || 'Failed to probe oracle'
+    } catch (error: unknown) {
+      probeError.value = axios.isAxiosError(error) ? (error.response?.data?.error || 'Failed to probe oracle') : 'Failed to probe oracle'
     } finally {
       probing.value = false
     }
