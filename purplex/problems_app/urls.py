@@ -21,6 +21,9 @@ from .course_views import (  # Admin course views; Instructor course views; Stud
     StudentEnrolledCoursesView,
 )
 
+# Activity event views (frontend event recording)
+from .views.activity_event_views import ActivityEventCreateView
+
 # Admin views
 from .views.admin_views import (
     AdminCategoryView,
@@ -128,6 +131,11 @@ urlpatterns = [
     path(
         "submit/", ActivitySubmissionView.as_view(), name="submit_activity"
     ),  # Unified submission endpoint
+    path(
+        "activity-events/",
+        ActivityEventCreateView.as_view(),
+        name="activity_event_create",
+    ),  # Frontend activity event recording
     path(
         "activity-types/", ActivityTypesView.as_view(), name="activity_types"
     ),  # List registered types

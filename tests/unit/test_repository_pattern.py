@@ -520,6 +520,86 @@ class TestRepositoryPatternEnforcement:
         handler_files = get_handler_files(project_root)
         self._check_files_for_violations(handler_files, "handler")
 
+    # -------------------------------------------------------------------------
+    # BARE EXCEPT ENFORCEMENT
+    # -------------------------------------------------------------------------
+
+    # Pre-existing bare except Exception in views — tracked for cleanup.
+    # Do NOT add new files here. Fix the violation instead.
+    # Pre-existing bare except Exception — tracked for cleanup.
+    # Do NOT add new files here. Fix the violation instead.
+    _BARE_EXCEPT_ALLOWED = {
+        "health_views.py",  # Health check catches all for uptime reporting
+        "submission_views.py",  # Pre-existing; needs service refactor
+        "progress_views.py",  # Pre-existing; needs service refactor
+        "instructor_views.py",  # Pre-existing; needs service refactor
+        "instructor_content_views.py",  # Pre-existing; needs service refactor
+        "instructor_analytics_views.py",  # Pre-existing; needs service refactor
+        "admin_views.py",  # Pre-existing; needs service refactor
+        "sse.py",  # SSE streaming catches all for connection cleanup
+    }
+
+    def test_views_no_bare_except_exception(self, project_root: Path):
+        """
+        Views must not use bare `except Exception`.
+
+        The custom exception handler returns JSON 500 for unhandled exceptions.
+        Bare `except Exception` hides bugs. If a service call should be
+        fire-and-forget, the service must provide a *_best_effort() wrapper
+        that handles errors internally.
+
+        Correct approach:
+            # In service:
+            ActivityEventService.record_best_effort(...)
+
+            # NOT in view:
+            try:
+                ActivityEventService.record(...)
+            except Exception:
+                logger.warning(...)  # BAD! Hides bugs.
+        """
+        view_dirs = [
+            project_root / "purplex" / "problems_app" / "views",
+            project_root / "purplex" / "users_app" / "views",
+        ]
+
+        violations = []
+        for view_dir in view_dirs:
+            if not view_dir.exists():
+                continue
+            for py_file in view_dir.rglob("*.py"):
+                if py_file.name == "__init__.py":
+                    continue
+                if py_file.name in self._BARE_EXCEPT_ALLOWED:
+                    continue
+                violations.extend(_find_bare_except_exception(py_file))
+
+        if violations:
+            report = "\n".join(
+                f"  {v[0]}:{v[1]} - except Exception" for v in violations
+            )
+            pytest.fail(
+                f"Found {len(violations)} bare `except Exception` in view files.\n"
+                f"Move error handling to a service *_best_effort() method.\n"
+                f"Violations:\n{report}"
+            )
+
+
+def _find_bare_except_exception(file_path: Path) -> list[tuple[str, int]]:
+    """Find bare `except Exception:` patterns in a file."""
+    try:
+        source = file_path.read_text()
+        tree = ast.parse(source)
+    except (SyntaxError, UnicodeDecodeError):
+        return []
+
+    violations = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ExceptHandler) and node.type is not None:
+            if isinstance(node.type, ast.Name) and node.type.id == "Exception":
+                violations.append((str(file_path), node.lineno))
+    return violations
+
 
 # =============================================================================
 # SELF-TESTS FOR THE VIOLATION DETECTION LOGIC

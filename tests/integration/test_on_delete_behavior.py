@@ -30,6 +30,7 @@ from purplex.submissions.models import (
     TestExecution,
 )
 from tests.factories import (
+    ActivityEventFactory,
     CodeVariationFactory,
     CourseEnrollmentFactory,
     CourseFactory,
@@ -264,3 +265,65 @@ class TestCourseCascadeChain:
         assert not CourseInstructor.objects.filter(id=ci_id).exists()
         assert not CourseEnrollment.objects.filter(id=enrollment_id).exists()
         assert not CourseProblemSet.objects.filter(id=cps_id).exists()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ActivityEvent — SET_NULL on all FKs (event log, never lose data)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestActivityEventOnDelete:
+    """ActivityEvent uses SET_NULL on all FKs to preserve research data.
+
+    Unlike Submission (which uses PROTECT on content FKs), activity events
+    must survive deletion of any referenced entity.
+    """
+
+    def test_set_null_on_user(self):
+        """Deleting a user nullifies the FK but preserves the event."""
+        user = UserFactory()
+        event = ActivityEventFactory(user=user)
+        event_id = event.id
+
+        user.delete()
+
+        event.refresh_from_db()
+        assert event.id == event_id
+        assert event.user is None
+
+    def test_set_null_on_problem(self):
+        """Deleting a problem nullifies the FK but preserves the event."""
+        problem = EiplProblemFactory()
+        event = ActivityEventFactory(problem=problem)
+        event_id = event.id
+
+        problem.delete()
+
+        event.refresh_from_db()
+        assert event.id == event_id
+        assert event.problem is None
+
+    def test_set_null_on_course(self):
+        """Deleting a course nullifies the FK but preserves the event."""
+        course = CourseFactory()
+        event = ActivityEventFactory(course=course)
+        event_id = event.id
+
+        course.delete()
+
+        event.refresh_from_db()
+        assert event.id == event_id
+        assert event.course is None
+
+    def test_anonymous_user_id_survives_user_deletion(self):
+        """anonymous_user_id remains populated after user FK is nullified."""
+        user = UserFactory()
+        event = ActivityEventFactory(user=user)
+        assert event.anonymous_user_id != ""
+
+        original_anon_id = event.anonymous_user_id
+        user.delete()
+
+        event.refresh_from_db()
+        assert event.user is None
+        assert event.anonymous_user_id == original_anon_id

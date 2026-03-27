@@ -331,6 +331,7 @@ DATA_RETENTION = {
     "INACTIVE_ACCOUNT_DELETION_MONTHS": 24,
     "DELETION_GRACE_PERIOD_DAYS": 30,
     "AUDIT_LOG_RETENTION_YEARS": 7,  # FERPA requires 3+ years
+    "ACTIVITY_EVENTS_YEARS": 3,  # Match submission retention
 }
 
 # Privacy feature flags

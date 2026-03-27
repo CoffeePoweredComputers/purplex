@@ -155,6 +155,23 @@ class ProbeOracleView(APIView):
             problem=problem, user_id=request.user.id, probe_input=probe_input
         )
 
+        # Record durable activity event (fire-and-forget)
+        from purplex.submissions.activity_event_service import ActivityEventService
+
+        ActivityEventService.record_best_effort(
+            user=request.user,
+            event_type="probe.execute",
+            payload={
+                "input": probe_input,
+                "output": result.get("result"),
+                "success": result["success"],
+                "probe_mode": result.get("probe_status", {}).get("mode"),
+                "probes_remaining": result.get("probe_status", {}).get("remaining"),
+                "course_id": course_id,
+            },
+            problem=problem,
+        )
+
         return Response(result, status=status.HTTP_200_OK)
 
 
@@ -391,6 +408,21 @@ class RefuteTestView(APIView):
             f"Refute test: problem={slug}, user={request.user.username}, "
             f"input={test_input}, result={result.get('result')}, "
             f"disproven={result.get('claim_disproven')}"
+        )
+
+        # Record durable activity event for counterexample trial
+        from purplex.submissions.activity_event_service import ActivityEventService
+
+        ActivityEventService.record_best_effort(
+            user=request.user,
+            event_type="refute.attempt",
+            payload={
+                "input": test_input,
+                "output": result.get("result"),
+                "claim_disproven": result.get("claim_disproven", False),
+                "success": result.get("success", False),
+            },
+            problem=problem,
         )
 
         return Response(result, status=status.HTTP_200_OK)

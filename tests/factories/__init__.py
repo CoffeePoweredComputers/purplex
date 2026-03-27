@@ -35,7 +35,12 @@ from purplex.problems_app.models import (
     UserProblemSetProgress,
     UserProgress,
 )
-from purplex.submissions.models import CodeVariation, HintActivation, Submission
+from purplex.submissions.models import (
+    ActivityEvent,
+    CodeVariation,
+    HintActivation,
+    Submission,
+)
 from purplex.users_app.models import (
     AgeVerification,
     ConsentMethod,
@@ -46,6 +51,7 @@ from purplex.users_app.models import (
     UserProfile,
     VerificationMethod,
 )
+from purplex.utils.anonymization import AnonymizationService
 
 User = get_user_model()
 
@@ -419,6 +425,23 @@ class HintActivationFactory(DjangoModelFactory):
     submission = factory.SubFactory(SubmissionFactory)
     hint = factory.SubFactory(ProblemHintFactory)
     activation_order = factory.Sequence(lambda n: n)
+
+
+class ActivityEventFactory(DjangoModelFactory):
+    """Factory for ActivityEvent model."""
+
+    class Meta:
+        model = ActivityEvent
+
+    user = factory.SubFactory(UserFactory)
+    event_type = "probe.execute"
+    schema_version = 1
+    payload = factory.LazyFunction(
+        lambda: {"input": "foo(1)", "output": "2", "probe_index": 0}
+    )
+    anonymous_user_id = factory.LazyAttribute(
+        lambda o: AnonymizationService.anonymize_user_id(o.user) if o.user else ""
+    )
 
 
 class CodeVariationFactory(DjangoModelFactory):
