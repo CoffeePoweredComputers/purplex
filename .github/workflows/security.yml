@@ -5,9 +5,9 @@ on:
     - cron: '0 2 * * *'  # Daily at 2 AM UTC
   workflow_dispatch:
   push:
-    branches: [master, main]
+    branches: [master]
   pull_request:
-    branches: [master, main]
+    branches: [master]
     paths:
       - 'requirements.txt'
       - 'requirements/*.txt'
@@ -81,7 +81,7 @@ jobs:
           path: bandit-report.json
 
       - name: Run Semgrep
-        uses: returntocorp/semgrep-action@v1
+        uses: semgrep/semgrep-action@v1
         with:
           config: p/django p/python p/security-audit
 
