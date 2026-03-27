@@ -1,3 +1,16 @@
+[project]
+name = "purplex"
+version = "1.0.0"
+description = "An educational coding challenge platform with AI-powered problem generation, sandboxed Docker code execution, and EiPL submission system"
+requires-python = ">=3.11"
+license = "GPL-3.0-only"
+
+[project.urls]
+Homepage = "https://github.com/CoffeePoweredComputers/purplex"
+Repository = "https://github.com/CoffeePoweredComputers/purplex"
+Issues = "https://github.com/CoffeePoweredComputers/purplex/issues"
+Documentation = "https://github.com/CoffeePoweredComputers/purplex/tree/master/docs"
+
 [tool.ruff]
 line-length = 88
 target-version = "py311"
