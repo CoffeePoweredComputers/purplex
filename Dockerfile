@@ -17,7 +17,8 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip wheel && \
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --force-reinstall 'wheel>=0.46.2' && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy project
