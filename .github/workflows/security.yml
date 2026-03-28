@@ -118,6 +118,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Gitleaks above covers secret scanning. TruffleHog removed due to
-      # incompatibility with the GitHub Action's internal --since-commit flag
-      # on push events (flag cannot be repeated).
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          base: ""
+          head: ${{ github.ref_name }}
+          extra_args: --results=verified,unknown
