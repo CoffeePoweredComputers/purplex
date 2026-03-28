@@ -17,7 +17,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: coffeepoweredcomputers/purplex
 
 jobs:
   build-and-push:
@@ -63,17 +63,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Celery image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile.celery
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/celery:${{ steps.version.outputs.version }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/celery:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      # Celery uses the same Docker image with a different CMD (see docker-compose.yml)
 
   deploy-staging:
     name: Deploy to Staging
