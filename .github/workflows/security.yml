@@ -119,6 +119,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run TruffleHog
+        if: github.event_name == 'pull_request'
         uses: trufflesecurity/trufflehog@main
         with:
           extra_args: --results=verified,unknown --fail
