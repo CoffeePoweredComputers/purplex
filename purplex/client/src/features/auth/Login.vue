@@ -394,6 +394,8 @@ export default {
   margin: 0;
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 50%, var(--color-admin-hover) 100%);
   -webkit-text-fill-color: transparent;
+  /* stylelint-disable-next-line property-no-vendor-prefix -- Safari requires -webkit- prefix for gradient text */
+  -webkit-background-clip: text;
   background-clip: text;
   font-weight: 800;
   letter-spacing: 1px;
