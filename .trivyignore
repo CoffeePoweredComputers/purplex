@@ -20,3 +20,8 @@ CVE-2023-45853
 # setuptools/_vendor/jaraco.context which we cannot upgrade independently.
 # Remove once setuptools releases a version with updated vendored deps.
 CVE-2026-23949
+
+# wheel: privilege escalation — base image (python:3.11-slim-bookworm) bundles
+# wheel 0.45.1 in a location pip --force-reinstall does not replace.
+# Our requirements.txt pins wheel>=0.46.2. Remove once the base image updates.
+CVE-2026-24049
