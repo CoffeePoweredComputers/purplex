@@ -343,13 +343,13 @@ main {
   outline-offset: 2px;
 }
 
-.problem-set-card:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .problem-set-card:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.problem-set-card:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .card-content {
@@ -556,13 +556,13 @@ main {
   outline-offset: 2px;
 }
 
-.add-course-btn:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .add-course-btn:focus-visible {
   outline: 2px solid var(--color-text-primary);
   outline-offset: 2px;
+}
+
+.add-course-btn:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .add-course-btn.floating {

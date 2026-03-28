@@ -446,7 +446,7 @@ onMounted(() => {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -460,14 +460,6 @@ onMounted(() => {
 .modal-fade-enter-from,
 .modal-fade-leave-to {
   opacity: 0;
-}
-
-.modal-fade-enter-active .modal-content {
-  transition: transform 0.3s ease;
-}
-
-.modal-fade-enter-from .modal-content {
-  transform: scale(0.9);
 }
 
 /* Modal Structure - Matches SegmentAnalysisModal */
@@ -502,6 +494,14 @@ onMounted(() => {
   flex-direction: column;
   overflow: hidden;
   transition: var(--transition-base);
+}
+
+.modal-fade-enter-active .modal-content {
+  transition: transform 0.3s ease;
+}
+
+.modal-fade-enter-from .modal-content {
+  transform: scale(0.9);
 }
 
 .modal-content:focus {
@@ -579,11 +579,6 @@ onMounted(() => {
   transition: var(--transition-fast);
 }
 
-.size-controls-group:hover .size-label {
-  opacity: 1;
-  color: var(--color-text-secondary);
-}
-
 .size-label {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
@@ -591,6 +586,11 @@ onMounted(() => {
   user-select: none;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+}
+
+.size-controls-group:hover .size-label {
+  opacity: 1;
+  color: var(--color-text-secondary);
 }
 
 .size-controls {
@@ -625,7 +625,7 @@ onMounted(() => {
 .size-btn.active {
   background: var(--color-bg-panel);
   color: var(--color-text-primary);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 15%);
+  box-shadow: var(--shadow-xs);
 }
 
 .close-button {
@@ -940,7 +940,7 @@ ul.tests-list {
   font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-xs);
   color: var(--color-text-primary);
-  word-break: break-word;
+  overflow-wrap: break-word;
   line-height: 1.4;
   background: var(--color-bg-dark);
   padding: 2px 8px;

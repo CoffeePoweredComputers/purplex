@@ -1,7 +1,6 @@
 <template>
   <div
     class="form-section rounded-lg border-default transition-fast"
-    style="position: relative;"
   >
     <h3>{{ $t('admin.editors.testCases') }}</h3>
 
@@ -288,6 +287,7 @@ function removeTestCase(index: number) {
 
 /* Form Section */
 .form-section {
+  position: relative;
   background: var(--color-bg-panel);
   padding: var(--spacing-xl);
   box-shadow: var(--shadow-base);
@@ -667,15 +667,15 @@ function removeTestCase(index: number) {
   box-shadow: var(--shadow-colored);
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--color-primary-glow);
-}
-
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px var(--color-primary-glow);
 }
 
 .btn-secondary {

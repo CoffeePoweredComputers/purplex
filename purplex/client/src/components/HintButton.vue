@@ -618,10 +618,6 @@ export default {
   transition: all 0.2s;
 }
 
-.hint-button:hover:not(:disabled) {
-  background: var(--color-bg-input);
-}
-
 .hint-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -632,13 +628,17 @@ export default {
   outline-offset: 2px;
 }
 
+.hint-button:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
 .hint-button:focus:not(:focus-visible) {
   outline: none;
 }
 
-.hint-button:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
-  outline-offset: 2px;
+.hint-button:hover:not(:disabled) {
+  background: var(--color-bg-input);
 }
 
 .hint-button.pulse {
@@ -721,13 +721,13 @@ export default {
   outline-offset: 2px;
 }
 
-.close-btn:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .close-btn:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.close-btn:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .hint-list {
@@ -851,9 +851,6 @@ export default {
   padding: 12px 16px;
   background: var(--color-bg-section);
   border-top: 1px solid var(--color-bg-border);
-}
-
-.hint-footer {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -909,13 +906,13 @@ export default {
   outline-offset: 2px;
 }
 
-.action-btn:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .action-btn:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.action-btn:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Toggle Switch Styles */
@@ -978,15 +975,15 @@ export default {
   outline-offset: 2px;
 }
 
-.hint-checkbox:focus:not(:focus-visible) + .toggle-slider {
-  outline: none;
-  box-shadow: none;
-}
-
 .hint-checkbox:focus-visible + .toggle-slider {
   box-shadow: 0 0 0 3px var(--color-primary-glow);
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.hint-checkbox:focus:not(:focus-visible) + .toggle-slider {
+  outline: none;
+  box-shadow: none;
 }
 
 .hint-attempts {

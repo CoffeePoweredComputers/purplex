@@ -533,10 +533,6 @@ defineExpose({
     cursor: default !important;
   }
 
-  :deep(.ace_editor.ace_read-only .ace_cursor-layer) {
-    display: none !important;
-  }
-
   :deep(.ace_editor.ace_read-only .ace_content) {
     cursor: text !important;
   }

@@ -504,22 +504,10 @@ input::placeholder {
   box-shadow: var(--shadow-colored);
 }
 
-.login-btns button:first-child:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
-}
-
-
 .login-btns button:nth-child(2) {
   background: var(--color-bg-hover);
   color: var(--color-text-tertiary);
   border: 1px solid var(--color-bg-border);
-}
-
-.login-btns button:nth-child(2):hover {
-  background: var(--color-bg-input);
-  border-color: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
 }
 
 .login-btns button:nth-child(2)::before {
@@ -534,11 +522,6 @@ input::placeholder {
   overflow: hidden;
 }
 
-.login-btns button:nth-child(3):hover {
-  border-color: var(--color-primary-gradient-start);
-  transform: translateY(-1px);
-}
-
 .login-btns button:nth-child(3)::before {
   content: "🌐";
 }
@@ -547,6 +530,22 @@ input::placeholder {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
+}
+
+.login-btns button:first-child:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
+}
+
+.login-btns button:nth-child(2):hover {
+  background: var(--color-bg-input);
+  border-color: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
+}
+
+.login-btns button:nth-child(3):hover {
+  border-color: var(--color-primary-gradient-start);
+  transform: translateY(-1px);
 }
 
 .login-btns button:disabled:hover {

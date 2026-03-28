@@ -323,6 +323,35 @@ function getMemberSince(): string {
     transition: var(--transition-base);
 }
 
+.logout-button {
+    background: var(--color-error-bg);
+    border: 1px solid var(--color-error);
+    border-radius: var(--radius-base);
+    padding: var(--spacing-md) var(--spacing-xl);
+    color: var(--color-error);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    min-width: 140px;
+}
+
+.logout-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+.logout-button:hover {
+    background: var(--color-error);
+    color: var(--color-text-on-filled);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--color-error-overlay);
+}
+
 .info-item--link:hover svg {
     color: var(--color-text-secondary);
     transform: translateX(2px);
@@ -365,36 +394,6 @@ function getMemberSince(): string {
     border-top: 1px solid var(--color-bg-input);
     display: flex;
     justify-content: center;
-}
-
-
-.logout-button {
-    background: var(--color-error-bg);
-    border: 1px solid var(--color-error);
-    border-radius: var(--radius-base);
-    padding: var(--spacing-md) var(--spacing-xl);
-    color: var(--color-error);
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition-base);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-sm);
-    min-width: 140px;
-}
-
-.logout-button:hover {
-    background: var(--color-error);
-    color: var(--color-text-on-filled);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--color-error-overlay);
-}
-
-.logout-button svg {
-    width: 16px;
-    height: 16px;
 }
 
 /* Responsive Design */

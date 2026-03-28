@@ -273,15 +273,15 @@ defineExpose({
   transition: all 0.2s ease;
 }
 
+.remove-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .remove-btn:hover:not(:disabled) {
   background: var(--color-error);
   color: var(--color-text-on-filled);
   border-color: var(--color-error);
-}
-
-.remove-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
 }
 
 .mcq-option-fields {
@@ -302,12 +302,6 @@ defineExpose({
   transition: var(--transition-base);
 }
 
-.option-text-input:focus,
-.option-explanation-input:focus {
-  outline: none;
-  border-color: var(--color-primary-gradient-start);
-}
-
 .option-explanation-input {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
@@ -315,6 +309,12 @@ defineExpose({
 
 .option-explanation-input::placeholder {
   font-style: italic;
+}
+
+.option-text-input:focus,
+.option-explanation-input:focus {
+  outline: none;
+  border-color: var(--color-primary-gradient-start);
 }
 
 .btn-secondary {
@@ -328,15 +328,15 @@ defineExpose({
   transition: all 0.2s ease;
 }
 
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-secondary:hover:not(:disabled) {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
   border-color: var(--color-primary-gradient-start);
-}
-
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .add-option-btn {

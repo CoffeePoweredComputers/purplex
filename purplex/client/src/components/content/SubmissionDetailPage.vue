@@ -423,13 +423,13 @@ onMounted(fetchSubmission);
   color: var(--color-text-primary);
 }
 
-.nav-btn:hover:not(:disabled) {
-  background: var(--color-bg-input);
-}
-
 .nav-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--color-bg-input);
 }
 
 .test-list {

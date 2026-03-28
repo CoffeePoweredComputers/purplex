@@ -151,13 +151,6 @@ function removeTag(index: number) {
   transition: var(--transition-fast);
 }
 
-.form-group input[type="text"]:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
-}
-
 .form-group input::placeholder,
 .form-group textarea::placeholder {
   color: var(--color-text-muted);
@@ -166,6 +159,13 @@ function removeTag(index: number) {
 .form-group textarea {
   resize: vertical;
   min-height: 80px;
+}
+
+.form-group input[type="text"]:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--color-primary-gradient-start);
+  box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
 /* Tags */

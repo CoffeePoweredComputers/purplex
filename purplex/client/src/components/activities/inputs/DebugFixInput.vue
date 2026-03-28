@@ -254,15 +254,15 @@ function handleReset() {
   transition: var(--transition-base);
 }
 
+.reset-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .reset-button:hover:not(:disabled) {
   background: var(--color-bg-input);
   color: var(--color-text-primary);
   border-color: var(--color-primary-gradient-start);
-}
-
-.reset-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Submit Button */
@@ -285,14 +285,14 @@ function handleReset() {
   flex-shrink: 0;
 }
 
-.submit-button:hover:not(:disabled) {
-  box-shadow: 0 6px 20px var(--color-primary-glow);
-}
-
 .submit-button:disabled {
   background: var(--color-bg-disabled);
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.submit-button:hover:not(:disabled) {
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 /* Loading Animation */
@@ -346,7 +346,7 @@ function handleReset() {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }

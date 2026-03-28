@@ -104,18 +104,18 @@ function openInPyTutor(): void {
   white-space: nowrap;
 }
 
-.trace-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-end);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
 .trace-btn:disabled {
   background: var(--color-bg-disabled);
   color: var(--color-text-muted);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.trace-btn:hover:not(:disabled) {
+  background: var(--color-primary-gradient-end);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 @media (width <= 768px) {

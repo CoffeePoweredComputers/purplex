@@ -288,17 +288,17 @@ onMounted(() => {
   transition: var(--transition-base);
 }
 
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
   background: var(--color-bg-panel);
-}
-
-.form-group textarea {
-  resize: vertical;
-  min-height: 80px;
 }
 
 .code-textarea {
@@ -454,15 +454,15 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
+.zoom-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .zoom-btn:hover:not(:disabled) {
   background: var(--color-primary-gradient-start);
   color: var(--color-text-on-filled);
   border-color: var(--color-primary-gradient-start);
-}
-
-.zoom-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .zoom-display {

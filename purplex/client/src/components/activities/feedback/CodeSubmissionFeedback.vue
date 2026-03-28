@@ -721,13 +721,13 @@ onBeforeUnmount(() => {
   outline-offset: 2px;
 }
 
-.attempt-dropdown-trigger:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .attempt-dropdown-trigger:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.attempt-dropdown-trigger:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .attempt-text {
@@ -823,10 +823,6 @@ onBeforeUnmount(() => {
   outline-offset: 2px;
 }
 
-.attempt-item-minimal:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .attempt-item-minimal:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
@@ -835,6 +831,10 @@ onBeforeUnmount(() => {
 .attempt-item-minimal:hover {
   background: var(--color-overlay-subtle);
   color: var(--color-text-secondary);
+}
+
+.attempt-item-minimal:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .attempt-item-minimal.is-current {
@@ -985,13 +985,13 @@ onBeforeUnmount(() => {
   outline-offset: 2px;
 }
 
-.test-group-header:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .test-group-header:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.test-group-header:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .test-group-header.failing {
@@ -1116,13 +1116,13 @@ details:not([open]) .group-icon {
   outline-offset: 2px;
 }
 
-.debug-btn:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .debug-btn:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.debug-btn:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Empty State - Aligned with Feedback.vue */

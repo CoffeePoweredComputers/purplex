@@ -573,15 +573,15 @@ defineExpose({
   transition: all 0.2s ease;
 }
 
+.zoom-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .zoom-btn:hover:not(:disabled) {
   background: var(--color-primary-gradient-start);
   color: var(--color-text-on-filled);
   border-color: var(--color-primary-gradient-start);
-}
-
-.zoom-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .zoom-display {
@@ -631,15 +631,15 @@ defineExpose({
   transition: all 0.2s ease;
 }
 
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-secondary:hover:not(:disabled) {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
   border-color: var(--color-primary-gradient-start);
-}
-
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .btn-primary {
@@ -653,15 +653,15 @@ defineExpose({
   transition: all 0.2s ease;
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--color-primary-glow);
-}
-
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px var(--color-primary-glow);
 }
 
 .test-cases-list {

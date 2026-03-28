@@ -273,17 +273,17 @@ onMounted(() => {
   transition: var(--transition-base);
 }
 
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
   border-color: var(--color-primary-gradient-start);
   background: var(--color-bg-panel);
-}
-
-.form-group textarea {
-  resize: vertical;
-  min-height: 80px;
 }
 
 .input-error {

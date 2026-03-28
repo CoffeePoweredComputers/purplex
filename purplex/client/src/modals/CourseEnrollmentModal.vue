@@ -269,17 +269,17 @@ async function enrollInCourse(): Promise<void> {
   box-shadow: var(--shadow-colored);
 }
 
-.lookup-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
-}
-
 .lookup-btn:disabled {
   background: var(--color-bg-disabled);
   color: var(--color-text-muted);
   cursor: not-allowed;
   opacity: 0.7;
   box-shadow: none;
+}
+
+.lookup-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 .course-preview {
@@ -350,17 +350,17 @@ async function enrollInCourse(): Promise<void> {
   box-shadow: var(--shadow-colored);
 }
 
-.enroll-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-success-overlay);
-}
-
 .enroll-btn:disabled {
   background: var(--color-bg-disabled);
   color: var(--color-text-muted);
   cursor: not-allowed;
   opacity: 0.7;
   box-shadow: none;
+}
+
+.enroll-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--color-success-overlay);
 }
 
 .error-message {

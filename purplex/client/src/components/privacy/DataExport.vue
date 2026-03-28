@@ -93,11 +93,6 @@ async function exportData() {
     transition: var(--transition-fast);
 }
 
-.data-export__btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-colored);
-}
-
 .data-export__btn:focus-visible {
     outline: 2px solid var(--color-primary-gradient-start);
     outline-offset: 2px;
@@ -106,6 +101,11 @@ async function exportData() {
 .data-export__btn:disabled {
     opacity: 0.6;
     cursor: wait;
+}
+
+.data-export__btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-colored);
 }
 
 .data-export__error {

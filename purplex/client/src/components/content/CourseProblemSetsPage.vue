@@ -668,14 +668,14 @@ watch(
   font-size: var(--font-size-sm);
 }
 
-.order-btn:hover:not(:disabled) {
-  border-color: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
-}
-
 .order-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+.order-btn:hover:not(:disabled) {
+  border-color: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
 }
 
 .required-checkbox {
@@ -839,13 +839,13 @@ watch(
   color: var(--color-text-on-filled);
 }
 
-.add-button:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
 .add-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.add-button:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
 .remove-button {

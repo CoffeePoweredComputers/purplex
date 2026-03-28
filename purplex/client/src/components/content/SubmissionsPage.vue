@@ -463,7 +463,7 @@ onMounted(fetchSubmissions);
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -832,15 +832,15 @@ onMounted(fetchSubmissions);
   font-size: var(--font-size-sm);
 }
 
-.export-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
-}
-
 .export-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+.export-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 .view-button {

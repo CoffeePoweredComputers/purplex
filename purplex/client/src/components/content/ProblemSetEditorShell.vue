@@ -762,14 +762,14 @@ onMounted(async () => {
   color: var(--color-text-secondary);
 }
 
-.move-btn:hover:not(:disabled) {
-  background: var(--color-bg-input);
-  color: var(--color-text-primary);
-}
-
 .move-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+.move-btn:hover:not(:disabled) {
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
 }
 
 .remove-btn {

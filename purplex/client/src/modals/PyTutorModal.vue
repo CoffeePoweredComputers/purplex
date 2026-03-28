@@ -399,14 +399,6 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-.modal-fade-enter-active .modal-content {
-  transition: transform 0.3s ease;
-}
-
-.modal-fade-enter-from .modal-content {
-  transform: scale(0.9);
-}
-
 /* Accessibility */
 .sr-only {
   position: absolute;
@@ -415,7 +407,7 @@ onBeforeUnmount(() => {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border-width: 0;
 }
@@ -451,6 +443,14 @@ onBeforeUnmount(() => {
   flex-direction: column;
   overflow: hidden;
   transition: var(--transition-base);
+}
+
+.modal-fade-enter-active .modal-content {
+  transition: transform 0.3s ease;
+}
+
+.modal-fade-enter-from .modal-content {
+  transform: scale(0.9);
 }
 
 .modal-content.fullscreen-mode {
@@ -490,11 +490,6 @@ onBeforeUnmount(() => {
   transition: var(--transition-fast);
 }
 
-.size-controls-group:hover .size-label {
-  opacity: 1;
-  color: var(--color-text-secondary);
-}
-
 .size-label {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
@@ -503,6 +498,11 @@ onBeforeUnmount(() => {
   letter-spacing: 0.5px;
   text-transform: uppercase;
   opacity: 0.8;
+}
+
+.size-controls-group:hover .size-label {
+  opacity: 1;
+  color: var(--color-text-secondary);
 }
 
 .size-controls {
@@ -537,7 +537,7 @@ onBeforeUnmount(() => {
 .size-btn.active {
   background: var(--color-bg-panel);
   color: var(--color-text-primary);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 15%);
+  box-shadow: var(--shadow-xs);
 }
 
 .action-button {
@@ -689,7 +689,7 @@ onBeforeUnmount(() => {
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: white;
+  background: var(--color-text-on-filled);
   overflow: hidden;
 }
 
@@ -731,7 +731,7 @@ onBeforeUnmount(() => {
 .debugger-iframe {
   width: 100%;
   height: 100%;
-  background: white;
+  background: var(--color-text-on-filled);
   border: 0;
   transition: filter var(--transition-base);
 }

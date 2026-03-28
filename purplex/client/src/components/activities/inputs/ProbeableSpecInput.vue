@@ -281,14 +281,14 @@ function handleSubmit() {
   gap: var(--spacing-sm);
 }
 
-.submit-button:hover:not(:disabled) {
-  box-shadow: 0 6px 20px var(--color-primary-glow);
-}
-
 .submit-button:disabled {
   background: var(--color-bg-disabled);
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.submit-button:hover:not(:disabled) {
+  box-shadow: 0 6px 20px var(--color-primary-glow);
 }
 
 /* Loading Animation */
@@ -342,7 +342,7 @@ function handleSubmit() {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }

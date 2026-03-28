@@ -992,13 +992,13 @@ watch(() => props.submission, () => {
   transition: all 0.2s;
 }
 
-.download-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-end);
-}
-
 .download-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.download-btn:hover:not(:disabled) {
+  background: var(--color-primary-gradient-end);
 }
 
 /* Metrics Bar */
@@ -1089,14 +1089,14 @@ watch(() => props.submission, () => {
   color: var(--color-text-primary);
 }
 
-.nav-btn:hover:not(:disabled) {
-  background: var(--color-bg-input);
-  border-color: var(--color-bg-border);
-}
-
 .nav-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--color-bg-input);
+  border-color: var(--color-bg-border);
 }
 
 /* Modal Body */
@@ -1173,16 +1173,6 @@ watch(() => props.submission, () => {
   margin-bottom: 20px;
 }
 
-.prompt-section > .section-title {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-text-muted);
-  margin-bottom: 8px;
-}
-
 /* Code Section */
 .code-section {
   margin-bottom: 24px;
@@ -1199,6 +1189,16 @@ watch(() => props.submission, () => {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
+}
+
+.prompt-section > .section-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
 }
 
 .copy-btn {
@@ -1433,7 +1433,7 @@ details[open] .group-icon {
   min-width: 28px;
   height: 28px;
   padding: 0 8px;
-  background: linear-gradient(135deg, #9f7aea 0%, var(--color-primary-gradient-start) 100%);
+  background: linear-gradient(135deg, var(--color-segment-1) 0%, var(--color-primary-gradient-start) 100%);
   color: var(--color-text-on-filled);
   font-size: 16px;
   font-weight: 700;

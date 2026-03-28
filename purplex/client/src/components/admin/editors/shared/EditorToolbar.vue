@@ -110,15 +110,15 @@ const editor = computed(() => props.editor)
   transition: all 0.2s ease;
 }
 
-.zoom-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-start);
-  color: white;
-  border-color: var(--color-primary-gradient-start);
-}
-
 .zoom-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background: var(--color-primary-gradient-start);
+  color: var(--color-text-on-filled);
+  border-color: var(--color-primary-gradient-start);
 }
 
 .zoom-display {
