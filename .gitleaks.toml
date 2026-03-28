@@ -1,0 +1,10 @@
+# Gitleaks configuration for Purplex
+# https://github.com/gitleaks/gitleaks#configuration
+
+[allowlist]
+  # Known dead/rotated secrets in git history.
+  # These were rotated before the repo went public.
+  commits = [
+    "0c79df7e93abd5386b0579458732c00fd31c3462",  # Dead OpenAI key in start.sh (rotated)  # pragma: allowlist secret
+    "c279210128c711d21318bd83e4b5f73787754ac1",  # Same key, earlier commit  # pragma: allowlist secret
+  ]

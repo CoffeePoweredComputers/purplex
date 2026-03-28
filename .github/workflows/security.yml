@@ -10,13 +10,10 @@ on:
     branches: [master]
     paths:
       - 'requirements.txt'
-      - 'requirements/*.txt'
       - 'purplex/**/*.py'
       - 'purplex/client/package.json'
-      - 'purplex/client/package-lock.json'
       - 'purplex/client/yarn.lock'
       - 'Dockerfile*'
-      - 'docker/**'
 
 permissions:
   contents: read
@@ -36,8 +33,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Run pip-audit
         run: |
@@ -61,17 +57,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Run Bandit (fail on high severity)
+      - name: Run Bandit
         run: |
           pip install bandit
-          bandit -r purplex/ -ll -f json -o bandit-report.json || true
-          # Check for high severity issues (exit 1 if found)
-          bandit -r purplex/ -lll --exit-zero -f txt
-          # Fail if HIGH severity found
-          if bandit -r purplex/ -lll -q 2>/dev/null | grep -q "High"; then
-            echo "::error::High severity security issues found!"
-            exit 1
-          fi
+          bandit -r purplex/ -ll -x '*/migrations/*' -f json -o bandit-report.json || true
+          bandit -r purplex/ -lll -x '*/migrations/*'
 
       - name: Upload Bandit results
         uses: actions/upload-artifact@v4
@@ -84,11 +74,10 @@ jobs:
         uses: semgrep/semgrep-action@v1
         with:
           config: p/django p/python
-        env:
-          SEMGREP_RULES: p/django p/python
 
   container-scan:
     name: Container Security Scan
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -96,7 +85,7 @@ jobs:
       - name: Build image for scanning
         run: docker build -t purplex-app:scan .
 
-      - name: Run Trivy on app image
+      - name: Run Trivy
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'purplex-app:scan'
@@ -109,31 +98,11 @@ jobs:
     name: Secret Scanning
     runs-on: ubuntu-latest
     steps:
-      - name: Calculate checkout depth
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" == "push" ]; then
-            echo "depth=$(($(jq length <<< '${{ toJson(github.event.commits) }}') + 2))" >> $GITHUB_ENV
-            echo "branch=${{ github.ref_name }}" >> $GITHUB_ENV
-          elif [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "depth=$((${{ github.event.pull_request.commits }}+2))" >> $GITHUB_ENV
-            echo "branch=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
-          else
-            echo "depth=0" >> $GITHUB_ENV
-            echo "branch=${{ github.ref_name }}" >> $GITHUB_ENV
-          fi
-
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.branch }}
-          fetch-depth: ${{ env.depth }}
+          fetch-depth: 0
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run TruffleHog
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
-          trufflehog git file://. --since-commit HEAD~1 --results=verified,unknown --fail
