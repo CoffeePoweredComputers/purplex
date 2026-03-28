@@ -313,15 +313,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build Celery image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile.celery
-          push: false
-          tags: purplex-celery:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      # Celery uses the same Docker image with a different CMD (see docker-compose.yml).
+      # No separate Dockerfile.celery needed.
 
   test-summary:
     name: Test Summary

@@ -14,3 +14,9 @@ CVE-2025-7458
 # zlib: integer overflow in zipOpenNewFileInZip4_6 — Debian marked will_not_fix
 # Only affects minizip's zip-creation API, which we don't use
 CVE-2023-45853
+
+# jaraco.context: path traversal — vendored inside setuptools at 5.3.0
+# Our direct dependency is 6.1.2 (fixed). The vulnerable copy is at
+# setuptools/_vendor/jaraco.context which we cannot upgrade independently.
+# Remove once setuptools releases a version with updated vendored deps.
+CVE-2026-23949
