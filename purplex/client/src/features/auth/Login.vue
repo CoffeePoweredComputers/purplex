@@ -393,8 +393,9 @@ export default {
   font-size: var(--font-size-title);
   margin: 0;
   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 50%, var(--color-admin-hover) 100%);
-  -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  /* stylelint-disable-next-line property-no-vendor-prefix -- Safari requires -webkit- prefix for gradient text */
+  -webkit-background-clip: text;
   background-clip: text;
   font-weight: 800;
   letter-spacing: 1px;
@@ -505,22 +506,10 @@ input::placeholder {
   box-shadow: var(--shadow-colored);
 }
 
-.login-btns button:first-child:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
-}
-
-
 .login-btns button:nth-child(2) {
   background: var(--color-bg-hover);
   color: var(--color-text-tertiary);
   border: 1px solid var(--color-bg-border);
-}
-
-.login-btns button:nth-child(2):hover {
-  background: var(--color-bg-input);
-  border-color: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
 }
 
 .login-btns button:nth-child(2)::before {
@@ -535,11 +524,6 @@ input::placeholder {
   overflow: hidden;
 }
 
-.login-btns button:nth-child(3):hover {
-  border-color: var(--color-primary-gradient-start);
-  transform: translateY(-1px);
-}
-
 .login-btns button:nth-child(3)::before {
   content: "🌐";
 }
@@ -548,6 +532,22 @@ input::placeholder {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
+}
+
+.login-btns button:first-child:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
+}
+
+.login-btns button:nth-child(2):hover {
+  background: var(--color-bg-input);
+  border-color: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
+}
+
+.login-btns button:nth-child(3):hover {
+  border-color: var(--color-primary-gradient-start);
+  transform: translateY(-1px);
 }
 
 .login-btns button:disabled:hover {
@@ -674,7 +674,7 @@ input::placeholder {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .login-title {
     font-size: calc(var(--font-size-title) * 0.75);
   }
@@ -697,7 +697,7 @@ input::placeholder {
   }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .login-title {
     font-size: calc(var(--font-size-title) * 0.6);
   }

@@ -423,13 +423,13 @@ onMounted(fetchSubmission);
   color: var(--color-text-primary);
 }
 
-.nav-btn:hover:not(:disabled) {
-  background: var(--color-bg-input);
-}
-
 .nav-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--color-bg-input);
 }
 
 .test-list {
@@ -467,7 +467,7 @@ onMounted(fetchSubmission);
 .test-item.failing .test-status { color: var(--color-error); }
 
 .test-call {
-  font-family: 'Monaco', 'Menlo', monospace;
+  font-family: Monaco, Menlo, monospace;
   font-size: 13px;
   color: var(--color-text-primary);
 }

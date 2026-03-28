@@ -355,7 +355,7 @@ export default defineComponent({
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -469,7 +469,7 @@ export default defineComponent({
 
 /* Code Display */
 .code-display {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-sm);
   line-height: 1.4;
   background: var(--color-bg-dark);
@@ -485,6 +485,38 @@ export default defineComponent({
   transition: var(--transition-fast);
   position: relative;
   min-height: 20px;
+}
+
+/* Subway Map: Line number with colored stripe */
+.line-number {
+  display: inline-block;
+  width: 40px;
+  text-align: right;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  user-select: none;
+  flex-shrink: 0;
+  background: var(--color-bg-section);
+  padding: 2px 8px 2px 4px;
+  border-right: 1px solid var(--color-bg-border);
+  border-left: 3px solid transparent;
+  margin-right: 12px;
+  font-weight: normal;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Subway Map: Colored lane stripe on segments */
+.line-number[data-segment-id] {
+  border-left-style: solid;
+}
+
+.line-content {
+  color: var(--color-text-primary);
+  flex: 1;
+  white-space: pre;
+  padding: 2px 4px;
+  text-align: left;
+  font-family: inherit;
 }
 
 .code-line:hover .line-number {
@@ -515,48 +547,16 @@ export default defineComponent({
   opacity: 0.5;
 }
 
-/* Subway Map: Line number with colored stripe */
-.line-number {
-  display: inline-block;
-  width: 40px;
-  text-align: right;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  user-select: none;
-  flex-shrink: 0;
-  background: var(--color-bg-section);
-  padding: 2px 8px 2px 4px;
-  border-right: 1px solid var(--color-bg-border);
-  border-left: 3px solid transparent;
-  margin-right: 12px;
-  font-weight: normal;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Subway Map: Colored lane stripe on segments */
-.line-number[data-segment-id] {
-  border-left-style: solid;
-}
-
 /* Active state: wider stripe and subtle background tint */
 .code-line.highlighted .line-number[data-segment-id] {
   border-left-width: 6px;
   background: var(--color-overlay-strong);
 }
 
-.line-content {
-  color: var(--color-text-primary);
-  flex: 1;
-  white-space: pre;
-  padding: 2px 4px;
-  text-align: left;
-  font-family: inherit;
-}
-
 
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .mapping-grid-simplified {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
@@ -573,7 +573,7 @@ export default defineComponent({
   }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .response-panel,
   .code-panel {
     padding: var(--spacing-md);
@@ -603,11 +603,17 @@ export default defineComponent({
 .line-content .ace_keyword.ace_operator { color: var(--color-syntax-operator); }
 .line-content .ace_string { color: var(--color-syntax-string); }
 .line-content .ace_constant.ace_language.ace_escape { color: var(--color-syntax-string); }
-.line-content .ace_comment { color: var(--color-syntax-comment); font-style: italic; }
+
+.line-content .ace_comment {
+  color: var(--color-syntax-comment);
+  font-style: italic;
+}
+
 .line-content .ace_constant.ace_numeric { color: var(--color-syntax-number); }
 .line-content .ace_constant.ace_language { color: var(--color-syntax-number); }
 .line-content .ace_support.ace_function { color: var(--color-syntax-builtin); }
 .line-content .ace_variable.ace_language { color: var(--color-syntax-variable); }
+
 .line-content .ace_punctuation,
 .line-content .ace_paren.ace_lparen,
 .line-content .ace_paren.ace_rparen { color: var(--color-syntax-punctuation); }

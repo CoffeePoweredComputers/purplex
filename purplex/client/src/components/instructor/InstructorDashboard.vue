@@ -429,7 +429,7 @@ onMounted(() => {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -565,6 +565,10 @@ onMounted(() => {
   transition: opacity 0.15s ease 0.1s;
 }
 
+.add-course-card .hover-arrow {
+  display: none;
+}
+
 .course-card:hover .hover-arrow,
 .course-card:focus-visible .hover-arrow {
   width: 56px;
@@ -633,7 +637,7 @@ onMounted(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: currentColor;
+  background: currentcolor;
 }
 
 .student-count {
@@ -672,10 +676,6 @@ onMounted(() => {
   border-color: var(--color-primary-gradient-start);
   border-style: solid;
   background: var(--color-primary-overlay);
-}
-
-.add-course-card .hover-arrow {
-  display: none;
 }
 
 .add-card-content {
@@ -744,6 +744,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -910,11 +911,6 @@ onMounted(() => {
   box-shadow: var(--shadow-colored);
 }
 
-.btn-create:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
-}
-
 .btn-create:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -922,8 +918,13 @@ onMounted(() => {
   box-shadow: none;
 }
 
+.btn-create:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
+}
+
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .content-container {
     padding: 0 var(--spacing-md);
   }

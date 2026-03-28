@@ -335,7 +335,7 @@ onMounted(fetchTable);
   line-height: 1;
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .actions-cell {
     flex-wrap: wrap;
   }

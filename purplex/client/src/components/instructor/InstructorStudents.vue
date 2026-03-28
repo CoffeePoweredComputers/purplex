@@ -291,7 +291,7 @@ onMounted(() => {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -592,7 +592,7 @@ onMounted(() => {
 }
 
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .content-container {
     padding: 0 var(--spacing-md) var(--spacing-xl);
   }

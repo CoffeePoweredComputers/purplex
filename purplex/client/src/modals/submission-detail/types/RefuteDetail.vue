@@ -89,7 +89,7 @@ defineProps<{
   border: 1px solid var(--color-bg-input);
   border-radius: 4px;
   padding: 8px 12px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: 13px;
   color: var(--color-text-primary);
 }
@@ -102,7 +102,7 @@ defineProps<{
 }
 
 .input-box code {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: 13px;
   color: var(--color-text-primary);
   word-break: break-all;

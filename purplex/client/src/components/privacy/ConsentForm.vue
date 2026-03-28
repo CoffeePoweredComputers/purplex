@@ -229,11 +229,6 @@ function submitConsent() {
     transition: var(--transition-fast);
 }
 
-.consent-form__submit:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-colored);
-}
-
 .consent-form__submit:focus-visible {
     outline: 2px solid var(--color-primary-gradient-start);
     outline-offset: 2px;
@@ -242,5 +237,10 @@ function submitConsent() {
 .consent-form__submit:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.consent-form__submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-colored);
 }
 </style>

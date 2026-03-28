@@ -835,7 +835,7 @@ export default defineComponent({
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -884,6 +884,7 @@ export default defineComponent({
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.8;
     transform: scale(1.05);
@@ -960,6 +961,7 @@ export default defineComponent({
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -1477,13 +1479,14 @@ export default defineComponent({
   font-family: inherit;
 }
 
+.banner-button:focus {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
 .urgency-high .banner-button {
   background: var(--color-error);
   color: var(--color-text-on-filled);
-}
-
-.urgency-high .banner-button:hover {
-  background: var(--color-error-dark);
 }
 
 .urgency-medium .banner-button {
@@ -1491,17 +1494,9 @@ export default defineComponent({
   color: var(--color-text-on-filled);
 }
 
-.urgency-medium .banner-button:hover {
-  background: var(--color-warning-dark);
-}
-
 .urgency-low .banner-button {
   background: var(--color-info);
   color: var(--color-text-on-filled);
-}
-
-.urgency-low .banner-button:hover {
-  background: var(--color-info-dark);
 }
 
 .urgency-success .banner-button {
@@ -1509,13 +1504,20 @@ export default defineComponent({
   color: var(--color-text-on-filled);
 }
 
-.urgency-success .banner-button:hover {
-  background: var(--color-success-dark);
+.urgency-high .banner-button:hover {
+  background: var(--color-error-dark);
 }
 
-.banner-button:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
-  outline-offset: 2px;
+.urgency-medium .banner-button:hover {
+  background: var(--color-warning-dark);
+}
+
+.urgency-low .banner-button:hover {
+  background: var(--color-info-dark);
+}
+
+.urgency-success .banner-button:hover {
+  background: var(--color-success-dark);
 }
 
 /* Empty State */
@@ -1542,7 +1544,7 @@ export default defineComponent({
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .feedback-header {
     flex-direction: column;
     align-items: flex-start;

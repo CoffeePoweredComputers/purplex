@@ -81,7 +81,7 @@ defineProps<{
   color: var(--color-success);
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .code-comparison {
     grid-template-columns: 1fr;
   }

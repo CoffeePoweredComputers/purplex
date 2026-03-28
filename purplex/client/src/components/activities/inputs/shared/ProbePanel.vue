@@ -405,9 +405,11 @@ watch(() => props.probeHistory.length, () => {
   0% {
     transform: scale(1);
   }
+
   30% {
     transform: scale(1.15);
   }
+
   100% {
     transform: scale(1);
   }
@@ -435,6 +437,12 @@ watch(() => props.probeHistory.length, () => {
   gap: var(--spacing-sm);
 }
 
+.probe-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .probe-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px var(--color-primary-glow);
@@ -442,12 +450,6 @@ watch(() => props.probeHistory.length, () => {
 
 .probe-btn:active:not(:disabled) {
   transform: translateY(0);
-}
-
-.probe-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
 }
 
 .probe-btn.is-duplicate {
@@ -469,7 +471,7 @@ watch(() => props.probeHistory.length, () => {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }

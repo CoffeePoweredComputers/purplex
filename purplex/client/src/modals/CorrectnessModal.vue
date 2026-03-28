@@ -446,7 +446,7 @@ onMounted(() => {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -460,14 +460,6 @@ onMounted(() => {
 .modal-fade-enter-from,
 .modal-fade-leave-to {
   opacity: 0;
-}
-
-.modal-fade-enter-active .modal-content {
-  transition: transform 0.3s ease;
-}
-
-.modal-fade-enter-from .modal-content {
-  transform: scale(0.9);
 }
 
 /* Modal Structure - Matches SegmentAnalysisModal */
@@ -502,6 +494,14 @@ onMounted(() => {
   flex-direction: column;
   overflow: hidden;
   transition: var(--transition-base);
+}
+
+.modal-fade-enter-active .modal-content {
+  transition: transform 0.3s ease;
+}
+
+.modal-fade-enter-from .modal-content {
+  transform: scale(0.9);
 }
 
 .modal-content:focus {
@@ -579,11 +579,6 @@ onMounted(() => {
   transition: var(--transition-fast);
 }
 
-.size-controls-group:hover .size-label {
-  opacity: 1;
-  color: var(--color-text-secondary);
-}
-
 .size-label {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
@@ -591,6 +586,11 @@ onMounted(() => {
   user-select: none;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+}
+
+.size-controls-group:hover .size-label {
+  opacity: 1;
+  color: var(--color-text-secondary);
 }
 
 .size-controls {
@@ -625,7 +625,7 @@ onMounted(() => {
 .size-btn.active {
   background: var(--color-bg-panel);
   color: var(--color-text-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xs);
 }
 
 .close-button {
@@ -851,20 +851,17 @@ h4.section-title {
 /* Accessible code overlay - transparent over the Ace editor, visible focus ring */
 .code-accessible {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   margin: 0;
   padding: var(--spacing-sm);
   color: transparent;
   background: transparent;
   overflow: auto;
   z-index: 1;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-sm);
   white-space: pre-wrap;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
   border: 2px solid transparent;
   border-radius: var(--radius-base);
   cursor: default;
@@ -940,10 +937,10 @@ ul.tests-list {
 }
 
 .test-call {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-xs);
   color: var(--color-text-primary);
-  word-break: break-word;
+  overflow-wrap: break-word;
   line-height: 1.4;
   background: var(--color-bg-dark);
   padding: 2px 8px;
@@ -971,7 +968,7 @@ ul.tests-list {
 }
 
 .value-content {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   background: var(--color-bg-dark);
@@ -989,7 +986,7 @@ ul.tests-list {
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .modal-overlay {
     padding: var(--spacing-md);
   }
@@ -1006,7 +1003,7 @@ ul.tests-list {
   }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .modal-overlay {
     padding: 0;
   }

@@ -175,6 +175,7 @@ function getMemberSince(): string {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -196,6 +197,7 @@ function getMemberSince(): string {
         transform: translateY(20px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -321,6 +323,35 @@ function getMemberSince(): string {
     transition: var(--transition-base);
 }
 
+.logout-button {
+    background: var(--color-error-bg);
+    border: 1px solid var(--color-error);
+    border-radius: var(--radius-base);
+    padding: var(--spacing-md) var(--spacing-xl);
+    color: var(--color-error);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    min-width: 140px;
+}
+
+.logout-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+.logout-button:hover {
+    background: var(--color-error);
+    color: var(--color-text-on-filled);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--color-error-overlay);
+}
+
 .info-item--link:hover svg {
     color: var(--color-text-secondary);
     transform: translateX(2px);
@@ -365,38 +396,8 @@ function getMemberSince(): string {
     justify-content: center;
 }
 
-
-.logout-button {
-    background: var(--color-error-bg);
-    border: 1px solid var(--color-error);
-    border-radius: var(--radius-base);
-    padding: var(--spacing-md) var(--spacing-xl);
-    color: var(--color-error);
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition-base);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-sm);
-    min-width: 140px;
-}
-
-.logout-button:hover {
-    background: var(--color-error);
-    color: var(--color-text-on-filled);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--color-error-overlay);
-}
-
-.logout-button svg {
-    width: 16px;
-    height: 16px;
-}
-
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .modal-content {
         max-width: 95%;
     }

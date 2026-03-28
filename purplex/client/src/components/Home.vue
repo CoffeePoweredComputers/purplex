@@ -343,13 +343,13 @@ main {
   outline-offset: 2px;
 }
 
-.problem-set-card:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .problem-set-card:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.problem-set-card:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .card-content {
@@ -452,7 +452,6 @@ main {
   transform: translateY(100%);
   transition: transform 0.3s ease;
   will-change: transform;
-  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
@@ -489,6 +488,7 @@ main {
   0%, 100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -556,13 +556,13 @@ main {
   outline-offset: 2px;
 }
 
-.add-course-btn:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .add-course-btn:focus-visible {
   outline: 2px solid var(--color-text-primary);
   outline-offset: 2px;
+}
+
+.add-course-btn:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .add-course-btn.floating {
@@ -587,7 +587,7 @@ main {
 
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .home-container {
     padding: var(--spacing-lg);
   }

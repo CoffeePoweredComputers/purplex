@@ -2151,9 +2151,11 @@ export default {
     0% {
         transform: translateX(-100%) scaleX(0.3);
     }
+
     50% {
         transform: translateX(0%) scaleX(1);
     }
+
     100% {
         transform: translateX(100%) scaleX(0.3);
     }
@@ -2165,7 +2167,7 @@ export default {
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1.25rem;
-    margin: 0 1rem 1rem 1rem;
+    margin: 0 1rem 1rem;
     border-radius: 8px;
     font-size: 0.9rem;
     background: var(--color-bg-section);
@@ -2213,22 +2215,6 @@ export default {
 }
 
 /* Workspace navigation transitions - removed all animations for static, stable UX */
-
-/* Navigation button loading state */
-.nav-button:active {
-    transform: scale(0.95);
-}
-
-.nav-button.is-loading {
-    opacity: 0.5;
-    cursor: wait;
-    pointer-events: none;
-}
-
-.nav-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
 
 .loading-container {
     display: flex;
@@ -2285,6 +2271,36 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Navigation button loading state */
+.nav-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.nav-button.is-loading {
+    opacity: 0.5;
+    cursor: wait;
+    pointer-events: none;
+}
+
+.nav-button:focus {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.nav-button:focus-visible {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.nav-button:active {
+    transform: scale(0.95);
+}
+
+.nav-button:focus:not(:focus-visible) {
+    outline: none;
 }
 
 .nav-button:hover:not(:disabled) {
@@ -2349,6 +2365,7 @@ export default {
     cursor: pointer;
     transition: background 0.2s ease, box-shadow 0.2s ease;
     position: relative;
+
     /* Button resets */
     border: none;
     padding: 0;
@@ -2412,6 +2429,7 @@ export default {
     0% {
         left: -100%;
     }
+
     100% {
         left: 200%;
     }
@@ -2422,6 +2440,7 @@ export default {
         transform: translate(-50%, -50%) scale(0);
         opacity: 0;
     }
+
     50% {
         transform: translate(-50%, -50%) scale(1);
         opacity: 1;
@@ -2494,7 +2513,7 @@ export default {
     padding: var(--spacing-md) var(--spacing-lg);
     background: var(--color-bg-section);
     border-bottom: 1px solid var(--color-bg-input);
-    margin-bottom: 0px !important;
+    margin-bottom: 0 !important;
 }
 
 .section-label {
@@ -2602,7 +2621,7 @@ export default {
     background: var(--color-bg-hover);
     padding: 2px 6px;
     border-radius: var(--radius-xs);
-    font-family: 'Fira Code', 'Monaco', monospace;
+    font-family: 'Fira Code', Monaco, monospace;
     font-size: 0.9em;
     color: var(--color-text-code);
 }
@@ -2684,15 +2703,29 @@ export default {
     border-radius: var(--radius-xs);
 }
 
+.zoom-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.zoom-btn:focus {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.zoom-btn:focus-visible {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.zoom-btn:focus:not(:focus-visible) {
+    outline: none;
+}
+
 .zoom-btn:hover:not(:disabled) {
     background: var(--color-bg-input);
     color: var(--color-text-primary);
     border-color: var(--color-primary-gradient-start);
-}
-
-.zoom-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .zoom-icon {
@@ -2708,9 +2741,9 @@ export default {
 }
 
 .toolbar-btn {
-    width: 32px;
+    width: auto;
     height: 24px;
-    padding: 0;
+    padding: 0 var(--spacing-sm);
     background: var(--color-bg-panel);
     border: 1px solid var(--color-bg-border);
     color: var(--color-text-secondary);
@@ -2721,6 +2754,7 @@ export default {
     cursor: pointer;
     transition: var(--transition-fast);
     border-radius: var(--radius-xs);
+    gap: var(--spacing-xs);
 }
 
 .toolbar-btn:hover {
@@ -2790,7 +2824,7 @@ export default {
 /* Input-specific styles moved to EiplInput.vue */
 
 /* Responsive Design */
-@media (max-width: 1200px) {
+@media (width <= 1200px) {
     .workspace {
         flex-direction: column;
         padding: var(--spacing-lg);
@@ -2822,7 +2856,7 @@ export default {
     }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .problem-set-container {
         min-height: auto;
     }
@@ -2913,21 +2947,12 @@ export default {
 }
 
 /* Focus styles for keyboard navigation */
-.nav-button:focus {
-    outline: 2px solid var(--color-primary-gradient-start);
-    outline-offset: 2px;
-}
-
-.nav-button:focus:not(:focus-visible) {
-    outline: none;
-}
-
-.nav-button:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
-    outline-offset: 2px;
-}
-
 .progress-bar:focus {
+    outline: 2px solid var(--color-primary-gradient-start);
+    outline-offset: 2px;
+}
+
+.progress-bar:focus-visible {
     outline: 2px solid var(--color-primary-gradient-start);
     outline-offset: 2px;
 }
@@ -2936,18 +2961,9 @@ export default {
     outline: none;
 }
 
-.progress-bar:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
-    outline-offset: 2px;
-}
-
 .toolbar-btn:focus {
     outline: 2px solid var(--color-primary-gradient-start);
     outline-offset: 2px;
-}
-
-.toolbar-btn:focus:not(:focus-visible) {
-    outline: none;
 }
 
 .toolbar-btn:focus-visible {
@@ -2955,18 +2971,8 @@ export default {
     outline-offset: 2px;
 }
 
-.zoom-btn:focus {
-    outline: 2px solid var(--color-primary-gradient-start);
-    outline-offset: 2px;
-}
-
-.zoom-btn:focus:not(:focus-visible) {
+.toolbar-btn:focus:not(:focus-visible) {
     outline: none;
-}
-
-.zoom-btn:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
-    outline-offset: 2px;
 }
 
 /* Visually hidden class for screen reader-only content */
@@ -2977,7 +2983,7 @@ export default {
     padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
     border-width: 0;
 }
@@ -3002,18 +3008,12 @@ export default {
 }
 
 /* Button Text Labels */
-.toolbar-btn {
-    width: auto;
-    padding: 0 var(--spacing-sm);
-    gap: var(--spacing-xs);
-}
-
 .toolbar-btn .btn-text {
     font-size: var(--font-size-xs);
     font-weight: 500;
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .toolbar-btn .btn-text {
         display: none;
     }

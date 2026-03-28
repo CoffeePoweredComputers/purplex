@@ -204,7 +204,7 @@ export default defineComponent({
 }
 
 /* Mobile */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .notification-container {
     left: 10px;
     right: 10px;

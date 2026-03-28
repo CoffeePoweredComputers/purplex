@@ -511,6 +511,7 @@ onBeforeUnmount(() => {
   box-shadow: var(--shadow-md);
   overflow: hidden;
   position: relative;
+
   /* Removed min-height: 600px to prevent black space overflow */
 }
 
@@ -552,6 +553,7 @@ onBeforeUnmount(() => {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.8;
     transform: scale(1.05);
@@ -647,6 +649,7 @@ onBeforeUnmount(() => {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -718,13 +721,13 @@ onBeforeUnmount(() => {
   outline-offset: 2px;
 }
 
-.attempt-dropdown-trigger:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .attempt-dropdown-trigger:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.attempt-dropdown-trigger:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .attempt-text {
@@ -820,10 +823,6 @@ onBeforeUnmount(() => {
   outline-offset: 2px;
 }
 
-.attempt-item-minimal:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .attempt-item-minimal:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
@@ -832,6 +831,10 @@ onBeforeUnmount(() => {
 .attempt-item-minimal:hover {
   background: var(--color-overlay-subtle);
   color: var(--color-text-secondary);
+}
+
+.attempt-item-minimal:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .attempt-item-minimal.is-current {
@@ -982,13 +985,13 @@ onBeforeUnmount(() => {
   outline-offset: 2px;
 }
 
-.test-group-header:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .test-group-header:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.test-group-header:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .test-group-header.failing {
@@ -1046,7 +1049,7 @@ details:not([open]) .group-icon {
 }
 
 .test-call {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-sm);
   background: var(--color-bg-input);
   padding: var(--spacing-xs) var(--spacing-sm);
@@ -1113,13 +1116,13 @@ details:not([open]) .group-icon {
   outline-offset: 2px;
 }
 
-.debug-btn:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .debug-btn:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.debug-btn:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Empty State - Aligned with Feedback.vue */
@@ -1146,7 +1149,7 @@ details:not([open]) .group-icon {
 }
 
 /* Responsive Design - Aligned with Feedback.vue */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .test-summary-bar {
     padding: var(--spacing-sm) var(--spacing-md);
   }

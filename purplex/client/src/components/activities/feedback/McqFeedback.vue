@@ -247,11 +247,6 @@ const bannerClass = computed(() => {
   border: 1px solid var(--color-warning);
 }
 
-.result-banner--partial .result-icon {
-  background: var(--color-warning);
-  color: var(--color-text-on-filled);
-}
-
 .result-icon {
   display: flex;
   align-items: center;
@@ -270,6 +265,11 @@ const bannerClass = computed(() => {
 
 .result-banner--incorrect .result-icon {
   background: var(--color-error);
+  color: var(--color-text-on-filled);
+}
+
+.result-banner--partial .result-icon {
+  background: var(--color-warning);
   color: var(--color-text-on-filled);
 }
 

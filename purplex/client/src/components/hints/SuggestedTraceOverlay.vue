@@ -104,12 +104,6 @@ function openInPyTutor(): void {
   white-space: nowrap;
 }
 
-.trace-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-end);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
 .trace-btn:disabled {
   background: var(--color-bg-disabled);
   color: var(--color-text-muted);
@@ -118,7 +112,13 @@ function openInPyTutor(): void {
   box-shadow: none;
 }
 
-@media (max-width: 768px) {
+.trace-btn:hover:not(:disabled) {
+  background: var(--color-primary-gradient-end);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (width <= 768px) {
   .suggested-trace {
     margin: var(--spacing-md);
   }

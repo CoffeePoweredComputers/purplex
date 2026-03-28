@@ -367,8 +367,9 @@ defineExpose({
     border-radius: var(--radius-lg);
     border: 2px solid var(--color-bg-input);
     box-shadow: var(--shadow-md);
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
     font-size: var(--font-size-sm);
+
     /* Transition only visual properties — never height/width.
        ACE's $autosize sets container height synchronously; animating it
        creates a ResizeObserver feedback loop that corrupts cached layout. */
@@ -385,8 +386,8 @@ defineExpose({
   /* Fix text wrapping - ensure wrapped lines maintain proper indentation */
   :deep(.ace_text-layer .ace_line) {
     white-space: pre-wrap;
-    word-wrap: break-word;
-    text-indent: 0;
+    overflow-wrap: break-word;
+
     /* Use hanging indent to align wrapped text properly */
     padding-left: 0;
     text-indent: 0;
@@ -400,6 +401,7 @@ defineExpose({
   /* Alternative approach: use CSS hanging-punctuation if needed */
   :deep(.ace_line_group) {
     text-indent: 0;
+
     /* Maintain consistent spacing for wrapped content */
     line-height: 1.2;
   }
@@ -467,7 +469,7 @@ defineExpose({
 
   /* Bracket matching */
   :deep(.ace_bracket) {
-    margin: -1px -1px 0 -1px;
+    margin: -1px -1px 0;
     border: 1px solid var(--color-primary-gradient-start);
     background: var(--color-primary-overlay);
   }
@@ -501,7 +503,9 @@ defineExpose({
   }
 
   /* Hint System Styles */
+
   /* Variable fade has no visual styling - just transforms variable names */
+
   /* Subgoal highlighting: force comment tokens to have transparent backgrounds
      so fullLine marker backgrounds show through consistently across all themes */
   :deep(.ace_comment) {
@@ -529,10 +533,6 @@ defineExpose({
     cursor: default !important;
   }
 
-  :deep(.ace_editor.ace_read-only .ace_cursor-layer) {
-    display: none !important;
-  }
-
   :deep(.ace_editor.ace_read-only .ace_content) {
     cursor: text !important;
   }
@@ -542,9 +542,11 @@ defineExpose({
     0% {
       background: var(--color-warning-overlay);
     }
+
     50% {
       background: var(--color-warning-overlay);
     }
+
     100% {
       background: var(--color-warning-overlay);
     }

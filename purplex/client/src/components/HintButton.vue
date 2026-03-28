@@ -618,10 +618,6 @@ export default {
   transition: all 0.2s;
 }
 
-.hint-button:hover:not(:disabled) {
-  background: var(--color-bg-input);
-}
-
 .hint-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -632,13 +628,17 @@ export default {
   outline-offset: 2px;
 }
 
+.hint-button:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
 .hint-button:focus:not(:focus-visible) {
   outline: none;
 }
 
-.hint-button:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
-  outline-offset: 2px;
+.hint-button:hover:not(:disabled) {
+  background: var(--color-bg-input);
 }
 
 .hint-button.pulse {
@@ -649,9 +649,11 @@ export default {
   0% {
     box-shadow: 0 0 0 0 var(--color-warning-pulse);
   }
+
   70% {
     box-shadow: 0 0 0 10px var(--color-warning-pulse-end);
   }
+
   100% {
     box-shadow: 0 0 0 0 var(--color-warning-pulse-end);
   }
@@ -719,13 +721,13 @@ export default {
   outline-offset: 2px;
 }
 
-.close-btn:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .close-btn:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.close-btn:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .hint-list {
@@ -768,7 +770,7 @@ export default {
 }
 
 .hint-info h5 {
-  margin: 0 0 4px 0;
+  margin: 0 0 4px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -781,7 +783,7 @@ export default {
 }
 
 .hint-requirement {
-  margin: 4px 0 0 0;
+  margin: 4px 0 0;
   font-size: 11px;
   color: var(--color-warning);
   font-weight: 500;
@@ -817,7 +819,7 @@ export default {
 }
 
 .hint-content-body p {
-  margin: 0 0 12px 0;
+  margin: 0 0 12px;
   font-size: 14px;
   line-height: 1.6;
   color: var(--color-text-secondary);
@@ -828,7 +830,7 @@ export default {
 }
 
 .hint-example h6 {
-  margin: 0 0 8px 0;
+  margin: 0 0 8px;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text-muted);
@@ -849,9 +851,6 @@ export default {
   padding: 12px 16px;
   background: var(--color-bg-section);
   border-top: 1px solid var(--color-bg-border);
-}
-
-.hint-footer {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -907,13 +906,13 @@ export default {
   outline-offset: 2px;
 }
 
-.action-btn:focus:not(:focus-visible) {
-  outline: none;
-}
-
 .action-btn:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.action-btn:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Toggle Switch Styles */
@@ -939,16 +938,13 @@ export default {
 .toggle-slider {
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: var(--color-bg-border);
   transition: 0.3s;
   border-radius: 24px;
 }
 
-.toggle-slider:before {
+.toggle-slider::before {
   position: absolute;
   content: "";
   height: 18px;
@@ -965,7 +961,7 @@ export default {
   background-color: var(--color-primary-gradient-start);
 }
 
-.hint-checkbox:checked + .toggle-slider:before {
+.hint-checkbox:checked + .toggle-slider::before {
   transform: translateX(20px);
 }
 
@@ -979,15 +975,15 @@ export default {
   outline-offset: 2px;
 }
 
-.hint-checkbox:focus:not(:focus-visible) + .toggle-slider {
-  outline: none;
-  box-shadow: none;
-}
-
 .hint-checkbox:focus-visible + .toggle-slider {
   box-shadow: 0 0 0 3px var(--color-primary-glow);
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;
+}
+
+.hint-checkbox:focus:not(:focus-visible) + .toggle-slider {
+  outline: none;
+  box-shadow: none;
 }
 
 .hint-attempts {

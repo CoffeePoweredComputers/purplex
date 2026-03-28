@@ -165,7 +165,7 @@ async function handleLanguageChange() {
   50% { opacity: 0.5; }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .language-select {
     max-width: 100%;
   }

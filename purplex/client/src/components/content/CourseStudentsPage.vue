@@ -306,7 +306,7 @@ watch(
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-success) 0%, #0e9f6e 100%);
+  background: linear-gradient(90deg, var(--color-success) 0%, var(--color-success-accent) 100%);
   transition: width 0.3s ease;
 }
 
@@ -356,7 +356,7 @@ watch(
   background: var(--color-error-bg);
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .progress-info {
     flex-direction: column;
     align-items: flex-start;

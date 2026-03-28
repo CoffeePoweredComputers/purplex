@@ -897,15 +897,15 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-secondary:hover:not(:disabled) {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
   border-color: var(--color-primary-gradient-start);
-}
-
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .btn-sm {

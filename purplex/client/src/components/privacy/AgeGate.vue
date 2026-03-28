@@ -190,11 +190,6 @@ function submitAge() {
     transition: var(--transition-fast);
 }
 
-.age-gate__submit:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-colored);
-}
-
 .age-gate__submit:focus-visible {
     outline: 2px solid var(--color-primary-gradient-start);
     outline-offset: 2px;
@@ -203,5 +198,10 @@ function submitAge() {
 .age-gate__submit:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.age-gate__submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-colored);
 }
 </style>

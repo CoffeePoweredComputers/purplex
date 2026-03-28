@@ -176,15 +176,15 @@ function handlePageSizeChange(event: Event) {
   justify-content: center;
 }
 
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .pagination-btn:hover:not(:disabled) {
   border-color: var(--color-primary-gradient-start);
   background: var(--color-primary-gradient-start);
   color: var(--color-text-on-filled);
-}
-
-.pagination-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 .pagination-btn.active {
@@ -196,7 +196,7 @@ function handlePageSizeChange(event: Event) {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .pagination {
     flex-direction: column;
     gap: var(--spacing-md);

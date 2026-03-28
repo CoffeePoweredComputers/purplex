@@ -555,15 +555,15 @@ function formatOutput(value: unknown): string {
   gap: var(--spacing-sm);
 }
 
-.test-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--color-primary-glow);
-}
-
 .test-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+.test-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--color-primary-glow);
 }
 
 .spinner {
@@ -672,14 +672,14 @@ function formatOutput(value: unknown): string {
   box-shadow: 0 4px 12px var(--color-success-overlay);
 }
 
-.submit-button:hover:not(:disabled) {
-  box-shadow: 0 6px 20px var(--color-success-overlay);
-}
-
 .submit-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
   transform: none;
+}
+
+.submit-button:hover:not(:disabled) {
+  box-shadow: 0 6px 20px var(--color-success-overlay);
 }
 
 /* Loading Animation */
@@ -710,6 +710,7 @@ function formatOutput(value: unknown): string {
     transform: scale(0);
     opacity: 0.5;
   }
+
   40% {
     transform: scale(1);
     opacity: 1;
