@@ -194,11 +194,20 @@ async function addMember(): Promise<void> {
     newEmail.value = '';
     newRole.value = 'ta';
   } catch (err: unknown) {
-    const msg = axios.isAxiosError(err) ? (err.response?.data?.error || t('admin.courseTeam.addFailed')) : t('admin.courseTeam.addFailed');
-    actionError.value = msg;
+    actionError.value = resolveErrorMessage(err, 'admin.courseTeam.addFailed');
   } finally {
     addingMember.value = false;
   }
+}
+
+function resolveErrorMessage(err: unknown, fallbackKey: string): string {
+  if (!axios.isAxiosError(err)) {return t(fallbackKey);}
+  const code = err.response?.data?.code;
+  const i18nKey = code ? `admin.courseTeam.errors.${code}` : null;
+  // Use i18n error code if a translation exists, otherwise fall back to
+  // backend error string, then generic i18n fallback
+  if (i18nKey && t(i18nKey) !== i18nKey) {return t(i18nKey);}
+  return err.response?.data?.error || t(fallbackKey);
 }
 
 async function changeRole(member: CourseInstructorMember, role: string): Promise<void> {
@@ -213,8 +222,7 @@ async function changeRole(member: CourseInstructorMember, role: string): Promise
     if (idx !== -1) {team.value[idx] = updated;}
     actionSuccess.value = t('admin.courseTeam.changedRole', { name: updated.full_name, role: updated.role });
   } catch (err: unknown) {
-    const msg = axios.isAxiosError(err) ? (err.response?.data?.error || t('admin.courseTeam.updateFailed')) : t('admin.courseTeam.updateFailed');
-    actionError.value = msg;
+    actionError.value = resolveErrorMessage(err, 'admin.courseTeam.updateFailed');
     // Revert select in UI by re-fetching
     await fetchTeam();
   }
@@ -229,8 +237,7 @@ async function confirmRemove(member: CourseInstructorMember): Promise<void> {
     team.value = team.value.filter((m) => m.user_id !== member.user_id);
     actionSuccess.value = t('admin.courseTeam.removedMessage', { name: member.full_name });
   } catch (err: unknown) {
-    const msg = axios.isAxiosError(err) ? (err.response?.data?.error || t('admin.courseTeam.removeFailed')) : t('admin.courseTeam.removeFailed');
-    actionError.value = msg;
+    actionError.value = resolveErrorMessage(err, 'admin.courseTeam.removeFailed');
   }
 }
 

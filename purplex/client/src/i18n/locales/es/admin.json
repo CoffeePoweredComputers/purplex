@@ -162,7 +162,15 @@
       "updateFailed": "No se pudo actualizar el rol.",
       "removeFailed": "No se pudo eliminar al miembro del equipo.",
       "removeConfirm": "¿Eliminar a {name} de este curso?",
-      "failedToLoadTeam": "No se pudieron cargar los miembros del equipo."
+      "failedToLoadTeam": "No se pudieron cargar los miembros del equipo.",
+      "errors": {
+        "last_primary": "Este es el único instructor principal del curso. Agrega otro instructor principal antes de cambiar este rol.",
+        "not_instructor": "Este usuario no es instructor de este curso.",
+        "already_instructor": "Este usuario ya forma parte del equipo del curso.",
+        "user_not_found": "No se encontró un usuario con esa dirección de correo.",
+        "course_not_found": "Curso no encontrado.",
+        "invalid_role": "Rol inválido. Debe ser Principal o Asistente."
+      }
     },
     "submissions": {
       "title": "Detalles de Entrega",
