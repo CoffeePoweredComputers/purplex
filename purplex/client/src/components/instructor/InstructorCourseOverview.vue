@@ -427,6 +427,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import axios from 'axios';
 import InstructorNavBar from './InstructorNavBar.vue';
@@ -471,8 +472,10 @@ interface CourseOverview {
 }
 
 const route = useRoute();
+const store = useStore();
 const { t } = useI18n();
 const courseId = computed(() => route.params.courseId as string);
+const apiBase = computed(() => store.getters.isAdmin ? '/api/admin' : '/api/instructor');
 
 const overview = ref<CourseOverview | null>(null);
 const loading = ref(true);
@@ -677,7 +680,7 @@ function clearSelection() {
 async function downloadProblemSetScores(slug: string, _title: string) {
   try {
     const response = await axios.get(
-      `/api/instructor/courses/${courseId.value}/problem-sets/${slug}/export/`,
+      `${apiBase.value}/courses/${courseId.value}/problem-sets/${slug}/export/`,
       { responseType: 'blob' }
     );
 
@@ -703,7 +706,7 @@ async function fetchProblemSetActivity(slug: string) {
   loadingActivity.value = true;
   try {
     const response = await axios.get(
-      `/api/instructor/courses/${courseId.value}/problem-sets/${slug}/activity/`
+      `${apiBase.value}/courses/${courseId.value}/problem-sets/${slug}/activity/`
     );
     problemSetActivity.value = response.data;
     log.info('Loaded problem set activity', { slug, courseId: courseId.value });
@@ -730,7 +733,7 @@ async function fetchOverview() {
 
   try {
     // Use the analytics endpoint which returns overview data
-    const response = await axios.get(`/api/instructor/courses/${courseId.value}/analytics/`);
+    const response = await axios.get(`${apiBase.value}/courses/${courseId.value}/analytics/`);
     // Set the current user's role before overview to avoid brief flash of wrong controls
     const data = response.data;
     if (data.my_role) {

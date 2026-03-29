@@ -130,6 +130,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useStore } from 'vuex';
 import axios from 'axios';
 import { createContentService } from '@/services/contentService';
 import { log } from '@/utils/logger';
@@ -141,7 +142,8 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const api = createContentService('instructor');
+const store = useStore();
+const api = createContentService(store.getters.isAdmin ? 'admin' : 'instructor');
 
 const team = ref<CourseInstructorMember[]>([]);
 const loading = ref(true);
