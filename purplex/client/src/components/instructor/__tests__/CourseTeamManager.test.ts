@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { AxiosError } from 'axios'
+import { createStore } from 'vuex'
 import CourseTeamManager from '../CourseTeamManager.vue'
 import type { CourseInstructorMember } from '@/types'
 
@@ -23,19 +24,20 @@ const mockTeam: CourseInstructorMember[] = [
   },
 ]
 
-// Mock the content service
+// Mock the content service — track which role is passed to the factory
 const mockGetCourseTeam = vi.fn().mockResolvedValue(mockTeam)
 const mockAddCourseTeamMember = vi.fn()
 const mockUpdateCourseTeamMember = vi.fn()
 const mockRemoveCourseTeamMember = vi.fn()
+const mockCreateContentService = vi.fn().mockReturnValue({
+  getCourseTeam: mockGetCourseTeam,
+  addCourseTeamMember: mockAddCourseTeamMember,
+  updateCourseTeamMember: mockUpdateCourseTeamMember,
+  removeCourseTeamMember: mockRemoveCourseTeamMember,
+})
 
 vi.mock('@/services/contentService', () => ({
-  createContentService: () => ({
-    getCourseTeam: mockGetCourseTeam,
-    addCourseTeamMember: mockAddCourseTeamMember,
-    updateCourseTeamMember: mockUpdateCourseTeamMember,
-    removeCourseTeamMember: mockRemoveCourseTeamMember,
-  }),
+  createContentService: (...args: unknown[]) => mockCreateContentService(...args),
 }))
 
 vi.mock('@/utils/logger', () => ({
@@ -47,11 +49,28 @@ vi.mock('@/utils/logger', () => ({
   },
 }))
 
-function mountComponent(myRole: 'primary' | 'ta' = 'primary') {
+function createMockStore(isAdmin = false) {
+  return createStore({
+    modules: {
+      auth: {
+        namespaced: true,
+        state: () => ({ user: { isAdmin } }),
+        getters: {
+          isAdmin: (state: { user: { isAdmin: boolean } }) => state.user.isAdmin,
+        },
+      },
+    },
+  })
+}
+
+function mountComponent(myRole: 'primary' | 'ta' = 'primary', isAdmin = false) {
   return mount(CourseTeamManager, {
     props: {
       courseId: 'CS101',
       myRole,
+    },
+    global: {
+      plugins: [createMockStore(isAdmin)],
     },
   })
 }
@@ -157,6 +176,20 @@ describe('CourseTeamManager', () => {
     expect(mockRemoveCourseTeamMember).toHaveBeenCalledWith('CS101', 2)
     // TA should be removed from list
     expect(wrapper.findAll('tbody tr').length).toBe(1)
+  })
+
+  it('creates instructor content service for non-admin users', async () => {
+    mountComponent('primary', false)
+    await flushPromises()
+
+    expect(mockCreateContentService).toHaveBeenCalledWith('instructor')
+  })
+
+  it('creates admin content service for admin users', async () => {
+    mountComponent('primary', true)
+    await flushPromises()
+
+    expect(mockCreateContentService).toHaveBeenCalledWith('admin')
   })
 
   it('displays last-primary error gracefully', async () => {

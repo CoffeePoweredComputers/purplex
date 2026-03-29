@@ -143,7 +143,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const store = useStore();
-const api = createContentService(store.getters.isAdmin ? 'admin' : 'instructor');
+const api = createContentService(store.getters['auth/isAdmin'] ? 'admin' : 'instructor');
 
 const team = ref<CourseInstructorMember[]>([]);
 const loading = ref(true);

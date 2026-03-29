@@ -475,7 +475,7 @@ const route = useRoute();
 const store = useStore();
 const { t } = useI18n();
 const courseId = computed(() => route.params.courseId as string);
-const apiBase = computed(() => store.getters.isAdmin ? '/api/admin' : '/api/instructor');
+const apiBase = computed(() => store.getters['auth/isAdmin'] ? '/api/admin' : '/api/instructor');
 
 const overview = ref<CourseOverview | null>(null);
 const loading = ref(true);
