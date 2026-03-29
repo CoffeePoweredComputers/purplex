@@ -190,8 +190,16 @@ class McqProblemSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         """Validate allow_multiple vs correct count."""
+        # Skip cross-field validation on partial updates — only validate
+        # the relationship when both fields are being set together
+        if self.partial and "options" not in attrs:
+            return attrs
+
         options = attrs.get("options", [])
-        allow_multiple = attrs.get("allow_multiple", False)
+        allow_multiple = attrs.get(
+            "allow_multiple",
+            getattr(self.instance, "allow_multiple", False) if self.instance else False,
+        )
 
         correct_count = sum(1 for opt in options if opt.get("is_correct"))
         if not allow_multiple and correct_count > 1:
@@ -1201,6 +1209,10 @@ class AdminProblemSerializer(ProblemSerializer):
 
             validation_service = ProblemValidationService()
 
+            # Skip full validation on partial updates — only validate provided fields
+            if self.partial:
+                return attrs
+
             # Validate problem data - returns (is_valid, error_message)
             is_valid, error_message = validation_service.validate_problem_data(attrs)
             if not is_valid:
@@ -1231,13 +1243,27 @@ class AdminProblemSerializer(ProblemSerializer):
             logger.warning(f"Validation service error: {str(e)}")
 
             # Perform basic validation instead
-            if not attrs.get("title", "").strip():
+            # On partial updates, only validate fields that are present in attrs
+            is_partial = self.partial
+
+            if "title" in attrs and not attrs["title"].strip():
+                raise serializers.ValidationError(
+                    {"title": ["Title is required"]}
+                ) from None
+            elif not is_partial and not attrs.get("title", "").strip():
                 raise serializers.ValidationError(
                     {"title": ["Title is required"]}
                 ) from None
 
-            # Reference solution is required for EiPL/Prompt problems
-            if not attrs.get("reference_solution", "").strip():
+            # Reference solution is required for EiPL/Prompt problems (create only)
+            if (
+                "reference_solution" in attrs
+                and not attrs["reference_solution"].strip()
+            ):
+                raise serializers.ValidationError(
+                    {"reference_solution": ["Reference solution is required"]}
+                ) from None
+            elif not is_partial and not attrs.get("reference_solution", "").strip():
                 raise serializers.ValidationError(
                     {"reference_solution": ["Reference solution is required"]}
                 ) from None
@@ -1427,13 +1453,13 @@ class InstructorCourseListSerializer(serializers.Serializer):
     """Serializer for instructor course list endpoint.
 
     Works with dictionaries returned by CourseRepository.get_instructor_courses_with_stats().
-    Omits instructor_name since the instructor already knows who they are.
     """
 
     id = serializers.IntegerField()
     course_id = serializers.CharField()
     name = serializers.CharField()
     description = serializers.CharField(allow_blank=True)
+    instructor_name = serializers.CharField()
     is_active = serializers.BooleanField()
     enrollment_open = serializers.BooleanField()
     problem_sets_count = serializers.IntegerField()

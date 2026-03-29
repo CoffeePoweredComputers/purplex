@@ -130,8 +130,30 @@ class ProgressService:
         if cached_data is not None:
             return cached_data
 
-        # Fetch from database with optimized query
-        progress_data = ProgressRepository.get_all_progress_with_problems(user_id)
+        # Fetch from database via repository
+        from django.contrib.auth.models import User
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return []
+
+        progress_records = ProgressRepository.get_user_all_progress(user)
+
+        # Convert model instances to serializable dicts
+        progress_data = [
+            {
+                "problem_slug": p.problem.slug,
+                "status": p.status,
+                "best_score": p.best_score,
+                "attempts": p.attempts,
+                "is_completed": p.is_completed,
+                "completion_percentage": getattr(p, "completion_percentage", 0),
+                "last_attempt": p.last_attempt,
+                "completed_at": p.completed_at,
+            }
+            for p in progress_records
+        ]
 
         # Cache for 5 minutes
         cache.set(cache_key, progress_data, 300)

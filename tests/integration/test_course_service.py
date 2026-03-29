@@ -578,13 +578,13 @@ class TestCourseServiceEnrollUser:
         assert result["enrollment"] is not None
         assert result["created"] is True
 
-    def test_enroll_user_already_enrolled(self, course, user):
-        """Re-enrolling already enrolled user fails."""
+    def test_enroll_user_already_enrolled_is_idempotent(self, course, user):
+        """Re-enrolling already enrolled user succeeds idempotently."""
         CourseEnrollment.objects.create(user=user, course=course, is_active=True)
 
         result = CourseService.enroll_user_in_course(user, course.course_id)
-        assert result["success"] is False
-        assert "already enrolled" in result["error"]
+        assert result["success"] is True
+        assert result["created"] is False
 
     def test_enroll_user_reactivate_inactive(self, course, user):
         """Reactivating an inactive enrollment should succeed."""

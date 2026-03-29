@@ -539,8 +539,12 @@ class InstructorCourseProblemSetManageView(APIView):
             return Response(
                 {
                     "id": cps.id,
-                    "problem_set_slug": cps.problem_set.slug,
-                    "problem_set_title": cps.problem_set.title,
+                    "problem_set": {
+                        "slug": cps.problem_set.slug,
+                        "title": cps.problem_set.title,
+                        "description": cps.problem_set.description,
+                        "problems_count": cps.problem_set.problems.count(),
+                    },
                     "order": cps.order,
                     "is_required": cps.is_required,
                     "due_date": cps.due_date.isoformat() if cps.due_date else None,

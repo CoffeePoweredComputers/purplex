@@ -96,7 +96,7 @@ class ProgressRepository(BaseRepository):
 
         return list(
             UserProgress.objects.filter(**filters)
-            .select_related("course")
+            .select_related("problem", "course")
             .order_by("-last_attempt")
         )
 
