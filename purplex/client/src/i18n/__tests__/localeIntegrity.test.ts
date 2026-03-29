@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import en from '@/i18n/locales/en'
 import es from '@/i18n/locales/es'
-import bn from '@/i18n/locales/bn'
-import mi from '@/i18n/locales/mi'
 
 /**
  * Recursively flatten a nested object into a Set of dot-separated key paths.
@@ -88,18 +86,6 @@ describe('Locale data integrity', () => {
     }
 
     expect(mismatches, `Placeholder mismatches:\n${mismatches.join('\n')}`).toEqual([])
-  })
-
-  it('scaffold locale bn keys are a subset of en keys', () => {
-    const bnKeys = flattenKeys(bn)
-    const notInEn = [...bnKeys].filter(k => !enKeys.has(k))
-    expect(notInEn, `bn keys not in en: ${notInEn.join(', ')}`).toEqual([])
-  })
-
-  it('scaffold locale mi keys are a subset of en keys', () => {
-    const miKeys = flattenKeys(mi)
-    const notInEn = [...miKeys].filter(k => !enKeys.has(k))
-    expect(notInEn, `mi keys not in en: ${notInEn.join(', ')}`).toEqual([])
   })
 
   it('no top-level key collisions across namespace JSONs', () => {
