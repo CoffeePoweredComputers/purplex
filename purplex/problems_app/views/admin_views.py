@@ -5,7 +5,7 @@ import logging
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from rest_framework import status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from purplex.submissions.repositories import SubmissionRepository
 from purplex.submissions.services import SubmissionService
 from purplex.users_app.permissions import IsAdmin
+from purplex.users_app.repositories.user_repository import UserRepository
 
 from ..models import (
     DebugFixProblem,
@@ -32,6 +33,8 @@ from ..serializers import (
     AdminProblemSetSerializer,
     AdminPromptProblemSerializer,
     AdminRefuteProblemSerializer,
+    CourseInstructorCreateSerializer,
+    CourseInstructorSerializer,
     McqProblemSerializer,
     ProbeableCodeProblemSerializer,
     ProblemCategorySerializer,
@@ -41,6 +44,7 @@ from ..serializers import (
     TestCaseSerializer,
 )
 from ..services.admin_service import AdminProblemService
+from ..services.course_service import CourseService
 from ..services.docker_service_factory import SharedDockerServiceContext
 
 logger = logging.getLogger(__name__)
@@ -859,3 +863,120 @@ class AdminSubmissionDetailView(APIView):
                     {"error": "Failed to fetch submission details"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
+
+
+class AdminCourseTeamListCreateView(APIView):
+    """Admin endpoint for listing and adding course team members."""
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request, course_id):
+        """List all instructors and TAs for a course."""
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
+        if not course:
+            return Response(
+                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        instructors = CourseService.get_course_instructors(course)
+        serializer = CourseInstructorSerializer(instructors, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, course_id):
+        """Add an instructor or TA to a course."""
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
+        if not course:
+            return Response(
+                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = CourseInstructorCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        role = serializer.validated_data["role"]
+        user = UserRepository.get_by_email(serializer.validated_data["email"])
+
+        if not user:
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            ci = CourseService.add_course_instructor(
+                course=course, user=user, role=role, added_by=request.user
+            )
+        except IntegrityError:
+            return Response(
+                {"error": "User is already an instructor on this course"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        return Response(
+            CourseInstructorSerializer(ci).data, status=status.HTTP_201_CREATED
+        )
+
+
+class AdminCourseTeamDetailView(APIView):
+    """Admin endpoint for updating or removing course team members."""
+
+    permission_classes = [IsAdmin]
+
+    def patch(self, request, course_id, user_id):
+        """Change an instructor's role on a course."""
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
+        if not course:
+            return Response(
+                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        new_role = request.data.get("role")
+        if new_role not in ("primary", "ta"):
+            return Response(
+                {"error": "role must be 'primary' or 'ta'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = UserRepository.get_by_id(user_id)
+        if not user:
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        result = CourseService.update_course_instructor_role(course, user, new_role)
+        if not result["success"]:
+            return Response(
+                {"error": result["error"]}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(CourseInstructorSerializer(result["course_instructor"]).data)
+
+    def delete(self, request, course_id, user_id):
+        """Remove an instructor or TA from a course."""
+        course = CourseService.get_course_by_id(
+            course_id, require_active=False, include_deleted=True
+        )
+        if not course:
+            return Response(
+                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        user = UserRepository.get_by_id(user_id)
+        if not user:
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        result = CourseService.remove_course_instructor(course, user)
+        if not result["success"]:
+            return Response(
+                {"error": result["error"]}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
