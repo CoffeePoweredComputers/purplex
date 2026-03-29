@@ -190,8 +190,16 @@ class McqProblemSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         """Validate allow_multiple vs correct count."""
+        # Skip cross-field validation on partial updates — only validate
+        # the relationship when both fields are being set together
+        if self.partial and "options" not in attrs:
+            return attrs
+
         options = attrs.get("options", [])
-        allow_multiple = attrs.get("allow_multiple", False)
+        allow_multiple = attrs.get(
+            "allow_multiple",
+            getattr(self.instance, "allow_multiple", False) if self.instance else False,
+        )
 
         correct_count = sum(1 for opt in options if opt.get("is_correct"))
         if not allow_multiple and correct_count > 1:

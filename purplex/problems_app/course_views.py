@@ -509,8 +509,17 @@ class AdminCourseProblemSetsView(APIView):
         return Response(
             {
                 "id": course_ps.id,
+                "problem_set": {
+                    "slug": course_ps.problem_set.slug,
+                    "title": course_ps.problem_set.title,
+                    "problems_count": course_ps.problem_set.problems.count(),
+                },
                 "order": course_ps.order,
                 "is_required": course_ps.is_required,
+                "due_date": course_ps.due_date.isoformat()
+                if course_ps.due_date
+                else None,
+                "deadline_type": course_ps.deadline_type,
             }
         )
 
