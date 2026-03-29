@@ -677,6 +677,7 @@ class ContentServiceImpl implements ContentApiService {
         if (validationErrors.length > 0) {
           return {
             error: validationErrors.join('; '),
+            code: response.data?.code as string | undefined,
             details: response.data,
             status: response.status
           };
@@ -685,6 +686,7 @@ class ContentServiceImpl implements ContentApiService {
 
       return {
         error: response.data?.error || response.data?.detail || defaultMessage,
+        code: response.data?.code as string | undefined,
         details: response.data?.details,
         status: response.status
       };

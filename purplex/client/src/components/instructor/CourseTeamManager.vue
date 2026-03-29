@@ -201,13 +201,20 @@ async function addMember(): Promise<void> {
 }
 
 function resolveErrorMessage(err: unknown, fallbackKey: string): string {
-  if (!axios.isAxiosError(err)) {return t(fallbackKey);}
-  const code = err.response?.data?.code;
-  const i18nKey = code ? `admin.courseTeam.errors.${code}` : null;
-  // Use i18n error code if a translation exists, otherwise fall back to
-  // backend error string, then generic i18n fallback
-  if (i18nKey && t(i18nKey) !== i18nKey) {return t(i18nKey);}
-  return err.response?.data?.error || t(fallbackKey);
+  // Handle APIError thrown by contentService._handleError()
+  const apiErr = err as { error?: string; code?: string };
+  const code = apiErr?.code;
+  const errorMsg = apiErr?.error;
+
+  // Try i18n key from error code
+  if (code) {
+    const i18nKey = `admin.courseTeam.errors.${code}`;
+    const translated = t(i18nKey);
+    if (translated !== i18nKey) {return translated;}
+  }
+
+  // Fall back to error string from backend, then generic i18n key
+  return errorMsg || t(fallbackKey);
 }
 
 async function changeRole(member: CourseInstructorMember, role: string): Promise<void> {

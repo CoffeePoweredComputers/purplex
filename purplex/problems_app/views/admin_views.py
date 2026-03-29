@@ -933,26 +933,35 @@ class AdminCourseTeamDetailView(APIView):
         )
         if not course:
             return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+                {"error": "Course not found", "code": "course_not_found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         new_role = request.data.get("role")
         if new_role not in ("primary", "ta"):
             return Response(
-                {"error": "role must be 'primary' or 'ta'"},
+                {"error": "role must be 'primary' or 'ta'", "code": "invalid_role"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         user = UserRepository.get_by_id(user_id)
         if not user:
             return Response(
-                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+                {"error": "User not found", "code": "user_not_found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         result = CourseService.update_course_instructor_role(course, user, new_role)
         if not result["success"]:
+            error_msg = result["error"]
+            code = "update_failed"
+            if "last primary" in error_msg.lower():
+                code = "last_primary"
+            elif "not an instructor" in error_msg.lower():
+                code = "not_instructor"
             return Response(
-                {"error": result["error"]}, status=status.HTTP_400_BAD_REQUEST
+                {"error": error_msg, "code": code},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         return Response(CourseInstructorSerializer(result["course_instructor"]).data)
@@ -964,19 +973,28 @@ class AdminCourseTeamDetailView(APIView):
         )
         if not course:
             return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+                {"error": "Course not found", "code": "course_not_found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         user = UserRepository.get_by_id(user_id)
         if not user:
             return Response(
-                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+                {"error": "User not found", "code": "user_not_found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         result = CourseService.remove_course_instructor(course, user)
         if not result["success"]:
+            error_msg = result["error"]
+            code = "remove_failed"
+            if "last primary" in error_msg.lower():
+                code = "last_primary"
+            elif "not an instructor" in error_msg.lower():
+                code = "not_instructor"
             return Response(
-                {"error": result["error"]}, status=status.HTTP_400_BAD_REQUEST
+                {"error": error_msg, "code": code},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
