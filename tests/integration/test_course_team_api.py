@@ -196,6 +196,29 @@ class TestCourseTeamDelete:
 # ===========================================================================
 
 
+class TestAdminAccessToInstructorTeamEndpoints:
+    """Admins who navigate to the instructor course overview call
+    /api/instructor/ team endpoints. These use IsPrimaryCourseInstructor
+    which allows superusers. Verify admins can or cannot access them."""
+
+    def test_admin_can_list_via_instructor_endpoint(
+        self, admin_client, course_with_team
+    ):
+        resp = admin_client.get(team_url(course_with_team.course_id))
+        assert resp.status_code == 200
+
+    def test_admin_can_patch_via_instructor_endpoint(
+        self, admin_client, course_with_team, ta_user
+    ):
+        """This is the exact scenario that was failing in the browser."""
+        resp = admin_client.patch(
+            team_detail_url(course_with_team.course_id, ta_user.id),
+            {"role": "primary"},
+        )
+        assert resp.status_code == 200
+        assert resp.data["role"] == "primary"
+
+
 class TestAdminCourseTeamList:
     """GET /api/admin/courses/<id>/team/"""
 
