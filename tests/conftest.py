@@ -51,6 +51,7 @@ def _activityevent_immutability_trigger(django_db_setup, django_db_blocker):
 
 from tests.factories import (  # noqa: E402
     AgeVerificationFactory,
+    CourseEnrollmentFactory,
     CourseFactory,
     CourseInstructorFactory,
     CourseProblemSetFactory,
@@ -61,12 +62,15 @@ from tests.factories import (  # noqa: E402
     ProbeableCodeProblemFactory,
     ProbeableSpecProblemFactory,
     ProblemSetFactory,
+    ProblemSetMembershipFactory,
     PromptProblemFactory,
     RefuteProblemFactory,
+    SubmissionFactory,
     TestCaseFactory,
     UserConsentFactory,
     UserFactory,
     UserProfileFactory,
+    UserProgressFactory,
 )
 
 # =============================================================================
@@ -364,3 +368,42 @@ def course_with_team(db, instructor, ta_user):
     CourseInstructorFactory(course=c, user=instructor, role="primary")
     CourseInstructorFactory(course=c, user=ta_user, role="ta", added_by=instructor)
     return c
+
+
+# =============================================================================
+# Composite Scenario Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def enrolled_course_with_submission(db, instructor, user):
+    """Course with enrolled student, problem in problem set, and one submission.
+
+    Returns dict with: course, problem_set, problem, submission, course_problem_set.
+    Useful for testing instructor submission views and student progress endpoints.
+    """
+    course = CourseFactory()
+    CourseInstructorFactory(course=course, user=instructor, role="primary")
+    CourseEnrollmentFactory(user=user, course=course)
+    ps = ProblemSetFactory(created_by=instructor)
+    problem = EiplProblemFactory(created_by=instructor)
+    ProblemSetMembershipFactory(problem_set=ps, problem=problem, order=0)
+    cps = CourseProblemSetFactory(course=course, problem_set=ps, order=0)
+    submission = SubmissionFactory(
+        user=user, problem=problem, problem_set=ps, course=course
+    )
+    UserProgressFactory(
+        user=user,
+        problem=problem,
+        problem_set=ps,
+        course=course,
+        attempts=1,
+        best_score=submission.score,
+    )
+    return {
+        "course": course,
+        "problem_set": ps,
+        "problem": problem,
+        "submission": submission,
+        "course_problem_set": cps,
+    }
