@@ -92,6 +92,15 @@ class CourseRepository(BaseRepository):
         return list(course.problem_sets.values_list("id", flat=True))
 
     @classmethod
+    def get_course_problem_sets(cls, course: Course):
+        """Get all CourseProblemSet records for a course, ordered by position."""
+        return (
+            CourseProblemSet.objects.filter(course=course)
+            .select_related("problem_set")
+            .order_by("order")
+        )
+
+    @classmethod
     def get_all_courses_with_stats(cls):
         """Get all courses with statistics for admin view.
 
@@ -170,21 +179,31 @@ class CourseRepository(BaseRepository):
             ).values_list("course_id", "role")
         )
 
-        return [
-            {
-                "id": c.id,
-                "course_id": c.course_id,
-                "name": c.name,
-                "description": c.description,
-                "is_active": c.is_active,
-                "enrollment_open": c.enrollment_open,
-                "problem_sets_count": c.problem_sets_count,
-                "enrolled_students_count": c.enrolled_students_count,
-                "created_at": c.created_at,
-                "my_role": role_map.get(c.id, None),
-            }
-            for c in courses
-        ]
+        result = []
+        for c in courses:
+            primaries = [
+                ci.user.get_full_name() or ci.user.username
+                for ci in c.course_instructors.all()
+                if ci.role == "primary"
+            ]
+            result.append(
+                {
+                    "id": c.id,
+                    "course_id": c.course_id,
+                    "name": c.name,
+                    "description": c.description,
+                    "is_active": c.is_active,
+                    "enrollment_open": c.enrollment_open,
+                    "problem_sets_count": c.problem_sets_count,
+                    "enrolled_students_count": c.enrolled_students_count,
+                    "created_at": c.created_at,
+                    "my_role": role_map.get(c.id, None),
+                    "instructor_name": ", ".join(primaries)
+                    if primaries
+                    else "Unknown Instructor",
+                }
+            )
+        return result
 
     @classmethod
     def get_user_enrolled_courses_with_data(cls, user_id: int) -> list[dict[str, Any]]:

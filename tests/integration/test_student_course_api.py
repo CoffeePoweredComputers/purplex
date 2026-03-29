@@ -214,15 +214,6 @@ class TestCourseEnroll:
         # course should be a CourseDetailSerializer response
         assert set(resp.data["course"].keys()) == COURSE_DETAIL_FIELDS
 
-    @pytest.mark.xfail(
-        reason=(
-            "CourseService.enroll_user_in_course() returns success=False with "
-            "'already enrolled' error when user is already enrolled, causing "
-            "the view to return 400. The frontend expects a graceful 200 response "
-            "for idempotent re-enrollment attempts."
-        ),
-        strict=True,
-    )
     def test_enroll_already_enrolled_200(
         self, authenticated_client, enrolled_user_course
     ):
@@ -295,15 +286,6 @@ class TestStudentCourseDetail:
 class TestStudentCourseProgress:
     """GET /api/courses/{course_id}/progress/"""
 
-    @pytest.mark.xfail(
-        reason=(
-            "CourseService.get_student_course_progress() calls "
-            "CourseRepository.get_course_problem_sets() which doesn't exist — "
-            "the actual method is get_course_problem_sets_with_data(). "
-            "This causes an AttributeError → 500 on every request."
-        ),
-        strict=True,
-    )
     def test_progress_success(self, authenticated_client, enrolled_user_course):
         resp = authenticated_client.get(
             course_progress_url(enrolled_user_course.course_id)

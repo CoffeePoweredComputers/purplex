@@ -252,16 +252,6 @@ class TestInstructorProblemDetail:
         resp = instructor_client.get(problem_detail_url(other_problem.slug))
         assert resp.status_code == status.HTTP_404_NOT_FOUND
 
-    @pytest.mark.xfail(
-        reason=(
-            "AdminProblemSerializer.validate() fallback (serializers.py:1240) always "
-            "checks reference_solution even on partial updates. The view passes "
-            "partial=True but validation doesn't respect it. Frontend avoids this by "
-            "always sending ALL fields on update, but the API contract is broken for "
-            "true partial updates."
-        ),
-        strict=True,
-    )
     def test_update_own_problem_partial(self, instructor_client, instructor_problem):
         """Partial update (only title) should work since view uses partial=True."""
         resp = instructor_client.put(

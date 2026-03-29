@@ -252,17 +252,6 @@ class TestCategoryList:
         assert isinstance(resp.data, list)
         assert len(resp.data) >= 1
 
-    @pytest.mark.xfail(
-        reason=(
-            "StudentService.get_all_categories() → ProblemCategoryRepository."
-            "get_all_categories() returns plain objects without problems_count "
-            "annotation. ProblemCategorySerializer declares problems_count as "
-            "ReadOnlyField but the attribute doesn't exist on the model, so DRF "
-            "silently drops it. Frontend ProblemCategory type (types/index.ts:20) "
-            "expects problems_count as a required number field."
-        ),
-        strict=True,
-    )
     def test_list_response_shape(self, authenticated_client, category):
         resp = authenticated_client.get(category_list_url())
         item = resp.data[0]

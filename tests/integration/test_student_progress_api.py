@@ -292,15 +292,6 @@ class TestSubmissionHistory:
 class TestUserProgress:
     """GET /api/progress/ and GET /api/progress/{problem_slug}/"""
 
-    @pytest.mark.xfail(
-        reason=(
-            "ProgressService.get_all_user_progress() calls "
-            "ProgressRepository.get_all_progress_with_problems() which doesn't "
-            "exist — the actual method is get_user_all_progress(). This causes "
-            "an AttributeError → 500 on every request to GET /api/progress/."
-        ),
-        strict=True,
-    )
     def test_all_progress(self, student_client, student_with_submission):
         resp = student_client.get(progress_url())
         assert resp.status_code == status.HTTP_200_OK

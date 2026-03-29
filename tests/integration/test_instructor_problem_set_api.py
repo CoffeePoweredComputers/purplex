@@ -52,27 +52,8 @@ CPS_POST_FIELDS = {
 }
 CPS_POST_PS_FIELDS = {"slug", "title", "description", "problems_count"}
 
-# CourseProblemSet PATCH response (instructor_content_views.py:539-549)
-# NOTE: This is a DIFFERENT shape than POST — known bug (see xfail test)
-CPS_PATCH_FIELDS = {
-    "id",
-    "problem_set_slug",
-    "problem_set_title",
-    "order",
-    "is_required",
-    "due_date",
-    "deadline_type",
-}
-
-# Frontend CourseProblemSet type (types/index.ts:746-758) — the source of truth
-FRONTEND_CPS_FIELDS = {
-    "id",
-    "problem_set",
-    "order",
-    "is_required",
-    "due_date",
-    "deadline_type",
-}
+# CourseProblemSet PATCH response — now matches POST shape
+CPS_PATCH_FIELDS = CPS_POST_FIELDS
 
 
 # ---------------------------------------------------------------------------
@@ -286,15 +267,6 @@ class TestInstructorCourseProblemSetManage:
         # Document what the backend actually returns
         assert set(resp.data.keys()) == CPS_PATCH_FIELDS
 
-    @pytest.mark.xfail(
-        reason=(
-            "PATCH returns flat {problem_set_slug, problem_set_title, ...} but "
-            "frontend CourseProblemSet type (types/index.ts:746) expects nested "
-            "{problem_set: {slug, title, ...}, ...} matching POST response shape. "
-            "The frontend must handle two different response shapes for the same entity."
-        ),
-        strict=True,
-    )
     def test_patch_matches_frontend_type(self, instructor_client, course):
         """PATCH response should match the frontend CourseProblemSet type."""
         ps = ProblemSetFactory()
@@ -305,8 +277,9 @@ class TestInstructorCourseProblemSetManage:
             format="json",
         )
         assert resp.status_code == status.HTTP_200_OK
-        # Frontend expects nested problem_set object, not flat fields
-        assert set(resp.data.keys()) == FRONTEND_CPS_FIELDS
+        # PATCH now returns same shape as POST with nested problem_set
+        assert set(resp.data.keys()) == CPS_POST_FIELDS
+        assert set(resp.data["problem_set"].keys()) == CPS_POST_PS_FIELDS
 
     def test_student_cannot_manage(self, authenticated_client, course):
         data = {"problem_set_slug": "anything"}

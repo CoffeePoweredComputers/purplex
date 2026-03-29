@@ -25,9 +25,13 @@ class ProblemCategoryRepository(BaseRepository):
         Get all problem categories ordered by order and name.
 
         Returns:
-            QuerySet of all problem categories
+            List of problem categories annotated with problems_count
         """
-        return list(ProblemCategory.objects.all().order_by("order", "name"))
+        return list(
+            ProblemCategory.objects.annotate(problems_count=Count("problems"))
+            .all()
+            .order_by("order", "name")
+        )
 
     @classmethod
     def get_all_queryset(cls):

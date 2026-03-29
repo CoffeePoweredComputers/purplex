@@ -28,6 +28,7 @@ COURSE_LIST_FIELDS = {
     "course_id",
     "name",
     "description",
+    "instructor_name",
     "is_active",
     "enrollment_open",
     "problem_sets_count",
@@ -165,19 +166,12 @@ class TestInstructorCourseList:
         resp = authenticated_client.get(course_list_url())
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
-    @pytest.mark.xfail(
-        reason=(
-            "Frontend Course type (types/index.ts:707) expects 'instructor_name' "
-            "but InstructorCourseListSerializer omits it. The frontend CourseList.vue "
-            "falls back to 'Unknown Instructor'."
-        ),
-        strict=True,
-    )
     def test_list_includes_instructor_name(self, instructor_client, course):
         """Frontend expects instructor_name on every Course object."""
         resp = instructor_client.get(course_list_url())
         item = resp.data[0]
         assert "instructor_name" in item
+        assert item["instructor_name"] != "Unknown Instructor"
 
 
 # ===========================================================================

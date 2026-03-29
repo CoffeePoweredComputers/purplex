@@ -770,14 +770,11 @@ class CourseService:
         enrollment, created = CourseRepository.get_or_create_enrollment(user, course)
 
         if not created:
-            if enrollment.is_active:
-                return {
-                    "success": False,
-                    "error": "You are already enrolled in this course",
-                }
-            # Reactivate inactive enrollment
-            enrollment.is_active = True
-            enrollment.save()
+            if not enrollment.is_active:
+                # Reactivate inactive enrollment
+                enrollment.is_active = True
+                enrollment.save()
+            # Already enrolled (active) — return success for idempotency
 
         return {
             "success": True,
