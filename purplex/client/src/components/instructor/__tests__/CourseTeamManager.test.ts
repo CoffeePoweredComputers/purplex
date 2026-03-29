@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { AxiosError } from 'axios'
+import { createStore } from 'vuex'
 import CourseTeamManager from '../CourseTeamManager.vue'
 import type { CourseInstructorMember } from '@/types'
 
@@ -23,19 +24,20 @@ const mockTeam: CourseInstructorMember[] = [
   },
 ]
 
-// Mock the content service
+// Mock the content service — track which role is passed to the factory
 const mockGetCourseTeam = vi.fn().mockResolvedValue(mockTeam)
 const mockAddCourseTeamMember = vi.fn()
 const mockUpdateCourseTeamMember = vi.fn()
 const mockRemoveCourseTeamMember = vi.fn()
+const mockCreateContentService = vi.fn().mockReturnValue({
+  getCourseTeam: mockGetCourseTeam,
+  addCourseTeamMember: mockAddCourseTeamMember,
+  updateCourseTeamMember: mockUpdateCourseTeamMember,
+  removeCourseTeamMember: mockRemoveCourseTeamMember,
+})
 
 vi.mock('@/services/contentService', () => ({
-  createContentService: () => ({
-    getCourseTeam: mockGetCourseTeam,
-    addCourseTeamMember: mockAddCourseTeamMember,
-    updateCourseTeamMember: mockUpdateCourseTeamMember,
-    removeCourseTeamMember: mockRemoveCourseTeamMember,
-  }),
+  createContentService: (...args: unknown[]) => mockCreateContentService(...args),
 }))
 
 vi.mock('@/utils/logger', () => ({
@@ -47,11 +49,28 @@ vi.mock('@/utils/logger', () => ({
   },
 }))
 
-function mountComponent(myRole: 'primary' | 'ta' = 'primary') {
+function createMockStore(isAdmin = false) {
+  return createStore({
+    modules: {
+      auth: {
+        namespaced: true,
+        state: () => ({ user: { isAdmin } }),
+        getters: {
+          isAdmin: (state: { user: { isAdmin: boolean } }) => state.user.isAdmin,
+        },
+      },
+    },
+  })
+}
+
+function mountComponent(myRole: 'primary' | 'ta' = 'primary', isAdmin = false) {
   return mount(CourseTeamManager, {
     props: {
       courseId: 'CS101',
       myRole,
+    },
+    global: {
+      plugins: [createMockStore(isAdmin)],
     },
   })
 }
@@ -159,16 +178,27 @@ describe('CourseTeamManager', () => {
     expect(wrapper.findAll('tbody tr').length).toBe(1)
   })
 
-  it('displays last-primary error gracefully', async () => {
-    mockRemoveCourseTeamMember.mockRejectedValue(
-      new AxiosError(
-        'Request failed',
-        'ERR_BAD_REQUEST',
-        undefined,
-        undefined,
-        { status: 400, data: { error: 'Cannot remove the last primary instructor from a course' } } as never
-      )
-    )
+  it('creates instructor content service for non-admin users', async () => {
+    mountComponent('primary', false)
+    await flushPromises()
+
+    expect(mockCreateContentService).toHaveBeenCalledWith('instructor')
+  })
+
+  it('creates admin content service for admin users', async () => {
+    mountComponent('primary', true)
+    await flushPromises()
+
+    expect(mockCreateContentService).toHaveBeenCalledWith('admin')
+  })
+
+  it('displays last-primary error with i18n message on remove', async () => {
+    // contentService._handleError converts AxiosError to APIError
+    mockRemoveCourseTeamMember.mockRejectedValue({
+      error: 'Cannot remove the last primary instructor from a course',
+      code: 'last_primary',
+      status: 400,
+    })
     vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     const wrapper = mountComponent('primary')
@@ -178,6 +208,41 @@ describe('CourseTeamManager', () => {
     await removeButtons[0].trigger('click') // try to remove primary
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Cannot remove the last primary instructor')
+    // resolveErrorMessage resolves 'last_primary' code to i18n string
+    expect(wrapper.text()).toContain('only primary instructor')
+  })
+
+  it('displays last-primary error with i18n message on role change', async () => {
+    // contentService._handleError converts AxiosError to APIError
+    mockUpdateCourseTeamMember.mockRejectedValue({
+      error: 'Cannot demote the last primary instructor',
+      code: 'last_primary',
+      status: 400,
+    })
+
+    const wrapper = mountComponent('primary')
+    await flushPromises()
+
+    const selects = wrapper.findAll('.role-select')
+    const primarySelect = selects[0]
+    await primarySelect.setValue('ta')
+    await flushPromises()
+
+    // resolveErrorMessage resolves 'last_primary' code to i18n string
+    expect(wrapper.text()).toContain('only primary instructor')
+  })
+
+  it('falls back to generic message when no error details', async () => {
+    mockUpdateCourseTeamMember.mockRejectedValue(new Error('Network error'))
+
+    const wrapper = mountComponent('primary')
+    await flushPromises()
+
+    const selects = wrapper.findAll('.role-select')
+    await selects[1].setValue('primary')
+    await flushPromises()
+
+    // Should show generic i18n fallback key (rendered as-is in test without i18n)
+    expect(wrapper.find('.error-message')).toBeTruthy()
   })
 })

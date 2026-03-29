@@ -27,6 +27,8 @@ from .views.activity_event_views import ActivityEventCreateView
 # Admin views
 from .views.admin_views import (
     AdminCategoryView,
+    AdminCourseTeamDetailView,
+    AdminCourseTeamListCreateView,
     AdminProblemDetailView,
     AdminProblemListView,
     AdminProblemSetDetailView,
@@ -307,6 +309,17 @@ urlpatterns = [
         "admin/courses/<str:course_id>/students/<int:user_id>/",
         AdminCourseStudentsView.as_view(),
         name="admin_course_student_remove",
+    ),
+    # Admin Course Team Management
+    path(
+        "admin/courses/<str:course_id>/team/",
+        AdminCourseTeamListCreateView.as_view(),
+        name="admin_course_team",
+    ),
+    path(
+        "admin/courses/<str:course_id>/team/<int:user_id>/",
+        AdminCourseTeamDetailView.as_view(),
+        name="admin_course_team_detail",
     ),
     # Instructor Course Views
     path(

@@ -289,3 +289,41 @@ class TestInstructorExports:
     def test_export_nonexistent_course_404(self, instructor_client):
         resp = instructor_client.get(course_export_url("DOES-NOT-EXIST"))
         assert resp.status_code == status.HTTP_404_NOT_FOUND
+
+
+# ===========================================================================
+# Admin accessing instructor endpoints
+# ===========================================================================
+class TestAdminAccessToInstructorAnalytics:
+    """Admins navigate to the course overview page which calls instructor
+    analytics endpoints. These use IsCourseInstructor permission which
+    allows superusers. Verify admins can access them."""
+
+    def test_admin_can_access_instructor_analytics(
+        self, admin_client, analytics_course
+    ):
+        """Admin hits GET /api/instructor/courses/{id}/analytics/ — the same
+        endpoint the InstructorCourseOverview.vue component calls."""
+        course = analytics_course["course"]
+        resp = admin_client.get(analytics_url(course.course_id))
+        assert resp.status_code == status.HTTP_200_OK
+
+    def test_admin_can_access_instructor_ps_activity(
+        self, admin_client, analytics_course
+    ):
+        course = analytics_course["course"]
+        ps = analytics_course["problem_set"]
+        resp = admin_client.get(ps_activity_url(course.course_id, ps.slug))
+        assert resp.status_code == status.HTTP_200_OK
+
+    def test_admin_can_access_instructor_export(self, admin_client, analytics_course):
+        course = analytics_course["course"]
+        resp = admin_client.get(course_export_url(course.course_id))
+        assert resp.status_code == status.HTTP_200_OK
+
+    def test_admin_can_access_instructor_student_list(
+        self, admin_client, analytics_course
+    ):
+        course = analytics_course["course"]
+        resp = admin_client.get(student_list_url(course.course_id))
+        assert resp.status_code == status.HTTP_200_OK

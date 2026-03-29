@@ -523,7 +523,7 @@ class ContentServiceImpl implements ContentApiService {
   async getCourseTeam(courseId: string): Promise<CourseInstructorMember[]> {
     try {
       const response: AxiosResponse<CourseInstructorMember[]> = await axios.get(
-        `/api/instructor/courses/${courseId}/team/`
+        `${this.baseURL}/courses/${courseId}/team/`
       );
       return response.data;
     } catch (error) {
@@ -537,7 +537,7 @@ class ContentServiceImpl implements ContentApiService {
   ): Promise<CourseInstructorMember> {
     try {
       const response: AxiosResponse<CourseInstructorMember> = await axios.post(
-        `/api/instructor/courses/${courseId}/team/`,
+        `${this.baseURL}/courses/${courseId}/team/`,
         data
       );
       return response.data;
@@ -553,7 +553,7 @@ class ContentServiceImpl implements ContentApiService {
   ): Promise<CourseInstructorMember> {
     try {
       const response: AxiosResponse<CourseInstructorMember> = await axios.patch(
-        `/api/instructor/courses/${courseId}/team/${userId}/`,
+        `${this.baseURL}/courses/${courseId}/team/${userId}/`,
         data
       );
       return response.data;
@@ -565,7 +565,7 @@ class ContentServiceImpl implements ContentApiService {
   async removeCourseTeamMember(courseId: string, userId: number): Promise<void> {
     try {
       await axios.delete(
-        `/api/instructor/courses/${courseId}/team/${userId}/`
+        `${this.baseURL}/courses/${courseId}/team/${userId}/`
       );
     } catch (error) {
       throw this._handleError(error, 'Failed to remove team member');
@@ -677,6 +677,7 @@ class ContentServiceImpl implements ContentApiService {
         if (validationErrors.length > 0) {
           return {
             error: validationErrors.join('; '),
+            code: response.data?.code as string | undefined,
             details: response.data,
             status: response.status
           };
@@ -685,6 +686,7 @@ class ContentServiceImpl implements ContentApiService {
 
       return {
         error: response.data?.error || response.data?.detail || defaultMessage,
+        code: response.data?.code as string | undefined,
         details: response.data?.details,
         status: response.status
       };

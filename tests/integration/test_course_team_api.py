@@ -15,6 +15,14 @@ def team_detail_url(course_id, user_id):
     return f"/api/instructor/courses/{course_id}/team/{user_id}/"
 
 
+def admin_team_url(course_id):
+    return f"/api/admin/courses/{course_id}/team/"
+
+
+def admin_team_detail_url(course_id, user_id):
+    return f"/api/admin/courses/{course_id}/team/{user_id}/"
+
+
 class TestCourseTeamList:
     """GET /api/instructor/courses/<id>/team/"""
 
@@ -181,3 +189,115 @@ class TestCourseTeamDelete:
             team_detail_url(course_with_team.course_id, instructor.id)
         )
         assert resp.status_code == 403
+
+
+# ===========================================================================
+# Admin course team management (via /api/admin/courses/<id>/team/)
+# ===========================================================================
+
+
+class TestAdminAccessToInstructorTeamEndpoints:
+    """Admins who navigate to the instructor course overview call
+    /api/instructor/ team endpoints. These use IsPrimaryCourseInstructor
+    which allows superusers. Verify admins can or cannot access them."""
+
+    def test_admin_can_list_via_instructor_endpoint(
+        self, admin_client, course_with_team
+    ):
+        resp = admin_client.get(team_url(course_with_team.course_id))
+        assert resp.status_code == 200
+
+    def test_admin_can_patch_via_instructor_endpoint(
+        self, admin_client, course_with_team, ta_user
+    ):
+        """This is the exact scenario that was failing in the browser."""
+        resp = admin_client.patch(
+            team_detail_url(course_with_team.course_id, ta_user.id),
+            {"role": "primary"},
+        )
+        assert resp.status_code == 200
+        assert resp.data["role"] == "primary"
+
+
+class TestAdminCourseTeamList:
+    """GET /api/admin/courses/<id>/team/"""
+
+    def test_admin_can_list(self, admin_client, course_with_team):
+        resp = admin_client.get(admin_team_url(course_with_team.course_id))
+        assert resp.status_code == 200
+        assert len(resp.data) == 2
+
+    def test_non_admin_forbidden(self, authenticated_client, course_with_team):
+        resp = authenticated_client.get(admin_team_url(course_with_team.course_id))
+        assert resp.status_code == 403
+
+    def test_nonexistent_course_404(self, admin_client):
+        resp = admin_client.get(admin_team_url("NONEXISTENT-999"))
+        assert resp.status_code == 404
+
+
+class TestAdminCourseTeamCreate:
+    """POST /api/admin/courses/<id>/team/"""
+
+    def test_admin_adds_ta(self, admin_client, course_with_team):
+        new_user = UserFactory()
+        resp = admin_client.post(
+            admin_team_url(course_with_team.course_id),
+            {"email": new_user.email, "role": "ta"},
+        )
+        assert resp.status_code == 201
+        assert resp.data["role"] == "ta"
+
+    def test_admin_add_duplicate_409(self, admin_client, course_with_team, ta_user):
+        resp = admin_client.post(
+            admin_team_url(course_with_team.course_id),
+            {"email": ta_user.email, "role": "ta"},
+        )
+        assert resp.status_code == 409
+
+
+class TestAdminCourseTeamUpdate:
+    """PATCH /api/admin/courses/<id>/team/<uid>/"""
+
+    def test_admin_promote_ta(self, admin_client, course_with_team, ta_user):
+        resp = admin_client.patch(
+            admin_team_detail_url(course_with_team.course_id, ta_user.id),
+            {"role": "primary"},
+        )
+        assert resp.status_code == 200
+        assert resp.data["role"] == "primary"
+
+    def test_admin_invalid_role_400(self, admin_client, course_with_team, ta_user):
+        resp = admin_client.patch(
+            admin_team_detail_url(course_with_team.course_id, ta_user.id),
+            {"role": "invalid"},
+        )
+        assert resp.status_code == 400
+
+    def test_admin_cannot_demote_last_primary(
+        self, admin_client, course_with_team, instructor
+    ):
+        resp = admin_client.patch(
+            admin_team_detail_url(course_with_team.course_id, instructor.id),
+            {"role": "ta"},
+        )
+        assert resp.status_code == 400
+        assert "last primary" in resp.data["error"]
+
+
+class TestAdminCourseTeamDelete:
+    """DELETE /api/admin/courses/<id>/team/<uid>/"""
+
+    def test_admin_remove_ta(self, admin_client, course_with_team, ta_user):
+        resp = admin_client.delete(
+            admin_team_detail_url(course_with_team.course_id, ta_user.id)
+        )
+        assert resp.status_code == 204
+
+    def test_admin_cannot_remove_last_primary(
+        self, admin_client, course_with_team, instructor
+    ):
+        resp = admin_client.delete(
+            admin_team_detail_url(course_with_team.course_id, instructor.id)
+        )
+        assert resp.status_code == 400

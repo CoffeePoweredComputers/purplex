@@ -162,7 +162,15 @@
       "updateFailed": "Failed to update role.",
       "removeFailed": "Failed to remove team member.",
       "removeConfirm": "Remove {name} from this course?",
-      "failedToLoadTeam": "Failed to load team members."
+      "failedToLoadTeam": "Failed to load team members.",
+      "errors": {
+        "last_primary": "This is the only primary instructor on the course. Add another primary instructor first before changing this role.",
+        "not_instructor": "This user is not an instructor on this course.",
+        "already_instructor": "This user is already on the course team.",
+        "user_not_found": "No user found with that email address.",
+        "course_not_found": "Course not found.",
+        "invalid_role": "Invalid role. Must be Primary or TA."
+      }
     },
     "submissions": {
       "title": "Submission Details",

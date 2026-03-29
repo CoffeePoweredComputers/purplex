@@ -92,7 +92,26 @@ function process(data: unknown) {
 }
 ```
 
-## 8. v-for requires unique :key
+## 8. i18n: all user-facing strings must be translated
+
+Never hardcode English strings in templates or scripts. Use `$t()` / `t()` with keys from the i18n locale files. When adding new i18n keys to `locales/en/`, you **must** add the corresponding key to `locales/es/` (and all other locale directories that exist). The `localeIntegrity.test.ts` enforces en/es parity — missing keys will fail CI.
+
+```typescript
+// WRONG — hardcoded string
+actionError.value = 'Failed to update role'
+
+// RIGHT — i18n key
+actionError.value = t('admin.courseTeam.updateFailed')
+```
+
+When backend errors need user-facing messages, return an error `code` field and map it to an i18n key on the frontend:
+
+```typescript
+// Backend returns: {"error": "...", "code": "last_primary"}
+// Frontend resolves: t(`admin.courseTeam.errors.${code}`)
+```
+
+## 9. v-for requires unique :key
 
 Always bind `:key` to a unique identifier (e.g., `item.id`). Never use array index.
 

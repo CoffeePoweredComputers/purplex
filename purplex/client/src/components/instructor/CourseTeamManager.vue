@@ -130,6 +130,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useStore } from 'vuex';
 import axios from 'axios';
 import { createContentService } from '@/services/contentService';
 import { log } from '@/utils/logger';
@@ -141,7 +142,8 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const api = createContentService('instructor');
+const store = useStore();
+const api = createContentService(store.getters['auth/isAdmin'] ? 'admin' : 'instructor');
 
 const team = ref<CourseInstructorMember[]>([]);
 const loading = ref(true);
@@ -192,11 +194,27 @@ async function addMember(): Promise<void> {
     newEmail.value = '';
     newRole.value = 'ta';
   } catch (err: unknown) {
-    const msg = axios.isAxiosError(err) ? (err.response?.data?.error || t('admin.courseTeam.addFailed')) : t('admin.courseTeam.addFailed');
-    actionError.value = msg;
+    actionError.value = resolveErrorMessage(err, 'admin.courseTeam.addFailed');
   } finally {
     addingMember.value = false;
   }
+}
+
+function resolveErrorMessage(err: unknown, fallbackKey: string): string {
+  // Handle APIError thrown by contentService._handleError()
+  const apiErr = err as { error?: string; code?: string };
+  const code = apiErr?.code;
+  const errorMsg = apiErr?.error;
+
+  // Try i18n key from error code
+  if (code) {
+    const i18nKey = `admin.courseTeam.errors.${code}`;
+    const translated = t(i18nKey);
+    if (translated !== i18nKey) {return translated;}
+  }
+
+  // Fall back to error string from backend, then generic i18n key
+  return errorMsg || t(fallbackKey);
 }
 
 async function changeRole(member: CourseInstructorMember, role: string): Promise<void> {
@@ -211,8 +229,7 @@ async function changeRole(member: CourseInstructorMember, role: string): Promise
     if (idx !== -1) {team.value[idx] = updated;}
     actionSuccess.value = t('admin.courseTeam.changedRole', { name: updated.full_name, role: updated.role });
   } catch (err: unknown) {
-    const msg = axios.isAxiosError(err) ? (err.response?.data?.error || t('admin.courseTeam.updateFailed')) : t('admin.courseTeam.updateFailed');
-    actionError.value = msg;
+    actionError.value = resolveErrorMessage(err, 'admin.courseTeam.updateFailed');
     // Revert select in UI by re-fetching
     await fetchTeam();
   }
@@ -227,8 +244,7 @@ async function confirmRemove(member: CourseInstructorMember): Promise<void> {
     team.value = team.value.filter((m) => m.user_id !== member.user_id);
     actionSuccess.value = t('admin.courseTeam.removedMessage', { name: member.full_name });
   } catch (err: unknown) {
-    const msg = axios.isAxiosError(err) ? (err.response?.data?.error || t('admin.courseTeam.removeFailed')) : t('admin.courseTeam.removeFailed');
-    actionError.value = msg;
+    actionError.value = resolveErrorMessage(err, 'admin.courseTeam.removeFailed');
   }
 }
 
