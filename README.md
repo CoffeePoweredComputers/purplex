@@ -35,8 +35,23 @@
 ## Translation Status
 
 <!-- i18n-badges:start -->
-[![Bengali translation](https://img.shields.io/badge/Bengali-100%25-brightgreen)](purplex/client/src/i18n/locales/bn/)
-[![Te Reo Māori translation](https://img.shields.io/badge/Te%20Reo%20M%C4%81ori-100%25-brightgreen)](purplex/client/src/i18n/locales/mi/)
+[![English](https://img.shields.io/badge/English-100%25-brightgreen)](purplex/client/src/i18n/locales/en/)
+[![Spanish](https://img.shields.io/badge/Spanish-100%25-brightgreen)](purplex/client/src/i18n/locales/es/)
+[![Bengali](https://img.shields.io/badge/Bengali-0%25-red)](purplex/client/src/i18n/locales/bn/)
+[![Te Reo Māori](https://img.shields.io/badge/Te%20Reo%20M%C4%81ori-0%25-red)](purplex/client/src/i18n/locales/mi/)
+[![Chinese](https://img.shields.io/badge/Chinese-0%25-red)](purplex/client/src/i18n/locales/zh/)
+[![French](https://img.shields.io/badge/French-0%25-red)](purplex/client/src/i18n/locales/fr/)
+[![German](https://img.shields.io/badge/German-0%25-red)](purplex/client/src/i18n/locales/de/)
+[![Hindi](https://img.shields.io/badge/Hindi-0%25-red)](purplex/client/src/i18n/locales/hi/)
+[![Japanese](https://img.shields.io/badge/Japanese-0%25-red)](purplex/client/src/i18n/locales/ja/)
+[![Kannada](https://img.shields.io/badge/Kannada-0%25-red)](purplex/client/src/i18n/locales/kn/)
+[![Marathi](https://img.shields.io/badge/Marathi-0%25-red)](purplex/client/src/i18n/locales/mr/)
+[![Portuguese](https://img.shields.io/badge/Portuguese-0%25-red)](purplex/client/src/i18n/locales/pt/)
+[![Punjabi](https://img.shields.io/badge/Punjabi-0%25-red)](purplex/client/src/i18n/locales/pa/)
+[![Tamil](https://img.shields.io/badge/Tamil-0%25-red)](purplex/client/src/i18n/locales/ta/)
+[![Telugu](https://img.shields.io/badge/Telugu-0%25-red)](purplex/client/src/i18n/locales/te/)
+[![Thai](https://img.shields.io/badge/Thai-0%25-red)](purplex/client/src/i18n/locales/th/)
+[![Vietnamese](https://img.shields.io/badge/Vietnamese-0%25-red)](purplex/client/src/i18n/locales/vi/)
 <!-- i18n-badges:end -->
 
 Help translate Purplex into your language! See [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md) for guidelines.
