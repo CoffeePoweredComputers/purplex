@@ -131,6 +131,7 @@ class TestInstructorProblemList:
         self, instructor_client, instructor_problem, other_problem
     ):
         resp = instructor_client.get(problem_list_url())
+        assert resp.status_code == status.HTTP_200_OK
         slugs = [p["slug"] for p in resp.data]
         assert instructor_problem.slug in slugs
         assert other_problem.slug not in slugs

@@ -122,6 +122,7 @@ class TestInstructorProblemSetList:
 
     def test_list_response_shape(self, instructor_client, instructor_problem_set):
         resp = instructor_client.get(ps_list_url())
+        assert resp.status_code == status.HTTP_200_OK
         item = resp.data[0]
         assert set(item.keys()) == PROBLEM_SET_FIELDS
 
@@ -129,6 +130,7 @@ class TestInstructorProblemSetList:
         self, instructor_client, instructor_problem_set, other_problem_set
     ):
         resp = instructor_client.get(ps_list_url())
+        assert resp.status_code == status.HTTP_200_OK
         slugs = [ps["slug"] for ps in resp.data]
         assert instructor_problem_set.slug in slugs
         assert other_problem_set.slug not in slugs

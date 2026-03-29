@@ -127,6 +127,7 @@ class TestAdminSubmissionList:
 
     def test_list_filters_metadata(self, admin_client, admin_submission):
         resp = admin_client.get(admin_submissions_url())
+        assert resp.status_code == status.HTTP_200_OK
         filters = resp.data["filters"]
         assert "problem_sets" in filters
         assert "courses" in filters

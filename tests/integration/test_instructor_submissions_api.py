@@ -144,6 +144,7 @@ class TestInstructorCourseSubmissions:
     ):
         course = enrolled_course_with_submission["course"]
         resp = instructor_client.get(submissions_url(course.course_id))
+        assert resp.status_code == status.HTTP_200_OK
         assert resp.data["current_page"] == 1
         assert resp.data["total_pages"] >= 1
         assert isinstance(resp.data["count"], int)
@@ -153,6 +154,7 @@ class TestInstructorCourseSubmissions:
     ):
         course = enrolled_course_with_submission["course"]
         resp = instructor_client.get(submissions_url(course.course_id))
+        assert resp.status_code == status.HTTP_200_OK
         filters = resp.data["filters"]
         assert "problem_sets" in filters
         assert "statuses" in filters
@@ -178,6 +180,7 @@ class TestInstructorCourseSubmissions:
         """Instructor should not see submissions from courses they don't teach."""
         course = enrolled_course_with_submission["course"]
         resp = instructor_client.get(submissions_url(course.course_id))
+        assert resp.status_code == status.HTTP_200_OK
         submission_ids = [s["id"] for s in resp.data["results"]]
         assert str(other_course_submission.submission_id) not in submission_ids
 

@@ -131,6 +131,7 @@ class TestProblemList:
         self, authenticated_client, active_problem, inactive_problem
     ):
         resp = authenticated_client.get(problem_list_url())
+        assert resp.status_code == status.HTTP_200_OK
         slugs = [p["slug"] for p in resp.data]
         assert inactive_problem.slug not in slugs
 
@@ -167,6 +168,7 @@ class TestProblemDetail:
         TestCaseFactory(problem=problem, is_hidden=False)
         TestCaseFactory(problem=problem, is_hidden=True)
         resp = authenticated_client.get(problem_detail_url(problem.slug))
+        assert resp.status_code == status.HTTP_200_OK
         # Only non-hidden test cases should be returned
         assert len(resp.data["test_cases"]) == 1
 
@@ -197,6 +199,7 @@ class TestProblemSetList:
 
     def test_list_response_shape(self, authenticated_client, public_problem_set):
         resp = authenticated_client.get(ps_list_url())
+        assert resp.status_code == status.HTTP_200_OK
         item = resp.data[0]
         assert set(item.keys()) == PS_LIST_FIELDS
 
@@ -229,6 +232,7 @@ class TestProblemSetDetail:
         self, authenticated_client, public_problem_set
     ):
         resp = authenticated_client.get(ps_detail_url(public_problem_set.slug))
+        assert resp.status_code == status.HTTP_200_OK
         assert isinstance(resp.data["problems"], list)
         assert len(resp.data["problems"]) >= 1
 
@@ -254,6 +258,7 @@ class TestCategoryList:
 
     def test_list_response_shape(self, authenticated_client, category):
         resp = authenticated_client.get(category_list_url())
+        assert resp.status_code == status.HTTP_200_OK
         item = resp.data[0]
         assert set(item.keys()) == CATEGORY_FIELDS
 

@@ -186,6 +186,7 @@ class TestProbeOracle:
             {"input": {"a": 1}},
             format="json",
         )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
         assert set(resp.data.keys()) == PROBE_RESULT_FIELDS
 
     def test_probe_unauthenticated(self, api_client, probeable_problem):
@@ -221,6 +222,7 @@ class TestRefuteTest:
             {"input": {"n": -1}},
             format="json",
         )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
         assert set(resp.data.keys()) == REFUTE_RESULT_FIELDS
 
     def test_refute_nonexistent_404(self, authenticated_client):

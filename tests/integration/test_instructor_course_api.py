@@ -151,6 +151,7 @@ class TestInstructorCourseList:
         self, instructor_client, course, other_instructor_course
     ):
         resp = instructor_client.get(course_list_url())
+        assert resp.status_code == status.HTTP_200_OK
         course_ids = [c["course_id"] for c in resp.data]
         assert course.course_id in course_ids
         assert "OTHER-101" not in course_ids
@@ -169,6 +170,7 @@ class TestInstructorCourseList:
     def test_list_includes_instructor_name(self, instructor_client, course):
         """Frontend expects instructor_name on every Course object."""
         resp = instructor_client.get(course_list_url())
+        assert resp.status_code == status.HTTP_200_OK
         item = resp.data[0]
         assert "instructor_name" in item
         assert item["instructor_name"] != "Unknown Instructor"
