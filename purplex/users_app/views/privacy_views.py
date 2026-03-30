@@ -15,6 +15,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from purplex.utils.error_codes import ErrorCode, error_response
+
 from ..models import (
     AgeVerification,
     AuditAction,
@@ -85,7 +87,9 @@ class AccountDeletionView(APIView):
             return Response(result, status=status.HTTP_200_OK)
 
         except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return error_response(
+                str(e), ErrorCode.VALIDATION_ERROR, status.HTTP_400_BAD_REQUEST
+            )
 
     def post(self, request):
         """Cancel a pending deletion."""
@@ -114,16 +118,18 @@ class ConsentListView(APIView):
         ip = _get_client_ip(request)
 
         if not consent_type:
-            return Response(
-                {"error": "consent_type is required"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                "consent_type is required",
+                ErrorCode.VALIDATION_ERROR,
+                status.HTTP_400_BAD_REQUEST,
             )
 
         valid_types = [ct[0] for ct in ConsentType.choices]
         if consent_type not in valid_types:
-            return Response(
-                {"error": f"Invalid consent_type. Must be one of: {valid_types}"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                f"Invalid consent_type. Must be one of: {valid_types}",
+                ErrorCode.VALIDATION_ERROR,
+                status.HTTP_400_BAD_REQUEST,
             )
 
         consent = ConsentService.grant_consent(
@@ -154,9 +160,10 @@ class ConsentWithdrawView(APIView):
         """Withdraw consent for a specific type."""
         valid_types = [ct[0] for ct in ConsentType.choices]
         if consent_type not in valid_types:
-            return Response(
-                {"error": f"Invalid consent_type. Must be one of: {valid_types}"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                f"Invalid consent_type. Must be one of: {valid_types}",
+                ErrorCode.VALIDATION_ERROR,
+                status.HTTP_400_BAD_REQUEST,
             )
 
         ip = _get_client_ip(request)
@@ -218,27 +225,31 @@ class AgeVerificationView(APIView):
                 try:
                     parsed = datetime.strptime(date_of_birth, "%Y-%m-%d").date()
                     if parsed > date.today():
-                        return Response(
-                            {"error": "date_of_birth cannot be in the future"},
-                            status=status.HTTP_400_BAD_REQUEST,
+                        return error_response(
+                            "date_of_birth cannot be in the future",
+                            ErrorCode.VALIDATION_ERROR,
+                            status.HTTP_400_BAD_REQUEST,
                         )
                     date_of_birth = parsed
                 except ValueError:
-                    return Response(
-                        {"error": "date_of_birth must be in YYYY-MM-DD format"},
-                        status=status.HTTP_400_BAD_REQUEST,
+                    return error_response(
+                        "date_of_birth must be in YYYY-MM-DD format",
+                        ErrorCode.VALIDATION_ERROR,
+                        status.HTTP_400_BAD_REQUEST,
                     )
 
         # Validate boolean fields
         if not isinstance(is_minor, bool):
-            return Response(
-                {"error": "is_minor must be a boolean"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                "is_minor must be a boolean",
+                ErrorCode.VALIDATION_ERROR,
+                status.HTTP_400_BAD_REQUEST,
             )
         if not isinstance(is_child, bool):
-            return Response(
-                {"error": "is_child must be a boolean"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                "is_child must be a boolean",
+                ErrorCode.VALIDATION_ERROR,
+                status.HTTP_400_BAD_REQUEST,
             )
 
         av, created = AgeVerification.objects.update_or_create(
@@ -295,11 +306,10 @@ class NomineeView(APIView):
         relationship = request.data.get("nominee_relationship")
 
         if not all([name, email, relationship]):
-            return Response(
-                {
-                    "error": "nominee_name, nominee_email, and nominee_relationship are required"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                "nominee_name, nominee_email, and nominee_relationship are required",
+                ErrorCode.VALIDATION_ERROR,
+                status.HTTP_400_BAD_REQUEST,
             )
 
         # Validate email format
@@ -309,9 +319,10 @@ class NomineeView(APIView):
         try:
             validate_email(email)
         except DjangoValidationError:
-            return Response(
-                {"error": "nominee_email must be a valid email address"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                "nominee_email must be a valid email address",
+                ErrorCode.VALIDATION_ERROR,
+                status.HTTP_400_BAD_REQUEST,
             )
 
         nominee, created = DataPrincipalNominee.objects.update_or_create(
@@ -338,9 +349,10 @@ class NomineeView(APIView):
             request.user.data_nominee.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except DataPrincipalNominee.DoesNotExist:
-            return Response(
-                {"error": "No nominee to delete"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                "No nominee to delete",
+                ErrorCode.NOT_FOUND,
+                status.HTTP_404_NOT_FOUND,
             )
 
 
@@ -356,16 +368,18 @@ class DirectoryInfoOptOutView(APIView):
         """Toggle directory information visibility."""
         visible = request.data.get("directory_info_visible")
         if visible is None:
-            return Response(
-                {"error": "directory_info_visible is required"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                "directory_info_visible is required",
+                ErrorCode.VALIDATION_ERROR,
+                status.HTTP_400_BAD_REQUEST,
             )
 
         profile = getattr(request.user, "profile", None)
         if not profile:
-            return Response(
-                {"error": "User profile not found"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                "User profile not found",
+                ErrorCode.NOT_FOUND,
+                status.HTTP_404_NOT_FOUND,
             )
 
         profile.directory_info_visible = bool(visible)

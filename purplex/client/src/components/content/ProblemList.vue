@@ -213,8 +213,8 @@ async function deleteProblem(problem: ProblemDetailed): Promise<void> {
     await fetchTable();
     notify.success(t('admin.problems.deleteSuccess'), t('admin.problems.deleteSuccessMessage', { title: problem.title }));
   } catch (err) {
-    const apiError = err as { error?: string };
-    if (apiError.error?.includes('submission')) {
+    const apiError = err as { error?: string; code?: string };
+    if (apiError.code === 'has_submissions' || apiError.error?.includes('submission')) {
       notify.error(
         t('admin.problems.deleteHasSubmissions', { title: problem.title }),
         t('admin.problems.deleteHasSubmissionsHint')

@@ -8,9 +8,7 @@ from datetime import datetime
 from io import StringIO
 
 from django.http import HttpResponse, JsonResponse
-from rest_framework import status as http_status
 from rest_framework.permissions import IsAdminUser
-from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from purplex.problems_app.repositories.course_repository import CourseRepository
@@ -19,6 +17,7 @@ from purplex.problems_app.repositories.problem_set_repository import (
 )
 from purplex.problems_app.services.research_export_service import ResearchExportService
 from purplex.users_app.repositories.user_repository import UserRepository
+from purplex.utils.error_codes import ErrorCode, error_response
 
 
 class ResearchDataExportView(APIView):
@@ -63,17 +62,17 @@ class ResearchDataExportView(APIView):
         if course_id:
             course = CourseRepository.get_course_by_id(course_id)
             if not course:
-                return Response(
-                    {"error": f"Course {course_id} not found"},
-                    status=http_status.HTTP_404_NOT_FOUND,
+                return error_response(
+                    f"Course {course_id} not found", ErrorCode.NOT_FOUND, 404
                 )
 
         if problem_set_slug:
             problem_set = ProblemSetRepository.get_problem_set_by_slug(problem_set_slug)
             if not problem_set:
-                return Response(
-                    {"error": f"Problem set {problem_set_slug} not found"},
-                    status=http_status.HTTP_404_NOT_FOUND,
+                return error_response(
+                    f"Problem set {problem_set_slug} not found",
+                    ErrorCode.NOT_FOUND,
+                    404,
                 )
 
         # Parse dates
@@ -84,18 +83,20 @@ class ResearchDataExportView(APIView):
             try:
                 start_date = datetime.fromisoformat(start_date_str)
             except ValueError:
-                return Response(
-                    {"error": "Invalid start_date format. Use ISO format (YYYY-MM-DD)"},
-                    status=http_status.HTTP_400_BAD_REQUEST,
+                return error_response(
+                    "Invalid start_date format. Use ISO format (YYYY-MM-DD)",
+                    ErrorCode.VALIDATION_ERROR,
+                    400,
                 )
 
         if end_date_str:
             try:
                 end_date = datetime.fromisoformat(end_date_str)
             except ValueError:
-                return Response(
-                    {"error": "Invalid end_date format. Use ISO format (YYYY-MM-DD)"},
-                    status=http_status.HTTP_400_BAD_REQUEST,
+                return error_response(
+                    "Invalid end_date format. Use ISO format (YYYY-MM-DD)",
+                    ErrorCode.VALIDATION_ERROR,
+                    400,
                 )
 
         # Export data
@@ -117,9 +118,10 @@ class ResearchDataExportView(APIView):
             )
             return response
         else:
-            return Response(
-                {"error": "Unsupported format. Use json."},
-                status=http_status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                "Unsupported format. Use json.",
+                ErrorCode.VALIDATION_ERROR,
+                400,
             )
 
 
@@ -160,9 +162,8 @@ class ProgressHistoryExportView(APIView):
             # Filter by problem sets in course
             course = CourseRepository.get_course_by_id(course_id)
             if not course:
-                return Response(
-                    {"error": f"Course {course_id} not found"},
-                    status=http_status.HTTP_404_NOT_FOUND,
+                return error_response(
+                    f"Course {course_id} not found", ErrorCode.NOT_FOUND, 404
                 )
             problem_sets = course.problem_sets.all()
             queryset = queryset.filter(problem_set__in=problem_sets)
@@ -173,9 +174,8 @@ class ProgressHistoryExportView(APIView):
         if username:
             user = UserRepository.get_by_username(username)
             if not user:
-                return Response(
-                    {"error": f"User {username} not found"},
-                    status=http_status.HTTP_404_NOT_FOUND,
+                return error_response(
+                    f"User {username} not found", ErrorCode.NOT_FOUND, 404
                 )
             queryset = queryset.filter(user=user)
 
@@ -184,9 +184,10 @@ class ProgressHistoryExportView(APIView):
                 start_date = datetime.fromisoformat(start_date_str).date()
                 queryset = queryset.filter(snapshot_date__gte=start_date)
             except ValueError:
-                return Response(
-                    {"error": "Invalid start_date format. Use ISO format (YYYY-MM-DD)"},
-                    status=http_status.HTTP_400_BAD_REQUEST,
+                return error_response(
+                    "Invalid start_date format. Use ISO format (YYYY-MM-DD)",
+                    ErrorCode.VALIDATION_ERROR,
+                    400,
                 )
 
         if end_date_str:
@@ -194,9 +195,10 @@ class ProgressHistoryExportView(APIView):
                 end_date = datetime.fromisoformat(end_date_str).date()
                 queryset = queryset.filter(snapshot_date__lte=end_date)
             except ValueError:
-                return Response(
-                    {"error": "Invalid end_date format. Use ISO format (YYYY-MM-DD)"},
-                    status=http_status.HTTP_400_BAD_REQUEST,
+                return error_response(
+                    "Invalid end_date format. Use ISO format (YYYY-MM-DD)",
+                    ErrorCode.VALIDATION_ERROR,
+                    400,
                 )
 
         # Create CSV

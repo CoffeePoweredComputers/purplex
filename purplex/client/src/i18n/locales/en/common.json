@@ -98,6 +98,32 @@
       "unexpectedError": "An unexpected error occurred."
     }
   },
+  "errors": {
+    "api": {
+      "not_found": "The requested resource was not found.",
+      "forbidden": "You do not have permission to perform this action.",
+      "validation_error": "Invalid input. Please check your data and try again.",
+      "rate_limited": "Too many requests. Please wait a moment and try again.",
+      "server_error": "An unexpected error occurred. Please try again later.",
+      "not_authenticated": "Please log in to continue.",
+      "last_primary": "This is the only primary instructor. Add another primary instructor first before changing this role.",
+      "already_instructor": "This user is already on the course team.",
+      "not_instructor": "This user is not an instructor on this course.",
+      "invalid_role": "Invalid role. Must be Primary or TA.",
+      "not_enrolled": "You are not enrolled in this course.",
+      "enrollment_closed": "Enrollment is closed for this course.",
+      "invalid_problem_type": "Invalid problem type.",
+      "has_submissions": "This problem has student submissions and cannot be deleted. You can deactivate it instead.",
+      "not_owner": "You can only manage your own content.",
+      "not_probeable": "This problem type does not support probing.",
+      "not_refutable": "This problem type does not support counterexample testing.",
+      "invalid_input": "Invalid input format. Please check your values.",
+      "hint_locked": "This hint is not yet available.",
+      "insufficient_attempts": "You need more attempts before this hint unlocks.",
+      "consent_required": "Your consent is required to continue.",
+      "submission_not_found": "Submission not found."
+    }
+  },
   "aria": {
     "etymologyMeaning": "Learn about the meaning of this name",
     "progress": "Progress",

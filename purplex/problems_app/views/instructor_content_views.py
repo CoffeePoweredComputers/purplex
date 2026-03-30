@@ -16,6 +16,7 @@ from purplex.users_app.permissions import (
     IsInstructorAndOwner,
     IsPrimaryCourseInstructor,
 )
+from purplex.utils.error_codes import ErrorCode, error_response
 
 from ..models import (
     CourseProblemSet,
@@ -208,9 +209,10 @@ class InstructorProblemListView(APIView):
                     )
             except Exception as e:
                 logger.error(f"Failed to create problem: {str(e)}")
-                return Response(
-                    {"error": "Failed to create problem. Please try again."},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                return error_response(
+                    "Failed to create problem. Please try again.",
+                    ErrorCode.SERVER_ERROR,
+                    500,
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -229,9 +231,8 @@ class InstructorProblemDetailView(APIView):
     def get(self, request, slug):
         problem = self.get_object(request, slug)
         if not problem:
-            return Response(
-                {"error": "Problem not found or not owned by you"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                "Problem not found or not owned by you", ErrorCode.NOT_FOUND, 404
             )
         SerializerClass = get_serializer_for_problem(problem, for_write=False)
         return Response(SerializerClass(problem).data)
@@ -239,9 +240,8 @@ class InstructorProblemDetailView(APIView):
     def put(self, request, slug):
         problem = self.get_object(request, slug)
         if not problem:
-            return Response(
-                {"error": "Problem not found or not owned by you"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                "Problem not found or not owned by you", ErrorCode.NOT_FOUND, 404
             )
 
         data, problem_set_slugs = AdminProblemService.prepare_problem_data(request.data)
@@ -265,23 +265,23 @@ class InstructorProblemDetailView(APIView):
                     return Response(ResponseSerializerClass(updated).data)
             except Exception as e:
                 logger.error(f"Failed to update problem {slug}: {str(e)}")
-                return Response(
-                    {"error": f"Failed to update problem: {str(e)}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                return error_response(
+                    f"Failed to update problem: {str(e)}",
+                    ErrorCode.SERVER_ERROR,
+                    500,
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, slug):
         problem = self.get_object(request, slug)
         if not problem:
-            return Response(
-                {"error": "Problem not found or not owned by you"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                "Problem not found or not owned by you", ErrorCode.NOT_FOUND, 404
             )
         result = AdminProblemService.delete_problem(problem)
         if result["success"]:
             return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response({"error": result["error"]}, status=status.HTTP_400_BAD_REQUEST)
+        return error_response(result["error"], ErrorCode.VALIDATION_ERROR, 400)
 
 
 class InstructorTestProblemView(APIView):
@@ -332,9 +332,8 @@ class InstructorProblemSetDetailView(APIView):
     def get(self, request, slug):
         ps = self.get_object(request, slug)
         if not ps:
-            return Response(
-                {"error": "Problem set not found or not owned by you"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                "Problem set not found or not owned by you", ErrorCode.NOT_FOUND, 404
             )
         # Use AdminProblemSetSerializer to include problems_detail
         return Response(AdminProblemSetSerializer(ps).data)
@@ -342,9 +341,8 @@ class InstructorProblemSetDetailView(APIView):
     def put(self, request, slug):
         ps = self.get_object(request, slug)
         if not ps:
-            return Response(
-                {"error": "Problem set not found or not owned by you"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                "Problem set not found or not owned by you", ErrorCode.NOT_FOUND, 404
             )
         serializer = ProblemSetSerializer(ps, data=request.data, partial=True)
         if serializer.is_valid():
@@ -372,18 +370,18 @@ class InstructorProblemSetDetailView(APIView):
                     return Response(serializer.data)
             except Exception as e:
                 logger.error(f"Failed to update problem set {slug}: {str(e)}")  # nosec B608
-                return Response(
-                    {"error": f"Failed to update problem set: {str(e)}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                return error_response(
+                    f"Failed to update problem set: {str(e)}",
+                    ErrorCode.SERVER_ERROR,
+                    500,
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, slug):
         ps = self.get_object(request, slug)
         if not ps:
-            return Response(
-                {"error": "Problem set not found or not owned by you"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                "Problem set not found or not owned by you", ErrorCode.NOT_FOUND, 404
             )
         ps.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -397,9 +395,7 @@ class InstructorCourseProblemSetManageView(APIView):
     def post(self, request, course_id):
         course = CourseRepository.get_course_by_id(course_id)
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         self.check_object_permissions(request, course)
 
@@ -410,9 +406,7 @@ class InstructorCourseProblemSetManageView(APIView):
         try:
             ps = ProblemSet.objects.get(slug=problem_set_slug)
         except ProblemSet.DoesNotExist:
-            return Response(
-                {"error": "Problem set not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Problem set not found", ErrorCode.NOT_FOUND, 404)
 
         cps, created = CourseProblemSet.objects.get_or_create(
             course=course,
@@ -441,9 +435,7 @@ class InstructorCourseProblemSetManageView(APIView):
         try:
             course = CourseRepository.get_course_by_id(course_id)
             if not course:
-                return Response(
-                    {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-                )
+                return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
             self.check_object_permissions(request, course)
 
@@ -460,14 +452,11 @@ class InstructorCourseProblemSetManageView(APIView):
 
             if deleted:
                 return Response(status=status.HTTP_204_NO_CONTENT)
-            return Response(
-                {"error": "Problem set not in course"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Problem set not in course", ErrorCode.NOT_FOUND, 404)
         except Exception as e:
             logger.error(f"Delete failed: {type(e).__name__}: {str(e)}")
-            return Response(
-                {"error": f"Delete failed: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return error_response(
+                f"Delete failed: {str(e)}", ErrorCode.SERVER_ERROR, 500
             )
 
     def patch(self, request, course_id, problem_set_slug=None, membership_id=None):
@@ -475,9 +464,7 @@ class InstructorCourseProblemSetManageView(APIView):
         try:
             course = CourseRepository.get_course_by_id(course_id)
             if not course:
-                return Response(
-                    {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-                )
+                return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
             self.check_object_permissions(request, course)
 
@@ -487,9 +474,8 @@ class InstructorCourseProblemSetManageView(APIView):
                 try:
                     cps = CourseProblemSet.objects.get(id=membership_id, course=course)
                 except CourseProblemSet.DoesNotExist:
-                    return Response(
-                        {"error": "Problem set membership not found"},
-                        status=status.HTTP_404_NOT_FOUND,
+                    return error_response(
+                        "Problem set membership not found", ErrorCode.NOT_FOUND, 404
                     )
             elif problem_set_slug:
                 try:
@@ -497,14 +483,14 @@ class InstructorCourseProblemSetManageView(APIView):
                         course=course, problem_set__slug=problem_set_slug
                     )
                 except CourseProblemSet.DoesNotExist:
-                    return Response(
-                        {"error": "Problem set not in course"},
-                        status=status.HTTP_404_NOT_FOUND,
+                    return error_response(
+                        "Problem set not in course", ErrorCode.NOT_FOUND, 404
                     )
             else:
-                return Response(
-                    {"error": "membership_id or problem_set_slug required"},
-                    status=status.HTTP_400_BAD_REQUEST,
+                return error_response(
+                    "membership_id or problem_set_slug required",
+                    ErrorCode.VALIDATION_ERROR,
+                    400,
                 )
 
             # Update fields if provided
@@ -526,11 +512,10 @@ class InstructorCourseProblemSetManageView(APIView):
                 deadline_type = request.data["deadline_type"]
                 valid_types = ["none", "soft", "hard"]
                 if deadline_type not in valid_types:
-                    return Response(
-                        {
-                            "error": f"Invalid deadline_type. Must be one of: {valid_types}"
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
+                    return error_response(
+                        f"Invalid deadline_type. Must be one of: {valid_types}",
+                        ErrorCode.VALIDATION_ERROR,
+                        400,
                     )
                 cps.deadline_type = deadline_type
 
@@ -553,13 +538,11 @@ class InstructorCourseProblemSetManageView(APIView):
             )
         except ValueError as e:
             logger.error(f"Patch failed - ValueError: {str(e)}")
-            return Response(
-                {"error": f"Invalid data: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                f"Invalid data: {str(e)}", ErrorCode.VALIDATION_ERROR, 400
             )
         except Exception as e:
             logger.error(f"Patch failed: {type(e).__name__}: {str(e)}")
-            return Response(
-                {"error": f"Update failed: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return error_response(
+                f"Update failed: {str(e)}", ErrorCode.SERVER_ERROR, 500
             )

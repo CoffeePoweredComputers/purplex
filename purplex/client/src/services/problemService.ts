@@ -210,6 +210,7 @@ class ProblemServiceImpl {
         if (validationErrors.length > 0) {
           return {
             error: validationErrors.join('; '),
+            code: response.data?.code as string | undefined,
             details: response.data,
             status: response.status
           };
@@ -218,6 +219,7 @@ class ProblemServiceImpl {
 
       return {
         error: response.data?.error || defaultMessage,
+        code: response.data?.code as string | undefined,
         details: response.data?.details,
         status: response.status
       };

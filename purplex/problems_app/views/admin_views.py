@@ -15,6 +15,7 @@ from purplex.submissions.repositories import SubmissionRepository
 from purplex.submissions.services import SubmissionService
 from purplex.users_app.permissions import IsAdmin
 from purplex.users_app.repositories.user_repository import UserRepository
+from purplex.utils.error_codes import ErrorCode, error_response
 
 from ..models import (
     DebugFixProblem,
@@ -90,6 +91,7 @@ class AdminProblemListView(APIView):
             return Response(
                 {
                     "error": f"Invalid problem_type: '{problem_type}'",
+                    "code": ErrorCode.INVALID_PROBLEM_TYPE,
                     "details": f"Valid types are: {valid_types}",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -118,9 +120,10 @@ class AdminProblemListView(APIView):
                     )
             except Exception as e:
                 logger.error(f"Failed to create problem: {str(e)}")
-                return Response(
-                    {"error": "Failed to create problem. Please try again."},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                return error_response(
+                    "Failed to create problem. Please try again.",
+                    ErrorCode.SERVER_ERROR,
+                    500,
                 )
 
         # Log the validation errors to help debug
@@ -138,9 +141,10 @@ class AdminProblemDetailView(APIView):
     def get(self, request, slug):
         problem = AdminProblemService.get_problem_by_slug(slug)
         if not problem:
-            return Response(
-                {"error": f"Problem with slug {slug} not found"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                f"Problem with slug {slug} not found",
+                ErrorCode.NOT_FOUND,
+                404,
             )
         # Use correct serializer based on problem type
         if isinstance(problem, McqProblem):
@@ -162,9 +166,10 @@ class AdminProblemDetailView(APIView):
     def put(self, request, slug):
         problem = AdminProblemService.get_problem_by_slug(slug)
         if not problem:
-            return Response(
-                {"error": f"Problem with slug {slug} not found"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                f"Problem with slug {slug} not found",
+                ErrorCode.NOT_FOUND,
+                404,
             )
 
         # Use service layer to prepare data
@@ -241,18 +246,20 @@ class AdminProblemDetailView(APIView):
 
                 logger.error(f"Full traceback: {traceback.format_exc()}")
 
-                return Response(
-                    {"error": f"Failed to update problem: {str(e)}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                return error_response(
+                    f"Failed to update problem: {str(e)}",
+                    ErrorCode.SERVER_ERROR,
+                    500,
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, slug):
         problem = AdminProblemService.get_problem_by_slug(slug)
         if not problem:
-            return Response(
-                {"error": f"Problem with slug {slug} not found"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                f"Problem with slug {slug} not found",
+                ErrorCode.NOT_FOUND,
+                404,
             )
 
         # Use service layer to delete the problem
@@ -260,9 +267,10 @@ class AdminProblemDetailView(APIView):
         if result["success"]:
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
-            return Response(
-                {"error": result.get("error", "Failed to delete problem")},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                result.get("error", "Failed to delete problem"),
+                ErrorCode.VALIDATION_ERROR,
+                400,
             )
 
 
@@ -283,6 +291,7 @@ class AdminTestProblemView(APIView):
                     {
                         "success": False,
                         "error": f"{field} is required for testing",
+                        "code": ErrorCode.VALIDATION_ERROR,
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
@@ -292,6 +301,7 @@ class AdminTestProblemView(APIView):
                 {
                     "success": False,
                     "error": "At least one test case is required for testing",
+                    "code": ErrorCode.VALIDATION_ERROR,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -315,6 +325,7 @@ class AdminTestProblemView(APIView):
                 {
                     "success": False,
                     "error": "Failed to test reference solution. Please check the code and try again.",
+                    "code": ErrorCode.SERVER_ERROR,
                     "testsPassed": 0,
                     "totalTests": len(problem_data.get("test_cases", [])),
                     "results": [],
@@ -331,9 +342,10 @@ class AdminTestCaseView(APIView):
         """Add test case to a problem"""
         problem = AdminProblemService.get_problem_by_slug(problem_slug)
         if not problem:
-            return Response(
-                {"error": f"Problem with slug {problem_slug} not found"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                f"Problem with slug {problem_slug} not found",
+                ErrorCode.NOT_FOUND,
+                404,
             )
 
         serializer = TestCaseSerializer(data=request.data)
@@ -346,11 +358,10 @@ class AdminTestCaseView(APIView):
         """Update a test case"""
         test_case = AdminProblemService.get_test_case(test_case_id, problem_slug)
         if not test_case:
-            return Response(
-                {
-                    "error": f"Test case {test_case_id} not found for problem {problem_slug}"
-                },
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                f"Test case {test_case_id} not found for problem {problem_slug}",
+                ErrorCode.NOT_FOUND,
+                404,
             )
 
         serializer = TestCaseSerializer(test_case, data=request.data, partial=True)
@@ -363,20 +374,20 @@ class AdminTestCaseView(APIView):
         """Delete a test case"""
         test_case = AdminProblemService.get_test_case(test_case_id, problem_slug)
         if not test_case:
-            return Response(
-                {
-                    "error": f"Test case {test_case_id} not found for problem {problem_slug}"
-                },
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                f"Test case {test_case_id} not found for problem {problem_slug}",
+                ErrorCode.NOT_FOUND,
+                404,
             )
 
         # Use service layer to delete the test case
         if AdminProblemService.delete_test_case(test_case_id):
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
-            return Response(
-                {"error": "Failed to delete test case"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Failed to delete test case",
+                ErrorCode.SERVER_ERROR,
+                500,
             )
 
 
@@ -445,11 +456,10 @@ class AdminProblemSetListView(APIView):
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
                 logger.error(f"Error creating problem set: {str(e)}")
-                return Response(
-                    {
-                        "error": "An error occurred while creating the problem set. Please try again."
-                    },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                return error_response(
+                    "An error occurred while creating the problem set. Please try again.",
+                    ErrorCode.SERVER_ERROR,
+                    500,
                 )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -464,9 +474,10 @@ class AdminProblemSetDetailView(APIView):
     def get(self, request, slug):
         problem_set = AdminProblemService.get_problem_set_by_slug(slug)
         if not problem_set:
-            return Response(
-                {"error": f"Problem set with slug {slug} not found"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                f"Problem set with slug {slug} not found",
+                ErrorCode.NOT_FOUND,
+                404,
             )
         # Use AdminProblemSetSerializer which includes problems_detail
         serializer = AdminProblemSetSerializer(problem_set)
@@ -480,9 +491,10 @@ class AdminProblemSetDetailView(APIView):
     def put(self, request, slug):
         problem_set = AdminProblemService.get_problem_set_by_slug(slug)
         if not problem_set:
-            return Response(
-                {"error": f"Problem set with slug {slug} not found"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                f"Problem set with slug {slug} not found",
+                ErrorCode.NOT_FOUND,
+                404,
             )
 
         # Use service to check if title change would create a duplicate
@@ -529,11 +541,10 @@ class AdminProblemSetDetailView(APIView):
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
                 logger.error(f"Error updating problem set: {str(e)}")
-                return Response(
-                    {
-                        "error": "An error occurred while updating the problem set. Please try again."
-                    },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                return error_response(
+                    "An error occurred while updating the problem set. Please try again.",
+                    ErrorCode.SERVER_ERROR,
+                    500,
                 )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -541,18 +552,20 @@ class AdminProblemSetDetailView(APIView):
     def delete(self, request, slug):
         problem_set = AdminProblemService.get_problem_set_by_slug(slug)
         if not problem_set:
-            return Response(
-                {"error": f"Problem set with slug {slug} not found"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                f"Problem set with slug {slug} not found",
+                ErrorCode.NOT_FOUND,
+                404,
             )
 
         # Use service layer to delete the problem set
         if AdminProblemService.delete_problem_set(problem_set):
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
-            return Response(
-                {"error": "Failed to delete problem set"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Failed to delete problem set",
+                ErrorCode.SERVER_ERROR,
+                500,
             )
 
 
@@ -854,14 +867,17 @@ class AdminSubmissionDetailView(APIView):
             return Response(submission_data)
         except Exception as e:
             if "DoesNotExist" in str(type(e).__name__):
-                return Response(
-                    {"error": "Submission not found"}, status=status.HTTP_404_NOT_FOUND
+                return error_response(
+                    "Submission not found",
+                    ErrorCode.NOT_FOUND,
+                    404,
                 )
             else:
                 logger.error(f"Error fetching submission details: {str(e)}")
-                return Response(
-                    {"error": "Failed to fetch submission details"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                return error_response(
+                    "Failed to fetch submission details",
+                    ErrorCode.SERVER_ERROR,
+                    500,
                 )
 
 

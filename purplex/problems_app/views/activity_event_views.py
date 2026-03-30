@@ -19,6 +19,7 @@ from purplex.problems_app.repositories.problem_repository import ProblemReposito
 from purplex.submissions.activity_event_service import ActivityEventService
 from purplex.users_app.models import ConsentType
 from purplex.users_app.services.consent_service import ConsentService
+from purplex.utils.error_codes import ErrorCode, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -65,16 +66,12 @@ class ActivityEventCreateView(APIView):
     def post(self, request):
         # Rate limit check
         if getattr(request, "limited", False):
-            return Response(
-                {"error": "Rate limit exceeded"},
-                status=status.HTTP_429_TOO_MANY_REQUESTS,
-            )
+            return error_response("Rate limit exceeded", ErrorCode.RATE_LIMITED, 429)
 
         event_type = request.data.get("event_type")
         if not event_type:
-            return Response(
-                {"error": "event_type is required"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                "event_type is required", ErrorCode.VALIDATION_ERROR, 400
             )
 
         # Consent gate for behavioral events (session.*)
@@ -83,9 +80,10 @@ class ActivityEventCreateView(APIView):
             if not ConsentService.has_active_consent(
                 request.user, ConsentType.BEHAVIORAL_TRACKING
             ):
-                return Response(
-                    {"error": "Behavioral tracking consent required"},
-                    status=status.HTTP_403_FORBIDDEN,
+                return error_response(
+                    "Behavioral tracking consent required",
+                    ErrorCode.CONSENT_REQUIRED,
+                    403,
                 )
 
         # Resolve optional FK references
@@ -105,10 +103,7 @@ class ActivityEventCreateView(APIView):
                 idempotency_key=idempotency_key,
             )
         except ValueError as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return error_response(str(e), ErrorCode.VALIDATION_ERROR, 400)
 
         return Response(
             {"id": event.id, "event_type": event.event_type},

@@ -350,8 +350,9 @@ async function testInput() {
     log.info('Refute test', { input: inputArgs, result, disproven: claim_disproven })
 
   } catch (err) {
-    const axiosError = err as { response?: { data?: { error?: string } } }
-    testError.value = axiosError.response?.data?.error || 'Test failed'
+    // Handle both AxiosError (direct axios) and APIError (service) shapes
+    const apiErr = err as { error?: string; response?: { data?: { error?: string } } }
+    testError.value = apiErr.error || apiErr.response?.data?.error || 'Test failed'
     log.error('Refute test failed', err)
   } finally {
     testing.value = false
