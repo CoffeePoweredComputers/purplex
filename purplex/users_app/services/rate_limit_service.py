@@ -8,6 +8,7 @@ import time
 
 import redis
 
+from purplex.config.environment import config
 from purplex.utils.redis_client import get_rate_limit_client
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,9 @@ class RateLimitService:
         Returns:
             True if within limits, False if rate limited
         """
+        if not config.rate_limit_enabled:
+            return True
+
         try:
             redis_client = get_rate_limit_client()  # Use centralized client
 
@@ -65,6 +69,9 @@ class RateLimitService:
         Returns:
             True if within limits, False if rate limited
         """
+        if not config.rate_limit_enabled:
+            return True
+
         try:
             redis_client = get_rate_limit_client()  # Use centralized client
 
@@ -91,6 +98,9 @@ class RateLimitService:
         Args:
             identifier: IP address or user identifier
         """
+        if not config.rate_limit_enabled:
+            return
+
         try:
             redis_client = get_rate_limit_client()  # Use centralized client
 
@@ -124,6 +134,9 @@ class RateLimitService:
         Returns:
             True if blocked, False otherwise
         """
+        if not config.rate_limit_enabled:
+            return False
+
         try:
             redis_client = get_rate_limit_client()  # Use centralized client
 
