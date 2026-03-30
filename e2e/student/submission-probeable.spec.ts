@@ -40,7 +40,7 @@ async function goToProbeableProblem(page: Page) {
   await navigateAs(
     page,
     'student',
-    '/courses/CS101-2024/problem-set/e2e-code?problem=e2e-probeable-code-1',
+    '/courses/CS101-2024/problem-set/e2e-code?p=1',
   );
   // Wait for the probeable code input to appear
   await page.locator('.probeable-code-input, .probe-panel, #codeEditor').first().waitFor({
@@ -182,7 +182,7 @@ test.describe('Refute Problem (Deadline Enforcement)', () => {
     await navigateAs(
       page,
       'student',
-      '/courses/CS101-2024/problem-set/e2e-mixed?problem=e2e-refute-1',
+      '/courses/CS101-2024/problem-set/e2e-mixed?p=6',
     );
 
     // Wait for the page to load

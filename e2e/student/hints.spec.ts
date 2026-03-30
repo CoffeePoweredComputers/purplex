@@ -37,7 +37,7 @@ async function goToEiplProblem(page: Page) {
   await navigateAs(
     page,
     'student',
-    '/courses/CS101-2024/problem-set/e2e-basics?problem=e2e-eipl-1',
+    '/courses/CS101-2024/problem-set/e2e-basics?p=1',
   );
   // Wait for the problem to load
   await page.locator('.editor-section, #code-editor, .problem-set-container').first().waitFor({

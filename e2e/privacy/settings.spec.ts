@@ -27,43 +27,35 @@ test.describe('User Settings', () => {
         || 'dark';
     });
 
-    // Look for a theme toggle button (common patterns: button with theme/mode text,
-    // or a toggle in the account modal / settings)
-    const themeToggle = page.locator('[data-testid="theme-toggle"], .theme-toggle, button:has-text("Light"), button:has-text("Dark"), button:has-text("Theme")').first();
+    // The ThemeSwitcher component lives inside the AccountModal.
+    // Open the Account modal first.
+    const accountBtn = page.getByRole('button', { name: 'Account' });
+    await expect(accountBtn).toBeVisible();
+    await accountBtn.click();
 
-    if (await themeToggle.isVisible()) {
-      await themeToggle.click();
-      await page.waitForTimeout(500);
+    // Wait for the modal to appear (Teleport to body)
+    const modal = page.getByRole('dialog');
+    await expect(modal).toBeVisible({ timeout: 5000 });
 
-      // Theme should have changed
-      const newTheme = await page.evaluate(() => {
-        return document.documentElement.getAttribute('data-theme')
-          || document.body.getAttribute('data-theme')
-          || localStorage.getItem('purplex_theme')
-          || 'dark';
-      });
+    // The ThemeSwitcher renders radio-style .theme-option buttons: Light, Auto, Dark.
+    // Click the opposite of the current theme to toggle.
+    const targetTheme = initialTheme === 'dark' ? 'light' : 'dark';
+    const targetButton = modal.locator('.theme-option').filter({
+      hasText: new RegExp(targetTheme, 'i'),
+    });
+    await expect(targetButton).toBeVisible();
+    await targetButton.click();
+    await page.waitForTimeout(300);
 
-      expect(newTheme).not.toBe(initialTheme);
-    } else {
-      // Theme toggle may be in the Account modal
-      const accountBtn = page.getByRole('button', { name: 'Account' });
-      if (await accountBtn.isVisible()) {
-        await accountBtn.click();
-        await page.waitForTimeout(500);
+    // Theme should have changed
+    const newTheme = await page.evaluate(() => {
+      return document.documentElement.getAttribute('data-theme')
+        || document.body.getAttribute('data-theme')
+        || localStorage.getItem('purplex_theme')
+        || 'dark';
+    });
 
-        // Look for theme toggle inside modal
-        const modalThemeToggle = page.locator('[data-testid="theme-toggle"], .theme-toggle, .theme-switch').first();
-        if (await modalThemeToggle.isVisible()) {
-          await modalThemeToggle.click();
-          await page.waitForTimeout(500);
-
-          const newTheme = await page.evaluate(() => {
-            return localStorage.getItem('purplex_theme') || 'dark';
-          });
-          expect(newTheme).not.toBe(initialTheme);
-        }
-      }
-    }
+    expect(newTheme).not.toBe(initialTheme);
   });
 
   test('theme persists across page reload', async ({ page }) => {

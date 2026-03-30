@@ -125,8 +125,10 @@ test.describe('Login Flow', () => {
     // Click Sign Out button
     await page.locator('.logout-button').click();
 
-    // Should redirect to login page
-    await page.waitForURL('**/', { timeout: 10000 });
+    // After logout, the Login component renders (loggedIn becomes false).
+    // The URL may stay at /home since no router navigation occurs;
+    // verify logout by checking localStorage is cleared and login form is visible.
+    await page.locator('#login-form').waitFor({ state: 'visible', timeout: 10000 });
 
     // localStorage should be cleared of user data
     const userData = await page.evaluate(() => localStorage.getItem('user'));

@@ -26,7 +26,7 @@ import { apiAs } from '../helpers/api';
 
 /** Navigate to the e2e-basics problem set at e2e-mcq-1. */
 async function goToMcqProblem(page: Page) {
-  await navigateAs(page, 'student', '/courses/CS101-2024/problem-set/e2e-basics?problem=e2e-mcq-1');
+  await navigateAs(page, 'student', '/courses/CS101-2024/problem-set/e2e-basics?p=0');
   // Wait for the MCQ options to render
   await page.locator('.mcq-options-container').waitFor({ state: 'visible', timeout: 15000 });
 }

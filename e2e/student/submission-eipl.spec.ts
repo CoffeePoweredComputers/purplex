@@ -33,7 +33,7 @@ const ASYNC_TIMEOUT = 45000;
 
 /** Navigate to e2e-basics and select e2e-eipl-1. */
 async function goToEiplProblem(page: Page) {
-  await navigateAs(page, 'student', '/courses/CS101-2024/problem-set/e2e-basics?problem=e2e-eipl-1');
+  await navigateAs(page, 'student', '/courses/CS101-2024/problem-set/e2e-basics?p=1');
   // Wait for the description input (Ace editor wrapper) to appear
   await page.locator('#promptEditor, .description-input, .prompt-editor-wrapper').first().waitFor({
     state: 'visible',

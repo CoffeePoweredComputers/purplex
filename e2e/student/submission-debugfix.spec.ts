@@ -33,7 +33,7 @@ async function goToDebugFixProblem(page: Page) {
   await navigateAs(
     page,
     'student',
-    '/courses/CS101-2024/problem-set/e2e-code?problem=e2e-debugfix-1',
+    '/courses/CS101-2024/problem-set/e2e-code?p=0',
   );
   // Wait for the Debug Fix input to appear (code editor wrapper)
   await page.locator('.debug-fix-input, #codeEditor').first().waitFor({
