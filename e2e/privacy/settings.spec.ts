@@ -107,7 +107,7 @@ test.describe('User Settings', () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ language: 'es' }),
+        body: JSON.stringify({ language_preference: 'es' }),
       });
       let data;
       try {
@@ -137,7 +137,7 @@ test.describe('User Settings', () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ language: 'en' }),
+        body: JSON.stringify({ language_preference: 'en' }),
       });
     });
   });

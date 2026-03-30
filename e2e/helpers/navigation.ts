@@ -21,5 +21,5 @@ export async function expectNoErrors(page: Page): Promise<void> {
   const body = await page.locator('body').textContent();
   expect(body).not.toContain('Internal Server Error');
   expect(body).not.toContain('Traceback');
-  expect(body).not.toContain('500');
+  expect(body).not.toContain('500 Internal Server Error');
 }

@@ -1,4 +1,5 @@
 import { Page } from '@playwright/test';
+import { generateMockToken } from './api';
 
 /**
  * Shape matches the User interface in auth.module.ts (line 83).
@@ -8,6 +9,12 @@ import { Page } from '@playwright/test';
  * In dev mode, DEBUG=true (line 77) bypasses route guards entirely,
  * but injecting a proper user ensures components that read the user
  * object render role-appropriate UI (admin panels, instructor tools, etc.).
+ *
+ * CRITICAL: We also intercept all API requests via page.route() to inject
+ * the Authorization header with a valid mock Firebase token. Without this,
+ * the axios interceptor (main.ts:59) can't get a token from
+ * firebase.auth().currentUser.getIdToken() — so all API calls go out
+ * unauthenticated and return 401.
  */
 interface MockUser {
   uid: string;
@@ -75,4 +82,18 @@ export async function injectAuth(
     },
     { userJson: JSON.stringify(user), consent: 'accepted' },
   );
+
+  // Intercept all API requests and inject the Authorization header.
+  // The app's axios interceptor (main.ts:59) calls
+  // firebase.auth().currentUser.getIdToken() which is never initialized
+  // in E2E tests. This route handler ensures every API call carries a
+  // valid mock Firebase token so the Django backend authenticates the request.
+  const token = generateMockToken(role);
+  await page.route('**/api/**', async (route) => {
+    const headers = {
+      ...route.request().headers(),
+      'authorization': `Bearer ${token}`,
+    };
+    await route.continue({ headers });
+  });
 }

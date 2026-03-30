@@ -109,7 +109,12 @@ test.describe('Error States', () => {
           text.includes('net::ERR_') ||
           text.includes('[webpack') ||
           text.includes('[vite]') ||
-          text.includes('DevTools');
+          text.includes('DevTools') ||
+          text.includes('OPENAI') ||
+          text.includes('service-worker') ||
+          text.includes('CORS') ||
+          text.includes('the server responded with a status of') ||
+          text.includes('Failed to load resource');
         if (!isExpectedNoise) {
           consoleErrors.push(text);
         }

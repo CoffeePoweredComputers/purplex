@@ -107,7 +107,9 @@ test.describe('Responsive Layout', () => {
       localStorage.clear();
       sessionStorage.clear();
     });
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    // Wait for the login form to render (auth state may redirect)
+    await page.locator('#email').waitFor({ state: 'visible', timeout: 10000 });
 
     // Email and password inputs should be visible and usable
     const emailInput = page.locator('#email');

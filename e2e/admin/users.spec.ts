@@ -124,13 +124,13 @@ test.describe('Admin User Management', () => {
 
     if (studentUser) {
       // Change student2's role to instructor, then back to user
-      const patchResponse = await apiAs(page, 'admin', 'PATCH', `/api/admin/user/${studentUser.id}/`, {
+      const postResponse = await apiAs(page, 'admin', 'POST', `/api/admin/user/${studentUser.id}/`, {
         role: 'instructor',
       });
-      expect(patchResponse.status).toBe(200);
+      expect(postResponse.status).toBe(200);
 
       // Revert it back
-      const revertResponse = await apiAs(page, 'admin', 'PATCH', `/api/admin/user/${studentUser.id}/`, {
+      const revertResponse = await apiAs(page, 'admin', 'POST', `/api/admin/user/${studentUser.id}/`, {
         role: 'user',
       });
       expect(revertResponse.status).toBe(200);

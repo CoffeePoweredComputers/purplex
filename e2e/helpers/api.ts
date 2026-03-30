@@ -14,7 +14,7 @@ const ROLE_EMAILS: Record<Role, string> = {
  * Format: MOCK.base64(payload).development
  * This matches what mock_firebase.py expects.
  */
-function generateMockToken(role: Role): string {
+export function generateMockToken(role: Role): string {
   const email = ROLE_EMAILS[role];
   const payload = {
     email,
