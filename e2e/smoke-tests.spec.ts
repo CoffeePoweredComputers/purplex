@@ -13,27 +13,9 @@
  * Run: npx playwright test e2e/smoke-tests.spec.ts
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { injectAuth } from './helpers/auth';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Navigate to a page with auth injected. */
-async function navigateAs(
-  page: Page,
-  role: 'student' | 'instructor' | 'admin',
-  path: string,
-) {
-  await injectAuth(page, role);
-  await page.goto(path, { waitUntil: 'networkidle' });
-}
-
-/** Wait for API calls to settle and content to render. */
-async function waitForContent(page: Page, text: string, timeout = 10000) {
-  await page.getByText(text).first().waitFor({ state: 'visible', timeout });
-}
+import { navigateAs, waitForContent } from './helpers/navigation';
 
 // ---------------------------------------------------------------------------
 // Student Workflows

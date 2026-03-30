@@ -19,21 +19,28 @@ interface MockUser {
 
 const USERS: Record<string, MockUser> = {
   student: {
-    uid: 'e2e-student-001',
+    uid: 'mock-uid-student',
     email: 'student@test.local',
     displayName: 'Test Student',
     role: 'user',
     isAdmin: false,
   },
+  student2: {
+    uid: 'mock-uid-student2',
+    email: 'student2@test.local',
+    displayName: 'Test Student 2',
+    role: 'user',
+    isAdmin: false,
+  },
   instructor: {
-    uid: 'e2e-instructor-001',
+    uid: 'mock-uid-instructor',
     email: 'instructor@test.local',
     displayName: 'Test Instructor',
     role: 'instructor',
     isAdmin: false,
   },
   admin: {
-    uid: 'e2e-admin-001',
+    uid: 'mock-uid-admin',
     email: 'admin@test.local',
     displayName: 'Test Admin',
     role: 'admin',
@@ -52,7 +59,7 @@ const USERS: Record<string, MockUser> = {
  */
 export async function injectAuth(
   page: Page,
-  role: 'student' | 'instructor' | 'admin',
+  role: 'student' | 'student2' | 'instructor' | 'admin',
 ): Promise<void> {
   const user = USERS[role];
 

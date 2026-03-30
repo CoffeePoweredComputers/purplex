@@ -11,12 +11,16 @@ export default defineConfig({
   // No retries — if a page fails to load, we want to know immediately
   retries: 0,
 
+  // API calls through Celery can be slow
+  expect: { timeout: 10_000 },
+
   // HTML reporter for side-by-side review
   reporter: 'html',
 
   use: {
     baseURL: 'http://localhost:5173',
-    trace: 'off',
+    actionTimeout: 5_000,
+    trace: 'on-first-retry',
     screenshot: 'off', // we take manual screenshots
   },
 
