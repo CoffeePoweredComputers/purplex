@@ -93,16 +93,15 @@ export async function injectAuth(
   // overwriting tokens set by apiAs() helper in page.evaluate(fetch(...)).
   const token = generateMockToken(role);
   await page.route('**/api/**', async (route) => {
-    const existingAuth = route.request().headers()['authorization'];
-    if (existingAuth) {
-      // Request already has auth (e.g. from apiAs helper) — don't overwrite
-      await route.continue();
+    const headers = route.request().headers();
+    if (headers['authorization']?.startsWith('Bearer ')) {
+      // Request already has auth token (e.g. from apiAs helper) — pass through unchanged.
+      // Use fallback() so other route handlers can still process the request.
+      await route.fallback();
     } else {
-      const headers = {
-        ...route.request().headers(),
-        'authorization': `Bearer ${token}`,
-      };
-      await route.continue({ headers });
+      await route.fallback({
+        headers: { ...headers, 'authorization': `Bearer ${token}` },
+      });
     }
   });
 }

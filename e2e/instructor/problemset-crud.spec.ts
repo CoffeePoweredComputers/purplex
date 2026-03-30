@@ -22,8 +22,9 @@ test.describe('Instructor Problem Set CRUD', () => {
   test('problem set list shows seeded problem sets', async ({ page }) => {
     await navigateAs(page, 'instructor', PROBLEM_SETS_URL);
 
-    // Wait for DataTable to render
-    await page.locator('.data-table').waitFor({ state: 'visible', timeout: 15000 });
+    // Wait for DataTable to finish loading (table, empty state, or error state)
+    const tableOrState = page.locator('.data-table, .empty-state, .error-state').first();
+    await tableOrState.waitFor({ state: 'visible', timeout: 15000 });
 
     // The three seeded problem sets should be listed
     await expect(page.getByText('E2E Basics')).toBeVisible();
@@ -35,7 +36,7 @@ test.describe('Instructor Problem Set CRUD', () => {
 
   test('search filter narrows problem set list', async ({ page }) => {
     await navigateAs(page, 'instructor', PROBLEM_SETS_URL);
-    await page.locator('.data-table').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('.data-table, .empty-state, .error-state').first().waitFor({ state: 'visible', timeout: 15000 });
 
     const searchInput = page.locator('.search-input');
     await searchInput.fill('Mixed');
@@ -57,11 +58,10 @@ test.describe('Instructor Problem Set CRUD', () => {
 
   test('clicking "Add New" navigates to new problem set editor', async ({ page }) => {
     await navigateAs(page, 'instructor', PROBLEM_SETS_URL);
-    await page.locator('.data-table').waitFor({ state: 'visible', timeout: 15000 });
 
-    // The add button is a router-link in header-actions
+    // The add button is in header-actions, visible regardless of DataTable state
     const addButton = page.locator('.add-button');
-    await expect(addButton).toBeVisible();
+    await expect(addButton).toBeVisible({ timeout: 15000 });
     await addButton.click();
 
     await page.waitForURL('**/instructor/problem-sets/new', { timeout: 10000 });
@@ -90,8 +90,8 @@ test.describe('Instructor Problem Set CRUD', () => {
     const deleteBtn = row.locator('.delete-button');
     await deleteBtn.click();
 
-    // ConfirmDialog component should appear
-    const dialog = page.locator('.confirm-dialog, .dialog-overlay, [role="dialog"]');
+    // ConfirmDialog uses Teleport with .dialog-overlay and role="alertdialog"
+    const dialog = page.locator('.dialog-overlay, [role="alertdialog"]');
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
     // Cancel the deletion to preserve seeded data

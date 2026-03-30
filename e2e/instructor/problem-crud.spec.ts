@@ -58,17 +58,17 @@ test.describe('Instructor Problem CRUD', () => {
 
   test('search with no matches shows empty state', async ({ page }) => {
     await navigateAs(page, 'instructor', PROBLEMS_URL);
-    await page.locator('.data-table').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('.data-table, .empty-state, .error-state').first().waitFor({ state: 'visible', timeout: 15000 });
 
     const searchInput = page.locator('.search-input');
     await searchInput.fill('zzz_no_match_ever_xyz');
 
     await page.waitForTimeout(500);
 
-    // DataTable empty state should show
-    const emptyState = page.locator('.empty-state, .data-table-container').filter({
-      hasText: /no problems/i,
-    });
+    // DataTable empty state should show — wait for the table to disappear
+    // and the empty-state div to become visible
+    await expect(page.locator('.data-table')).not.toBeVisible({ timeout: 5000 });
+    const emptyState = page.locator('.empty-state');
     await expect(emptyState).toBeVisible({ timeout: 5000 });
   });
 
@@ -107,6 +107,9 @@ test.describe('Instructor Problem CRUD', () => {
 
     const typeSelect = page.locator('#problem_type');
 
+    // Wait for the type selector to be enabled (activity types loaded)
+    await expect(typeSelect).toBeEnabled({ timeout: 10000 });
+
     // Get the initial form HTML fingerprint
     const initialContent = await page.locator('.problem-form').innerHTML();
 
@@ -116,8 +119,8 @@ test.describe('Instructor Problem CRUD', () => {
       // Select the second option
       await typeSelect.selectOption({ index: 1 });
 
-      // Wait for the dynamic editor component to load
-      await page.waitForTimeout(1000);
+      // Wait for the dynamic editor component to load (uses Suspense)
+      await page.waitForTimeout(1500);
 
       // The form content should have changed (different type-specific editor)
       const newContent = await page.locator('.problem-form').innerHTML();
@@ -163,14 +166,14 @@ test.describe('Instructor Problem CRUD', () => {
     await navigateAs(page, 'instructor', '/instructor/problems/e2e-refute-1/edit');
     await page.locator('.problem-form').waitFor({ state: 'visible', timeout: 15000 });
 
-    // Click the Delete button
-    const deleteBtn = page.locator('.btn-danger').filter({ hasText: /delete/i });
-    await expect(deleteBtn).toBeVisible();
+    // Wait for the Delete button to appear (indicates problem data loaded)
+    const deleteBtn = page.locator('.header .btn-danger').filter({ hasText: /delete/i });
+    await expect(deleteBtn).toBeVisible({ timeout: 10000 });
     await deleteBtn.click();
 
-    // Confirmation dialog should appear
+    // Confirmation dialog should appear (inline dialog in ProblemEditorShell)
     const dialog = page.locator('.dialog-overlay');
-    await expect(dialog).toBeVisible();
+    await expect(dialog).toBeVisible({ timeout: 5000 });
 
     // Dialog should have Cancel and Delete buttons
     await expect(dialog.locator('.btn-secondary').filter({ hasText: /cancel/i })).toBeVisible();

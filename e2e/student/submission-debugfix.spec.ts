@@ -87,13 +87,15 @@ test.describe('Debug & Fix Submission', () => {
   test('buggy code is pre-loaded in the editor', async ({ page }) => {
     await goToDebugFixProblem(page);
 
-    // The editor should contain the buggy code from the seed data
+    // The editor should contain the buggy code from the seed data.
+    // Wait for the Ace editor content to contain the expected function name.
     const editorContent = page.locator('#codeEditor .ace_content').first();
     await expect(editorContent).toBeVisible({ timeout: 10000 });
 
-    // Check for key parts of the buggy code
+    // Wait for the code to be loaded into the editor (not just the empty editor)
+    await expect(editorContent).toContainText('sum_to_n', { timeout: 10000 });
+
     const codeText = await editorContent.textContent();
-    expect(codeText).toContain('sum_to_n');
     expect(codeText).toContain('range');
   });
 

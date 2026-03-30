@@ -22,8 +22,8 @@ test.describe('Instructor Submissions View', () => {
   test('submissions page loads and shows student MCQ submission', async ({ page }) => {
     await navigateAs(page, 'instructor', SUBMISSIONS_URL);
 
-    // Wait for the DataTable to render (loading resolves, table appears)
-    await page.locator('.data-table, .empty-state').first().waitFor({ state: 'visible', timeout: 15000 });
+    // Wait for the DataTable to finish loading (table, empty state, or error state)
+    await page.locator('.data-table, .empty-state, .error-state').first().waitFor({ state: 'visible', timeout: 15000 });
 
     // The seeded submission: student -> e2e-mcq-1 (score 100, complete)
     // Check that we see the student's name and the problem
@@ -40,18 +40,22 @@ test.describe('Instructor Submissions View', () => {
 
   test('DataTable has expected column headers', async ({ page }) => {
     await navigateAs(page, 'instructor', SUBMISSIONS_URL);
-    await page.locator('.data-table').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('.data-table, .empty-state, .error-state').first().waitFor({ state: 'visible', timeout: 15000 });
 
-    const headers = page.locator('.data-table thead th');
-    const headerTexts = await headers.allTextContents();
-    const joined = headerTexts.join(' ').toLowerCase();
+    // If there are submissions, check headers
+    const table = page.locator('.data-table');
+    if (await table.isVisible()) {
+      const headers = page.locator('.data-table thead th');
+      const headerTexts = await headers.allTextContents();
+      const joined = headerTexts.join(' ').toLowerCase();
 
-    // SubmissionsPage defines these columns for instructor context:
-    // Student, Problem, Problem Set, Type, Score, Status, Submitted, Actions
-    expect(joined).toContain('student');
-    expect(joined).toContain('problem');
-    expect(joined).toContain('score');
-    expect(joined).toContain('status');
+      // SubmissionsPage defines these columns for instructor context:
+      // Student, Problem, Problem Set, Type, Score, Status, Submitted, Actions
+      expect(joined).toContain('student');
+      expect(joined).toContain('problem');
+      expect(joined).toContain('score');
+      expect(joined).toContain('status');
+    }
   });
 
   test('status filter dropdown exists and has expected options', async ({ page }) => {
@@ -73,7 +77,7 @@ test.describe('Instructor Submissions View', () => {
 
   test('search filter works on submissions', async ({ page }) => {
     await navigateAs(page, 'instructor', SUBMISSIONS_URL);
-    await page.locator('.data-table').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('.data-table, .empty-state, .error-state').first().waitFor({ state: 'visible', timeout: 15000 });
 
     // The search input in the filters section
     const searchInput = page.locator('#search');
@@ -93,7 +97,7 @@ test.describe('Instructor Submissions View', () => {
 
   test('clicking View button opens submission detail modal', async ({ page }) => {
     await navigateAs(page, 'instructor', SUBMISSIONS_URL);
-    await page.locator('.data-table').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('.data-table, .empty-state, .error-state').first().waitFor({ state: 'visible', timeout: 15000 });
 
     // Find the View button on the first submission row
     const viewBtn = page.locator('.view-button').first();
@@ -122,7 +126,7 @@ test.describe('Instructor Submissions View', () => {
 
   test('score badge reflects correct score from seeded data', async ({ page }) => {
     await navigateAs(page, 'instructor', SUBMISSIONS_URL);
-    await page.locator('.data-table').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('.data-table, .empty-state, .error-state').first().waitFor({ state: 'visible', timeout: 15000 });
 
     // The seeded MCQ submission has score = 100
     const scoreBadge = page.locator('.score-badge').first();

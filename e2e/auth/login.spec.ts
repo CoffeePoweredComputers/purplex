@@ -194,7 +194,7 @@ test.describe('Login Flow', () => {
   });
 
   test('login page renders all expected UI elements', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'networkidle' });
     await page.locator('#login-form').waitFor({ state: 'visible', timeout: 10000 });
 
     // Brand name
