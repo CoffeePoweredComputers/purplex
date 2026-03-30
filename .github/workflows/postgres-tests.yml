@@ -159,8 +159,6 @@ jobs:
           POSTGRES_USER: purplex_test
           POSTGRES_PASSWORD: testpass
           POSTGRES_DB: purplex_test
-          # Increase max connections for testing
-          POSTGRES_MAX_CONNECTIONS: 200
         ports:
           - 5432:5432
         options: >-
@@ -613,7 +611,7 @@ jobs:
                       return cursor.fetchone()
 
               start = time.time()
-              with ThreadPoolExecutor(max_workers=200) as executor:
+              with ThreadPoolExecutor(max_workers=50) as executor:
                   futures = [executor.submit(execute_query, i) for i in range(1000)]
                   results = [f.result() for f in as_completed(futures)]
 

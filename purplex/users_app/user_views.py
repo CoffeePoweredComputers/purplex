@@ -7,6 +7,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from purplex.utils.error_codes import ErrorCode, error_response
+
 from .authentication import PurplexAuthentication
 from .models import LanguageChoice, UserRole
 from .permissions import IsAdmin, IsAuthenticated
@@ -33,15 +35,19 @@ class UserRoleView(APIView):
         """Get current user info or return 401 if not authenticated"""
         if not request.user or not request.user.is_authenticated:
             return Response(
-                {"authenticated": False, "detail": "Not authenticated"},
+                {
+                    "authenticated": False,
+                    "detail": "Not authenticated",
+                    "code": ErrorCode.NOT_AUTHENTICATED,
+                },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
         # Use UserService to get profile
         profile = UserService.get_user_profile(request.user)
         if not profile:
-            return Response(
-                {"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND
+            return error_response(
+                "User profile not found", ErrorCode.NOT_FOUND, status.HTTP_404_NOT_FOUND
             )
 
         return Response(
@@ -67,7 +73,11 @@ class AuthStatusView(APIView):
             user_auth_tuple = auth.authenticate(request)
             if user_auth_tuple is None:
                 return Response(
-                    {"authenticated": False, "message": "Invalid authentication token"},
+                    {
+                        "authenticated": False,
+                        "message": "Invalid authentication token",
+                        "code": ErrorCode.NOT_AUTHENTICATED,
+                    },
                     status=401,
                 )
 
@@ -77,7 +87,11 @@ class AuthStatusView(APIView):
             profile = UserService.get_user_profile(user)
             if not profile:
                 return Response(
-                    {"authenticated": False, "message": "User profile not found"},
+                    {
+                        "authenticated": False,
+                        "message": "User profile not found",
+                        "code": ErrorCode.NOT_FOUND,
+                    },
                     status=404,
                 )
 
@@ -96,7 +110,14 @@ class AuthStatusView(APIView):
             )
 
         except Exception as e:
-            return Response({"authenticated": False, "message": str(e)}, status=401)
+            return Response(
+                {
+                    "authenticated": False,
+                    "message": str(e),
+                    "code": ErrorCode.NOT_AUTHENTICATED,
+                },
+                status=401,
+            )
 
 
 class AdminUserManagementView(APIView):
@@ -233,7 +254,7 @@ class AdminUserManagementView(APIView):
         # Use repository to get user
         user = UserRepository.get_by_id(user_id)
         if not user:
-            return Response({"error": "User not found"}, status=404)
+            return error_response("User not found", ErrorCode.NOT_FOUND, 404)
 
         # Use repository to get or create profile
         profile = UserProfileRepository.get_by_user(user)
@@ -247,7 +268,7 @@ class AdminUserManagementView(APIView):
 
         role = request.data.get("role")
         if role not in [UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.USER]:
-            return Response({"error": "Invalid role"}, status=400)
+            return error_response("Invalid role", ErrorCode.VALIDATION_ERROR, 400)
 
         profile.role = role
         profile.save()
@@ -282,11 +303,10 @@ class SSETokenView(APIView):
                 logger.warning(
                     f"SSE token rate limit exceeded for user {user.username}"
                 )
-                return Response(
-                    {
-                        "error": "Rate limit exceeded. Please wait before requesting another token."
-                    },
-                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                return error_response(
+                    "Rate limit exceeded. Please wait before requesting another token.",
+                    ErrorCode.RATE_LIMITED,
+                    status.HTTP_429_TOO_MANY_REQUESTS,
                 )
 
             # Create SSE session token
@@ -299,9 +319,10 @@ class SSETokenView(APIView):
 
         except Exception as e:
             logger.error(f"Failed to create SSE token: {e}")
-            return Response(
-                {"error": "Failed to create session token"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Failed to create session token",
+                ErrorCode.SERVER_ERROR,
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def delete(self, request):
@@ -310,8 +331,10 @@ class SSETokenView(APIView):
             sse_token = request.data.get("sse_token")
 
             if not sse_token:
-                return Response(
-                    {"error": "SSE token required"}, status=status.HTTP_400_BAD_REQUEST
+                return error_response(
+                    "SSE token required",
+                    ErrorCode.VALIDATION_ERROR,
+                    status.HTTP_400_BAD_REQUEST,
                 )
 
             # Revoke the session
@@ -323,16 +346,18 @@ class SSETokenView(APIView):
                     status=status.HTTP_200_OK,
                 )
             else:
-                return Response(
-                    {"message": "Session not found or already expired"},
-                    status=status.HTTP_404_NOT_FOUND,
+                return error_response(
+                    "Session not found",
+                    ErrorCode.NOT_FOUND,
+                    status.HTTP_404_NOT_FOUND,
                 )
 
         except Exception as e:
             logger.error(f"Failed to revoke SSE token: {e}")
-            return Response(
-                {"error": "Failed to revoke session"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Failed to revoke session",
+                ErrorCode.SERVER_ERROR,
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
@@ -348,26 +373,26 @@ class LanguagePreferenceView(APIView):
         language = request.data.get("language_preference")
 
         if not language:
-            return Response(
-                {"error": "language_preference is required"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                "language_preference is required",
+                ErrorCode.VALIDATION_ERROR,
+                status.HTTP_400_BAD_REQUEST,
             )
 
         # Validate the language code
         valid_languages = [choice[0] for choice in LanguageChoice.choices]
         if language not in valid_languages:
-            return Response(
-                {
-                    "error": f"Invalid language. Must be one of: {', '.join(valid_languages)}"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                f"Invalid language. Must be one of: {', '.join(valid_languages)}",
+                ErrorCode.VALIDATION_ERROR,
+                status.HTTP_400_BAD_REQUEST,
             )
 
         # Get user profile
         profile = UserService.get_user_profile(request.user)
         if not profile:
-            return Response(
-                {"error": "User profile not found"}, status=status.HTTP_404_NOT_FOUND
+            return error_response(
+                "User profile not found", ErrorCode.NOT_FOUND, status.HTTP_404_NOT_FOUND
             )
 
         # Update language preference

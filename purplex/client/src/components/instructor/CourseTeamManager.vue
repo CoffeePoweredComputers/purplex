@@ -131,7 +131,6 @@
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
-import axios from 'axios';
 import { createContentService } from '@/services/contentService';
 import { log } from '@/utils/logger';
 import type { CourseInstructorMember, CourseInstructorRole } from '@/types';

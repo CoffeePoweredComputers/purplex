@@ -2,11 +2,11 @@
 
 import logging
 
-from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from purplex.users_app.permissions import IsAdmin, IsAuthenticated
+from purplex.utils.error_codes import ErrorCode, error_response
 
 from ..services.course_service import CourseService
 from ..services.hint_display_service import HintDisplayService
@@ -34,9 +34,20 @@ class ProblemHintAvailabilityView(APIView):
                 user, course_id
             )
             if not validation_result["success"]:
+                status_code = validation_result["status_code"]
+                code = (
+                    ErrorCode.NOT_FOUND
+                    if status_code == 404
+                    else ErrorCode.FORBIDDEN
+                    if status_code == 403
+                    else ErrorCode.VALIDATION_ERROR
+                )
                 return Response(
-                    {"error": validation_result["error"]},
-                    status=validation_result["status_code"],
+                    {
+                        "error": validation_result["error"],
+                        "code": code,
+                    },
+                    status=status_code,
                 )
 
         # Use service layer for hint availability
@@ -97,21 +108,19 @@ class ProblemHintDetailView(APIView):
             message = hint_data.get("message", "An error occurred")
 
             if error_type == "not_found":
-                return Response({"error": message}, status=status.HTTP_404_NOT_FOUND)
+                return error_response(message, ErrorCode.NOT_FOUND, 404)
             elif error_type == "invalid_type":
-                return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
+                return error_response(message, ErrorCode.VALIDATION_ERROR, 400)
             elif error_type == "invalid_context":
-                return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
+                return error_response(message, ErrorCode.VALIDATION_ERROR, 400)
             elif error_type == "forbidden":
-                return Response({"error": message}, status=status.HTTP_403_FORBIDDEN)
+                return error_response(message, ErrorCode.HINT_LOCKED, 403)
             elif error_type == "disabled":
-                return Response({"error": message}, status=status.HTTP_403_FORBIDDEN)
+                return error_response(message, ErrorCode.HINT_LOCKED, 403)
             elif error_type == "insufficient_attempts":
-                return Response({"error": message}, status=status.HTTP_403_FORBIDDEN)
+                return error_response(message, ErrorCode.INSUFFICIENT_ATTEMPTS, 403)
             else:
-                return Response(
-                    {"error": message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+                return error_response(message, ErrorCode.SERVER_ERROR, 500)
 
         # Record durable activity event for hint delivery
         from purplex.submissions.activity_event_service import ActivityEventService
@@ -143,7 +152,7 @@ class AdminProblemHintView(APIView):
             hint_configs = AdminHintService.get_problem_hints_config(slug)
             return Response(hint_configs)
         except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(str(e), ErrorCode.NOT_FOUND, 404)
 
     def put(self, request, slug):
         """Bulk update all hint types for a problem"""
@@ -167,9 +176,7 @@ class AdminProblemHintView(APIView):
             result = AdminHintService.bulk_update_hints(slug, hints_data)
             return Response(result)
         except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return error_response(str(e), ErrorCode.VALIDATION_ERROR, 400)
         except RuntimeError as e:
             logger.error(f"Failed to update hints for problem {slug}: {str(e)}")
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return error_response(str(e), ErrorCode.SERVER_ERROR, 500)

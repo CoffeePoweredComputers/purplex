@@ -15,13 +15,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from purplex.problems_app.handlers import get_handler
-from purplex.problems_app.models import Problem
+from purplex.problems_app.repositories.problem_repository import ProblemRepository
 from purplex.problems_app.services.course_service import CourseService
 from purplex.problems_app.services.probe_service import (
     ProbeService,
     parse_function_signature,
     validate_probe_input,
 )
+from purplex.utils.error_codes import ErrorCode, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ class ProbeOracleView(APIView):
             return Response(
                 {
                     "error": "Rate limit exceeded. Please wait a moment before probing again.",
+                    "code": ErrorCode.RATE_LIMITED,
                     "success": False,
                     "result": None,
                     "probe_status": None,
@@ -75,12 +77,12 @@ class ProbeOracleView(APIView):
             )
 
         # Get problem
-        try:
-            problem = Problem.objects.get(slug=slug)
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem:
             return Response(
                 {
                     "error": f"Problem not found: {slug}",
+                    "code": ErrorCode.NOT_FOUND,
                     "success": False,
                     "result": None,
                     "probe_status": None,
@@ -93,6 +95,7 @@ class ProbeOracleView(APIView):
             return Response(
                 {
                     "error": f"Problem type {problem.problem_type} does not support probing",
+                    "code": ErrorCode.NOT_PROBEABLE,
                     "success": False,
                     "result": None,
                     "probe_status": None,
@@ -110,6 +113,7 @@ class ProbeOracleView(APIView):
                 return Response(
                     {
                         "error": enrollment_result["error"],
+                        "code": ErrorCode.NOT_ENROLLED,
                         "success": False,
                         "result": None,
                         "probe_status": None,
@@ -123,6 +127,7 @@ class ProbeOracleView(APIView):
             return Response(
                 {
                     "error": "Probe input must be an object mapping parameter names to values",
+                    "code": ErrorCode.INVALID_INPUT,
                     "success": False,
                     "result": None,
                     "probe_status": None,
@@ -138,6 +143,7 @@ class ProbeOracleView(APIView):
             return Response(
                 {
                     "error": error_msg,
+                    "code": ErrorCode.INVALID_INPUT,
                     "success": False,
                     "result": None,
                     "probe_status": None,
@@ -199,21 +205,17 @@ class ProbeStatusView(APIView):
     def get(self, request, slug: str) -> Response:
         """Get probe status for the current user."""
         # Get problem
-        try:
-            problem = Problem.objects.get(slug=slug)
-        except Problem.DoesNotExist:
-            return Response(
-                {"error": f"Problem not found: {slug}"},
-                status=status.HTTP_404_NOT_FOUND,
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem:
+            return error_response(
+                f"Problem not found: {slug}", ErrorCode.NOT_FOUND, 404
             )
 
         # Verify this is a probeable_code or probeable_spec problem
         if problem.problem_type not in ("probeable_code", "probeable_spec"):
-            return Response(
-                {
-                    "error": f"Problem type {problem.problem_type} does not support probing"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                f"Problem type {problem.problem_type} does not support probing",
+                ErrorCode.NOT_PROBEABLE,
             )
 
         # Get probe status
@@ -266,21 +268,17 @@ class ProbeHistoryView(APIView):
     def get(self, request, slug: str) -> Response:
         """Get probe history for the current user."""
         # Get problem
-        try:
-            problem = Problem.objects.get(slug=slug)
-        except Problem.DoesNotExist:
-            return Response(
-                {"error": f"Problem not found: {slug}"},
-                status=status.HTTP_404_NOT_FOUND,
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem:
+            return error_response(
+                f"Problem not found: {slug}", ErrorCode.NOT_FOUND, 404
             )
 
         # Verify this is a probeable_code or probeable_spec problem
         if problem.problem_type not in ("probeable_code", "probeable_spec"):
-            return Response(
-                {
-                    "error": f"Problem type {problem.problem_type} does not support probing"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                f"Problem type {problem.problem_type} does not support probing",
+                ErrorCode.NOT_PROBEABLE,
             )
 
         # Get limit from query params
@@ -339,6 +337,7 @@ class RefuteTestView(APIView):
             return Response(
                 {
                     "error": "Rate limit exceeded. Please wait before testing again.",
+                    "code": ErrorCode.RATE_LIMITED,
                     "success": False,
                     "result": None,
                     "claim_disproven": False,
@@ -347,12 +346,12 @@ class RefuteTestView(APIView):
             )
 
         # Get problem
-        try:
-            problem = Problem.objects.get(slug=slug)
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem:
             return Response(
                 {
                     "error": f"Problem not found: {slug}",
+                    "code": ErrorCode.NOT_FOUND,
                     "success": False,
                     "result": None,
                     "claim_disproven": False,
@@ -365,6 +364,7 @@ class RefuteTestView(APIView):
             return Response(
                 {
                     "error": f"Problem type {problem.problem_type} does not support counterexample testing",
+                    "code": ErrorCode.NOT_REFUTABLE,
                     "success": False,
                     "result": None,
                     "claim_disproven": False,
@@ -378,6 +378,7 @@ class RefuteTestView(APIView):
             return Response(
                 {
                     "error": "Input must be an object mapping parameter names to values",
+                    "code": ErrorCode.INVALID_INPUT,
                     "success": False,
                     "result": None,
                     "claim_disproven": False,
@@ -393,6 +394,7 @@ class RefuteTestView(APIView):
             return Response(
                 {
                     "error": error_msg,
+                    "code": ErrorCode.INVALID_INPUT,
                     "success": False,
                     "result": None,
                     "claim_disproven": False,

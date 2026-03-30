@@ -3,11 +3,11 @@
 import logging
 
 from django.utils import timezone
-from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from purplex.users_app.permissions import IsAuthenticated
+from purplex.utils.error_codes import ErrorCode, error_response
 
 from ..models import CourseProblemSet
 from ..services.progress_service import ProgressService
@@ -87,7 +87,7 @@ class UserProgressView(APIView):
                     )
                     return Response(progress_data)
             except ValueError as e:
-                return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+                return error_response(str(e), ErrorCode.NOT_FOUND, 404)
         else:
             # Use service layer for all progress
             progress_data = ProgressService.get_all_user_progress(user.id)
@@ -157,13 +157,14 @@ class ProblemSetProgressView(APIView):
         except ValueError as e:
             error_msg = str(e)
             if "not found" in error_msg.lower():
-                return Response({"error": error_msg}, status=status.HTTP_404_NOT_FOUND)
-            return Response({"error": error_msg}, status=status.HTTP_400_BAD_REQUEST)
+                return error_response(error_msg, ErrorCode.NOT_FOUND, 404)
+            return error_response(error_msg, ErrorCode.VALIDATION_ERROR, 400)
         except Exception as e:
             logger.error(f"Error getting problem set progress: {str(e)}")
-            return Response(
-                {"error": "Error retrieving problem set progress"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Error retrieving problem set progress",
+                ErrorCode.SERVER_ERROR,
+                500,
             )
 
 
@@ -193,16 +194,16 @@ class LastSubmissionView(APIView):
 
         # Check if problem was found
         if problem is None:
-            return Response(
-                {"error": f"Problem {problem_slug} not found"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                f"Problem {problem_slug} not found", ErrorCode.NOT_FOUND, 404
             )
 
         # Check if problem_set was specified but not found
         if problem_set_slug and submission_context.get("problem_set") is None:
-            return Response(
-                {"error": f"Problem set {problem_set_slug} not found"},
-                status=status.HTTP_404_NOT_FOUND,
+            return error_response(
+                f"Problem set {problem_set_slug} not found",
+                ErrorCode.NOT_FOUND,
+                404,
             )
 
         if submission:

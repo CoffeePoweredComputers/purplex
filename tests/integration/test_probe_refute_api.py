@@ -19,7 +19,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 # ---------------------------------------------------------------------------
 
 # ProbeOracleView response (probe_views.py:50-58)
-PROBE_RESULT_FIELDS = {"success", "result", "error", "probe_status"}
+PROBE_RESULT_FIELDS = {"success", "result", "error", "code", "probe_status"}
 
 # ProbeStatusView response (probe_views.py:186-194)
 PROBE_STATUS_FIELDS = {
@@ -37,7 +37,7 @@ PROBE_STATUS_FIELDS = {
 PROBE_HISTORY_FIELDS = {"history", "probe_status"}
 
 # RefuteTestView response (probe_views.py:324-330)
-REFUTE_RESULT_FIELDS = {"success", "result", "claim_disproven", "error"}
+REFUTE_RESULT_FIELDS = {"success", "result", "claim_disproven", "error", "code"}
 
 
 # ---------------------------------------------------------------------------

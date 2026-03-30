@@ -17,9 +17,8 @@ jobs:
         image: postgres:15-alpine
         env:
           POSTGRES_USER: purplex_test
-          POSTGRES_PASSWORD: testpass
+          POSTGRES_PASSWORD: testpass  # pragma: allowlist secret
           POSTGRES_DB: purplex_test
-          POSTGRES_MAX_CONNECTIONS: 100  # Realistic for 2-core runner
         ports:
           - 5432:5432
         options: >-

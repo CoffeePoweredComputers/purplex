@@ -98,6 +98,32 @@
       "unexpectedError": "Ocurrió un error inesperado."
     }
   },
+  "errors": {
+    "api": {
+      "not_found": "El recurso solicitado no fue encontrado.",
+      "forbidden": "No tienes permiso para realizar esta acción.",
+      "validation_error": "Datos inválidos. Por favor, revisa tu información e inténtalo de nuevo.",
+      "rate_limited": "Demasiadas solicitudes. Por favor, espera un momento e inténtalo de nuevo.",
+      "server_error": "Ocurrió un error inesperado. Por favor, inténtalo más tarde.",
+      "not_authenticated": "Por favor, inicia sesión para continuar.",
+      "last_primary": "Este es el único instructor principal. Agrega otro instructor principal antes de cambiar este rol.",
+      "already_instructor": "Este usuario ya forma parte del equipo del curso.",
+      "not_instructor": "Este usuario no es instructor de este curso.",
+      "invalid_role": "Rol inválido. Debe ser Principal o Asistente.",
+      "not_enrolled": "No estás inscrito en este curso.",
+      "enrollment_closed": "La inscripción está cerrada para este curso.",
+      "invalid_problem_type": "Tipo de problema inválido.",
+      "has_submissions": "Este problema tiene envíos de estudiantes y no puede ser eliminado. Puedes desactivarlo en su lugar.",
+      "not_owner": "Solo puedes gestionar tu propio contenido.",
+      "not_probeable": "Este tipo de problema no admite sondeo.",
+      "not_refutable": "Este tipo de problema no admite pruebas de contraejemplo.",
+      "invalid_input": "Formato de entrada inválido. Por favor, revisa tus valores.",
+      "hint_locked": "Esta pista aún no está disponible.",
+      "insufficient_attempts": "Necesitas más intentos antes de que esta pista se desbloquee.",
+      "consent_required": "Se requiere tu consentimiento para continuar.",
+      "submission_not_found": "Envío no encontrado."
+    }
+  },
   "aria": {
     "etymologyMeaning": "Conoce el significado de este nombre",
     "progress": "Progreso",

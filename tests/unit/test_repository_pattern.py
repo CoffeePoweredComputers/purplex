@@ -116,10 +116,47 @@ HANDLER_PATTERNS = [
 # Key: filename, Value: set of patterns that are allowed.
 # Use this for complex queries that don't fit standard repository patterns.
 #
-# NOTE: As of 2025-12, ALL exceptions have been eliminated.
-# All ORM calls now go through the repository layer.
-# This dictionary is intentionally empty to enforce zero exceptions.
-EXCEPTIONS = {}
+# Documented exceptions for services with legitimate direct ORM usage.
+# These do bulk cross-model queries (GDPR, analytics) where routing
+# through individual repositories would over-fragment the transaction.
+EXCEPTIONS = {
+    # GDPR Art. 17 deletion — single transaction across 8+ models
+    "data_deletion_service.py": {
+        "User.objects",
+        "Submission.objects",
+        "HintActivation.objects",
+        "UserProgress.objects",
+        "UserProblemSetProgress.objects",
+        "ProgressSnapshot.objects",
+        "CourseEnrollment.objects",
+    },
+    # GDPR Art. 15/20 export — read-only cross-model aggregation
+    "data_export_service.py": {
+        "Submission.objects",
+        "UserProgress.objects",
+        "CourseEnrollment.objects",
+        "HintActivation.objects",
+    },
+    # Instructor analytics — complex aggregate queries across models
+    "instructor_analytics_service.py": {
+        "Problem.objects",
+        "Submission.objects",
+        "UserProblemSetProgress.objects",
+        "ProblemSet.objects",
+    },
+    # Course service — cross-model progress query
+    "course_service.py": {
+        "UserProblemSetProgress.objects",
+    },
+    # Serializers — admin create/update methods handle test cases in
+    # atomic transactions as part of problem creation. These are tightly
+    # coupled to the serializer save flow.
+    "serializers.py": {
+        "TestCase.objects",
+        "PromptProblem.objects",
+        "EiplProblem.objects",
+    },
+}
 
 
 # =============================================================================

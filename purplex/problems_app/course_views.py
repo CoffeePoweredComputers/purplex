@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from purplex.problems_app.repositories import CourseInstructorRepository
 from purplex.users_app.permissions import IsAdmin, IsCourseInstructor, IsInstructor
 from purplex.users_app.repositories.user_repository import UserRepository
+from purplex.utils.error_codes import ErrorCode, error_response
 
 from .serializers import (
     CourseCreateUpdateSerializer,
@@ -77,9 +78,8 @@ class AdminCourseListCreateView(APIView):
             if instructor_id:
                 instructor = UserRepository.get_by_id(instructor_id)
                 if not instructor:
-                    return Response(
-                        {"error": "Instructor not found"},
-                        status=status.HTTP_400_BAD_REQUEST,
+                    return error_response(
+                        "Instructor not found", ErrorCode.NOT_FOUND, 400
                     )
             else:
                 instructor = request.user
@@ -104,9 +104,7 @@ class AdminCourseDetailView(APIView):
             course_id, require_active=False, include_deleted=True
         )
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         serializer = CourseDetailSerializer(course)
         return Response(serializer.data)
@@ -117,9 +115,7 @@ class AdminCourseDetailView(APIView):
             course_id, require_active=False, include_deleted=True
         )
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         serializer = CourseCreateUpdateSerializer(
             course, data=request.data, partial=True
@@ -140,9 +136,7 @@ class AdminCourseDetailView(APIView):
             course_id, require_active=False, include_deleted=True
         )
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         CourseService.soft_delete_course(course)
         return Response(
@@ -173,9 +167,7 @@ class InstructorCourseDetailView(APIView):
         """Get course details"""
         course = CourseService.get_course_by_id(course_id, require_active=True)
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         # Check object-level permission
         self.check_object_permissions(request, course)
@@ -193,9 +185,7 @@ class InstructorCourseStudentsView(APIView):
         """List enrolled students with problem set progress"""
         course = CourseService.get_course_by_id(course_id, require_active=True)
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         self.check_object_permissions(request, course)
 
@@ -213,9 +203,7 @@ class InstructorCourseProgressView(APIView):
         """Get all student progress for the course"""
         course = CourseService.get_course_by_id(course_id, require_active=True)
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         self.check_object_permissions(request, course)
 
@@ -232,9 +220,7 @@ class InstructorCourseProblemSetOrderView(APIView):
         """Update problem set ordering"""
         course = CourseService.get_course_by_id(course_id, require_active=True)
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         self.check_object_permissions(request, course)
 
@@ -246,9 +232,8 @@ class InstructorCourseProblemSetOrderView(APIView):
         if success:
             return Response({"message": "Problem sets reordered successfully"})
         else:
-            return Response(
-                {"error": "Failed to reorder problem sets"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Failed to reorder problem sets", ErrorCode.SERVER_ERROR, 500
             )
 
 
@@ -282,9 +267,7 @@ class CourseLookupView(APIView):
         result = CourseService.lookup_course_for_enrollment(course_id, request.user)
 
         if not result["success"]:
-            return Response(
-                {"error": result["error"]}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response(result["error"], ErrorCode.NOT_FOUND, 404)
 
         course = result["course"]
         already_enrolled = result["already_enrolled"]
@@ -325,9 +308,7 @@ class CourseEnrollView(APIView):
         result = CourseService.enroll_user_in_course(request.user, course_id)
 
         if not result["success"]:
-            return Response(
-                {"error": result["error"]}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return error_response(result["error"], ErrorCode.VALIDATION_ERROR, 400)
 
         course = result["course"]
         enrollment = result["enrollment"]
@@ -352,15 +333,14 @@ class StudentCourseDetailView(APIView):
         """Get course with problem sets"""
         course = CourseService.get_course_by_id(course_id, require_active=True)
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         # Check enrollment using service
         if not CourseService.is_user_enrolled(request.user, course_id):
-            return Response(
-                {"error": "You are not enrolled in this course"},
-                status=status.HTTP_403_FORBIDDEN,
+            return error_response(
+                "You are not enrolled in this course",
+                ErrorCode.NOT_ENROLLED,
+                403,
             )
 
         serializer = CourseDetailSerializer(course)
@@ -377,12 +357,9 @@ class StudentCourseProgressView(APIView):
         result = CourseService.get_student_course_progress(request.user, course_id)
 
         if not result["success"]:
-            error_code = (
-                status.HTTP_404_NOT_FOUND
-                if "not found" in result["error"]
-                else status.HTTP_403_FORBIDDEN
-            )
-            return Response({"error": result["error"]}, status=error_code)
+            if "not found" in result["error"].lower():
+                return error_response(result["error"], ErrorCode.NOT_FOUND, 404)
+            return error_response(result["error"], ErrorCode.NOT_ENROLLED, 403)
 
         return Response(result["progress"])
 
@@ -401,9 +378,7 @@ class AdminCourseProblemSetsView(APIView):
             course_id, require_active=False, include_deleted=True
         )
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         # Get problem sets with their order and required status
         course_problem_sets = CourseService.get_course_problem_sets(course)
@@ -434,18 +409,15 @@ class AdminCourseProblemSetsView(APIView):
             course_id, require_active=False, include_deleted=True
         )
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         problem_set_slug = request.data.get("problem_set_slug")
         is_required = request.data.get("is_required", False)
         order = request.data.get("order")
 
         if not problem_set_slug:
-            return Response(
-                {"error": "problem_set_slug is required"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                "problem_set_slug is required", ErrorCode.VALIDATION_ERROR, 400
             )
 
         result = CourseService.add_problem_set_to_course(
@@ -453,12 +425,13 @@ class AdminCourseProblemSetsView(APIView):
         )
 
         if not result["success"]:
-            error_status = (
-                status.HTTP_404_NOT_FOUND
-                if "not found" in result["error"]
-                else status.HTTP_400_BAD_REQUEST
+            error_code = (
+                ErrorCode.NOT_FOUND
+                if "not found" in result["error"].lower()
+                else ErrorCode.VALIDATION_ERROR
             )
-            return Response({"error": result["error"]}, status=error_status)
+            error_status = 404 if "not found" in result["error"].lower() else 400
+            return error_response(result["error"], error_code, error_status)
 
         course_ps = result["course_problem_set"]
         problem_set = result["problem_set"]
@@ -484,9 +457,7 @@ class AdminCourseProblemSetsView(APIView):
             course_id, require_active=False, include_deleted=True
         )
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         # Extract update data
         update_data = {}
@@ -500,9 +471,7 @@ class AdminCourseProblemSetsView(APIView):
         )
 
         if not result["success"]:
-            return Response(
-                {"error": result["error"]}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response(result["error"], ErrorCode.NOT_FOUND, 404)
 
         course_ps = result["course_problem_set"]
 
@@ -529,16 +498,12 @@ class AdminCourseProblemSetsView(APIView):
             course_id, require_active=False, include_deleted=True
         )
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         result = CourseService.remove_problem_set_from_course(course, problem_set_slug)
 
         if not result["success"]:
-            return Response(
-                {"error": result["error"]}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response(result["error"], ErrorCode.NOT_FOUND, 404)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -604,9 +569,7 @@ class InstructorCourseAvailableProblemSetsView(APIView):
         # Verify instructor owns this course
         course = CourseService.get_course_by_id(course_id)
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         self.check_object_permissions(request, course)
 
@@ -638,9 +601,7 @@ class AdminCourseStudentsView(APIView):
             course_id, require_active=False, include_deleted=True
         )
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         students_data = CourseService.get_course_students_with_progress(course)
         return Response(students_data)
@@ -651,19 +612,18 @@ class AdminCourseStudentsView(APIView):
             course_id, require_active=False, include_deleted=True
         )
         if not course:
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
 
         result = CourseService.remove_student_from_course(course, user_id)
 
         if not result["success"]:
-            error_status = (
-                status.HTTP_404_NOT_FOUND
-                if "not found" in result["error"]
-                else status.HTTP_400_BAD_REQUEST
+            error_code = (
+                ErrorCode.NOT_FOUND
+                if "not found" in result["error"].lower()
+                else ErrorCode.VALIDATION_ERROR
             )
-            return Response({"error": result["error"]}, status=error_status)
+            error_status = 404 if "not found" in result["error"].lower() else 400
+            return error_response(result["error"], error_code, error_status)
 
         return Response(
             {"message": result["message"]}, status=status.HTTP_204_NO_CONTENT

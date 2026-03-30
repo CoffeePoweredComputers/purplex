@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 
 from purplex.submissions.services import SubmissionService
 from purplex.users_app.permissions import IsAuthenticated
+from purplex.utils.error_codes import ErrorCode, error_response
 
 from ..handlers import get_handler, get_registered_types, is_registered
 from ..repositories import ProblemRepository
@@ -38,11 +39,10 @@ class ActivitySubmissionView(APIView):
     def post(self, request):
         # Check if rate limited
         if getattr(request, "limited", False):
-            return Response(
-                {
-                    "error": "Rate limit exceeded. Please wait a moment before submitting again."
-                },
-                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            return error_response(
+                "Rate limit exceeded. Please wait a moment before submitting again.",
+                ErrorCode.RATE_LIMITED,
+                429,
             )
 
         # Use generic validation service
@@ -50,9 +50,7 @@ class ActivitySubmissionView(APIView):
             SubmissionValidationService.validate_submission(request.data)
         )
         if not is_valid:
-            return Response(
-                {"error": error_message}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return error_response(error_message, ErrorCode.VALIDATION_ERROR, 400)
 
         # Extract validated data
         problem = validated_data["problem"]
@@ -64,9 +62,10 @@ class ActivitySubmissionView(APIView):
 
         # Additional validation for problem set membership
         if problem_set and not problem_set.problems.filter(id=problem.id).exists():
-            return Response(
-                {"error": "Problem does not belong to the specified problem set"},
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                "Problem does not belong to the specified problem set",
+                ErrorCode.VALIDATION_ERROR,
+                400,
             )
 
         # Additional validation for course enrollment
@@ -75,17 +74,19 @@ class ActivitySubmissionView(APIView):
                 request.user, course.course_id
             )
             if not enrollment_result["success"]:
-                return Response(
-                    {"error": enrollment_result["error"]},
-                    status=enrollment_result["status_code"],
+                return error_response(
+                    enrollment_result["error"],
+                    ErrorCode.NOT_ENROLLED,
+                    enrollment_result["status_code"],
                 )
 
         # Get handler for this problem type
         problem_type = problem.problem_type
         if not is_registered(problem_type):
-            return Response(
-                {"error": f"No handler registered for activity type: {problem_type}"},
-                status=status.HTTP_501_NOT_IMPLEMENTED,
+            return error_response(
+                f"No handler registered for activity type: {problem_type}",
+                ErrorCode.INVALID_PROBLEM_TYPE,
+                501,
             )
 
         handler = get_handler(problem_type)
@@ -188,6 +189,7 @@ class ActivitySubmissionView(APIView):
             return Response(
                 {
                     "error": "Failed to process submission. Please try again.",
+                    "code": ErrorCode.SERVER_ERROR,
                     "request_id": None,
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -237,14 +239,13 @@ class SubmissionHistoryView(APIView):
         try:
             problem = ProblemRepository.get_problem_by_slug(problem_slug)
             if not problem:
-                return Response(
-                    {"error": "Problem not found"}, status=status.HTTP_404_NOT_FOUND
-                )
+                return error_response("Problem not found", ErrorCode.NOT_FOUND, 404)
         except Exception as e:
             logger.error(f"Error fetching problem {problem_slug}: {str(e)}")
-            return Response(
-                {"error": "Failed to fetch problem"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return error_response(
+                "Failed to fetch problem",
+                ErrorCode.SERVER_ERROR,
+                500,
             )
 
         # Get filters
@@ -265,15 +266,14 @@ class SubmissionHistoryView(APIView):
         if problem_set_slug:
             problem_set = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
             if not problem_set:
-                return Response(
-                    {"error": "Problem set not found"}, status=status.HTTP_404_NOT_FOUND
-                )
+                return error_response("Problem set not found", ErrorCode.NOT_FOUND, 404)
 
             # Verify problem belongs to this problem set
             if not problem_set.problems.filter(id=problem.id).exists():
-                return Response(
-                    {"error": "Problem does not belong to the specified problem set"},
-                    status=status.HTTP_400_BAD_REQUEST,
+                return error_response(
+                    "Problem does not belong to the specified problem set",
+                    ErrorCode.VALIDATION_ERROR,
+                    400,
                 )
 
             filters["problem_set"] = problem_set
@@ -296,9 +296,10 @@ class SubmissionHistoryView(APIView):
                             validation_result["course"]
                         )
                     ):
-                        return Response(
-                            {"error": "Problem set does not belong to this course"},
-                            status=status.HTTP_400_BAD_REQUEST,
+                        return error_response(
+                            "Problem set does not belong to this course",
+                            ErrorCode.VALIDATION_ERROR,
+                            400,
                         )
 
         # Fetch submissions via repository
