@@ -1,5 +1,4 @@
 import { Page } from '@playwright/test';
-import { generateMockToken } from './api';
 
 /**
  * Shape matches the User interface in auth.module.ts (line 83).
@@ -10,11 +9,10 @@ import { generateMockToken } from './api';
  * but injecting a proper user ensures components that read the user
  * object render role-appropriate UI (admin panels, instructor tools, etc.).
  *
- * CRITICAL: We also intercept all API requests via page.route() to inject
- * the Authorization header with a valid mock Firebase token. Without this,
- * the axios interceptor (main.ts:59) can't get a token from
- * firebase.auth().currentUser.getIdToken() — so all API calls go out
- * unauthenticated and return 401.
+ * Auth tokens are handled by MockFirebase's built-in session restoration:
+ * setting localStorage['mockFirebaseAuth'] causes the MockFirebase
+ * constructor to restore currentUser with a working getIdToken() method.
+ * The axios interceptor (main.ts:59) then automatically picks up tokens.
  */
 interface MockUser {
   uid: string;
@@ -58,11 +56,13 @@ const USERS: Record<string, MockUser> = {
 /**
  * Inject a mock user into localStorage so the Vue app boots as authenticated.
  *
- * Must be called before navigating to the target route — the auth module
- * reads localStorage synchronously during Vuex store initialization.
+ * Sets three localStorage keys:
+ * 1. 'user' — Vuex store hydration (role, email, UI rendering)
+ * 2. 'mockFirebaseAuth' — MockFirebase session restoration (the axios
+ *    interceptor needs currentUser.getIdToken() to work)
+ * 3. 'purplex_cookie_consent' — dismiss cookie banner
  *
- * Navigates to the baseURL first to establish the origin (localStorage is
- * origin-scoped), then sets the values via page.evaluate().
+ * Must be called before navigating to the target route.
  */
 export async function injectAuth(
   page: Page,
@@ -71,37 +71,27 @@ export async function injectAuth(
   const user = USERS[role];
 
   // Must be on the same origin before we can write to localStorage.
-  // Use a bare GET to the root — the page will redirect, but that's fine;
-  // we only need the origin established.
   await page.goto('/', { waitUntil: 'commit' });
 
   await page.evaluate(
-    ({ userJson, consent }) => {
+    ({ userJson, mockFirebaseAuthJson, consent }) => {
+      // Vuex store hydration (role-appropriate UI rendering)
       localStorage.setItem('user', userJson);
+      // MockFirebase session restoration — on init, MockFirebase reads this
+      // and reconstructs currentUser with a working getIdToken() that
+      // generates valid MOCK.base64.development tokens automatically.
+      localStorage.setItem('mockFirebaseAuth', mockFirebaseAuthJson);
+      // Dismiss cookie consent banner
       localStorage.setItem('purplex_cookie_consent', consent);
     },
-    { userJson: JSON.stringify(user), consent: 'accepted' },
+    {
+      userJson: JSON.stringify(user),
+      mockFirebaseAuthJson: JSON.stringify({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+      }),
+      consent: 'accepted',
+    },
   );
-
-  // Intercept all API requests and inject the Authorization header.
-  // The app's axios interceptor (main.ts:59) calls
-  // firebase.auth().currentUser.getIdToken() which is never initialized
-  // in E2E tests. This route handler ensures every API call carries a
-  // valid mock Firebase token so the Django backend authenticates the request.
-  //
-  // Only inject if no Authorization header is already present — this avoids
-  // overwriting tokens set by apiAs() helper in page.evaluate(fetch(...)).
-  const token = generateMockToken(role);
-  await page.route('**/api/**', async (route) => {
-    const headers = route.request().headers();
-    if (headers['authorization']?.startsWith('Bearer ')) {
-      // Request already has auth token (e.g. from apiAs helper) — pass through unchanged.
-      // Use fallback() so other route handlers can still process the request.
-      await route.fallback();
-    } else {
-      await route.fallback({
-        headers: { ...headers, 'authorization': `Bearer ${token}` },
-      });
-    }
-  });
 }
