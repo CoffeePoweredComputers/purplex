@@ -101,7 +101,7 @@ test.describe('User Settings', () => {
       };
       const token = `MOCK.${btoa(JSON.stringify(payload))}.development`;
 
-      const res = await fetch('http://localhost:8000/api/user/me/language/', {
+      const res = await fetch('http://localhost:5173/api/user/me/language/', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -131,7 +131,7 @@ test.describe('User Settings', () => {
       };
       const token = `MOCK.${btoa(JSON.stringify(payload))}.development`;
 
-      await fetch('http://localhost:8000/api/user/me/language/', {
+      await fetch('http://localhost:5173/api/user/me/language/', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

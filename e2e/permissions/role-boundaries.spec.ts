@@ -119,7 +119,7 @@ test.describe('Permission Boundaries', () => {
     test('no auth header on protected endpoint returns 401', async ({ page }) => {
       // Use page.evaluate with a raw fetch (no Authorization header)
       const result = await page.evaluate(async () => {
-        const res = await fetch('http://localhost:8000/api/user/me/', {
+        const res = await fetch('http://localhost:5173/api/user/me/', {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         });
@@ -137,7 +137,7 @@ test.describe('Permission Boundaries', () => {
 
     test('no auth header on admin endpoint returns 401 or 403', async ({ page }) => {
       const result = await page.evaluate(async () => {
-        const res = await fetch('http://localhost:8000/api/admin/users/', {
+        const res = await fetch('http://localhost:5173/api/admin/users/', {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         });

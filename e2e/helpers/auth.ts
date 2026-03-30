@@ -88,12 +88,21 @@ export async function injectAuth(
   // firebase.auth().currentUser.getIdToken() which is never initialized
   // in E2E tests. This route handler ensures every API call carries a
   // valid mock Firebase token so the Django backend authenticates the request.
+  //
+  // Only inject if no Authorization header is already present — this avoids
+  // overwriting tokens set by apiAs() helper in page.evaluate(fetch(...)).
   const token = generateMockToken(role);
   await page.route('**/api/**', async (route) => {
-    const headers = {
-      ...route.request().headers(),
-      'authorization': `Bearer ${token}`,
-    };
-    await route.continue({ headers });
+    const existingAuth = route.request().headers()['authorization'];
+    if (existingAuth) {
+      // Request already has auth (e.g. from apiAs helper) — don't overwrite
+      await route.continue();
+    } else {
+      const headers = {
+        ...route.request().headers(),
+        'authorization': `Bearer ${token}`,
+      };
+      await route.continue({ headers });
+    }
   });
 }

@@ -39,7 +39,9 @@ export async function apiAs(
   body?: object,
 ): Promise<{ status: number; data: any }> {
   const token = generateMockToken(role);
-  const baseURL = 'http://localhost:8000';
+  // Use Vite proxy (same origin) to avoid CORS issues.
+  // Vite proxies /api/* → http://localhost:8000/api/*
+  const baseURL = 'http://localhost:5173';
 
   return page.evaluate(
     async ({ token, method, url, body }) => {
