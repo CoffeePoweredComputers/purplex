@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { AxiosError } from 'axios'
 import { createStore } from 'vuex'
 import CourseTeamManager from '../CourseTeamManager.vue'
 import type { CourseInstructorMember } from '@/types'

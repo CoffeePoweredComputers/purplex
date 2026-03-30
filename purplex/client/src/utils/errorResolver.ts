@@ -36,7 +36,9 @@ export function resolveApiError(
   if (apiErr?.code) {
     const i18nKey = `errors.api.${apiErr.code}`;
     const translated = t(i18nKey);
-    if (translated !== i18nKey) return translated;
+    if (translated !== i18nKey) {
+      return translated;
+    }
   }
 
   // Fall back to error string from backend, then generic i18n key
