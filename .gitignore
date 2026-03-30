@@ -196,9 +196,9 @@ i18n-coverage.json
 
 # Development artifacts (screenshots, research, e2e)
 /*.png
-e2e/
+e2e/results/
+e2e/screenshots/
 papers/
-playwright.config.ts
 docs/lessons/*.pdf
 docs/lessons/*.mjs
 docs/research/
