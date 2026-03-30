@@ -60,6 +60,13 @@ COMPLEX_CREATE_EXCEPTIONS = {
     # Course serializer has problem set management logic
     # Uses AdminProblemService for database operations
     "CourseCreateUpdateSerializer",
+    # Type-specific admin serializers — create/update handles test cases
+    # in atomic transactions. Same pattern as AdminProblemSerializer.
+    "AdminProbeableCodeProblemSerializer",
+    "AdminRefuteProblemSerializer",
+    "AdminPromptProblemSerializer",
+    "AdminDebugFixProblemSerializer",
+    "AdminProbeableSpecProblemSerializer",
 }
 
 

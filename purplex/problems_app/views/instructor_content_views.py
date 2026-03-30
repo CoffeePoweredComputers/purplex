@@ -24,11 +24,10 @@ from ..models import (
     McqProblem,
     ProbeableCodeProblem,
     ProbeableSpecProblem,
-    ProblemSet,
     PromptProblem,
     RefuteProblem,
 )
-from ..repositories import CourseRepository
+from ..repositories import CourseRepository, ProblemRepository
 from ..serializers import (
     AdminDebugFixProblemSerializer,
     AdminMcqProblemSerializer,
@@ -403,9 +402,8 @@ class InstructorCourseProblemSetManageView(APIView):
         order = request.data.get("order", 0)
         is_required = request.data.get("is_required", True)
 
-        try:
-            ps = ProblemSet.objects.get(slug=problem_set_slug)
-        except ProblemSet.DoesNotExist:
+        ps = ProblemRepository.get_problem_set_by_slug(problem_set_slug)
+        if not ps:
             return error_response("Problem set not found", ErrorCode.NOT_FOUND, 404)
 
         cps, created = CourseProblemSet.objects.get_or_create(

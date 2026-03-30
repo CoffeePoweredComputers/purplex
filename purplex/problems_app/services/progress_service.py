@@ -131,11 +131,10 @@ class ProgressService:
             return cached_data
 
         # Fetch from database via repository
-        from django.contrib.auth.models import User
+        from purplex.users_app.repositories.user_repository import UserRepository
 
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
+        user = UserRepository.get_by_id(user_id)
+        if not user:
             return []
 
         progress_records = ProgressRepository.get_user_all_progress(user)

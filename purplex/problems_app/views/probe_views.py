@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from purplex.problems_app.handlers import get_handler
-from purplex.problems_app.models import Problem
+from purplex.problems_app.repositories.problem_repository import ProblemRepository
 from purplex.problems_app.services.course_service import CourseService
 from purplex.problems_app.services.probe_service import (
     ProbeService,
@@ -77,9 +77,8 @@ class ProbeOracleView(APIView):
             )
 
         # Get problem
-        try:
-            problem = Problem.objects.get(slug=slug)
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem:
             return Response(
                 {
                     "error": f"Problem not found: {slug}",
@@ -206,9 +205,8 @@ class ProbeStatusView(APIView):
     def get(self, request, slug: str) -> Response:
         """Get probe status for the current user."""
         # Get problem
-        try:
-            problem = Problem.objects.get(slug=slug)
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem:
             return error_response(
                 f"Problem not found: {slug}", ErrorCode.NOT_FOUND, 404
             )
@@ -270,9 +268,8 @@ class ProbeHistoryView(APIView):
     def get(self, request, slug: str) -> Response:
         """Get probe history for the current user."""
         # Get problem
-        try:
-            problem = Problem.objects.get(slug=slug)
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem:
             return error_response(
                 f"Problem not found: {slug}", ErrorCode.NOT_FOUND, 404
             )
@@ -349,9 +346,8 @@ class RefuteTestView(APIView):
             )
 
         # Get problem
-        try:
-            problem = Problem.objects.get(slug=slug)
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem:
             return Response(
                 {
                     "error": f"Problem not found: {slug}",
