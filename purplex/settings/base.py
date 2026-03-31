@@ -102,9 +102,11 @@ db_config.update(
             "keepalives_count": 5,
         },
         # CRITICAL: Connection lifetime and health checks for production scale
-        # Reuse connections for 10 min in prod, 1 min in dev (prevents connection leaks)
-        # With gevent monkey-patching, connection pooling is safe and performant
-        "CONN_MAX_AGE": 600 if config.is_production else 60,
+        # In production (gunicorn with persistent workers), reuse connections for 10 min.
+        # In development (runserver with thread-per-request), close immediately to prevent
+        # connection exhaustion — each thread holds its own connection for CONN_MAX_AGE seconds,
+        # and under rapid load this saturates PostgreSQL's max_connections.
+        "CONN_MAX_AGE": 600 if config.is_production else 0,
         # CRITICAL: Enable connection health checks (Django 4.1+)
         # Validates connections before use to prevent stale connection errors at scale
         "CONN_HEALTH_CHECKS": True,

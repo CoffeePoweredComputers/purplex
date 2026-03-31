@@ -31,8 +31,9 @@ test.describe('Instructor Submissions View', () => {
     const tableCount = await tableOrEmpty.count();
 
     if (tableCount > 0) {
-      // Table rendered -- check for the seeded submission
-      await expect(page.getByText('student')).toBeVisible();
+      // Table rendered -- check for the seeded submission (use .first() since
+      // "student" appears in many cells: username, problem set names, etc.)
+      await expect(page.getByText('student').first()).toBeVisible();
     }
 
     await expectNoErrors(page);
@@ -106,21 +107,9 @@ test.describe('Instructor Submissions View', () => {
     if (viewBtnCount > 0) {
       await viewBtn.click();
 
-      // The ViewSubmissionModal should appear
-      // It could be rendered as a modal overlay or navigate to a detail route
-      await page.waitForTimeout(1000);
-
-      // Check if a modal appeared or we navigated to a detail page
-      const modal = page.locator('[class*="modal"], [role="dialog"]');
-      const modalVisible = await modal.isVisible().catch(() => false);
-
-      if (modalVisible) {
-        // Modal path: verify it shows submission details
-        await expect(modal).toBeVisible();
-      } else {
-        // Route path: /instructor/courses/CS101-2024/submissions/:id
-        expect(page.url()).toMatch(/\/submissions\/\d+/);
-      }
+      // The ViewSubmissionModal renders as a dialog
+      const modal = page.getByRole('dialog', { name: 'Submission Details' });
+      await expect(modal).toBeVisible({ timeout: 5000 });
     }
   });
 
@@ -128,14 +117,11 @@ test.describe('Instructor Submissions View', () => {
     await navigateAs(page, 'instructor', SUBMISSIONS_URL);
     await page.locator('.data-table, .empty-state, .error-state').first().waitFor({ state: 'visible', timeout: 15000 });
 
-    // The seeded MCQ submission has score = 100
-    const scoreBadge = page.locator('.score-badge').first();
-    const scoreBadgeCount = await scoreBadge.count();
-
-    if (scoreBadgeCount > 0) {
-      const scoreText = await scoreBadge.textContent();
-      // Score should be "100%" for the seeded submission
-      expect(scoreText).toContain('100');
-    }
+    // The seeded MCQ submission has score = 100. Table is sorted by date (newest first),
+    // so the 100% badge may not be the first row. Verify that at least one exists.
+    const scoreBadges = page.locator('.score-badge');
+    const allTexts = await scoreBadges.allTextContents();
+    const has100 = allTexts.some(text => text.includes('100'));
+    expect(has100).toBeTruthy();
   });
 });

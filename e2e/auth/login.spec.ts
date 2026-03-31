@@ -22,6 +22,8 @@ test.describe('Login Flow', () => {
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
+      // Dismiss cookie consent so the banner doesn't obscure UI elements
+      localStorage.setItem('purplex_cookie_consent', 'accepted');
     });
   });
 
@@ -209,12 +211,12 @@ test.describe('Login Flow', () => {
     await expect(page.locator('#psw')).toBeVisible();
 
     // Buttons
-    await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'New Account' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Login with Google' })).toBeVisible();
 
-    // Footer links
-    await expect(page.getByRole('link', { name: 'Privacy Policy' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Terms of Service' })).toBeVisible();
+    // Footer links (may appear in both login form and site footer, use first())
+    await expect(page.getByRole('link', { name: 'Privacy Policy' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Terms of Service' }).first()).toBeVisible();
   });
 });

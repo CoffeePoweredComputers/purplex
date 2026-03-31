@@ -54,7 +54,8 @@ test.describe('FERPA Compliance', () => {
     const res = await apiAs(page, 'instructor', 'GET', `/api/instructor/courses/${COURSE_ID}/students/`);
     expect(res.status).toBe(200);
 
-    const students = res.data.results || res.data;
+    // Response is { problem_sets: [...], students: [...] }
+    const students = res.data.students || res.data.results || res.data;
     expect(Array.isArray(students)).toBeTruthy();
     expect(students.length).toBeGreaterThanOrEqual(1);
   });
@@ -70,7 +71,8 @@ test.describe('FERPA Compliance', () => {
     const studentsRes = await apiAs(page, 'instructor', 'GET', `/api/instructor/courses/${COURSE_ID}/students/`);
     expect(studentsRes.status).toBe(200);
 
-    const students = studentsRes.data.results || studentsRes.data;
+    // Response is { problem_sets: [...], students: [...] }
+    const students = studentsRes.data.students || studentsRes.data.results || studentsRes.data;
     expect(Array.isArray(students)).toBeTruthy();
 
     // Find the student who opted out by checking for masked/hidden fields

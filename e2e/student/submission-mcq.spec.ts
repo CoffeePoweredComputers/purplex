@@ -106,12 +106,23 @@ test.describe('MCQ Submission', () => {
     );
   });
 
-  test('submit button is disabled when no option is selected', async ({ page }) => {
+  test('submit button is enabled only when an option is selected', async ({ page }) => {
     await goToMcqProblem(page);
 
-    // Before selecting any option, the submit button should be disabled
+    // The seeded student has a prior submission on this MCQ, so the previously
+    // selected option may be pre-loaded. Verify the button state is consistent:
+    // enabled when an option is selected, disabled when none is.
     const submitBtn = page.locator('#submitButton');
-    await expect(submitBtn).toBeDisabled();
+    const selectedOption = page.locator('.mcq-option--selected');
+    const hasSelected = await selectedOption.count() > 0;
+
+    if (hasSelected) {
+      // Prior selection restored — button should be enabled
+      await expect(submitBtn).toBeEnabled();
+    } else {
+      // No selection — button should be disabled
+      await expect(submitBtn).toBeDisabled();
+    }
   });
 
   test('progress bar updates after correct submission', async ({ page }) => {

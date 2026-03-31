@@ -163,6 +163,13 @@ test.describe('Probeable Code Submission', () => {
       return;
     }
 
+    // Probe button may be disabled if Docker execution is unavailable
+    const isEnabled = await probeBtn.isEnabled().catch(() => false);
+    if (!isEnabled) {
+      test.skip();
+      return;
+    }
+
     await probeBtn.click();
 
     // Wait for a probe history entry to appear

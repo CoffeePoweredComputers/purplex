@@ -116,8 +116,8 @@ test.describe('Instructor Problem CRUD', () => {
     // Select a different type (if options exist)
     const options = await typeSelect.locator('option').allTextContents();
     if (options.length >= 2) {
-      // Select the second option
-      await typeSelect.selectOption({ index: 1 });
+      // Select a type different from the default (eipl at index 1) — use index 0 (debug_fix)
+      await typeSelect.selectOption({ index: 0 });
 
       // Wait for the dynamic editor component to load (uses Suspense)
       await page.waitForTimeout(1500);

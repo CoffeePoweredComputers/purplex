@@ -90,8 +90,8 @@ test.describe('Instructor Problem Set CRUD', () => {
     const deleteBtn = row.locator('.delete-button');
     await deleteBtn.click();
 
-    // ConfirmDialog uses Teleport with .dialog-overlay and role="alertdialog"
-    const dialog = page.locator('.dialog-overlay, [role="alertdialog"]');
+    // ConfirmDialog renders with role="alertdialog" inside a .dialog-overlay
+    const dialog = page.getByRole('alertdialog');
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
     // Cancel the deletion to preserve seeded data

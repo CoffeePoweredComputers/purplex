@@ -125,7 +125,7 @@ test.describe('Responsive Layout', () => {
     await expect(passwordInput).toBeVisible();
 
     // Buttons should be visible
-    await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'New Account' })).toBeVisible();
 
     // No horizontal scroll on the login page
