@@ -1,4 +1,4 @@
-name: E2E Smoke Tests
+name: E2E Tests
 
 on:
   push:
@@ -11,7 +11,7 @@ env:
 
 jobs:
   e2e:
-    name: Playwright Smoke Tests
+    name: Playwright E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
