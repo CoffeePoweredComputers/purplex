@@ -21,7 +21,7 @@
 
     <!-- Main app (authenticated) or public routes (unauthenticated) -->
     <div v-else>
-      <NavBar />
+      <NavBar v-if="loggedIn" />
       <div
         id="main-content"
         class="main-content"

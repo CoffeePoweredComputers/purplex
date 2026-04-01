@@ -107,7 +107,12 @@ class _MockCompletions:
         user_text = ""
         for msg in messages:
             if msg.get("role") == "user":
-                user_text = msg.get("content", "")
+                raw = msg.get("content", "")
+                # Strip the "Please analyze this prompt: " prefix that
+                # segmentation_service.py adds, so segment text matches
+                # the verbatim-substring contract against the raw student input
+                prefix = "Please analyze this prompt: "
+                user_text = raw[len(prefix) :] if raw.startswith(prefix) else raw
                 break
 
         mid = max(1, num_lines // 2)
