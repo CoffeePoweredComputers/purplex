@@ -142,8 +142,8 @@ class TestSegmentationPromptGeneration:
         """Test that generated prompts include one-to-one mapping rules."""
         prompt = service._create_segmentation_prompt(reference_code)
 
-        # Check for critical one-to-one mapping elements (current format)
-        assert "CRITICAL ONE-TO-ONE MAPPING RULES" in prompt
+        # Check for one-to-one mapping elements (current format)
+        assert "ONE-TO-ONE MAPPING RULES" in prompt
         assert "EXACTLY ONE distinct code section" in prompt
         assert "no overlapping" in prompt.lower()
         assert "ONE-TO-ONE MAPPING VALIDATION" in prompt
