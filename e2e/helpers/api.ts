@@ -108,8 +108,8 @@ export async function interceptAPI(
       }
       return urlPattern.test(url.toString());
     },
-    (route) => {
-      route.fulfill({
+    async (route) => {
+      await route.fulfill({
         status: mockResponse.status,
         contentType: 'application/json',
         body: JSON.stringify(mockResponse.body),

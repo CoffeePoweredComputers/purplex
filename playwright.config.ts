@@ -20,7 +20,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     actionTimeout: 5_000,
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     screenshot: 'off', // we take manual screenshots
   },
 

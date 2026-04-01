@@ -13,7 +13,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { navigateAs, expectNoErrors } from '../helpers/navigation';
+import { navigateAs } from '../helpers/navigation';
 
 test.describe('User Settings', () => {
   test('theme toggle switches between dark and light mode', async ({ page }) => {

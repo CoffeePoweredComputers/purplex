@@ -78,23 +78,23 @@ class Command(BaseCommand):
         try:
             instructor = User.objects.get(username="instructor")
             student = User.objects.get(username="student")
-        except User.DoesNotExist as exc:
+        except User.DoesNotExist:
             self.stdout.write(
                 self.style.ERROR(
                     "Required test users not found. Run create_test_users first."
                 )
             )
-            raise exc
+            raise
 
         try:
             course = Course.all_objects.get(course_id="CS101-2024")
-        except Course.DoesNotExist as exc:
+        except Course.DoesNotExist:
             self.stdout.write(
                 self.style.ERROR(
                     "CS101-2024 course not found. Run create_test_users first."
                 )
             )
-            raise exc
+            raise
 
         # ------------------------------------------------------------------
         # 1. Categories
@@ -448,7 +448,7 @@ class Command(BaseCommand):
         # ------------------------------------------------------------------
         now = timezone.now()
 
-        _, created = CourseProblemSet.objects.get_or_create(
+        _, created = CourseProblemSet.objects.update_or_create(
             course=course,
             problem_set=ps_basics,
             defaults={
@@ -460,7 +460,7 @@ class Command(BaseCommand):
         )
         self._report("CourseProblemSet", "e2e-basics -> CS101-2024", created)
 
-        _, created = CourseProblemSet.objects.get_or_create(
+        _, created = CourseProblemSet.objects.update_or_create(
             course=course,
             problem_set=ps_code,
             defaults={
@@ -472,7 +472,7 @@ class Command(BaseCommand):
         )
         self._report("CourseProblemSet", "e2e-code -> CS101-2024 (past soft)", created)
 
-        _, created = CourseProblemSet.objects.get_or_create(
+        _, created = CourseProblemSet.objects.update_or_create(
             course=course,
             problem_set=ps_mixed,
             defaults={
@@ -638,7 +638,7 @@ class Command(BaseCommand):
                 f"  CourseProblemSet linkages: 3\n"
                 f"  Hints: 3 (variable_fade, subgoal_highlight, suggested_trace)\n"
                 f"  Submission: 1 (student -> e2e-mcq-1)\n"
-                f"  Consent: 1 (behavioral_tracking)\n"
+                f"  Consent: 2 (behavioral_tracking, ai_processing)\n"
                 f"  Progress: 1 (student -> e2e-mcq-1 completed)"
             )
         )

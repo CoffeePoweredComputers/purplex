@@ -8,10 +8,9 @@ Used by AITestGenerationService and SegmentationService when
 USE_MOCK_OPENAI=true. Follows the MockFirebaseAuth pattern from
 purplex/users_app/mock_firebase.py.
 
-Safety: Cannot activate in production — blocked by three independent guards:
-  1. config/environment.py raises ConfigurationError on startup
-  2. config.use_mock_openai property returns False for non-dev envs
-  3. MockOpenAIClient.__init__ raises RuntimeError if PURPLEX_ENV=production
+Safety: Cannot activate in production — blocked by two independent guards:
+  1. config.use_mock_openai property returns False for non-dev envs
+  2. MockOpenAIClient.__init__ raises RuntimeError if PURPLEX_ENV=production
 """
 
 import json

@@ -126,7 +126,7 @@ class SegmentationService:
         if not self.client:
             return {
                 "success": False,
-                "error": f"No AI provider configured for segmentation (provider={self.provider})",
+                "error": "No AI provider configured for segmentation (set OPENAI_API_KEY)",
                 "segments": [],
                 "groups": [],
                 "segment_count": 0,
