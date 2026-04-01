@@ -551,43 +551,57 @@ class Command(BaseCommand):
         # ------------------------------------------------------------------
         # 7. Prior submission for student on e2e-mcq-1
         # ------------------------------------------------------------------
-        _, created = Submission.objects.get_or_create(
+        existing_sub = Submission.objects.filter(
             user=student,
             problem=mcq,
             problem_set=ps_basics,
             course=course,
             submission_type="mcq",
-            raw_input="a",
-            defaults={
-                "score": 100,
-                "is_correct": True,
-                "passed_all_tests": True,
-                "completion_status": "complete",
-                "execution_status": "completed",
-            },
-        )
+            is_correct=True,
+        ).first()
+        if not existing_sub:
+            Submission.objects.create(
+                user=student,
+                problem=mcq,
+                problem_set=ps_basics,
+                course=course,
+                submission_type="mcq",
+                raw_input="a",
+                score=100,
+                is_correct=True,
+                passed_all_tests=True,
+                completion_status="complete",
+                execution_status="completed",
+            )
+            created = True
+        else:
+            created = False
         self._report("Submission", "student -> e2e-mcq-1 (mcq)", created)
 
         # ------------------------------------------------------------------
         # 8. Consent record for student (behavioral tracking)
         # ------------------------------------------------------------------
-        existing_consent = UserConsent.objects.filter(
-            user=student,
-            consent_type=ConsentType.BEHAVIORAL_TRACKING,
-            granted=True,
-        ).exists()
-        if not existing_consent:
-            UserConsent.objects.create(
+        for consent_type, label in [
+            (ConsentType.BEHAVIORAL_TRACKING, "behavioral_tracking"),
+            (ConsentType.AI_PROCESSING, "ai_processing"),
+        ]:
+            existing = UserConsent.objects.filter(
                 user=student,
-                consent_type=ConsentType.BEHAVIORAL_TRACKING,
+                consent_type=consent_type,
                 granted=True,
-                ip_address="127.0.0.1",
-                policy_version="1.0",
-                consent_method=ConsentMethod.REGISTRATION,
-            )
-            self._report("UserConsent", "behavioral_tracking for student", True)
-        else:
-            self._report("UserConsent", "behavioral_tracking for student", False)
+            ).exists()
+            if not existing:
+                UserConsent.objects.create(
+                    user=student,
+                    consent_type=consent_type,
+                    granted=True,
+                    ip_address="127.0.0.1",
+                    policy_version="1.0",
+                    consent_method=ConsentMethod.REGISTRATION,
+                )
+                self._report("UserConsent", f"{label} for student", True)
+            else:
+                self._report("UserConsent", f"{label} for student", False)
 
         # ------------------------------------------------------------------
         # 9. UserProgress for student on e2e-mcq-1

@@ -194,6 +194,8 @@ echo -e "${BLUE}→ Starting PostgreSQL...${NC}"
 if docker ps | grep -q purplex-postgres-dev; then
     echo -e "${GREEN}✓ PostgreSQL already running${NC}"
 else
+    # Remove any container holding port 5432 (e.g. old docker-compose purplex_postgres)
+    docker ps -a --filter "publish=5432" --format "{{.Names}}" 2>/dev/null | xargs -r -I{} docker rm -f {} > /dev/null 2>&1 || true
     docker rm -f purplex-postgres-dev > /dev/null 2>&1 || true
 
     if ! pg_output=$(docker run -d \
@@ -234,6 +236,8 @@ echo -e "${BLUE}→ Starting Redis...${NC}"
 if docker ps | grep -q purplex-redis-dev; then
     echo -e "${GREEN}✓ Redis already running${NC}"
 else
+    # Remove any container holding port 6379 (e.g. old docker-compose purplex_redis)
+    docker ps -a --filter "publish=6379" --format "{{.Names}}" 2>/dev/null | xargs -r -I{} docker rm -f {} > /dev/null 2>&1 || true
     docker rm -f purplex-redis-dev > /dev/null 2>&1 || true
 
     if ! redis_output=$(docker run -d \

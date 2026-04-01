@@ -24,7 +24,7 @@
 
 ## Features
 
-- **AI Problem Generation** -- GPT-4 and Llama-powered problem creation across multiple types (code, MCQ, EiPL, debug-fix, refute, probeable)
+- **AI Problem Generation** -- AI-powered problem creation via any OpenAI-compatible API (OpenAI, Meta Llama, VT ARC) across multiple types (code, MCQ, EiPL, debug-fix, refute, probeable)
 - **Sandboxed Execution** -- Docker containers with resource limits, network isolation, and timeout enforcement
 - **EiPL System** -- Students explain code behavior in plain language; AI evaluates conceptual understanding
 - **Multi-Modal Hints** -- Variable Fade, Subgoal Highlighting, and Suggested Trace hint strategies

@@ -28,7 +28,7 @@ python -c 'from django.core.management.utils import get_random_secret_key; print
 ```
 
 ### **[CRITICAL]** API Keys
-- [ ] AI provider key configured (OpenAI or Llama based on AI_PROVIDER setting)
+- [ ] `OPENAI_API_KEY` configured for your OpenAI-compatible provider
 - [ ] AI API key has appropriate usage limits/quotas set in provider dashboard
 - [ ] AI API keys are not shared across environments
 - [ ] Firebase credentials file exists and is valid JSON
@@ -479,8 +479,8 @@ If a security incident occurs:
 | `DATABASE_URL` | Yes | - | PostgreSQL connection URL |
 | `REDIS_URL` | Yes | - | Redis connection URL |
 | `REDIS_PASSWORD` | Recommended | - | Redis authentication password |
-| `OPENAI_API_KEY` | Conditional | - | Required if AI_PROVIDER=openai |
-| `LLAMA_API_KEY` | Conditional | - | Required if AI_PROVIDER=llama |
+| `OPENAI_API_KEY` | Yes (prod) | - | API key for OpenAI-compatible provider |
+| `OPENAI_BASE_URL` | No | - | Optional: custom base URL for non-OpenAI providers |
 | `FIREBASE_CREDENTIALS_PATH` | Yes (prod) | - | Path to Firebase credentials JSON |
 | `SECURE_SSL_REDIRECT` | No | True (prod) | Redirect HTTP to HTTPS |
 | `SESSION_COOKIE_SECURE` | No | True (prod) | Only send cookies over HTTPS |

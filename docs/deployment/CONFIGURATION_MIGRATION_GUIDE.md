@@ -60,9 +60,9 @@ nano .env
 ```
 
 **Key settings to customize in development**:
-- `OPENAI_API_KEY` - Your OpenAI API key (or set `USE_MOCK_OPENAI=true`)
-- `LLAMA_API_KEY` - Your Llama API key if using Llama as AI provider
-- `AI_PROVIDER` - Set to `openai` or `llama`
+- `OPENAI_API_KEY` - Your API key (or set `USE_MOCK_OPENAI=true` to skip)
+- `OPENAI_BASE_URL` - Optional: set for non-OpenAI providers (VT ARC, Llama, etc.)
+- `GPT_MODEL` - Model name (must exist at your provider)
 
 #### For Production
 
@@ -80,7 +80,7 @@ cp .env.production.template .env.production
    - Configure `DATABASE_URL` with PostgreSQL connection string
    - Configure `REDIS_URL` with Redis connection string
    - Set `REDIS_PASSWORD` for production Redis authentication
-   - Add `OPENAI_API_KEY` or `LLAMA_API_KEY` based on your AI provider
+   - Add `OPENAI_API_KEY` (and optionally `OPENAI_BASE_URL` for non-OpenAI providers)
    - Set `FIREBASE_CREDENTIALS_PATH` to your credentials JSON file
    - Configure `POSTGRES_PASSWORD` for the database container
 
@@ -153,8 +153,7 @@ env:
 | `ALLOWED_HOSTS` | `DJANGO_ALLOWED_HOSTS` | No wildcards in production |
 | `OPENAI_KEY` | `OPENAI_API_KEY` | Consistent naming |
 | `FIREBASE_CREDS` | `FIREBASE_CREDENTIALS_PATH` | Full path required |
-| `AI_PROVIDER` | `AI_PROVIDER` | New: Choose between `openai` or `llama` |
-| `LLAMA_API_KEY` | `LLAMA_API_KEY` | New: Required if AI_PROVIDER=llama |
+| `OPENAI_BASE_URL` | `OPENAI_BASE_URL` | New: Optional base URL for non-OpenAI providers |
 
 ### New Required Variables (Production)
 
@@ -165,8 +164,7 @@ These variables MUST be set in production:
 - `DJANGO_ALLOWED_HOSTS` (comma-separated list of domains/IPs, no wildcards)
 - `DATABASE_URL` (PostgreSQL connection string)
 - `REDIS_URL` (Redis connection string)
-- `OPENAI_API_KEY` (required if `AI_PROVIDER=openai`)
-- `LLAMA_API_KEY` (required if `AI_PROVIDER=llama`)
+- `OPENAI_API_KEY` (for your OpenAI-compatible provider)
 - `FIREBASE_CREDENTIALS_PATH` (path to credentials JSON file)
 
 ### New Optional Variables
@@ -296,15 +294,10 @@ Mock Firebase or OpenAI is enabled in production.
 
 The configured AI provider requires an API key.
 
-**Solution**: Either set the API key or switch providers:
+**Solution**: Set your API key (and optionally a custom base URL):
 ```bash
-# For OpenAI
-AI_PROVIDER=openai
 OPENAI_API_KEY=your-key-here
-
-# For Llama
-AI_PROVIDER=llama
-LLAMA_API_KEY=your-key-here
+# OPENAI_BASE_URL=https://llm-api.arc.vt.edu/api/v1/  # optional
 ```
 
 #### 5. "ALLOWED_HOSTS must be properly configured"

@@ -104,19 +104,26 @@ test.describe('Problem Set Navigation', () => {
   });
 
   test('MCQ problem shows completed status indicator', async ({ page }) => {
-    await navigateAs(page, 'student', '/courses/CS101-2024/problem-set/e2e-basics');
-
+    // Use student2 who has NO submissions — ensures clean progress state.
+    // First submit the MCQ to create a "completed" status.
+    await navigateAs(page, 'student2', '/courses/CS101-2024/problem-set/e2e-basics?p=0');
     await page.waitForSelector('.problem-set-container', { timeout: 15_000 });
 
-    const problemButtons = page.locator('.progress-bar');
+    // Submit the correct MCQ answer
+    const mcqOption = page.locator('.mcq-option').first();
+    await mcqOption.click();
+    const submitBtn = page.locator('#submitButton');
+    await expect(submitBtn).toBeEnabled({ timeout: 5000 });
+    await submitBtn.click();
+    await page.waitForTimeout(1000);
 
-    // The MCQ problem (e2e-mcq-1) was solved, so its progress-bar button
-    // should have the "completed" CSS class.
-    // The EiPL problem (e2e-eipl-1) should have "not_started".
+    // Reload to see updated progress indicators
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForSelector('.problem-set-container', { timeout: 15_000 });
+
     const completedButtons = page.locator('.progress-bar.completed');
     const notStartedButtons = page.locator('.progress-bar.not_started');
 
-    // At least one should be completed (the MCQ) and one not started (the EiPL)
     const completedCount = await completedButtons.count();
     const notStartedCount = await notStartedButtons.count();
     expect(completedCount).toBeGreaterThanOrEqual(1);

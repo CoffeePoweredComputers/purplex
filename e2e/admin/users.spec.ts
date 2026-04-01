@@ -33,11 +33,17 @@ test.describe('Admin User Management', () => {
     const tableBody = page.locator('.data-table tbody');
     await expect(tableBody).toBeVisible({ timeout: 15000 });
 
-    // The page should contain all seeded user emails or usernames
+    // Admin user should be on the first page (alphabetical sort)
     const body = await page.locator('body').textContent();
-    // At least the admin and student users should appear on the first page
     expect(body).toContain('admin');
-    expect(body).toContain('student');
+
+    // Student may be on a later page — use the search box to find them
+    const searchBox = page.locator('input[placeholder*="Search"]');
+    await searchBox.fill('student');
+    await page.waitForTimeout(500);  // debounce
+
+    const filteredBody = await page.locator('body').textContent();
+    expect(filteredBody).toContain('student');
   });
 
   test('search filters users by keyword', async ({ page }) => {

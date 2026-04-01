@@ -14,7 +14,7 @@ Purplex is an educational coding challenge platform with AI-powered problem gene
 - **Task Queue**: Celery 5.x with Redis broker + gevent workers
 - **Auth**: Firebase Authentication (mock in dev)
 - **Code Execution**: Docker containers via Docker-in-Docker
-- **AI**: OpenAI GPT-4 API
+- **AI**: OpenAI SDK (works with any OpenAI-compatible API — OpenAI, Meta Llama, VT ARC, etc.)
 
 ## Development Commands
 
@@ -134,7 +134,8 @@ All test data comes from Factory Boy factories in `tests/factories/__init__.py`.
 Development uses `.env.development` with mock Firebase auth. Key vars:
 - `DATABASE_URL` - PostgreSQL connection
 - `REDIS_URL` - Redis connection
-- `OPENAI_API_KEY` - Required for AI features
+- `OPENAI_API_KEY` - Required for AI features (any OpenAI-compatible provider)
+- `OPENAI_BASE_URL` - Optional: base URL for non-OpenAI providers
 
 ## Access Points (Development)
 

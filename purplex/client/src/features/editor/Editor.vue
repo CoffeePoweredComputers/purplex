@@ -322,11 +322,14 @@ watch(() => props.value, (newValue) => {
       // producing correct layout in one pass with no flicker.
       editor.value.setValue(newValue, 1)
       applyMarkers()
-      // Sync VAceEditor's internal backup so its own value watcher
-      // sees the content is already current and skips its unprotected setValue
-      if (vAceRef.value) {
-        vAceRef.value._contentBackup = newValue
-      }
+    }
+    // Always sync VAceEditor's internal backup so its value watcher
+    // sees the content is current and skips redundant setValue calls.
+    // Must be OUTSIDE the if block — when Ace already has the value
+    // (e.g., set via change event before prop propagation), skipping
+    // this sync leaves _contentBackup stale and breaks reactivity.
+    if (vAceRef.value) {
+      vAceRef.value._contentBackup = newValue
     }
 
     // Update minLines if extraLines is set - only when value actually changes

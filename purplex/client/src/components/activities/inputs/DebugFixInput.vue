@@ -111,16 +111,16 @@ const buggyCode = computed(() => {
   return props.problem?.input_config?.initial_code || ''
 })
 
-// Initialize with buggy code if modelValue is empty
+// Initialize with buggy code on mount
 onMounted(() => {
   if (!props.modelValue && buggyCode.value) {
     emit('update:modelValue', buggyCode.value)
   }
 })
 
-// Watch for problem changes to reset editor
+// Re-initialize when navigating to a different problem
 watch(() => props.problem?.slug, () => {
-  if (buggyCode.value && !props.modelValue) {
+  if (!props.modelValue && buggyCode.value) {
     emit('update:modelValue', buggyCode.value)
   }
 })

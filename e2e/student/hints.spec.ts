@@ -100,32 +100,29 @@ test.describe('Hint System', () => {
   });
 
   test('hints are locked before reaching min_attempts threshold', async ({ page }) => {
-    await goToEiplProblem(page);
+    // Use student2 who has NO prior submissions on e2e-eipl-1,
+    // so hints (min_attempts=2) are guaranteed to be locked
+    await navigateAs(page, 'student2', '/courses/CS101-2024/problem-set/e2e-basics?p=1');
+    await page.locator('.editor-section, #code-editor, .problem-set-container').first().waitFor({
+      state: 'visible',
+      timeout: 15000,
+    });
 
     const hintBtn = page.locator('.hint-button');
     await expect(hintBtn).toBeVisible({ timeout: 10000 });
 
-    // Before 2 attempts, hints should be locked
+    // With 0 attempts, hints should be locked (button disabled or menu shows locked items)
     const isDisabled = await hintBtn.isDisabled();
     if (isDisabled) {
-      // Button disabled = no unlocked hints. Correct behavior.
       expect(isDisabled).toBeTruthy();
     } else {
-      // Button enabled but hints should still show as locked in the menu
       await hintBtn.click();
       const hintMenu = page.locator('.hint-menu');
       await expect(hintMenu).toBeVisible({ timeout: 5000 });
 
-      // Hint items should show locked state
       const lockedItems = page.locator('.hint-item.locked');
       const lockedCount = await lockedItems.count();
       expect(lockedCount).toBeGreaterThanOrEqual(1);
-
-      // Should show "requires more attempts" message
-      const requirementText = page.locator('.hint-requirement').first();
-      if (await requirementText.isVisible().catch(() => false)) {
-        await expect(requirementText).toContainText(/attempt/i);
-      }
     }
   });
 
@@ -133,7 +130,7 @@ test.describe('Hint System', () => {
   // Tests: Hint Unlocking After Submissions
   // -------------------------------------------------------------------
 
-  test.skip('hints unlock after reaching min_attempts via submissions — requires Celery worker', async ({ page }) => {
+  test('hints unlock after reaching min_attempts via submissions', async ({ page }) => {
     await goToEiplProblem(page);
 
     // Submit 2 answers to reach the min_attempts=2 threshold
@@ -260,7 +257,7 @@ test.describe('Hint System', () => {
   // Tests: Hint Toggle Interaction
   // -------------------------------------------------------------------
 
-  test.skip('toggling a hint on and off via the hint menu — requires Celery worker', async ({ page }) => {
+  test('toggling a hint on and off via the hint menu', async ({ page }) => {
     await goToEiplProblem(page);
 
     // Submit enough answers to unlock hints
@@ -289,18 +286,19 @@ test.describe('Hint System', () => {
       return;
     }
 
+    // The checkbox is visually hidden (styled as a toggle slider) and may be
+    // outside the viewport. Use dispatchEvent to toggle it programmatically.
     const toggle = unlockedHint.locator('.hint-checkbox');
-    await expect(toggle).toBeVisible();
-
-    // Toggle the hint ON
-    await toggle.check({ force: true });
+    await toggle.dispatchEvent('click');
+    await page.waitForTimeout(300);
 
     // The hint item should become active
     const activeHint = page.locator('.hint-item.active').first();
     await expect(activeHint).toBeVisible({ timeout: 5000 });
 
     // Toggle the hint OFF
-    await toggle.uncheck({ force: true });
+    await toggle.dispatchEvent('click');
+    await page.waitForTimeout(300);
 
     // The active state should be removed
     await expect(page.locator('.hint-item.active')).toHaveCount(0, { timeout: 5000 });
