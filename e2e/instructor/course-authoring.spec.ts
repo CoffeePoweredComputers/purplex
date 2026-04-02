@@ -47,9 +47,7 @@ test.describe('Course Authoring', () => {
     createdIds.push(courseId);
   });
 
-  test.fixme('edit course name and description — backend missing PATCH endpoint', async ({ page }) => {
-    // BUG: InstructorCourseDetailView only implements GET, not PATCH/PUT.
-    // The frontend edit form exists but the API returns 405 Method Not Allowed.
+  test('edit course name and description', async ({ page }) => {
     const courseId = `E2E-EDIT-${Date.now()}`;
 
     await navigateAs(page, 'instructor', '/instructor/courses/new');

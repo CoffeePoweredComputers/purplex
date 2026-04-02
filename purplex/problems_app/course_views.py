@@ -159,7 +159,7 @@ class InstructorCourseListView(APIView):
 
 
 class InstructorCourseDetailView(APIView):
-    """Get course details for instructor"""
+    """Get and update course details for instructor."""
 
     permission_classes = [IsCourseInstructor]
 
@@ -174,6 +174,35 @@ class InstructorCourseDetailView(APIView):
 
         serializer = CourseDetailSerializer(course)
         return Response(serializer.data)
+
+    def patch(self, request, course_id):
+        """Update course details (primary instructor only)."""
+        course = CourseService.get_course_by_id(course_id, require_active=True)
+        if not course:
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
+
+        self.check_object_permissions(request, course)
+
+        # Only primary instructors can edit course details
+        if not course.is_primary_instructor(request.user):
+            return error_response(
+                "Only the primary instructor can edit course details",
+                ErrorCode.FORBIDDEN,
+                403,
+            )
+
+        serializer = CourseCreateUpdateSerializer(
+            course, data=request.data, partial=True
+        )
+        if serializer.is_valid():
+            # instructor_id is handled via the team management API
+            serializer.validated_data.pop("instructor_id", None)
+
+            updated_course = CourseService.update_course(
+                course, **serializer.validated_data
+            )
+            return Response(CourseDetailSerializer(updated_course).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class InstructorCourseStudentsView(APIView):
