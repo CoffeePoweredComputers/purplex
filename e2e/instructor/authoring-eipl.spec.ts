@@ -125,7 +125,7 @@ test.describe('EiPL Problem Authoring', () => {
     await page.getByRole('textbox', { name: /function signature/i }).fill(
       'def add(a: int, b: int) -> int:',
     );
-    await typeInAceEditor(page, '.code-editor','return a + b');
+    await typeInAceEditor(page, '.code-editor', 'def add(a, b):\n    return a + b');
 
     // Add first test case
     await page.getByRole('button', { name: '+ Add Test' }).click();
@@ -167,7 +167,7 @@ test.describe('EiPL Problem Authoring', () => {
 
   test('save is blocked without function signature', async ({ page }) => {
     await goToNewProblem(page, 'eipl');
-    await fillBasicInfo(page, { title: uniqueTitle('E2E EiPL NoSig'), description: 'Test' });
+    await fillBasicInfo(page, { title: uniqueTitle('E2E EiPL NoSig'), description: 'Validation test problem' });
 
     // Fill reference solution + test case but NOT function signature
     await typeInAceEditor(page, '.code-editor', 'def foo():\n    return 42');
@@ -179,7 +179,7 @@ test.describe('EiPL Problem Authoring', () => {
 
   test('save is blocked without reference solution', async ({ page }) => {
     await goToNewProblem(page, 'eipl');
-    await fillBasicInfo(page, { title: uniqueTitle('E2E EiPL NoRef'), description: 'Test' });
+    await fillBasicInfo(page, { title: uniqueTitle('E2E EiPL NoRef'), description: 'Validation test problem' });
 
     // Fill function signature + test case but NOT reference solution
     await page.getByRole('textbox', { name: /function signature/i }).fill(
@@ -193,7 +193,7 @@ test.describe('EiPL Problem Authoring', () => {
 
   test('save is blocked without test cases', async ({ page }) => {
     await goToNewProblem(page, 'eipl');
-    await fillBasicInfo(page, { title: uniqueTitle('E2E EiPL NoTC'), description: 'Test' });
+    await fillBasicInfo(page, { title: uniqueTitle('E2E EiPL NoTC'), description: 'Validation test problem' });
 
     // Fill signature + solution but NO test cases
     await page.getByRole('textbox', { name: /function signature/i }).fill(
@@ -218,7 +218,7 @@ test.describe('EiPL Problem Authoring', () => {
     await page.getByRole('textbox', { name: /function signature/i }).fill(
       'def add(a: int, b: int) -> int:',
     );
-    await typeInAceEditor(page, '.code-editor','return a + b');
+    await typeInAceEditor(page, '.code-editor', 'def add(a, b):\n    return a + b');
 
     // Add a test case
     await page.getByRole('button', { name: '+ Add Test' }).click();
@@ -248,7 +248,7 @@ test.describe('EiPL Problem Authoring', () => {
     await page.locator('.status-badge').first().waitFor({ state: 'visible', timeout: 30000 });
 
     // Should show passed
-    const passedBadges = page.locator('.status-badge.passed');
+    const passedBadges = page.locator('.status-badge.status-passed');
     expect(await passedBadges.count()).toBeGreaterThanOrEqual(1);
   });
 
@@ -261,7 +261,7 @@ test.describe('EiPL Problem Authoring', () => {
     await page.getByRole('textbox', { name: /function signature/i }).fill(
       'def add(a: int, b: int) -> int:',
     );
-    await typeInAceEditor(page, '.code-editor','return a + b');
+    await typeInAceEditor(page, '.code-editor', 'def add(a, b):\n    return a + b');
 
     // Add test case with WRONG expected output
     await page.getByRole('button', { name: '+ Add Test' }).click();
@@ -288,13 +288,13 @@ test.describe('EiPL Problem Authoring', () => {
     await page.locator('.status-badge').first().waitFor({ state: 'visible', timeout: 30000 });
 
     // Should show failed
-    const failedBadges = page.locator('.status-badge.failed');
+    const failedBadges = page.locator('.status-badge.status-failed');
     expect(await failedBadges.count()).toBeGreaterThanOrEqual(1);
   });
 
   test('add and remove test cases', async ({ page }) => {
     await goToNewProblem(page, 'eipl');
-    await fillBasicInfo(page, { title: uniqueTitle('E2E EiPL TC CRUD'), description: 'Test' });
+    await fillBasicInfo(page, { title: uniqueTitle('E2E EiPL TC CRUD'), description: 'Validation test problem' });
 
     await page.getByRole('textbox', { name: /function signature/i }).fill(
       'def foo(x: int) -> int:',
@@ -332,9 +332,11 @@ test.describe('EiPL Problem Authoring', () => {
       title,
       problem_type: 'eipl',
       function_signature: 'def old(x: int) -> int:',
-      reference_solution: 'return x',
-      description: 'Edit test',
+      reference_solution: 'def old(x):\n    return x',
+      description: 'Test problem for editing workflow',
+      test_cases: [{ inputs: [1], expected_output: 1 }],
     });
+    expect(createResult.status).toBe(201);
     const slug = createResult.data.slug;
     createdSlugs.push(slug);
 
@@ -360,9 +362,11 @@ test.describe('EiPL Problem Authoring', () => {
       title,
       problem_type: 'eipl',
       function_signature: 'def foo(x: int) -> int:',
-      reference_solution: 'return x',
-      description: 'Segmentation test',
+      reference_solution: 'def foo(x):\n    return x',
+      description: 'Test problem for segmentation toggle workflow',
+      test_cases: [{ inputs: [1], expected_output: 1 }],
     });
+    expect(createResult.status).toBe(201);
     const slug = createResult.data.slug;
     createdSlugs.push(slug);
 
@@ -426,7 +430,7 @@ test.describe('EiPL Problem Authoring', () => {
     const title = uniqueTitle('E2E EiPL Delete');
 
     await goToNewProblem(page, 'eipl');
-    await fillBasicInfo(page, { title, description: 'To delete' });
+    await fillBasicInfo(page, { title, description: 'Problem created for delete verification' });
     await page.getByRole('textbox', { name: /function signature/i }).fill(
       'def foo(x: int) -> int:',
     );
