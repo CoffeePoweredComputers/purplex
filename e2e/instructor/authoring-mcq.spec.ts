@@ -209,6 +209,114 @@ test.describe('MCQ Problem Authoring', () => {
     expect(correctOption.text).toBe('Berlin');
   });
 
+  test('edit MCQ: change question and option text', async ({ page }) => {
+    const title = uniqueTitle('E2E MCQ EditText');
+
+    await navigateAs(page, 'instructor', '/instructor/problems');
+    await page.waitForTimeout(500);
+
+    const createResult = await apiAs(page, 'instructor', 'POST', '/api/instructor/problems/', {
+      title,
+      problem_type: 'mcq',
+      question_text: 'Original question',
+      options: [
+        { id: 'a', text: 'Original A', is_correct: true },
+        { id: 'b', text: 'Original B', is_correct: false },
+      ],
+    });
+    const slug = createResult.data.slug;
+    createdSlugs.push(slug);
+
+    await goToEditProblem(page, slug);
+
+    // Change question text
+    await page.getByPlaceholder('Enter the question').fill('Updated question');
+    // Change option text
+    await page.getByPlaceholder('Enter option text').nth(0).fill('Updated A');
+
+    await saveProblem(page);
+
+    const data = await verifyProblemExists(page, slug);
+    expect(data.question_text).toBe('Updated question');
+    expect(data.options[0].text).toBe('Updated A');
+  });
+
+  test('edit MCQ: add option to existing problem', async ({ page }) => {
+    const title = uniqueTitle('E2E MCQ AddOpt');
+
+    await navigateAs(page, 'instructor', '/instructor/problems');
+    await page.waitForTimeout(500);
+
+    const createResult = await apiAs(page, 'instructor', 'POST', '/api/instructor/problems/', {
+      title,
+      problem_type: 'mcq',
+      question_text: 'Test question',
+      options: [
+        { id: 'a', text: 'A', is_correct: true },
+        { id: 'b', text: 'B', is_correct: false },
+      ],
+    });
+    const slug = createResult.data.slug;
+    createdSlugs.push(slug);
+
+    await goToEditProblem(page, slug);
+
+    // Should start with 2 options
+    await expect(page.getByPlaceholder('Enter option text')).toHaveCount(2);
+
+    // Add a third
+    await page.getByRole('button', { name: '+ Add Option' }).click();
+    await expect(page.getByPlaceholder('Enter option text')).toHaveCount(3);
+    await page.getByPlaceholder('Enter option text').nth(2).fill('New C');
+
+    await saveProblem(page);
+
+    const data = await verifyProblemExists(page, slug);
+    expect(data.options).toHaveLength(3);
+    expect(data.options[2].text).toBe('New C');
+  });
+
+  test('max 6 options disables Add Option button', async ({ page }) => {
+    await goToNewProblem(page, 'mcq');
+
+    const addBtn = page.getByRole('button', { name: '+ Add Option' });
+
+    // Start with 1, add 5 more to reach 6
+    for (let i = 0; i < 5; i++) {
+      await addBtn.click();
+      await page.waitForTimeout(200);
+    }
+
+    await expect(page.getByPlaceholder('Enter option text')).toHaveCount(6);
+    await expect(addBtn).toBeDisabled();
+  });
+
+  test('tags persist after save', async ({ page }) => {
+    const title = uniqueTitle('E2E MCQ Tags');
+
+    await goToNewProblem(page, 'mcq');
+    await fillBasicInfo(page, { title, description: 'Tag test', tags: ['loops', 'basics'] });
+    await page.getByPlaceholder('Enter the question').fill('Tag test question');
+
+    await page.getByRole('button', { name: '+ Add Option' }).click();
+    await page.getByPlaceholder('Enter option text').nth(0).fill('A');
+    await page.getByPlaceholder('Enter option text').nth(1).fill('B');
+    await page.getByRole('radio', { name: 'Correct Answer' }).nth(0).click();
+
+    const responsePromise = page.waitForResponse(
+      resp => resp.url().includes('/api/instructor/problems') && resp.request().method() === 'POST',
+      { timeout: 10000 },
+    );
+    await saveProblem(page);
+    const response = await responsePromise;
+    const slug = (await response.json()).slug;
+    createdSlugs.push(slug);
+
+    const data = await verifyProblemExists(page, slug);
+    expect(data.tags).toContain('loops');
+    expect(data.tags).toContain('basics');
+  });
+
   test('delete MCQ and verify removal', async ({ page }) => {
     const title = uniqueTitle('E2E MCQ Delete');
 
