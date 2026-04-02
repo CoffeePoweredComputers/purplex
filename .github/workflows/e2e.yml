@@ -1,4 +1,4 @@
-name: E2E Smoke Tests
+name: E2E Tests
 
 on:
   push:
@@ -11,7 +11,7 @@ env:
 
 jobs:
   e2e:
-    name: Playwright Smoke Tests
+    name: Playwright E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -88,7 +88,8 @@ jobs:
       - name: Set up database
         run: |
           python manage.py migrate --noinput
-          python manage.py create_test_users --noinput || true
+          python manage.py create_test_users
+          python manage.py seed_e2e_data
 
       - name: Start Django server
         run: |
@@ -101,8 +102,8 @@ jobs:
           yarn dev --host &
           sleep 5
 
-      - name: Run E2E smoke tests
-        run: npx playwright test e2e/smoke-tests.spec.ts --reporter=list
+      - name: Run E2E tests
+        run: npx playwright test --reporter=list
 
       - name: Upload test results
         if: failure()

@@ -751,6 +751,10 @@ export default {
                     batchData = await this.loadProblemDataBatch(problem.slug);
                 }
 
+                // Clear editor value BEFORE switching problem so child components
+                // never see stale text from the previous problem at mount time
+                this.promptEditorValue = '';
+
                 // ATOMIC STATE UPDATE - Everything changes at once
                 // This prevents multiple re-renders with partial data
                 this.currentProblem = newIndex;
@@ -818,13 +822,12 @@ export default {
                         };
                     }
 
-                    // Set prompt editor value (prioritize last submission over draft)
+                    // Set prompt editor value (prioritize last submission over draft).
+                    // Don't clobber child-initialized values (e.g., DebugFixInput's buggy code).
                     if (this.feedback.userPrompt) {
                         this.promptEditorValue = this.feedback.userPrompt;
                     } else if (draftText) {
                         this.promptEditorValue = draftText;
-                    } else {
-                        this.promptEditorValue = '';
                     }
 
                     this.logger.info('Navigation: Applied batched data atomically', {
@@ -962,15 +965,16 @@ export default {
                     };
                 }
 
-                // Set draft text (prioritize last submission over draft)
-                await this.$nextTick();
+                // Set editor value BEFORE nextTick so child components see the
+                // correct value when they render (avoids stale text from previous problem).
+                // Only overwrite if we have a prior submission or draft — don't clobber
+                // values that child components initialized (e.g., DebugFixInput's buggy code).
                 if (this.feedback.userPrompt) {
                     this.promptEditorValue = this.feedback.userPrompt;
                 } else if (draftText) {
                     this.promptEditorValue = draftText;
-                } else {
-                    this.promptEditorValue = '';
                 }
+                await this.$nextTick();
 
                 this.logger.info('Applied batched data to component', {
                     codeResults: this.feedback.codeResults.length,

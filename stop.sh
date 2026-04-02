@@ -43,13 +43,12 @@ kill_port 5555 "Flower monitoring"
 echo -e "${YELLOW}Stopping Celery workers...${NC}"
 pkill -f "celery.*purplex" 2>/dev/null && echo -e "${GREEN}✓ Celery workers stopped${NC}" || echo -e "${GREEN}✓ Celery workers not running${NC}"
 
-# Stop Redis container
-echo -e "${YELLOW}Stopping Redis...${NC}"
-docker stop purplex-redis-dev 2>/dev/null && echo -e "${GREEN}✓ Redis stopped${NC}" || echo -e "${GREEN}✓ Redis not running${NC}"
-
-# Stop PostgreSQL container (if running)
-echo -e "${YELLOW}Stopping PostgreSQL...${NC}"
-docker stop purplex-postgres-dev 2>/dev/null && echo -e "${GREEN}✓ PostgreSQL stopped${NC}" || echo -e "${GREEN}✓ PostgreSQL not running${NC}"
+# Stop all purplex-related Docker containers (covers both start.sh and docker-compose names)
+echo -e "${YELLOW}Stopping Docker containers...${NC}"
+docker ps -a --filter "name=purplex" --format "{{.Names}}" 2>/dev/null | while read -r name; do
+    docker stop "$name" 2>/dev/null && docker rm "$name" 2>/dev/null && echo -e "${GREEN}✓ $name stopped and removed${NC}"
+done
+echo -e "${GREEN}✓ Docker cleanup complete${NC}"
 
 # Kill any remaining Python processes from the project
 echo -e "${YELLOW}Cleaning up any remaining processes...${NC}"

@@ -16,12 +16,12 @@
       <div class="loading-spinner" />
     </div>
 
-    <!-- Login page when not authenticated -->
-    <Login v-else-if="!loggedIn" />
+    <!-- Login page when not authenticated on protected routes -->
+    <Login v-else-if="!loggedIn && currentRouteRequiresAuth" />
 
-    <!-- Main app when authenticated -->
+    <!-- Main app (authenticated) or public routes (unauthenticated) -->
     <div v-else>
-      <NavBar />
+      <NavBar v-if="loggedIn" />
       <div
         id="main-content"
         class="main-content"
@@ -106,6 +106,13 @@ export default defineComponent({
         const user = computed(() => store.state.auth.user);
         const authReady = computed(() => store.getters['auth/isAuthReady']);
 
+        // Allow public routes (e.g., /privacy, /terms) to render without auth
+        const currentRouteRequiresAuth = computed(() => {
+            return router.currentRoute.value.matched.some(
+                record => record.meta?.requiresAuth
+            );
+        });
+
         // Dynamic skip link target based on current route
         const skipLinkTarget = computed(() => {
             const currentRoute = router.currentRoute.value;
@@ -139,6 +146,7 @@ export default defineComponent({
             loggedIn,
             user,
             authReady,
+            currentRouteRequiresAuth,
             tokenRefresh,
             skipLinkTarget,
             handleSkipLink

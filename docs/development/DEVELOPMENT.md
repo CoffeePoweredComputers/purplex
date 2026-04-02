@@ -331,15 +331,14 @@ REDIS_PORT=6379
 CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/1
 
-# AI Provider Configuration
-AI_PROVIDER=llama                      # 'openai' or 'llama'
-OPENAI_API_KEY=your-openai-key-here    # Required if using OpenAI
+# AI Configuration (OpenAI SDK — works with any OpenAI-compatible API)
+OPENAI_API_KEY=your-api-key-here
+# OPENAI_BASE_URL=                     # Optional: for VT ARC, Llama, etc.
 GPT_MODEL=gpt-4o-mini
-LLAMA_API_KEY=your-llama-key-here      # Required if using Llama
 
 # Mock services (development only)
 USE_MOCK_FIREBASE=true
-USE_MOCK_OPENAI=false
+USE_MOCK_OPENAI=false                  # Set true to skip real AI calls
 
 # .env.production file (see .env.example for full template)
 PURPLEX_ENV=production

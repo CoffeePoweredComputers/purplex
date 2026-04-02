@@ -13,6 +13,7 @@ export interface Course {
   problem_sets?: CourseProblemSet[];
   created_at?: string;
   updated_at?: string;
+  is_enrolled?: boolean;
 }
 
 export interface CourseProblemSet {
@@ -256,7 +257,7 @@ export const courses: Module<CoursesState, RootState> = {
           course_id: courseId
         });
         commit('SET_ENROLLMENT_MODAL', {
-          coursePreview: response.data.course,
+          coursePreview: { ...response.data.course, is_enrolled: response.data.already_enrolled },
           loading: false
         });
         return response.data;

@@ -34,131 +34,65 @@ class SegmentationService:
     """
     Service for prompt segmentation analysis using AI.
 
-    Supports both Llama and OpenAI providers via configuration.
-    Provider is selected via AI_PROVIDER setting ('llama' or 'openai').
-    Fails immediately if the configured provider is unavailable - no fallback.
+    Uses the OpenAI Python SDK, which works with any OpenAI-compatible API.
+    Set OPENAI_BASE_URL to point to your preferred provider.
     """
 
     def __init__(self):
-        # Determine which provider to use
-        self.provider = getattr(settings, "AI_PROVIDER", "openai").lower()
-
-        # Only initialize the client for the selected provider (avoid unnecessary imports/connections)
         self.client = None
         self.model_name = None
 
-        if self.provider == "llama":
-            # Initialize Llama only
-            llama_api_key = getattr(settings, "LLAMA_API_KEY", None)
-            llama_model = getattr(
-                settings,
-                "LLAMA_MODEL",
-                "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        # Mock mode takes priority
+        if getattr(settings, "USE_MOCK_OPENAI", False):
+            from purplex.problems_app.services.mock_openai import MockOpenAIClient
+
+            self.client = MockOpenAIClient()
+            self.model_name = "mock-gpt"
+            logger.info(
+                "🧪 Using Mock OpenAI provider for segmentation (USE_MOCK_OPENAI=true)"
             )
-            if llama_api_key:
-                try:
-                    from llama_api_client import LlamaAPIClient
+            return
 
-                    self.client = LlamaAPIClient(api_key=llama_api_key)
-                    self.model_name = llama_model
-                    logger.info(
-                        f"✅ Using Llama API provider for segmentation (model: {llama_model})"
-                    )
-                except ImportError:
-                    logger.warning(
-                        "llama-api-client not installed, Llama provider unavailable"
-                    )
-            else:
-                logger.warning("⚠️  LLAMA_API_KEY not configured but AI_PROVIDER=llama")
+        # Initialize OpenAI SDK (works with any OpenAI-compatible API)
+        api_key = getattr(settings, "OPENAI_API_KEY", None)
+        base_url = getattr(settings, "OPENAI_BASE_URL", None)
+        self.model_name = getattr(settings, "GPT_MODEL", "gpt-4o-mini")
 
-        elif self.provider == "openai":
-            # Initialize OpenAI only
-            openai_api_key = getattr(settings, "OPENAI_API_KEY", None)
-            openai_model = getattr(settings, "GPT_MODEL", "gpt-4o-mini")
-            if openai_api_key:
-                import openai
+        if api_key:
+            import openai
 
-                self.client = openai.OpenAI(api_key=openai_api_key)
-                self.model_name = openai_model
-                logger.info(
-                    f"✅ Using OpenAI API provider for segmentation (model: {openai_model})"
-                )
-            else:
-                logger.warning(
-                    "⚠️  OPENAI_API_KEY not configured but AI_PROVIDER=openai"
-                )
-
+            client_kwargs = {"api_key": api_key}
+            if base_url:
+                client_kwargs["base_url"] = base_url
+            self.client = openai.OpenAI(**client_kwargs)
+            base_label = f" @ {base_url}" if base_url else ""
+            logger.info(
+                f"✅ Segmentation AI ready (model: {self.model_name}{base_label})"
+            )
         else:
-            logger.warning(f"⚠️  Unknown AI_PROVIDER: {self.provider}")
+            logger.warning("⚠️  OPENAI_API_KEY not configured — segmentation disabled")
 
     def _call_ai(self, messages, max_tokens=1500, temperature=0.3):
         """
-        Unified AI call that handles both Llama and OpenAI APIs.
-        Raises exception immediately on failure - no fallback.
-        Uses JSON mode/schema to enforce structured output.
+        Synchronous AI call via OpenAI SDK with JSON mode.
         """
         try:
-            if self.provider == "llama":
-                # Llama API call with JSON Schema for strict validation
-                response = self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=messages,
-                    temperature=temperature,
-                    max_completion_tokens=max_tokens,
-                    response_format={
-                        "type": "json_schema",
-                        "json_schema": {
-                            "name": "SegmentationResponse",
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "segments": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "object",
-                                            "properties": {
-                                                "id": {"type": "integer"},
-                                                "text": {"type": "string"},
-                                                "code_lines": {
-                                                    "type": "array",
-                                                    "items": {"type": "integer"},
-                                                },
-                                            },
-                                            "required": ["id", "text", "code_lines"],
-                                        },
-                                    }
-                                },
-                                "required": ["segments"],
-                            },
-                        },
-                    },
-                )
-                content = response.completion_message.content.text
-                logger.info(
-                    f"🦙 Llama API call successful with JSON schema (segmentation, model: {self.model_name})"
-                )
-
-            else:  # openai
-                # OpenAI API call with JSON mode
-                response = self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                    response_format={"type": "json_object"},  # Enforce JSON output
-                )
-                content = response.choices[0].message.content
-                logger.info(
-                    f"🤖 OpenAI API call successful with JSON mode (segmentation, model: {self.model_name})"
-                )
-
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                response_format={"type": "json_object"},
+            )
+            content = response.choices[0].message.content
+            logger.info(
+                f"🤖 AI call successful with JSON mode (segmentation, model: {self.model_name})"
+            )
             return content
 
         except Exception as e:
-            logger.error(
-                f"❌ {self.provider.upper()} API call failed (segmentation): {str(e)}"
-            )
-            raise  # Fail immediately - no fallback
+            logger.error(f"❌ AI call failed (segmentation): {str(e)}")
+            raise
 
     def segment_prompt(
         self,
@@ -168,7 +102,7 @@ class SegmentationService:
         language: str = "en",
     ) -> dict:
         """
-        Segment user prompt and map to code lines using AI (Llama or OpenAI)
+        Segment user prompt and map to code lines using AI.
 
         Args:
             user_prompt: User's explanation of the code
@@ -192,7 +126,7 @@ class SegmentationService:
         if not self.client:
             return {
                 "success": False,
-                "error": f"No AI provider configured for segmentation (provider={self.provider})",
+                "error": "No AI provider configured for segmentation (set OPENAI_API_KEY)",
                 "segments": [],
                 "groups": [],
                 "segment_count": 0,
@@ -289,26 +223,36 @@ class SegmentationService:
         # Start with base prompt
         prompt_parts = [
             f"""# Task:
-Analyze the student's explanation and map conceptual segments to corresponding code sections with STRICT one-to-one correspondence.
+Segment the student's explanation and map each segment to corresponding code lines.
 
-# CRITICAL ONE-TO-ONE MAPPING RULES:
-1. Each segment of the explanation maps to EXACTLY ONE distinct code section
+# ABSOLUTE RULE — ONLY segment text the student actually wrote.
+- You MUST work exclusively with the words the student provided.
+- NEVER invent, rephrase, expand, or add concepts the student did not write.
+- If the student wrote a short or vague explanation, return FEW segments.
+- If the student wrote a detailed explanation with many distinct concepts, segment each one — do NOT lump separate concepts together.
+
+# GRANULARITY RULE — match the student's level of detail.
+- Each distinct concept or action the student describes = one segment.
+- "receives a parameter n AND checks if n <= 1" = TWO concepts, TWO segments.
+- "enters a loop AND updates x and y" = TWO concepts, TWO segments.
+- "does the two sum problem" = ONE concept, ONE segment.
+
+# ONE-TO-ONE MAPPING RULES:
+1. Each segment maps to EXACTLY ONE distinct code section
 2. Each code line can belong to ONLY ONE segment (no overlapping)
-3. Once a line is assigned to a segment, it CANNOT be reused
-4. Focus on conceptual units, not word-for-word extraction
-5. Segments should represent complete thoughts or logical steps
-
-# How to Segment:
-1. Identify distinct conceptual units in the student's explanation
-2. For each concept, find its corresponding code section
-3. Assign line numbers ensuring NO OVERLAPS between segments
-4. Each line of code belongs to at most one segment
-5. Not all explanation needs to be segmented
-6. Not all code needs to be mapped
+3. Segments must be verbatim substrings of the student's actual text
+4. Each segment should represent exactly one thought or logical step — no more, no less
 
 # Two Comprehension Levels:
 1. Relational (Good): 1-2 segments showing high-level understanding of overall purpose
 2. Multi-structural (Needs Work): 3+ segments showing line-by-line procedural thinking
+
+# How to Segment:
+1. Read the student's explanation — that is your ONLY source of segments
+2. Split it at every point where the student describes a NEW action or concept
+3. For each segment, find its corresponding code section
+4. Assign line numbers ensuring NO OVERLAPS between segments
+5. Not all code needs to be mapped — only code the student actually described
 
 REFERENCE CODE:
 ```python
@@ -358,8 +302,9 @@ Before returning your response, verify:
 - Line assignments make logical sense
 
 INSTRUCTIONS:
-- Identify conceptual segments in the student's explanation
-- Use the student's actual words for the "text" field (prefer verbatim when possible)
+- ONLY use text the student actually wrote — never generate your own description of the code
+- The "text" field MUST be a verbatim substring of the student's explanation
+- If the student's explanation is vague or brief, return fewer segments (often just 1)
 - Map each segment to its UNIQUE code lines (1-indexed)
 - ENSURE NO LINE NUMBER APPEARS IN MULTIPLE SEGMENTS
 - Return your analysis as JSON in this exact format:

@@ -102,9 +102,11 @@ db_config.update(
             "keepalives_count": 5,
         },
         # CRITICAL: Connection lifetime and health checks for production scale
-        # Reuse connections for 10 min in prod, 1 min in dev (prevents connection leaks)
-        # With gevent monkey-patching, connection pooling is safe and performant
-        "CONN_MAX_AGE": 600 if config.is_production else 60,
+        # In production (gunicorn with persistent workers), reuse connections for 10 min.
+        # In development (runserver with thread-per-request), close immediately to prevent
+        # connection exhaustion — each thread holds its own connection for CONN_MAX_AGE seconds,
+        # and under rapid load this saturates PostgreSQL's max_connections.
+        "CONN_MAX_AGE": 600 if config.is_production else 0,
         # CRITICAL: Enable connection health checks (Django 4.1+)
         # Validates connections before use to prevent stale connection errors at scale
         "CONN_HEALTH_CHECKS": True,
@@ -282,16 +284,10 @@ CELERY_TASK_ROUTES = {
     "purplex.problems_app.tasks.analytics.*": {"queue": "analytics"},
 }
 
-# AI Provider Configuration
-AI_PROVIDER = config.ai_provider
-
-# OpenAI Configuration
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+# AI Configuration (OpenAI SDK — works with any OpenAI-compatible API)
+OPENAI_API_KEY = config.openai_api_key
+OPENAI_BASE_URL = config.openai_base_url
 GPT_MODEL = os.environ.get("GPT_MODEL", "gpt-4o-mini")
-
-# Llama Configuration
-LLAMA_API_KEY = config.llama_api_key
-LLAMA_MODEL = config.llama_model
 
 # Firebase Configuration (handled by environment config)
 # Firebase configuration is handled directly via environment variables

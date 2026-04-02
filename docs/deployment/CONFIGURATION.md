@@ -158,36 +158,26 @@ docker-compose -f docker-compose.yml up -d
 
 **Validation**: Production fails if `USE_MOCK_FIREBASE=true`
 
-#### AI Provider Configuration
+#### AI Configuration
+
+Uses the OpenAI Python SDK, which works with any OpenAI-compatible API endpoint.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `AI_PROVIDER` | No | `openai` | Primary AI provider: `openai` or `llama` |
+| `USE_MOCK_OPENAI` | No | `false` | Use mock AI (dev/testing only) |
+| `OPENAI_API_KEY` | Yes (prod) | None | API key for your provider |
+| `OPENAI_BASE_URL` | No | None (`api.openai.com`) | Custom base URL for non-OpenAI providers |
+| `GPT_MODEL` | No | `gpt-4o-mini` | Model name (must exist at your provider) |
 
-**Note**: The configured provider's API key is required in production. If `AI_PROVIDER=llama`, then `LLAMA_API_KEY` is required; if `AI_PROVIDER=openai`, then `OPENAI_API_KEY` is required.
+**Validation**: Production fails if `USE_MOCK_OPENAI=true` or `OPENAI_API_KEY` is missing.
 
-#### OpenAI Integration
+**Compatible providers**:
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `USE_MOCK_OPENAI` | No | `false` | Use mock OpenAI (dev only) |
-| `OPENAI_API_KEY` | Yes (if AI_PROVIDER=openai) | None | OpenAI API key |
-| `GPT_MODEL` | No | `gpt-4o-mini` | OpenAI model to use |
-
-**Getting API Key**: https://platform.openai.com/api-keys
-
-**Validation**: Production fails if `USE_MOCK_OPENAI=true`
-
-#### Llama Integration
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `LLAMA_API_KEY` | Yes (if AI_PROVIDER=llama) | None | Meta Llama API key |
-| `LLAMA_MODEL` | No | `meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8` | Llama model to use |
-
-**Getting API Key**: https://www.llama.com/ (currently FREE beta access)
-
-**Note**: When `AI_PROVIDER=llama`, Llama is used as the primary AI provider for all AI-powered features.
+| Provider | `OPENAI_BASE_URL` | Get API Key |
+|----------|-------------------|-------------|
+| OpenAI | *(leave unset)* | https://platform.openai.com/api-keys |
+| Virginia Tech ARC | `https://llm-api.arc.vt.edu/api/v1/` | https://llm.arc.vt.edu (free for VT users) |
+| Meta Llama | `https://api.llama.com/compat/v1/` | https://www.llama.com/ |
 
 ---
 
@@ -613,10 +603,9 @@ USE_MOCK_OPENAI=false
 DATABASE_URL=postgresql://purplex_user:devpass@localhost:5432/purplex_dev  # pragma: allowlist secret
 REDIS_URL=redis://localhost:6379/0
 
-# AI Provider (choose one)
-AI_PROVIDER=llama  # or 'openai'
-LLAMA_API_KEY=your-llama-key-here  # Free beta access at llama.com
-OPENAI_API_KEY=your-openai-key-here
+# AI (any OpenAI-compatible API)
+OPENAI_API_KEY=your-api-key-here
+# OPENAI_BASE_URL=https://llm-api.arc.vt.edu/api/v1/  # optional
 ```
 
 ### Production AWS EC2 (HTTP - Simple)
@@ -630,10 +619,9 @@ DATABASE_URL=postgresql://purplex_user:STRONG_PASSWORD@postgres:5432/purplex_pro
 REDIS_URL=redis://redis:6379/0
 FIREBASE_CREDENTIALS_PATH=/app/firebase-credentials.json
 
-# AI Provider (configure the one you're using)
-AI_PROVIDER=openai  # or 'llama'
-OPENAI_API_KEY=<your-openai-key>
-# LLAMA_API_KEY=<your-llama-key>  # Alternative: use Llama instead
+# AI (any OpenAI-compatible API)
+OPENAI_API_KEY=<your-api-key>
+# OPENAI_BASE_URL=  # optional: for non-OpenAI providers
 
 SECURE_SSL_REDIRECT=false
 SESSION_COOKIE_SECURE=false
@@ -653,9 +641,8 @@ DATABASE_URL=postgresql://purplex_user:STRONG_PASSWORD@purplex-db.abc123.us-east
 REDIS_URL=redis://purplex-redis.abc123.cache.amazonaws.com:6379/0
 FIREBASE_CREDENTIALS_PATH=/app/firebase-credentials.json
 
-# AI Provider
-AI_PROVIDER=openai
-OPENAI_API_KEY=<your-openai-key>
+# AI
+OPENAI_API_KEY=<your-api-key>
 
 SECURE_SSL_REDIRECT=true
 SESSION_COOKIE_SECURE=true
