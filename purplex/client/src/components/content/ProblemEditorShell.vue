@@ -257,7 +257,6 @@ async function confirmDelete() {
   try {
     editor.ui.setLoading(true);
     await ctx.api.value.deleteProblem(editor.currentSlug.value);
-    editor.ui.setSuccess(t('admin.problems.problemDeleted'));
     ctx.navigateToList('problems');
   } catch (error) {
     log.error('Failed to delete problem', error);
