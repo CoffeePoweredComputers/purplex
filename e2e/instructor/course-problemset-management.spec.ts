@@ -122,4 +122,43 @@ test.describe('Course-Problem Set Management', () => {
     expect(await upButtons.count()).toBeGreaterThanOrEqual(1);
     expect(await downButtons.count()).toBeGreaterThanOrEqual(1);
   });
+
+  test('set due date and verify persistence', async ({ page }) => {
+    await goToCourseProblemSets(page);
+
+    // Set due date on the first PS row
+    const dueDateInput = page.locator('input[type=datetime-local]').first();
+    await dueDateInput.fill('2027-06-15T14:00');
+    await dueDateInput.blur();
+    await page.waitForTimeout(2000);
+
+    // Reload to verify it persisted
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(2000);
+
+    const afterReload = await page.locator('input[type=datetime-local]').first().inputValue();
+    expect(afterReload).toContain('2027-06-15');
+  });
+
+  test('change deadline type and verify persistence', async ({ page }) => {
+    await goToCourseProblemSets(page);
+
+    // Find the first enabled deadline select (one that has a due date)
+    const enabledSelect = page.locator('select:not([disabled])').first();
+    const isVisible = await enabledSelect.isVisible().catch(() => false);
+
+    if (isVisible) {
+      await enabledSelect.selectOption('hard');
+      await page.waitForTimeout(2000);
+
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(2000);
+
+      const afterReload = await page.locator('select:not([disabled])').first().inputValue();
+      expect(afterReload).toBe('hard');
+    } else {
+      // No PS has a due date — skip gracefully
+      test.skip();
+    }
+  });
 });

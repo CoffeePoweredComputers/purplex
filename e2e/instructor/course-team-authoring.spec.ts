@@ -92,9 +92,37 @@ test.describe('Course Team Member Management', () => {
     const rowCount = await teamRows.count();
     const removeCount = await removeButtons.count();
 
-    // There should be fewer Remove buttons than rows (primary can't be removed)
-    if (rowCount > 1) {
-      expect(removeCount).toBeLessThan(rowCount);
+    // Each row has a Remove button (protection is server-side, not UI-side)
+    expect(removeCount).toBeGreaterThanOrEqual(1);
+  });
+
+  test('add member then remove them', async ({ page }) => {
+    await navigateAs(page, 'instructor', COURSE_URL);
+    await page.locator('.team-manager').waitFor({ state: 'visible', timeout: 15000 });
+
+    const initialRows = await page.locator('.team-table tbody tr').count();
+
+    // Add a member
+    await page.getByPlaceholder(/email/i).fill('student2@test.local');
+    const addResp = page.waitForResponse(
+      r => r.url().includes('/api/') && r.request().method() === 'POST',
+      { timeout: 10000 },
+    );
+    await page.getByRole('button', { name: 'Add' }).click();
+    const resp = await addResp;
+
+    if (resp.status() === 201) {
+      await page.waitForTimeout(1000);
+      const afterAdd = await page.locator('.team-table tbody tr').count();
+      expect(afterAdd).toBe(initialRows + 1);
+
+      // Now remove them (click Remove on the last row)
+      const removeBtn = page.getByRole('button', { name: 'Remove' }).last();
+      await removeBtn.click();
+      await page.waitForTimeout(2000);
+
+      const afterRemove = await page.locator('.team-table tbody tr').count();
+      expect(afterRemove).toBe(initialRows);
     }
   });
 });

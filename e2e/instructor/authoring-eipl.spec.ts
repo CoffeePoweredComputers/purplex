@@ -398,12 +398,10 @@ test.describe('EiPL Problem Authoring', () => {
   test('enable Variable Fade hint', async ({ page }) => {
     await goToNewProblem(page, 'eipl');
 
-    // The Variable Fade tab should be visible
-    const varFadeTab = page.getByRole('button', { name: 'Variable Fade' });
-    await expect(varFadeTab).toBeVisible();
+    await page.getByRole('button', { name: 'Variable Fade' }).click();
+    await page.waitForTimeout(300);
 
-    // Enable the hint
-    const enableCheckbox = page.getByRole('checkbox', { name: /variable fade/i });
+    const enableCheckbox = page.getByLabel(/variable fade/i);
     await enableCheckbox.check();
     await expect(enableCheckbox).toBeChecked();
   });
@@ -411,15 +409,53 @@ test.describe('EiPL Problem Authoring', () => {
   test('hint tabs switch content', async ({ page }) => {
     await goToNewProblem(page, 'eipl');
 
-    // Click through each hint tab
     await page.getByRole('button', { name: 'Variable Fade' }).click();
-    await expect(page.getByRole('checkbox', { name: /variable fade/i })).toBeVisible();
+    await expect(page.getByLabel(/variable fade/i)).toBeVisible();
 
     await page.getByRole('button', { name: 'Subgoal Highlighting' }).click();
-    await expect(page.getByRole('checkbox', { name: /subgoal/i })).toBeVisible();
+    await expect(page.getByLabel(/subgoal/i)).toBeVisible();
 
     await page.getByRole('button', { name: 'Suggested Trace' }).click();
-    await expect(page.getByRole('checkbox', { name: /suggested trace/i })).toBeVisible();
+    await expect(page.getByLabel(/suggested trace/i)).toBeVisible();
+  });
+
+  test.fixme('hint enable persists after save — hint state not saved by API', async ({ page }) => {
+    // BUG: The Variable Fade checkbox can be toggled in the create/edit form,
+    // but the hint enable state is not persisted when saving. After reload,
+    // the checkbox reverts to unchecked.
+    const title = uniqueTitle('E2E EiPL HintPersist');
+
+    await goToNewProblem(page, 'eipl');
+    await fillBasicInfo(page, { title, description: 'Testing hint persistence' });
+    await page.getByRole('textbox', { name: /function signature/i }).fill(
+      'def add(a: int, b: int) -> int:',
+    );
+    await typeInAceEditor(page, '.code-editor', 'def add(a, b):\n    return a + b');
+
+    // Enable Variable Fade hint
+    await page.getByRole('button', { name: 'Variable Fade' }).click();
+    await page.waitForTimeout(300);
+    await page.getByLabel(/variable fade/i).check();
+
+    // Add test case + save
+    await page.getByRole('button', { name: '+ Add Test' }).click();
+    await page.waitForTimeout(500);
+    const params = page.locator('.test-case').last().locator('.param-input');
+    if (await params.count() >= 3) {
+      await params.nth(0).fill('1');
+      await params.nth(1).fill('2');
+      await params.nth(2).fill('3');
+    }
+
+    const slug = await saveAndGetSlug(page);
+    expect(slug).toBeTruthy();
+    createdSlugs.push(slug);
+
+    // Reload edit page and verify hint checkbox is still checked
+    await goToEditProblem(page, slug);
+    await page.getByRole('button', { name: 'Variable Fade' }).click();
+    await page.waitForTimeout(300);
+    await expect(page.getByLabel(/variable fade/i)).toBeChecked();
   });
 
   // -------------------------------------------------------------------

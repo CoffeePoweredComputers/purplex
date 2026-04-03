@@ -129,6 +129,71 @@ test.describe('Problem Set Authoring', () => {
     expect(titleValue).toContain('E2E PS Edit');
   });
 
+  test('edit problem set title and verify persistence', async ({ page }) => {
+    await navigateAs(page, 'instructor', '/instructor/problem-sets');
+    await page.waitForTimeout(500);
+
+    const createResult = await apiAs(page, 'instructor', 'POST', '/api/instructor/problem-sets/', {
+      title: uniqueTitle('E2E PS EditTitle'),
+      description: 'Problem set for title edit test',
+    });
+    expect(createResult.status).toBe(201);
+    const slug = createResult.data.slug;
+    createdSlugs.push(slug);
+
+    await page.goto(`/instructor/problem-sets/${slug}/edit`);
+    await page.locator('.problem-set-form').waitFor({ state: 'visible', timeout: 15000 });
+    await page.waitForTimeout(1000);
+
+    // Change title
+    await page.getByPlaceholder('e.g., Python Basics').fill('Updated PS Title');
+
+    const saveResp = page.waitForResponse(
+      r => r.request().method() === 'PUT' || r.request().method() === 'PATCH',
+      { timeout: 10000 },
+    );
+    await page.getByRole('button', { name: /save/i }).click();
+    const resp = await saveResp;
+    expect(resp.status()).toBeLessThan(300);
+
+    // Verify via API
+    const fetched = await apiAs(page, 'instructor', 'GET', `/api/instructor/problem-sets/${slug}/`);
+    expect(fetched.data.title).toBe('Updated PS Title');
+  });
+
+  test('toggle Is Public checkbox and verify persistence', async ({ page }) => {
+    await navigateAs(page, 'instructor', '/instructor/problem-sets');
+    await page.waitForTimeout(500);
+
+    const createResult = await apiAs(page, 'instructor', 'POST', '/api/instructor/problem-sets/', {
+      title: uniqueTitle('E2E PS Public'),
+      description: 'Testing public toggle persistence',
+    });
+    expect(createResult.status).toBe(201);
+    const slug = createResult.data.slug;
+    createdSlugs.push(slug);
+
+    await page.goto(`/instructor/problem-sets/${slug}/edit`);
+    await page.locator('.problem-set-form').waitFor({ state: 'visible', timeout: 15000 });
+    await page.waitForTimeout(1000);
+
+    // Toggle public checkbox (defaults to true)
+    const publicCb = page.getByRole('checkbox').first();
+    const wasPub = await publicCb.isChecked();
+    await publicCb.click();
+    await page.waitForTimeout(300);
+
+    const saveResp = page.waitForResponse(
+      r => r.request().method() === 'PUT' || r.request().method() === 'PATCH',
+      { timeout: 10000 },
+    );
+    await page.getByRole('button', { name: /save/i }).click();
+    await saveResp;
+
+    const fetched = await apiAs(page, 'instructor', 'GET', `/api/instructor/problem-sets/${slug}/`);
+    expect(fetched.data.is_public).toBe(!wasPub);
+  });
+
   test('delete problem set from list', async ({ page }) => {
     // Create via API
     await navigateAs(page, 'instructor', '/instructor/problem-sets');
