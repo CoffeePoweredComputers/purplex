@@ -96,8 +96,8 @@ export async function deleteProblem(page: Page) {
   const count = await allDeleteBtns.count();
   await allDeleteBtns.nth(count - 1).click();
 
-  // Wait for navigation away from edit page
-  await page.waitForURL(/\/instructor\/problems(?!.*\/edit)/, { timeout: 10000 });
+  // Wait for navigation away from edit page (works for both admin and instructor routes)
+  await page.waitForURL(/\/problems(?!.*\/edit)/, { timeout: 10000 });
 }
 
 // ---------------------------------------------------------------------------
