@@ -202,7 +202,9 @@ class InstructorCourseDetailView(APIView):
                 course, **serializer.validated_data
             )
             return Response(CourseDetailSerializer(updated_course).data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Format validation errors consistently with the rest of the API
+        first_error = next(iter(serializer.errors.values()), ["Validation failed"])[0]
+        return error_response(str(first_error), ErrorCode.VALIDATION_ERROR, 400)
 
     def delete(self, request, course_id):
         """Soft delete a course (primary instructor only)."""

@@ -126,9 +126,12 @@ test.describe('Course-Problem Set Management', () => {
   test('set due date and verify persistence', async ({ page }) => {
     await goToCourseProblemSets(page);
 
-    // Set due date on the first PS row
+    // Set due date to 1 year from now (avoids hardcoded date expiration)
+    const futureDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    const dateStr = futureDate.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+
     const dueDateInput = page.locator('input[type=datetime-local]').first();
-    await dueDateInput.fill('2027-06-15T14:00');
+    await dueDateInput.fill(dateStr);
     await dueDateInput.blur();
     await page.waitForTimeout(2000);
 
@@ -137,7 +140,7 @@ test.describe('Course-Problem Set Management', () => {
     await page.waitForTimeout(2000);
 
     const afterReload = await page.locator('input[type=datetime-local]').first().inputValue();
-    expect(afterReload).toContain('2027-06-15');
+    expect(afterReload).toContain(futureDate.toISOString().slice(0, 10));
   });
 
   test('change deadline type and verify persistence', async ({ page }) => {

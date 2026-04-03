@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from purplex.users_app.permissions import IsAdmin, IsAuthenticated, IsInstructor
 from purplex.utils.error_codes import ErrorCode, error_response
 
+from ..repositories import ProblemRepository
 from ..services.course_service import CourseService
 from ..services.hint_display_service import HintDisplayService
 from ..services.hint_service import AdminHintService, HintService
@@ -189,11 +190,8 @@ class InstructorProblemHintView(APIView):
 
     def get(self, request, slug):
         """Get hint configurations for a problem owned by this instructor."""
-        from ..models import Problem
-
-        try:
-            problem = Problem.objects.get(slug=slug)
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem:
             return error_response("Problem not found", ErrorCode.NOT_FOUND, 404)
 
         if problem.created_by != request.user:
@@ -211,14 +209,10 @@ class InstructorProblemHintView(APIView):
 
     def put(self, request, slug):
         """Bulk update hints for a problem owned by this instructor."""
-        from ..models import Problem
-
-        try:
-            problem = Problem.objects.get(slug=slug)
-        except Problem.DoesNotExist:
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        if not problem:
             return error_response("Problem not found", ErrorCode.NOT_FOUND, 404)
 
-        # Instructors can only manage hints on problems they created
         if problem.created_by != request.user:
             return error_response(
                 "You can only manage hints on problems you created",

@@ -62,21 +62,19 @@ test.describe('Course Team Member Management', () => {
     await page.getByRole('button', { name: 'Add' }).click();
     const resp = await addResponse;
 
-    if (resp.status() === 201) {
-      await page.waitForTimeout(1000);
-      const afterCount = await page.locator('.team-table tbody tr').count();
-      expect(afterCount).toBe(initialMemberCount + 1);
+    // Assert the add succeeded
+    expect(resp.status()).toBe(201);
 
-      // Clean up: remove the added member via API
-      const userId = (await resp.json()).user_id || (await resp.json()).user;
-      if (userId) {
-        await apiAs(page, 'instructor', 'DELETE',
-          `/api/instructor/courses/CS101-2024/team/${userId}/`).catch(() => {});
-      }
-    } else {
-      // If add fails (e.g., already a member), document the error
-      const body = await resp.json();
-      console.log('Add member response:', resp.status(), JSON.stringify(body).substring(0, 100));
+    await page.waitForTimeout(1000);
+    const afterCount = await page.locator('.team-table tbody tr').count();
+    expect(afterCount).toBe(initialMemberCount + 1);
+
+    // Clean up: remove the added member via API
+    const body = await resp.json();
+    const userId = body.user_id || body.user;
+    if (userId) {
+      await apiAs(page, 'instructor', 'DELETE',
+        `/api/instructor/courses/CS101-2024/team/${userId}/`).catch(() => {});
     }
   });
 
@@ -100,6 +98,19 @@ test.describe('Course Team Member Management', () => {
     await navigateAs(page, 'instructor', COURSE_URL);
     await page.locator('.team-manager').waitFor({ state: 'visible', timeout: 15000 });
 
+    // Clean up any leftover from prior runs
+    const teamResult = await apiAs(page, 'instructor', 'GET', '/api/instructor/courses/CS101-2024/team/');
+    if (teamResult.status === 200 && Array.isArray(teamResult.data)) {
+      for (const member of teamResult.data) {
+        if (member.email === 'student2@test.local') {
+          await apiAs(page, 'instructor', 'DELETE',
+            `/api/instructor/courses/CS101-2024/team/${member.user_id || member.id}/`).catch(() => {});
+        }
+      }
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(1000);
+    }
+
     const initialRows = await page.locator('.team-table tbody tr').count();
 
     // Add a member
@@ -111,16 +122,22 @@ test.describe('Course Team Member Management', () => {
     await page.getByRole('button', { name: 'Add' }).click();
     const resp = await addResp;
 
-    if (resp.status() === 201) {
+    expect(resp.status()).toBe(201);
+
+    await page.waitForTimeout(1000);
+    const afterAdd = await page.locator('.team-table tbody tr').count();
+    expect(afterAdd).toBe(initialRows + 1);
+
+    // Remove via API (UI remove may require confirmation dialog)
+    const body = await resp.json();
+    const userId = body.user_id || body.user || body.id;
+    if (userId) {
+      const delResult = await apiAs(page, 'instructor', 'DELETE',
+        `/api/instructor/courses/CS101-2024/team/${userId}/`);
+      expect(delResult.status).toBe(204);
+
+      await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(1000);
-      const afterAdd = await page.locator('.team-table tbody tr').count();
-      expect(afterAdd).toBe(initialRows + 1);
-
-      // Now remove them (click Remove on the last row)
-      const removeBtn = page.getByRole('button', { name: 'Remove' }).last();
-      await removeBtn.click();
-      await page.waitForTimeout(2000);
-
       const afterRemove = await page.locator('.team-table tbody tr').count();
       expect(afterRemove).toBe(initialRows);
     }

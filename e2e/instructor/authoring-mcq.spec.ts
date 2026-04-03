@@ -127,14 +127,18 @@ test.describe('MCQ Problem Authoring', () => {
     await page.getByRole('radio', { name: 'Correct Answer' }).nth(0).click();
     await page.getByRole('radio', { name: 'Correct Answer' }).nth(2).click();
 
+    const responsePromise = page.waitForResponse(
+      resp => resp.url().includes('/api/instructor/problems') && resp.request().method() === 'POST',
+      { timeout: 10000 },
+    );
     await saveProblem(page);
+    const response = await responsePromise;
+    expect(response.status()).toBe(201);
+    const slug = (await response.json()).slug;
+    createdSlugs.push(slug);
 
-    const slug = await getSlugFromUrl(page);
-    if (slug) {
-      createdSlugs.push(slug);
-      const data = await verifyProblemExists(page, slug);
-      expect(data.options).toHaveLength(4);
-    }
+    const data = await verifyProblemExists(page, slug);
+    expect(data.options).toHaveLength(4);
   });
 
   test('save is blocked without question text', async ({ page }) => {
