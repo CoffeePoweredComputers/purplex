@@ -154,7 +154,7 @@ jobs:
             --cov-fail-under=30 \
             --tb=short \
             -n auto \
-            -k "not test_returns_false_on_firebase_error and not test_consent_immutability and not test_repository_pattern and not test_create_update_methods_are_simple and not test_services_use_repositories and not test_serializers_do_not_use_orm"
+            -k "not test_returns_false_on_firebase_error and not test_consent_immutability"
 
       - name: Generate coverage report
         if: matrix.python-version == '3.11'
