@@ -222,8 +222,18 @@ export const useProblemEditor = (options?: UseProblemEditorOptions): UseProblemE
         typeHandler.load(problemData, composables);
       }
 
-      // Load hints
-      await hints.load(slug);
+      // Load hints (use injected API if available for instructor context)
+      if (api?.getProblemHints) {
+        try {
+          const hintsData = await api.getProblemHints(slug);
+          hints.setHints(hintsData);
+        } catch {
+          // Hints may not exist yet for new problems
+          hints.reset();
+        }
+      } else {
+        await hints.load(slug);
+      }
 
       // Load categories
       categories.setSelectedIds(normalized.category_ids);
@@ -287,9 +297,16 @@ export const useProblemEditor = (options?: UseProblemEditorOptions): UseProblemE
       // Reload test cases from saved data
       testCases.loadFromBackend(savedProblem.test_cases || []);
 
-      // Save hints (only for existing problems)
-      if (isEditing.value && currentSlug.value) {
-        await hints.save(currentSlug.value);
+      // Save hints (for both new and existing problems)
+      if (currentSlug.value) {
+        // Use injected API if available (instructor context),
+        // otherwise fall back to problemService (admin context)
+        if (api) {
+          const hintsArray = hints.getHintsArray();
+          await api.updateHints(currentSlug.value, hintsArray);
+        } else {
+          await hints.save(currentSlug.value);
+        }
       }
 
       return savedProblem;

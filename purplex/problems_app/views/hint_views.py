@@ -5,7 +5,7 @@ import logging
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from purplex.users_app.permissions import IsAdmin, IsAuthenticated
+from purplex.users_app.permissions import IsAdmin, IsAuthenticated, IsInstructor
 from purplex.utils.error_codes import ErrorCode, error_response
 
 from ..services.course_service import CourseService
@@ -173,6 +173,62 @@ class AdminProblemHintView(APIView):
 
         try:
             # Use service layer to bulk update hints
+            result = AdminHintService.bulk_update_hints(slug, hints_data)
+            return Response(result)
+        except ValueError as e:
+            return error_response(str(e), ErrorCode.VALIDATION_ERROR, 400)
+        except RuntimeError as e:
+            logger.error(f"Failed to update hints for problem {slug}: {str(e)}")
+            return error_response(str(e), ErrorCode.SERVER_ERROR, 500)
+
+
+class InstructorProblemHintView(APIView):
+    """Instructor endpoint to manage hints for problems they own."""
+
+    permission_classes = [IsInstructor]
+
+    def get(self, request, slug):
+        """Get hint configurations for a problem owned by this instructor."""
+        from ..models import Problem
+
+        try:
+            problem = Problem.objects.get(slug=slug)
+        except Problem.DoesNotExist:
+            return error_response("Problem not found", ErrorCode.NOT_FOUND, 404)
+
+        if problem.created_by != request.user:
+            return error_response(
+                "You can only view hints on problems you created",
+                ErrorCode.FORBIDDEN,
+                403,
+            )
+
+        try:
+            hint_configs = AdminHintService.get_problem_hints_config(slug)
+            return Response(hint_configs)
+        except ValueError as e:
+            return error_response(str(e), ErrorCode.NOT_FOUND, 404)
+
+    def put(self, request, slug):
+        """Bulk update hints for a problem owned by this instructor."""
+        from ..models import Problem
+
+        try:
+            problem = Problem.objects.get(slug=slug)
+        except Problem.DoesNotExist:
+            return error_response("Problem not found", ErrorCode.NOT_FOUND, 404)
+
+        # Instructors can only manage hints on problems they created
+        if problem.created_by != request.user:
+            return error_response(
+                "You can only manage hints on problems you created",
+                ErrorCode.FORBIDDEN,
+                403,
+            )
+
+        hints_data = request.data.get("hints", [])
+
+        try:
             result = AdminHintService.bulk_update_hints(slug, hints_data)
             return Response(result)
         except ValueError as e:
