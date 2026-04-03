@@ -76,6 +76,22 @@ test.describe('Probeable Code Problem Authoring', () => {
     await expect(probeHeading).toBeVisible();
   });
 
+  test('max_probes input in create form', async ({ page }) => {
+    await goToNewProblem(page, 'probeable_code');
+
+    // The probe settings section should have a number input for max probes
+    const maxProbesInput = page.locator('input[type="number"]');
+    await expect(maxProbesInput).toBeVisible({ timeout: 5000 });
+
+    // Default should be 10
+    const defaultValue = await maxProbesInput.inputValue();
+    expect(parseInt(defaultValue)).toBe(10);
+
+    // Should be editable
+    await maxProbesInput.fill('25');
+    expect(await maxProbesInput.inputValue()).toBe('25');
+  });
+
   test('delete ProbeableCode and verify removal', async ({ page }) => {
     const title = uniqueTitle('E2E ProbCode Delete');
 

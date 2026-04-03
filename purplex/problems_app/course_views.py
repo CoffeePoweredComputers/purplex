@@ -204,6 +204,24 @@ class InstructorCourseDetailView(APIView):
             return Response(CourseDetailSerializer(updated_course).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def delete(self, request, course_id):
+        """Soft delete a course (primary instructor only)."""
+        course = CourseService.get_course_by_id(course_id, require_active=True)
+        if not course:
+            return error_response("Course not found", ErrorCode.NOT_FOUND, 404)
+
+        self.check_object_permissions(request, course)
+
+        if not course.is_primary_instructor(request.user):
+            return error_response(
+                "Only the primary instructor can delete a course",
+                ErrorCode.FORBIDDEN,
+                403,
+            )
+
+        CourseService.soft_delete_course(course)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class InstructorCourseStudentsView(APIView):
     """View enrolled students for a course with per-problem-set progress"""
