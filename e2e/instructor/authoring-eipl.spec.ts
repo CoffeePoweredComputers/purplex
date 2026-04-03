@@ -419,10 +419,7 @@ test.describe('EiPL Problem Authoring', () => {
     await expect(page.getByLabel(/suggested trace/i)).toBeVisible();
   });
 
-  test.fixme('hint enable persists after save — hint state not saved by API', async ({ page }) => {
-    // BUG: The Variable Fade checkbox can be toggled in the create/edit form,
-    // but the hint enable state is not persisted when saving. After reload,
-    // the checkbox reverts to unchecked.
+  test('hint enable persists after save', async ({ page }) => {
     const title = uniqueTitle('E2E EiPL HintPersist');
 
     await goToNewProblem(page, 'eipl');
@@ -447,15 +444,48 @@ test.describe('EiPL Problem Authoring', () => {
       await params.nth(2).fill('3');
     }
 
+    // Wait for both the POST (create) and PUT (hints save) to complete
+    const hintsPromise = page.waitForResponse(
+      r => r.url().includes('/hints/') && r.request().method() === 'PUT',
+      { timeout: 15000 },
+    ).catch(() => null);
+
     const slug = await saveAndGetSlug(page);
     expect(slug).toBeTruthy();
     createdSlugs.push(slug);
 
+    // Wait for the hints PUT to finish
+    const hintsResp = await hintsPromise;
+    console.log('[hint test] Hints PUT:', hintsResp ? hintsResp.status() : 'NO PUT DETECTED');
+
     // Reload edit page and verify hint checkbox is still checked
+    // Monitor the hints GET response
+    const hintsGetPromise = page.waitForResponse(
+      r => r.url().includes('/hints/') && r.request().method() === 'GET',
+      { timeout: 15000 },
+    ).catch(() => null);
+
     await goToEditProblem(page, slug);
+
+    const hintsGet = await hintsGetPromise;
+    if (hintsGet) {
+      const hintsData = await hintsGet.json();
+      const vf = hintsData.hints?.find((h: any) => h.type === 'variable_fade');
+      console.log('[hint test] GET hints:', hintsGet.status(), 'vf:', JSON.stringify(vf));
+    }
+
     await page.getByRole('button', { name: 'Variable Fade' }).click();
-    await page.waitForTimeout(300);
-    await expect(page.getByLabel(/variable fade/i)).toBeChecked();
+    await page.waitForTimeout(500);
+
+    // Check the DOM directly to see if checkbox is actually checked
+    const domChecked = await page.evaluate(() => {
+      const cbs = document.querySelectorAll('.hint-config-panel input[type=checkbox]');
+      return Array.from(cbs).map(cb => ({ checked: cb.checked, text: cb.parentElement?.textContent?.trim().substring(0, 30) }));
+    });
+    console.log('[hint test] DOM checkboxes:', JSON.stringify(domChecked));
+
+    const vfCheckbox = page.locator('.hint-config-panel input[type="checkbox"]').first();
+    await expect(vfCheckbox).toBeChecked({ timeout: 5000 });
   });
 
   // -------------------------------------------------------------------

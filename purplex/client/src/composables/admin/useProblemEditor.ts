@@ -303,6 +303,7 @@ export const useProblemEditor = (options?: UseProblemEditorOptions): UseProblemE
         // otherwise fall back to problemService (admin context)
         if (api) {
           const hintsArray = hints.getHintsArray();
+          log.info('Saving hints', { slug: currentSlug.value, vf_enabled: hintsArray.find(h => h.type === 'variable_fade')?.is_enabled });
           await api.updateHints(currentSlug.value, hintsArray);
         } else {
           await hints.save(currentSlug.value);
