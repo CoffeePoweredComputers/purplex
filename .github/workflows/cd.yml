@@ -8,6 +8,12 @@ on:
   push:
     tags: [ 'v*' ]
     branches: [ master ]
+    paths:
+      - 'purplex/**'
+      - 'requirements.txt'
+      - 'Dockerfile*'
+      - 'config/docker/**'
+      - '.github/workflows/cd.yml'
   workflow_dispatch:
     inputs:
       environment:
