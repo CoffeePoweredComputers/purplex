@@ -48,6 +48,7 @@ from .views.course_instructor_views import (
 # Hint system views
 from .views.hint_views import (
     AdminProblemHintView,
+    InstructorProblemHintView,
     ProblemHintAvailabilityView,
     ProblemHintDetailView,
 )
@@ -440,6 +441,11 @@ urlpatterns = [
         "instructor/test-problem/",
         InstructorTestProblemView.as_view(),
         name="instructor_test_problem",
+    ),
+    path(
+        "instructor/problems/<slug:slug>/hints/",
+        InstructorProblemHintView.as_view(),
+        name="instructor_problem_hints",
     ),
     path(
         "instructor/problem-sets/",

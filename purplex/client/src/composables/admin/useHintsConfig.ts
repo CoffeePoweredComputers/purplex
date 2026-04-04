@@ -7,7 +7,7 @@
  * - Suggested Trace: Shows a function call for Python Tutor
  */
 
-import { type DeepReadonly, reactive, readonly, type Ref, ref } from 'vue';
+import { reactive, type Ref, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type {
   HintConfig,
@@ -30,8 +30,8 @@ export interface HintsState {
 }
 
 export interface UseHintsConfigReturn {
-  /** Readonly hints state */
-  hints: DeepReadonly<HintsState>;
+  /** Mutable hints state (v-model compatible) */
+  hints: HintsState;
   /** Currently active tab */
   activeTab: Ref<HintTabType>;
   /** Python Tutor modal visibility */
@@ -275,13 +275,16 @@ export const useHintsConfig = (): UseHintsConfigReturn => {
   };
 
   const setHints = (hintsArray: HintConfig[]): void => {
+    // Use Object.assign to mutate in-place instead of replacing the object.
+    // Replacing (state.variable_fade = newObj) breaks Vue's dependency tracking
+    // if templates already captured a reference to the old object.
     hintsArray.forEach(hint => {
       if (hint.type === 'variable_fade') {
-        state.variable_fade = hint as VariableFadeHint;
+        Object.assign(state.variable_fade, hint);
       } else if (hint.type === 'subgoal_highlight') {
-        state.subgoal_highlight = hint as SubgoalHighlightHint;
+        Object.assign(state.subgoal_highlight, hint);
       } else if (hint.type === 'suggested_trace') {
-        state.suggested_trace = hint as SuggestedTraceHint;
+        Object.assign(state.suggested_trace, hint);
       }
     });
   };
@@ -304,7 +307,11 @@ export const useHintsConfig = (): UseHintsConfigReturn => {
   };
 
   return {
-    hints: readonly(state),
+    // Expose mutable state (not readonly) because the EiPL editor template
+    // uses v-model on hint properties (e.g., v-model="hints.variable_fade.is_enabled").
+    // readonly() silently drops v-model writes, causing the checkbox to visually
+    // check but the state to stay false.
+    hints: state,
     activeTab,
     pyTutorVisible,
     pyTutorUrl,

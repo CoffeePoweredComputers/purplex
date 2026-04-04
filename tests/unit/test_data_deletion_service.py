@@ -195,11 +195,13 @@ class TestDeleteFirebaseAccount:
         mock_service.delete_user.assert_called_once_with(user.profile.firebase_uid)
 
     @patch("purplex.users_app.utils.firebase.get_firebase_service")
-    def test_returns_false_on_firebase_error(self, mock_get_firebase, user):
+    def test_raises_on_firebase_error(self, mock_get_firebase, user):
+        """Firebase errors propagate so callers can decide to abort (GDPR Art. 17)."""
         mock_service = MagicMock()
         mock_service.delete_user.side_effect = Exception("Firebase error")
         mock_get_firebase.return_value = mock_service
-        assert DataDeletionService._delete_firebase_account(user) is False
+        with pytest.raises(Exception, match="Firebase error"):
+            DataDeletionService._delete_firebase_account(user)
 
 
 class TestGetAccountsPendingDeletion:

@@ -390,7 +390,7 @@ class ContentServiceImpl implements ContentApiService {
 
   async updateCourse(courseId: string, data: Record<string, unknown>): Promise<Course> {
     try {
-      const response: AxiosResponse<Course> = await axios.put(
+      const response: AxiosResponse<Course> = await axios.patch(
         `${this.baseURL}/courses/${courseId}/`,
         data
       );

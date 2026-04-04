@@ -122,6 +122,16 @@ All test data comes from Factory Boy factories in `tests/factories/__init__.py`.
 - `.github/instructions/data-models.instructions.md`
 - `.github/instructions/tests.instructions.md`
 
+## E2E Test Philosophy
+
+**Tests verify the app — not the other way around.** When an E2E test fails:
+1. **First assume the app is broken.** Check the page snapshot / error context to see what actually rendered.
+2. **Read the component code** to understand what SHOULD happen.
+3. **Use MCP Playwright tools** (`browser_navigate`, `browser_snapshot`, `browser_click`) to manually verify behavior when uncertain.
+4. **Fix the app** if the behavior is wrong. Keep the test assertion.
+5. **Fix the test** only if the app behavior is confirmed correct and the test expectation was wrong.
+6. **Never weaken assertions** (e.g., `toHaveCount(1)` → `toBeGreaterThanOrEqual(0)`) without first confirming the app is behaving correctly.
+
 ## Code Conventions
 
 - **Python**: PEP 8, Google-style docstrings, type hints
