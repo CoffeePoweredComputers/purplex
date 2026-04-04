@@ -117,6 +117,7 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 # Celery development settings
 CELERY_TASK_ALWAYS_EAGER = os.environ.get("CELERY_EAGER", "false").lower() == "true"
 CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TASK_STORE_EAGER_RESULT = True
 
 # Cache configuration for development (use local memory)
 CACHES = {
