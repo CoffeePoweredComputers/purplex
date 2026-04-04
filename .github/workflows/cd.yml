@@ -3,6 +3,7 @@ name: Continuous Deployment
 on:
   push:
     tags: [ 'v*' ]
+    branches: [ master ]
   workflow_dispatch:
     inputs:
       environment:
@@ -110,8 +111,8 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [build-and-push, deploy-staging]
-    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production'
+    needs: [build-and-push]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production' || github.ref == 'refs/heads/master'
     environment:
       name: production
       url: https://purplex.com
@@ -140,8 +141,9 @@ jobs:
         run: |
           ssh -i deploy_key -o StrictHostKeyChecking=no $PROD_USER@$PROD_HOST << EOF
             cd /opt/purplex
-            git fetch --tags
-            git checkout $VERSION
+            git fetch origin master --tags
+            git checkout master
+            git pull origin master
             docker-compose -f config/docker/production.yml pull
             docker-compose -f config/docker/production.yml down
             docker-compose -f config/docker/production.yml up -d
