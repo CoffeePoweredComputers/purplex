@@ -125,7 +125,7 @@ jobs:
           for i in $(seq 1 30); do curl -sf http://localhost:5173/ && break || sleep 1; done
 
       - name: Run E2E tests (shard ${{ matrix.shard }}/3)
-        run: npx playwright test --reporter=list --shard=${{ matrix.shard }}/3
+        run: npx playwright test --reporter=list --shard=${{ matrix.shard }}/3 --workers=2
 
       - name: Upload test results
         if: failure()

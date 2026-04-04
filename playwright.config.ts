@@ -1,10 +1,16 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const chromeDesktop = {
+  ...devices['Desktop Chrome'],
+  viewport: { width: 1440, height: 900 },
+};
+
 export default defineConfig({
   testDir: './e2e',
   outputDir: './visual-tests/screenshots',
 
-  // No parallel — sequential is fine for a screenshot walkthrough
+  // No parallel locally — sequential is fine for a screenshot walkthrough
+  // CI overrides with --workers=2
   fullyParallel: false,
   workers: 1,
 
@@ -26,11 +32,44 @@ export default defineConfig({
 
   projects: [
     {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        viewport: { width: 1440, height: 900 },
-      },
+      name: 'smoke',
+      testMatch: /smoke-tests|visual-theme/,
+      use: chromeDesktop,
+    },
+    {
+      name: 'auth',
+      testDir: './e2e/auth',
+      use: chromeDesktop,
+    },
+    {
+      name: 'admin',
+      testDir: './e2e/admin',
+      use: chromeDesktop,
+    },
+    {
+      name: 'instructor',
+      testDir: './e2e/instructor',
+      use: chromeDesktop,
+    },
+    {
+      name: 'student',
+      testDir: './e2e/student',
+      use: chromeDesktop,
+    },
+    {
+      name: 'ui',
+      testDir: './e2e/ui',
+      use: chromeDesktop,
+    },
+    {
+      name: 'privacy',
+      testDir: './e2e/privacy',
+      use: chromeDesktop,
+    },
+    {
+      name: 'permissions',
+      testDir: './e2e/permissions',
+      use: chromeDesktop,
     },
   ],
 
