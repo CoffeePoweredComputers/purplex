@@ -1,19 +1,7 @@
-# Trivy CVE ignore list — reviewed 2026-03-07
-# Only add CVEs here that have no upstream fix available.
-# Remove entries once a fix is released.
-
-# glibc: integer overflow in memalign — no fix from Debian yet (status: affected)
-CVE-2026-0861
-
-# openldap: null pointer deref in ber_memalloc_x — no fix from Debian (status: affected)
-CVE-2023-2953
-
-# sqlite: integer overflow — no fix from Debian yet (status: affected)
-CVE-2025-7458
-
-# zlib: integer overflow in zipOpenNewFileInZip4_6 — Debian marked will_not_fix
-# Only affects minizip's zip-creation API, which we don't use
-CVE-2023-45853
+# Trivy CVE ignore list — reviewed 2026-04-04
+# --ignore-unfixed handles CVEs with no upstream fix.
+# This file is for CVEs that have fixes but can't be applied
+# due to vendoring or base image constraints.
 
 # jaraco.context: path traversal — vendored inside setuptools at 5.3.0
 # Our direct dependency is 6.1.2 (fixed). The vulnerable copy is at
