@@ -1,5 +1,9 @@
 name: Continuous Deployment
 
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
 on:
   push:
     tags: [ 'v*' ]
