@@ -1,5 +1,9 @@
 name: Continuous Deployment
 
+permissions:
+  contents: read
+  packages: write
+
 concurrency:
   group: cd-production
   cancel-in-progress: false
@@ -93,6 +97,21 @@ jobs:
       name: production
       url: https://purplex.org
     steps:
+      - name: Verify CI passed
+        run: |
+          RESULT=$(gh run list --workflow=ci.yml --branch=master --limit=1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || echo "unknown")
+          if [ "$RESULT" != "success" ]; then
+            echo "CI has not passed on master (status: $RESULT). Aborting deploy."
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Record current version
+        run: |
+          cd /opt/purplex
+          git rev-parse HEAD > /tmp/pre-deploy-sha
+
       - name: Create database backup
         run: |
           cd /opt/purplex
@@ -112,8 +131,19 @@ jobs:
 
       - name: Run smoke tests
         run: |
-          sleep 30
-          curl -f https://purplex.org/health/ || exit 1
+          for i in $(seq 1 30); do curl -sf https://purplex.org/health/ && exit 0 || sleep 2; done
+          echo "Smoke test failed after 60s"
+          exit 1
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          if [ -f /tmp/pre-deploy-sha ]; then
+            echo "Rolling back to $(cat /tmp/pre-deploy-sha)"
+            cd /opt/purplex
+            git checkout $(cat /tmp/pre-deploy-sha)
+            docker compose -f config/docker/production.yml up -d
+          fi
 
       - name: Create release
         uses: softprops/action-gh-release@v2
