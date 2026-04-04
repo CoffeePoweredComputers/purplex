@@ -26,13 +26,23 @@ env:
 
 jobs:
   e2e:
-    name: E2E Shard ${{ matrix.shard }}
+    name: E2E · ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        include:
+          - name: smoke + auth
+            projects: smoke,auth
+          - name: admin
+            projects: admin
+          - name: instructor
+            projects: instructor
+          - name: student
+            projects: student
+          - name: ui + privacy + permissions
+            projects: ui,privacy,permissions
 
     services:
       postgres:
@@ -124,13 +134,17 @@ jobs:
           yarn dev --host &
           for i in $(seq 1 30); do curl -sf http://localhost:5173/ && break || sleep 1; done
 
-      - name: Run E2E tests (shard ${{ matrix.shard }}/3)
-        run: npx playwright test --reporter=list --shard=${{ matrix.shard }}/3 --workers=2
+      - name: Run E2E tests (${{ matrix.name }})
+        run: |
+          IFS=',' read -ra PROJECTS <<< "${{ matrix.projects }}"
+          ARGS=""
+          for p in "${PROJECTS[@]}"; do ARGS="$ARGS --project=$p"; done
+          npx playwright test --reporter=list --workers=2 $ARGS
 
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-shard-${{ matrix.shard }}
+          name: playwright-report-${{ matrix.name }}
           path: playwright-report/
           retention-days: 7
