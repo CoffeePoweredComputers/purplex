@@ -1,5 +1,9 @@
 name: PostgreSQL Tests
 
+concurrency:
+  group: postgres-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [master]
