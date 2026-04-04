@@ -93,6 +93,9 @@ jobs:
         working-directory: purplex/client
         run: yarn install --frozen-lockfile
 
+      - name: Install Playwright dependencies
+        run: npm ci
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
