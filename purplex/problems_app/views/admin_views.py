@@ -329,7 +329,8 @@ class AdminTestProblemView(APIView):
                     "testsPassed": 0,
                     "totalTests": len(problem_data.get("test_cases", [])),
                     "results": [],
-                }
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 

@@ -78,6 +78,7 @@ class Command(BaseCommand):
         try:
             instructor = User.objects.get(username="instructor")
             student = User.objects.get(username="student")
+            admin = User.objects.get(username="admin")
         except User.DoesNotExist:
             self.stdout.write(
                 self.style.ERROR(
@@ -302,6 +303,124 @@ class Command(BaseCommand):
         ]
 
         # ------------------------------------------------------------------
+        # 2b. Additional problems created by admin (ensures admin list >10)
+        # ------------------------------------------------------------------
+        admin_mcq, created = McqProblem.objects.get_or_create(
+            slug="e2e-admin-mcq-1",
+            defaults={
+                "title": "E2E Admin: Data Types",
+                "question_text": "Which of the following is an immutable data type in Python?",
+                "options": [
+                    {
+                        "id": "a",
+                        "text": "list",
+                        "is_correct": False,
+                        "explanation": "Lists are mutable.",
+                    },
+                    {
+                        "id": "b",
+                        "text": "dict",
+                        "is_correct": False,
+                        "explanation": "Dicts are mutable.",
+                    },
+                    {
+                        "id": "c",
+                        "text": "tuple",
+                        "is_correct": True,
+                        "explanation": "Correct! Tuples are immutable.",
+                    },
+                    {
+                        "id": "d",
+                        "text": "set",
+                        "is_correct": False,
+                        "explanation": "Sets are mutable.",
+                    },
+                ],
+                "allow_multiple": False,
+                "grading_mode": "deterministic",
+                "difficulty": "beginner",
+                "is_active": True,
+                "created_by": admin,
+            },
+        )
+        self._report("McqProblem", "e2e-admin-mcq-1", created)
+        admin_mcq.categories.add(cat_arrays)
+
+        admin_eipl, created = EiplProblem.objects.get_or_create(
+            slug="e2e-admin-eipl-1",
+            defaults={
+                "title": "E2E Admin: Max of List",
+                "description": "Explain what this function does in plain language.",
+                "function_signature": "def max_list(numbers: list[int]) -> int",
+                "function_name": "max_list",
+                "reference_solution": (
+                    "def max_list(numbers):\n"
+                    "    result = numbers[0]\n"
+                    "    for n in numbers:\n"
+                    "        if n > result:\n"
+                    "            result = n\n"
+                    "    return result"
+                ),
+                "difficulty": "beginner",
+                "is_active": True,
+                "created_by": admin,
+            },
+        )
+        self._report("EiplProblem", "e2e-admin-eipl-1", created)
+        admin_eipl.categories.add(cat_arrays)
+
+        admin_debugfix, created = DebugFixProblem.objects.get_or_create(
+            slug="e2e-admin-debugfix-1",
+            defaults={
+                "title": "E2E Admin: Fix Factorial",
+                "description": "The function should compute n!, but has a bug.",
+                "function_signature": "def factorial(n: int) -> int",
+                "function_name": "factorial",
+                "reference_solution": (
+                    "def factorial(n):\n"
+                    "    if n <= 1:\n"
+                    "        return 1\n"
+                    "    return n * factorial(n - 1)"
+                ),
+                "buggy_code": (
+                    "def factorial(n):\n"
+                    "    if n <= 1:\n"
+                    "        return 0\n"
+                    "    return n * factorial(n - 1)"
+                ),
+                "bug_hints": [
+                    {"level": 1, "text": "Check the base case return value"},
+                ],
+                "difficulty": "beginner",
+                "is_active": True,
+                "created_by": admin,
+            },
+        )
+        self._report("DebugFixProblem", "e2e-admin-debugfix-1", created)
+        admin_debugfix.categories.add(cat_loops)
+
+        admin_prompt, created = PromptProblem.objects.get_or_create(
+            slug="e2e-admin-prompt-1",
+            defaults={
+                "title": "E2E Admin: Describe the Pattern",
+                "description": "Describe the pattern shown in the image.",
+                "function_signature": "def pattern() -> str",
+                "function_name": "pattern",
+                "reference_solution": 'def pattern():\n    return "fibonacci"',
+                "image_url": "https://example.com/e2e-pattern.png",
+                "image_alt_text": "A diagram showing a number pattern",
+                "difficulty": "intermediate",
+                "is_active": True,
+                "created_by": admin,
+            },
+        )
+        self._report("PromptProblem", "e2e-admin-prompt-1", created)
+        admin_prompt.categories.add(cat_arrays)
+
+        admin_problems = [admin_mcq, admin_eipl, admin_debugfix, admin_prompt]
+        all_problems.extend(admin_problems)
+
+        # ------------------------------------------------------------------
         # 3. Test Cases (for executable types)
         # ------------------------------------------------------------------
         # EiPL test cases
@@ -434,7 +553,7 @@ class Command(BaseCommand):
             )
             self._report("ProblemSetMembership (code)", problem.slug, created)
 
-        # ProblemSetMembership: e2e-mixed -> all 7 problems
+        # ProblemSetMembership: e2e-mixed -> all problems
         for idx, problem in enumerate(all_problems):
             _, created = ProblemSetMembership.objects.get_or_create(
                 problem_set=ps_mixed,
@@ -442,6 +561,47 @@ class Command(BaseCommand):
                 defaults={"order": idx},
             )
             self._report("ProblemSetMembership (mixed)", problem.slug, created)
+
+        # Unassigned problem sets (NOT linked to CS101-2024)
+        # These provide the "available to add" items for course management tests.
+        ps_admin_set, created = ProblemSet.objects.get_or_create(
+            slug="e2e-admin-set",
+            defaults={
+                "title": "E2E Admin Set",
+                "description": "Admin-created problem set (unassigned)",
+                "is_public": True,
+                "created_by": admin,
+            },
+        )
+        self._report("ProblemSet", "e2e-admin-set (unassigned)", created)
+
+        for idx, problem in enumerate(admin_problems):
+            _, created = ProblemSetMembership.objects.get_or_create(
+                problem_set=ps_admin_set,
+                problem=problem,
+                defaults={"order": idx},
+            )
+            self._report("ProblemSetMembership (admin-set)", problem.slug, created)
+
+        ps_extra, created = ProblemSet.objects.get_or_create(
+            slug="e2e-extra",
+            defaults={
+                "title": "E2E Extra Practice",
+                "description": "Extra practice problems (unassigned)",
+                "is_public": True,
+                "created_by": instructor,
+            },
+        )
+        self._report("ProblemSet", "e2e-extra (unassigned)", created)
+
+        extra_members = [(admin_debugfix, 0), (admin_eipl, 1)]
+        for problem, order in extra_members:
+            _, created = ProblemSetMembership.objects.get_or_create(
+                problem_set=ps_extra,
+                problem=problem,
+                defaults={"order": order},
+            )
+            self._report("ProblemSetMembership (extra)", problem.slug, created)
 
         # ------------------------------------------------------------------
         # 5. CourseProblemSet linkages to CS101-2024
@@ -633,8 +793,8 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 "\nE2E seed data ready!\n"
                 f"  Categories: 2\n"
-                f"  Problems: {len(all_problems)} (one per type)\n"
-                f"  Problem Sets: 3 (basics, code, mixed)\n"
+                f"  Problems: {len(all_problems)} (7 by instructor + 4 by admin)\n"
+                f"  Problem Sets: 5 (3 assigned to CS101-2024, 2 unassigned)\n"
                 f"  CourseProblemSet linkages: 3\n"
                 f"  Hints: 3 (variable_fade, subgoal_highlight, suggested_trace)\n"
                 f"  Submission: 1 (student -> e2e-mcq-1)\n"

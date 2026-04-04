@@ -78,6 +78,8 @@ jobs:
       USE_MOCK_FIREBASE: true
       USE_MOCK_OPENAI: true
       DISABLE_FILE_LOGGING: true
+      CELERY_EAGER: 'true'
+      DOCKER_POOL_ENABLED: 'false'
 
     steps:
       - uses: actions/checkout@v4
@@ -116,6 +118,9 @@ jobs:
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
+
+      - name: Build Docker sandbox image
+        run: docker build -t purplex/python-sandbox:latest docker/sandbox
 
       - name: Set up database
         run: |
