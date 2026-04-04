@@ -30,6 +30,33 @@ WORKDIR /app
 COPY purplex/client/package.json purplex/client/yarn.lock ./
 RUN yarn install --frozen-lockfile
 COPY purplex/client/ ./
+
+# Firebase client config — passed from CI via --build-arg
+ARG VITE_FIREBASE_API_KEY
+ARG VITE_FIREBASE_AUTH_DOMAIN
+ARG VITE_FIREBASE_PROJECT_ID
+ARG VITE_FIREBASE_STORAGE_BUCKET
+ARG VITE_FIREBASE_MESSAGING_SENDER_ID
+ARG VITE_FIREBASE_APP_ID
+
+# Write .env.production for Vite (the file is gitignored/dockerignored)
+RUN printf '%s\n' \
+    "VITE_PURPLEX_ENV=production" \
+    "VITE_FIREBASE_MOCK=false" \
+    "VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY}" \
+    "VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN}" \
+    "VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID}" \
+    "VITE_FIREBASE_STORAGE_BUCKET=${VITE_FIREBASE_STORAGE_BUCKET}" \
+    "VITE_FIREBASE_MESSAGING_SENDER_ID=${VITE_FIREBASE_MESSAGING_SENDER_ID}" \
+    "VITE_FIREBASE_APP_ID=${VITE_FIREBASE_APP_ID}" \
+    "VITE_ENABLE_EIPL=true" \
+    "VITE_ENABLE_HINTS=true" \
+    "VITE_ENABLE_COURSES=true" \
+    "VITE_DEBUG=false" \
+    "VITE_LOG_LEVEL=error" \
+    "VITE_APP_TITLE=Purplex" \
+    > .env.production
+
 # Production build uses relative URLs via nginx proxy
 ENV VITE_PURPLEX_ENV=production
 RUN yarn build
