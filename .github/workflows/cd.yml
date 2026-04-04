@@ -10,6 +10,9 @@ on:
     branches: [ master ]
     paths:
       - 'purplex/**'
+      - '!purplex/**/__tests__/**'
+      - '!purplex/**/*.test.ts'
+      - '!purplex/**/*.spec.ts'
       - 'requirements.txt'
       - 'Dockerfile*'
       - 'config/docker/**'
