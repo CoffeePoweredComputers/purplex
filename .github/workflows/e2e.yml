@@ -16,6 +16,7 @@ on:
       - 'e2e/**'
       - 'requirements.txt'
       - 'playwright.config.ts'
+      - 'package.json'
       - '.github/workflows/e2e.yml'
   workflow_dispatch:
 
