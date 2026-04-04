@@ -26,11 +26,14 @@ def _userconsent_immutability_trigger(django_db_setup, django_db_blocker):
     --nomigrations creates tables from model definitions via syncdb, which
     skips RunSQL operations in migrations. This fixture installs the trigger
     from the migration's FORWARD_SQL so the test DB matches production.
+
+    Uses DROP IF EXISTS + CREATE to handle both fresh DBs and reused DBs.
     """
-    from purplex.users_app.sql import FORWARD_SQL
+    from purplex.users_app.sql import FORWARD_SQL, REVERSE_SQL
 
     with django_db_blocker.unblock():
         with connection.cursor() as cursor:
+            cursor.execute(REVERSE_SQL)
             cursor.execute(FORWARD_SQL)
 
 
@@ -41,11 +44,14 @@ def _activityevent_immutability_trigger(django_db_setup, django_db_blocker):
     --nomigrations creates tables from model definitions via syncdb, which
     skips RunSQL operations in migrations. This fixture installs the trigger
     from the migration's FORWARD_SQL so the test DB matches production.
+
+    Uses DROP IF EXISTS + CREATE to handle both fresh DBs and reused DBs.
     """
-    from purplex.submissions.sql import FORWARD_SQL
+    from purplex.submissions.sql import FORWARD_SQL, REVERSE_SQL
 
     with django_db_blocker.unblock():
         with connection.cursor() as cursor:
+            cursor.execute(REVERSE_SQL)
             cursor.execute(FORWARD_SQL)
 
 
