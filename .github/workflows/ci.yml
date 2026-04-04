@@ -3,6 +3,13 @@ name: Continuous Integration
 on:
   push:
     branches: [ master ]
+    paths:
+      - 'purplex/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - 'Dockerfile*'
+      - 'pyproject.toml'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [ master ]
 

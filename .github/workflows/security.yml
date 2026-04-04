@@ -6,6 +6,14 @@ on:
   workflow_dispatch:
   push:
     branches: [master]
+    paths:
+      - 'requirements.txt'
+      - 'purplex/**/*.py'
+      - 'purplex/client/package.json'
+      - 'purplex/client/yarn.lock'
+      - 'Dockerfile*'
+      - '.trivyignore'
+      - '.github/workflows/security.yml'
   pull_request:
     branches: [master]
     paths:

@@ -3,8 +3,18 @@ name: PostgreSQL Tests
 on:
   push:
     branches: [master]
+    paths:
+      - 'purplex/**/*.py'
+      - 'tests/**'
+      - 'requirements.txt'
+      - '.github/workflows/postgres-tests.yml'
   pull_request:
     branches: [master]
+    paths:
+      - 'purplex/**/*.py'
+      - 'tests/**'
+      - 'requirements.txt'
+      - '.github/workflows/postgres-tests.yml'
 
 jobs:
   test-postgres:

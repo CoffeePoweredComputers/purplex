@@ -3,6 +3,13 @@ name: E2E Tests
 on:
   push:
     branches: [master]
+    paths:
+      - 'purplex/**'
+      - 'tests/**'
+      - 'e2e/**'
+      - 'requirements.txt'
+      - 'playwright.config.ts'
+      - '.github/workflows/e2e.yml'
   workflow_dispatch:
 
 env:
