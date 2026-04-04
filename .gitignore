@@ -136,8 +136,8 @@ playwright-report/
 test-results/
 blob-report/
 
-# Root package.json (not part of the build system)
-/package.json
+# Root package.json — tracked for E2E Playwright deps
+# /package.json
 
 # Development artifacts
 verify_architecture.py
