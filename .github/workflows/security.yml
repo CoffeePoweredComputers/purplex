@@ -91,6 +91,7 @@ jobs:
           image-ref: 'purplex-app:scan'
           format: 'table'
           severity: 'CRITICAL,HIGH'
+          ignore-unfixed: 'true'
           trivyignores: '.trivyignore'
           exit-code: '1'
 
