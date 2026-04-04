@@ -26,9 +26,13 @@ env:
 
 jobs:
   e2e:
-    name: Playwright E2E Tests
+    name: E2E Shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
 
     services:
       postgres:
@@ -120,13 +124,13 @@ jobs:
           yarn dev --host &
           for i in $(seq 1 30); do curl -sf http://localhost:5173/ && break || sleep 1; done
 
-      - name: Run E2E tests
-        run: npx playwright test --reporter=list
+      - name: Run E2E tests (shard ${{ matrix.shard }}/3)
+        run: npx playwright test --reporter=list --shard=${{ matrix.shard }}/3
 
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-shard-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 7
