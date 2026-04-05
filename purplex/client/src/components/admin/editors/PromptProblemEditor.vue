@@ -95,7 +95,7 @@
         <div class="terminal-editor">
           <div
             v-for="(run, ri) in terminalRuns"
-            :key="ri"
+            :key="keyFor(run)"
             class="terminal-run-editor"
           >
             <div class="run-header">
@@ -111,7 +111,7 @@
             </div>
             <div
               v-for="(interaction, ii) in run.interactions"
-              :key="ii"
+              :key="keyFor(interaction)"
               class="interaction-row"
             >
               <select
@@ -170,7 +170,7 @@
         <div class="function-table-editor">
           <div
             v-for="(call, ci) in functionTableCalls"
-            :key="ci"
+            :key="keyFor(call)"
             class="call-row"
           >
             <div class="call-field">
@@ -288,6 +288,12 @@ const emit = defineEmits<ProblemEditorEmits>()
 
 // Local state
 const imageLoadError = ref(false)
+let nextKey = 0
+const keyMap = new WeakMap<object, number>()
+function keyFor(obj: object): number {
+  if (!keyMap.has(obj)) { keyMap.set(obj, nextKey++) }
+  return keyMap.get(obj)!
+}
 
 // Access the editor from props
 const editor = computed(() => props.editor)

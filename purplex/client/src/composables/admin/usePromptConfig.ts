@@ -113,7 +113,13 @@ export const usePromptConfig = (): UsePromptConfigReturn => {
     }
     if (isTerminalMode.value) {
       return terminalRuns.value.length > 0 &&
-        terminalRuns.value.every(r => r.interactions && r.interactions.length > 0);
+        terminalRuns.value.every(r =>
+          r.interactions &&
+          r.interactions.length > 0 &&
+          r.interactions.every(
+            i => typeof i.text === 'string' && i.text.trim().length > 0,
+          ),
+        );
     }
     if (isFunctionTableMode.value) {
       return functionCalls.value.length > 0;

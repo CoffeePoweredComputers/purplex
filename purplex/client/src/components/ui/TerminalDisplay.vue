@@ -46,9 +46,7 @@ interface Props {
   ariaLabel?: string;
 }
 
-withDefaults(defineProps<Props>(), {
-  ariaLabel: 'Terminal interaction display',
-})
+defineProps<Props>()
 </script>
 
 <style scoped>
