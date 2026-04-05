@@ -18,7 +18,10 @@ test.describe('Course Authoring', () => {
 
   test.afterEach(async ({ page }) => {
     for (const id of createdIds) {
-      await apiAs(page, 'instructor', 'DELETE', `/api/instructor/courses/${id}/`).catch(() => {});
+      // Try instructor first, fall back to admin for admin-created tests
+      await apiAs(page, 'instructor', 'DELETE', `/api/instructor/courses/${id}/`)
+        .catch(() => apiAs(page, 'admin', 'DELETE', `/api/admin/courses/${id}/`))
+        .catch(() => {});
     }
     createdIds.length = 0;
   });
@@ -70,9 +73,11 @@ test.describe('Course Authoring', () => {
     await page.goto(`/instructor/courses/${courseId}/edit`);
     await page.waitForTimeout(2000);
 
-    // Change name
+    // Change name and description
     const nameInput = page.getByPlaceholder(/Introduction to/i);
     await nameInput.fill('Updated Course Name');
+    const descInput = page.getByPlaceholder(/description/i);
+    await descInput.fill('Updated description text');
     await page.waitForTimeout(500);
 
     const savePromise = page.waitForResponse(
@@ -83,9 +88,94 @@ test.describe('Course Authoring', () => {
     const saveResp = await savePromise;
     expect(saveResp.status()).toBeLessThan(300);
 
-    // Verify via API
+    // Verify both fields persisted via API
     const fetchResult = await apiAs(page, 'instructor', 'GET', `/api/instructor/courses/${courseId}/`);
     expect(fetchResult.data.name).toBe('Updated Course Name');
+    expect(fetchResult.data.description).toBe('Updated description text');
+  });
+
+  test('admin can update course via PATCH', async ({ page }) => {
+    // Navigate to establish page context for apiAs fetch calls
+    await navigateAs(page, 'admin', '/admin');
+    await page.waitForTimeout(1000);
+
+    // Create course as instructor first
+    const courseId = `E2E-ADM-EDIT-${Date.now()}`;
+    const createResult = await apiAs(page, 'instructor', 'POST', '/api/instructor/courses/create/', {
+      course_id: courseId,
+      name: 'Admin Edit Original',
+      description: 'Original admin description',
+      is_active: true,
+      enrollment_open: true,
+    });
+    expect(createResult.status).toBe(201);
+    createdIds.push(courseId);
+
+    // Admin updates course via PATCH
+    const patchResult = await apiAs(page, 'admin', 'PATCH', `/api/admin/courses/${courseId}/`, {
+      name: 'Admin Updated Name',
+      description: 'Admin updated description',
+    });
+    expect(patchResult.status).toBeLessThan(300);
+    expect(patchResult.data.name).toBe('Admin Updated Name');
+
+    // Verify persisted via separate GET
+    const fetchResult = await apiAs(page, 'admin', 'GET', `/api/admin/courses/${courseId}/`);
+    expect(fetchResult.data.name).toBe('Admin Updated Name');
+    expect(fetchResult.data.description).toBe('Admin updated description');
+  });
+
+  test('admin can change primary instructor via PATCH', async ({ page }) => {
+    await navigateAs(page, 'admin', '/admin');
+    await page.waitForTimeout(1000);
+
+    // Get the list of available instructors
+    const instructorsResult = await apiAs(page, 'admin', 'GET', '/api/admin/instructors/');
+    expect(instructorsResult.status).toBe(200);
+    const instructors = instructorsResult.data;
+
+    // Find two different users to switch between
+    const instructorUser = instructors.find((u: { username: string }) => u.username === 'instructor');
+    const adminUser = instructors.find((u: { username: string }) => u.username === 'admin');
+    expect(instructorUser).toBeTruthy();
+    expect(adminUser).toBeTruthy();
+
+    // Create course with instructor as primary
+    const courseId = `E2E-SWITCH-${Date.now()}`;
+    const createResult = await apiAs(page, 'admin', 'POST', '/api/admin/courses/', {
+      course_id: courseId,
+      name: 'Instructor Switch Test',
+      instructor_id: instructorUser.id,
+      is_active: true,
+      enrollment_open: true,
+    });
+    expect(createResult.status).toBe(201);
+    createdIds.push(courseId);
+
+    // Verify original instructor is primary
+    const beforeResult = await apiAs(page, 'admin', 'GET', `/api/admin/courses/${courseId}/`);
+    const beforeInstructors = beforeResult.data.instructors;
+    expect(beforeInstructors.some((i: { username: string; role: string }) =>
+      i.username === 'instructor' && i.role === 'primary'
+    )).toBe(true);
+
+    // Switch primary instructor to admin user
+    const patchResult = await apiAs(page, 'admin', 'PATCH', `/api/admin/courses/${courseId}/`, {
+      instructor_id: adminUser.id,
+    });
+    expect(patchResult.status).toBeLessThan(300);
+
+    // Verify admin user is now THE primary instructor
+    const afterResult = await apiAs(page, 'admin', 'GET', `/api/admin/courses/${courseId}/`);
+    const afterInstructors = afterResult.data.instructors;
+    expect(afterInstructors.some((i: { username: string; role: string }) =>
+      i.username === 'admin' && i.role === 'primary'
+    )).toBe(true);
+
+    // Verify original instructor was demoted to TA
+    expect(afterInstructors.some((i: { username: string; role: string }) =>
+      i.username === 'instructor' && i.role === 'ta'
+    )).toBe(true);
   });
 
   test('course ID is locked in edit mode', async ({ page }) => {

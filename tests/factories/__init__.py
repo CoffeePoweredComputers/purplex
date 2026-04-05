@@ -180,7 +180,7 @@ class McqProblemFactory(DjangoModelFactory):
 
 
 class PromptProblemFactory(DjangoModelFactory):
-    """Factory for Prompt-based problems (image analysis)."""
+    """Factory for Prompt-based problems (image, terminal, or function table)."""
 
     class Meta:
         model = PromptProblem
@@ -190,8 +190,43 @@ class PromptProblemFactory(DjangoModelFactory):
     reference_solution = 'def analyze():\n    return "result"'
     function_signature = "def analyze() -> str"
     function_name = "analyze"
+    display_mode = "image"
+    display_data = factory.LazyFunction(dict)
     image_url = factory.Sequence(lambda n: f"https://example.com/img_{n}.png")
     image_alt_text = "A test image"
+
+    class Params:
+        terminal_mode = factory.Trait(
+            display_mode="terminal",
+            image_url="",
+            display_data=factory.LazyFunction(
+                lambda: {
+                    "schema_version": 1,
+                    "runs": [
+                        {
+                            "interactions": [
+                                {"type": "output", "text": "Enter a number: "},
+                                {"type": "input", "text": "5"},
+                                {"type": "output", "text": "Result: 25"},
+                            ]
+                        }
+                    ],
+                }
+            ),
+        )
+        function_table_mode = factory.Trait(
+            display_mode="function_table",
+            image_url="",
+            display_data=factory.LazyFunction(
+                lambda: {
+                    "schema_version": 1,
+                    "calls": [
+                        {"args": [5], "return_value": 25},
+                        {"args": [3, 4], "return_value": 12},
+                    ],
+                }
+            ),
+        )
 
 
 class DebugFixProblemFactory(DjangoModelFactory):

@@ -205,10 +205,17 @@ class PromptHandler(ActivityHandler):
 
     def get_problem_config(self, problem: "Problem") -> dict[str, Any]:
         """Return configuration for frontend rendering of prompt problems."""
+        display_mode = getattr(problem, "display_mode", "image") or "image"
+        display_data = getattr(problem, "display_data", {}) or {}
+
         return {
             "display": {
                 "show_reference_code": False,  # Don't show code
-                "show_image": True,  # Show image instead
+                "display_mode": display_mode,
+                "display_data": display_data,
+                "show_image": display_mode == "image",
+                "show_terminal": display_mode == "terminal",
+                "show_function_table": display_mode == "function_table",
                 "image_url": getattr(problem, "image_url", "") or "",
                 "image_alt_text": getattr(problem, "image_alt_text", "Problem image")
                 or "Problem image",
@@ -285,9 +292,11 @@ class PromptHandler(ActivityHandler):
                 "title",
                 "function_signature",
                 "reference_solution",
-                "image_url",
             ],
             "optional_fields": [
+                "display_mode",
+                "display_data",
+                "image_url",
                 "image_alt_text",
                 "tags",
                 "categories",

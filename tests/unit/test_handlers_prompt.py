@@ -147,7 +147,9 @@ class TestPromptConfig:
         """Create a mock Problem with image_url and image_alt_text."""
         problem = MagicMock()
         problem.segmentation_enabled = True
-        # Handler reads image_url and image_alt_text directly from the model
+        # Handler reads display fields directly from the model
+        problem.display_mode = "image"
+        problem.display_data = {}
         problem.image_url = "https://example.com/image.png"
         problem.image_alt_text = "A flowchart"
         return problem
@@ -178,9 +180,42 @@ class TestPromptConfig:
         assert config["input"]["min_length"] == 10
         assert config["input"]["max_length"] == 1000
 
-    def test_get_admin_config_requires_image_url(self, handler):
-        """Admin config should require image_url field."""
+    def test_get_admin_config_display_mode_is_optional(self, handler):
+        """Admin config should list display_mode and image_url as optional."""
         config = handler.get_admin_config()
 
-        assert "image_url" in config["required_fields"]
+        assert "display_mode" in config["optional_fields"]
+        assert "display_data" in config["optional_fields"]
+        assert "image_url" in config["optional_fields"]
         assert config["type_specific_section"] == "prompt_image"
+
+    def test_get_problem_config_terminal_mode(self, handler):
+        """Display config should set terminal flags for terminal mode."""
+        problem = MagicMock()
+        problem.display_mode = "terminal"
+        problem.display_data = {"runs": [{"interactions": []}]}
+        problem.image_url = ""
+        problem.image_alt_text = ""
+        problem.segmentation_enabled = False
+
+        config = handler.get_problem_config(problem)
+        assert config["display"]["show_terminal"] is True
+        assert config["display"]["show_image"] is False
+        assert config["display"]["show_function_table"] is False
+        assert config["display"]["display_mode"] == "terminal"
+        assert config["display"]["display_data"] == {"runs": [{"interactions": []}]}
+
+    def test_get_problem_config_function_table_mode(self, handler):
+        """Display config should set function_table flags for table mode."""
+        problem = MagicMock()
+        problem.display_mode = "function_table"
+        problem.display_data = {"calls": [{"args": [5], "return_value": 25}]}
+        problem.image_url = ""
+        problem.image_alt_text = ""
+        problem.segmentation_enabled = False
+
+        config = handler.get_problem_config(problem)
+        assert config["display"]["show_function_table"] is True
+        assert config["display"]["show_image"] is False
+        assert config["display"]["show_terminal"] is False
+        assert config["display"]["display_mode"] == "function_table"
