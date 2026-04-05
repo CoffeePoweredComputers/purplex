@@ -130,6 +130,10 @@ class AdminCourseDetailView(APIView):
             return Response(CourseDetailSerializer(updated_course).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def patch(self, request, course_id):
+        """Partial update course details (same as PUT, already partial)."""
+        return self.put(request, course_id)
+
     def delete(self, request, course_id):
         """Soft delete a course"""
         course = CourseService.get_course_by_id(
