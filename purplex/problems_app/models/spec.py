@@ -144,16 +144,44 @@ class EiplProblem(SpecProblem):
 
 class PromptProblem(SpecProblem):
     """
-    Image-based EiPL variant.
+    Stimulus-based EiPL variant.
 
-    Student sees an image instead of code, writes explanation.
+    Student sees a stimulus (image, terminal interaction, or function call table)
+    instead of code, and writes a natural language explanation.
     Same pipeline as EiPL otherwise.
     """
 
     SEGMENTATION_DEFAULT_ENABLED = False
 
-    # Image display (Prompt-specific fields)
-    image_url = models.URLField(help_text="URL of the problem image")
+    DISPLAY_MODE_CHOICES = [
+        ("image", "Image"),
+        ("terminal", "Terminal Interaction"),
+        ("function_table", "Function Call Table"),
+    ]
+
+    # Display mode configuration
+    display_mode = models.CharField(
+        max_length=20,
+        choices=DISPLAY_MODE_CHOICES,
+        default="image",
+        help_text="How the problem stimulus is presented to students",
+    )
+    display_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            "Mode-specific display data. "
+            "terminal: {schema_version, runs: [{label?, interactions: [{type: input|output, text}]}]}. "
+            "function_table: {schema_version, calls: [{args: [], return_value: any}]}"
+        ),
+    )
+
+    # Image display (used when display_mode='image')
+    image_url = models.URLField(
+        blank=True,
+        default="",
+        help_text="URL of the problem image (required when display_mode='image')",
+    )
     image_alt_text = models.TextField(
         blank=True, help_text="Alt text for accessibility (up to 1500 characters)"
     )
@@ -168,10 +196,25 @@ class PromptProblem(SpecProblem):
         return "prompt"
 
     def clean(self):
-        """Validate Prompt-specific fields."""
+        """Validate Prompt-specific fields based on display_mode."""
         super().clean()
-        if not self.image_url:
-            raise ValidationError({"image_url": "Required for prompt problems"})
+        mode = self.display_mode or "image"
+
+        if mode == "image":
+            if not self.image_url:
+                raise ValidationError(
+                    {"image_url": "Required when display_mode is 'image'"}
+                )
+        elif mode == "terminal":
+            if not self.display_data or not self.display_data.get("runs"):
+                raise ValidationError(
+                    {"display_data": "Terminal mode requires at least one run"}
+                )
+        elif mode == "function_table":
+            if not self.display_data or not self.display_data.get("calls"):
+                raise ValidationError(
+                    {"display_data": "Function table mode requires at least one call"}
+                )
 
     def __str__(self):
         return f"[Prompt] {self.title}"

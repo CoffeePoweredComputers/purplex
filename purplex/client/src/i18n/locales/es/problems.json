@@ -56,6 +56,8 @@
       "problemImage": "Imagen del Problema",
       "problemImageAlt": "Imagen del problema",
       "noImageConfigured": "No hay imagen configurada para este problema",
+      "terminalInteraction": "Interacci\u00f3n de Terminal",
+      "functionCallTable": "Tabla de Llamadas a Funci\u00f3n",
       "question": "Pregunta",
       "noQuestionText": "No se proporcionó texto de la pregunta. Por favor, agrega una descripción en el panel de administración.",
       "submissionResults": "Entregas y Resultados",

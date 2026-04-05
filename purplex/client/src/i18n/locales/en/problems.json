@@ -56,6 +56,8 @@
       "problemImage": "Problem Image",
       "problemImageAlt": "Problem image",
       "noImageConfigured": "No image configured for this problem",
+      "terminalInteraction": "Terminal Interaction",
+      "functionCallTable": "Function Call Table",
       "question": "Question",
       "noQuestionText": "No question text provided. Please add a description in the admin panel.",
       "submissionResults": "Submission & Results",

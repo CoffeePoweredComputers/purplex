@@ -64,9 +64,9 @@ class TestEiplProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
         assert response.data["function_name"] == "add"
         assert response.data["function_signature"] == "def add(a: int, b: int) -> int"
 
@@ -89,9 +89,9 @@ class TestEiplProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
         problem = EiplProblem.objects.get(title="Regression EiPL Minimal")
         assert problem.function_name == "foo"
 
@@ -129,13 +129,92 @@ class TestPromptProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = PromptProblem.objects.get(title="Regression Prompt Image")
         assert problem.image_url == "https://example.com/regression-test.png"
         assert problem.image_alt_text == "Regression test image description"
+
+    def test_create_terminal_mode_prompt(self, admin_client):
+        """Prompt problem with terminal display mode."""
+        data = {
+            "title": "Terminal Prompt",
+            "problem_type": "prompt",
+            "reference_solution": "def square(x):\n    return x**2",
+            "function_signature": "def square(x: int) -> int",
+            "function_name": "square",
+            "difficulty": "intermediate",
+            "display_mode": "terminal",
+            "display_data": {
+                "schema_version": 1,
+                "runs": [
+                    {
+                        "interactions": [
+                            {"type": "output", "text": "Enter: "},
+                            {"type": "input", "text": "5"},
+                            {"type": "output", "text": "25"},
+                        ]
+                    }
+                ],
+            },
+        }
+        response = admin_client.post("/api/admin/problems/", data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
+
+        problem = PromptProblem.objects.get(title="Terminal Prompt")
+        assert problem.display_mode == "terminal"
+        assert len(problem.display_data["runs"]) == 1
+        assert problem.image_url == ""
+
+    def test_create_function_table_mode_prompt(self, admin_client):
+        """Prompt problem with function table display mode."""
+        data = {
+            "title": "Table Prompt",
+            "problem_type": "prompt",
+            "reference_solution": "def square(x):\n    return x**2",
+            "function_signature": "def square(x: int) -> int",
+            "function_name": "square",
+            "difficulty": "intermediate",
+            "display_mode": "function_table",
+            "display_data": {
+                "schema_version": 1,
+                "calls": [
+                    {"args": [5], "return_value": 25},
+                    {"args": [-3], "return_value": 9},
+                ],
+            },
+        }
+        response = admin_client.post("/api/admin/problems/", data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
+
+        problem = PromptProblem.objects.get(title="Table Prompt")
+        assert problem.display_mode == "function_table"
+        assert len(problem.display_data["calls"]) == 2
+
+    def test_default_display_mode_is_image(self, admin_client):
+        """Omitting display_mode should default to image."""
+        data = {
+            "title": "Default Mode Prompt",
+            "problem_type": "prompt",
+            "reference_solution": "def f(): pass",
+            "function_signature": "def f() -> None",
+            "function_name": "f",
+            "difficulty": "easy",
+            "image_url": "https://example.com/img.png",
+        }
+        response = admin_client.post("/api/admin/problems/", data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
+
+        problem = PromptProblem.objects.get(title="Default Mode Prompt")
+        assert problem.display_mode == "image"
 
 
 # =============================================================================
@@ -174,9 +253,9 @@ class TestDebugFixProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = DebugFixProblem.objects.get(title="Regression DebugFix")
         assert "return a - b" in problem.buggy_code
@@ -215,9 +294,9 @@ class TestMcqProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = McqProblem.objects.get(title="Regression MCQ")
         assert problem.question_text == "What is 2 + 2?"
@@ -256,9 +335,9 @@ class TestRefuteProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = RefuteProblem.objects.get(title="Regression Refute")
         assert problem.claim_text == "The function always returns a positive number"
@@ -299,9 +378,9 @@ class TestProbeableCodeProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = ProbeableCodeProblem.objects.get(title="Regression ProbeableCode")
         assert problem.probe_mode == "cooldown"
@@ -345,9 +424,9 @@ class TestProbeableSpecProblemCreationRegression:
 
         response = admin_client.post("/api/admin/problems/", data, format="json")
 
-        assert (
-            response.status_code == status.HTTP_201_CREATED
-        ), f"Failed: {response.data}"
+        assert response.status_code == status.HTTP_201_CREATED, (
+            f"Failed: {response.data}"
+        )
 
         problem = ProbeableSpecProblem.objects.get(title="Regression ProbeableSpec")
         assert problem.probe_mode == "explore"

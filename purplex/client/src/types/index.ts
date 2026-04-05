@@ -68,8 +68,16 @@ export interface DisplayConfig {
   show_function_signature?: boolean;
   /** Label for the input section header (e.g., "Describe the code here") */
   section_label?: string;
+  /** Prompt-specific: display mode for the stimulus */
+  display_mode?: 'image' | 'terminal' | 'function_table';
+  /** Prompt-specific: mode-specific structured display data */
+  display_data?: TerminalDisplayData | FunctionTableDisplayData | Record<string, unknown>;
   /** Prompt-specific: show an image instead of code */
   show_image?: boolean;
+  /** Prompt-specific: show a terminal interaction display */
+  show_terminal?: boolean;
+  /** Prompt-specific: show a function call table */
+  show_function_table?: boolean;
   /** Prompt-specific: URL of the image to display */
   image_url?: string;
   /** Prompt-specific: alt text for the image */
@@ -82,6 +90,33 @@ export interface DisplayConfig {
   function_signature?: string;
   /** Refute-specific: function name */
   function_name?: string;
+}
+
+// ===== PROMPT DISPLAY TYPES =====
+
+export interface TerminalInteraction {
+  type: 'input' | 'output';
+  text: string;
+}
+
+export interface TerminalRun {
+  label?: string;
+  interactions: TerminalInteraction[];
+}
+
+export interface TerminalDisplayData {
+  schema_version: number;
+  runs: TerminalRun[];
+}
+
+export interface FunctionCall {
+  args: unknown[];
+  return_value: unknown;
+}
+
+export interface FunctionTableDisplayData {
+  schema_version: number;
+  calls: FunctionCall[];
 }
 
 export interface InputConfig {

@@ -136,7 +136,7 @@
         class="left-panel"
         :class="{ 'is-navigating': isNavigating }"
       >
-        <!-- Image section for prompt problems (when display_config.show_image is true) -->
+        <!-- Image section for prompt problems (image display mode) -->
         <div
           v-if="getCurrentProblem()?.display_config?.show_image"
           id="problem-image"
@@ -162,6 +162,40 @@
               {{ $t('problems.problemSet.noImageConfigured') }}
             </div>
           </div>
+        </div>
+
+        <!-- Terminal interaction section for prompt problems (terminal display mode) -->
+        <div
+          v-else-if="getCurrentProblem()?.display_config?.show_terminal"
+          id="problem-terminal"
+          class="terminal-section"
+        >
+          <div class="section-header">
+            <div class="section-label">
+              {{ $t('problems.problemSet.terminalInteraction') }}
+            </div>
+          </div>
+          <TerminalDisplay
+            :runs="getCurrentProblem()?.display_config?.display_data?.runs ?? []"
+          />
+        </div>
+
+        <!-- Function call table section for prompt problems (function_table display mode) -->
+        <div
+          v-else-if="getCurrentProblem()?.display_config?.show_function_table"
+          id="problem-function-table"
+          class="function-table-section"
+        >
+          <div class="section-header">
+            <div class="section-label">
+              {{ $t('problems.problemSet.functionCallTable') }}
+            </div>
+          </div>
+          <FunctionCallTable
+            :function-name="getCurrentProblem()?.function_name ?? ''"
+            :function-signature="getCurrentProblem()?.function_signature ?? ''"
+            :calls="getCurrentProblem()?.display_config?.display_data?.calls ?? []"
+          />
         </div>
 
         <!-- Problem description section (for non-code problems that aren't MCQ) -->
@@ -379,6 +413,8 @@
 
 <script>
 import Editor from '@/features/editor/Editor.vue'
+import TerminalDisplay from '@/components/ui/TerminalDisplay.vue'
+import FunctionCallTable from '@/components/ui/FunctionCallTable.vue'
 import HintButton from "@/components/HintButton.vue"
 import SuggestedTraceOverlay from "@/components/hints/SuggestedTraceOverlay.vue"
 import PyTutorModal from "@/modals/PyTutorModal.vue"
@@ -404,6 +440,8 @@ export default {
     name: 'ProblemSet',
     components: {
         Editor,
+        TerminalDisplay,
+        FunctionCallTable,
         HintButton,
         SuggestedTraceOverlay,
         PyTutorModal,
@@ -2545,7 +2583,9 @@ export default {
 }
 
 /* Image Section (for prompt problems) */
-.image-section {
+.image-section,
+.terminal-section,
+.function-table-section {
     background: var(--color-bg-panel);
     border-radius: var(--radius-lg);
     overflow: hidden;
@@ -2556,6 +2596,11 @@ export default {
     flex: 0 0 auto;
     min-height: 0;
     scroll-margin-top: 120px;
+}
+
+.terminal-section,
+.function-table-section {
+    padding: 0 0 var(--spacing-md) 0;
 }
 
 .image-section:hover {

@@ -488,6 +488,7 @@ class PromptProblemListSerializer(serializers.ModelSerializer):
             "categories",
             "problem_sets",
             "function_name",
+            "display_mode",
             "image_url",
             "tags",
             "is_active",
@@ -674,6 +675,12 @@ class AdminPromptProblemSerializer(serializers.ModelSerializer):
         allow_empty=True,
     )
     test_cases = TestCaseSerializer(many=True, required=False)
+    display_mode = serializers.ChoiceField(
+        choices=PromptProblem.DISPLAY_MODE_CHOICES,
+        default="image",
+    )
+    display_data = serializers.JSONField(default=dict, required=False)
+    image_url = serializers.URLField(required=False, allow_blank=True, default="")
 
     class Meta:
         model = PromptProblem
@@ -696,6 +703,8 @@ class AdminPromptProblemSerializer(serializers.ModelSerializer):
             "function_signature",
             "function_name",
             # Prompt-specific fields
+            "display_mode",
+            "display_data",
             "image_url",
             "image_alt_text",
             # Admin fields
@@ -704,6 +713,71 @@ class AdminPromptProblemSerializer(serializers.ModelSerializer):
             "max_attempts",
         ]
         read_only_fields = ["slug", "problem_type", "created_at", "updated_at"]
+
+    def validate_display_data(self, value):
+        """Validate display_data structure based on display_mode."""
+        display_mode = self.initial_data.get("display_mode", "image")
+
+        if display_mode == "image":
+            return value
+
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("display_data must be an object")
+
+        if display_mode == "terminal":
+            runs = value.get("runs")
+            if not runs or not isinstance(runs, list):
+                raise serializers.ValidationError(
+                    "Terminal mode requires a 'runs' array"
+                )
+            for i, run in enumerate(runs):
+                interactions = run.get("interactions")
+                if not interactions or not isinstance(interactions, list):
+                    raise serializers.ValidationError(
+                        f"Run {i + 1} must have an 'interactions' array"
+                    )
+                for j, interaction in enumerate(interactions):
+                    if interaction.get("type") not in ("input", "output"):
+                        raise serializers.ValidationError(
+                            f"Run {i + 1}, interaction {j + 1}: "
+                            "type must be 'input' or 'output'"
+                        )
+                    if not interaction.get("text", "").strip():
+                        raise serializers.ValidationError(
+                            f"Run {i + 1}, interaction {j + 1}: text must not be empty"
+                        )
+
+        elif display_mode == "function_table":
+            calls = value.get("calls")
+            if not calls or not isinstance(calls, list):
+                raise serializers.ValidationError(
+                    "Function table mode requires a 'calls' array"
+                )
+            for i, call in enumerate(calls):
+                if "args" not in call or not isinstance(call["args"], list):
+                    raise serializers.ValidationError(
+                        f"Call {i + 1}: 'args' must be an array"
+                    )
+                if "return_value" not in call:
+                    raise serializers.ValidationError(
+                        f"Call {i + 1}: 'return_value' is required"
+                    )
+
+        return value
+
+    def validate(self, attrs):
+        """Cross-field validation: image_url required only for image mode."""
+        attrs = super().validate(attrs)
+        display_mode = attrs.get("display_mode", "image")
+
+        if display_mode == "image":
+            image_url = attrs.get("image_url", "")
+            if not image_url:
+                raise serializers.ValidationError(
+                    {"image_url": "Required when display_mode is 'image'"}
+                )
+
+        return attrs
 
     def create(self, validated_data):
         """Create Prompt problem."""
