@@ -525,6 +525,121 @@ class TestAdminPromptProblemSerializerValidation:
         serializer = AdminPromptProblemSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
 
+    # --- Display mode validation ---
+
+    def test_terminal_mode_does_not_require_image_url(self):
+        """Terminal mode should not require image_url."""
+        data = {
+            "title": "Terminal Prompt",
+            "reference_solution": "def square(x):\n    return x**2",
+            "function_signature": "def square(x: int) -> int",
+            "function_name": "square",
+            "difficulty": "intermediate",
+            "display_mode": "terminal",
+            "display_data": {
+                "schema_version": 1,
+                "runs": [
+                    {
+                        "interactions": [
+                            {"type": "output", "text": "Enter: "},
+                            {"type": "input", "text": "5"},
+                            {"type": "output", "text": "25"},
+                        ]
+                    }
+                ],
+            },
+        }
+        serializer = AdminPromptProblemSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_function_table_mode_does_not_require_image_url(self):
+        """Function table mode should not require image_url."""
+        data = {
+            "title": "Table Prompt",
+            "reference_solution": "def square(x):\n    return x**2",
+            "function_signature": "def square(x: int) -> int",
+            "function_name": "square",
+            "difficulty": "intermediate",
+            "display_mode": "function_table",
+            "display_data": {
+                "schema_version": 1,
+                "calls": [{"args": [5], "return_value": 25}],
+            },
+        }
+        serializer = AdminPromptProblemSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_terminal_mode_invalid_interaction_type(self):
+        """Terminal interactions must have type 'input' or 'output'."""
+        data = {
+            "title": "Bad Terminal",
+            "reference_solution": "def f(): pass",
+            "function_signature": "def f() -> None",
+            "difficulty": "easy",
+            "display_mode": "terminal",
+            "display_data": {
+                "runs": [{"interactions": [{"type": "invalid", "text": "hi"}]}]
+            },
+        }
+        serializer = AdminPromptProblemSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "display_data" in serializer.errors
+
+    def test_terminal_mode_requires_runs(self):
+        """Terminal mode display_data must have runs array."""
+        data = {
+            "title": "No Runs",
+            "reference_solution": "def f(): pass",
+            "function_signature": "def f() -> None",
+            "difficulty": "easy",
+            "display_mode": "terminal",
+            "display_data": {},
+        }
+        serializer = AdminPromptProblemSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "display_data" in serializer.errors
+
+    def test_function_table_mode_requires_calls(self):
+        """Function table mode display_data must have calls array."""
+        data = {
+            "title": "No Calls",
+            "reference_solution": "def f(): pass",
+            "function_signature": "def f() -> None",
+            "difficulty": "easy",
+            "display_mode": "function_table",
+            "display_data": {},
+        }
+        serializer = AdminPromptProblemSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "display_data" in serializer.errors
+
+    def test_function_table_call_requires_return_value(self):
+        """Each call must have a return_value."""
+        data = {
+            "title": "Missing Return",
+            "reference_solution": "def f(): pass",
+            "function_signature": "def f() -> None",
+            "difficulty": "easy",
+            "display_mode": "function_table",
+            "display_data": {"calls": [{"args": [5]}]},
+        }
+        serializer = AdminPromptProblemSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "display_data" in serializer.errors
+
+    def test_default_display_mode_is_image(self):
+        """Omitting display_mode should default to image."""
+        data = {
+            "title": "Default Mode",
+            "reference_solution": "def f(): pass",
+            "function_signature": "def f() -> None",
+            "image_url": "https://example.com/img.png",
+            "difficulty": "easy",
+        }
+        serializer = AdminPromptProblemSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["display_mode"] == "image"
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DebugFix Problem Serializer Validation

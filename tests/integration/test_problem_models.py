@@ -735,6 +735,55 @@ class TestPromptProblemModel:
         """SEGMENTATION_DEFAULT_ENABLED should be False for Prompt."""
         assert PromptProblem.SEGMENTATION_DEFAULT_ENABLED is False
 
+    def test_default_display_mode_is_image(self, db):
+        """Default display_mode should be 'image'."""
+        prompt = PromptProblem.objects.create(
+            title="Test Default",
+            reference_solution="def x(): pass",
+            function_signature="def x() -> None",
+            image_url="https://example.com/test.png",
+        )
+        assert prompt.display_mode == "image"
+
+    def test_terminal_mode_does_not_require_image_url(self, db):
+        """Terminal display_mode should not require image_url."""
+        prompt = PromptProblem(
+            title="Terminal Test",
+            reference_solution="def x(): pass",
+            function_signature="def x() -> None",
+            display_mode="terminal",
+            display_data={
+                "runs": [{"interactions": [{"type": "output", "text": "hi"}]}]
+            },
+        )
+        prompt.full_clean()  # Should not raise
+
+    def test_terminal_mode_requires_runs(self, db):
+        """Terminal mode should require runs in display_data."""
+        prompt = PromptProblem(
+            title="Bad Terminal",
+            reference_solution="def x(): pass",
+            function_signature="def x() -> None",
+            display_mode="terminal",
+            display_data={},
+        )
+        with pytest.raises(ValidationError) as exc_info:
+            prompt.full_clean()
+        assert "display_data" in str(exc_info.value)
+
+    def test_function_table_mode_requires_calls(self, db):
+        """Function table mode should require calls in display_data."""
+        prompt = PromptProblem(
+            title="Bad Table",
+            reference_solution="def x(): pass",
+            function_signature="def x() -> None",
+            display_mode="function_table",
+            display_data={},
+        )
+        with pytest.raises(ValidationError) as exc_info:
+            prompt.full_clean()
+        assert "display_data" in str(exc_info.value)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # StaticProblem (Abstract) Tests - Tested via McqProblem

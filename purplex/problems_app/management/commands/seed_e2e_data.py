@@ -198,6 +198,70 @@ class Command(BaseCommand):
         self._report("PromptProblem", "e2e-prompt-1", created)
         prompt.categories.add(cat_arrays)
 
+        prompt_terminal, created = PromptProblem.objects.get_or_create(
+            slug="e2e-prompt-terminal-1",
+            defaults={
+                "title": "E2E: Describe the Program Output",
+                "description": "Look at the terminal interaction and describe what the program does.",
+                "function_signature": "def square(x: int) -> int",
+                "function_name": "square",
+                "reference_solution": "def square(x):\n    return x ** 2",
+                "display_mode": "terminal",
+                "display_data": {
+                    "schema_version": 1,
+                    "runs": [
+                        {
+                            "label": "Run 1",
+                            "interactions": [
+                                {"type": "output", "text": "Enter a number: "},
+                                {"type": "input", "text": "5"},
+                                {"type": "output", "text": "The square is: 25"},
+                            ],
+                        },
+                        {
+                            "label": "Run 2",
+                            "interactions": [
+                                {"type": "output", "text": "Enter a number: "},
+                                {"type": "input", "text": "-3"},
+                                {"type": "output", "text": "The square is: 9"},
+                            ],
+                        },
+                    ],
+                },
+                "difficulty": "beginner",
+                "is_active": True,
+                "created_by": instructor,
+            },
+        )
+        self._report("PromptProblem", "e2e-prompt-terminal-1", created)
+        prompt_terminal.categories.add(cat_arrays)
+
+        prompt_table, created = PromptProblem.objects.get_or_create(
+            slug="e2e-prompt-table-1",
+            defaults={
+                "title": "E2E: Describe the Function",
+                "description": "Look at the function call table and describe what the function does.",
+                "function_signature": "def add(a: int, b: int) -> int",
+                "function_name": "add",
+                "reference_solution": "def add(a, b):\n    return a + b",
+                "display_mode": "function_table",
+                "display_data": {
+                    "schema_version": 1,
+                    "calls": [
+                        {"args": [2, 3], "return_value": 5},
+                        {"args": [0, 0], "return_value": 0},
+                        {"args": [-1, 1], "return_value": 0},
+                        {"args": [10, 20], "return_value": 30},
+                    ],
+                },
+                "difficulty": "beginner",
+                "is_active": True,
+                "created_by": instructor,
+            },
+        )
+        self._report("PromptProblem", "e2e-prompt-table-1", created)
+        prompt_table.categories.add(cat_arrays)
+
         debugfix, created = DebugFixProblem.objects.get_or_create(
             slug="e2e-debugfix-1",
             defaults={

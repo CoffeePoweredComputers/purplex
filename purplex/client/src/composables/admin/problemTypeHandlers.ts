@@ -82,15 +82,17 @@ export const problemTypeHandlers: Record<string, ProblemTypeHandler> = {
       // Load from either nested prompt_config or top-level fields
       if (data.prompt_config) {
         c.promptConfig.loadConfig(data.prompt_config);
-      } else if (data.image_url) {
+      } else {
         c.promptConfig.loadConfig({
-          image_url: data.image_url,
+          display_mode: data.display_mode || 'image',
+          display_data: data.display_data || {},
+          image_url: data.image_url || '',
           image_alt_text: data.image_alt_text || '',
         });
       }
     },
     save: (c) => ({
-      // Spread directly - backend expects image_url at top level
+      // Spread directly - backend expects fields at top level
       ...c.promptConfig.getConfigForApi(),
     }),
   },
