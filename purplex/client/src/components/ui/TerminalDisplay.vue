@@ -9,7 +9,7 @@
         v-if="runs.length > 1"
         class="run-divider"
       >
-        <span class="run-label">{{ run.label || `Run ${ri + 1}` }}</span>
+        <span class="run-label">{{ run.label || $t('problems.display.runNumber', { n: ri + 1 }) }}</span>
       </div>
       <div class="terminal-run">
         <div
@@ -33,7 +33,7 @@
       v-if="!runs || runs.length === 0"
       class="terminal-empty"
     >
-      No terminal interactions configured.
+      {{ $t('problems.display.noTerminalConfigured') }}
     </div>
   </div>
 </template>

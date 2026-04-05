@@ -291,6 +291,13 @@
       "courseNotFoundMessage": "El curso que buscas no existe o no tienes acceso.",
       "goBackToCourses": "Volver a cursos",
       "dueInDays": "Vence en {days} días"
+    },
+    "display": {
+      "runNumber": "Ejecuci\u00f3n {n}",
+      "noTerminalConfigured": "No hay interacciones de terminal configuradas.",
+      "callHeader": "Llamada",
+      "returnsHeader": "Retorna",
+      "noFunctionCallsConfigured": "No hay llamadas a funci\u00f3n configuradas."
     }
   }
 }

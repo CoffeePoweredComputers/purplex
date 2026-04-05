@@ -714,9 +714,17 @@ class AdminPromptProblemSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["slug", "problem_type", "created_at", "updated_at"]
 
+    def _resolve_display_mode(self):
+        """Resolve display_mode for validation, respecting partial updates."""
+        if "display_mode" in self.initial_data:
+            return self.initial_data["display_mode"]
+        if self.instance and self.partial:
+            return self.instance.display_mode
+        return "image"
+
     def validate_display_data(self, value):
         """Validate display_data structure based on display_mode."""
-        display_mode = self.initial_data.get("display_mode", "image")
+        display_mode = self._resolve_display_mode()
 
         if display_mode == "image":
             return value
@@ -768,7 +776,7 @@ class AdminPromptProblemSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Cross-field validation: image_url required only for image mode."""
         attrs = super().validate(attrs)
-        display_mode = attrs.get("display_mode", "image")
+        display_mode = attrs.get("display_mode") or self._resolve_display_mode()
 
         if display_mode == "image":
             image_url = attrs.get("image_url", "")

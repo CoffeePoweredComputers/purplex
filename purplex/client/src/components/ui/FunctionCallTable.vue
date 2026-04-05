@@ -6,8 +6,8 @@
     >
       <thead>
         <tr>
-          <th class="call-column">Call</th>
-          <th class="return-column">Returns</th>
+          <th class="call-column">{{ $t('problems.display.callHeader') }}</th>
+          <th class="return-column">{{ $t('problems.display.returnsHeader') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -25,7 +25,7 @@
       v-else
       class="table-empty"
     >
-      No function calls configured.
+      {{ $t('problems.display.noFunctionCallsConfigured') }}
     </div>
   </div>
 </template>

@@ -291,6 +291,13 @@
       "courseNotFoundMessage": "The course you're looking for doesn't exist or you don't have access to it.",
       "goBackToCourses": "Go back to courses",
       "dueInDays": "Due in {days} days"
+    },
+    "display": {
+      "runNumber": "Run {n}",
+      "noTerminalConfigured": "No terminal interactions configured.",
+      "callHeader": "Call",
+      "returnsHeader": "Returns",
+      "noFunctionCallsConfigured": "No function calls configured."
     }
   }
 }

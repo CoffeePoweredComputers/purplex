@@ -206,12 +206,16 @@ class PromptProblem(SpecProblem):
                     {"image_url": "Required when display_mode is 'image'"}
                 )
         elif mode == "terminal":
-            if not self.display_data or not self.display_data.get("runs"):
+            if not isinstance(self.display_data, dict) or not self.display_data.get(
+                "runs"
+            ):
                 raise ValidationError(
                     {"display_data": "Terminal mode requires at least one run"}
                 )
         elif mode == "function_table":
-            if not self.display_data or not self.display_data.get("calls"):
+            if not isinstance(self.display_data, dict) or not self.display_data.get(
+                "calls"
+            ):
                 raise ValidationError(
                     {"display_data": "Function table mode requires at least one call"}
                 )
