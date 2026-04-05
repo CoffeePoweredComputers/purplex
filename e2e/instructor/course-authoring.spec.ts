@@ -165,11 +165,16 @@ test.describe('Course Authoring', () => {
     });
     expect(patchResult.status).toBeLessThan(300);
 
-    // Verify admin user is now a primary instructor
+    // Verify admin user is now THE primary instructor
     const afterResult = await apiAs(page, 'admin', 'GET', `/api/admin/courses/${courseId}/`);
     const afterInstructors = afterResult.data.instructors;
     expect(afterInstructors.some((i: { username: string; role: string }) =>
       i.username === 'admin' && i.role === 'primary'
+    )).toBe(true);
+
+    // Verify original instructor was demoted to TA
+    expect(afterInstructors.some((i: { username: string; role: string }) =>
+      i.username === 'instructor' && i.role === 'ta'
     )).toBe(true);
   });
 
