@@ -56,6 +56,8 @@
       "problemImage": "Imagen del Problema",
       "problemImageAlt": "Imagen del problema",
       "noImageConfigured": "No hay imagen configurada para este problema",
+      "terminalInteraction": "Interacci\u00f3n de Terminal",
+      "functionCallTable": "Tabla de Llamadas a Funci\u00f3n",
       "question": "Pregunta",
       "noQuestionText": "No se proporcionó texto de la pregunta. Por favor, agrega una descripción en el panel de administración.",
       "submissionResults": "Entregas y Resultados",
@@ -289,6 +291,14 @@
       "courseNotFoundMessage": "El curso que buscas no existe o no tienes acceso.",
       "goBackToCourses": "Volver a cursos",
       "dueInDays": "Vence en {days} días"
+    },
+    "display": {
+      "runNumber": "Ejecuci\u00f3n {n}",
+      "noTerminalConfigured": "No hay interacciones de terminal configuradas.",
+      "callHeader": "Llamada",
+      "returnsHeader": "Retorna",
+      "noFunctionCallsConfigured": "No hay llamadas a funci\u00f3n configuradas.",
+      "terminalAriaLabel": "Visualizaci\u00f3n de interacci\u00f3n de terminal"
     }
   }
 }

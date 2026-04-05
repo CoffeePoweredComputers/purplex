@@ -121,14 +121,29 @@ class AdminCourseDetailView(APIView):
             course, data=request.data, partial=True
         )
         if serializer.is_valid():
-            # instructor_id is handled via the team management API, not inline
-            serializer.validated_data.pop("instructor_id", None)
+            instructor_id = serializer.validated_data.pop("instructor_id", None)
 
             updated_course = CourseService.update_course(
                 course, **serializer.validated_data
             )
+
+            # Update primary instructor if admin changed it
+            if instructor_id is not None:
+                new_instructor = UserRepository.get_by_id(instructor_id)
+                if not new_instructor:
+                    return error_response(
+                        "Instructor not found", ErrorCode.NOT_FOUND, 400
+                    )
+                CourseService.set_primary_instructor(
+                    course, new_instructor, added_by=request.user
+                )
+
             return Response(CourseDetailSerializer(updated_course).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, course_id):
+        """Partial update course details (same as PUT, already partial)."""
+        return self.put(request, course_id)
 
     def delete(self, request, course_id):
         """Soft delete a course"""
