@@ -739,12 +739,18 @@ class AdminPromptProblemSerializer(serializers.ModelSerializer):
                     "Terminal mode requires a 'runs' array"
                 )
             for i, run in enumerate(runs):
+                if not isinstance(run, dict):
+                    raise serializers.ValidationError(f"Run {i + 1} must be an object")
                 interactions = run.get("interactions")
                 if not interactions or not isinstance(interactions, list):
                     raise serializers.ValidationError(
                         f"Run {i + 1} must have an 'interactions' array"
                     )
                 for j, interaction in enumerate(interactions):
+                    if not isinstance(interaction, dict):
+                        raise serializers.ValidationError(
+                            f"Run {i + 1}, interaction {j + 1} must be an object"
+                        )
                     if interaction.get("type") not in ("input", "output"):
                         raise serializers.ValidationError(
                             f"Run {i + 1}, interaction {j + 1}: "
@@ -762,6 +768,8 @@ class AdminPromptProblemSerializer(serializers.ModelSerializer):
                     "Function table mode requires a 'calls' array"
                 )
             for i, call in enumerate(calls):
+                if not isinstance(call, dict):
+                    raise serializers.ValidationError(f"Call {i + 1} must be an object")
                 if "args" not in call or not isinstance(call["args"], list):
                     raise serializers.ValidationError(
                         f"Call {i + 1}: 'args' must be an array"
@@ -779,8 +787,12 @@ class AdminPromptProblemSerializer(serializers.ModelSerializer):
         display_mode = attrs.get("display_mode") or self._resolve_display_mode()
 
         if display_mode == "image":
-            image_url = attrs.get("image_url", "")
-            if not image_url:
+            if "image_url" in attrs:
+                if not attrs["image_url"]:
+                    raise serializers.ValidationError(
+                        {"image_url": "Required when display_mode is 'image'"}
+                    )
+            elif not self.partial:
                 raise serializers.ValidationError(
                     {"image_url": "Required when display_mode is 'image'"}
                 )

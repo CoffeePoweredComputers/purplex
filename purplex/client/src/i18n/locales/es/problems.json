@@ -297,7 +297,8 @@
       "noTerminalConfigured": "No hay interacciones de terminal configuradas.",
       "callHeader": "Llamada",
       "returnsHeader": "Retorna",
-      "noFunctionCallsConfigured": "No hay llamadas a funci\u00f3n configuradas."
+      "noFunctionCallsConfigured": "No hay llamadas a funci\u00f3n configuradas.",
+      "terminalAriaLabel": "Visualizaci\u00f3n de interacci\u00f3n de terminal"
     }
   }
 }

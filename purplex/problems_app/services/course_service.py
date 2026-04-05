@@ -302,6 +302,41 @@ class CourseService:
         """
         return CourseInstructorRepository.get_course_instructors(course)
 
+    @staticmethod
+    def set_primary_instructor(course, new_instructor, added_by=None) -> None:
+        """Make a user the sole primary instructor, demoting all others.
+
+        Adds the user to the team if not already a member, promotes them
+        if they're a TA, then demotes all other primaries to TA.
+        Wrapped in a transaction to prevent inconsistent state.
+
+        Args:
+            course: Course instance
+            new_instructor: User to make primary
+            added_by: User performing the action (for audit)
+        """
+        from django.db import transaction
+
+        with transaction.atomic():
+            # First: ensure the new instructor is primary
+            current_role = CourseInstructorRepository.get_role(new_instructor, course)
+            if current_role is None:
+                CourseInstructorRepository.add_instructor(
+                    course, new_instructor, role="primary", added_by=added_by
+                )
+            elif current_role != "primary":
+                CourseInstructorRepository.update_role(
+                    course, new_instructor, "primary"
+                )
+
+            # Then: demote all other primaries to TA
+            current_primaries = CourseInstructorRepository.get_course_instructors(
+                course, role="primary"
+            )
+            for ci in current_primaries:
+                if ci.user_id != new_instructor.id:
+                    CourseInstructorRepository.update_role(course, ci.user, "ta")
+
     # Instructor Course Management Methods
 
     @staticmethod

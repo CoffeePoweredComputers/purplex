@@ -127,36 +127,16 @@ class AdminCourseDetailView(APIView):
                 course, **serializer.validated_data
             )
 
-            # Update primary instructor if admin changed it.
-            # The admin dropdown selects THE primary instructor, so make
-            # the selected user primary first, then demote all others.
+            # Update primary instructor if admin changed it
             if instructor_id is not None:
                 new_instructor = UserRepository.get_by_id(instructor_id)
                 if not new_instructor:
                     return error_response(
                         "Instructor not found", ErrorCode.NOT_FOUND, 400
                     )
-
-                # First: ensure the new instructor is primary
-                current_role = CourseInstructorRepository.get_role(
-                    new_instructor, course
+                CourseService.set_primary_instructor(
+                    course, new_instructor, added_by=request.user
                 )
-                if current_role is None:
-                    CourseService.add_course_instructor(
-                        course, new_instructor, role="primary", added_by=request.user
-                    )
-                elif current_role != "primary":
-                    CourseService.update_course_instructor_role(
-                        course, new_instructor, "primary"
-                    )
-
-                # Then: demote all other primaries to TA
-                current_primaries = CourseInstructorRepository.get_course_instructors(
-                    course, role="primary"
-                )
-                for ci in current_primaries:
-                    if ci.user_id != new_instructor.id:
-                        CourseInstructorRepository.update_role(course, ci.user, "ta")
 
             return Response(CourseDetailSerializer(updated_course).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

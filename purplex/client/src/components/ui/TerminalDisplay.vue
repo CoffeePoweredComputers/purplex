@@ -2,7 +2,7 @@
   <div
     class="terminal-display"
     role="log"
-    :aria-label="ariaLabel"
+    :aria-label="ariaLabel || $t('problems.display.terminalAriaLabel')"
   >
     <template v-for="(run, ri) in runs" :key="ri">
       <div
