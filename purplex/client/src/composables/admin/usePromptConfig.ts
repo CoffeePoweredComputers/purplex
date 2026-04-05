@@ -9,7 +9,7 @@
  */
 
 import { computed, type ComputedRef, type DeepReadonly, reactive, readonly } from 'vue';
-import type { TerminalRun, FunctionCall } from '@/types';
+import type { FunctionCall, TerminalRun } from '@/types';
 
 // ===== TYPES =====
 
