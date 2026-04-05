@@ -125,6 +125,54 @@ test.describe('Course Authoring', () => {
     expect(fetchResult.data.description).toBe('Admin updated description');
   });
 
+  test('admin can change primary instructor via PATCH', async ({ page }) => {
+    await navigateAs(page, 'admin', '/admin');
+    await page.waitForTimeout(1000);
+
+    // Get the list of available instructors
+    const instructorsResult = await apiAs(page, 'admin', 'GET', '/api/admin/instructors/');
+    expect(instructorsResult.status).toBe(200);
+    const instructors = instructorsResult.data;
+
+    // Find two different users to switch between
+    const instructorUser = instructors.find((u: { username: string }) => u.username === 'instructor');
+    const adminUser = instructors.find((u: { username: string }) => u.username === 'admin');
+    expect(instructorUser).toBeTruthy();
+    expect(adminUser).toBeTruthy();
+
+    // Create course with instructor as primary
+    const courseId = `E2E-SWITCH-${Date.now()}`;
+    const createResult = await apiAs(page, 'admin', 'POST', '/api/admin/courses/', {
+      course_id: courseId,
+      name: 'Instructor Switch Test',
+      instructor_id: instructorUser.id,
+      is_active: true,
+      enrollment_open: true,
+    });
+    expect(createResult.status).toBe(201);
+    createdIds.push(courseId);
+
+    // Verify original instructor is primary
+    const beforeResult = await apiAs(page, 'admin', 'GET', `/api/admin/courses/${courseId}/`);
+    const beforeInstructors = beforeResult.data.instructors;
+    expect(beforeInstructors.some((i: { username: string; role: string }) =>
+      i.username === 'instructor' && i.role === 'primary'
+    )).toBe(true);
+
+    // Switch primary instructor to admin user
+    const patchResult = await apiAs(page, 'admin', 'PATCH', `/api/admin/courses/${courseId}/`, {
+      instructor_id: adminUser.id,
+    });
+    expect(patchResult.status).toBeLessThan(300);
+
+    // Verify admin user is now a primary instructor
+    const afterResult = await apiAs(page, 'admin', 'GET', `/api/admin/courses/${courseId}/`);
+    const afterInstructors = afterResult.data.instructors;
+    expect(afterInstructors.some((i: { username: string; role: string }) =>
+      i.username === 'admin' && i.role === 'primary'
+    )).toBe(true);
+  });
+
   test('course ID is locked in edit mode', async ({ page }) => {
     const courseId = `E2E-LOCK-${Date.now()}`;
 

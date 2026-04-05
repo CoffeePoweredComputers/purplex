@@ -121,12 +121,31 @@ class AdminCourseDetailView(APIView):
             course, data=request.data, partial=True
         )
         if serializer.is_valid():
-            # instructor_id is handled via the team management API, not inline
-            serializer.validated_data.pop("instructor_id", None)
+            instructor_id = serializer.validated_data.pop("instructor_id", None)
 
             updated_course = CourseService.update_course(
                 course, **serializer.validated_data
             )
+
+            # Update primary instructor if admin changed it
+            if instructor_id is not None:
+                new_instructor = UserRepository.get_by_id(instructor_id)
+                if not new_instructor:
+                    return error_response(
+                        "Instructor not found", ErrorCode.NOT_FOUND, 400
+                    )
+                current_role = CourseInstructorRepository.get_role(
+                    new_instructor, course
+                )
+                if current_role is None:
+                    CourseService.add_course_instructor(
+                        course, new_instructor, role="primary", added_by=request.user
+                    )
+                elif current_role != "primary":
+                    CourseService.update_course_instructor_role(
+                        course, new_instructor, "primary"
+                    )
+
             return Response(CourseDetailSerializer(updated_course).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
