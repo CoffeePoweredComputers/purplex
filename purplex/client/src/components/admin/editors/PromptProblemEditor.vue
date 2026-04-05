@@ -275,7 +275,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import type { ProblemEditorEmits, ProblemEditorProps } from './types'
 import type { ProblemFormState } from '@/composables/admin/useProblemForm'
-import type { TerminalRun, TerminalInteraction, FunctionCall } from '@/types'
+import type { FunctionCall, TerminalInteraction, TerminalRun } from '@/types'
 import { log } from '@/utils/logger'
 import Editor from '@/features/editor/Editor.vue'
 import TerminalDisplay from '@/components/ui/TerminalDisplay.vue'
