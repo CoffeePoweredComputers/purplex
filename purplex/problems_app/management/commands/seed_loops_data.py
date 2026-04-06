@@ -102,7 +102,7 @@ class Command(BaseCommand):
                     "Read the function below and explain what it does "
                     "in plain language."
                 ),
-                "function_signature": "def func_e(numbers: list[int]) -> int",
+                "function_signature": "def func_e(numbers: list[int]) -> int:",
                 "function_name": "func_e",
                 "reference_solution": (
                     "def func_e(numbers):\n"
@@ -112,6 +112,7 @@ class Command(BaseCommand):
                     "            count += 1\n"
                     "    return count"
                 ),
+                "segmentation_config": {"enabled": True},
                 "difficulty": "beginner",
                 "is_active": True,
                 "created_by": instructor,
@@ -129,7 +130,7 @@ class Command(BaseCommand):
                     "Read the function below and explain what it does "
                     "in plain language."
                 ),
-                "function_signature": "def func_f(numbers: list[int]) -> int",
+                "function_signature": "def func_f(numbers: list[int]) -> int:",
                 "function_name": "func_f",
                 "reference_solution": (
                     "def func_f(numbers):\n"
@@ -139,6 +140,7 @@ class Command(BaseCommand):
                     "            biggest = n\n"
                     "    return biggest"
                 ),
+                "segmentation_config": {"enabled": True},
                 "difficulty": "beginner",
                 "is_active": True,
                 "created_by": instructor,
@@ -156,7 +158,7 @@ class Command(BaseCommand):
                     "Read the function below and explain what it does "
                     "in plain language."
                 ),
-                "function_signature": "def func_g(text: str) -> str",
+                "function_signature": "def func_g(text: str) -> str:",
                 "function_name": "func_g",
                 "reference_solution": (
                     "def func_g(text):\n"
@@ -165,6 +167,7 @@ class Command(BaseCommand):
                     "        result = char + result\n"
                     "    return result"
                 ),
+                "segmentation_config": {"enabled": True},
                 "difficulty": "intermediate",
                 "is_active": True,
                 "created_by": instructor,
@@ -182,7 +185,7 @@ class Command(BaseCommand):
                     "Read the function below and explain what it does "
                     "in plain language."
                 ),
-                "function_signature": ("def func_h(numbers: list[int]) -> int"),
+                "function_signature": "def func_h(numbers: list[int]) -> int:",
                 "function_name": "func_h",
                 "reference_solution": (
                     "def func_h(numbers):\n"
@@ -193,6 +196,7 @@ class Command(BaseCommand):
                     "        i += 1\n"
                     "    return total"
                 ),
+                "segmentation_config": {"enabled": True},
                 "difficulty": "intermediate",
                 "is_active": True,
                 "created_by": instructor,
@@ -216,7 +220,7 @@ class Command(BaseCommand):
                     "Study the input-output examples in the table below. "
                     "Explain what func_a does in plain language."
                 ),
-                "function_signature": "def func_a(x: int, y: int) -> int",
+                "function_signature": "def func_a(x: int, y: int) -> int:",
                 "function_name": "func_a",
                 "reference_solution": (
                     "def func_a(x, y):\n"
@@ -252,7 +256,7 @@ class Command(BaseCommand):
                     "Study the input-output examples in the table below. "
                     "Explain what func_b does in plain language."
                 ),
-                "function_signature": "def func_b(n: int) -> list[int]",
+                "function_signature": "def func_b(n: int) -> list[int]:",
                 "function_name": "func_b",
                 "reference_solution": (
                     "def func_b(n):\n"
@@ -289,7 +293,7 @@ class Command(BaseCommand):
                     "Study the input-output examples in the table below. "
                     "Explain what func_c does in plain language."
                 ),
-                "function_signature": ("def func_c(items: list[int]) -> list[int]"),
+                "function_signature": "def func_c(items: list[int]) -> list[int]:",
                 "function_name": "func_c",
                 "reference_solution": (
                     "def func_c(items):\n"
@@ -328,7 +332,7 @@ class Command(BaseCommand):
                     "Study the input-output examples in the table below. "
                     "Explain what func_d does in plain language."
                 ),
-                "function_signature": "def func_d(n: int) -> int",
+                "function_signature": "def func_d(n: int) -> int:",
                 "function_name": "func_d",
                 "reference_solution": (
                     "def func_d(n):\n"
@@ -815,7 +819,7 @@ class Command(BaseCommand):
                 "description": (
                     "Practice reading and understanding for-loops and "
                     "while-loops in Python. Includes EiPL (explain the code) "
-                    "and Prompt (explain from an image) problems."
+                    "and Prompt (explain from examples) problems."
                 ),
                 "is_public": True,
                 "created_by": instructor,
