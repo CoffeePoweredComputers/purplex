@@ -76,6 +76,15 @@ class UserRepository(BaseRepository):
             return User.objects.select_related("profile").get(email__iexact=email)
         except User.DoesNotExist:
             return None
+        except User.MultipleObjectsReturned:
+            # DB unique constraint should prevent this, but handle defensively.
+            # Return the most recently active account.
+            return (
+                User.objects.select_related("profile")
+                .filter(email__iexact=email)
+                .order_by("-last_login", "-date_joined")
+                .first()
+            )
 
     @classmethod
     def get_service_account(cls) -> User | None:
