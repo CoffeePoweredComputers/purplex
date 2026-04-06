@@ -132,8 +132,10 @@ const { t, locale } = useI18n()
 // Focus trap composable
 const { modalContentRef } = useFocusTrap(toRef(() => props.isVisible))
 
-function logout(): void {
-  store.dispatch('auth/logout')
+async function logout(): Promise<void> {
+  await store.dispatch('auth/logout')
+  closeModal()
+  router.push({ name: 'Login' })
 }
 
 function closeModal(): void {

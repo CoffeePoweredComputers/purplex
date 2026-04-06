@@ -164,6 +164,10 @@ ensureFirebaseInitialized().then(() => {
       // Clear courses data on logout
       store.commit('courses/SET_ENROLLED_COURSES', [])
       store.commit('courses/SET_CURRENT_COURSE', null)
+      // Redirect to login page if not already there
+      if (router.currentRoute.value.path !== '/') {
+        router.push({ name: 'Login' })
+      }
     }
   }
     });
