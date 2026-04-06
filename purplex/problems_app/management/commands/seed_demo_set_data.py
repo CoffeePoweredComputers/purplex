@@ -607,9 +607,7 @@ class Command(BaseCommand):
                             "line_start": 1,
                             "line_end": 2,
                             "title": "Handle empty input",
-                            "explanation": (
-                                "If the list is empty, there are no runs."
-                            ),
+                            "explanation": ("If the list is empty, there are no runs."),
                         },
                         {
                             "line_start": 3,
