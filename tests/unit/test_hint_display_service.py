@@ -94,9 +94,9 @@ class TestValidateHintType:
 class TestGetHintTypesList:
     """Tests for get_hint_types_list()."""
 
-    def test_returns_three_entries(self):
+    def test_returns_all_hint_type_entries(self):
         result = HintDisplayService.get_hint_types_list()
-        assert len(result) == 3
+        assert len(result) == len(HintDisplayService.HINT_TYPE_DISPLAY_NAMES)
 
     def test_each_entry_has_required_keys(self):
         for entry in HintDisplayService.get_hint_types_list():

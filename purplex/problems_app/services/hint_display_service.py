@@ -19,6 +19,7 @@ class HintDisplayService:
         "variable_fade": "Variable Fade",
         "subgoal_highlight": "Subgoal Highlighting",
         "suggested_trace": "Suggested Trace",
+        "counterexample": "Counterexample",
     }
 
     # Emoji mappings for hint types
@@ -26,6 +27,7 @@ class HintDisplayService:
         "variable_fade": "🏷️",
         "subgoal_highlight": "🎯",
         "suggested_trace": "🔍",
+        "counterexample": "💡",
     }
 
     # Descriptions for hint types
@@ -33,6 +35,7 @@ class HintDisplayService:
         "variable_fade": "Gradually reveals variable names in the solution",
         "subgoal_highlight": "Highlights key subgoals to solve the problem",
         "suggested_trace": "Provides a step-by-step trace through the solution",
+        "counterexample": "Suggests an input to try against the claim",
     }
 
     # Default minimum attempts before hints are available

@@ -173,6 +173,10 @@
       "suggestedTrace": {
         "tryTracing": "Try tracing:",
         "traceInPythonTutor": "Trace in Python Tutor"
+      },
+      "counterexample": {
+        "tryInputs": "Try these inputs:",
+        "explanation": "Hint"
       }
     },
     "eipl": {
