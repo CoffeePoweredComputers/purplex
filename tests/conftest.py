@@ -333,6 +333,35 @@ def user_with_all_consents(db):
 
 
 @pytest.fixture
+def user_without_ai_consent(db):
+    """Create a user with profile but no AI_PROCESSING consent record.
+
+    Represents both pre-consent-framework accounts and freshly created accounts
+    before the first in-app AI consent prompt. Used to exercise the denial path.
+    """
+    u = UserFactory(username="no_ai_consent_user")
+    UserProfileFactory(user=u)
+    return u
+
+
+@pytest.fixture
+def ai_consented_user(db):
+    """User with profile and a granted AI_PROCESSING consent record.
+
+    Use this for tests that exercise the happy path of AI-gated submission
+    flows (EiPL, prompt, etc.). For the denial path, use
+    `user_without_ai_consent` instead. For tests that need consent across
+    every purpose at once, see `user_with_all_consents`.
+    """
+    from purplex.users_app.models import ConsentType
+
+    u = UserFactory(username="ai_consented_user")
+    UserProfileFactory(user=u)
+    UserConsentFactory(user=u, consent_type=ConsentType.AI_PROCESSING)
+    return u
+
+
+@pytest.fixture
 def user_with_deletion_requested(db):
     """Create a user with a pending deletion (inactive, scheduled in the past)."""
     from datetime import timedelta

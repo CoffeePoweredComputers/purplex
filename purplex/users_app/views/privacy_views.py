@@ -20,6 +20,7 @@ from purplex.utils.error_codes import ErrorCode, error_response
 from ..models import (
     AgeVerification,
     AuditAction,
+    ConsentMethod,
     ConsentType,
     DataAccessAuditLog,
     DataPrincipalNominee,
@@ -32,6 +33,13 @@ from ..services.data_export_service import DataExportService
 from ..utils.request_helpers import get_client_ip as _get_client_ip
 
 logger = logging.getLogger(__name__)
+
+# Only self-service consent methods can be supplied by the client.
+# INSTITUTIONAL and PARENTAL imply a third party granted consent and must be
+# set server-side via other code paths.
+ALLOWED_SELF_SERVICE_CONSENT_METHODS = frozenset(
+    [ConsentMethod.REGISTRATION, ConsentMethod.IN_APP]
+)
 
 
 class DataExportView(APIView):
@@ -115,6 +123,7 @@ class ConsentListView(APIView):
     def post(self, request):
         """Grant consent for a specific type."""
         consent_type = request.data.get("consent_type")
+        consent_method = request.data.get("consent_method", ConsentMethod.REGISTRATION)
         ip = _get_client_ip(request)
 
         if not consent_type:
@@ -132,10 +141,18 @@ class ConsentListView(APIView):
                 status.HTTP_400_BAD_REQUEST,
             )
 
+        if consent_method not in ALLOWED_SELF_SERVICE_CONSENT_METHODS:
+            return error_response(
+                "Invalid consent_method. Must be 'registration' or 'in_app'.",
+                ErrorCode.VALIDATION_ERROR,
+                status.HTTP_400_BAD_REQUEST,
+            )
+
         consent = ConsentService.grant_consent(
             user=request.user,
             consent_type=consent_type,
             ip_address=ip,
+            consent_method=consent_method,
         )
 
         return Response(

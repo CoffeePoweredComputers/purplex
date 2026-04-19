@@ -120,7 +120,7 @@
       "invalid_input": "Formato de entrada inválido. Por favor, revisa tus valores.",
       "hint_locked": "Esta pista aún no está disponible.",
       "insufficient_attempts": "Necesitas más intentos antes de que esta pista se desbloquee.",
-      "consent_required": "Se requiere tu consentimiento para continuar.",
+      "consent_required": "AI processing consent is required to continue.",
       "submission_not_found": "Envío no encontrado."
     }
   },

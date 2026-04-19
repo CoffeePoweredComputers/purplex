@@ -1,0 +1,66 @@
+import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios from 'axios';
+import store from '../store';
+import { log } from './logger';
+
+interface ConsentRequiredErrorBody {
+  error: string;
+  code: string;
+  purpose: string;
+}
+
+type ConsentAwareConfig = AxiosRequestConfig & { _consentRetried?: boolean };
+
+/**
+ * Detects `403 + code=consent_required` from the backend and coordinates with
+ * the AIConsentModal to let the user grant consent and retry the original
+ * request. Resolves with the retried response, or rejects with the original
+ * error if the user declines or retry itself fails.
+ *
+ * Concurrent-call dedup lives in the consentPrompt store — we just await its
+ * promise here, so N simultaneous 403s produce ONE modal.
+ *
+ * The `_consentRetried` flag on the request config prevents an infinite loop
+ * if the retry itself somehow still returns 403 (e.g., grant silently failed,
+ * policy-version bump server-side).
+ */
+export async function handleConsentRequired(
+  error: AxiosError<ConsentRequiredErrorBody>,
+): Promise<AxiosResponse> {
+  const originalRequest = error.config as ConsentAwareConfig | undefined;
+  if (!originalRequest || originalRequest._consentRetried) {
+    return Promise.reject(error);
+  }
+
+  const purpose = error.response?.data?.purpose;
+  if (!purpose) {
+    log.error('Consent-required error missing purpose field', error.response?.data);
+    return Promise.reject(error);
+  }
+
+  const granted: boolean = await store.dispatch(
+    'consentPrompt/requestDecision',
+    purpose,
+  );
+
+  if (!granted) {
+    return Promise.reject(error);
+  }
+
+  originalRequest._consentRetried = true;
+  return axios(originalRequest);
+}
+
+/**
+ * Predicate for the response interceptor wiring. Kept exported so tests can
+ * assert on detection logic without mocking the full axios stack.
+ */
+export function isConsentRequiredError(
+  error: AxiosError<Partial<ConsentRequiredErrorBody>> | AxiosError,
+): boolean {
+  return (
+    error.response?.status === 403 &&
+    (error.response?.data as Partial<ConsentRequiredErrorBody> | undefined)?.code ===
+      'consent_required'
+  );
+}

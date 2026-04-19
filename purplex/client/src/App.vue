@@ -34,6 +34,7 @@
 
     <NotificationToast />
     <CookieConsent />
+    <AIConsentModal />
     <footer class="app-footer">
       <div class="footer-content">
         <div class="footer-left">
@@ -78,6 +79,7 @@ import Login from './features/auth/Login.vue';
 import NavBar from './components/NavBar.vue';
 import NotificationToast from './components/NotificationToast.vue';
 import CookieConsent from './components/privacy/CookieConsent.vue';
+import AIConsentModal from './components/privacy/AIConsentModal.vue';
 
 export default defineComponent({
     name: 'App',
@@ -85,7 +87,8 @@ export default defineComponent({
         Login,
         NavBar,
         NotificationToast,
-        CookieConsent
+        CookieConsent,
+        AIConsentModal
     },
     setup() {
         const store = useStore();

@@ -8,6 +8,7 @@ import { getStoredLocale, i18n, setLocale } from './i18n';
 import { log } from './utils/logger';
 import { environment } from './services/environment';
 import { ensureFirebaseInitialized, firebaseAuth } from './firebaseConfig';
+import { handleConsentRequired, isConsentRequiredError } from './utils/consentInterceptor';
 
 // Configure axios with environment-aware settings
 axios.defaults.withCredentials = true;
@@ -89,6 +90,12 @@ axios.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
+
+    // Intercept AI-consent denial BEFORE the 401 path: surface the in-app
+    // grant modal, then retry the original request if the user consents.
+    if (isConsentRequiredError(error)) {
+      return handleConsentRequired(error);
+    }
 
     // If 401 and haven't retried yet, try refreshing token
     if (error.response?.status === 401) {

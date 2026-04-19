@@ -235,6 +235,18 @@ class ActivityHandler(ABC):
         """
         pass
 
+    # ─── Policy Declarations ────────────────────────────────────
+
+    def requires_ai_consent(self) -> bool:
+        """
+        Whether this activity type sends user input through AI processing.
+
+        Handlers that invoke LLM calls (EiPL, Prompt, etc.) should override
+        to return True. The submission view gates on this before creating a
+        Submission row so denial produces a structured 403 without orphan data.
+        """
+        return False
+
     # ─── Optional Hooks ─────────────────────────────────────────
 
     def on_submission_created(self, submission: "Submission") -> None:
