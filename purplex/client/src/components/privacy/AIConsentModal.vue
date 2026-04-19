@@ -81,7 +81,9 @@ async function onGrant() {
 }
 
 function onDecline() {
-  if (loading.value) return;
+  if (loading.value) {
+    return;
+  }
   errorMessage.value = null;
   store.dispatch('consentPrompt/resolveDecision', false);
 }

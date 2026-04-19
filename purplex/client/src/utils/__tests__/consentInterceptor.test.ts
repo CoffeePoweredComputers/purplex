@@ -1,6 +1,5 @@
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
-import type { AxiosError } from 'axios'
-import axios from 'axios'
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
+import axios, { type AxiosError } from 'axios'
 import { createStore, type Store } from 'vuex'
 import { consentPrompt, type ConsentPromptState } from '../../store/consentPrompt.module'
 
@@ -125,7 +124,7 @@ describe('handleConsentRequired', () => {
   })
 
   it('deduplicates concurrent requests so one modal serves many 403s', async () => {
-    ;(axios as unknown as Mock).mockResolvedValue({ status: 200, data: {} })
+    (axios as unknown as Mock).mockResolvedValue({ status: 200, data: {} })
 
     const first = handleConsentRequired(consentError({ url: '/api/submit/' }))
     const second = handleConsentRequired(consentError({ url: '/api/submit/' }))
