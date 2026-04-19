@@ -27,6 +27,12 @@ function mountModal() {
 describe('AIConsentModal', () => {
   beforeEach(() => {
     grantConsentMock.mockReset()
+    // consentPrompt keeps its pending resolver/promise at module scope, so a
+    // test that leaves the prompt unresolved (e.g., the render-only case)
+    // would otherwise pollute the next test's module state across the fresh
+    // store boundary. resolveDecision clears both Vuex and module state.
+    const resetStore = createStore({ modules: { consentPrompt } })
+    resetStore.dispatch('consentPrompt/resolveDecision', false)
   })
 
   it('is hidden when consent prompt is not visible', () => {

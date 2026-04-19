@@ -141,7 +141,13 @@ class ConsentListView(APIView):
                 status.HTTP_400_BAD_REQUEST,
             )
 
-        if consent_method not in ALLOWED_SELF_SERVICE_CONSENT_METHODS:
+        # isinstance check guards against non-hashable JSON values (list/dict),
+        # which would otherwise raise TypeError on the frozenset membership test
+        # and surface as a 500 via the exception handler's catch-all.
+        if (
+            not isinstance(consent_method, str)
+            or consent_method not in ALLOWED_SELF_SERVICE_CONSENT_METHODS
+        ):
             return error_response(
                 "Invalid consent_method. Must be 'registration' or 'in_app'.",
                 ErrorCode.VALIDATION_ERROR,

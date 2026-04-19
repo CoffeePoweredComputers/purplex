@@ -37,13 +37,26 @@ export const consentPrompt: Module<ConsentPromptState, unknown> = {
      * Returns a promise that resolves when the user decides. If a prompt is
      * already visible for the same purpose, the existing promise is returned
      * so concurrent AI-gated requests share one decision.
+     *
+     * If a prompt is pending for a DIFFERENT purpose, the new call rejects
+     * immediately rather than clobbering the in-flight resolver (which would
+     * leave the original awaiters hanging forever). The store tracks a single
+     * purpose at a time; supporting simultaneous distinct prompts is a scope
+     * change that needs explicit design.
      */
     requestDecision(
       { commit, state }: ConsentPromptActionContext,
       purpose: string,
     ): Promise<boolean> {
-      if (pendingPromise && state.purpose === purpose) {
-        return pendingPromise;
+      if (pendingPromise) {
+        if (state.purpose === purpose) {
+          return pendingPromise;
+        }
+        return Promise.reject(
+          new Error(
+            `consentPrompt: "${state.purpose}" is already pending; cannot start "${purpose}".`,
+          ),
+        );
       }
 
       pendingPromise = new Promise<boolean>((resolve) => {

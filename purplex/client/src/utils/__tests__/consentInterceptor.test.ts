@@ -46,7 +46,7 @@ function consentError(config: { url?: string; _consentRetried?: boolean } = {}) 
 }
 
 describe('isConsentRequiredError', () => {
-  it('returns true for 403 + consent_required code', () => {
+  it('returns true for 403 + consent_required + purpose=ai_processing', () => {
     expect(isConsentRequiredError(consentError())).toBe(true)
   })
 
@@ -67,14 +67,35 @@ describe('isConsentRequiredError', () => {
   it('returns false when response is missing (network error)', () => {
     expect(isConsentRequiredError({} as AxiosError)).toBe(false)
   })
+
+  it('returns false for consent_required without a purpose field', () => {
+    // The generic consent_required code is used by non-AI gates
+    // (e.g. behavioral_tracking in activity_event_views) that don't set purpose.
+    const err = {
+      response: { status: 403, data: { code: 'consent_required' } },
+    } as unknown as AxiosError
+    expect(isConsentRequiredError(err)).toBe(false)
+  })
+
+  it('returns false for consent_required with a non-AI purpose', () => {
+    const err = {
+      response: {
+        status: 403,
+        data: { code: 'consent_required', purpose: 'behavioral_tracking' },
+      },
+    } as unknown as AxiosError
+    expect(isConsentRequiredError(err)).toBe(false)
+  })
 })
 
 describe('handleConsentRequired', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Reset store state between tests — the module keeps promise plumbing
-    // in module-scope that would otherwise leak across cases.
-    store.commit('consentPrompt/hide')
+    // Module-scope promise plumbing leaks across tests. resolveDecision
+    // clears both Vuex state AND the module-level resolver/promise; the
+    // older `commit('hide')` only cleared Vuex state, leaving the module
+    // globals set and tripping the new purpose-collision guard.
+    store.dispatch('consentPrompt/resolveDecision', false)
   })
 
   it('retries the original request when the user grants consent', async () => {

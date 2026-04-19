@@ -54,13 +54,20 @@ export async function handleConsentRequired(
 /**
  * Predicate for the response interceptor wiring. Kept exported so tests can
  * assert on detection logic without mocking the full axios stack.
+ *
+ * The backend's `consent_required` error code is generic — it's also returned
+ * for non-AI gates like behavioral_tracking (see activity_event_views.py). We
+ * match on `purpose === 'ai_processing'` so only AI-consent denials trigger
+ * the modal/retry flow; other consent 403s fall through to normal error
+ * handling.
  */
 export function isConsentRequiredError(
   error: AxiosError<Partial<ConsentRequiredErrorBody>> | AxiosError,
 ): boolean {
+  const data = error.response?.data as Partial<ConsentRequiredErrorBody> | undefined;
   return (
     error.response?.status === 403 &&
-    (error.response?.data as Partial<ConsentRequiredErrorBody> | undefined)?.code ===
-      'consent_required'
+    data?.code === 'consent_required' &&
+    data?.purpose === 'ai_processing'
   );
 }

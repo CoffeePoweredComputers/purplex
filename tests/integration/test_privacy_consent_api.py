@@ -126,6 +126,24 @@ class TestConsentListAPI:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_post_rejects_non_string_consent_method(self, authenticated_client):
+        """Non-hashable values (list, dict) would raise TypeError on the
+        frozenset membership test and surface as a 500 without the isinstance
+        guard. Attacker-supplied JSON must fail closed with a clean 400."""
+        for bad_value in ([1, 2], {"x": 1}, 42, True):
+            response = authenticated_client.post(
+                "/api/users/me/consents/",
+                {
+                    "consent_type": ConsentType.AI_PROCESSING,
+                    "consent_method": bad_value,
+                },
+                format="json",
+            )
+            assert response.status_code == status.HTTP_400_BAD_REQUEST, (
+                f"consent_method={bad_value!r} should yield 400, "
+                f"got {response.status_code}"
+            )
+
 
 class TestConsentWithdrawAPI:
     """Tests for DELETE /api/users/me/consents/<consent_type>/."""
