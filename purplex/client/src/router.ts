@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import store from "./store"; // Import the Vuex store
-import { waitForAuthState } from "./utils/auth-state";
 
 // Eagerly load only critical components
 import Login from "./features/auth/Login.vue";
@@ -276,9 +275,24 @@ router.beforeEach(async (to, _from, next) => {
     // Use the debug mode from the Vuex store for consistency
     const debugBypassAuth = store.state.auth.debug;
 
-    // Wait for auth state to be determined
-    await waitForAuthState();
-    await store.dispatch('auth/checkAuthState');
+    // Wait for auth to be determined by App.mounted() — single source of truth.
+    // Don't independently init Firebase here (causes race conditions / hangs).
+    if (!store.getters['auth/isAuthReady']) {
+        await new Promise<void>(resolve => {
+            const unwatch = store.watch(
+                (state) => state.auth.authReady,
+                (ready) => {
+                    if (ready) {
+                        unwatch();
+                        resolve();
+                    }
+                },
+                { immediate: true }
+            );
+            // Safety timeout — never hang longer than 5s
+            setTimeout(() => { resolve(); }, 5000);
+        });
+    }
 
     // Use persistent state from Vuex store
     const isAuthenticated = store.getters['auth/isLoggedIn'];
@@ -294,11 +308,8 @@ router.beforeEach(async (to, _from, next) => {
     if (requiresAuth && !isAuthenticated && !debugBypassAuth) {
         next("/");
     } else if (requiresAdmin && !isAdmin && !debugBypassAuth) {
-        // Redirect non-admin users trying to access admin routes
         next("/");
     } else if (requiresInstructor && !isInstructor && !debugBypassAuth) {
-        // Redirect non-instructor users trying to access instructor routes
-        // FERPA: Ensure only instructors can access instructor panel
         next("/");
     } else {
         next();
