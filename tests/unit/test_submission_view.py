@@ -26,8 +26,6 @@ from tests.factories import (
     PromptProblemFactory,
     RefuteProblemFactory,
     TestCaseFactory,
-    UserFactory,
-    UserProfileFactory,
 )
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
@@ -46,15 +44,20 @@ PROGRESS_SERVICE = "purplex.problems_app.services.progress_service.ProgressServi
 
 
 @pytest.fixture
-def enrolled_user():
-    """User enrolled in a course with a problem set."""
-    user = UserFactory()
-    UserProfileFactory(user=user)
+def enrolled_user(ai_consented_user):
+    """User with AI_PROCESSING consent, enrolled in a course with a problem set.
+
+    Composed on `ai_consented_user` so the consent dependency is an explicit
+    named fixture rather than a silent grant. Tests exercising AI-consent
+    denial should depend on `user_without_ai_consent` instead — see
+    `tests/integration/test_eipl_submission_consent.py` for the canonical
+    pattern.
+    """
     course = CourseFactory()
-    CourseEnrollmentFactory(user=user, course=course)
+    CourseEnrollmentFactory(user=ai_consented_user, course=course)
     problem_set = ProblemSetFactory()
     CourseProblemSetFactory(course=course, problem_set=problem_set)
-    return {"user": user, "course": course, "problem_set": problem_set}
+    return {"user": ai_consented_user, "course": course, "problem_set": problem_set}
 
 
 @pytest.fixture
@@ -104,9 +107,9 @@ class TestMCQSubmissionView:
             course_id=enrolled_user["course"].course_id,
         )
 
-        assert (
-            response.status_code == 200
-        ), f"Expected 200, got {response.status_code}: {response.data}"
+        assert response.status_code == 200, (
+            f"Expected 200, got {response.status_code}: {response.data}"
+        )
         assert response.data["status"] == "complete"
         assert response.data["is_correct"] is True
         assert response.data["problem_type"] == "mcq"
@@ -238,9 +241,9 @@ class TestAsyncSubmissionView:
                 course_id=enrolled_user["course"].course_id,
             )
 
-        assert (
-            response.status_code == 202
-        ), f"{handler_type}: expected 202, got {response.status_code}: {response.data}"
+        assert response.status_code == 202, (
+            f"{handler_type}: expected 202, got {response.status_code}: {response.data}"
+        )
         assert response.data["status"] == "processing"
         assert "task_id" in response.data
 

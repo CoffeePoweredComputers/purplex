@@ -32,6 +32,25 @@ describe('PrivacyService', () => {
       })
       expect(result.granted).toBe(true)
     })
+
+    it('passes consent_method when provided (in-app modal tags the audit record)', async () => {
+      const mockData = { consent_type: 'ai_processing', granted: true }
+      vi.mocked(axios.post).mockResolvedValue({ data: mockData })
+
+      await privacyService.grantConsent('ai_processing', { consent_method: 'in_app' })
+      expect(axios.post).toHaveBeenCalledWith('/api/users/me/consents/', {
+        consent_type: 'ai_processing',
+        consent_method: 'in_app',
+      })
+    })
+
+    it('omits consent_method from payload when not supplied', async () => {
+      vi.mocked(axios.post).mockResolvedValue({ data: {} })
+
+      await privacyService.grantConsent('ai_processing')
+      const payload = vi.mocked(axios.post).mock.calls[0][1]
+      expect(payload).not.toHaveProperty('consent_method')
+    })
   })
 
   describe('withdrawConsent', () => {

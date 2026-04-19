@@ -114,6 +114,42 @@ class TestExceptionHandlerMapping:
         assert response.status_code == 405
         assert "error" in response.data
 
+    # -- AI consent denial --
+
+    def test_ai_consent_error_returns_structured_403(self, handler_context):
+        """AIConsentNotGrantedError must surface as 403 + code=consent_required
+        so the frontend can route it to the in-app grant modal instead of a
+        dead-end error."""
+        from purplex.users_app.services.consent_service import AIConsentNotGrantedError
+
+        response = custom_exception_handler(
+            AIConsentNotGrantedError("User has not consented to AI processing"),
+            handler_context,
+        )
+        assert response is not None
+        assert response.status_code == 403
+        assert response.data == {
+            "error": "User has not consented to AI processing",
+            "code": "consent_required",
+            "purpose": "ai_processing",
+        }
+
+    def test_ai_consent_error_for_minor_preserves_message(self, handler_context):
+        """Parental-consent message (distinct from the generic message) must
+        reach the client unchanged."""
+        from purplex.users_app.services.consent_service import AIConsentNotGrantedError
+
+        response = custom_exception_handler(
+            AIConsentNotGrantedError(
+                "Parental consent required for AI processing of minor's data"
+            ),
+            handler_context,
+        )
+        assert response is not None
+        assert response.status_code == 403
+        assert response.data["code"] == "consent_required"
+        assert "Parental consent" in response.data["error"]
+
     # -- Unknown exceptions: catch-all JSON 500 --
 
     def test_unhandled_exception_returns_500(self, handler_context):

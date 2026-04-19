@@ -91,6 +91,18 @@ class ActivitySubmissionView(APIView):
 
         handler = get_handler(problem_type)
 
+        # Pre-flight AI consent check. Done here (before submission creation) so
+        # denial produces a structured 403 via the custom exception handler
+        # without leaving an orphan Submission row. The Celery pipeline also
+        # checks consent as defense-in-depth for any bypass path.
+        if handler.requires_ai_consent():
+            from django.conf import settings as django_settings
+
+            from purplex.users_app.services.consent_service import ConsentService
+
+            if getattr(django_settings, "PRIVACY_ENABLE_AI_CONSENT_GATE", False):
+                ConsentService.check_ai_consent(request.user)
+
         logger.info(
             f"Activity submission for {problem_type} problem {problem.slug} by user {request.user.username}"
         )

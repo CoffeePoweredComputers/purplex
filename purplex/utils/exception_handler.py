@@ -18,6 +18,22 @@ logger = logging.getLogger(__name__)
 
 
 def custom_exception_handler(exc, context):
+    # Lazy import to avoid circular dependency (users_app.services imports models).
+    from purplex.users_app.services.consent_service import AIConsentNotGrantedError
+    from purplex.utils.error_codes import ErrorCode
+
+    # Map consent-denial to a structured 403 so the frontend can surface the
+    # in-app grant modal instead of a dead-end error.
+    if isinstance(exc, AIConsentNotGrantedError):
+        return Response(
+            {
+                "error": str(exc),
+                "code": ErrorCode.CONSENT_REQUIRED,
+                "purpose": "ai_processing",
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     # Let DRF handle its own exceptions first (ValidationError, NotAuthenticated, etc.)
     response = drf_default_handler(exc, context)
 

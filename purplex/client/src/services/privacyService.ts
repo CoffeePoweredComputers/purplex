@@ -9,6 +9,10 @@ export type ConsentType =
     | 'research_use'
     | 'behavioral_tracking';
 
+// Only self-service methods are accepted by the grant endpoint; the server
+// rejects institutional/parental to keep the audit trail honest.
+export type ConsentMethod = 'registration' | 'in_app';
+
 export interface ConsentStatus {
     granted: boolean;
     granted_at: string | null;
@@ -61,10 +65,17 @@ class PrivacyService {
         return response.data;
     }
 
-    async grantConsent(consentType: ConsentType): Promise<ConsentRecord> {
-        const response = await axios.post('/api/users/me/consents/', {
+    async grantConsent(
+        consentType: ConsentType,
+        options?: { consent_method?: ConsentMethod },
+    ): Promise<ConsentRecord> {
+        const payload: { consent_type: ConsentType; consent_method?: ConsentMethod } = {
             consent_type: consentType,
-        });
+        };
+        if (options?.consent_method) {
+            payload.consent_method = options.consent_method;
+        }
+        const response = await axios.post('/api/users/me/consents/', payload);
         return response.data;
     }
 

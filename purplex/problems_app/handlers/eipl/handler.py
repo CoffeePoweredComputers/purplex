@@ -319,6 +319,9 @@ class EiPLHandler(ActivityHandler):
 
     # ─── Submission Execution ─────────────────────────────────────
 
+    def requires_ai_consent(self) -> bool:
+        return True
+
     def submit(
         self,
         submission: "Submission",
