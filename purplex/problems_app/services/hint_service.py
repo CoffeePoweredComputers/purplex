@@ -282,6 +282,18 @@ class AdminHintService:
             )
             hint_types_found.add(hint.hint_type)
 
+        # Build default content for counterexample from RefuteProblem if available
+        counterexample_default = {"input": {}, "explanation": ""}
+        try:
+            refute = problem.refuteproblem
+            if refute.expected_counterexample:
+                counterexample_default = {
+                    "input": refute.expected_counterexample,
+                    "explanation": "",
+                }
+        except Exception:
+            pass  # Not a RefuteProblem or no expected_counterexample
+
         # Add default configs for missing hint types
         for hint_type in HintRepository.get_valid_hint_types():
             if hint_type not in hint_types_found:
@@ -289,6 +301,7 @@ class AdminHintService:
                     "variable_fade": {"mappings": []},
                     "subgoal_highlight": {"subgoals": []},
                     "suggested_trace": {"suggested_call": "", "explanation": ""},
+                    "counterexample": counterexample_default,
                 }
                 hint_configs.append(
                     {

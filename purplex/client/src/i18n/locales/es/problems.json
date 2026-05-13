@@ -173,6 +173,10 @@
       "suggestedTrace": {
         "tryTracing": "Intenta trazar:",
         "traceInPythonTutor": "Trazar en Python Tutor"
+      },
+      "counterexample": {
+        "tryInputs": "Prueba estas entradas:",
+        "explanation": "Pista"
       }
     },
     "eipl": {

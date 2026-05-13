@@ -364,6 +364,13 @@
           @close="removeHint('suggested_trace')"
         />
 
+        <!-- Counterexample Hint Overlay -->
+        <CounterexampleOverlay
+          v-for="(overlay, index) in counterexampleOverlays"
+          :key="`counterexample-${index}`"
+          v-bind="overlay.props"
+        />
+
         <!-- Submission section -->
         <div class="submission-section">
           <InputSelector
@@ -417,6 +424,7 @@ import TerminalDisplay from '@/components/ui/TerminalDisplay.vue'
 import FunctionCallTable from '@/components/ui/FunctionCallTable.vue'
 import HintButton from "@/components/HintButton.vue"
 import SuggestedTraceOverlay from "@/components/hints/SuggestedTraceOverlay.vue"
+import CounterexampleOverlay from "@/components/hints/CounterexampleOverlay.vue"
 import PyTutorModal from "@/modals/PyTutorModal.vue"
 import InputSelector from "@/components/activities/InputSelector.vue"
 import FeedbackSelector from "@/components/activities/FeedbackSelector.vue"
@@ -444,6 +452,7 @@ export default {
         FunctionCallTable,
         HintButton,
         SuggestedTraceOverlay,
+        CounterexampleOverlay,
         PyTutorModal,
         InputSelector,
         FeedbackSelector
@@ -607,6 +616,12 @@ export default {
         suggestedTraceOverlays() {
             return (this.activeOverlays || []).filter(
                 overlay => overlay && overlay.component === 'SuggestedTraceOverlay'
+            );
+        },
+
+        counterexampleOverlays() {
+            return (this.activeOverlays || []).filter(
+                overlay => overlay && overlay.component === 'CounterexampleOverlay'
             );
         },
 

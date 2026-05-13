@@ -336,14 +336,15 @@ class TestAdminHintEndpoints:
         data = response.json()
 
         assert data["problem_slug"] == problem.slug
-        # Should include default configs for missing types
-        assert len(data["hints"]) == 3
+        # Should include default configs for all hint types (including counterexample)
+        assert len(data["hints"]) == len(ProblemHint.HINT_TYPE_CHOICES)
 
         # Check that all hint types are present
         hint_types = [hint["type"] for hint in data["hints"]]
         assert "variable_fade" in hint_types
         assert "subgoal_highlight" in hint_types
         assert "suggested_trace" in hint_types
+        assert "counterexample" in hint_types
 
     def test_admin_update_hints_success(self, api_client, admin_user, problem):
         """Test admin endpoint to update hint configurations."""
