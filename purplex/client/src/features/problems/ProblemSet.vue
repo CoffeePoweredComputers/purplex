@@ -2098,14 +2098,6 @@ export default {
                     const success = await this.applyHint(hintType, hintData);
                     if (success) {
                         this.logger.info('Applied hint', { hintType });
-
-                        // Track hint usage for backend submission
-                        this.onHintUsed({
-                            problemSlug: this.getCurrentProblem().slug,
-                            hintType: hintType,
-                            timestamp: new Date().toISOString()
-                        });
-
                     } else {
                         this.logger.error('Failed to apply hint', { hintType });
                     }
