@@ -13,6 +13,9 @@ from rest_framework import status
 
 from purplex.submissions.models import ActivityEvent
 from tests.factories import (
+    CourseEnrollmentFactory,
+    CourseFactory,
+    CourseProblemSetFactory,
     EiplProblemFactory,
     ProbeableCodeProblemFactory,
     ProblemHintFactory,
@@ -153,7 +156,59 @@ class TestHintViewEventRecording:
 
         event = events.first()
         assert event.user == user
+        assert event.problem == problem
+        assert event.course is None
         assert event.payload["hint_type"] == "variable_fade"
+        assert event.payload["problem_slug"] == problem.slug
+
+    def test_hint_view_records_course_fk_when_course_context_provided(
+        self, api_client
+    ):
+        """When course_id is sent as a query param the resulting hint.view
+        ActivityEvent has both problem and course FKs populated.
+
+        This is what Kate's analysis pipeline relies on for per-course
+        attribution — without it, every hint.view row has course=None and
+        course assignment can only be inferred via CourseEnrollment joins.
+        """
+        user = UserFactory()
+        problem = EiplProblemFactory()
+        problem_set = ProblemSetFactory()
+        ProblemSetMembershipFactory(problem=problem, problem_set=problem_set, order=1)
+        course = CourseFactory()
+        CourseEnrollmentFactory(user=user, course=course)
+        CourseProblemSetFactory(course=course, problem_set=problem_set)
+        ProblemHintFactory(
+            problem=problem,
+            hint_type="variable_fade",
+            min_attempts=1,
+            content={"mappings": [{"from": "x", "to": "count"}]},
+        )
+        UserProgressFactory(
+            user=user,
+            problem=problem,
+            problem_set=problem_set,
+            course=course,
+            attempts=2,
+        )
+
+        api_client.force_authenticate(user=user)
+        url = reverse(
+            "problem_hint_detail",
+            kwargs={"slug": problem.slug, "hint_type": "variable_fade"},
+        )
+        response = api_client.get(
+            url,
+            {"problem_set_slug": problem_set.slug, "course_id": course.course_id},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+        event = ActivityEvent.objects.get(event_type="hint.view")
+        assert event.user == user
+        assert event.problem == problem
+        assert event.course == course
+        assert event.payload["course_id"] == course.course_id
         assert event.payload["problem_slug"] == problem.slug
 
     def test_hint_view_no_event_on_error(self, api_client):

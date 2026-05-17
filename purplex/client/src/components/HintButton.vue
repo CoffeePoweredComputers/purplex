@@ -329,7 +329,10 @@ export default {
 
       this.loading = true
       try {
-        const response = await problemService.getHintContent(this.problemSlug, hintType)
+        const response = await problemService.getHintContent(this.problemSlug, hintType, {
+          courseId: this.courseId,
+          problemSetSlug: this.problemSetSlug
+        })
 
         // Validate that we're still on the same problem after async operation
         if (this.problemSlug !== requestProblemSlug) {
@@ -378,7 +381,10 @@ export default {
         // Store the current problem slug to validate against
         const loadProblemSlug = this.problemSlug
 
-        const response = await problemService.getHintContent(this.problemSlug, hintType)
+        const response = await problemService.getHintContent(this.problemSlug, hintType, {
+          courseId: this.courseId,
+          problemSetSlug: this.problemSetSlug
+        })
 
         // Validate that we're still on the same problem after async operation
         if (this.problemSlug !== loadProblemSlug) {

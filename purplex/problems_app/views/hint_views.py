@@ -9,6 +9,7 @@ from purplex.users_app.permissions import IsAdmin, IsAuthenticated, IsInstructor
 from purplex.utils.error_codes import ErrorCode, error_response
 
 from ..repositories import ProblemRepository
+from ..repositories.course_repository import CourseRepository
 from ..services.course_service import CourseService
 from ..services.hint_display_service import HintDisplayService
 from ..services.hint_service import AdminHintService, HintService
@@ -123,8 +124,13 @@ class ProblemHintDetailView(APIView):
             else:
                 return error_response(message, ErrorCode.SERVER_ERROR, 500)
 
-        # Record durable activity event for hint delivery
+        # Record durable activity event for hint delivery. Resolve to FK
+        # objects so queries can join on ActivityEvent.problem/course directly
+        # without JSON-extracting from payload.
         from purplex.submissions.activity_event_service import ActivityEventService
+
+        problem = ProblemRepository.get_problem_by_slug(slug)
+        course = CourseRepository.get_active_course(course_id) if course_id else None
 
         ActivityEventService.record_best_effort(
             user=request.user,
@@ -135,6 +141,8 @@ class ProblemHintDetailView(APIView):
                 "course_id": course_id,
                 "min_attempts": hint_data.get("min_attempts"),
             },
+            problem=problem,
+            course=course,
         )
 
         # Return successful response

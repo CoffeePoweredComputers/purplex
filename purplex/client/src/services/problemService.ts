@@ -279,20 +279,32 @@ class ProblemServiceImpl {
    * Get specific hint content for a problem
    * @param problemSlug - Problem slug identifier
    * @param hintType - Type of hint to retrieve
+   * @param context - Optional course context (forwarded as query params so the
+   *   backend can attribute the resulting hint.view ActivityEvent to a course)
    * @returns Promise resolving to hint content
    * @throws APIError on request failure
    */
   async getHintContent(
     problemSlug: string,
-    hintType: 'variable_fade' | 'subgoal_highlight' | 'suggested_trace'
+    hintType: 'variable_fade' | 'subgoal_highlight' | 'suggested_trace',
+    context?: { courseId?: string; problemSetSlug?: string }
   ): Promise<{
     type: string;
     content: Record<string, unknown>;
     min_attempts: number;
   }> {
     try {
+      const params: Record<string, string> = {};
+      if (context?.courseId) {
+        params.course_id = context.courseId;
+      }
+      if (context?.problemSetSlug) {
+        params.problem_set_slug = context.problemSetSlug;
+      }
+
       const response = await axios.get(
-        `/api/problems/${problemSlug}/hints/${hintType}/`
+        `/api/problems/${problemSlug}/hints/${hintType}/`,
+        { params }
       );
       return response.data;
     } catch (error) {
