@@ -410,7 +410,28 @@ describe('ProblemService', () => {
         const result = await problemService.getHintContent('two-sum', 'variable_fade')
 
         expect(axios.get).toHaveBeenCalledWith(
-          '/api/problems/two-sum/hints/variable_fade/'
+          '/api/problems/two-sum/hints/variable_fade/',
+          { params: {} }
+        )
+        expect(result).toEqual(mockHintContent)
+      })
+
+      it('should forward course context as query params', async () => {
+        (axios.get as Mock).mockResolvedValue({ data: mockHintContent })
+
+        const result = await problemService.getHintContent('two-sum', 'variable_fade', {
+          courseId: 'cs101',
+          problemSetSlug: 'week-1'
+        })
+
+        expect(axios.get).toHaveBeenCalledWith(
+          '/api/problems/two-sum/hints/variable_fade/',
+          {
+            params: {
+              course_id: 'cs101',
+              problem_set_slug: 'week-1'
+            }
+          }
         )
         expect(result).toEqual(mockHintContent)
       })
