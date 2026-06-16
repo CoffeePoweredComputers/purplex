@@ -125,8 +125,7 @@ class Command(BaseCommand):
                 "function_signature": "def transform(lst: list[int]) -> list[int]",
                 "function_name": "transform",
                 "reference_solution": (
-                    "def transform(lst):\n"
-                    "    return [x * 2 for x in lst if x > 0]"
+                    "def transform(lst):\n    return [x * 2 for x in lst if x > 0]"
                 ),
                 "show_function_signature": True,
                 "probe_mode": "explore",
