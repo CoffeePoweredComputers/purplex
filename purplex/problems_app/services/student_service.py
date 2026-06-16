@@ -143,6 +143,7 @@ class StudentService:
                     # Core fields (all problem types)
                     "slug": problem["slug"],
                     "title": problem["title"],
+                    "description": problem["description"],
                     "difficulty": problem["difficulty"],
                     "problem_type": problem["problem_type"],
                     "order": membership["order"],

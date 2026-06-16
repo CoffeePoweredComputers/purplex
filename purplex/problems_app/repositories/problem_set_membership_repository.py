@@ -133,6 +133,7 @@ class ProblemSetMembershipRepository(BaseRepository):
                 "id": problem.id,
                 "slug": problem.slug,
                 "title": problem.title,
+                "description": problem.description,
                 "difficulty": problem.difficulty,
                 "problem_type": problem.problem_type,
                 "is_active": problem.is_active,
