@@ -191,7 +191,7 @@
       "sectionLabel": "Descubre el Comportamiento de la Función y Replica la Implementación"
     },
     "probeableSpec": {
-      "sectionLabel": "Descubre y explica la función",
+      "sectionLabel": "Descubre y mejora la especificación",
       "describeFunction": "Describe Qué Hace la Función"
     },
     "debugFix": {

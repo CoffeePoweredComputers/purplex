@@ -275,7 +275,7 @@ class ProbeableSpecHandler(ActivityHandler):
                 "show_reference_code": False,  # Don't show oracle code
                 "show_function_signature": show_signature,
                 "code_read_only": True,  # Read-only code display (if any)
-                "section_label": "Discover and explain the function",
+                "section_label": "Discover and improve the specification",
             },
             "input": {
                 "type": "probeable_spec",  # Combined probe + NL input
