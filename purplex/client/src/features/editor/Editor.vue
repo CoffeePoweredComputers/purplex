@@ -69,6 +69,7 @@ const props = withDefaults(defineProps<{
   markers?: EditorMarker[]
   tabTargetId?: string | null
   focusScopeSelector?: string | null
+  placeholder?: string
 }>(), {
   lang: 'python',
   theme: 'tomorrow_night',
@@ -84,7 +85,8 @@ const props = withDefaults(defineProps<{
   readOnly: false,
   markers: () => [],
   tabTargetId: null,
-  focusScopeSelector: null
+  focusScopeSelector: null,
+  placeholder: ''
 })
 
 const emit = defineEmits<{
@@ -154,7 +156,8 @@ function editorInit(editorInstance: AceEditor): void {
     highlightGutterLine: false,
     showPrintMargin: false,
     wrap: true,
-    indentedSoftWrap: false
+    indentedSoftWrap: false,
+    placeholder: props.placeholder
   })
 
   // Make editor container tabbable
@@ -357,6 +360,13 @@ watch(() => props.value, (newValue) => {
 watch(() => props.markers, () => {
   applyMarkers()
 }, { deep: true })
+
+/* Update placeholder text when the prop changes */
+watch(() => props.placeholder, (newPlaceholder) => {
+  if (editor.value) {
+    editor.value.setOption('placeholder', newPlaceholder)
+  }
+})
 
 // Expose editor instance if needed
 defineExpose({

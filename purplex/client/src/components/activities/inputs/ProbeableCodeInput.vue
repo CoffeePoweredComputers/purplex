@@ -52,6 +52,7 @@
         :show-gutter="true"
         :wrap="false"
         :theme="editorTheme"
+        :placeholder="placeholder"
       />
     </div>
     <button
@@ -149,7 +150,11 @@ const {
 
 const { t } = useI18n()
 
-const sectionLabel = t('problems.probeableCode.sectionLabel')
+const sectionLabel = computed(() => {
+  return props.problem?.display_config?.section_label || t('problems.probeableCode.sectionLabel')
+})
+
+const placeholder = computed(() => props.problem?.input_config?.placeholder || '')
 
 // Code editor logic
 const inputValue = computed({

@@ -20,8 +20,10 @@
               :value="probeInputs[param.name]"
               type="text"
               class="param-input"
-              :placeholder="param.type"
-              :aria-label="$t('problems.probe.paramAriaLabel', { name: param.name, type: param.type })"
+              :placeholder="param.type || $t('problems.probe.valuePlaceholder')"
+              :aria-label="param.type
+                ? $t('problems.probe.paramAriaLabel', { name: param.name, type: param.type })
+                : $t('problems.probe.paramAriaLabelNoType', { name: param.name })"
               :disabled="!canProbe || isExecuting"
               @input="$emit('update-input', param.name, ($event.target as HTMLInputElement).value)"
               @keydown.enter="!isExecuting && canProbe && hasValidInputs && $emit('execute-probe')"

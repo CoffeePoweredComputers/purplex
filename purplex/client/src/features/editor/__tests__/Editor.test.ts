@@ -184,7 +184,8 @@ describe('Editor Component', () => {
         readOnly: false,
         markers: [],
         tabTargetId: null,
-        focusScopeSelector: null
+        focusScopeSelector: null,
+        placeholder: ''
       })
     })
 
@@ -230,7 +231,8 @@ describe('Editor Component', () => {
         highlightGutterLine: false,
         showPrintMargin: false,
         wrap: true,
-        indentedSoftWrap: false
+        indentedSoftWrap: false,
+        placeholder: ''
       })
     })
 

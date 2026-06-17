@@ -211,6 +211,8 @@
       "tooltipDefault": "Consultar el oráculo con estas entradas",
       "srDuplicate": "Estas entradas ya fueron sondeadas. Resultado: {result}",
       "paramAriaLabel": "Ingresa valor para {name} (tipo: {type})",
+      "paramAriaLabelNoType": "Ingresa valor para {name}",
+      "valuePlaceholder": "valor",
       "cachedResultAriaLabel": "Resultado en caché: {result}"
     },
     "refute": {

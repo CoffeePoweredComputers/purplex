@@ -418,6 +418,16 @@ class TestProbeableSpecConfig:
         assert config["probe"]["mode"] == "explore"
         assert config["probe"]["max_probes"] == 10
         assert config["probe"]["function_signature"] == "f(x: int) -> int"
+        assert config["probe"]["parameters"] == [{"name": "x", "type": "int"}]
+
+    def test_get_problem_config_signature_hidden(self, handler):
+        problem = MagicMock()
+        problem.show_function_signature = False
+        problem.function_signature = "f(x: int) -> int"
+        config = handler.get_problem_config(problem)
+        assert config["probe"]["function_signature"] is None
+        # Names remain (needed for probe inputs); types are hidden.
+        assert config["probe"]["parameters"] == [{"name": "x", "type": ""}]
 
     def test_get_problem_config_segmentation_enabled(self, handler, mock_problem):
         mock_problem.segmentation_enabled = True

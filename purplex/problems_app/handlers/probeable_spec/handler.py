@@ -260,6 +260,16 @@ class ProbeableSpecHandler(ActivityHandler):
         cooldown_attempts = getattr(problem, "cooldown_attempts", 3)
         cooldown_refill = getattr(problem, "cooldown_refill", 5)
 
+        # Parameter names are always needed to render probe inputs, but when
+        # show_function_signature is off the types are hidden from the student.
+        parameters = (
+            _parse_function_params(problem.function_signature)
+            if problem.function_signature
+            else []
+        )
+        if not show_signature:
+            parameters = [{"name": p["name"], "type": ""} for p in parameters]
+
         return {
             "display": {
                 "show_reference_code": False,  # Don't show oracle code
@@ -284,11 +294,7 @@ class ProbeableSpecHandler(ActivityHandler):
                     problem.function_signature if show_signature else None
                 ),
                 "function_name": problem.function_name,
-                "parameters": (
-                    _parse_function_params(problem.function_signature)
-                    if problem.function_signature
-                    else []
-                ),
+                "parameters": parameters,
             },
             "hints": {
                 "available": [],  # No traditional hints - probing is the discovery mechanism

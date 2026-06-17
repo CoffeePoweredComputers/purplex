@@ -30,7 +30,7 @@
     <!-- NL Description Input -->
     <div class="section-header description-section-header">
       <div class="section-label">
-        {{ $t('problems.probeableSpec.describeFunction') }}
+        {{ describeFunctionLabel }}
       </div>
     </div>
     <span
@@ -54,6 +54,7 @@
         :show-gutter="false"
         :wrap="true"
         :theme="editorTheme"
+        :placeholder="placeholder"
       />
     </div>
     <button
@@ -154,6 +155,12 @@ const { t } = useI18n()
 const sectionLabel = computed(() => {
   return props.problem?.display_config?.section_label || t('problems.probeableSpec.sectionLabel')
 })
+
+const describeFunctionLabel = computed(() => {
+  return props.problem?.input_config?.label || t('problems.probeableSpec.describeFunction')
+})
+
+const placeholder = computed(() => props.problem?.input_config?.placeholder || '')
 
 // NL editor logic
 const inputValue = computed({

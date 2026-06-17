@@ -313,6 +313,16 @@ class TestProbeableCodeConfig:
         problem.function_signature = "solve(x: int) -> int"
         config = handler.get_problem_config(problem)
         assert config["probe"]["function_signature"] is None
+        # Parameter names are still needed to render probe inputs, but their
+        # types are hidden when show_function_signature is off.
+        assert config["probe"]["parameters"] == [{"name": "x", "type": ""}]
+
+    def test_get_problem_config_signature_shown_includes_types(self, handler):
+        problem = MagicMock()
+        problem.show_function_signature = True
+        problem.function_signature = "solve(x: int) -> int"
+        config = handler.get_problem_config(problem)
+        assert config["probe"]["parameters"] == [{"name": "x", "type": "int"}]
 
     def test_get_problem_config_hints_disabled(self, handler, mock_problem):
         config = handler.get_problem_config(mock_problem)

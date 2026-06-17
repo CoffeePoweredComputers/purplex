@@ -211,6 +211,8 @@
       "tooltipDefault": "Query the oracle with these inputs",
       "srDuplicate": "These inputs were already probed. Result: {result}",
       "paramAriaLabel": "Enter value for {name} (type: {type})",
+      "paramAriaLabelNoType": "Enter value for {name}",
+      "valuePlaceholder": "value",
       "cachedResultAriaLabel": "Cached result: {result}"
     },
     "refute": {
