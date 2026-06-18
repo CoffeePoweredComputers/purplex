@@ -73,3 +73,8 @@ export interface SuggestedTraceData {
   explanation?: string;
   expected_output?: unknown;
 }
+
+export interface CounterexampleData {
+  input: Record<string, unknown>;
+  explanation?: string;
+}
