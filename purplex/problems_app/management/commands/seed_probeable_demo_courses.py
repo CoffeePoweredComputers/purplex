@@ -116,11 +116,11 @@ class Command(BaseCommand):
             slug="demo-probeable-code-transform",
             defaults={
                 "title": "Probe & Code: Mystery Transform",
+                # Instructor prompt only — the standard "probe it… then write code"
+                # instructions are rendered per-type by the frontend, not stored here.
                 "description": (
                     "A hidden function `transform` takes a list of integers and "
-                    "returns a new list. You can't see its body. Probe it with "
-                    "inputs of your choice to discover what it does, then write "
-                    "code that reproduces the same behavior."
+                    "returns a new list."
                 ),
                 "function_signature": "def transform(lst: list[int]) -> list[int]",
                 "function_name": "transform",
@@ -147,11 +147,11 @@ class Command(BaseCommand):
             slug="demo-probeable-spec-classify",
             defaults={
                 "title": "Probe & Explain: Mystery Classify",
+                # Instructor prompt only — the standard "probe it… then explain"
+                # instructions are rendered per-type by the frontend, not stored here.
                 "description": (
                     "A hidden function `classify` takes a single integer and "
-                    "returns a string. Probe it with inputs of your choice to "
-                    "discover the rule, then explain in plain language what it "
-                    "does. Your explanation is turned into code and tested."
+                    "returns a string."
                 ),
                 "function_signature": "def classify(n: int) -> str",
                 "function_name": "classify",
