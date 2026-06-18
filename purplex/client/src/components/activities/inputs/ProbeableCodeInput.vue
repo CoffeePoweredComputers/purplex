@@ -232,6 +232,7 @@ function handleSubmit() {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   line-height: 1.5;
+  text-align: left;
 }
 
 /* Divider between probe panel and editor */

@@ -189,12 +189,12 @@
     },
     "probeableCode": {
       "sectionLabel": "Discover Function Behavior and Replicate Implementation",
-      "instructions": "Probe the function with inputs of your choice to discover what it does, then write code that reproduces the same behavior."
+      "instructions": "Try inputs of your choice to discover what the function does, then write code that reproduces it."
     },
     "probeableSpec": {
       "sectionLabel": "Discover and improve the specification",
       "describeFunction": "Describe What the Function Does",
-      "instructions": "Probe the function with inputs of your choice to discover what it does, then explain in plain language what it does."
+      "instructions": "Try inputs of your choice to discover what the function does, then explain it in plain language."
     },
     "debugFix": {
       "sectionLabel": "Fix the buggy code"

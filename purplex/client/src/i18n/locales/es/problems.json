@@ -189,12 +189,12 @@
     },
     "probeableCode": {
       "sectionLabel": "Descubre el Comportamiento de la Función y Replica la Implementación",
-      "instructions": "Sondea la función con entradas de tu elección para descubrir qué hace, luego escribe código que reproduzca el mismo comportamiento."
+      "instructions": "Prueba entradas de tu elección para descubrir qué hace la función, luego escribe código que lo reproduzca."
     },
     "probeableSpec": {
       "sectionLabel": "Descubre y mejora la especificación",
       "describeFunction": "Describe Qué Hace la Función",
-      "instructions": "Sondea la función con entradas de tu elección para descubrir qué hace, luego explica en lenguaje sencillo qué hace."
+      "instructions": "Prueba entradas de tu elección para descubrir qué hace la función, luego explícalo en lenguaje sencillo."
     },
     "debugFix": {
       "sectionLabel": "Corrige el código con errores"
