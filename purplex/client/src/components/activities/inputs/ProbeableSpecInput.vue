@@ -7,6 +7,11 @@
       </div>
     </div>
 
+    <!-- Standard per-type instructions (boilerplate for every probeable spec problem) -->
+    <p class="probe-instructions">
+      {{ $t('problems.probeableSpec.instructions') }}
+    </p>
+
     <!-- Probe Panel -->
     <ProbePanel
       :function-name="functionName"
@@ -223,6 +228,15 @@ function handleSubmit() {
   font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text-secondary);
+}
+
+/* Standard per-type instruction line (muted helper text) */
+.probe-instructions {
+  margin: 0 var(--spacing-lg) var(--spacing-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  text-align: left;
 }
 
 .description-section-header {

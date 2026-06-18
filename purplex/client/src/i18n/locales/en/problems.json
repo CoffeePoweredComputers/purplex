@@ -188,11 +188,13 @@
       "selectFirst": "Please select an answer before submitting"
     },
     "probeableCode": {
-      "sectionLabel": "Discover Function Behavior and Replicate Implementation"
+      "sectionLabel": "Discover Function Behavior and Replicate Implementation",
+      "instructions": "Try inputs of your choice to discover what the function does, then write code that reproduces it."
     },
     "probeableSpec": {
       "sectionLabel": "Discover and improve the specification",
-      "describeFunction": "Describe What the Function Does"
+      "describeFunction": "Describe What the Function Does",
+      "instructions": "Try inputs of your choice to discover what the function does, then explain it in plain language."
     },
     "debugFix": {
       "sectionLabel": "Fix the buggy code"

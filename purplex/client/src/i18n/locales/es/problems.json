@@ -188,11 +188,13 @@
       "selectFirst": "Por favor, selecciona una respuesta antes de enviar"
     },
     "probeableCode": {
-      "sectionLabel": "Descubre el Comportamiento de la Función y Replica la Implementación"
+      "sectionLabel": "Descubre el Comportamiento de la Función y Replica la Implementación",
+      "instructions": "Prueba entradas de tu elección para descubrir qué hace la función, luego escribe código que lo reproduzca."
     },
     "probeableSpec": {
       "sectionLabel": "Descubre y mejora la especificación",
-      "describeFunction": "Describe Qué Hace la Función"
+      "describeFunction": "Describe Qué Hace la Función",
+      "instructions": "Prueba entradas de tu elección para descubrir qué hace la función, luego explícalo en lenguaje sencillo."
     },
     "debugFix": {
       "sectionLabel": "Corrige el código con errores"
