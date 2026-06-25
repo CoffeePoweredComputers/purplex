@@ -37,12 +37,25 @@ class TestCaseService:
         """
         Get test cases formatted for code execution.
 
+        This is the single authoritative source of execution-ready test cases.
+        ``inputs`` and ``expected_output`` are ``JSONField``s, so the values
+        returned here are already native, deserialized Python objects (a stored
+        string ``"123"`` comes back as the str ``"123"``, not as JSON text).
+
+        Callers MUST use these values as-is and MUST NOT re-decode them (e.g. a
+        second ``json.loads`` on a value that "looks like" JSON). Re-decoding
+        corrupts legitimately-string outputs (``"123" -> 123``, ``"true" ->
+        True``) and silently diverges the student grading path from the
+        instructor authoring path. This invariant is enforced by
+        ``tests/unit/test_testcase_normalization.py``.
+
         Args:
             problem: The problem to get test cases for
             include_hidden: Whether to include hidden test cases
 
         Returns:
-            List of dictionaries with 'inputs' and 'expected_output' keys
+            List of dictionaries with 'inputs' and 'expected_output' keys,
+            already typed and ready for the grader.
         """
         test_cases = TestCaseRepository.get_problem_test_cases(
             problem=problem, include_hidden=include_hidden

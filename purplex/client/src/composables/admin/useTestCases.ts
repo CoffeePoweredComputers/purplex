@@ -12,8 +12,8 @@ import { computed, type ComputedRef, type Ref, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { TestCaseDisplay, TestExecutionResult } from '@/types';
 import {
-  autoDetectAndConvert,
   autoDetectTypeFromInput,
+  convertWithDeclaredType,
   formatValueForInput,
   getPlaceholderForType,
   parseTypeAnnotation,
@@ -97,7 +97,10 @@ export interface UseTestCasesReturn {
 
   // Conversion methods
   /** Convert test cases for backend API */
-  convertForBackend: () => Array<{
+  convertForBackend: (
+    functionParameters?: FunctionParameter[],
+    returnType?: string,
+  ) => Array<{
     inputs: unknown[];
     expected_output: unknown;
     description: string;
@@ -228,7 +231,9 @@ export const useTestCases = (): UseTestCasesReturn => {
     }
 
     try {
-      const convertedValue = autoDetectAndConvert(rawString);
+      // Convert using the declared type so the value we validate matches the
+      // value convertForBackend will actually send (see #136).
+      const convertedValue = convertWithDeclaredType(rawString, expectedType);
       const typeSpec = parseTypeAnnotation(expectedType);
       const validationResult = validateValueAgainstType(convertedValue, typeSpec as TypeSpec);
       return validationResult.valid ? null : (validationResult.error ?? null);
@@ -339,7 +344,9 @@ export const useTestCases = (): UseTestCasesReturn => {
     }
 
     try {
-      const convertedValue = autoDetectAndConvert(rawString);
+      // Convert using the declared return type so validation matches what
+      // convertForBackend will send (see #136).
+      const convertedValue = convertWithDeclaredType(rawString, returnType);
       const typeSpec = parseTypeAnnotation(returnType);
       const validationResult = validateValueAgainstType(convertedValue, typeSpec as TypeSpec);
       return validationResult.valid ? null : (validationResult.error ?? null);
@@ -433,20 +440,25 @@ export const useTestCases = (): UseTestCasesReturn => {
   /**
    * Convert test cases for backend API
    */
-  const convertForBackend = (): Array<{
+  const convertForBackend = (
+    functionParameters: FunctionParameter[] = [],
+    returnType = 'Any',
+  ): Array<{
     inputs: unknown[];
     expected_output: unknown;
     description: string;
     order: number;
   }> => {
     return testCases.value.map(tc => {
-      const convertedInputs = (tc.inputs || []).map(rawValue => {
+      const convertedInputs = (tc.inputs || []).map((rawValue, i) => {
         if (rawValue === null || rawValue === undefined || !String(rawValue).trim()) {
           return null;
         }
         try {
           if (typeof rawValue === 'string') {
-            return autoDetectAndConvert(rawValue);
+            // Use the declared param type as the authority so a str-typed
+            // argument that looks numeric isn't coerced (see #136).
+            return convertWithDeclaredType(rawValue, functionParameters[i]?.type ?? 'Any');
           }
           return rawValue;
         } catch {
@@ -461,7 +473,7 @@ export const useTestCases = (): UseTestCasesReturn => {
       } else {
         try {
           if (typeof rawOutput === 'string') {
-            convertedOutput = autoDetectAndConvert(rawOutput);
+            convertedOutput = convertWithDeclaredType(rawOutput, returnType);
           } else {
             convertedOutput = rawOutput;
           }

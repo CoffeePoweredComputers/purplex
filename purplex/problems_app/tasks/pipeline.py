@@ -323,19 +323,6 @@ def test_variation_helper(
     # Store original test case IDs for later mapping
     test_case_ids = [tc.get("id") for tc in test_cases]
 
-    # Parse JSON fields if needed
-    for tc in test_cases:
-        if isinstance(tc["inputs"], str):
-            try:
-                tc["inputs"] = json.loads(tc["inputs"])
-            except (json.JSONDecodeError, TypeError):
-                pass
-        if isinstance(tc["expected_output"], str):
-            try:
-                tc["expected_output"] = json.loads(tc["expected_output"])
-            except (json.JSONDecodeError, TypeError):
-                pass
-
     # Test the code using shared Docker service (no cleanup needed)
     with SharedDockerServiceContext() as service:
         # Set user context for async task (no user context in celery tasks)
@@ -1523,19 +1510,6 @@ def execute_debug_fix_pipeline(
         )
         test_case_ids = [tc.get("id") for tc in test_cases]
 
-        # Parse JSON fields if needed
-        for tc in test_cases:
-            if isinstance(tc["inputs"], str):
-                try:
-                    tc["inputs"] = json.loads(tc["inputs"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            if isinstance(tc["expected_output"], str):
-                try:
-                    tc["expected_output"] = json.loads(tc["expected_output"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-
         # Execute code in Docker
         with SharedDockerServiceContext() as service:
             service.set_user_context(f"debug_fix_{user_id}")
@@ -1873,19 +1847,6 @@ def execute_probeable_code_pipeline(
             problem, include_hidden=True
         )
         test_case_ids = [tc.get("id") for tc in test_cases]
-
-        # Parse JSON fields if needed
-        for tc in test_cases:
-            if isinstance(tc["inputs"], str):
-                try:
-                    tc["inputs"] = json.loads(tc["inputs"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            if isinstance(tc["expected_output"], str):
-                try:
-                    tc["expected_output"] = json.loads(tc["expected_output"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
 
         # Execute code in Docker
         with SharedDockerServiceContext() as service:
