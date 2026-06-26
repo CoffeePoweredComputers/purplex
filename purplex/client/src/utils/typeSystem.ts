@@ -1180,6 +1180,29 @@ export function autoDetectAndConvert(value: string): unknown {
   return value;
 }
 
+/**
+ * Convert a raw field value to a backend value using the DECLARED type as the
+ * authority, instead of guessing the type from the text.
+ *
+ * This closes the #136 class of bug: a `str`-typed field whose text happens to
+ * look numeric (e.g. `123`, `007`) must be sent as the string "123"/"007", not
+ * coerced to an int. `autoDetectAndConvert` alone is type-blind and would coerce
+ * it, silently mis-grading correct string answers.
+ *
+ * Behavior: when the declared type simplifies to `str`, the field text is taken
+ * as a string literal (only optional surrounding quotes are stripped). For every
+ * other declared type — and for `Any`/unknown — we fall back to the existing
+ * auto-detection so int/float/list/etc. keep working unchanged. Container/Optional
+ * types are intentionally left to auto-detection for now.
+ */
+export function convertWithDeclaredType(rawValue: string, declaredType: string): unknown {
+  const baseType = simplifyPythonType(declaredType || 'Any');
+  if (baseType === 'str') {
+    return pythonTypes.str.convert(rawValue);
+  }
+  return autoDetectAndConvert(rawValue);
+}
+
 // ===== ENHANCED TYPE FORMATTING =====
 
 export function formatTypeSpec(typeSpec: TypeSpec): string {

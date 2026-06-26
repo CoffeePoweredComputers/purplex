@@ -266,9 +266,14 @@ export const useProblemEditor = (options?: UseProblemEditorOptions): UseProblemE
         tags: form.form.tags,
       };
 
-      // Test cases - use composable's conversion (single source of truth)
+      // Test cases - use composable's conversion (single source of truth).
+      // Pass the declared signature so values are converted against the author's
+      // declared types, not guessed from text (see #136).
       if (config?.supports?.test_cases !== false) {
-        problemData.test_cases = testCases.convertForBackend();
+        problemData.test_cases = testCases.convertForBackend(
+          signature.functionParameters.value,
+          signature.returnType.value,
+        );
       }
 
       // Type-specific data via registry
@@ -323,7 +328,10 @@ export const useProblemEditor = (options?: UseProblemEditorOptions): UseProblemE
         description: '',
         function_name: extractFunctionName(),
         reference_solution: form.form.reference_solution,
-        test_cases: testCases.convertForBackend(),
+        test_cases: testCases.convertForBackend(
+          signature.functionParameters.value,
+          signature.returnType.value,
+        ),
       };
 
       // Use injected API if provided

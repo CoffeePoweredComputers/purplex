@@ -1638,6 +1638,35 @@ class TestTestRunnerComparison:
         assert compare_fn("1", 1) is False
         assert compare_fn(None, 0) is False
 
+    # -- String-output mis-grading consequence ---------------------------------
+    # These document WHY a string ``expected_output`` that gets coerced to a
+    # non-str (the json.loads double-decode in the student grading path, see
+    # tests/integration/test_testcase_string_output_grading.py) marks a correct
+    # answer FAILED. ``compare_results`` is intentionally type-strict and is the
+    # CORRECT side of this bug — it must NOT be weakened to paper over the
+    # upstream coercion. ``actual`` is the student's correct string answer;
+    # ``expected`` is the corrupted (coerced) stored value.
+
+    def test_string_answer_vs_coerced_int_fails(self, compare_fn):
+        """Author meant the string "123"; coercion stored int 123."""
+        assert compare_fn("123", 123) is False
+
+    def test_string_answer_vs_coerced_float_fails(self, compare_fn):
+        """Author meant the string "3.14"; coercion stored float 3.14."""
+        assert compare_fn("3.14", 3.14) is False
+
+    def test_string_answer_vs_coerced_bool_fails(self, compare_fn):
+        """Author meant the string "true"; coercion stored bool True."""
+        assert compare_fn("true", True) is False
+
+    def test_string_answer_vs_coerced_list_fails(self, compare_fn):
+        """Author meant the string "[1, 2]"; coercion stored list [1, 2]."""
+        assert compare_fn("[1, 2]", [1, 2]) is False
+
+    def test_matching_strings_still_pass(self, compare_fn):
+        """Control: when the type is preserved, the same answer grades correct."""
+        assert compare_fn("123", "123") is True
+
 
 # =============================================================================
 # Utilities and Edge Cases Tests
