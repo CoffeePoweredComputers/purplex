@@ -133,6 +133,46 @@ class Command(BaseCommand):
                     "            total += n\n"
                     "    return total"
                 ),
+                # Prompt segmentation analysis: few-shot examples that teach the
+                # grader what a high-level (relational) vs. line-by-line
+                # (multi-structural) explanation of sum_evens looks like. Segment
+                # text must be a verbatim substring of its example prompt, and
+                # code_lines are 1-indexed with no overlap across segments.
+                "segmentation_config": {
+                    "enabled": True,
+                    "threshold": 2,
+                    "examples": {
+                        "relational": {
+                            "prompt": (
+                                "Adds up all the even numbers in the list and "
+                                "returns the total."
+                            ),
+                            "segments": [
+                                "Adds up all the even numbers in the list and "
+                                "returns the total."
+                            ],
+                            "code_lines": [[1, 2, 3, 4, 5, 6]],
+                        },
+                        "multi_structural": {
+                            "prompt": (
+                                "Starts a total at zero. Loops over each number "
+                                "in the list. Checks if the number is even. If it "
+                                "is even, adds it to the total. Finally returns "
+                                "the total."
+                            ),
+                            "segments": [
+                                "Starts a total at zero.",
+                                "Loops over each number in the list.",
+                                "Checks if the number is even.",
+                                "If it is even, adds it to the total.",
+                                "Finally returns the total.",
+                            ],
+                            "code_lines": [[2], [3], [4], [5], [6]],
+                        },
+                    },
+                },
+                "segmentation_threshold": 2,
+                "requires_highlevel_comprehension": True,
                 "difficulty": "beginner",
                 "is_active": True,
                 "created_by": instructor,
@@ -185,17 +225,26 @@ class Command(BaseCommand):
         # 4. Probeable Code problem (probe hidden oracle -> write code)
         # ==================================================================
         probeable, created = ProbeableCodeProblem.objects.get_or_create(
-            slug="sampler-probeable-code-transform",
+            slug="sampler-probeable-code-divide",
             defaults={
-                "title": "Probe & Code: The Mystery Number Machine",
+                "title": "Probe & Code: Integer Divide",
                 "description": (
-                    "A hidden function `transform` takes one integer and returns "
-                    "one integer. Probe it with inputs to discover the rule, then "
-                    "write code that reproduces it."
+                    "Implement a function that divides two numbers: `divide(a, b)` "
+                    "returns `a` divided by `b`. Sounds simple — but the exact "
+                    "behavior has edge cases the description does not spell out. "
+                    "Probe the hidden function with your own inputs to discover how "
+                    "it handles the tricky cases (What happens when you divide by "
+                    "zero? Does it round, and which way?), then write code that "
+                    "reproduces it exactly."
                 ),
-                "function_signature": "def transform(n: int) -> int",
-                "function_name": "transform",
-                "reference_solution": ("def transform(n):\n    return n * 3 + 1"),
+                "function_signature": "def divide(a: int, b: int) -> int",
+                "function_name": "divide",
+                "reference_solution": (
+                    "def divide(a, b):\n"
+                    "    if b == 0:\n"
+                    "        return 0\n"
+                    "    return a // b"
+                ),
                 "show_function_signature": True,
                 "probe_mode": "explore",
                 "max_probes": 10,
@@ -206,9 +255,7 @@ class Command(BaseCommand):
                 "created_by": instructor,
             },
         )
-        self._report(
-            "ProbeableCodeProblem", "sampler-probeable-code-transform", created
-        )
+        self._report("ProbeableCodeProblem", "sampler-probeable-code-divide", created)
         probeable.categories.add(cat_sampler)
 
         # ==================================================================
@@ -315,32 +362,42 @@ class Command(BaseCommand):
             ],
             probeable: [
                 {
-                    "inputs": [2],
-                    "expected_output": 7,
+                    "inputs": [6, 2],
+                    "expected_output": 3,
                     "is_sample": True,
                     "order": 0,
-                    "description": "transform(2) = 7",
+                    "description": "divide(6, 2) = 3 (clean division)",
                 },
                 {
-                    "inputs": [0],
-                    "expected_output": 1,
+                    "inputs": [20, 4],
+                    "expected_output": 5,
                     "is_sample": True,
                     "order": 1,
-                    "description": "transform(0) = 1",
+                    "description": "divide(20, 4) = 5 (clean division)",
                 },
                 {
-                    "inputs": [-1],
-                    "expected_output": -2,
+                    "inputs": [7, 2],
+                    "expected_output": 3,
                     "is_sample": False,
                     "order": 2,
-                    "description": "transform(-1) = -2",
+                    "description": "divide(7, 2) = 3 (edge: floor division, not 3.5)",
                 },
                 {
-                    "inputs": [10],
-                    "expected_output": 31,
+                    "inputs": [-7, 2],
+                    "expected_output": -4,
                     "is_sample": False,
                     "order": 3,
-                    "description": "transform(10) = 31",
+                    "description": (
+                        "divide(-7, 2) = -4 (edge: floor rounds toward negative "
+                        "infinity)"
+                    ),
+                },
+                {
+                    "inputs": [5, 0],
+                    "expected_output": 0,
+                    "is_sample": False,
+                    "order": 4,
+                    "description": "divide(5, 0) = 0 (edge: divide by zero returns 0)",
                 },
             ],
         }
