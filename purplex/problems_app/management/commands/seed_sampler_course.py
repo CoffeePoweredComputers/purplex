@@ -255,9 +255,7 @@ class Command(BaseCommand):
                 "created_by": instructor,
             },
         )
-        self._report(
-            "ProbeableCodeProblem", "sampler-probeable-code-divide", created
-        )
+        self._report("ProbeableCodeProblem", "sampler-probeable-code-divide", created)
         probeable.categories.add(cat_sampler)
 
         # ==================================================================
