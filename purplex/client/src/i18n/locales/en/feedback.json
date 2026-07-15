@@ -119,7 +119,11 @@
       "disprovesClaim": "This disproves the claim!",
       "supportsClaim": "This supports the claim",
       "noClaimSpecified": "No claim specified",
-      "enterAndSubmit": "Enter function arguments and submit to find a counterexample."
+      "enterAndSubmit": "Enter function arguments and submit to find a counterexample.",
+      "noAttempts": "Submit an input to test the claim. Your attempts will appear here.",
+      "disproves": "✓ DISPROVES",
+      "claimHolds": "Claim holds",
+      "executionFailed": "Error"
     },
     "sse": {
       "taskTimeout": "No response from server after 2 minutes. The task may be stuck.",

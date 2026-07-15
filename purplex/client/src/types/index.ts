@@ -664,7 +664,7 @@ export interface SubmissionHistoryItem {
   passed_all_tests: boolean;
   completion_status: 'incomplete' | 'partial' | 'complete';
   execution_status: string;
-  submission_type: 'eipl' | 'mcq' | 'prompt';
+  submission_type: 'eipl' | 'mcq' | 'prompt' | 'refute';
   tests_passed: number;
   total_tests: number;
   execution_time_ms: number | null;
@@ -707,6 +707,23 @@ export interface SubmissionHistoryItem {
       inputs: string;
     }>;
   };
+  /**
+   * Handler-provided, type-specific result payload. Shape depends on
+   * submission_type. For refute this carries the counterexample outcome
+   * (see RefuteAttemptResult).
+   */
+  type_specific?: Record<string, unknown>;
+}
+
+/** Per-attempt refute result, as serialized by the backend RefuteHandler. */
+export interface RefuteAttemptResult {
+  input_args: Record<string, unknown>;
+  result_value: unknown;
+  claim_disproven: boolean;
+  execution_success: boolean;
+  execution_error: string | null;
+  claim_text: string;
+  function_signature: string;
 }
 
 export interface SubmissionHistoryResponse {

@@ -164,13 +164,17 @@ def _extract_function_name(signature: str) -> str:
     """
     Extract function name from signature.
 
+    Handles both bare signatures ("abs_val(x: int) -> int") and full
+    ``def`` headers ("def abs_val(x: int) -> int"), mirroring the frontend's
+    extractFunctionName so both sides agree on which function to call.
+
     Args:
-        signature: Function signature like "f(x: int) -> int"
+        signature: Function signature, with or without a ``def`` prefix.
 
     Returns:
-        Function name (e.g., "f")
+        Function name (e.g., "abs_val"), or "f" if none can be parsed.
     """
-    match = re.match(r"(\w+)\s*\(", signature)
+    match = re.search(r"(?:def\s+)?(\w+)\s*\(", signature)
     return match.group(1) if match else "f"
 
 
@@ -492,29 +496,70 @@ class RefuteHandler(ActivityHandler):
         """Extract variations from refute submission (returns single input)."""
         return [submission.raw_input] if submission.raw_input else []
 
+    def _result_from_submission(self, submission: "Submission") -> dict[str, Any]:
+        """
+        Reconstruct the counterexample outcome for a stored submission.
+
+        Refute grading is deterministic and runs in-process, so — like the MCQ
+        handler — we derive the per-attempt result from ``raw_input`` and the
+        problem definition by re-executing the reference solution. Submissions
+        do not persist a type-specific blob, so this is the single source of
+        truth for both history serialization and test-result extraction.
+        """
+        refute = _ensure_refute_problem(submission.problem)
+        raw = (submission.raw_input or "").strip()
+
+        try:
+            args = json.loads(raw) if raw else {}
+        except json.JSONDecodeError as e:
+            return {
+                "input_args": {},
+                "result_value": None,
+                "claim_disproven": False,
+                "execution_success": False,
+                "execution_error": f"Invalid JSON input: {e}",
+            }
+
+        func_name = _extract_function_name(refute.function_signature)
+        exec_result = _safe_execute(refute.reference_solution, func_name, args)
+
+        if not exec_result["success"]:
+            return {
+                "input_args": args,
+                "result_value": None,
+                "claim_disproven": False,
+                "execution_success": False,
+                "execution_error": exec_result["error"],
+            }
+
+        result_value = exec_result["result"]
+        claim_disproven = self._evaluate_claim(
+            claim_predicate=getattr(refute, "claim_predicate", ""),
+            claim_text=refute.claim_text,
+            result=result_value,
+            input_args=args if isinstance(args, dict) else {},
+        )
+        return {
+            "input_args": args,
+            "result_value": self._serialize_result(result_value),
+            "claim_disproven": claim_disproven,
+            "execution_success": True,
+            "execution_error": None,
+        }
+
     def extract_test_results(
         self, submission: "Submission", problem: "RefuteProblem"
     ) -> list[dict[str, Any]]:
         """Extract test results for refute (single result)."""
-        # Parse type-specific data if available
-        try:
-            if (
-                hasattr(submission, "type_specific_data")
-                and submission.type_specific_data
-            ):
-                data = submission.type_specific_data
-            else:
-                data = {}
-        except (json.JSONDecodeError, AttributeError):
-            data = {}
+        data = self._result_from_submission(submission)
 
         return [
             {
                 "isSuccessful": submission.passed_all_tests,
-                "input_args": data.get("input_args", {}),
-                "result_value": data.get("result_value"),
-                "claim_disproven": data.get("claim_disproven", False),
-                "execution_error": data.get("execution_error"),
+                "input_args": data["input_args"],
+                "result_value": data["result_value"],
+                "claim_disproven": data["claim_disproven"],
+                "execution_error": data["execution_error"],
             }
         ]
 
@@ -595,25 +640,10 @@ class RefuteHandler(ActivityHandler):
     def serialize_result(self, submission: "Submission") -> dict[str, Any]:
         """Serialize refute submission result for API response."""
         refute = _ensure_refute_problem(submission.problem)
-
-        # Parse type-specific data
-        try:
-            if (
-                hasattr(submission, "type_specific_data")
-                and submission.type_specific_data
-            ):
-                data = submission.type_specific_data
-            else:
-                data = {}
-        except (json.JSONDecodeError, AttributeError):
-            data = {}
+        data = self._result_from_submission(submission)
 
         return {
-            "input_args": data.get("input_args", {}),
-            "result_value": data.get("result_value"),
-            "claim_disproven": data.get("claim_disproven", False),
-            "execution_success": data.get("execution_success", False),
-            "execution_error": data.get("execution_error"),
+            **data,
             "claim_text": refute.claim_text,
             "function_signature": refute.function_signature,
         }

@@ -1763,6 +1763,54 @@ export default {
             const problemIndex = this.problems.findIndex(p => p.slug === problemSlug);
             const problemIdentifier = problemIndex >= 0 ? this.$t('problems.problemSet.notify.problemIdentifier', { number: problemIndex + 1 }) : this.$t('problems.problemSet.notify.submission');
 
+            if (problemType === 'refute') {
+                // Refute: the results list (RefuteFeedback) renders from the
+                // refreshed submission history below; here we only update status,
+                // clear any stale type-specific feedback, and notify.
+                const isCorrect = response.is_correct ?? false;
+                const score = response.score ?? (isCorrect ? 100 : 0);
+
+                if (problemSlug === this.getCurrentProblem().slug) {
+                    this.setFeedback({
+                        mcqResult: null,
+                        codeResults: [],
+                        testResults: [],
+                        comprehensionResults: '',
+                        segmentationData: null,
+                        promptCorrectness: score,
+                        userPrompt: response.user_input ?? rawInput
+                    });
+                    this.promptEditorValue = response.user_input ?? rawInput;
+                }
+
+                this.problemStatuses = {
+                    ...this.problemStatuses,
+                    [problemSlug]: {
+                        status: isCorrect ? 'completed' : 'in_progress',
+                        score: score,
+                        attempts: (this.problemStatuses[problemSlug]?.attempts || 0) + 1
+                    }
+                };
+
+                const refuteCacheKey = this.submissionCache.buildKey(
+                    this.$route.params.slug,
+                    problemSlug,
+                    this.courseId
+                );
+                this.submissionCache.set(refuteCacheKey, {
+                    has_submission: true,
+                    user_prompt: response.user_input
+                });
+
+                const refuteMessage = isCorrect
+                    ? this.$t('problems.problemSet.notify.refuteFound', { problem: problemIdentifier })
+                    : this.$t('problems.problemSet.notify.refuteHolds', { problem: problemIdentifier });
+                if (isCorrect) {
+                    this.notify.success(refuteMessage);
+                } else {
+                    this.notify.info(refuteMessage);
+                }
+            } else {
             // Build MCQ result from response
             const mcqResult = {
                 is_correct: response.is_correct ?? false,
@@ -1820,6 +1868,7 @@ export default {
             } else {
                 this.notify.warning(message);
             }
+            }
 
             // Clean up submission tracking state
             this.clearOptimistic(problemSlug);
@@ -1839,7 +1888,7 @@ export default {
             this.logger.info('Sync submission processed', {
                 problemSlug,
                 problemType,
-                isCorrect: mcqResult.is_correct,
+                isCorrect: response.is_correct,
                 score: response.score
             });
         },
@@ -2645,9 +2694,12 @@ export default {
 }
 
 .problem-description-markdown {
+    /* Body copy reads left-aligned; the panel otherwise inherits the
+       centered text-align from .main-content. */
     font-size: var(--font-size-base);
     color: var(--color-text-primary);
     line-height: 1.7;
+    text-align: left;
 }
 
 .problem-description-markdown :deep(p) {
