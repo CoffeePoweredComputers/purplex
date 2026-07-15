@@ -115,6 +115,8 @@
         "failedToLoadProblemSet": "No se pudo cargar el conjunto de problemas.",
         "mcqCorrect": "{problem}: ¡Correcto!",
         "mcqIncorrect": "{problem}: Incorrecto",
+        "refuteFound": "{problem}: ¡Contraejemplo encontrado!",
+        "refuteHolds": "{problem}: La afirmación se mantiene — prueba otra entrada",
         "testsPassed": "{problem}: {passed}/{total} pruebas aprobadas",
         "variationsPassing": "{problem}: Variaciones: {passed}/{total} aprobadas",
         "variationsWithSegmentation": "{problem}: Variaciones: {passed}/{total} aprobadas, {segmentation}",
@@ -219,12 +221,7 @@
     },
     "refute": {
       "disprove": "Refutar:",
-      "testing": "Probando",
-      "test": "Probar",
-      "disproves": "✓ REFUTA",
-      "claimHolds": "la afirmación se mantiene",
-      "submitCounterexample": "Enviar {call} como contraejemplo",
-      "keepTrying": "¡Sigue intentando! Encuentra una entrada que haga falsa la afirmación."
+      "submit": "Enviar"
     },
     "activity": {
       "unknownType": "Tipo de actividad desconocido: {type}",

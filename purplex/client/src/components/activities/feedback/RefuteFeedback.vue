@@ -6,163 +6,101 @@
       </h3>
     </div>
 
-    <div
-      v-if="isLoading"
-      class="loading-state"
-    >
-      <div class="loading-spinner" />
-      <span>{{ $t('feedback.refute.checkingInput') }}</span>
-    </div>
-
-    <div
-      v-else-if="hasResult"
-      class="result-container"
-    >
-      <!-- Result Banner -->
+    <div class="feedback-body">
+      <!-- Claim reminder + solved banner -->
       <div
-        class="result-banner"
-        :class="isCounterexampleFound ? 'result-banner--success' : 'result-banner--failure'"
+        v-if="claimText"
+        class="claim-reminder"
+        :class="{ 'claim-reminder--solved': solved }"
       >
-        <div class="result-icon">
-          {{ isCounterexampleFound ? '!' : '?' }}
-        </div>
-        <div class="result-text">
-          <span class="result-label">
-            {{ isCounterexampleFound ? $t('feedback.refute.counterexampleFound') : $t('feedback.refute.notCounterexample') }}
-          </span>
-          <span class="result-score">{{ $t('feedback.refute.score', { score }) }}</span>
-        </div>
-      </div>
-
-      <!-- Claim Reminder -->
-      <div class="claim-reminder">
         <div class="section-label">
           {{ $t('feedback.refute.theClaim') }}
         </div>
         <div class="claim-text">
           {{ claimText }}
         </div>
-      </div>
-
-      <!-- Input Details -->
-      <div class="details-section">
-        <div class="section-label">
-          {{ $t('feedback.refute.yourInput') }}
-        </div>
-        <div class="input-display">
-          <code>{{ formattedInput }}</code>
-        </div>
-      </div>
-
-      <!-- Execution Result -->
-      <div
-        v-if="executionSuccess"
-        class="details-section"
-      >
-        <div class="section-label">
-          {{ $t('feedback.refute.functionOutput') }}
-        </div>
         <div
-          class="output-display"
-          :class="isCounterexampleFound ? 'output-display--disproves' : 'output-display--supports'"
+          v-if="solved"
+          class="solved-badge"
         >
-          <code>{{ formattedResult }}</code>
-          <span class="output-interpretation">
-            {{ resultInterpretation }}
+          {{ $t('feedback.refute.counterexampleFound') }}
+        </div>
+      </div>
+
+      <!-- Attempts list -->
+      <ol
+        v-if="attempts.length > 0"
+        class="attempts-list"
+      >
+        <li
+          v-for="attempt in attempts"
+          :key="attempt.id"
+          class="attempt-row"
+          :class="{
+            'attempt-row--disproves': attempt.status === 'disproves',
+            'attempt-row--error': attempt.status === 'error',
+          }"
+        >
+          <span class="attempt-number">{{ attempt.attemptNumber }}</span>
+          <span class="attempt-call">{{ attempt.call }}</span>
+          <span class="attempt-arrow">→</span>
+          <span class="attempt-result">{{ attempt.resultDisplay }}</span>
+          <span
+            class="attempt-badge"
+            :class="`attempt-badge--${attempt.status}`"
+          >
+            {{ badgeLabel(attempt.status) }}
           </span>
-        </div>
-      </div>
+        </li>
+      </ol>
 
-      <!-- Execution Error -->
+      <!-- Empty / loading state -->
       <div
-        v-else-if="executionError"
-        class="details-section"
+        v-else
+        class="no-result"
       >
-        <div class="section-label">
-          {{ $t('feedback.refute.executionError') }}
-        </div>
-        <div class="error-display">
-          {{ executionError }}
-        </div>
+        <div
+          v-if="isLoading"
+          class="loading-spinner"
+        />
+        <p>{{ isLoading ? $t('feedback.refute.checkingInput') : $t('feedback.refute.noAttempts') }}</p>
       </div>
-
-      <!-- Explanation -->
-      <div
-        v-if="isCounterexampleFound"
-        class="success-explanation"
-      >
-        <div class="section-label">
-          {{ $t('feedback.refute.whyThisWorks') }}
-        </div>
-        <div class="explanation-text">
-          {{ $t('feedback.refute.disprovesClaimExplanation', { result: formattedResult, claim: claimText }) }}
-        </div>
-      </div>
-
-      <div
-        v-else-if="executionSuccess"
-        class="failure-explanation"
-      >
-        <div class="section-label">
-          {{ $t('feedback.refute.whyThisDoesntWork') }}
-        </div>
-        <div class="explanation-text">
-          {{ $t('feedback.refute.supportsClaimExplanation', { result: formattedResult, claim: claimText }) }}
-        </div>
-      </div>
-    </div>
-
-    <div
-      v-else
-      class="no-result"
-    >
-      <p>{{ $t('feedback.refute.enterAndSubmit') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 /**
- * RefuteFeedback - Feedback component for Refute (Counterexample) activities.
+ * RefuteFeedback - Results panel for Refute (Counterexample) activities.
  *
- * Displays whether the student found a valid counterexample,
- * the function's output, and explanation of the result.
+ * Renders an enumerated list of the student's most recent submissions
+ * (up to MAX_ATTEMPTS). Each row shows the input that was tried, what the
+ * function returned, and whether that input disproved the claim. Data comes
+ * straight from submission history (each item's handler-provided
+ * `type_specific` payload) — there is no separate client-side test path.
  */
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { SubmissionHistoryItem } from '../types'
+import type { RefuteAttemptResult, SubmissionHistoryItem } from '@/types'
 
 const { t } = useI18n()
 
-interface RefuteResult {
-  claim_disproven: boolean
-  input_args: Record<string, unknown>
-  result_value: unknown
-  execution_success: boolean
-  execution_error?: string
-  claim_text?: string
-  function_signature?: string
-  score?: number
-}
+const MAX_ATTEMPTS = 10
+
+type AttemptStatus = 'disproves' | 'holds' | 'error'
 
 interface Props {
-  /** Overall correctness score */
-  progress?: number
-  /** Refute-specific result data */
-  refuteResult?: RefuteResult | null
-  /** Loading state */
+  /** Loading state (a submission is being processed) */
   isLoading?: boolean
   /** Navigation state */
   isNavigating?: boolean
-  /** Historical submission data */
+  /** Historical submission data (newest first) */
   submissionHistory?: SubmissionHistoryItem[]
   /** Title for the feedback section */
   title?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  progress: 0,
-  refuteResult: null,
   isLoading: false,
   isNavigating: false,
   submissionHistory: () => [],
@@ -173,33 +111,76 @@ defineEmits<{
   (e: 'load-attempt', attemptId: string): void
 }>()
 
-const hasResult = computed(() => props.refuteResult !== null)
-const isCounterexampleFound = computed(() => props.refuteResult?.claim_disproven ?? false)
-const executionSuccess = computed(() => props.refuteResult?.execution_success ?? false)
-const executionError = computed(() => props.refuteResult?.execution_error ?? '')
-const score = computed(() => props.refuteResult?.score ?? (isCounterexampleFound.value ? 100 : 0))
-const claimText = computed(() => props.refuteResult?.claim_text ?? t('feedback.refute.noClaimSpecified'))
+interface DisplayAttempt {
+  id: string
+  attemptNumber: string
+  call: string
+  resultDisplay: string
+  status: AttemptStatus
+}
 
-const formattedInput = computed(() => {
-  const args = props.refuteResult?.input_args
-  if (!args) {return '{}'}
-  return JSON.stringify(args, null, 2)
-})
+/** History items that carry a refute result payload, newest first, capped. */
+const refuteItems = computed(() =>
+  props.submissionHistory
+    .filter((item): item is SubmissionHistoryItem & { type_specific: RefuteAttemptResult } =>
+      !!item.type_specific && 'claim_disproven' in item.type_specific
+    )
+    .slice(0, MAX_ATTEMPTS)
+)
 
-const formattedResult = computed(() => {
-  const result = props.refuteResult?.result_value
-  if (result === undefined || result === null) {return 'null'}
-  if (typeof result === 'string') {return `"${result}"`}
-  if (typeof result === 'object') {return JSON.stringify(result)}
-  return String(result)
-})
+const claimText = computed(() => refuteItems.value[0]?.type_specific.claim_text ?? '')
 
-const resultInterpretation = computed(() => {
-  if (isCounterexampleFound.value) {
-    return t('feedback.refute.disprovesClaim')
-  }
-  return t('feedback.refute.supportsClaim')
-})
+const solved = computed(() =>
+  refuteItems.value.some(item => item.type_specific.claim_disproven)
+)
+
+const attempts = computed<DisplayAttempt[]>(() =>
+  refuteItems.value.map(item => {
+    const data = item.type_specific
+    const funcName = extractFunctionName(data.function_signature)
+    let status: AttemptStatus = 'holds'
+    if (!data.execution_success) {
+      status = 'error'
+    } else if (data.claim_disproven) {
+      status = 'disproves'
+    }
+    return {
+      id: item.id,
+      attemptNumber: `#${item.attempt_number}`,
+      call: formatCall(funcName, data.input_args),
+      resultDisplay: data.execution_success
+        ? formatValue(data.result_value)
+        : (data.execution_error || t('feedback.refute.executionError')),
+      status,
+    }
+  })
+)
+
+function badgeLabel(status: AttemptStatus): string {
+  if (status === 'disproves') {return t('feedback.refute.disproves')}
+  if (status === 'error') {return t('feedback.refute.executionFailed')}
+  return t('feedback.refute.claimHolds')
+}
+
+function extractFunctionName(signature: string): string {
+  const match = signature?.match(/(?:def\s+)?(\w+)\s*\(/)
+  return match ? match[1] : 'f'
+}
+
+function formatCall(funcName: string, args: Record<string, unknown>): string {
+  const argStr = Object.entries(args || {})
+    .map(([name, value]) => `${name}=${formatValue(value)}`)
+    .join(', ')
+  return `${funcName}(${argStr})`
+}
+
+function formatValue(value: unknown): string {
+  if (value === null || value === undefined) {return 'None'}
+  if (typeof value === 'string') {return `"${value}"`}
+  if (typeof value === 'boolean') {return value ? 'True' : 'False'}
+  if (Array.isArray(value) || typeof value === 'object') {return JSON.stringify(value)}
+  return String(value)
+}
 </script>
 
 <style scoped>
@@ -222,95 +203,11 @@ const resultInterpretation = computed(() => {
   margin: 0;
 }
 
-/* Loading State */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xl);
-  gap: var(--spacing-md);
-  color: var(--color-text-secondary);
-}
-
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--color-bg-border);
-  border-top-color: var(--color-primary-gradient-start);
-  border-radius: var(--radius-circle);
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Result Container */
-.result-container {
+.feedback-body {
   padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
-}
-
-/* Result Banner */
-.result-banner {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg);
-  border-radius: var(--radius-base);
-}
-
-.result-banner--success {
-  background: var(--color-success-overlay);
-  border: 1px solid var(--color-success);
-}
-
-.result-banner--failure {
-  background: var(--color-warning-overlay);
-  border: 1px solid var(--color-warning);
-}
-
-.result-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-circle);
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.result-banner--success .result-icon {
-  background: var(--color-success);
-  color: var(--color-text-on-filled);
-}
-
-.result-banner--failure .result-icon {
-  background: var(--color-warning);
-  color: var(--color-text-on-filled);
-}
-
-.result-text {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.result-label {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-
-.result-score {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
 }
 
 /* Section Label */
@@ -331,111 +228,138 @@ const resultInterpretation = computed(() => {
   border-radius: var(--radius-base);
 }
 
+.claim-reminder--solved {
+  background: var(--color-success-overlay);
+  border-left-color: var(--color-success);
+}
+
 .claim-text {
   font-size: var(--font-size-base);
   color: var(--color-text-primary);
   font-style: italic;
 }
 
-/* Details Section */
-.details-section {
+.solved-badge {
+  /* White (not --color-success) so it clears WCAG AA on the green tint;
+     the banner's green tint + border already signals success. */
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* Attempts List */
+.attempts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
-.input-display {
-  padding: var(--spacing-md);
-  background: var(--color-bg-input);
-  border-radius: var(--radius-base);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  overflow-x: auto;
-  white-space: pre;
-}
-
-.input-display code {
-  background: transparent;
-}
-
-.output-display {
-  padding: var(--spacing-md);
-  border-radius: var(--radius-base);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-base);
+.attempt-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: var(--spacing-md);
-}
-
-.output-display--disproves {
-  background: var(--color-success-overlay);
-  border: 1px solid var(--color-success);
-}
-
-.output-display--supports {
-  background: var(--color-warning-overlay);
-  border: 1px solid var(--color-warning);
-}
-
-.output-display code {
-  background: transparent;
-  color: var(--color-text-primary);
-  font-weight: 600;
-}
-
-.output-interpretation {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  font-family: var(--font-sans);
-}
-
-.error-display {
-  padding: var(--spacing-md);
-  background: var(--color-error-overlay);
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-base);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
-  color: var(--color-error);
-}
-
-/* Explanations */
-.success-explanation,
-.failure-explanation {
-  padding: var(--spacing-md);
-  border-radius: var(--radius-base);
-}
-
-.success-explanation {
-  background: var(--color-bg-section);
-  border-left: 4px solid var(--color-success);
-}
-
-.failure-explanation {
-  background: var(--color-bg-section);
-  border-left: 4px solid var(--color-warning);
-}
-
-.explanation-text {
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-}
-
-.explanation-text code {
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-input);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-base);
+  font-family: var(--font-family-mono, Monaco, Menlo, 'Ubuntu Mono', monospace);
   font-size: var(--font-size-sm);
-  color: var(--color-primary-gradient-start);
 }
 
-/* No Result */
+.attempt-row--disproves {
+  background: var(--color-success-overlay);
+  border-color: var(--color-success);
+}
+
+.attempt-row--error {
+  background: var(--color-warning-overlay);
+  border-color: var(--color-warning);
+}
+
+.attempt-number {
+  /* --color-text-secondary (not muted) to clear WCAG AA on tinted rows */
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+  min-width: 2.5em;
+}
+
+.attempt-call {
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attempt-arrow {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.attempt-result {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  flex-shrink: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attempt-badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.attempt-badge--disproves {
+  /* Solid dark pill (not the green overlay) so the green text clears AA
+     (6:1) against the already green-tinted row instead of failing at 4.4. */
+  background: var(--color-bg-panel);
+  color: var(--color-success);
+}
+
+.attempt-badge--holds {
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+}
+
+.attempt-badge--error {
+  background: var(--color-warning-overlay);
+  color: var(--color-warning);
+}
+
+/* No Result / Loading */
 .no-result {
   padding: var(--spacing-xl);
   text-align: center;
   color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-bg-border);
+  border-top-color: var(--color-primary-gradient-start);
+  border-radius: var(--radius-circle);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

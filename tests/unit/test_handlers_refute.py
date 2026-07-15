@@ -182,33 +182,36 @@ class TestRefuteDataExtraction:
         submission.passed_all_tests = False
         assert handler.count_passing_variations(submission) == 0
 
-    def test_extract_test_results_with_data(self, handler):
-        submission = MagicMock()
-        submission.passed_all_tests = True
-        submission.type_specific_data = {
-            "input_args": {"x": -5},
-            "result_value": -10,
-            "claim_disproven": True,
-            "execution_error": None,
-        }
-
+    def test_extract_test_results_reconstructs_from_input(self, handler):
+        # Result is reconstructed by re-executing the reference solution
+        # (f(x) = x*2) against the stored raw_input; no persisted blob.
         problem = _make_refute_problem()
+        submission = MagicMock()
+        submission.problem = problem
+        submission.raw_input = '{"x": -5}'
+        submission.passed_all_tests = True
+
         results = handler.extract_test_results(submission, problem)
         assert len(results) == 1
         assert results[0]["isSuccessful"] is True
         assert results[0]["input_args"] == {"x": -5}
+        assert results[0]["result_value"] == -10
         assert results[0]["claim_disproven"] is True
 
-    def test_extract_test_results_no_data(self, handler):
-        submission = MagicMock()
-        submission.passed_all_tests = False
-        submission.type_specific_data = None
-
+    def test_extract_test_results_empty_input(self, handler):
+        # Empty input can't call the function; surfaces as an execution error.
         problem = _make_refute_problem()
+        submission = MagicMock()
+        submission.problem = problem
+        submission.raw_input = ""
+        submission.passed_all_tests = False
+
         results = handler.extract_test_results(submission, problem)
         assert len(results) == 1
         assert results[0]["isSuccessful"] is False
+        assert results[0]["input_args"] == {}
         assert results[0]["claim_disproven"] is False
+        assert results[0]["execution_error"] is not None
 
 
 class TestRefuteProcessSubmission:
@@ -662,17 +665,13 @@ class TestRefuteSerializeResult:
     def handler(self):
         return get_handler("refute")
 
-    def test_serialize_result_with_data(self, handler):
+    def test_serialize_result_reconstructs_from_input(self, handler):
+        # Reconstructed by re-executing the reference solution (f(x) = x*2)
+        # against the stored raw_input; claim `result > 0` fails for -10.
         problem = _make_refute_problem()
         submission = MagicMock()
         submission.problem = problem
-        submission.type_specific_data = {
-            "input_args": {"x": -5},
-            "result_value": -10,
-            "claim_disproven": True,
-            "execution_success": True,
-            "execution_error": None,
-        }
+        submission.raw_input = '{"x": -5}'
 
         result = handler.serialize_result(submission)
         assert result["input_args"] == {"x": -5}
@@ -682,29 +681,26 @@ class TestRefuteSerializeResult:
         assert result["claim_text"] == problem.claim_text
         assert result["function_signature"] == problem.function_signature
 
-    def test_serialize_result_no_data(self, handler):
+    def test_serialize_result_empty_input(self, handler):
         problem = _make_refute_problem()
         submission = MagicMock()
         submission.problem = problem
-        submission.type_specific_data = None
+        submission.raw_input = ""
 
         result = handler.serialize_result(submission)
         assert result["input_args"] == {}
         assert result["claim_disproven"] is False
+        assert result["execution_success"] is False
         assert result["claim_text"] == problem.claim_text
 
     def test_serialize_result_execution_error(self, handler):
-        problem = _make_refute_problem()
+        # A reference solution that raises at runtime surfaces as an error.
+        problem = _make_refute_problem(reference_solution="def f(x):\n    return x / 0")
         submission = MagicMock()
         submission.problem = problem
-        submission.type_specific_data = {
-            "input_args": {"x": 1},
-            "result_value": None,
-            "claim_disproven": False,
-            "execution_success": False,
-            "execution_error": "ValueError: boom",
-        }
+        submission.raw_input = '{"x": 1}'
 
         result = handler.serialize_result(submission)
         assert result["execution_success"] is False
-        assert result["execution_error"] == "ValueError: boom"
+        assert "division" in result["execution_error"]
+        assert result["claim_disproven"] is False

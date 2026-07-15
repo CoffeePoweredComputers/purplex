@@ -7,7 +7,7 @@
     </div>
 
     <!-- Function Call Interface -->
-    <div class="test-wrapper">
+    <div class="call-wrapper">
       <div class="function-call">
         <span class="fn-name">{{ functionName }}</span>
         <span class="fn-paren">(</span>
@@ -27,83 +27,23 @@
             type="text"
             class="param-input"
             :placeholder="param.type"
-            :disabled="testing || disabled"
+            :disabled="disabled"
             :aria-label="`Enter value for ${param.name} (type: ${param.type})`"
-            @keydown.enter="!testing && hasValidInputs && testInput()"
+            @keydown.enter="!disabled && hasValidInputs && submit()"
           >
         </template>
         <span class="fn-paren">)</span>
-        <span class="fn-arrow">→</span>
-        <span
-          class="fn-result"
-          :class="{
-            'has-result': lastResult !== null,
-            'result-flash': showResultFlash,
-            'is-disproven': lastDisproven
-          }"
-        >
-          {{ lastResult !== null ? formatOutput(lastResult) : '?' }}
-        </span>
-      </div>
-
-      <button
-        class="test-btn"
-        :disabled="testing || !hasValidInputs"
-        @click="testInput"
-      >
-        <template v-if="testing">
-          <span class="spinner" />
-          <span>{{ $t('problems.refute.testing') }}</span>
-        </template>
-        <template v-else>
-          <span>{{ $t('problems.refute.test') }}</span>
-        </template>
-      </button>
-    </div>
-
-    <!-- Test Error -->
-    <div
-      v-if="testError"
-      class="test-error"
-    >
-      {{ testError }}
-    </div>
-
-    <!-- Attempt History -->
-    <div
-      v-if="attempts.length > 0"
-      class="attempt-history"
-    >
-      <div
-        v-for="(attempt, idx) in attempts"
-        :key="idx"
-        class="attempt-row"
-        :class="{ 'is-selected': selectedAttempt === idx }"
-        @click="selectAttempt(idx)"
-      >
-        <span class="attempt-call">{{ formatCall(attempt.input) }}</span>
-        <span class="attempt-arrow">→</span>
-        <span class="attempt-result">{{ formatOutput(attempt.result) }}</span>
-        <span
-          v-if="attempt.disproven"
-          class="badge-success"
-        >{{ $t('problems.refute.disproves') }}</span>
-        <span
-          v-else
-          class="badge-muted"
-        >{{ $t('problems.refute.claimHolds') }}</span>
       </div>
     </div>
 
-    <!-- Submit Button (only when counterexample found) -->
+    <!-- Submit Button -->
     <button
-      v-if="hasCounterexample"
       class="submit-button"
-      :disabled="disabled"
-      @click="submitCounterexample"
+      :disabled="disabled || !hasValidInputs"
+      @click="submit"
     >
       <span v-if="!disabled">
-        {{ $t('problems.refute.submitCounterexample', { call: formatCall(counterexample!) }) }}
+        {{ $t('problems.refute.submit') }}
       </span>
       <div
         v-else
@@ -116,38 +56,24 @@
         </div>
       </div>
     </button>
-
-    <!-- No counterexample hint -->
-    <div
-      v-else-if="attempts.length > 0"
-      class="hint-message"
-    >
-      {{ $t('problems.refute.keepTrying') }}
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 /**
- * RefuteInput - Compact counterexample finder interface.
+ * RefuteInput - Counterexample submission interface.
  *
- * Students test function inputs to find one that disproves the claim.
- * Uses function-call style interface similar to ProbePanel.
+ * Students enter function arguments and submit them directly. Each submission
+ * is graded server-side and shown in the results list (RefuteFeedback), where
+ * the student can see what input was tried, what it returned, and whether it
+ * disproved the claim. There is no separate client-side "test" step.
  */
-import { computed, reactive, ref, watch } from 'vue'
-import axios from 'axios'
+import { computed, reactive, watch } from 'vue'
 import type { ActivityProblem } from '../types'
-import { log } from '@/utils/logger'
 
 interface FunctionParam {
   name: string
   type: string
-}
-
-interface TestAttempt {
-  input: Record<string, unknown>
-  result: unknown
-  disproven: boolean
 }
 
 interface Props {
@@ -171,11 +97,6 @@ const emit = defineEmits<{
 
 // State
 const inputs = reactive<Record<string, string>>({})
-const attempts = ref<TestAttempt[]>([])
-const testing = ref(false)
-const testError = ref<string | null>(null)
-const showResultFlash = ref(false)
-const selectedAttempt = ref<number | null>(null)
 
 // Get config from problem
 const displayConfig = computed(() => props.problem.display_config || {})
@@ -220,22 +141,6 @@ const hasValidInputs = computed(() => {
     return val && val.length > 0
   })
 })
-
-const lastResult = computed(() => {
-  if (attempts.value.length === 0) {return null}
-  return attempts.value[0].result
-})
-
-const lastDisproven = computed(() => {
-  if (attempts.value.length === 0) {return false}
-  return attempts.value[0].disproven
-})
-
-const counterexample = computed<TestAttempt | null>(() => {
-  return attempts.value.find(a => a.disproven) || null
-})
-
-const hasCounterexample = computed(() => counterexample.value !== null)
 
 // Methods
 function extractFunctionName(signature: string): string {
@@ -315,85 +220,13 @@ function buildInputArgs(): Record<string, unknown> {
   return args
 }
 
-async function testInput() {
-  if (testing.value || !hasValidInputs.value) {return}
+function submit() {
+  if (props.disabled || !hasValidInputs.value) {return}
 
-  testing.value = true
-  testError.value = null
-
-  const inputArgs = buildInputArgs()
-
-  try {
-    const response = await axios.post(
-      `/api/problems/${props.problem.slug}/test-counterexample/`,
-      { input: inputArgs }
-    )
-
-    const { success, result, claim_disproven, error } = response.data
-
-    if (!success) {
-      testError.value = error || 'Execution failed'
-      return
-    }
-
-    // Add to history (most recent first)
-    attempts.value.unshift({
-      input: inputArgs,
-      result,
-      disproven: claim_disproven
-    })
-
-    // Flash effect
-    showResultFlash.value = true
-    setTimeout(() => { showResultFlash.value = false }, 600)
-
-    log.info('Refute test', { input: inputArgs, result, disproven: claim_disproven })
-
-  } catch (err) {
-    // Handle both AxiosError (direct axios) and APIError (service) shapes
-    const apiErr = err as { error?: string; response?: { data?: { error?: string } } }
-    testError.value = apiErr.error || apiErr.response?.data?.error || 'Test failed'
-    log.error('Refute test failed', err)
-  } finally {
-    testing.value = false
-  }
-}
-
-function selectAttempt(idx: number) {
-  selectedAttempt.value = idx
-  const attempt = attempts.value[idx]
-  if (attempt.disproven) {
-    // Pre-fill for submission
-    emit('update:modelValue', JSON.stringify(attempt.input))
-  }
-}
-
-function submitCounterexample() {
-  if (!counterexample.value || props.disabled) {return}
-
-  // Set the model value to the counterexample JSON
-  emit('update:modelValue', JSON.stringify(counterexample.value.input))
-
-  // Trigger submit
+  // Serialize the arguments as JSON — the backend refute handler parses
+  // raw_input as a JSON object of function arguments.
+  emit('update:modelValue', JSON.stringify(buildInputArgs()))
   emit('submit')
-}
-
-function formatCall(input: Record<string, unknown>): string {
-  const args = parameters.value.map(p => {
-    const val = input[p.name]
-    return `${p.name}=${formatOutput(val)}`
-  }).join(', ')
-  return `${functionName.value}(${args})`
-}
-
-function formatOutput(value: unknown): string {
-  if (value === null) {return 'None'}
-  if (value === undefined) {return '?'}
-  if (typeof value === 'string') {return `"${value}"`}
-  if (typeof value === 'boolean') {return value ? 'True' : 'False'}
-  if (Array.isArray(value)) {return JSON.stringify(value)}
-  if (typeof value === 'object') {return JSON.stringify(value)}
-  return String(value)
 }
 </script>
 
@@ -429,17 +262,17 @@ function formatOutput(value: unknown): string {
   font-style: italic;
 }
 
-/* Test Wrapper */
-.test-wrapper {
+/* Call Wrapper */
+.call-wrapper {
   background: var(--color-bg-input);
   border: 2px solid var(--color-bg-border);
   border-radius: var(--radius-base);
   margin: var(--spacing-md) var(--spacing-lg);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md);
   transition: border-color 0.2s ease;
 }
 
-.test-wrapper:focus-within {
+.call-wrapper:focus-within {
   border-color: var(--color-primary-gradient-start);
 }
 
@@ -447,11 +280,10 @@ function formatOutput(value: unknown): string {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-mono, Monaco, Menlo, 'Ubuntu Mono', monospace);
   font-size: var(--font-size-base);
   color: var(--color-text-primary);
   flex-wrap: wrap;
-  margin-bottom: var(--spacing-sm);
 }
 
 .fn-name {
@@ -481,7 +313,7 @@ function formatOutput(value: unknown): string {
   border: 1px solid var(--color-bg-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-mono, Monaco, Menlo, 'Ubuntu Mono', monospace);
   font-size: var(--font-size-sm);
   text-align: center;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -504,159 +336,6 @@ function formatOutput(value: unknown): string {
   cursor: not-allowed;
 }
 
-.fn-arrow {
-  color: var(--color-text-muted);
-  margin: 0 var(--spacing-sm);
-}
-
-.fn-result {
-  color: var(--color-text-muted);
-  font-style: italic;
-  min-width: 40px;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.fn-result.has-result {
-  color: var(--color-text-primary);
-  font-style: normal;
-  font-weight: 600;
-}
-
-.fn-result.is-disproven {
-  color: var(--color-success);
-}
-
-.fn-result.result-flash {
-  animation: resultFlash 0.6s ease;
-}
-
-@keyframes resultFlash {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.15); }
-  100% { transform: scale(1); }
-}
-
-/* Test Button */
-.test-btn {
-  width: 100%;
-  padding: var(--spacing-xs) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-on-filled);
-  border: none;
-  border-radius: var(--radius-base);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px var(--color-primary-glow);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-}
-
-.test-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.test-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--color-primary-glow);
-}
-
-.spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--color-overlay-strong);
-  border-top-color: var(--color-text-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Test Error */
-.test-error {
-  margin: 0 var(--spacing-lg) var(--spacing-md);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-error-overlay);
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-sm);
-  color: var(--color-error);
-  font-size: var(--font-size-sm);
-}
-
-/* Attempt History */
-.attempt-history {
-  margin: 0 var(--spacing-lg) var(--spacing-md);
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.attempt-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--spacing-xs);
-  background: var(--color-bg-hover);
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.attempt-row:hover {
-  background: var(--color-bg-input);
-}
-
-.attempt-row.is-selected {
-  background: var(--color-bg-input);
-  border: 1px solid var(--color-primary-gradient-start);
-}
-
-.attempt-call {
-  color: var(--color-text-primary);
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.attempt-arrow {
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-.attempt-result {
-  color: var(--color-text-secondary);
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-.badge-success {
-  background: var(--color-success-overlay);
-  color: var(--color-success);
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.badge-muted {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  flex-shrink: 0;
-}
-
 /* Submit Button */
 .submit-button {
   margin: var(--spacing-md) var(--spacing-lg);
@@ -674,7 +353,7 @@ function formatOutput(value: unknown): string {
 }
 
 .submit-button:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
@@ -716,16 +395,5 @@ function formatOutput(value: unknown): string {
     transform: scale(1);
     opacity: 1;
   }
-}
-
-/* Hint Message */
-.hint-message {
-  margin: 0 var(--spacing-lg) var(--spacing-md);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg-section);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-  text-align: center;
 }
 </style>

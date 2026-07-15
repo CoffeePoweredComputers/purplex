@@ -119,7 +119,11 @@
       "disprovesClaim": "¡Esto refuta la afirmación!",
       "supportsClaim": "Esto apoya la afirmación",
       "noClaimSpecified": "No se especificó una afirmación",
-      "enterAndSubmit": "Ingresa los argumentos de la función y envía para encontrar un contraejemplo."
+      "enterAndSubmit": "Ingresa los argumentos de la función y envía para encontrar un contraejemplo.",
+      "noAttempts": "Envía una entrada para probar la afirmación. Tus intentos aparecerán aquí.",
+      "disproves": "✓ REFUTA",
+      "claimHolds": "La afirmación se mantiene",
+      "executionFailed": "Error"
     },
     "correctnessModal": {
       "title": "Análisis de Corrección",

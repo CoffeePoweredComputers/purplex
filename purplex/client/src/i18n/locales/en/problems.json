@@ -115,6 +115,8 @@
         "failedToLoadProblemSet": "Failed to load problem set.",
         "mcqCorrect": "{problem}: Correct!",
         "mcqIncorrect": "{problem}: Incorrect",
+        "refuteFound": "{problem}: Counterexample found!",
+        "refuteHolds": "{problem}: Claim still holds — try another input",
         "testsPassed": "{problem}: {passed}/{total} tests passed",
         "variationsPassing": "{problem}: Variations: {passed}/{total} passing",
         "variationsWithSegmentation": "{problem}: Variations: {passed}/{total} passing, {segmentation}",
@@ -219,12 +221,7 @@
     },
     "refute": {
       "disprove": "Disprove:",
-      "testing": "Testing",
-      "test": "Test",
-      "disproves": "✓ DISPROVES",
-      "claimHolds": "claim holds",
-      "submitCounterexample": "Submit {call} as counterexample",
-      "keepTrying": "Keep trying! Find an input that makes the claim false."
+      "submit": "Submit"
     },
     "activity": {
       "unknownType": "Unknown activity type: {type}",
