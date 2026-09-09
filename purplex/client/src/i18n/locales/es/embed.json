@@ -1,0 +1,11 @@
+{
+  "embed": {
+    "loading": "Cargando problema...",
+    "error": {
+      "title": "No se pudo cargar el problema",
+      "body": "No se pudo cargar el problema. Verifica el enlace o intenta de nuevo.",
+      "missingSlug": "No se especificó ningún problema para esta incrustación."
+    },
+    "submitNotReady": "El envío aún no está disponible en esta compilación de incrustación."
+  }
+}

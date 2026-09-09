@@ -1,0 +1,11 @@
+{
+  "embed": {
+    "loading": "Loading problem...",
+    "error": {
+      "title": "Unable to load problem",
+      "body": "The problem could not be loaded. Please check the link or try again.",
+      "missingSlug": "No problem was specified for this embed."
+    },
+    "submitNotReady": "Submission isn't wired up in this embed build yet."
+  }
+}

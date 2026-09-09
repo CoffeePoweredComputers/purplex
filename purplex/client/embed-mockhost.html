@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SPLICE mock host</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      body {
+        margin: 0;
+        display: grid;
+        grid-template-columns: minmax(320px, 420px) 1fr;
+        height: 100vh;
+      }
+      aside {
+        padding: 16px;
+        overflow-y: auto;
+        border-right: 1px solid #8884;
+        box-sizing: border-box;
+      }
+      main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      h1 {
+        font-size: 15px;
+        margin: 0 0 4px;
+      }
+      p.hint {
+        font-size: 12px;
+        opacity: 0.75;
+        margin: 0 0 16px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        margin: 12px 0 4px;
+      }
+      input[type="text"], textarea {
+        width: 100%;
+        box-sizing: border-box;
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+        padding: 6px;
+      }
+      textarea {
+        height: 90px;
+        resize: vertical;
+      }
+      button {
+        margin-top: 8px;
+        padding: 6px 12px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      #frameWrap {
+        border-bottom: 1px solid #8884;
+        padding: 12px;
+        box-sizing: border-box;
+      }
+      iframe {
+        width: 100%;
+        height: 300px;
+        border: 2px dashed #8886;
+        transition: height 120ms ease-out;
+        display: block;
+      }
+      #log {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 12px;
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+      }
+      .entry {
+        padding: 6px 8px;
+        margin-bottom: 6px;
+        border-radius: 4px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .entry .subject { font-weight: 700; }
+      .entry .time { opacity: 0.6; margin-right: 6px; }
+      .in { background: #2b6cb022; border-left: 3px solid #2b6cb0; }
+      .out { background: #2f855a22; border-left: 3px solid #2f855a; }
+      .ignored { background: #8884; border-left: 3px solid #888; opacity: 0.7; }
+      .score { font-weight: 700; }
+      #status { font-size: 12px; margin-top: 4px; }
+    </style>
+  </head>
+  <body>
+    <aside>
+      <h1>SPLICE mock host</h1>
+      <p class="hint">
+        Stands in for the LMS host page. Embeds the iframe below, logs every
+        postMessage in both directions, and replies to <code>SPLICE.getState</code>
+        with <code>SPLICE.getState.response</code> using the prefill JSON below.
+        Point "Iframe URL" at whatever page mounts <code>useSpliceBridge</code>
+        (e.g. the future <code>embed.html</code> entry, or a scratch test page).
+      </p>
+
+      <label for="iframeUrl">Iframe URL</label>
+      <input id="iframeUrl" type="text" value="http://localhost:5173/embed.html" />
+      <button id="loadBtn">Load iframe</button>
+      <div id="status"></div>
+
+      <label for="prefillState">Prefill state returned on SPLICE.getState (JSON, or "null")</label>
+      <textarea id="prefillState">null</textarea>
+
+      <button id="clearLogBtn">Clear log</button>
+    </aside>
+
+    <main>
+      <div id="frameWrap">
+        <iframe id="target" src="about:blank"></iframe>
+      </div>
+      <div id="log"></div>
+    </main>
+
+    <script>
+      const iframeUrlInput = document.getElementById('iframeUrl');
+      const loadBtn = document.getElementById('loadBtn');
+      const statusEl = document.getElementById('status');
+      const prefillStateInput = document.getElementById('prefillState');
+      const clearLogBtn = document.getElementById('clearLogBtn');
+      const target = document.getElementById('target');
+      const logEl = document.getElementById('log');
+
+      function logEntry(direction, subject, payload) {
+        const div = document.createElement('div');
+        div.className = 'entry ' + direction;
+        const time = new Date().toLocaleTimeString();
+        const scoreNote = subject === 'SPLICE.reportScoreAndState'
+          ? ' <span class="score">score=' + payload.score + '</span>'
+          : '';
+        div.innerHTML =
+          '<span class="time">' + time + '</span>' +
+          '<span class="subject">' + (direction === 'in' ? '← ' : direction === 'out' ? '→ ' : '⚠ ') + subject + '</span>' +
+          scoreNote + '\n' +
+          escapeHtml(JSON.stringify(payload, null, 2));
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function escapeHtml(str) {
+        return str.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      }
+
+      function parsePrefillState() {
+        try {
+          return JSON.parse(prefillStateInput.value);
+        } catch {
+          return null;
+        }
+      }
+
+      function replyTo(message_id, subject, extra) {
+        const contentWindow = target.contentWindow;
+        if (!contentWindow) return;
+        const payload = Object.assign({ subject, message_id }, extra);
+        // Real SPLICE hosts post with targetOrigin "*" per the spec.
+        contentWindow.postMessage(payload, '*');
+        logEntry('out', subject, payload);
+      }
+
+      window.addEventListener('message', (event) => {
+        const data = event.data;
+        if (!data || typeof data !== 'object' || typeof data.subject !== 'string') {
+          return;
+        }
+        if (!/^(SPLICE\.|lti\.)/.test(data.subject)) {
+          logEntry('ignored', data.subject, data);
+          return;
+        }
+
+        logEntry('in', data.subject, data);
+
+        switch (data.subject) {
+          case 'SPLICE.getState':
+            replyTo(data.message_id, 'SPLICE.getState.response', {
+              state: parsePrefillState(),
+              user_id: 'mock-user-1',
+              user_model: { name: 'Mock Student' },
+              context_id: 'mock-context-1',
+            });
+            break;
+          case 'lti.frameResize':
+            if (typeof data.height === 'number') {
+              // Real hosts only grow the iframe, never shrink it.
+              const current = parseInt(target.style.height || '0', 10);
+              if (data.height > current) {
+                target.style.height = data.height + 'px';
+              }
+            }
+            break;
+          // SPLICE.reportScoreAndState and SPLICE.sendEvent just get logged above.
+        }
+      });
+
+      loadBtn.addEventListener('click', () => {
+        target.src = iframeUrlInput.value;
+        target.style.height = '300px';
+        statusEl.textContent = 'Loading ' + iframeUrlInput.value + ' ...';
+        target.onload = () => {
+          statusEl.textContent = 'Loaded ' + iframeUrlInput.value;
+        };
+        target.onerror = () => {
+          statusEl.textContent = 'Failed to load ' + iframeUrlInput.value;
+        };
+      });
+
+      clearLogBtn.addEventListener('click', () => {
+        logEl.innerHTML = '';
+      });
+    </script>
+  </body>
+</html>

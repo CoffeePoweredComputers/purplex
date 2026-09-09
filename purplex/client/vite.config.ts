@@ -26,31 +26,37 @@ export default defineConfig({
 
     // Code splitting configuration
     rollupOptions: {
+      // Two entries: the main SPA and the chromeless embed shell (F1, #143).
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        embed: path.resolve(__dirname, 'embed.html'),
+      },
       output: {
-        // Manual chunks for better caching
-        manualChunks: {
+        // Manual chunks for better caching.
+        //
+        // Function form (not the plain-object form) is required now that the
+        // build has two entries (main + embed, #143). Only vendor packages
+        // are explicitly bucketed here; app code (including the old
+        // 'admin'/'content' buckets) is left to Rollup's automatic per-entry
+        // chunking. Those components are already behind dynamic import() in
+        // router.ts, so they still code-split on their own — explicitly
+        // grouping them by static file path was what caused shared modules
+        // like vue-i18n to get merged into the 'admin' chunk (since it was
+        // forced to contain AdminUsers.vue regardless of the real import
+        // graph), which then dragged 'admin' — and its own Firebase usage —
+        // into every entry that happened to share those modules, including
+        // the embed bundle.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return undefined
+          }
           // Vendor chunks - rarely change, good for caching
-          'vendor-vue': ['vue', 'vue-router', 'vuex'],
-          'vendor-utils': ['axios', 'js-cookie'],
-          'vendor-firebase': ['firebase/app', 'firebase/auth'],
-
+          if (/[/\\](vue|vue-router|vuex)[/\\]/.test(id)) {return 'vendor-vue'}
+          if (/[/\\](axios|js-cookie)[/\\]/.test(id)) {return 'vendor-utils'}
+          if (/[/\\]firebase[/\\]/.test(id)) {return 'vendor-firebase'}
           // Editor chunk - only loaded when needed
-          'editor': ['ace-builds', 'vue3-ace-editor'],
-
-          // Admin-only components - lazy loaded for admin users only
-          'admin': [
-            './src/components/AdminUsers.vue',
-          ],
-          // Unified content management components (used by both admin and instructor)
-          'content': [
-            './src/components/content/ProblemList.vue',
-            './src/components/content/ProblemEditorShell.vue',
-            './src/components/content/ProblemSetManager.vue',
-            './src/components/content/ProblemSetEditorShell.vue',
-            './src/components/content/CourseList.vue',
-            './src/components/content/CourseEditorShell.vue',
-            './src/components/content/SubmissionsPage.vue',
-          ],
+          if (/[/\\](ace-builds|vue3-ace-editor)[/\\]/.test(id)) {return 'editor'}
+          return undefined
         },
 
         // Better chunk naming for debugging
