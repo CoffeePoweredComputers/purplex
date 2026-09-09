@@ -41,8 +41,8 @@ jobs:
             projects: instructor
           - name: student
             projects: student
-          - name: ui + privacy + permissions
-            projects: ui,privacy,permissions
+          - name: ui + privacy + permissions + embed
+            projects: ui,privacy,permissions,embed
 
     services:
       postgres:
