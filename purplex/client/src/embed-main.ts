@@ -5,6 +5,7 @@ import EmbedApp from './EmbedApp.vue'
 import { getStoredLocale, i18n, isValidLocale, setLocale } from './i18n'
 import { log } from './utils/logger'
 import { environment } from './services/environment'
+import { installEmbedSseTokenProvider } from './services/embedService'
 
 // Deliberately no Firebase, no vue-router, no Vuex store in this entry's
 // import graph — the embed bundle must stay lean and Firebase-free until
@@ -24,6 +25,10 @@ axios.interceptors.request.use((config) => {
   }
   return config
 })
+
+// Route SSE token minting through the embed's own path rather than the SPA's
+// Firebase exchange. Must happen before any submission opens a stream.
+installEmbedSseTokenProvider()
 
 if (environment.isDevelopment) {
   log.debug('Embed axios configured', {

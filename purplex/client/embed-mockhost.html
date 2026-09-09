@@ -100,17 +100,25 @@
         Stands in for the LMS host page. Embeds the iframe below, logs every
         postMessage in both directions, and replies to <code>SPLICE.getState</code>
         with <code>SPLICE.getState.response</code> using the prefill JSON below.
-        Point "Iframe URL" at whatever page mounts <code>useSpliceBridge</code>
-        (e.g. the future <code>embed.html</code> entry, or a scratch test page).
+        Point "Iframe URL" at <code>embed.html</code> with a real problem slug,
+        plus a <code>token</code> the backend will accept (in dev, a mock-Firebase
+        token) so the embed can load the problem and open its SSE stream.
       </p>
 
       <label for="iframeUrl">Iframe URL</label>
-      <input id="iframeUrl" type="text" value="http://localhost:5173/embed.html" />
+      <input id="iframeUrl" type="text" value="http://localhost:5173/embed.html?problem=REPLACE_WITH_SLUG&amp;token=REPLACE_WITH_TOKEN" />
       <button id="loadBtn">Load iframe</button>
       <div id="status"></div>
 
       <label for="prefillState">Prefill state returned on SPLICE.getState (JSON, or "null")</label>
       <textarea id="prefillState">null</textarea>
+      <button id="adoptStateBtn" disabled>Adopt last reported state</button>
+      <p class="hint">
+        "Adopt" copies the state from the most recent
+        <code>reportScoreAndState</code> into the prefill box. Reload the iframe
+        afterwards to check the answer is restored — the same round-trip a real
+        LMS performs between launches.
+      </p>
 
       <button id="clearLogBtn">Clear log</button>
     </aside>
@@ -128,6 +136,8 @@
       const statusEl = document.getElementById('status');
       const prefillStateInput = document.getElementById('prefillState');
       const clearLogBtn = document.getElementById('clearLogBtn');
+      const adoptStateBtn = document.getElementById('adoptStateBtn');
+      let lastReportedState = null;
       const target = document.getElementById('target');
       const logEl = document.getElementById('log');
 
@@ -198,7 +208,12 @@
               }
             }
             break;
-          // SPLICE.reportScoreAndState and SPLICE.sendEvent just get logged above.
+          case 'SPLICE.reportScoreAndState':
+            // A real host would persist this against the learner + assignment.
+            lastReportedState = data.state ?? null;
+            adoptStateBtn.disabled = false;
+            break;
+          // SPLICE.sendEvent just gets logged above.
         }
       });
 
@@ -212,6 +227,11 @@
         target.onerror = () => {
           statusEl.textContent = 'Failed to load ' + iframeUrlInput.value;
         };
+      });
+
+      adoptStateBtn.addEventListener('click', () => {
+        prefillStateInput.value = JSON.stringify(lastReportedState, null, 2);
+        statusEl.textContent = 'Prefill updated — reload the iframe to test restoration.';
       });
 
       clearLogBtn.addEventListener('click', () => {

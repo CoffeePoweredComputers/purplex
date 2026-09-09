@@ -1,5 +1,8 @@
 <template>
-  <div class="embed-page">
+  <div
+    ref="rootEl"
+    class="embed-page"
+  >
     <div
       v-if="loading"
       class="embed-state"
@@ -25,12 +28,55 @@
       <h1 class="embed-problem__title">
         {{ problem.title }}
       </h1>
-      <InputSelector
-        v-model="inputValue"
+
+      <!-- eslint-disable vue/no-v-html -- admin-authored markdown rendered via marked() -->
+      <div
+        v-if="problem.description"
+        class="embed-problem__description"
+        v-html="renderedDescription"
+      />
+      <!-- eslint-enable vue/no-v-html -->
+
+      <div class="embed-problem__input">
+        <InputSelector
+          v-model="inputValue"
+          :activity-type="problem.problem_type"
+          :problem="problem"
+          :disabled="submitting"
+          @submit="handleSubmit"
+        />
+      </div>
+
+      <p
+        v-if="submitError"
+        class="embed-submit-error"
+      >
+        {{ submitError }}
+      </p>
+
+      <div
+        v-if="submitting"
+        class="embed-state embed-state--inline"
+      >
+        <div class="loading-spinner" />
+        <p>{{ t('embed.submitting') }}</p>
+      </div>
+
+      <FeedbackSelector
+        v-if="hasResult"
+        class="embed-problem__feedback"
         :activity-type="problem.problem_type"
-        :problem="problem"
-        :disabled="submitting"
-        @submit="handleSubmit"
+        :progress="feedback.promptCorrectness"
+        :notches="6"
+        :code-results="feedback.codeResults as never"
+        :test-results="feedback.testResults as never"
+        :comprehension-results="feedback.comprehensionResults"
+        :user-prompt="feedback.userPrompt"
+        :segmentation="feedback.segmentationData as never"
+        :reference-code="problem.reference_solution || ''"
+        :segmentation-enabled="problem.feedback_config?.show_segmentation === true"
+        :is-loading="submitting"
+        :title="t('embed.results')"
       />
     </div>
   </div>
@@ -41,23 +87,55 @@
  * Chromeless single-problem shell for the embed Vite entry (embed.html).
  *
  * No NavBar/footer/modals, no vue-router, no Vuex — the LMS host page is
- * the surrounding "chrome". Submit -> SSE -> completion wiring lands in
- * #145 (F3); this component only renders the problem and its input.
+ * the surrounding "chrome". This component owns only the composition: it
+ * loads the problem, hands input to the activity registry's components,
+ * delegates submit->SSE->completion to useEmbedSubmission (#145), and routes
+ * everything host-facing through useSpliceBridge (#144).
  */
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { marked } from 'marked'
 import InputSelector from '@/components/activities/InputSelector.vue'
+import FeedbackSelector from '@/components/activities/FeedbackSelector.vue'
 import type { ActivityProblem } from '@/components/activities/types'
 import { getEmbedProblem } from '@/services/embedService'
+import { useSpliceBridge } from '@/composables/useSpliceBridge'
+import { useEmbedSubmission } from '@/composables/useEmbedSubmission'
+import { isEmbeddableType, restoreInputFromState } from '@/embed/adapters'
 import { log } from '@/utils/logger'
 
 const { t } = useI18n()
 
+const rootEl = ref<HTMLElement | null>(null)
 const loading = ref(true)
 const error = ref('')
 const problem = ref<ActivityProblem | null>(null)
 const inputValue = ref('')
-const submitting = ref(false)
+// Tracks whether the learner has typed, so a late-arriving host state never
+// clobbers work in progress.
+const inputDirty = ref(false)
+
+const bridge = useSpliceBridge()
+
+const {
+  submitting,
+  error: submitError,
+  feedback,
+  hasResult,
+  submit,
+} = useEmbedSubmission({
+  problem,
+  onCompleted: (result, state) => {
+    // Submission.score is 0-100; the bridge normalizes it to SPLICE's 0..1.
+    bridge.reportScoreAndState(result.score ?? 0, state)
+  },
+  onTelemetry: (event) => bridge.sendEvent(event.name, event.data),
+  onFailed: (message) => bridge.sendEvent('submission.failed', null, message),
+})
+
+const renderedDescription = computed(() =>
+  problem.value?.description ? marked.parse(problem.value.description) : '',
+)
 
 function applyLaunchTheme(): void {
   const theme = new URLSearchParams(window.location.search).get('theme')
@@ -76,7 +154,18 @@ async function loadProblem(): Promise<void> {
   }
 
   try {
-    problem.value = await getEmbedProblem(slug)
+    const loaded = await getEmbedProblem(slug)
+
+    // The embed is scoped to the EiPL + Probeable families. Anything else has
+    // no adapter, so refuse it here rather than rendering an input that can
+    // never report a score back to the host.
+    if (!isEmbeddableType(loaded.problem_type)) {
+      error.value = t('embed.error.unsupportedType', { type: loaded.problem_type })
+      bridge.sendEvent('problem.unsupported', { problem_type: loaded.problem_type })
+      return
+    }
+
+    problem.value = loaded
   } catch (err) {
     log.error('Failed to load embed problem', err)
     error.value = t('embed.error.body')
@@ -86,19 +175,43 @@ async function loadProblem(): Promise<void> {
 }
 
 function handleSubmit(): void {
-  // Submit -> SSE -> completion orchestration lands in #145 (F3).
-  log.warn(t('embed.submitNotReady'))
+  submit(inputValue.value)
 }
+
+watch(inputValue, () => {
+  inputDirty.value = true
+})
+
+/**
+ * Restore the learner's previous answer once the host replies to getState.
+ *
+ * Render is never blocked on this — per the SPLICE spec the response "may not
+ * even return" — so it arrives (or doesn't) independently of the problem load.
+ */
+watch([() => bridge.restoredState.value, problem], ([state, loaded]) => {
+  if (!state || !loaded || inputDirty.value || hasResult.value) {
+    return
+  }
+
+  const restored = restoreInputFromState(state, loaded.slug)
+  if (restored === null) {
+    return
+  }
+
+  inputValue.value = restored
+  // Restoring is not the learner typing; keep accepting later host state.
+  inputDirty.value = false
+})
 
 onMounted(() => {
   applyLaunchTheme()
   loadProblem()
+  bridge.observeElement(rootEl.value)
 })
 </script>
 
 <style scoped>
 .embed-page {
-  min-height: 100vh;
   padding: var(--spacing-lg);
 }
 
@@ -111,6 +224,13 @@ onMounted(() => {
   min-height: 60vh;
   text-align: center;
   color: var(--color-text-muted);
+}
+
+/* Inline variant sits between the input and the results, so it must not
+   claim the 60vh the standalone loading/error states use. */
+.embed-state--inline {
+  min-height: 0;
+  padding: var(--spacing-lg) 0;
 }
 
 .embed-state--error {
@@ -143,7 +263,22 @@ onMounted(() => {
 
 .embed-problem__title {
   font-size: var(--font-size-lg);
-  margin: 0 0 var(--spacing-lg);
+  margin: 0 0 var(--spacing-md);
   color: var(--color-text-primary);
+}
+
+.embed-problem__description {
+  margin-bottom: var(--spacing-lg);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.embed-problem__feedback {
+  margin-top: var(--spacing-lg);
+}
+
+.embed-submit-error {
+  margin: var(--spacing-md) 0 0;
+  color: var(--color-error);
 }
 </style>

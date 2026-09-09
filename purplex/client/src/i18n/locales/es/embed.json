@@ -1,11 +1,13 @@
 {
   "embed": {
     "loading": "Cargando problema...",
+    "submitting": "Revisando tu respuesta...",
+    "results": "Resultados",
     "error": {
       "title": "No se pudo cargar el problema",
       "body": "No se pudo cargar el problema. Verifica el enlace o intenta de nuevo.",
-      "missingSlug": "No se especificó ningún problema para esta incrustación."
-    },
-    "submitNotReady": "El envío aún no está disponible en esta compilación de incrustación."
+      "missingSlug": "No se especificó ningún problema para esta incrustación.",
+      "unsupportedType": "Este tipo de problema ({type}) no se puede incrustar."
+    }
   }
 }

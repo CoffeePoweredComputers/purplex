@@ -6,7 +6,6 @@
  */
 
 import { log } from '../utils/logger';
-import { firebaseAuth } from '../firebaseConfig';
 import { i18n } from '@/i18n';
 import type { UnifiedSubmissionResult } from '../types';
 
@@ -44,6 +43,15 @@ export interface TaskResult {
 }
 
 /**
+ * Supplies the short-lived token appended to the SSE stream URL as ?sse_token=.
+ *
+ * Pluggable so non-Firebase callers (the LMS embed entry, #145) can mint the
+ * token their own way. Returning null just means the stream is opened without
+ * a token and has to authenticate by cookie instead.
+ */
+export type SSETokenProvider = () => Promise<string | null>;
+
+/**
  * SSE Service - manages Server-Sent Event connections for task updates.
  *
  * Usage:
@@ -55,15 +63,46 @@ class SSEService {
   // Track completed/failed tasks to prevent reconnection loops
   private completedTasks: Set<string> = new Set();
 
+  // When unset, getSSEToken() falls back to the Firebase path below.
+  private tokenProvider: SSETokenProvider | null = null;
+
   /**
-   * Get SSE session token from backend
+   * Override how the SSE token is obtained. Pass null to restore the Firebase
+   * default. The embed sets this at boot so Firebase is never reached.
+   */
+  setTokenProvider(provider: SSETokenProvider | null): void {
+    this.tokenProvider = provider;
+  }
+
+  /**
+   * Get SSE session token from backend, via the configured provider when set.
    */
   private async getSSEToken(): Promise<string | null> {
-    if (!firebaseAuth.currentUser) {
-      return null;
+    if (this.tokenProvider) {
+      try {
+        return await this.tokenProvider();
+      } catch (err) {
+        log.error('SSE token provider failed', err);
+        return null;
+      }
     }
+    return this.getFirebaseSSEToken();
+  }
 
+  /**
+   * Default (main SPA) token path: exchange a Firebase ID token for an SSE token.
+   *
+   * firebaseConfig is imported dynamically so it stays out of the static import
+   * graph — the embed bundle must not pull in Firebase, and it never reaches
+   * this method anyway since it installs its own provider at boot (#145).
+   */
+  private async getFirebaseSSEToken(): Promise<string | null> {
     try {
+      const { firebaseAuth } = await import('../firebaseConfig');
+      if (!firebaseAuth.currentUser) {
+        return null;
+      }
+
       const firebaseToken = await firebaseAuth.currentUser.getIdToken();
       const response = await fetch('/api/auth/sse-token/', {
         method: 'POST',
