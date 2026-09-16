@@ -18,7 +18,10 @@
  * scoring. Scores are keyword-derived so they respond to what is typed during
  * the demo rather than being a fixed constant.
  *
- * Usage:  node demo/embed/stub-api.js  [--port 8000]
+ * Usage:  node demo/embed/stub-api.js  [--port 8000] [--upstream http://localhost:8001]
+ *
+ * With --upstream, anything this stub does not own is forwarded to a real
+ * backend, so the stub and Django can serve the demo together.
  */
 'use strict';
 
@@ -28,6 +31,20 @@ const { PROBLEMS } = require('./problems');
 const PORT = (() => {
   const i = process.argv.indexOf('--port');
   return i !== -1 ? Number(process.argv[i + 1]) : 8000;
+})();
+
+/**
+ * Optional real backend to forward anything this stub does not own.
+ *
+ * Both tiers want the port the embed is built to call, so without this only one
+ * of them can be live at a time. With `--upstream http://localhost:8001`
+ * pointing at a real Django, the stub answers for its own demo slugs and passes
+ * everything else through, and both groups in the mock host's picker work
+ * without restarting anything.
+ */
+const UPSTREAM = (() => {
+  const i = process.argv.indexOf('--upstream');
+  return i !== -1 ? process.argv[i + 1] : null;
 })();
 
 // How long the fake "LLM + Docker" stage runs, so the demo actually shows the
@@ -73,6 +90,56 @@ function sendJson(req, res, status, body) {
     'Cache-Control': 'no-store',
   });
   res.end(payload);
+}
+
+/** Buffer the raw body so a request can be inspected and still forwarded intact. */
+function readBody(req) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+  });
+}
+
+/**
+ * Hand a request to the real backend and stream its reply straight back.
+ *
+ * Headers are forwarded untouched in both directions, so the upstream's own
+ * CORS and auth behaviour is what the browser sees — the point is to be
+ * invisible. Piping rather than buffering keeps SSE streams live.
+ */
+function proxyToUpstream(req, res, body) {
+  if (!UPSTREAM) {
+    return sendJson(req, res, 404, {
+      error: 'No stub route for ' + req.url + ' and no --upstream configured',
+    });
+  }
+
+  const target = new URL(req.url, UPSTREAM);
+  const upstreamReq = http.request(
+    {
+      hostname: target.hostname,
+      port: target.port,
+      path: target.pathname + target.search,
+      method: req.method,
+      headers: { ...req.headers, host: target.host },
+    },
+    (upstreamRes) => {
+      res.writeHead(upstreamRes.statusCode, upstreamRes.headers);
+      upstreamRes.pipe(res);
+    },
+  );
+
+  upstreamReq.on('error', (err) => {
+    console.log('  upstream error: ' + err.message);
+    sendJson(req, res, 502, { error: 'Upstream unreachable: ' + err.message });
+  });
+
+  if (body) {
+    upstreamReq.end(body);
+  } else {
+    req.pipe(upstreamReq);
+  }
 }
 
 function readJson(req) {
@@ -265,11 +332,19 @@ async function handleProbe(req, res, problem) {
 }
 
 async function handleSubmit(req, res) {
-  const body = await readJson(req);
+  const raw = await readBody(req);
+  let body = {};
+  try {
+    body = raw.length ? JSON.parse(raw.toString()) : {};
+  } catch {
+    body = {};
+  }
+
   const problem = PROBLEMS[body.problem_slug];
 
+  // Not one of ours — a real problem submitted through the same endpoint.
   if (!problem) {
-    return sendJson(req, res, 404, { error: 'Unknown problem: ' + body.problem_slug });
+    return proxyToUpstream(req, res, raw);
   }
 
   // Every embeddable type takes the async path in the real backend, so the
@@ -354,8 +429,13 @@ const server = http.createServer(async (req, res) => {
   }
 
   // The embed mints an SSE token before opening the stream (embedService.ts).
-  // B5 will make this a real embed-scoped endpoint; the wire shape is fixed.
+  // Forward it when a real backend is behind us, since a Tier 1 stream needs a
+  // token the backend actually issued; our own streams ignore the token, so
+  // falling back to a stub one costs nothing.
   if (path === '/api/auth/sse-token/' && req.method === 'POST') {
+    if (UPSTREAM) {
+      return proxyToUpstream(req, res, null);
+    }
     return sendJson(req, res, 200, { sse_token: nextId('sse') });
   }
 
@@ -365,6 +445,10 @@ const server = http.createServer(async (req, res) => {
 
   const streamMatch = path.match(/^\/api\/tasks\/([^/]+)\/stream\/$/);
   if (streamMatch) {
+    // Only tasks this stub created; a real task id belongs upstream.
+    if (!tasks.has(streamMatch[1])) {
+      return proxyToUpstream(req, res, null);
+    }
     return handleStream(req, res, streamMatch[1]);
   }
 
@@ -372,7 +456,7 @@ const server = http.createServer(async (req, res) => {
   if (probeMatch) {
     const problem = PROBLEMS[probeMatch[1]];
     if (!problem) {
-      return sendJson(req, res, 404, { error: 'Unknown problem' });
+      return proxyToUpstream(req, res, null);
     }
     if (probeMatch[2] === 'status') {
       return sendJson(req, res, 200, probeStatusFor(problem.slug));
@@ -390,12 +474,12 @@ const server = http.createServer(async (req, res) => {
   if (problemMatch) {
     const problem = PROBLEMS[problemMatch[1]];
     if (!problem) {
-      return sendJson(req, res, 404, { error: 'Unknown problem: ' + problemMatch[1] });
+      return proxyToUpstream(req, res, null);
     }
     return sendJson(req, res, 200, publicProblem(problem));
   }
 
-  sendJson(req, res, 404, { error: 'No stub route for ' + path });
+  proxyToUpstream(req, res, null);
 });
 
 server.listen(PORT, () => {

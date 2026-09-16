@@ -93,11 +93,26 @@ Then open **http://localhost:5173/embed-mockhost.html**:
 The picker composes the launch URL from the selected problem, its problem set,
 and whatever is in the token box, so a fresh token only has to be pasted once.
 
-Each tier's slugs only exist while that tier's backend is serving `:8000` —
-picking from the Tier 2 group while real Django is running gives a 404, and
-vice versa.
-
 The walkthrough below applies to both tiers — only the slugs differ.
+
+## Running both tiers at once
+
+The embed always calls the one API origin it was built with, so by default only
+one backend can be live and picking from the other group gives a 404. To avoid
+switching mid-demo, put the stub in front of Django and let it forward anything
+it does not own:
+
+```bash
+# Django moves aside
+python manage.py runserver 0.0.0.0:8001 --noreload
+
+# the stub takes the port the embed calls, and proxies the rest
+node demo/embed/stub-api.js --upstream http://localhost:8001
+```
+
+The stub answers for its own `demo-*` slugs and streams everything else through
+untouched — real problems, submissions, probes and SSE all still come from
+Django. Both groups in the picker then work without restarting anything.
 
 ---
 
