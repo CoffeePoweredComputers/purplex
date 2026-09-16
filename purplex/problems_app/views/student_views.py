@@ -47,6 +47,11 @@ class ProblemDetailView(APIView):
         visible_test_cases = StudentService.get_visible_test_cases(problem)
         data["test_cases"] = TestCaseSerializer(visible_test_cases, many=True).data
 
+        # Handler-provided render configs, matching what the problem-set payload
+        # carries. Clients that fetch a single problem (the LMS embed) need these
+        # to render the problem's stimulus and feedback correctly.
+        data.update(StudentService.get_problem_handler_configs(problem))
+
         return Response(data)
 
 
