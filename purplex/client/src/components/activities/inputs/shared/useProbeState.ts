@@ -9,6 +9,94 @@ import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import type { ActivityProblem, ProbeHistoryEntry, ProbeParameter, ProbeStatus } from '../../types'
 
+/**
+ * Python container annotations, with the element type captured when present:
+ * list[int], tuple[str], set[float], or a bare list/tuple/set.
+ */
+const CONTAINER_TYPE_RE = /^(?:list|tuple|set|sequence|iterable)\s*(?:\[(.+)\])?$/i
+
+/** Coerce one token to the declared scalar type, leaving it a string if it does not fit. */
+function parseScalarValue(trimmed: string, type: string): unknown {
+  const lowerType = (type || '').toLowerCase()
+
+  if (lowerType === 'int' || lowerType === 'integer') {
+    const num = parseInt(trimmed, 10)
+    return isNaN(num) ? trimmed : num
+  }
+
+  if (lowerType === 'float' || lowerType === 'number') {
+    const num = parseFloat(trimmed)
+    return isNaN(num) ? trimmed : num
+  }
+
+  if (lowerType === 'bool' || lowerType === 'boolean') {
+    if (trimmed.toLowerCase() === 'true') {
+      return true
+    }
+    if (trimmed.toLowerCase() === 'false') {
+      return false
+    }
+    return trimmed
+  }
+
+  // No usable annotation: let JSON decide, so "1" and "true" inside an
+  // unannotated list still arrive as a number and a boolean.
+  if (!lowerType || lowerType === 'any') {
+    try {
+      return JSON.parse(trimmed)
+    } catch {
+      return trimmed
+    }
+  }
+
+  return trimmed
+}
+
+/**
+ * Parse a comma-separated container the learner typed without JSON brackets.
+ * Tolerates a stray opening or closing bracket, since "[1, 2, 3" is a typo
+ * rather than a different intent.
+ */
+function parseContainerValue(trimmed: string, elementType?: string): unknown[] {
+  const body = trimmed.replace(/^[[({]/, '').replace(/[\])}]$/, '').trim()
+  if (!body) {
+    return []
+  }
+
+  return body
+    .split(',')
+    .map((part) => parseScalarValue(part.trim(), elementType?.trim() ?? ''))
+}
+
+/**
+ * Turn what the learner typed into the value sent to the oracle.
+ *
+ * Exported for testing — it is pure, and the parsing rules are where probe
+ * input actually goes wrong.
+ */
+export function parseProbeInputValue(rawValue: string, type: string): unknown {
+  const trimmed = rawValue.trim()
+
+  // JSON first, so "[1, 2, 3]", "42" and "\"text\"" all arrive typed.
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    // Fall back to type-directed parsing below.
+  }
+
+  // Container types the learner wrote without JSON brackets — "1, 2, 3" for a
+  // list[int]. Falling through to the scalar branches would send the literal
+  // string to the oracle, which then fails inside Python on the first
+  // comparison ("'>' not supported between instances of 'str' and 'int'")
+  // instead of doing what the learner plainly meant.
+  const container = CONTAINER_TYPE_RE.exec(type.trim())
+  if (container) {
+    return parseContainerValue(trimmed, container[1])
+  }
+
+  return parseScalarValue(trimmed, type)
+}
+
 export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)) {
   const { t } = useI18n()
   // Probe state
@@ -119,7 +207,7 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     const parsedInputs: Record<string, unknown> = {}
     for (const param of parameters.value) {
       const rawValue = probeInputs[param.name]
-      parsedInputs[param.name] = parseInputValue(rawValue, param.type)
+      parsedInputs[param.name] = parseProbeInputValue(rawValue, param.type)
     }
 
     const inputKey = JSON.stringify(parsedInputs)
@@ -193,7 +281,7 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
       const parsedInputs: Record<string, unknown> = {}
       for (const param of parameters.value) {
         const rawValue = probeInputs[param.name]
-        parsedInputs[param.name] = parseInputValue(rawValue, param.type)
+        parsedInputs[param.name] = parseProbeInputValue(rawValue, param.type)
       }
 
       const p = getProblem()
@@ -227,41 +315,6 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     }
   }
 
-  function parseInputValue(rawValue: string, type: string): unknown {
-    const trimmed = rawValue.trim()
-
-    // Try to parse as JSON first (handles arrays, objects, etc.)
-    try {
-      return JSON.parse(trimmed)
-    } catch {
-      // Fall back to type-specific parsing
-    }
-
-    const lowerType = type.toLowerCase()
-
-    if (lowerType === 'int' || lowerType === 'integer') {
-      const num = parseInt(trimmed, 10)
-      return isNaN(num) ? trimmed : num
-    }
-
-    if (lowerType === 'float' || lowerType === 'number') {
-      const num = parseFloat(trimmed)
-      return isNaN(num) ? trimmed : num
-    }
-
-    if (lowerType === 'bool' || lowerType === 'boolean') {
-      if (trimmed.toLowerCase() === 'true') {
-        return true
-      }
-      if (trimmed.toLowerCase() === 'false') {
-        return false
-      }
-      return trimmed
-    }
-
-    // Default: return as string
-    return trimmed
-  }
 
   function formatInput(input: Record<string, unknown>): string {
     const parts = Object.entries(input).map(([k, v]) => `${k}=${JSON.stringify(v)}`)
@@ -310,7 +363,8 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     executeProbe,
     loadProbeStatus,
     loadProbeHistory,
-    parseInputValue,
+    // Kept under its original name so consumers of the composable are unaffected.
+    parseInputValue: parseProbeInputValue,
     formatInput,
     formatOutput,
     formatFunctionCall,
