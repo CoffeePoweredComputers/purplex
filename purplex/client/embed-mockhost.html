@@ -41,6 +41,12 @@
         font-weight: 600;
         margin: 12px 0 4px;
       }
+      select {
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 12px;
+        padding: 6px;
+      }
       input[type="text"], textarea {
         width: 100%;
         box-sizing: border-box;
@@ -105,8 +111,39 @@
         token) so the embed can load the problem and open its SSE stream.
       </p>
 
+      <label for="launchToken">Launch token</label>
+      <input id="launchToken" type="text" value="demo-token" />
+      <p class="hint">
+        Tier 2 (stub backend) ignores this — leave it as <code>demo-token</code>.
+        Tier 1 (real backend) needs a real mock-Firebase token: run
+        <code>python manage.py shell -c "exec(open('demo/embed/tier1_setup.py').read())"</code>
+        and paste the token it prints. It expires after an hour.
+      </p>
+
+      <label for="demoProblem">Demo problem</label>
+      <select id="demoProblem">
+        <optgroup label="Tier 1 — real backend (Django + Celery + Docker)">
+          <option value="demo-sum-of-squares|demo-problems">EiPL — Code Reading A</option>
+          <option value="demo-count-negatives|demo-problems">Prompt — List I</option>
+          <option value="demo-probeable-code-transform|probeable-demo">Probeable code — mystery transform</option>
+          <option value="demo-probeable-spec-classify|probeable-demo">Probeable spec — mystery classify</option>
+        </optgroup>
+        <optgroup label="Tier 2 — stub backend (node demo/embed/stub-api.js)">
+          <option value="demo-eipl-sum-list">EiPL — explain: sum a list</option>
+          <option value="demo-prompt-word-count">Prompt — count the words</option>
+          <option value="demo-probeable-code-divide">Probeable code — safe divide</option>
+          <option value="demo-probeable-spec-clamp">Probeable spec — clamp</option>
+          <option value="demo-mcq-unsupported">MCQ — unsupported type (refusal path)</option>
+        </optgroup>
+        <option value="">Custom (edit the URL below)</option>
+      </select>
+      <p class="hint">
+        Each tier's slugs only exist while that tier's backend is the one serving
+        <code>:8000</code>. Picking from the wrong group gives a 404.
+      </p>
+
       <label for="iframeUrl">Iframe URL</label>
-      <input id="iframeUrl" type="text" value="http://localhost:5173/embed.html?problem=REPLACE_WITH_SLUG&amp;token=REPLACE_WITH_TOKEN" />
+      <input id="iframeUrl" type="text" value="http://localhost:5173/embed.html?problem=demo-sum-of-squares&amp;problem_set=demo-problems&amp;token=demo-token" />
       <button id="loadBtn">Load iframe</button>
       <div id="status"></div>
 
@@ -132,6 +169,8 @@
 
     <script>
       const iframeUrlInput = document.getElementById('iframeUrl');
+      const demoProblemSelect = document.getElementById('demoProblem');
+      const launchTokenInput = document.getElementById('launchToken');
       const loadBtn = document.getElementById('loadBtn');
       const statusEl = document.getElementById('status');
       const prefillStateInput = document.getElementById('prefillState');
@@ -216,6 +255,35 @@
           // SPLICE.sendEvent just gets logged above.
         }
       });
+
+      // Picking a demo problem rewrites the URL field from the option value
+      // ("slug" or "slug|problem_set") plus whatever token is currently in the
+      // token box. The URL field stays authoritative, so "Custom" leaves
+      // whatever was typed there alone.
+      function composeUrl() {
+        const value = demoProblemSelect.value;
+        if (!value) return null;
+
+        const [slug, problemSet] = value.split('|');
+        const params = new URLSearchParams({ problem: slug });
+        // Submission.problem_set is a non-null FK, so a Tier 1 launch has to
+        // name the set or the submit fails at the database.
+        if (problemSet) params.set('problem_set', problemSet);
+        params.set('token', launchTokenInput.value.trim() || 'demo-token');
+
+        return 'http://localhost:5173/embed.html?' + params.toString();
+      }
+
+      function syncUrlFromPicker() {
+        const url = composeUrl();
+        if (!url) return;
+        iframeUrlInput.value = url;
+        statusEl.textContent = 'URL updated — press "Load iframe".';
+      }
+
+      demoProblemSelect.addEventListener('change', syncUrlFromPicker);
+      // Pasting a fresh token should not mean re-picking the problem.
+      launchTokenInput.addEventListener('input', syncUrlFromPicker);
 
       loadBtn.addEventListener('click', () => {
         target.src = iframeUrlInput.value;
