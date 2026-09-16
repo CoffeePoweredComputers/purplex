@@ -54,7 +54,29 @@ export interface EmbedTelemetry {
   data: Record<string, unknown>
 }
 
+/**
+ * What the learner is meant to read before answering.
+ *
+ * This is per-type and not negotiable from config, because getting it wrong
+ * leaks the answer. `/api/problems/<slug>/` (ProblemDetailView) serializes
+ * `reference_solution` for every type and omits `display_config` entirely, so
+ * the embed cannot decide this from the payload — a config-driven fallback to
+ * "show the code" would print the hidden function on a probeable problem.
+ *
+ * - `reference_code`  the learner reads given code (EiPL explains it).
+ * - `display_config`  only what display_config describes — a function-call
+ *                     table, terminal transcript or image. Never the code:
+ *                     for `prompt` the code is what the learner is trying to
+ *                     get generated.
+ * - `none`            the input itself is the stimulus. Probeable problems
+ *                     hide the function on purpose; the probe panel is how the
+ *                     learner discovers it.
+ */
+export type EmbedStimulus = 'reference_code' | 'display_config' | 'none'
+
 export interface EmbedAdapter {
+  /** What to render above the input. See EmbedStimulus. */
+  stimulus: EmbedStimulus
   /** Type-specific extras merged into EmbedState.details. */
   buildStateDetails(result: UnifiedSubmissionResult, problem: ActivityProblem): Record<string, unknown>
   /** Map a completed submission onto FeedbackSelector's props. */
@@ -175,6 +197,9 @@ function segmentationStateDetails(result: UnifiedSubmissionResult): Record<strin
  * (comprehension analysis) gates completion alongside the test score.
  */
 const eiplAdapter: EmbedAdapter = {
+  // The learner's whole task is to explain this code, so it has to be shown.
+  stimulus: 'reference_code',
+
   buildStateDetails(result) {
     return { ...variationStateDetails(result), ...segmentationStateDetails(result) }
   },
@@ -197,6 +222,10 @@ const eiplAdapter: EmbedAdapter = {
  * Same serialized shape as EiPL; segmentation is typically off.
  */
 const promptAdapter: EmbedAdapter = {
+  // The reference solution is the answer here — the learner is writing a prompt
+  // to get it generated — so only the configured stimulus is safe to show.
+  stimulus: 'display_config',
+
   buildStateDetails(result) {
     return variationStateDetails(result)
   },
@@ -217,6 +246,9 @@ const promptAdapter: EmbedAdapter = {
  * that an LLM implements. Serializes exactly like EiPL.
  */
 const probeableSpecAdapter: EmbedAdapter = {
+  // The function is hidden by design; the probe panel is the stimulus.
+  stimulus: 'none',
+
   buildStateDetails(result) {
     return { ...variationStateDetails(result), ...segmentationStateDetails(result) }
   },
@@ -238,6 +270,9 @@ const probeableSpecAdapter: EmbedAdapter = {
  * variations, and the score is the straight test pass rate.
  */
 const probeableCodeAdapter: EmbedAdapter = {
+  // The function is hidden by design; the probe panel is the stimulus.
+  stimulus: 'none',
+
   buildStateDetails(result) {
     const tally = tallyVariations((resultData(result).test_results as unknown[]) ?? [])
     return {

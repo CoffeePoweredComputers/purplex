@@ -133,6 +133,35 @@ describe('useEmbedSubmission', () => {
     })
   })
 
+  // Submission.problem_set is a non-null FK, so a launch that knows its problem
+  // set has to pass it through or the submit fails at the database.
+  it('forwards the launch problem set when the host supplied one', async () => {
+    acceptAsync()
+    captureStream()
+    const { submit } = setup({ problemSetSlug: 'demo-problems' })
+
+    await submit('add up the numbers')
+
+    expect(submitActivity).toHaveBeenCalledWith({
+      problem_slug: 'sum-list',
+      raw_input: 'add up the numbers',
+      problem_set_slug: 'demo-problems',
+    })
+  })
+
+  it('omits the problem set key entirely when the launch did not name one', async () => {
+    acceptAsync()
+    captureStream()
+    const { submit } = setup({ problemSetSlug: null })
+
+    await submit('add up the numbers')
+
+    expect(submitActivity).toHaveBeenCalledWith({
+      problem_slug: 'sum-list',
+      raw_input: 'add up the numbers',
+    })
+  })
+
   it('opens an SSE stream for an async submission and stays pending until it completes', async () => {
     acceptAsync('task-42')
     const stream = captureStream()

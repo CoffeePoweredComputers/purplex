@@ -8,6 +8,9 @@
       "body": "The problem could not be loaded. Please check the link or try again.",
       "missingSlug": "No problem was specified for this embed.",
       "unsupportedType": "This problem type ({type}) cannot be embedded."
+    },
+    "stimulus": {
+      "imageAlt": "Problem image"
     }
   }
 }

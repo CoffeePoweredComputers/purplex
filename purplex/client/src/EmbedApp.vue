@@ -37,6 +37,72 @@
       />
       <!-- eslint-enable vue/no-v-html -->
 
+      <!--
+        Stimulus: what the learner reads before answering. Mirrors the left
+        panel of ProblemSet.vue (~120-230); without it an EiPL problem renders
+        "explain the function below" above an empty box.
+
+        Which stimulus is safe is decided per type by the adapter, never by the
+        payload — see EmbedStimulus in embed/adapters.ts. ProblemDetailView
+        serializes reference_solution for every type and omits display_config,
+        so falling back to "show the code" would print the hidden function on a
+        probeable problem.
+      -->
+      <div
+        v-if="stimulus !== 'none' && problem.display_config?.show_image"
+        class="embed-stimulus"
+      >
+        <img
+          v-if="problem.display_config?.image_url"
+          :src="problem.display_config.image_url"
+          :alt="problem.display_config.image_alt_text || t('embed.stimulus.imageAlt')"
+          class="embed-stimulus__image"
+          loading="lazy"
+        >
+      </div>
+
+      <div
+        v-else-if="stimulus !== 'none' && problem.display_config?.show_terminal"
+        class="embed-stimulus"
+      >
+        <TerminalDisplay :runs="terminalRuns" />
+      </div>
+
+      <div
+        v-else-if="stimulus !== 'none' && problem.display_config?.show_function_table"
+        class="embed-stimulus"
+      >
+        <FunctionCallTable
+          :function-name="problem.function_name ?? ''"
+          :function-signature="problem.function_signature ?? ''"
+          :calls="functionTableCalls"
+        />
+      </div>
+
+      <!--
+        Only for types whose adapter says the code is the thing to read. Hints
+        are out of scope for the embed, so this is the unmodified reference
+        solution rather than ProblemSet's hint-aware displayedCode.
+      -->
+      <div
+        v-else-if="stimulus === 'reference_code' && problem.reference_solution"
+        class="embed-stimulus"
+      >
+        <Editor
+          lang="python"
+          mode="python"
+          height="auto"
+          width="100%"
+          :min-lines="5"
+          :max-lines="35"
+          :extra-lines="2"
+          :value="problem.reference_solution"
+          :read-only="true"
+          :show-gutter="true"
+          :theme="editorTheme"
+        />
+      </div>
+
       <div class="embed-problem__input">
         <InputSelector
           v-model="inputValue"
@@ -97,11 +163,16 @@ import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import InputSelector from '@/components/activities/InputSelector.vue'
 import FeedbackSelector from '@/components/activities/FeedbackSelector.vue'
+// Stimulus components. All three are presentational — no store, no router — so
+// they are safe in the embed bundle.
+import Editor from '@/features/editor/Editor.vue'
+import TerminalDisplay from '@/components/ui/TerminalDisplay.vue'
+import FunctionCallTable from '@/components/ui/FunctionCallTable.vue'
 import type { ActivityProblem } from '@/components/activities/types'
 import { getEmbedProblem } from '@/services/embedService'
 import { useSpliceBridge } from '@/composables/useSpliceBridge'
 import { useEmbedSubmission } from '@/composables/useEmbedSubmission'
-import { isEmbeddableType, restoreInputFromState } from '@/embed/adapters'
+import { getEmbedAdapter, isEmbeddableType, restoreInputFromState } from '@/embed/adapters'
 import { log } from '@/utils/logger'
 
 const { t } = useI18n()
@@ -125,6 +196,7 @@ const {
   submit,
 } = useEmbedSubmission({
   problem,
+  problemSetSlug: new URLSearchParams(window.location.search).get('problem_set'),
   onCompleted: (result, state) => {
     // Submission.score is 0-100; the bridge normalizes it to SPLICE's 0..1.
     bridge.reportScoreAndState(result.score ?? 0, state)
@@ -135,6 +207,36 @@ const {
 
 const renderedDescription = computed(() =>
   problem.value?.description ? marked.parse(problem.value.description) : '',
+)
+
+// Default to 'none': an unknown type shows no stimulus rather than risking the
+// reference solution. Types with no adapter are refused at load anyway.
+const stimulus = computed(
+  () => (problem.value ? getEmbedAdapter(problem.value.problem_type)?.stimulus : undefined) ?? 'none',
+)
+
+// display_data is loosely typed because its shape depends on display_mode, so
+// narrow it per branch rather than trusting it.
+const terminalRuns = computed(() => {
+  const data = problem.value?.display_config?.display_data as
+    | { runs?: unknown[] }
+    | undefined
+  return (data?.runs ?? []) as never[]
+})
+
+const functionTableCalls = computed(() => {
+  const data = problem.value?.display_config?.display_data as
+    | { calls?: unknown[] }
+    | undefined
+  return (data?.calls ?? []) as never[]
+})
+
+// The launch theme drives the read-only code view, matching the names Editor
+// expects ('tomorrow-night' is its dark theme, not 'dark').
+const editorTheme = computed(() =>
+  document.documentElement.getAttribute('data-theme') === 'light'
+    ? 'light'
+    : 'tomorrow-night',
 )
 
 function applyLaunchTheme(): void {
@@ -271,6 +373,19 @@ onMounted(() => {
   margin-bottom: var(--spacing-lg);
   color: var(--color-text-secondary);
   line-height: 1.6;
+}
+
+.embed-stimulus {
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.embed-stimulus__image {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
 
 .embed-problem__feedback {

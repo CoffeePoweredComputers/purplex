@@ -248,4 +248,21 @@ describe('embed adapters', () => {
       expect(restoreInputFromState({ ...validState, raw_input: 42 })).toBeNull()
     })
   })
+  describe('stimulus', () => {
+    // The payload the embed gets (ProblemDetailView) carries reference_solution
+    // for every type and no display_config, so these choices are the only thing
+    // stopping the embed printing a probeable problem's hidden function.
+    it('shows the reference code only for the type that asks the learner to read it', () => {
+      expect(getEmbedAdapter('eipl')!.stimulus).toBe('reference_code')
+    })
+
+    it('never shows the reference code for a probeable type', () => {
+      expect(getEmbedAdapter('probeable_code')!.stimulus).toBe('none')
+      expect(getEmbedAdapter('probeable_spec')!.stimulus).toBe('none')
+    })
+
+    it('limits prompt to its configured stimulus, since the code is the answer', () => {
+      expect(getEmbedAdapter('prompt')!.stimulus).toBe('display_config')
+    })
+  })
 })

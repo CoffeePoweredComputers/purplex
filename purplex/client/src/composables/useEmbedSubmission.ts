@@ -45,6 +45,16 @@ const EMPTY_FEEDBACK: EmbedFeedbackProps = {
 export interface UseEmbedSubmissionOptions {
   /** The problem being attempted. Null until it has loaded. */
   problem: Ref<ActivityProblem | null>
+  /**
+   * Problem set the launch belongs to, from the `problem_set` launch param.
+   *
+   * Submission.problem_set is a non-null FK (submissions/models.py), so the
+   * submit endpoint cannot record a bare single-problem attempt — it fails at
+   * the database with a not-null violation. The host therefore has to say which
+   * assignment it is launching. B1-B5 should resolve this from the LTI context
+   * rather than a query param; until then it rides the launch URL.
+   */
+  problemSetSlug?: string | null
   /** Called once a submission completes, with the state payload for the host. */
   onCompleted?: (result: UnifiedSubmissionResult, state: EmbedState) => void
   /** Called with the adapter's telemetry event for the attempt. */
@@ -155,6 +165,7 @@ export function useEmbedSubmission(options: UseEmbedSubmissionOptions) {
       const response = await submissionService.submitActivity({
         problem_slug: current.slug,
         raw_input: rawInput,
+        ...(options.problemSetSlug ? { problem_set_slug: options.problemSetSlug } : {}),
       })
 
       // Sync path: some activity types return a scored result inline, with no

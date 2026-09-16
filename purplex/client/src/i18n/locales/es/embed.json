@@ -8,6 +8,9 @@
       "body": "No se pudo cargar el problema. Verifica el enlace o intenta de nuevo.",
       "missingSlug": "No se especificó ningún problema para esta incrustación.",
       "unsupportedType": "Este tipo de problema ({type}) no se puede incrustar."
+    },
+    "stimulus": {
+      "imageAlt": "Imagen del problema"
     }
   }
 }
