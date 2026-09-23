@@ -2642,6 +2642,8 @@ export default {
 
 .problem-description-content {
     padding: var(--spacing-xl);
+    /* #app sets text-align: center globally; problem text must read left-aligned */
+    text-align: left;
 }
 
 .problem-description-markdown {
