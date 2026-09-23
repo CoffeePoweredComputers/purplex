@@ -201,9 +201,7 @@ onUnmounted(() => {
     height: 80px;
     display: block;
     margin: var(--spacing-sm);
-    object-fit: cover;
-    object-position: center center;
-    transform: scale(2.2);
+    object-fit: contain;
 }
 
 .logo-text {
