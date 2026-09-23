@@ -32,7 +32,13 @@
  * const code = await getAceEditorValue(page, '#codeEditor');
  */
 
-import { Page } from '@playwright/test';
+import { Frame, Page } from '@playwright/test';
+
+/**
+ * Page or Frame — both expose evaluate()/waitForSelector(), so these helpers
+ * work against the main document or inside an iframe (e.g. the SPLICE embed).
+ */
+type EvalContext = Page | Frame;
 
 /**
  * Set the value of an Ace editor via Vue's v-model chain.
@@ -42,13 +48,13 @@ import { Page } from '@playwright/test';
  * `inputValue` triggers emit('update:modelValue') which Vue's
  * reactivity system properly tracks through the entire chain.
  *
- * @param page - Playwright page
+ * @param page - Playwright page, or a Frame to reach into an iframe
  * @param containerSelector - CSS selector for the wrapper containing .ace_editor
  *   (e.g., '#codeEditor', '#promptEditor')
  * @param value - The text to set in the editor
  */
 export async function setAceEditorValue(
-  page: Page,
+  page: EvalContext,
   containerSelector: string,
   value: string,
 ): Promise<void> {
@@ -80,19 +86,20 @@ export async function setAceEditorValue(
     throw new Error(`setAceEditorValue: no Vue component found above "${containerSelector}"`);
   }
 
-  // Wait for Vue reactivity to propagate through the v-model chain
-  await page.waitForTimeout(500);
+  // Wait for Vue reactivity to propagate through the v-model chain.
+  // Not page.waitForTimeout() — Frame doesn't expose it.
+  await new Promise((resolve) => setTimeout(resolve, 500));
 }
 
 /**
  * Get the current value of an Ace editor.
  *
- * @param page - Playwright page
+ * @param page - Playwright page, or a Frame to reach into an iframe
  * @param containerSelector - CSS selector for the wrapper containing .ace_editor
  * @returns The editor's current text content
  */
 export async function getAceEditorValue(
-  page: Page,
+  page: EvalContext,
   containerSelector: string,
 ): Promise<string> {
   return page.evaluate((selector) => {

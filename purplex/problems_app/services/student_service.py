@@ -57,6 +57,56 @@ class StudentService:
         return problem
 
     @staticmethod
+    def get_problem_handler_configs(problem: "Problem") -> dict:
+        """
+        Get the handler-provided render configs for a single problem.
+
+        Same enrichment get_problem_set_problems() applies to every problem in a
+        set, extracted so the single-problem endpoint can return it too. Without
+        it a client fetching one problem has no display_config and cannot render
+        the problem's stimulus — a prompt problem's function-call table, terminal
+        transcript or image — nor read feedback_config to decide whether to show
+        segmentation.
+
+        Args:
+            problem: Problem instance
+
+        Returns:
+            Dict with display_config, input_config, hints_config,
+            feedback_config and probe_config. Every key is always present;
+            values fall back to {} for an unregistered type or a handler error,
+            so callers never have to distinguish "missing" from "empty".
+        """
+        from ..handlers import get_handler, is_registered
+
+        empty = {
+            "display_config": {},
+            "input_config": {},
+            "hints_config": {},
+            "feedback_config": {},
+            "probe_config": {},
+        }
+
+        if not is_registered(problem.problem_type):
+            return empty
+
+        try:
+            config = get_handler(problem.problem_type).get_problem_config(problem)
+        except Exception as e:
+            logger.warning(
+                f"Failed to get handler config for {problem.problem_type}: {e}"
+            )
+            return empty
+
+        return {
+            "display_config": config.get("display", {}),
+            "input_config": config.get("input", {}),
+            "hints_config": config.get("hints", {}),
+            "feedback_config": config.get("feedback", {}),
+            "probe_config": config.get("probe", {}),
+        }
+
+    @staticmethod
     def get_visible_test_cases(problem: "Problem") -> "QuerySet":
         """
         Get only non-hidden test cases for a problem.

@@ -1,0 +1,18 @@
+{
+  "embed": {
+    "loading": "Loading problem...",
+    "submitting": "Checking your answer...",
+    "results": "Results",
+    "error": {
+      "title": "Unable to load problem",
+      "body": "The problem could not be loaded. Please check the link or try again.",
+      "missingSlug": "No problem was specified for this embed.",
+      "unsupportedType": "This problem type ({type}) cannot be embedded.",
+      "noTaskId": "The server did not start checking your answer. Please try again.",
+      "timeout": "Timed out waiting for your result. Please try again."
+    },
+    "stimulus": {
+      "imageAlt": "Problem image"
+    }
+  }
+}

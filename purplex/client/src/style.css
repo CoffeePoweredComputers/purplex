@@ -1,4 +1,4 @@
-/* Import CSS variables from App.vue */
+@import url('./styles/theme-variables.css');
 @import url('./styles/segmentation.css');
 
 * {

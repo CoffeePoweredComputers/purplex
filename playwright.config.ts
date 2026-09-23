@@ -71,6 +71,13 @@ export default defineConfig({
       testDir: './e2e/permissions',
       use: chromeDesktop,
     },
+    {
+      // Protocol-level embed specs. These stub the API, so they need only the
+      // Vite dev server — no Django, Celery or Docker.
+      name: 'embed',
+      testDir: './e2e/embed',
+      use: chromeDesktop,
+    },
   ],
 
   // No webServer — start services manually via ./start.sh
