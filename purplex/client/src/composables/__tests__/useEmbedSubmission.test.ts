@@ -292,7 +292,7 @@ describe('useEmbedSubmission', () => {
 
     await submit('answer')
 
-    expect(error.value).toMatch(/task id/i)
+    expect(error.value).toMatch(/did not start checking/i)
     expect(connectToSubmission).not.toHaveBeenCalled()
   })
 
@@ -359,7 +359,7 @@ describe('useEmbedSubmission', () => {
     await submit('answer')
     stream.onSuccess!({ ...COMPLETED_RESULT, problem_type: 'mcq' } as UnifiedSubmissionResult)
 
-    expect(error.value).toMatch(/unsupported/i)
+    expect(error.value).toMatch(/cannot be embedded/i)
     expect(onCompleted).not.toHaveBeenCalled()
   })
 

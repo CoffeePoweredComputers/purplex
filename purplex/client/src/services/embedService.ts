@@ -15,6 +15,39 @@ export async function getEmbedProblem(slug: string): Promise<ActivityProblem> {
   return response.data;
 }
 
+/** The subset of /api/last-submission/ the embed needs to refill the editor. */
+export interface EmbedLastSubmission {
+  has_submission: boolean;
+  /** The learner's raw input on their most recent submission. */
+  user_prompt?: string;
+  submission_id?: string;
+  score?: number | null;
+}
+
+/**
+ * Fetch the learner's last submission for this problem so a relaunch can
+ * restore their answer from Purplex's own records. This is the restoration
+ * path that works under any host: an LTI platform such as Canvas never
+ * answers SPLICE.getState, so host-held state cannot be relied on.
+ *
+ * Resolves null on any failure — restoration is best-effort and must never
+ * block or break the problem load.
+ */
+export async function getEmbedLastSubmission(
+  slug: string,
+  problemSetSlug?: string | null,
+): Promise<EmbedLastSubmission | null> {
+  try {
+    const response = await axios.get<EmbedLastSubmission>(`/api/last-submission/${slug}/`, {
+      params: problemSetSlug ? { problem_set_slug: problemSetSlug } : {},
+    });
+    return response.data;
+  } catch (err) {
+    log.warn('Could not load last submission for embed restoration', err);
+    return null;
+  }
+}
+
 /**
  * Mint the short-lived token appended to the SSE stream URL.
  *

@@ -7,7 +7,9 @@
       "title": "No se pudo cargar el problema",
       "body": "No se pudo cargar el problema. Verifica el enlace o intenta de nuevo.",
       "missingSlug": "No se especificó ningún problema para esta incrustación.",
-      "unsupportedType": "Este tipo de problema ({type}) no se puede incrustar."
+      "unsupportedType": "Este tipo de problema ({type}) no se puede incrustar.",
+      "noTaskId": "El servidor no comenzó a revisar tu respuesta. Inténtalo de nuevo.",
+      "timeout": "Se agotó el tiempo de espera del resultado. Inténtalo de nuevo."
     },
     "stimulus": {
       "imageAlt": "Imagen del problema"

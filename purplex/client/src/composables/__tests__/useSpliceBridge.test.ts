@@ -204,6 +204,21 @@ describe('useSpliceBridge', () => {
     expect(bridge.restoredState.value).toBeNull()
   })
 
+  it('posts to the host origin rather than "*" when the origin is known', () => {
+    const bridge = setup()
+    bridge.reportScoreAndState(50, {})
+
+    const targets = postSpy.mock.calls.map((call) => call[1])
+    expect(targets.length).toBeGreaterThan(0)
+    targets.forEach((target) => expect(target).toBe(HOST_ORIGIN))
+  })
+
+  it('falls back to "*" only when no host origin is available', () => {
+    setup({ allowedOrigin: '' })
+
+    expect(postSpy.mock.calls[0][1]).toBe('*')
+  })
+
   it('ignores replies from an unexpected origin', async () => {
     const bridge = setup()
     const calls = postMessageCalls(postSpy)

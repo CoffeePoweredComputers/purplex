@@ -57,7 +57,7 @@ const SYNC_SUBMISSION = {
 };
 
 /**
- * Stub the two endpoints the embed calls. Responses carry permissive CORS
+ * Stub the endpoints the embed calls. Responses carry permissive CORS
  * headers because the embed talks to :8000 directly rather than through the
  * Vite proxy.
  */
@@ -81,6 +81,15 @@ async function stubApi(page: Page, problem: object = EIPL_PROBLEM): Promise<void
       return route.fulfill({ status: 204, headers: cors, body: '' });
     }
     return route.fulfill(json(problem));
+  });
+
+  // Default: no prior work, so tests that exercise host-supplied state are
+  // not affected. A test can register a later route to model a relaunch.
+  await page.route('**/api/last-submission/**', async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      return route.fulfill({ status: 204, headers: cors, body: '' });
+    }
+    return route.fulfill(json({ has_submission: false }));
   });
 
   await page.route('**/api/submit/', async (route) => {
@@ -251,6 +260,30 @@ test.describe('SPLICE iframe protocol', () => {
     await expect
       .poll(async () => getAceEditorValue(await embedFrame(page), '#promptEditor'))
       .toBe('my saved explanation');
+  });
+
+  test('restores the last submitted answer from Purplex when the host holds no state', async ({ page }) => {
+    // An LTI platform such as Canvas never answers getState, so restoration
+    // has to come from the learner's own submission record.
+    await page.route('**/api/last-submission/**', async (route) => {
+      if (route.request().method() === 'OPTIONS') {
+        return route.fulfill({ status: 204, headers: { 'Access-Control-Allow-Origin': EMBED_ORIGIN, 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Credentials': 'true' }, body: '' });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { 'Access-Control-Allow-Origin': EMBED_ORIGIN, 'Access-Control-Allow-Credentials': 'true' },
+        body: JSON.stringify({ has_submission: true, submission_id: 'sub-prev', user_prompt: 'my last submitted explanation', score: 60 }),
+      });
+    });
+
+    await launchEmbed(page, { replyToGetState: false });
+
+    const frame = page.frameLocator('#embed-frame');
+    await expect(frame.locator('#promptEditor .ace_editor')).toBeVisible();
+    await expect
+      .poll(async () => getAceEditorValue(await embedFrame(page), '#promptEditor'))
+      .toBe('my last submitted explanation');
   });
 
   test('ignores state the host saved against a different problem', async ({ page }) => {

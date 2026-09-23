@@ -30,6 +30,7 @@ import {
   getEmbedAdapter,
 } from '@/embed/adapters'
 import { log } from '@/utils/logger'
+import { i18n } from '@/i18n'
 
 const logger = log.createComponentLogger('useEmbedSubmission')
 
@@ -101,7 +102,7 @@ export function useEmbedSubmission(options: UseEmbedSubmissionOptions) {
 
     const adapter = getEmbedAdapter(current.problem_type)
     if (!adapter) {
-      fail(`Unsupported activity type: ${current.problem_type}`)
+      fail(i18n.global.t('embed.error.unsupportedType', { type: current.problem_type }))
       return
     }
 
@@ -177,7 +178,7 @@ export function useEmbedSubmission(options: UseEmbedSubmissionOptions) {
       }
 
       if (!response.task_id) {
-        fail('No task ID received from server')
+        fail(i18n.global.t('embed.error.noTaskId'))
         return
       }
 
@@ -193,7 +194,7 @@ export function useEmbedSubmission(options: UseEmbedSubmissionOptions) {
             logger.error('SSE reported a submission error', payload)
             fail(payload.error)
           },
-          onTimeout: () => fail('Timed out waiting for the submission result'),
+          onTimeout: () => fail(i18n.global.t('embed.error.timeout')),
         },
       )
     } catch (err) {

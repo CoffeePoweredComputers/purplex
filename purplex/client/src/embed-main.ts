@@ -16,9 +16,11 @@ axios.defaults.baseURL = environment.apiUrl
 
 const launchParams = new URLSearchParams(window.location.search)
 
-// Provisional LTI-token auth: read a token off the launch URL until B2 (#139)
-// delivers a real embed JWT and a proper attachment mechanism.
-const ltiToken = launchParams.get('token')
+// Provisional dev-only auth: read a mock token off the launch URL so the embed
+// can be exercised against a local backend (see demo/embed/). Never honoured
+// in production builds — a credential in a query string ends up in referrers
+// and server logs. The LTI launch (B2, #139) hands the embed its JWT instead.
+const ltiToken = environment.isDevelopment ? launchParams.get('token') : null
 axios.interceptors.request.use((config) => {
   if (ltiToken) {
     config.headers.Authorization = `Bearer ${ltiToken}`

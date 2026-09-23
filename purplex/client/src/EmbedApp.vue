@@ -169,7 +169,7 @@ import Editor from '@/features/editor/Editor.vue'
 import TerminalDisplay from '@/components/ui/TerminalDisplay.vue'
 import FunctionCallTable from '@/components/ui/FunctionCallTable.vue'
 import type { ActivityProblem } from '@/components/activities/types'
-import { getEmbedProblem } from '@/services/embedService'
+import { getEmbedLastSubmission, getEmbedProblem } from '@/services/embedService'
 import { useSpliceBridge } from '@/composables/useSpliceBridge'
 import { useEmbedSubmission } from '@/composables/useEmbedSubmission'
 import { getEmbedAdapter, isEmbeddableType, restoreInputFromState } from '@/embed/adapters'
@@ -182,9 +182,13 @@ const loading = ref(true)
 const error = ref('')
 const problem = ref<ActivityProblem | null>(null)
 const inputValue = ref('')
-// Tracks whether the learner has typed, so a late-arriving host state never
-// clobbers work in progress.
+// Tracks whether the learner has typed, so a late-arriving restored answer
+// never clobbers work in progress. Programmatic restores go through
+// applyRestoredInput() so they are not mistaken for typing.
 const inputDirty = ref(false)
+let lastRestoredInput: string | null = null
+
+const problemSetSlug = new URLSearchParams(window.location.search).get('problem_set')
 
 const bridge = useSpliceBridge()
 
@@ -196,7 +200,7 @@ const {
   submit,
 } = useEmbedSubmission({
   problem,
-  problemSetSlug: new URLSearchParams(window.location.search).get('problem_set'),
+  problemSetSlug,
   onCompleted: (result, state) => {
     // Submission.score is 0-100; the bridge normalizes it to SPLICE's 0..1.
     bridge.reportScoreAndState(result.score ?? 0, state)
@@ -268,6 +272,7 @@ async function loadProblem(): Promise<void> {
     }
 
     problem.value = loaded
+    void restoreLastAnswer(loaded)
   } catch (err) {
     log.error('Failed to load embed problem', err)
     error.value = t('embed.error.body')
@@ -280,8 +285,33 @@ function handleSubmit(): void {
   submit(inputValue.value)
 }
 
-watch(inputValue, () => {
-  inputDirty.value = true
+/** Set the editor from a saved answer without marking it as learner input. */
+function applyRestoredInput(value: string): void {
+  lastRestoredInput = value
+  inputValue.value = value
+}
+
+/**
+ * Refill the editor from the learner's last submission in Purplex's own
+ * records. Runs after the problem loads and never blocks it. The host-state
+ * path below can still take precedence when it answers first; the learner's
+ * own typing always wins over both.
+ */
+async function restoreLastAnswer(loaded: ActivityProblem): Promise<void> {
+  const last = await getEmbedLastSubmission(loaded.slug, problemSetSlug)
+  if (!last?.has_submission || typeof last.user_prompt !== 'string' || !last.user_prompt) {
+    return
+  }
+  if (inputDirty.value || hasResult.value || inputValue.value) {
+    return
+  }
+  applyRestoredInput(last.user_prompt)
+}
+
+watch(inputValue, (value) => {
+  if (value !== lastRestoredInput) {
+    inputDirty.value = true
+  }
 })
 
 /**
@@ -300,9 +330,7 @@ watch([() => bridge.restoredState.value, problem], ([state, loaded]) => {
     return
   }
 
-  inputValue.value = restored
-  // Restoring is not the learner typing; keep accepting later host state.
-  inputDirty.value = false
+  applyRestoredInput(restored)
 })
 
 onMounted(() => {

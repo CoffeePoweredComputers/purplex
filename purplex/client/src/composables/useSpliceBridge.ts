@@ -61,6 +61,11 @@ export function useSpliceBridge(options: UseSpliceBridgeOptions = {}) {
   const allowedOrigin = options.allowedOrigin ?? referrerOrigin()
   const responseTimeoutMs = options.responseTimeoutMs ?? DEFAULT_RESPONSE_TIMEOUT_MS
 
+  // Outbound messages go to the host origin when it is known. '*' is only the
+  // fallback for a referrer-less launch; otherwise any page that manages to
+  // frame the embed could read the learner's score and state.
+  const targetOrigin = allowedOrigin || '*'
+
   const pending = new Map<string, PendingRequest>()
   let resizeObserver: ResizeObserver | null = null
   let lastHeight = -1
@@ -68,7 +73,7 @@ export function useSpliceBridge(options: UseSpliceBridgeOptions = {}) {
 
   function post(subject: string, payload: Record<string, unknown> = {}): string {
     const message_id = nextMessageId()
-    window.parent.postMessage({ subject, message_id, ...payload }, '*')
+    window.parent.postMessage({ subject, message_id, ...payload }, targetOrigin)
     return message_id
   }
 
@@ -81,7 +86,7 @@ export function useSpliceBridge(options: UseSpliceBridgeOptions = {}) {
         resolve(null)
       }, responseTimeoutMs)
       pending.set(message_id, { resolve, timeoutId })
-      window.parent.postMessage({ subject, message_id, ...payload }, '*')
+      window.parent.postMessage({ subject, message_id, ...payload }, targetOrigin)
     })
   }
 
