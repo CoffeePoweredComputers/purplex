@@ -15,7 +15,6 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 from gevent import Timeout as GeventTimeout
-from gevent import lock as gevent_lock
 
 try:
     from docker.errors import APIError, ContainerError, ImageNotFound
@@ -52,10 +51,12 @@ class DockerExecutionService:
         self.pool_enabled = security_config.get("POOL_ENABLED", True)
         self.pool_size = security_config.get("POOL_SIZE", 5)
         self.container_pool = []
-        # CRITICAL FIX: Use gevent RLock instead of threading.Lock
-        # This lock is accessed by both background health monitor thread AND gevent greenlets
-        # gevent.lock.RLock is both thread-safe AND greenlet-aware (prevents deadlocks)
-        self.pool_lock = gevent_lock.RLock()
+        # threading.RLock, not gevent.lock.RLock: under gevent monkey-patching
+        # (gunicorn/Celery gevent workers) this is the cooperative lock, and in
+        # native threads (Django runserver with CELERY_EAGER) it is a real
+        # thread lock. A gevent lock contended by native threads that each own
+        # a hub never wakes the waiter, which hung concurrent submissions.
+        self.pool_lock = threading.RLock()
         self._pool_initialized = False
         self._closed = False
 

@@ -591,6 +591,50 @@ class TestContainerPool:
         assert returning_container._removed is True
         assert len(pooled_docker_service.container_pool) == 3
 
+    def test_pool_lock_shared_by_native_threads_with_gevent_hubs(
+        self, pooled_docker_service
+    ):
+        """Native threads contending for the pool must all get a container.
+
+        Under Django runserver (E2E stack, CELERY_EAGER) each request thread
+        is a native, non-monkey-patched thread, and it owns a gevent hub once
+        it has used gevent.sleep/GeventTimeout. A gevent lock contended across
+        two such hubs never wakes the waiter, so a concurrent submission hung
+        forever between PIPELINE START and "Retrieved container".
+        """
+        import gevent
+
+        class SlowReloadContainer(MockContainer):
+            def reload(self):
+                time.sleep(0.02)  # holds pool_lock while "talking to Docker"
+
+        thread_count = 4
+        pooled_docker_service.pool_size = thread_count
+        pooled_docker_service.container_pool = [
+            SlowReloadContainer(f"container-{i}") for i in range(thread_count)
+        ]
+        start = threading.Barrier(thread_count)
+        got = []
+
+        def request_thread():
+            gevent.sleep(0)  # give this native thread its own gevent hub
+            start.wait()
+            got.append(pooled_docker_service._get_container_from_pool())
+
+        threads = [
+            threading.Thread(target=request_thread, daemon=True)
+            for _ in range(thread_count)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=5)
+
+        assert [t.is_alive() for t in threads] == [False] * thread_count
+        assert sorted(c.id for c in got) == [
+            f"container-{i}" for i in range(thread_count)
+        ]
+
     def test_pool_metrics_tracked(self, pooled_docker_service):
         """Pool operations should update metrics."""
         mock_container = MockContainer("container-1")

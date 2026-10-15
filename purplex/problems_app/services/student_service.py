@@ -179,6 +179,22 @@ class StudentService:
                         problem_data["hints_config"] = config.get("hints", {})
                         problem_data["feedback_config"] = config.get("feedback", {})
                         problem_data["probe_config"] = config.get("probe", {})
+                        # A hidden signature must not reach the student via
+                        # this problem-set payload (its types are part of the
+                        # puzzle). GET /api/problems/<slug>/ still exposes it.
+                        display = problem_data["display_config"]
+                        if display.get("show_function_signature") is False:
+                            problem_data["function_signature"] = None
+                        # Send the reference solution only when the student UI
+                        # shows it: as the code to explain, or mapped to the
+                        # student's words in segment analysis. Otherwise it is
+                        # the answer (a probeable oracle, a debug-fix fix).
+                        feedback = problem_data["feedback_config"]
+                        if (
+                            display.get("show_reference_code") is False
+                            and feedback.get("show_segmentation") is not True
+                        ):
+                            problem_data["reference_solution"] = None
                     except Exception as e:
                         logger.warning(
                             f"Failed to get handler config for {problem_type}: {e}"
