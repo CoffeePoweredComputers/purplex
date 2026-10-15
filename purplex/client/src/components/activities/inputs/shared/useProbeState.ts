@@ -140,8 +140,8 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     if (probeStatus.value.mode === 'explore') {
       return '∞'
     }
-    const remaining = probeStatus.value.probes_remaining ?? 0
-    return `${remaining} left`
+    const remaining = probeStatus.value.remaining ?? 0
+    return t('problems.probe.remainingShort', { count: remaining })
   })
 
   const parameters = computed((): ProbeParameter[] => {
@@ -189,6 +189,26 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
       return t('feedback.codeSubmission.probeLoading')
     }
     return probeStatus.value.message
+  })
+
+  // Hint shown only when probes are exhausted: the badge already carries the
+  // count otherwise. Built from the structured status fields so it is
+  // translated; the backend's English message is only a fallback.
+  const probeStatusHint = computed(() => {
+    const status = probeStatus.value
+    if (!status || status.can_probe) {
+      return ''
+    }
+    const toRefill = status.submissions_to_next_refill
+    if (status.mode === 'cooldown' && typeof toRefill === 'number') {
+      return toRefill === 1
+        ? t('problems.probe.exhaustedRefillOne')
+        : t('problems.probe.exhaustedRefill', { count: toRefill })
+    }
+    if (status.mode === 'block' || status.mode === 'cooldown') {
+      return t('problems.probe.exhaustedHint')
+    }
+    return status.message || ''
   })
 
   const probeStatusClass = computed(() => {
@@ -384,6 +404,7 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     parameters,
     canProbe,
     probeStatusText,
+    probeStatusHint,
     probeStatusClass,
     hasValidInputs,
     inputErrors,

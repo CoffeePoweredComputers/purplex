@@ -235,3 +235,74 @@ describe('useProbeState input validation', () => {
     expect(axios.post).toHaveBeenCalledWith('/api/problems/typed-probe/probe/', { input: { x: 5 } })
   })
 })
+
+describe('useProbeState status display', () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function setup(status: Record<string, unknown>) {
+    vi.mocked(axios.get).mockResolvedValue({ data: status })
+    const problem = {
+      slug: 'status-probe',
+      probe_config: { function_signature: 'def f(x: int) -> int' },
+    } as unknown as ActivityProblem
+    return withSetup(() => useProbeState(problem))
+  }
+
+  it('shows the backend remaining count in block mode without a hint', async () => {
+    const state = setup({
+      mode: 'block',
+      remaining: 7,
+      used: 3,
+      can_probe: true,
+      message: '7 probes remaining',
+    })
+    await flushPromises()
+    expect(state.probeCountDisplay.value).toBe('7 left')
+    expect(state.probeStatusHint.value).toBe('')
+  })
+
+  it('shows a translated cooldown refill hint when exhausted', async () => {
+    const state = setup({
+      mode: 'cooldown',
+      remaining: 0,
+      used: 10,
+      can_probe: false,
+      message: 'backend English text',
+      submissions_to_next_refill: 2,
+    })
+    await flushPromises()
+    expect(state.probeCountDisplay.value).toBe('0 left')
+    expect(state.probeStatusHint.value).toBe(
+      'No probes remaining. Submit 2 more times to unlock more probes.'
+    )
+  })
+
+  it('uses the singular refill hint for one remaining submission', async () => {
+    const state = setup({
+      mode: 'cooldown',
+      remaining: 0,
+      used: 10,
+      can_probe: false,
+      message: 'backend English text',
+      submissions_to_next_refill: 1,
+    })
+    await flushPromises()
+    expect(state.probeStatusHint.value).toBe(
+      'No probes remaining. Submit 1 more time to unlock more probes.'
+    )
+  })
+
+  it('shows the translated exhausted hint in block mode', async () => {
+    const state = setup({
+      mode: 'block',
+      remaining: 0,
+      used: 10,
+      can_probe: false,
+      message: 'backend English text',
+    })
+    await flushPromises()
+    expect(state.probeStatusHint.value).toBe('No probes remaining.')
+  })
+})
