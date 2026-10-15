@@ -139,6 +139,7 @@
       "copied": "Copiado",
       "lines": "Líneas",
       "noLines": "Sin Líneas",
+      "escapeHint": "Presiona Escape para salir del editor",
       "theme": {
         "dark": "Oscuro",
         "light": "Claro"

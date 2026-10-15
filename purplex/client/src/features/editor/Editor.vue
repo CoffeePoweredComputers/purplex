@@ -1,5 +1,6 @@
 <template>
   <VAceEditor
+    v-bind="$attrs"
     ref="vAceRef"
     :lang="lang"
     :theme="theme"
@@ -10,10 +11,24 @@
     @init="editorInit"
     @update:value="handleInput"
   />
+  <p
+    v-if="!readOnly"
+    :id="escapeHintId"
+    class="editor-escape-hint"
+  >
+    {{ t('problems.editor.escapeHint') }}
+  </p>
 </template>
+
+<script lang="ts">
+// Module-scoped counter so each Editor instance gets a unique hint id
+// (Vue 3.4 has no useId()).
+let escapeHintCounter = 0
+</script>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { VAceEditor } from 'vue3-ace-editor'
 import ace from 'ace-builds'
 import 'ace-builds/src-noconflict/mode-python'
@@ -93,6 +108,13 @@ const emit = defineEmits<{
   (e: 'update:value', value: string): void
 }>()
 
+// Attrs are forwarded to VAceEditor explicitly because the template has
+// two root nodes (editor + escape hint).
+defineOptions({ inheritAttrs: false })
+
+const { t } = useI18n()
+const escapeHintId = `editor-escape-hint-${++escapeHintCounter}`
+
 const editor = ref<AceEditor | null>(null)
 const vAceRef = ref<{ _contentBackup?: string } | null>(null)
 let lastMinLines: number | null = null
@@ -130,6 +152,17 @@ const editorStyle = computed(() => {
   }
   return { height: props.height, width: props.width }
 })
+
+/** Point Ace's text input at the escape hint (or detach it when read-only) */
+function syncEscapeHintDescription(): void {
+  const textInput = editor.value?.container.querySelector('.ace_text-input')
+  if (!textInput) {return}
+  if (props.readOnly) {
+    textInput.removeAttribute('aria-describedby')
+  } else {
+    textInput.setAttribute('aria-describedby', escapeHintId)
+  }
+}
 
 /* Simple editor initialization */
 function editorInit(editorInstance: AceEditor): void {
@@ -171,115 +204,11 @@ function editorInit(editorInstance: AceEditor): void {
     editorInstance.renderer.container.style.userSelect = 'text'
   }
 
-  // CRITICAL ACCESSIBILITY FIX: Override Tab key behavior to allow tabbing out
-  // By default, ACE captures Tab for indentation, creating a keyboard trap
+  // Tab / Shift-Tab are left to Ace's built-in indent / outdent, so Escape
+  // is the keyboard exit. Announce that via the hint beneath the editor.
+  syncEscapeHintDescription()
 
-  // Resolve the focus scope once: dialog ancestor or the whole document
-  const focusScope: Element | Document = (() => {
-    if (props.focusScopeSelector) {
-      return editorInstance.container.closest(props.focusScopeSelector) ?? document
-    }
-    return editorInstance.container.closest('[role="dialog"]') ?? document
-  })()
-  const isInDialog = focusScope !== document
-
-  // Helper function to get all focusable elements (excluding ACE editor internals)
-  // Scopes to nearest dialog to avoid escaping modal focus traps
-  const getFocusableElements = () => {
-    return Array.from(focusScope.querySelectorAll(
-      'button:not([disabled]):not([tabindex="-1"]), ' +
-      '[href]:not([tabindex="-1"]), ' +
-      'input:not([disabled]):not([tabindex="-1"]), ' +
-      'select:not([disabled]):not([tabindex="-1"]), ' +
-      'textarea:not([disabled]):not([tabindex="-1"]), ' +
-      '[tabindex]:not([tabindex="-1"])'
-    )).filter((el) => {
-      // Filter out hidden elements and ACE editor internal elements
-      const htmlEl = el as HTMLElement
-      const isVisible = htmlEl.offsetParent !== null &&
-             getComputedStyle(htmlEl).visibility !== 'hidden' &&
-             getComputedStyle(htmlEl).display !== 'none'
-
-      // Exclude elements inside ACE editor (except the container itself)
-      const isAceInternal = htmlEl.classList.contains('ace_text-input') ||
-                           htmlEl.classList.contains('ace_content')
-
-      return isVisible && !isAceInternal
-    })
-  }
-
-  editorInstance.commands.addCommand({
-    name: 'overrideTab',
-    bindKey: { win: 'Tab', mac: 'Tab' },
-    exec: function(aceEditor: AceEditor) {
-      // Temporarily remove tabindex to prevent re-focusing
-      const container = aceEditor.container
-      const originalTabIndex = container.getAttribute('tabindex')
-      container.setAttribute('tabindex', '-1')
-
-      aceEditor.blur()
-
-      setTimeout(() => {
-        // Restore tabindex
-        container.setAttribute('tabindex', originalTabIndex || '0')
-
-        const focusableElements = getFocusableElements()
-        const currentIndex = focusableElements.indexOf(container)
-
-        if (currentIndex !== -1 && currentIndex < focusableElements.length - 1) {
-          const nextElement = focusableElements[currentIndex + 1] as HTMLElement
-          nextElement.focus()
-        } else if (isInDialog && focusableElements.length > 0) {
-          // Inside a dialog: wrap to first focusable element
-          (focusableElements[0] as HTMLElement).focus()
-        } else {
-          // Main page: use custom tab target or fall back to submit button
-          const targetId = props.tabTargetId || 'submitButton'
-          const targetElement = document.getElementById(targetId)
-          if (targetElement) {
-            const innerEditor = targetElement.querySelector('.ace_text-input')
-            if (innerEditor) {
-              (innerEditor as HTMLElement).focus()
-            } else {
-              targetElement.focus()
-            }
-          }
-        }
-      }, 10)
-    }
-  })
-
-  // Shift+Tab to move focus backward
-  editorInstance.commands.addCommand({
-    name: 'overrideShiftTab',
-    bindKey: { win: 'Shift-Tab', mac: 'Shift-Tab' },
-    exec: function(aceEditor: AceEditor) {
-      // Temporarily remove tabindex to prevent re-focusing
-      const container = aceEditor.container
-      const originalTabIndex = container.getAttribute('tabindex')
-      container.setAttribute('tabindex', '-1')
-
-      aceEditor.blur()
-
-      setTimeout(() => {
-        // Restore tabindex
-        container.setAttribute('tabindex', originalTabIndex || '0')
-
-        const focusableElements = getFocusableElements()
-        const currentIndex = focusableElements.indexOf(container)
-
-        if (currentIndex > 0) {
-          const prevElement = focusableElements[currentIndex - 1] as HTMLElement
-          prevElement.focus()
-        } else if (isInDialog && focusableElements.length > 0) {
-          // Inside a dialog: wrap to last focusable element
-          (focusableElements[focusableElements.length - 1] as HTMLElement).focus()
-        }
-      }, 10)
-    }
-  })
-
-  // Keep Escape key handler as alternative exit method
+  // Escape leaves the editor
   editorInstance.commands.addCommand({
     name: 'exitEditor',
     bindKey: { win: 'Esc', mac: 'Esc' },
@@ -361,6 +290,11 @@ watch(() => props.markers, () => {
   applyMarkers()
 }, { deep: true })
 
+/* Keep aria-describedby in step with the hint's visibility */
+watch(() => props.readOnly, () => {
+  syncEscapeHintDescription()
+})
+
 /* Update placeholder text when the prop changes */
 watch(() => props.placeholder, (newPlaceholder) => {
   if (editor.value) {
@@ -375,6 +309,13 @@ defineExpose({
 </script>
 
 <style scoped>
+  .editor-escape-hint {
+    margin: var(--spacing-xs) 0 0;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    text-align: left;
+  }
+
   /* Editor wrapper styling to match design system */
   :deep(.ace_editor) {
     border-radius: var(--radius-lg);

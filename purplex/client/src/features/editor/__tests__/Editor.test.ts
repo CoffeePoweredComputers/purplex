@@ -61,7 +61,7 @@ type Fn = ReturnType<typeof vi.fn>
 interface MockAceEditor {
   setOptions: Fn; setOption: Fn; getValue: Fn; setValue: Fn
   setTheme: Fn; setMode: Fn; resize: Fn; clearSelection: Fn
-  container: { setAttribute: Fn; getAttribute: Fn; closest: Fn; style: Record<string, string> }
+  container: { setAttribute: Fn; getAttribute: Fn; closest: Fn; querySelector: Fn; style: Record<string, string> }
   commands: { addCommand: Fn; removeCommand: Fn }
   renderer: {
     $cursorLayer: { element: { style: { display: string } } }
@@ -91,6 +91,7 @@ const createMockEditor = (initialValue = 'test code'): MockAceEditor => {
       setAttribute: vi.fn(),
       getAttribute: vi.fn().mockReturnValue('0'),
       closest: vi.fn().mockReturnValue(null),
+      querySelector: vi.fn().mockReturnValue(null),
       style: {}
     },
     commands: {
