@@ -71,6 +71,7 @@
       "expected": "Expected:",
       "got": "Got:",
       "locked": "🔒 {count} more tests locked",
+      "lockedOne": "🔒 1 more test locked",
       "lockedNote": "Remaining tests unlock once this test passes. Keep probing to discover more behavior."
     },
     "solution": {

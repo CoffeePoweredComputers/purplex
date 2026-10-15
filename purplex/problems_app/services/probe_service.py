@@ -41,24 +41,23 @@ ORACLE_MEMORY_ERROR = (
     "The oracle ran out of memory on these inputs. Try smaller values."
 )
 ORACLE_INPUT_TOO_LARGE_ERROR = "Probe inputs are too large."
-
-# Defaults for settings.PROBE_SANDBOX (purplex/settings/base.py).
-_SANDBOX_DEFAULTS: dict[str, int] = {
-    "TIMEOUT_SECONDS": 3,
-    "CPU_SECONDS": 2,
-    "MEMORY_MB": 256,
-    "MAX_INPUT_BYTES": 10_000,
-}
+ORACLE_BUSY_ERROR = "The oracle is busy right now. Try again in a moment."
 
 
 def get_sandbox_limits() -> dict[str, Any]:
-    """Return run_oracle_sandboxed limit kwargs from settings.PROBE_SANDBOX."""
-    config = {**_SANDBOX_DEFAULTS, **getattr(settings, "PROBE_SANDBOX", {})}
+    """Return run_oracle_sandboxed limit kwargs from settings.PROBE_SANDBOX.
+
+    The settings dict (purplex/settings/base.py) is the single source of the
+    values; every key is required.
+    """
+    config = settings.PROBE_SANDBOX
     return {
         "timeout_s": config["TIMEOUT_SECONDS"],
         "cpu_s": config["CPU_SECONDS"],
         "memory_mb": config["MEMORY_MB"],
         "max_input_bytes": config["MAX_INPUT_BYTES"],
+        "max_concurrent": config["MAX_CONCURRENT"],
+        "queue_timeout_s": config["QUEUE_TIMEOUT_SECONDS"],
     }
 
 
@@ -361,8 +360,10 @@ class ProbeService:
             message = ORACLE_MEMORY_ERROR
         elif error_type == "InputTooLarge":
             message = ORACLE_INPUT_TOO_LARGE_ERROR
+        elif error_type == "Busy":
+            message = ORACLE_BUSY_ERROR
         elif not reveal_types:
-            logger.info(f"Oracle {error_type} hidden from student: {error}")
+            logger.info("Oracle %s hidden from student: %s", error_type, error)
             message = HIDDEN_ORACLE_ERROR
         elif error_type == "TypeError":
             # Usually wrong number/type of arguments

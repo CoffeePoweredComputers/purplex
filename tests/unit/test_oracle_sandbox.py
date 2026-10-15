@@ -6,6 +6,7 @@ These spawn real child interpreters; no database access.
 import io
 import json
 import os
+import resource
 import signal
 import subprocess
 import time
@@ -153,8 +154,12 @@ class TestChildMain:
         with patch(f"{MODULE}.resource.setrlimit") as setrlimit:
             payload, _ = self._main(["sandbox", "2", "1024"], request)
         assert payload == {"ok": True, "result": 1}
-        limits = [c.args[1] for c in setrlimit.call_args_list]
-        assert limits == [(2, 3), (1024, 1024)]
+        limits = [(c.args[0], c.args[1]) for c in setrlimit.call_args_list]
+        assert limits == [
+            (resource.RLIMIT_CORE, (0, 0)),
+            (resource.RLIMIT_CPU, (2, 3)),
+            (resource.RLIMIT_AS, (1024, 1024)),
+        ]
 
     def test_rlimit_failure_emits_sandbox_error_without_running(self):
         """A hard rlimit below the requested one must not run the oracle."""
@@ -203,3 +208,55 @@ class TestSandboxFailures:
         ):
             outcome = _run("def f():\n    return 1")
         assert outcome["error_type"] == "SandboxError"
+
+
+class TestConcurrencyAndCore:
+    def test_busy_when_no_slot_frees_up(self):
+        from purplex.problems_app.services import oracle_sandbox
+
+        slots = oracle_sandbox._get_slots(2)
+        held = 0
+        # Hold every slot so the next call has to wait and give up.
+        while slots.acquire(blocking=False):
+            held += 1
+        try:
+            with patch(f"{MODULE}.subprocess.Popen") as popen:
+                outcome = _run("def f():\n    return 1", queue_timeout_s=0.05)
+        finally:
+            for _ in range(held):
+                slots.release()
+        assert outcome["ok"] is False
+        assert outcome["error_type"] == "Busy"
+        popen.assert_not_called()
+
+    def test_slot_is_released_after_a_run(self):
+        from purplex.problems_app.services import oracle_sandbox
+
+        slots = oracle_sandbox._get_slots(2)
+        before = slots._value
+        assert _run("def f():\n    return 1") == {"ok": True, "result": 1}
+        assert slots._value == before
+
+    def test_child_disables_core_dumps(self):
+        import sys
+
+        from purplex.problems_app.services import oracle_sandbox
+
+        probe = subprocess.run(
+            [
+                sys.executable,
+                "-I",
+                "-S",
+                "-c",
+                "import resource, runpy, sys;"
+                "m = runpy.run_path(sys.argv[1], run_name='probe');"
+                "m['_apply_limits'](2, 256 * 2**20);"
+                "print(resource.getrlimit(resource.RLIMIT_CORE))",
+                oracle_sandbox.__file__,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
+        )
+        assert probe.stdout.strip() == "(0, 0)"

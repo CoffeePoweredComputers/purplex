@@ -7,6 +7,8 @@
     :is-navigating="isNavigating"
     :title="effectiveTitle"
     :locked-count="lockedCount"
+    :passed-count="passedCount"
+    :total-count="totalCount"
     @load-attempt="$emit('load-attempt', $event)"
   />
 </template>
@@ -114,5 +116,15 @@ const flatTestResults = computed(() => {
 const lockedCount = computed(() => {
   if (props.testResults.length === 0) {return 0}
   return (props.testResults[0] as TestResultEntry).lockedCount ?? 0
+})
+
+/** Pass/total over every test, including locked ones (backend counts all rows). */
+const passedCount = computed(() => {
+  if (props.testResults.length === 0) {return null}
+  return (props.testResults[0] as TestResultEntry).testsPassed ?? null
+})
+const totalCount = computed(() => {
+  if (props.testResults.length === 0) {return null}
+  return (props.testResults[0] as TestResultEntry).totalTests ?? null
 })
 </script>

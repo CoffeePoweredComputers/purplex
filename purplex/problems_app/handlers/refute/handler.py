@@ -112,9 +112,22 @@ def _safe_execute(
         error = "The function ran out of memory on these inputs. Try smaller values."
     elif error_type == "InputTooLarge":
         error = "These inputs are too large."
+    elif error_type == "Busy":
+        error = "The checker is busy right now. Try again in a moment."
+    elif error_type == "SandboxError":
+        error = "The checker is temporarily unavailable. Try again in a moment."
     else:
         error = outcome.get("error", "")
-    return {"success": False, "result": None, "error": error}
+    return {
+        "success": False,
+        "result": None,
+        "error": error,
+        "error_type": error_type,
+    }
+
+
+# Sandbox outcomes that are failures of the checker, not of the function.
+INFRASTRUCTURE_ERROR_TYPES = frozenset({"SandboxError", "Busy"})
 
 
 def _extract_function_name(signature: str) -> str:
@@ -674,6 +687,13 @@ class RefuteHandler(ActivityHandler):
 
         # Execute the function
         exec_result = _safe_execute(refute.reference_solution, func_name, args)
+
+        # A failure of the sandbox itself (not of the function) says nothing
+        # about the counterexample, so do not grade or persist the attempt.
+        if exec_result.get("error_type") in INFRASTRUCTURE_ERROR_TYPES:
+            return SubmissionOutcome(
+                complete=True, submission=submission, error=exec_result["error"]
+            )
 
         # Determine if claim is disproven using predicate or legacy pattern matching
         if exec_result["success"]:

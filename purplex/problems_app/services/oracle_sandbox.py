@@ -33,6 +33,7 @@ import resource
 import signal
 import subprocess  # nosec B404 - fixed argv, no shell
 import sys
+import threading
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -167,7 +168,10 @@ def _apply_limits(cpu_s: int, memory_bytes: int) -> None:
 
     The child limits itself instead of the parent using Popen's preexec_fn,
     which is unsafe when the parent has OS threads (gevent's threadpool).
+    Core dumps are disabled: SIGXCPU at the CPU limit would otherwise dump
+    up to the whole address space to disk on every timeout.
     """
+    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     resource.setrlimit(resource.RLIMIT_CPU, (cpu_s, cpu_s + 1))
     resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
 
@@ -211,6 +215,21 @@ def _kill_process_group(proc: subprocess.Popen) -> None:
         proc.kill()  # group already gone; make sure the child itself is
 
 
+# Process-wide cap on concurrently running children. Under gevent's
+# monkey-patching this is the cooperative semaphore, so waiting here yields
+# to other requests. Sized on first use; later calls reuse it.
+_slots: threading.BoundedSemaphore | None = None
+_slots_guard = threading.Lock()
+
+
+def _get_slots(max_concurrent: int) -> threading.BoundedSemaphore:
+    global _slots
+    with _slots_guard:
+        if _slots is None:
+            _slots = threading.BoundedSemaphore(max(1, int(max_concurrent)))
+        return _slots
+
+
 def run_oracle_sandboxed(
     code: str,
     function_name: str,
@@ -220,6 +239,8 @@ def run_oracle_sandboxed(
     cpu_s: int,
     memory_mb: int,
     max_input_bytes: int,
+    max_concurrent: int = 2,
+    queue_timeout_s: float = 5.0,
 ) -> dict[str, Any]:
     """Call ``function_name(**args)`` from ``code`` in a limited subprocess.
 
@@ -231,14 +252,19 @@ def run_oracle_sandboxed(
         cpu_s: RLIMIT_CPU soft limit in seconds (hard limit is one more).
         memory_mb: RLIMIT_AS limit in megabytes.
         max_input_bytes: Largest allowed JSON encoding of ``args``.
+        max_concurrent: Children this process may run at once (fixed by the
+            first call). Bounds total memory to ``max_concurrent * memory_mb``
+            per worker process.
+        queue_timeout_s: How long to wait for a free slot before giving up.
 
     Returns:
         ``{"ok": True, "result": <value>}`` or
         ``{"ok": False, "error_type": str, "error": str}``. error_type is the
         oracle's exception class name (e.g. TypeError, MemoryError), or one
         of FunctionNotFound, Timeout, InputTooLarge, SerializationError,
-        SandboxError. The result keeps tuple, set, frozenset and non-string
-        dict-key types; bytes become str and other iterables become lists.
+        SandboxError, Busy. The result keeps tuple, set, frozenset and
+        non-string dict-key types; bytes become str and other iterables
+        become lists.
     """
     try:
         encoded_args = json.dumps(args)
@@ -254,6 +280,22 @@ def run_oracle_sandboxed(
     ).encode("utf-8")
     memory_bytes = int(memory_mb * 2**20)
 
+    slots = _get_slots(max_concurrent)
+    if not slots.acquire(timeout=queue_timeout_s):
+        logger.warning(
+            "Oracle sandbox busy: %s children already running", max_concurrent
+        )
+        return _failure("Busy", "Too many oracle runs in progress.")
+    try:
+        return _execute_child(request, cpu_s, memory_bytes, timeout_s)
+    finally:
+        slots.release()
+
+
+def _execute_child(
+    request: bytes, cpu_s: int, memory_bytes: int, timeout_s: float
+) -> dict[str, Any]:
+    """Spawn one child for ``request`` and translate its exit into a result."""
     try:
         # Popen rather than subprocess.run so a timeout can kill the child's
         # whole process group (start_new_session makes the child its leader):

@@ -125,4 +125,52 @@ class TestRefuteSafeExecute:
     def test_fixed_messages(self, outcome, message):
         with patch(SANDBOX_SOURCE, return_value=outcome):
             result = _safe_execute("def f():\n    return 1", "f", {})
-        assert result == {"success": False, "result": None, "error": message}
+        assert result == {
+            "success": False,
+            "result": None,
+            "error": message,
+            "error_type": outcome["error_type"],
+        }
+
+
+BUSY = {"ok": False, "error_type": "Busy", "error": "busy"}
+SANDBOX_DOWN = {"ok": False, "error_type": "SandboxError", "error": "down"}
+
+
+class TestInfrastructureFailures:
+    @pytest.mark.parametrize("reveal_types", [True, False])
+    def test_busy_message_in_both_modes(self, reveal_types):
+        from purplex.problems_app.services.probe_service import ORACLE_BUSY_ERROR
+
+        with patch(SANDBOX, return_value=BUSY):
+            result = ProbeService._execute_oracle(
+                "def f(x):\n    return x", "f", {"x": 1}, reveal_types=reveal_types
+            )
+        assert result == {"success": False, "result": None, "error": ORACLE_BUSY_ERROR}
+
+    @pytest.mark.parametrize("outcome", [BUSY, SANDBOX_DOWN], ids=["busy", "down"])
+    def test_refute_submit_does_not_grade_on_sandbox_failure(self, outcome):
+        from unittest.mock import MagicMock
+
+        from purplex.problems_app.handlers import get_handler
+        from purplex.problems_app.models import RefuteProblem
+
+        problem = MagicMock(spec=RefuteProblem)
+        problem.reference_solution = "def f(x):\n    return x * 2"
+        problem.function_signature = "f(x: int) -> int"
+        problem.claim_predicate = "result > 0"
+        problem.claim_text = "always positive"
+        submission = MagicMock()
+
+        with patch(SANDBOX_SOURCE, return_value=outcome):
+            result = get_handler("refute").submit(submission, '{"x": -5}', problem, {})
+
+        assert result.error
+        submission.save.assert_not_called()
+
+    def test_refute_safe_execute_reports_error_type(self):
+        with patch(SANDBOX_SOURCE, return_value=SANDBOX_DOWN):
+            result = _safe_execute("def f(x):\n    return x", "f", {"x": 1})
+        assert result["success"] is False
+        assert result["error_type"] == "SandboxError"
+        assert "temporarily unavailable" in result["error"]
