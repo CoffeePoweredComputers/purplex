@@ -745,6 +745,23 @@ class Command(BaseCommand):
         self._report("CourseProblemSet", "e2e-mixed -> CS101-2024 (past hard)", created)
 
         # ------------------------------------------------------------------
+        # 5b. Probeable workflows set (e2e-probeable), soft deadline in 30 days
+        #
+        # URL: /courses/CS101-2024/problem-set/e2e-probeable?p=<index>
+        #   p=0  e2e-probeable-block      code, block mode, 3 probes
+        #   p=1  e2e-probeable-cooldown   code, cooldown 2 probes, +2 per submit
+        #   p=2  e2e-probeable-locked     code, explore, 4 tests (truncation)
+        #   p=3  e2e-probeable-errors     code, block 3, recip(0) raises
+        #   p=4  e2e-probeable-hidden     code, explore, hidden signature
+        #   p=5  e2e-probeable-spec-open  spec, explore, no segmentation
+        #   p=6  e2e-probeable-cooldown-2 code, cooldown 1 probe, +1 per 2 submits
+        #
+        # These slugs are separate from the older probeable problems so their
+        # defaults can be relied on (get_or_create ignores changed defaults).
+        # ------------------------------------------------------------------
+        self._seed_probeable_workflows(course, instructor, now)
+
+        # ------------------------------------------------------------------
         # 6. Hints for e2e-eipl-1
         # ------------------------------------------------------------------
         _, created = ProblemHint.objects.get_or_create(
@@ -893,15 +910,222 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 "\nE2E seed data ready!\n"
                 f"  Categories: 2\n"
-                f"  Problems: {len(all_problems)} (7 by instructor + 4 by admin)\n"
-                f"  Problem Sets: 5 (3 assigned to CS101-2024, 2 unassigned)\n"
-                f"  CourseProblemSet linkages: 3\n"
+                f"  Problems: {len(all_problems)} (7 by instructor + 4 by admin)"
+                " + 7 probeable workflow problems\n"
+                f"  Problem Sets: 6 (4 assigned to CS101-2024, 2 unassigned)\n"
+                f"  CourseProblemSet linkages: 4\n"
                 f"  Hints: 3 (variable_fade, subgoal_highlight, suggested_trace)\n"
                 f"  Submission: 1 (student -> e2e-mcq-1)\n"
                 f"  Consent: 2 (behavioral_tracking, ai_processing)\n"
                 f"  Progress: 1 (student -> e2e-mcq-1 completed)"
             )
         )
+
+    def _seed_probeable_workflows(self, course, instructor, now):
+        """Seed the e2e-probeable problem set used by the probeable E2E specs.
+
+        Test case ``inputs`` is the positional argument list, so ``add(1, 2)``
+        is ``[1, 2]`` and ``clamp(5)`` is ``[5]``.
+
+        Designed outcomes on e2e-probeable-locked (tests run in order
+        5, 0, -3, 20; rows after the first failure are locked):
+            return n                        -> 2/4, 3 rows (1 failing), 1 locked
+            return max(0, n)                -> 3/4, 4 rows (1 failing), 0 locked
+            return max(0, min(n, 10))       -> 4/4, 4 rows, 0 locked
+            return n // 0                   -> 0/4, 1 error row, 3 locked
+            return 0 if n == 5 else <ref>   -> 3/4, 1 failing row, 3 locked
+        """
+        from datetime import timedelta
+
+        from purplex.problems_app.models import (
+            CourseProblemSet,
+            ProbeableCodeProblem,
+            ProbeableSpecProblem,
+            ProblemSet,
+            ProblemSetMembership,
+            TestCase,
+        )
+
+        add_signature = "def add(a: int, b: int) -> int"
+        add_reference = "def add(a, b):\n    return a + b"
+        recip_signature = "def recip(x: int) -> int"
+        recip_reference = "def recip(x):\n    return 10 // x"
+
+        # (model, slug, defaults, test cases as (inputs, expected, is_sample))
+        specs = [
+            (
+                ProbeableCodeProblem,
+                "e2e-probeable-block",
+                {
+                    "title": "E2E Probeable: Block Mode",
+                    "description": "Probe the function, then write it.",
+                    "function_signature": add_signature,
+                    "function_name": "add",
+                    "reference_solution": add_reference,
+                    "show_function_signature": True,
+                    "probe_mode": "block",
+                    "max_probes": 3,
+                    "cooldown_attempts": 3,
+                    "cooldown_refill": 5,
+                },
+                [([1, 2], 3, True)],
+            ),
+            (
+                ProbeableCodeProblem,
+                "e2e-probeable-cooldown",
+                {
+                    "title": "E2E Probeable: Cooldown Mode",
+                    "description": "Probe the function, then write it.",
+                    "function_signature": add_signature,
+                    "function_name": "add",
+                    "reference_solution": add_reference,
+                    "show_function_signature": True,
+                    "probe_mode": "cooldown",
+                    "max_probes": 2,
+                    "cooldown_attempts": 1,
+                    "cooldown_refill": 2,
+                },
+                [([1, 2], 3, True)],
+            ),
+            (
+                ProbeableCodeProblem,
+                "e2e-probeable-locked",
+                {
+                    "title": "E2E Probeable: Locked Tests",
+                    "description": "Probe the function, then write it.",
+                    "function_signature": "def clamp(n: int) -> int",
+                    "function_name": "clamp",
+                    "reference_solution": "def clamp(n):\n    return max(0, min(n, 10))",
+                    "show_function_signature": True,
+                    "probe_mode": "explore",
+                },
+                [([5], 5, True), ([0], 0, False), ([-3], 0, False), ([20], 10, False)],
+            ),
+            (
+                ProbeableCodeProblem,
+                "e2e-probeable-errors",
+                {
+                    "title": "E2E Probeable: Oracle Errors",
+                    "description": "Probe the function, then write it.",
+                    "function_signature": recip_signature,
+                    "function_name": "recip",
+                    "reference_solution": recip_reference,
+                    "show_function_signature": True,
+                    "probe_mode": "block",
+                    "max_probes": 3,
+                },
+                [([2], 5, True)],
+            ),
+            (
+                ProbeableCodeProblem,
+                "e2e-probeable-hidden",
+                {
+                    "title": "E2E Probeable: Hidden Signature",
+                    "description": "Probe the function, then write it.",
+                    "function_signature": recip_signature,
+                    "function_name": "recip",
+                    "reference_solution": recip_reference,
+                    "show_function_signature": False,
+                    "probe_mode": "explore",
+                },
+                [([2], 5, True)],
+            ),
+            (
+                ProbeableSpecProblem,
+                "e2e-probeable-spec-open",
+                {
+                    "title": "E2E Probeable: Explain It",
+                    "description": "Probe the function, then explain it.",
+                    "function_signature": "def square(x: int) -> int",
+                    "function_name": "square",
+                    "reference_solution": "def square(x):\n    return x * x",
+                    "show_function_signature": True,
+                    "probe_mode": "explore",
+                    # Plain pass/fail grade: no comprehension analysis.
+                    "segmentation_config": {"enabled": False},
+                    "requires_highlevel_comprehension": False,
+                },
+                [([3], 9, True), ([-2], 4, False)],
+            ),
+            (
+                # Two submissions per refill, so the exhausted hint counts
+                # down through the plural and singular texts.
+                ProbeableCodeProblem,
+                "e2e-probeable-cooldown-2",
+                {
+                    "title": "E2E Probeable: Two-Submission Cooldown",
+                    "description": "Probe the function, then write it.",
+                    "function_signature": add_signature,
+                    "function_name": "add",
+                    "reference_solution": add_reference,
+                    "show_function_signature": True,
+                    "probe_mode": "cooldown",
+                    "max_probes": 1,
+                    "cooldown_attempts": 2,
+                    "cooldown_refill": 1,
+                },
+                [([1, 2], 3, True)],
+            ),
+        ]
+
+        problem_set, created = ProblemSet.objects.get_or_create(
+            slug="e2e-probeable",
+            defaults={
+                "title": "E2E Probeable Workflows",
+                "description": "Probeable problems for E2E workflow tests",
+                "is_public": True,
+                "created_by": instructor,
+            },
+        )
+        self._report("ProblemSet", "e2e-probeable", created)
+
+        for index, (model, slug, defaults, cases) in enumerate(specs):
+            problem, created = model.objects.get_or_create(
+                slug=slug,
+                defaults={
+                    **defaults,
+                    "difficulty": "beginner",
+                    "is_active": True,
+                    "created_by": instructor,
+                },
+            )
+            self._report(model.__name__, slug, created)
+
+            for order, (inputs, expected, is_sample) in enumerate(cases):
+                _, created = TestCase.objects.get_or_create(
+                    problem=problem,
+                    inputs=inputs,
+                    expected_output=expected,
+                    defaults={
+                        "is_sample": is_sample,
+                        "is_hidden": not is_sample,
+                        "order": order,
+                        "description": (
+                            f"{problem.function_name}"
+                            f"({', '.join(map(str, inputs))}) = {expected}"
+                        ),
+                    },
+                )
+                self._report(f"TestCase ({slug})", f"inputs={inputs}", created)
+
+            _, created = ProblemSetMembership.objects.get_or_create(
+                problem_set=problem_set,
+                problem=problem,
+                defaults={"order": index},
+            )
+            self._report("ProblemSetMembership (probeable)", slug, created)
+
+        _, created = CourseProblemSet.objects.update_or_create(
+            course=course,
+            problem_set=problem_set,
+            defaults={
+                "order": 4,
+                "due_date": now + timedelta(days=30),
+                "deadline_type": "soft",
+                "is_required": True,
+            },
+        )
+        self._report("CourseProblemSet", "e2e-probeable -> CS101-2024", created)
 
     def _report(self, model_name: str, identifier: str, created: bool):
         """Print whether an object was created or already existed."""
