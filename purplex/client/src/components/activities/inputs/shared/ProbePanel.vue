@@ -113,6 +113,14 @@
       </div>
     </div>
 
+    <!-- Probe status: why probing is blocked, e.g. how many submissions unlock a refill -->
+    <p
+      v-if="probeStatusText && probeStatusClass === 'status-exhausted'"
+      class="probe-status-text"
+    >
+      {{ probeStatusText }}
+    </p>
+
     <!-- Probe Error -->
     <div
       v-if="probeError"
@@ -185,6 +193,7 @@ interface Props {
   functionName: string
   probeStatusClass: string
   probeCountDisplay: string
+  probeStatusText?: string
   probeParams: ProbeParameter[]
   probeInputs: Record<string, string>
   canProbe: boolean
@@ -535,6 +544,12 @@ watch(() => props.probeHistory.length, () => {
 
 .probe-count-badge.status-exhausted {
   color: var(--color-warning);
+}
+
+.probe-status-text {
+  margin: 0 var(--spacing-lg) var(--spacing-sm);
+  color: var(--color-warning);
+  font-size: var(--font-size-sm);
 }
 
 /* ===========================================

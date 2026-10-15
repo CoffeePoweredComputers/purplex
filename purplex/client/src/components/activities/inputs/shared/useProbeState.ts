@@ -140,7 +140,7 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     if (probeStatus.value.mode === 'explore') {
       return '∞'
     }
-    const remaining = probeStatus.value.probes_remaining ?? 0
+    const remaining = probeStatus.value.remaining ?? 0
     return `${remaining} left`
   })
 
