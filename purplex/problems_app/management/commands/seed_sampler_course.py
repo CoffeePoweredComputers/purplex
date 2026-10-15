@@ -228,16 +228,8 @@ class Command(BaseCommand):
             slug="sampler-probeable-code-divide",
             defaults={
                 "title": "Probe & Code: Integer Divide",
-                "description": (
-                    "Implement a function that divides two numbers: `divide(a, b)` "
-                    "returns `a` divided by `b`. Sounds simple — but the exact "
-                    "behavior has edge cases the description does not spell out. "
-                    "Probe the hidden function with your own inputs to discover how "
-                    "it handles the tricky cases (What happens when you divide by "
-                    "zero? Does it round, and which way?), then write code that "
-                    "reproduces it exactly."
-                ),
-                "function_signature": "def divide(a: int, b: int) -> int",
+                "description": "Implement a function that divides two numbers.",
+                "function_signature": "def divide(a: int, b: int)",
                 "function_name": "divide",
                 "reference_solution": (
                     "def divide(a, b):\n"

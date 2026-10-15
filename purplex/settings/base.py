@@ -336,4 +336,20 @@ PRIVACY_REQUIRE_AGE_VERIFICATION = True
 PRIVACY_ENABLE_AI_CONSENT_GATE = True  # Block AI calls without consent
 PRIVACY_CURRENT_POLICY_VERSION = "1.0"
 
+# Limits for the in-request oracle subprocess used by probeable-code probes and
+# refute counterexamples (purplex/problems_app/services/oracle_sandbox.py).
+# Defined here, not in settings/security.py, because that module is never
+# imported by the settings package.
+# MAX_CONCURRENT is per worker process: with 4 gunicorn workers the worst case
+# is 4 * MAX_CONCURRENT * MEMORY_MB of address space, which must fit inside the
+# app container's memory limit (3584M in config/docker/production.yml).
+PROBE_SANDBOX = {
+    "TIMEOUT_SECONDS": 3,
+    "CPU_SECONDS": 2,
+    "MEMORY_MB": 256,
+    "MAX_INPUT_BYTES": 10_000,
+    "MAX_CONCURRENT": 2,
+    "QUEUE_TIMEOUT_SECONDS": 5,
+}
+
 # Import security configuration

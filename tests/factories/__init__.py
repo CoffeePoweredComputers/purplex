@@ -40,6 +40,7 @@ from purplex.submissions.models import (
     CodeVariation,
     HintActivation,
     Submission,
+    TestExecution,
 )
 from purplex.users_app.models import (
     AgeVerification,
@@ -488,6 +489,24 @@ class CodeVariationFactory(DjangoModelFactory):
     submission = factory.SubFactory(SubmissionFactory)
     variation_index = factory.Sequence(lambda n: n)
     generated_code = "def f(x): return x * 2"
+
+
+class TestExecutionFactory(DjangoModelFactory):
+    """Factory for TestExecution model."""
+
+    class Meta:
+        model = TestExecution
+
+    submission = factory.SubFactory(SubmissionFactory)
+    test_case = factory.SubFactory(
+        TestCaseFactory, problem=factory.SelfAttribute("..submission.problem")
+    )
+    code_variation = None
+    execution_order = factory.Sequence(lambda n: n)
+    passed = True
+    input_values = factory.LazyFunction(lambda: [1])
+    expected_output = 2
+    actual_output = 2
 
 
 # =============================================================================

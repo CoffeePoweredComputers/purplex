@@ -248,6 +248,47 @@ class TestProbeableCodeExtractTestResults:
         results = handler.extract_test_results(submission, problem)
         assert results[0]["test_results"] is results[0]["results"]
 
+    def test_extract_test_results_locks_after_first_failure(self, handler):
+        """Rows after the first failure are locked; counts still cover all."""
+        test_execs = []
+        for passed in (True, False, True):
+            test_exec = MagicMock()
+            test_exec.passed = passed
+            test_exec.input_values = [1]
+            test_exec.expected_output = "1"
+            test_exec.actual_output = "1" if passed else "0"
+            test_exec.error_message = None
+            test_execs.append(test_exec)
+
+        mock_test_execs = MagicMock()
+        mock_test_execs.order_by.return_value = mock_test_execs
+        mock_test_execs.exists.return_value = True
+        mock_test_execs.__iter__ = lambda self: iter(test_execs)
+
+        variation = MagicMock()
+        variation.tests_passed = 2
+        variation.tests_total = 3
+        variation.test_executions.all.return_value = mock_test_execs
+
+        mock_cv = MagicMock()
+        mock_cv.exists.return_value = True
+        mock_cv.first.return_value = variation
+
+        submission = MagicMock()
+        submission.code_variations = mock_cv
+
+        problem = MagicMock()
+        problem.function_name = "f"
+
+        entry = handler.extract_test_results(submission, problem)[0]
+        assert [r["isSuccessful"] for r in entry["test_results"]] == [True, False]
+        assert entry["testsPassed"] == 2
+        assert entry["totalTests"] == 3
+        assert entry["success"] is False
+        assert entry["lockedCount"] == 1
+        assert entry["visibleCount"] == 2
+        assert entry["results"] is entry["test_results"]
+
 
 class TestProbeableCodeConfig:
     """Tests for Probeable Code problem configuration."""

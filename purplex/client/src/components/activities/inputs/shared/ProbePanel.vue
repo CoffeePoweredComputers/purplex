@@ -113,12 +113,12 @@
       </div>
     </div>
 
-    <!-- Probe Error -->
     <div
-      v-if="probeError"
-      class="probe-error"
+      v-if="probeError || probeStatusText"
+      :class="probeError ? 'probe-error' : 'probe-status-hint'"
+      aria-live="polite"
     >
-      {{ probeError }}
+      {{ probeError || probeStatusText }}
     </div>
 
     <!-- Full History Modal -->
@@ -185,6 +185,7 @@ interface Props {
   functionName: string
   probeStatusClass: string
   probeCountDisplay: string
+  probeStatusText?: string
   probeParams: ProbeParameter[]
   probeInputs: Record<string, string>
   canProbe: boolean
@@ -553,17 +554,19 @@ watch(() => props.probeHistory.length, () => {
   margin-top: var(--spacing-xs);
 }
 
-/* ===========================================
-   ERROR MESSAGE
-   =========================================== */
-.probe-error {
+.probe-error,
+.probe-status-hint {
   margin: 0 var(--spacing-lg) var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.probe-error {
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-error-overlay);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-sm);
   color: var(--color-error);
-  font-size: var(--font-size-sm);
 }
 
 /* ===========================================

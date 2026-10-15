@@ -153,8 +153,12 @@
       <!-- Test Summary Bar -->
       <div class="test-summary-bar">
         <div class="summary-counts">
-          <span class="count-item passing">✓ {{ $t('feedback.tests.passing', { count: passingTests.length }) }}</span>
-          <span class="count-item failing">✗ {{ $t('feedback.tests.failing', { count: failingTests.length }) }}</span>
+          <span class="count-item passing">✓ {{ $t('feedback.tests.passing', { count: passingCount }) }}</span>
+          <span class="count-item failing">✗ {{ $t('feedback.tests.failing', { count: failingCount }) }}</span>
+          <span
+            v-if="lockedCount > 0"
+            class="count-item locked"
+          >{{ $t(lockedCount === 1 ? 'feedback.tests.lockedOne' : 'feedback.tests.locked', { count: lockedCount }) }}</span>
         </div>
       </div>
 
@@ -196,6 +200,12 @@
                 <span aria-hidden="true">🔍</span>
               </button>
             </article>
+            <p
+              v-if="lockedCount > 0"
+              class="locked-note"
+            >
+              {{ $t('feedback.tests.lockedNote') }}
+            </p>
           </div>
         </details>
 
@@ -292,6 +302,12 @@ interface Props {
   isNavigating?: boolean
   /** Section title */
   title?: string
+  /** Tests hidden after the first failure (probeable_code only) */
+  lockedCount?: number
+  /** Passed count over ALL tests, when the rows shown are truncated */
+  passedCount?: number | null
+  /** Total test count, when the rows shown are truncated */
+  totalCount?: number | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -299,6 +315,9 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   isNavigating: false,
   title: undefined,
+  lockedCount: 0,
+  passedCount: null,
+  totalCount: null,
 })
 
 const emit = defineEmits<{
@@ -329,6 +348,19 @@ const passingTests = computed(() =>
 
 const failingTests = computed(() =>
   props.testResults.filter(t => !t.isSuccessful && !t.pass)
+)
+
+// Summary-bar counts cover every test when the caller supplies totals (rows
+// after the first failure are locked and not in testResults); otherwise they
+// fall back to counting the rows shown.
+const hasFullCounts = computed(() => props.passedCount !== null && props.totalCount !== null)
+const passingCount = computed(() =>
+  hasFullCounts.value ? (props.passedCount as number) : passingTests.value.length
+)
+const failingCount = computed(() =>
+  hasFullCounts.value
+    ? (props.totalCount as number) - (props.passedCount as number)
+    : failingTests.value.length
 )
 
 const scoreClass = computed(() => getScoreClass(currentScore.value))
@@ -946,6 +978,16 @@ onBeforeUnmount(() => {
 
 .count-item.failing {
   color: var(--color-error);
+}
+
+.count-item.locked {
+  color: var(--color-text-muted);
+}
+
+.locked-note {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 /* Test Results - Aligned with Feedback.vue */

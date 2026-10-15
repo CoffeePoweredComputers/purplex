@@ -17,6 +17,7 @@
       :function-name="functionName"
       :probe-status-class="probeStatusClass"
       :probe-count-display="probeCountDisplay"
+      :probe-status-text="probeStatusHint"
       :probe-params="parameters"
       :probe-inputs="probeInputs"
       :can-probe="canProbe"
@@ -146,6 +147,7 @@ const {
   parameters,
   canProbe,
   probeCountDisplay,
+  probeStatusHint,
   probeStatusClass,
   hasValidInputs,
   inputErrors,

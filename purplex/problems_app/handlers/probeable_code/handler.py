@@ -24,6 +24,7 @@ from ..base import (
     SubmissionOutcome,
     ValidationResult,
 )
+from ..result_visibility import truncate_to_first_failure
 
 if TYPE_CHECKING:
     from purplex.problems_app.models import Problem
@@ -133,7 +134,12 @@ class ProbeableCodeHandler(ActivityHandler):
     def extract_test_results(
         self, submission: "Submission", problem: "Problem"
     ) -> list[dict[str, Any]]:
-        """Transform test execution to frontend format."""
+        """Transform test execution to the student-facing frontend format.
+
+        Pass counts reflect every test, but only the rows up to and including
+        the first failure are returned; the rest are reported as
+        ``lockedCount`` (see ``truncate_to_first_failure``).
+        """
         results = []
 
         # Check if we have code variations (reusing EiPL's data structure)
@@ -160,14 +166,19 @@ class ProbeableCodeHandler(ActivityHandler):
                             }
                         )
 
+                visible, locked = truncate_to_first_failure(
+                    var_results, passed_key="isSuccessful"
+                )
                 results.append(
                     {
                         "success": variation.tests_passed == variation.tests_total
                         and variation.tests_total > 0,
                         "testsPassed": variation.tests_passed,
                         "totalTests": variation.tests_total,
-                        "test_results": var_results,
-                        "results": var_results,  # Duplicate for frontend compatibility
+                        "test_results": visible,
+                        "results": visible,  # Duplicate for frontend compatibility
+                        "lockedCount": locked,
+                        "visibleCount": len(visible),
                     }
                 )
 

@@ -69,7 +69,10 @@
       "failingGroup": "Pruebas Fallidas ({count})",
       "passingGroup": "Pruebas Aprobadas ({count})",
       "expected": "Esperado:",
-      "got": "Obtenido:"
+      "got": "Obtenido:",
+      "locked": "🔒 {count} pruebas más bloqueadas",
+      "lockedOne": "🔒 1 prueba más bloqueada",
+      "lockedNote": "Las pruebas restantes se desbloquean cuando esta prueba pase. Sigue sondeando para descubrir más comportamiento."
     },
     "solution": {
       "title": "Solución {current} de {total}"
