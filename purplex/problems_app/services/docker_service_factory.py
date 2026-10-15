@@ -2,9 +2,8 @@
 
 import logging
 import os
+import threading
 from typing import Optional
-
-from gevent import lock as gevent_lock
 
 from .docker_execution_service import DockerExecutionService
 
@@ -15,9 +14,9 @@ class DockerServiceFactory:
     """Factory for managing shared DockerExecutionService instances."""
 
     _instance: Optional["DockerServiceFactory"] = None
-    # CRITICAL FIX: Use gevent RLock instead of threading.Lock
-    # This factory is called from both Celery greenlets and potentially background threads
-    _lock = gevent_lock.RLock()
+    # threading.RLock is cooperative under gevent monkey-patching and a real
+    # thread lock in native threads (see DockerExecutionService.pool_lock).
+    _lock = threading.RLock()
 
     def __new__(cls):
         """Singleton pattern for the factory."""
@@ -26,8 +25,7 @@ class DockerServiceFactory:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
                     cls._instance._service = None
-                    # CRITICAL FIX: Use gevent RLock for service-level lock
-                    cls._instance._service_lock = gevent_lock.RLock()
+                    cls._instance._service_lock = threading.RLock()
                     cls._instance._worker_id = (
                         os.getpid()
                     )  # Track which worker owns the service
