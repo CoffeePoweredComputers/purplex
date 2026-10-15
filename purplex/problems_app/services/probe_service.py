@@ -521,7 +521,8 @@ def normalize_primitive_type(type_hint: str | None) -> str | None:
     """Map a parameter type hint to a canonical primitive kind.
 
     Text after ``=`` (a default value) is dropped, then the hint is stripped,
-    lowercased and looked up in the alias table.
+    lowercased and looked up in the alias table. A ``None`` default marks an
+    implicit ``Optional`` and is not checked, matching ``Optional[T]``.
 
     Args:
         type_hint: Raw type hint such as ``"int"``, ``"Number"`` or ``"int = 3"``.
@@ -532,8 +533,10 @@ def normalize_primitive_type(type_hint: str | None) -> str | None:
     """
     if not type_hint:
         return None
-    hint = type_hint.split("=", 1)[0].strip().lower()
-    return _PRIMITIVE_ALIASES.get(hint)
+    base, _, default = type_hint.partition("=")
+    if default.strip() == "None":
+        return None
+    return _PRIMITIVE_ALIASES.get(base.strip().lower())
 
 
 def _matches_primitive(value: Any, kind: str) -> bool:

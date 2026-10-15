@@ -94,6 +94,13 @@ describe('parseInputValue', () => {
     expect(parseInputValue('abc', 'int = 3').error).toBe('int')
   })
 
+  it('treats a None default as implicit Optional and does not check it', () => {
+    expect(normalizePrimitiveType('int = None')).toBeNull()
+    expect(parseInputValue('null', 'int = None')).toEqual({ value: null, error: null })
+    expect(parseInputValue('None', 'int = None')).toEqual({ value: null, error: null })
+    expect(parseInputValue('4', 'int = None')).toEqual({ value: 4, error: null })
+  })
+
   it('trims surrounding whitespace before validating', () => {
     expect(parseInputValue('  42  ', 'int')).toEqual({ value: 42, error: null })
     expect(parseInputValue(' true ', 'bool')).toEqual({ value: true, error: null })
@@ -114,7 +121,7 @@ describe('parseInputValue', () => {
   })
 
   it('rejects ints outside the safe-integer range', () => {
-    expect(parseInputValue('12345678901234567891', 'int').error).toBe('int')
+    expect(parseInputValue('12345678901234567891', 'int').error).toBe('intRange')
     expect(parseInputValue('9007199254740991', 'int')).toEqual({ value: 9007199254740991, error: null })
   })
 
@@ -205,10 +212,10 @@ describe('useProbeState input validation', () => {
     expect(state.hasValidInputs.value).toBe(false)
   })
 
-  it('strips defaults in the fallback signature parser', () => {
+  it('keeps type defaults but strips name defaults in the fallback signature parser', () => {
     const state = setup('def f(n: int = 3, label=2) -> int')
     expect(state.parameters.value).toEqual([
-      { name: 'n', type: 'int' },
+      { name: 'n', type: 'int = 3' },
       { name: 'label', type: 'Any' },
     ])
   })

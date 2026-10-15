@@ -13,7 +13,7 @@ import type { ActivityProblem, ProbeHistoryEntry, ProbeParameter, ProbeStatus } 
 export type PrimitiveType = 'int' | 'float' | 'bool' | 'str'
 
 /** Error code for a probe input that does not match its declared primitive type. */
-export type ProbeInputError = 'int' | 'float' | 'bool'
+export type ProbeInputError = 'int' | 'intRange' | 'float' | 'bool'
 
 export interface ParsedProbeInput {
   value: unknown
@@ -42,6 +42,7 @@ const FLOAT_PATTERN = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/
  * Map a declared parameter type hint to its canonical primitive type.
  *
  * Strips a trailing ` = default`, trims, lowercases, and resolves aliases.
+ * A `= None` default is an implicit Optional and is not checked.
  * Returns null for anything that is not checked (missing hint, Any, list[int],
  * Optional[int], dict, custom classes, ...).
  */
@@ -49,8 +50,11 @@ export function normalizePrimitiveType(type: string | null | undefined): Primiti
   if (!type) {
     return null
   }
-  const base = type.split('=')[0].trim().toLowerCase()
-  return PRIMITIVE_ALIASES.get(base) ?? null
+  const [base, ...defaultParts] = type.split('=')
+  if (defaultParts.join('=').trim() === 'None') {
+    return null
+  }
+  return PRIMITIVE_ALIASES.get(base.trim().toLowerCase()) ?? null
 }
 
 /**
@@ -65,9 +69,13 @@ export function parseInputValue(rawValue: string, type: string | null | undefine
 
   switch (normalizePrimitiveType(type)) {
     case 'int':
-      return INT_PATTERN.test(text) && Number.isSafeInteger(Number(text))
+      if (!INT_PATTERN.test(text)) {
+        return { value: text, error: 'int' }
+      }
+      // JSON cannot carry ints above 2^53 losslessly, so refuse rather than corrupt
+      return Number.isSafeInteger(Number(text))
         ? { value: Number(text), error: null }
-        : { value: text, error: 'int' }
+        : { value: text, error: 'intRange' }
     case 'float': {
       const num = Number(text)
       return FLOAT_PATTERN.test(text) && Number.isFinite(num)
@@ -158,11 +166,12 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     }
 
     return paramsStr.split(',').map((p: string) => {
-      // Drop any ` = default` before splitting name from type
-      const parts = p.split('=')[0].trim().split(':')
+      // Keep the default on the type (e.g. "int = None") so normalizePrimitiveType
+      // can see it; strip it from the name for untyped defaults like "x=3"
+      const [namePart, ...typeParts] = p.split(':')
       return {
-        name: parts[0].trim(),
-        type: parts[1]?.trim() || 'Any'
+        name: namePart.split('=')[0].trim(),
+        type: typeParts.join(':').trim() || 'Any'
       }
     })
   })

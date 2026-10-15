@@ -116,6 +116,12 @@ class TestAliases:
         assert err == "Parameter 'x' must be an int"
         assert _valid("def f(x: int = 3)", {"x": 4}) == (True, None)
 
+    def test_none_default_is_implicit_optional_and_unchecked(self):
+        assert _valid("def f(x: int = None)", {"x": None}) == (True, None)
+        assert _valid("def f(x: int = None)", {"x": 4}) == (True, None)
+        assert _valid("def f(x: str = None)", {"x": 5}) == (True, None)
+        assert normalize_primitive_type("int = None") is None
+
 
 class TestUncheckedHints:
     @pytest.mark.parametrize(

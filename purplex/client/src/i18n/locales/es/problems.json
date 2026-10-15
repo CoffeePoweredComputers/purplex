@@ -215,11 +215,11 @@
       "srDuplicate": "Estas entradas ya fueron sondeadas. Resultado: {result}",
       "paramAriaLabel": "Ingresa valor para {name} (tipo: {type})",
       "paramAriaLabelNoType": "Ingresa valor para {name}",
-      "valuePlaceholder": "valor",
       "cachedResultAriaLabel": "Resultado en caché: {result}",
       "valuePlaceholderHint": "valor — texto entre comillas: \"abc\"",
       "invalidType": {
         "int": "Debe ser un número entero (p. ej. 5)",
+        "intRange": "El número entero es demasiado grande (máximo 15 dígitos)",
         "float": "Debe ser un número (p. ej. 1.5)",
         "bool": "Debe ser true o false"
       }
