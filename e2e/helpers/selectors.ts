@@ -240,3 +240,63 @@ export const common = {
   /** Dialog overlay (ConfirmDialog uses .dialog-overlay) */
   dialogOverlay: '.dialog-overlay',
 } as const;
+
+// ---------------------------------------------------------------------------
+// Probe panel (activities/inputs/shared/ProbePanel.vue)
+// ---------------------------------------------------------------------------
+export const probe = {
+  /** Panel root */
+  panel: '.probe-panel',
+  /** Input for one parameter (Enter triggers a probe) */
+  paramInput: (name: string) => `input#probe-${name}.param-input`,
+  /** Result slot ('?' until a result; .has-result / .is-cached) */
+  result: '.probe-panel .fn-result',
+  /** Probe button ('Probe' | 'Probing' | 'Already probed', .is-duplicate) */
+  button: 'button.probe-btn',
+  /** Remaining-probe badge (.status-explore | .status-available | .status-exhausted) */
+  badge: 'span.probe-count-badge',
+  /** Status hint, rendered only when probes are exhausted */
+  hint: '.probe-panel .probe-status-hint',
+  /** Oracle / request error line */
+  error: '.probe-panel .probe-error',
+  /** Per-parameter field errors */
+  fieldErrors: 'ul.probe-field-errors',
+  /** One parameter's field error */
+  fieldError: (name: string) => `li#probe-err-${name}`,
+  /** 'History (N)' button, rendered only when history is non-empty */
+  historyButton: '.probe-panel .history-btn',
+  /** History modal (teleported to body) */
+  historyModal: '.modal-overlay .modal-content[role="dialog"]',
+  /** Rows in the history modal */
+  historyRow: '.modal-content[role="dialog"] .modal-row',
+  /** History modal close button */
+  close: '.modal-content[role="dialog"] .modal-close',
+} as const;
+
+// ---------------------------------------------------------------------------
+// Code submission feedback (activities/feedback/CodeSubmissionFeedback.vue)
+// ---------------------------------------------------------------------------
+export const codeFeedback = {
+  /** Summary bar with pass/fail/locked counts */
+  summaryBar: '.feedback-container .test-summary-bar',
+  /** '✓ N Passing' */
+  passing: '.test-summary-bar .count-item.passing',
+  /** '✗ N Failing' */
+  failing: '.test-summary-bar .count-item.failing',
+  /** '🔒 N more tests locked' (only when locked > 0) */
+  locked: '.test-summary-bar .count-item.locked',
+  /** Failing test rows (.test-call, .expected, .actual, .actual.is-error) */
+  failingItem: 'article.test-item.failing',
+  /** Passing test rows (inside the collapsed passing group) */
+  passingItem: 'article.test-item.passing',
+  /** Note in the failing group explaining locked tests */
+  lockedNote: 'p.locked-note',
+  /** Attempts dropdown trigger (.attempt-text 'n/total', .attempt-score-badge) */
+  attemptTrigger: '.attempt-dropdown-trigger',
+  /** Attempts dropdown panel */
+  attemptPanel: '.attempt-dropdown-panel[role="menu"]',
+  /** One attempt in the dropdown (.attempt-tests 'passed/total') */
+  attemptItem: '.attempt-item-minimal',
+  /** Debug button on a test row */
+  debugButton: '.debug-btn',
+} as const;
