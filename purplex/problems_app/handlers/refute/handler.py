@@ -84,7 +84,8 @@ def _safe_execute(
     """
     Execute function code safely with provided arguments.
 
-    Uses a restricted environment to prevent dangerous operations.
+    Runs in a separate, resource-limited process (see oracle_sandbox) so a
+    slow or memory-hungry function cannot stall the web worker.
 
     Args:
         code: The function code to execute
@@ -92,72 +93,28 @@ def _safe_execute(
         args: Arguments to pass to the function
 
     Returns:
-        Dict with 'success', 'result', 'error' keys
+        Dict with 'success', 'result', 'error' keys.
     """
-    # Restricted builtins - only safe operations
-    safe_builtins = {
-        "abs": abs,
-        "all": all,
-        "any": any,
-        "bool": bool,
-        "chr": chr,
-        "dict": dict,
-        "divmod": divmod,
-        "enumerate": enumerate,
-        "filter": filter,
-        "float": float,
-        "frozenset": frozenset,
-        "int": int,
-        "isinstance": isinstance,
-        "len": len,
-        "list": list,
-        "map": map,
-        "max": max,
-        "min": min,
-        "ord": ord,
-        "pow": pow,
-        "range": range,
-        "reversed": reversed,
-        "round": round,
-        "set": set,
-        "sorted": sorted,
-        "str": str,
-        "sum": sum,
-        "tuple": tuple,
-        "zip": zip,
-        "True": True,
-        "False": False,
-        "None": None,
-    }
+    # Imported here: the services package imports the handler registry.
+    from purplex.problems_app.services.oracle_sandbox import run_oracle_sandboxed
+    from purplex.problems_app.services.probe_service import get_sandbox_limits
 
-    # Create restricted globals
-    restricted_globals = {
-        "__builtins__": safe_builtins,
-    }
+    outcome = run_oracle_sandboxed(code, function_name, args, **get_sandbox_limits())
+    if outcome["ok"]:
+        return {"success": True, "result": outcome["result"], "error": None}
 
-    try:
-        # Execute the function definition
-        # nosec B102: exec used with restricted_globals (safe_builtins only, no file/network access)
-        exec(code, restricted_globals)  # nosec B102
-
-        # Check if function was defined
-        if function_name not in restricted_globals:
-            return {
-                "success": False,
-                "result": None,
-                "error": f"Function '{function_name}' not defined in code",
-            }
-
-        # Get the function
-        func = restricted_globals[function_name]
-
-        # Call the function with provided args
-        result = func(**args)
-
-        return {"success": True, "result": result, "error": None}
-
-    except Exception as e:
-        return {"success": False, "result": None, "error": str(e)}
+    error_type = outcome.get("error_type")
+    if error_type == "FunctionNotFound":
+        error = f"Function '{function_name}' not defined in code"
+    elif error_type == "Timeout":
+        error = "The function took too long on these inputs. Try smaller values."
+    elif error_type == "MemoryError":
+        error = "The function ran out of memory on these inputs. Try smaller values."
+    elif error_type == "InputTooLarge":
+        error = "These inputs are too large."
+    else:
+        error = outcome.get("error", "")
+    return {"success": False, "result": None, "error": error}
 
 
 def _extract_function_name(signature: str) -> str:

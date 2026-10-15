@@ -12,7 +12,11 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any
 
+from django.conf import settings
+
 from purplex.utils.redis_client import get_rate_limit_client
+
+from .oracle_sandbox import run_oracle_sandboxed
 
 if TYPE_CHECKING:
     from purplex.problems_app.models import ProbeableCodeProblem
@@ -30,6 +34,33 @@ PROBE_DATA_TTL = 60 * 60 * 24 * 7
 # Shown instead of the raw oracle exception when the signature is hidden, so the
 # error text cannot reveal parameter types the instructor chose to hide.
 HIDDEN_ORACLE_ERROR = "These inputs could not be evaluated. Try different values."
+
+# Shown in both reveal modes: neither reveals anything about parameter types.
+ORACLE_TIMEOUT_ERROR = "The oracle took too long on these inputs. Try smaller values."
+ORACLE_MEMORY_ERROR = (
+    "The oracle ran out of memory on these inputs. Try smaller values."
+)
+ORACLE_INPUT_TOO_LARGE_ERROR = "Probe inputs are too large."
+
+# Defaults for settings.PROBE_SANDBOX (purplex/settings/base.py).
+_SANDBOX_DEFAULTS: dict[str, int] = {
+    "TIMEOUT_SECONDS": 3,
+    "CPU_SECONDS": 2,
+    "MEMORY_MB": 256,
+    "MAX_INPUT_BYTES": 10_000,
+}
+
+
+def get_sandbox_limits() -> dict[str, Any]:
+    """Return run_oracle_sandboxed limit kwargs from settings.PROBE_SANDBOX."""
+    config = {**_SANDBOX_DEFAULTS, **getattr(settings, "PROBE_SANDBOX", {})}
+    return {
+        "timeout_s": config["TIMEOUT_SECONDS"],
+        "cpu_s": config["CPU_SECONDS"],
+        "memory_mb": config["MEMORY_MB"],
+        "max_input_bytes": config["MAX_INPUT_BYTES"],
+    }
+
 
 # Primitive type hints that probe inputs are checked against. Keys are lowercase
 # aliases; values are canonical kinds. Must stay in sync with normalizePrimitiveType
@@ -299,8 +330,8 @@ class ProbeService:
         """
         Execute the oracle (reference_solution) with provided arguments.
 
-        Uses a restricted environment to prevent dangerous operations.
-        This is synchronous and runs in-memory (no Docker) for fast response.
+        Runs in a separate, resource-limited process (see oracle_sandbox) so a
+        slow or memory-hungry oracle cannot stall the web worker.
 
         Args:
             reference_code: The reference solution code
@@ -311,85 +342,35 @@ class ProbeService:
                 parameter types.
 
         Returns:
-            Dict with 'success', 'result', 'error' keys
+            Dict with 'success', 'result', 'error' keys.
         """
-        # Restricted builtins - only safe operations
-        safe_builtins = {
-            "abs": abs,
-            "all": all,
-            "any": any,
-            "bool": bool,
-            "chr": chr,
-            "dict": dict,
-            "divmod": divmod,
-            "enumerate": enumerate,
-            "filter": filter,
-            "float": float,
-            "frozenset": frozenset,
-            "int": int,
-            "isinstance": isinstance,
-            "len": len,
-            "list": list,
-            "map": map,
-            "max": max,
-            "min": min,
-            "ord": ord,
-            "pow": pow,
-            "range": range,
-            "reversed": reversed,
-            "round": round,
-            "set": set,
-            "sorted": sorted,
-            "str": str,
-            "sum": sum,
-            "tuple": tuple,
-            "zip": zip,
-            "True": True,
-            "False": False,
-            "None": None,
-        }
+        outcome = run_oracle_sandboxed(
+            reference_code, function_name, args, **get_sandbox_limits()
+        )
+        if outcome["ok"]:
+            return {"success": True, "result": outcome["result"], "error": None}
 
-        # Create restricted globals
-        restricted_globals = {
-            "__builtins__": safe_builtins,
-        }
+        error_type = outcome.get("error_type")
+        error = outcome.get("error", "")
 
-        try:
-            # Execute the function definition
-            # nosec B102: exec used with restricted_globals (safe_builtins only, no file/network access)
-            exec(reference_code, restricted_globals)  # nosec B102
-
-            # Check if function was defined
-            if function_name not in restricted_globals:
-                return {
-                    "success": False,
-                    "result": None,
-                    "error": f"Function '{function_name}' not defined in reference solution",
-                }
-
-            # Get the function
-            func = restricted_globals[function_name]
-
-            # Call the function with provided args
-            result = func(**args)
-
-            return {"success": True, "result": result, "error": None}
-
-        except TypeError as e:
+        if error_type == "FunctionNotFound":
+            message = f"Function '{function_name}' not defined in reference solution"
+        elif error_type == "Timeout":
+            message = ORACLE_TIMEOUT_ERROR
+        elif error_type == "MemoryError":
+            message = ORACLE_MEMORY_ERROR
+        elif error_type == "InputTooLarge":
+            message = ORACLE_INPUT_TOO_LARGE_ERROR
+        elif not reveal_types:
+            logger.info(f"Oracle {error_type} hidden from student: {error}")
+            message = HIDDEN_ORACLE_ERROR
+        elif error_type == "TypeError":
             # Usually wrong number/type of arguments
-            if not reveal_types:
-                logger.info(f"Oracle TypeError hidden from student: {e}")
-                return {"success": False, "result": None, "error": HIDDEN_ORACLE_ERROR}
-            return {
-                "success": False,
-                "result": None,
-                "error": f"Invalid arguments: {str(e)}",
-            }
-        except Exception as e:
-            if not reveal_types:
-                logger.info(f"Oracle error hidden from student: {e}")
-                return {"success": False, "result": None, "error": HIDDEN_ORACLE_ERROR}
-            return {"success": False, "result": None, "error": str(e)}
+            message = f"Invalid arguments: {error}"
+        else:
+            message = error
+
+        return {"success": False, "result": None, "error": message}
 
     @classmethod
     def _get_probe_count(cls, problem_id: int, user_id: int) -> int:

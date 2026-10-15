@@ -336,4 +336,15 @@ PRIVACY_REQUIRE_AGE_VERIFICATION = True
 PRIVACY_ENABLE_AI_CONSENT_GATE = True  # Block AI calls without consent
 PRIVACY_CURRENT_POLICY_VERSION = "1.0"
 
+# Limits for the in-request oracle subprocess used by probeable-code probes and
+# refute counterexamples (purplex/problems_app/services/oracle_sandbox.py).
+# Defined here, not in settings/security.py, because that module is never
+# imported by the settings package.
+PROBE_SANDBOX = {
+    "TIMEOUT_SECONDS": 3,
+    "CPU_SECONDS": 2,
+    "MEMORY_MB": 256,
+    "MAX_INPUT_BYTES": 10_000,
+}
+
 # Import security configuration
