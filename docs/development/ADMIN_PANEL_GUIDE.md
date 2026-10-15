@@ -507,34 +507,43 @@ interface DebugFixConfig {
 
 **Required Fields:**
 - `title`: Problem title
-- `reference_solution`: Hidden code to probe
+- `reference_solution`: Hidden code to probe (the oracle)
 - `function_signature`: Function signature
-- `test_cases`: Expected behavior tests
+
+Test cases are added in the Test Cases section; they are not required to save
+the problem but are needed to grade submissions.
 
 **Config Structure:**
 ```typescript
 interface ProbeableCodeConfig {
-  probe_mode: 'function' | 'expression'
-  max_probes: number         // -1 for unlimited
-  cooldown_seconds: number   // Between probes
+  probe_mode: 'block' | 'cooldown' | 'explore'  // default 'explore'
+  max_probes: number              // default 10; initial budget (ignored in 'explore')
+  cooldown_attempts: number       // default 3; submissions needed to refill ('cooldown' only)
+  cooldown_refill: number         // default 5; probes granted per refill ('cooldown' only)
+  show_function_signature: boolean  // default true; show params/types to student
 }
 ```
+
+**Probe Modes:**
+- `block`: `max_probes` probes total, then probing is disabled permanently
+- `cooldown`: `max_probes` probes; after `cooldown_attempts` submissions the student gets `cooldown_refill` more
+- `explore`: Unlimited probing (the model default)
 
 ### Probeable Spec
 
 **Required Fields:**
 - `title`: Problem title
-- `specification`: Natural language spec
+- `reference_solution`: Hidden code to probe (the oracle)
 - `function_signature`: Function signature
-- `reference_solution`: Reference implementation
 
 **Config Structure:**
 ```typescript
 interface ProbeableSpecConfig {
-  specification: string
-  probe_mode: 'function' | 'expression'
-  max_probes: number
-  cooldown_seconds: number
+  probe_mode: 'block' | 'cooldown' | 'explore'  // default 'explore'
+  max_probes: number              // default 10; initial budget (ignored in 'explore')
+  cooldown_attempts: number       // default 3; submissions needed to refill ('cooldown' only)
+  cooldown_refill: number         // default 5; probes granted per refill ('cooldown' only)
+  show_function_signature: boolean  // default true; show params/types to student
   segmentation_config?: SegmentationConfig
 }
 ```
@@ -596,8 +605,9 @@ Configures probe mode settings for probeable problem types:
 ```
 
 The component:
-- Selects probe mode (function vs expression)
-- Configures max probes and cooldown
+- Selects probe mode (block, cooldown, or explore)
+- Configures max probes (block/cooldown) and cooldown attempts/refill (cooldown)
+- Toggles whether the function signature is shown to students
 - Shared between ProbeableCode and ProbeableSpec editors
 
 ## Validation Patterns
