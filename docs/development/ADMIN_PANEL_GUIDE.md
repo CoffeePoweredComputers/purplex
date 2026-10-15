@@ -507,34 +507,52 @@ interface DebugFixConfig {
 
 **Required Fields:**
 - `title`: Problem title
-- `reference_solution`: Hidden code to probe
+- `description`: Problem description
 - `function_signature`: Function signature
-- `test_cases`: Expected behavior tests
+- `reference_solution`: Hidden code that students probe (the oracle)
+- `test_cases`: At least one test case
 
 **Config Structure:**
 ```typescript
 interface ProbeableCodeConfig {
-  probe_mode: 'function' | 'expression'
-  max_probes: number         // -1 for unlimited
-  cooldown_seconds: number   // Between probes
+  show_function_signature: boolean  // Show parameters/types to the student (default: true)
+  probe_mode: 'block' | 'cooldown' | 'explore'
+  max_probes: number                // Initial probe budget (ignored in 'explore' mode)
+  cooldown_attempts: number         // Submissions needed before a refill ('cooldown' mode only)
+  cooldown_refill: number           // Probes granted per refill ('cooldown' mode only)
 }
 ```
 
+**Probe modes:**
+- `block`: `max_probes` probes in total, then probing is disabled
+- `cooldown`: `max_probes` probes; after `cooldown_attempts` submissions the student gets `cooldown_refill` more
+- `explore`: Unlimited probing (the model default)
+
+**Validation:**
+- `max_probes` must be at least 1 unless `probe_mode` is `explore`
+- `cooldown_attempts` and `cooldown_refill` must be at least 1 in `cooldown` mode
+
 ### Probeable Spec
+
+Same fields, probe modes and validation as Probeable Code; the student writes a
+natural-language explanation instead of code. There is no separate specification
+field: the problem's `description` is what the student reads.
 
 **Required Fields:**
 - `title`: Problem title
-- `specification`: Natural language spec
+- `description`: Problem description
 - `function_signature`: Function signature
-- `reference_solution`: Reference implementation
+- `reference_solution`: Hidden code that students probe (the oracle)
+- `test_cases`: At least one test case
 
 **Config Structure:**
 ```typescript
 interface ProbeableSpecConfig {
-  specification: string
-  probe_mode: 'function' | 'expression'
+  show_function_signature: boolean
+  probe_mode: 'block' | 'cooldown' | 'explore'
   max_probes: number
-  cooldown_seconds: number
+  cooldown_attempts: number
+  cooldown_refill: number
   segmentation_config?: SegmentationConfig
 }
 ```
@@ -596,8 +614,9 @@ Configures probe mode settings for probeable problem types:
 ```
 
 The component:
-- Selects probe mode (function vs expression)
-- Configures max probes and cooldown
+- Toggles whether the function signature is shown to students
+- Selects the probe mode (block, cooldown or explore)
+- Configures the probe budget (`max_probes`, hidden in explore mode) and, in cooldown mode, `cooldown_attempts` and `cooldown_refill`
 - Shared between ProbeableCode and ProbeableSpec editors
 
 ## Validation Patterns
