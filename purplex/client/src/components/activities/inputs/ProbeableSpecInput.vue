@@ -22,6 +22,7 @@
       :can-probe="canProbe"
       :is-executing="probing"
       :has-valid-inputs="hasValidInputs"
+      :input-errors="inputErrors"
       :probe-history="probeHistory"
       :probe-error="probeError"
       :is-duplicate="isDuplicate"
@@ -147,6 +148,7 @@ const {
   probeCountDisplay,
   probeStatusClass,
   hasValidInputs,
+  inputErrors,
   isDuplicate,
   cachedResult,
   executeProbe,

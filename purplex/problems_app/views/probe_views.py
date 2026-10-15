@@ -135,10 +135,8 @@ class ProbeOracleView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Validate against function signature
-        is_valid, error_msg = validate_probe_input(
-            problem.function_signature, probe_input
-        )
+        # Validate names and primitive types against the function signature
+        is_valid, error_msg = ProbeService.validate_input(problem, probe_input)
         if not is_valid:
             return Response(
                 {

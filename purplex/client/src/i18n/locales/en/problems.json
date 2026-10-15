@@ -215,8 +215,14 @@
       "srDuplicate": "These inputs were already probed. Result: {result}",
       "paramAriaLabel": "Enter value for {name} (type: {type})",
       "paramAriaLabelNoType": "Enter value for {name}",
-      "valuePlaceholder": "value",
-      "cachedResultAriaLabel": "Cached result: {result}"
+      "cachedResultAriaLabel": "Cached result: {result}",
+      "valuePlaceholderHint": "value — quote text: \"abc\"",
+      "invalidType": {
+        "int": "Must be a whole number (e.g. 5)",
+        "intRange": "Whole number is too large (at most 15 digits)",
+        "float": "Must be a number (e.g. 1.5)",
+        "bool": "Must be true or false"
+      }
     },
     "refute": {
       "disprove": "Disprove:",

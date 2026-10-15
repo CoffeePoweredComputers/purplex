@@ -27,6 +27,32 @@ PROBE_HISTORY_PREFIX = "probe:history:"
 # TTL for probe data (7 days)
 PROBE_DATA_TTL = 60 * 60 * 24 * 7
 
+# Shown instead of the raw oracle exception when the signature is hidden, so the
+# error text cannot reveal parameter types the instructor chose to hide.
+HIDDEN_ORACLE_ERROR = "These inputs could not be evaluated. Try different values."
+
+# Primitive type hints that probe inputs are checked against. Keys are lowercase
+# aliases; values are canonical kinds. Must stay in sync with normalizePrimitiveType
+# in purplex/client/src/components/activities/inputs/shared/useProbeState.ts.
+_PRIMITIVE_ALIASES: dict[str, str] = {
+    "int": "int",
+    "integer": "int",
+    "float": "float",
+    "number": "float",
+    "bool": "bool",
+    "boolean": "bool",
+    "str": "str",
+    "string": "str",
+}
+
+# Indefinite article per canonical kind, for error messages.
+_KIND_ARTICLES: dict[str, str] = {
+    "int": "an",
+    "float": "a",
+    "bool": "a",
+    "str": "a",
+}
+
 
 class ProbeService:
     """Service for handling probe queries in Probeable Code problems."""
@@ -58,7 +84,10 @@ class ProbeService:
 
         # Execute the oracle
         result = cls._execute_oracle(
-            problem.reference_solution, problem.function_name, probe_input
+            problem.reference_solution,
+            problem.function_name,
+            probe_input,
+            reveal_types=getattr(problem, "show_function_signature", True),
         )
 
         if result["success"]:
@@ -74,6 +103,28 @@ class ProbeService:
             "error": result.get("error"),
             "probe_status": updated_status,
         }
+
+    @classmethod
+    def validate_input(
+        cls, problem: "ProbeableCodeProblem", probe_input: dict[str, Any]
+    ) -> tuple[bool, str | None]:
+        """Validate probe input against the problem's function signature.
+
+        Type names appear in error messages only when the problem shows its
+        signature to students.
+
+        Args:
+            problem: The probeable problem being probed.
+            probe_input: Dictionary of parameter name -> value.
+
+        Returns:
+            Tuple of (is_valid, error_message).
+        """
+        return validate_probe_input(
+            problem.function_signature,
+            probe_input,
+            reveal_types=getattr(problem, "show_function_signature", True),
+        )
 
     @classmethod
     def check_probe_limit(
@@ -238,7 +289,12 @@ class ProbeService:
 
     @classmethod
     def _execute_oracle(
-        cls, reference_code: str, function_name: str, args: dict[str, Any]
+        cls,
+        reference_code: str,
+        function_name: str,
+        args: dict[str, Any],
+        *,
+        reveal_types: bool = True,
     ) -> dict[str, Any]:
         """
         Execute the oracle (reference_solution) with provided arguments.
@@ -250,6 +306,9 @@ class ProbeService:
             reference_code: The reference solution code
             function_name: Name of the function to call
             args: Arguments to pass to the function
+            reveal_types: When False (signature hidden), oracle exceptions are
+                replaced by HIDDEN_ORACLE_ERROR so their text cannot leak
+                parameter types.
 
         Returns:
             Dict with 'success', 'result', 'error' keys
@@ -318,12 +377,18 @@ class ProbeService:
 
         except TypeError as e:
             # Usually wrong number/type of arguments
+            if not reveal_types:
+                logger.info(f"Oracle TypeError hidden from student: {e}")
+                return {"success": False, "result": None, "error": HIDDEN_ORACLE_ERROR}
             return {
                 "success": False,
                 "result": None,
                 "error": f"Invalid arguments: {str(e)}",
             }
         except Exception as e:
+            if not reveal_types:
+                logger.info(f"Oracle error hidden from student: {e}")
+                return {"success": False, "result": None, "error": HIDDEN_ORACLE_ERROR}
             return {"success": False, "result": None, "error": str(e)}
 
     @classmethod
@@ -452,15 +517,67 @@ def parse_function_signature(signature: str) -> list[dict[str, str]]:
     return params
 
 
+def normalize_primitive_type(type_hint: str | None) -> str | None:
+    """Map a parameter type hint to a canonical primitive kind.
+
+    Text after ``=`` (a default value) is dropped, then the hint is stripped,
+    lowercased and looked up in the alias table. A ``None`` default marks an
+    implicit ``Optional`` and is not checked, matching ``Optional[T]``.
+
+    Args:
+        type_hint: Raw type hint such as ``"int"``, ``"Number"`` or ``"int = 3"``.
+
+    Returns:
+        One of ``"int"``, ``"float"``, ``"bool"``, ``"str"``, or None when the
+        hint is missing or not a checked primitive (``Any``, ``list[int]``, ...).
+    """
+    if not type_hint:
+        return None
+    base, _, default = type_hint.partition("=")
+    if default.strip() == "None":
+        return None
+    return _PRIMITIVE_ALIASES.get(base.strip().lower())
+
+
+def _matches_primitive(value: Any, kind: str) -> bool:
+    """Check whether a JSON-decoded value satisfies a canonical primitive kind.
+
+    ``bool`` is a subclass of ``int`` in Python, so it is excluded explicitly
+    from the numeric kinds.
+
+    Args:
+        value: The probe value.
+        kind: Canonical kind from normalize_primitive_type.
+
+    Returns:
+        True if the value is acceptable for the kind.
+    """
+    if kind == "int":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if kind == "float":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if kind == "bool":
+        return isinstance(value, bool)
+    if kind == "str":
+        return isinstance(value, str)
+    return True
+
+
 def validate_probe_input(
-    signature: str, probe_input: dict[str, Any]
+    signature: str, probe_input: dict[str, Any], *, reveal_types: bool = True
 ) -> tuple[bool, str | None]:
     """
     Validate probe input against function signature.
 
+    Parameter names are checked first (missing, then unknown). Then each
+    parameter with a primitive type hint (int, float, bool, str and their
+    aliases) is checked against its value; other hints are not checked.
+
     Args:
         signature: The function signature
         probe_input: Dictionary of parameter name -> value
+        reveal_types: When False, type-mismatch messages do not name the
+            expected type (used when the signature is hidden from students).
 
     Returns:
         Tuple of (is_valid, error_message)
@@ -483,5 +600,16 @@ def validate_probe_input(
     extra = input_names - param_names
     if extra:
         return False, f"Unknown parameters: {', '.join(extra)}"
+
+    # Check primitive types in signature order
+    for param in params:
+        kind = normalize_primitive_type(param["type"])
+        if kind is None:
+            continue
+        name = param["name"]
+        if not _matches_primitive(probe_input[name], kind):
+            if not reveal_types:
+                return False, f"That value is not valid for parameter '{name}'"
+            return False, f"Parameter '{name}' must be {_KIND_ARTICLES[kind]} {kind}"
 
     return True, None

@@ -316,6 +316,29 @@ class Command(BaseCommand):
         self._report("ProbeableCodeProblem", "e2e-probeable-code-1", created)
         probeable_code.categories.add(cat_arrays)
 
+        # Primitive-typed signature so the probe panel's client-side type
+        # validation (issue #135) can be exercised end to end.
+        probeable_typed, created = ProbeableCodeProblem.objects.get_or_create(
+            slug="e2e-probeable-code-typed",
+            defaults={
+                "title": "E2E: Probe a Typed Function",
+                "description": "Discover what this function does by probing it with integers.",
+                "function_signature": "def double(n: int) -> int",
+                "function_name": "double",
+                "reference_solution": "def double(n):\n    return n * 2",
+                "show_function_signature": True,
+                "probe_mode": "explore",
+                "max_probes": 10,
+                "cooldown_attempts": 3,
+                "cooldown_refill": 5,
+                "difficulty": "beginner",
+                "is_active": True,
+                "created_by": instructor,
+            },
+        )
+        self._report("ProbeableCodeProblem", "e2e-probeable-code-typed", created)
+        probeable_typed.categories.add(cat_arrays)
+
         probeable_spec, created = ProbeableSpecProblem.objects.get_or_create(
             slug="e2e-probeable-spec-1",
             defaults={
@@ -561,6 +584,19 @@ class Command(BaseCommand):
                 "TestCase (probeable_code)", f"inputs={tc_data['inputs']}", created
             )
 
+        _, created = TestCase.objects.get_or_create(
+            problem=probeable_typed,
+            inputs=[5],
+            expected_output=10,
+            defaults={
+                "is_sample": True,
+                "is_hidden": False,
+                "order": 0,
+                "description": "double(5) = 10",
+            },
+        )
+        self._report("TestCase (probeable_code_typed)", "inputs=[5]", created)
+
         # ------------------------------------------------------------------
         # 4. Problem Sets
         # ------------------------------------------------------------------
@@ -607,8 +643,8 @@ class Command(BaseCommand):
             )
             self._report("ProblemSetMembership (basics)", problem.slug, created)
 
-        # ProblemSetMembership: e2e-code -> debugfix, probeable_code
-        code_members = [(debugfix, 0), (probeable_code, 1)]
+        # ProblemSetMembership: e2e-code -> debugfix, probeable_code, probeable_typed
+        code_members = [(debugfix, 0), (probeable_code, 1), (probeable_typed, 2)]
         for problem, order in code_members:
             _, created = ProblemSetMembership.objects.get_or_create(
                 problem_set=ps_code,

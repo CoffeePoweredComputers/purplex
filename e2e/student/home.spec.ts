@@ -7,7 +7,7 @@
  * Seeded data:
  *   - Course CS101-2024 "Introduction to Programming"
  *   - Student + Student2 enrolled
- *   - Problem sets: e2e-basics (2 problems), e2e-code (2), e2e-mixed (7)
+ *   - Problem sets: e2e-basics (2 problems), e2e-code (3), e2e-mixed (7)
  *   - Student has 1 prior MCQ submission (score=100) on e2e-mcq-1
  */
 
