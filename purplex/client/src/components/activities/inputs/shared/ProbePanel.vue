@@ -20,10 +20,13 @@
               :value="probeInputs[param.name]"
               type="text"
               class="param-input"
-              :placeholder="param.type || $t('problems.probe.valuePlaceholder')"
+              :class="{ 'has-error': !!inputErrors[param.name] }"
+              :placeholder="param.type || $t('problems.probe.valuePlaceholderHint')"
               :aria-label="param.type
                 ? $t('problems.probe.paramAriaLabel', { name: param.name, type: param.type })
                 : $t('problems.probe.paramAriaLabelNoType', { name: param.name })"
+              :aria-invalid="inputErrors[param.name] ? 'true' : undefined"
+              :aria-describedby="inputErrors[param.name] ? `probe-err-${param.name}` : undefined"
               :disabled="!canProbe || isExecuting"
               @input="$emit('update-input', param.name, ($event.target as HTMLInputElement).value)"
               @keydown.enter="!isExecuting && canProbe && hasValidInputs && $emit('execute-probe')"
@@ -53,6 +56,20 @@
           {{ $t('problems.probe.history', { count: uniqueHistory.length }) }}
         </button>
       </div>
+
+      <!-- Per-field type errors -->
+      <ul
+        class="probe-field-errors"
+        aria-live="polite"
+      >
+        <li
+          v-for="(message, name) in inputErrors"
+          :id="`probe-err-${name}`"
+          :key="name"
+        >
+          {{ name }}: {{ message }}
+        </li>
+      </ul>
 
       <!-- Probe Button -->
       <button
@@ -173,6 +190,7 @@ interface Props {
   canProbe: boolean
   isExecuting: boolean
   hasValidInputs: boolean
+  inputErrors: Record<string, string>
   probeHistory: ProbeHistoryEntry[]
   probeError: string | null
   isDuplicate: boolean
@@ -369,6 +387,15 @@ watch(() => props.probeHistory.length, () => {
   box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
+.param-input.has-error {
+  border-color: var(--color-error);
+}
+
+.param-input.has-error:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 2px var(--color-error-overlay);
+}
+
 .param-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -508,6 +535,22 @@ watch(() => props.probeHistory.length, () => {
 
 .probe-count-badge.status-exhausted {
   color: var(--color-warning);
+}
+
+/* ===========================================
+   PER-FIELD TYPE ERRORS
+   =========================================== */
+.probe-field-errors {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+  text-align: left;
+}
+
+.probe-field-errors:not(:empty) {
+  margin-top: var(--spacing-xs);
 }
 
 /* ===========================================

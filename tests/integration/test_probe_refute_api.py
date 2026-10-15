@@ -4,9 +4,13 @@ Validates the HTTP contract for probeable code oracle queries,
 probe status/history, and refute counterexample testing.
 """
 
+from unittest import mock
+
 import pytest
 from rest_framework import status
 
+from purplex.problems_app.services.probe_service import ProbeService
+from purplex.utils.error_codes import ErrorCode
 from tests.factories import (
     ProbeableCodeProblemFactory,
     RefuteProblemFactory,
@@ -69,6 +73,18 @@ def probeable_problem(db):
         function_signature="def add(a: int, b: int) -> int:",
         function_name="add",
         reference_solution="def add(a, b):\n    return a + b",
+        is_active=True,
+    )
+
+
+@pytest.fixture
+def hidden_signature_problem(db):
+    """A probeable code problem whose signature types are hidden from students."""
+    return ProbeableCodeProblemFactory(
+        function_signature="def add(a: int, b: int) -> int:",
+        function_name="add",
+        reference_solution="def add(a, b):\n    return a + b",
+        show_function_signature=False,
         is_active=True,
     )
 
@@ -200,6 +216,67 @@ class TestProbeOracle:
             status.HTTP_403_FORBIDDEN,
         )
 
+    def test_probe_success_round_trip(self, authenticated_client, probeable_problem):
+        with mock.patch.object(ProbeService, "_record_probe") as record:
+            resp = authenticated_client.post(
+                probe_url(probeable_problem.slug),
+                {"input": {"a": 2, "b": 3}},
+                format="json",
+            )
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data["success"] is True
+        assert resp.data["result"] == 5
+        record.assert_called_once()
+
+    def test_probe_type_mismatch_visible_400(
+        self, authenticated_client, probeable_problem
+    ):
+        resp = authenticated_client.post(
+            probe_url(probeable_problem.slug),
+            {"input": {"a": "2", "b": 3}},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert set(resp.data.keys()) == PROBE_RESULT_FIELDS
+        assert resp.data["code"] == ErrorCode.INVALID_INPUT
+        assert "must be an int" in resp.data["error"]
+
+    def test_probe_type_mismatch_hidden_400(
+        self, authenticated_client, hidden_signature_problem
+    ):
+        resp = authenticated_client.post(
+            probe_url(hidden_signature_problem.slug),
+            {"input": {"a": "2", "b": 3}},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.data["code"] == ErrorCode.INVALID_INPUT
+        assert resp.data["error"] == "That value is not valid for parameter 'a'"
+        assert "int" not in resp.data["error"]
+
+    def test_probe_type_mismatch_not_recorded(
+        self, authenticated_client, probeable_problem
+    ):
+        """Rejected probes must not consume probe quota."""
+        with mock.patch.object(ProbeService, "_record_probe") as record:
+            resp = authenticated_client.post(
+                probe_url(probeable_problem.slug),
+                {"input": {"a": "abc", "b": 3}},
+                format="json",
+            )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        record.assert_not_called()
+
+    def test_probe_bool_for_int_400(self, authenticated_client, probeable_problem):
+        resp = authenticated_client.post(
+            probe_url(probeable_problem.slug),
+            {"input": {"a": True, "b": 3}},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.data["code"] == ErrorCode.INVALID_INPUT
+        assert "must be an int" in resp.data["error"]
+
 
 # ===========================================================================
 # TestRefuteTest
@@ -253,3 +330,16 @@ class TestRefuteTest:
             status.HTTP_401_UNAUTHORIZED,
             status.HTTP_403_FORBIDDEN,
         )
+
+    def test_refute_type_mismatch_400(
+        self, authenticated_client, refute_problem_fixture
+    ):
+        resp = authenticated_client.post(
+            refute_url(refute_problem_fixture.slug),
+            {"input": {"n": "abc"}},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert set(resp.data.keys()) == REFUTE_RESULT_FIELDS
+        assert resp.data["code"] == ErrorCode.INVALID_INPUT
+        assert "must be an int" in resp.data["error"]

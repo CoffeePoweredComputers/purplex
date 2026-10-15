@@ -9,6 +9,97 @@ import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import type { ActivityProblem, ProbeHistoryEntry, ProbeParameter, ProbeStatus } from '../../types'
 
+/** Canonical primitive parameter types that probe inputs are validated against. */
+export type PrimitiveType = 'int' | 'float' | 'bool' | 'str'
+
+/** Error code for a probe input that does not match its declared primitive type. */
+export type ProbeInputError = 'int' | 'float' | 'bool'
+
+export interface ParsedProbeInput {
+  value: unknown
+  error: ProbeInputError | null
+}
+
+// Must stay identical to _PRIMITIVE_ALIASES in
+// purplex/problems_app/services/probe_service.py (issue #135).
+const PRIMITIVE_ALIASES = new Map<string, PrimitiveType>([
+  ['int', 'int'],
+  ['integer', 'int'],
+  ['float', 'float'],
+  ['number', 'float'],
+  ['bool', 'bool'],
+  ['boolean', 'bool'],
+  ['str', 'str'],
+  ['string', 'str'],
+])
+
+const INT_PATTERN = /^[+-]?\d+$/
+const BOOL_PATTERN = /^(true|false)$/i
+// Python float literal syntax: no hex/binary/octal, which Number() would otherwise accept
+const FLOAT_PATTERN = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/
+
+/**
+ * Map a declared parameter type hint to its canonical primitive type.
+ *
+ * Strips a trailing ` = default`, trims, lowercases, and resolves aliases.
+ * Returns null for anything that is not checked (missing hint, Any, list[int],
+ * Optional[int], dict, custom classes, ...).
+ */
+export function normalizePrimitiveType(type: string | null | undefined): PrimitiveType | null {
+  if (!type) {
+    return null
+  }
+  const base = type.split('=')[0].trim().toLowerCase()
+  return PRIMITIVE_ALIASES.get(base) ?? null
+}
+
+/**
+ * Parse a raw probe input string according to its declared parameter type.
+ *
+ * Primitive types (int/float/bool/str) are validated strictly; str never errors.
+ * Unknown or missing types fall back to JSON parsing, accepting Python-style
+ * bare True/False/None, and fall back to the raw text when that fails.
+ */
+export function parseInputValue(rawValue: string, type: string | null | undefined): ParsedProbeInput {
+  const text = rawValue.trim()
+
+  switch (normalizePrimitiveType(type)) {
+    case 'int':
+      return INT_PATTERN.test(text) && Number.isSafeInteger(Number(text))
+        ? { value: Number(text), error: null }
+        : { value: text, error: 'int' }
+    case 'float': {
+      const num = Number(text)
+      return FLOAT_PATTERN.test(text) && Number.isFinite(num)
+        ? { value: num, error: null }
+        : { value: text, error: 'float' }
+    }
+    case 'bool':
+      return BOOL_PATTERN.test(text)
+        ? { value: text.toLowerCase() === 'true', error: null }
+        : { value: text, error: 'bool' }
+    case 'str':
+      if (text.length >= 2 && text.startsWith('"') && text.endsWith('"')) {
+        try {
+          return { value: JSON.parse(text), error: null }
+        } catch {
+          // Not a valid JSON string literal - keep the raw text
+        }
+      }
+      return { value: text, error: null }
+    default: {
+      // Untyped / unchecked: JSON first, accepting Python-style literals
+      const pythonLiterals: Record<string, string> = { True: 'true', False: 'false', None: 'null' }
+      const jsonText = pythonLiterals[text] ?? text
+      try {
+        return { value: JSON.parse(jsonText), error: null }
+      } catch {
+        return { value: text, error: null }
+      }
+    }
+  }
+}
+
 export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)) {
   const { t } = useI18n()
   // Probe state
@@ -67,7 +158,8 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     }
 
     return paramsStr.split(',').map((p: string) => {
-      const parts = p.trim().split(':')
+      // Drop any ` = default` before splitting name from type
+      const parts = p.split('=')[0].trim().split(':')
       return {
         name: parts[0].trim(),
         type: parts[1]?.trim() || 'Any'
@@ -103,26 +195,44 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     return 'status-exhausted'
   })
 
+  // Parse every current input once; shared by validation, duplicate detection and execution
+  const parsedInputs = computed(() => {
+    const values: Record<string, unknown> = {}
+    const errors: Record<string, ProbeInputError> = {}
+    for (const param of parameters.value) {
+      const rawValue = probeInputs[param.name] ?? ''
+      const { value, error } = parseInputValue(rawValue, param.type)
+      values[param.name] = value
+      if (error && rawValue !== '') {
+        errors[param.name] = error
+      }
+    }
+    return { values, errors }
+  })
+
+  // Translated per-field type errors, keyed by parameter name (non-empty fields only)
+  const inputErrors = computed((): Record<string, string> => {
+    const messages: Record<string, string> = {}
+    for (const [name, code] of Object.entries(parsedInputs.value.errors)) {
+      messages[name] = t(`problems.probe.invalidType.${code}`)
+    }
+    return messages
+  })
+
   const hasValidInputs = computed(() => {
-    // Check all parameters have values
-    return parameters.value.every(p => {
+    // Every parameter has a value and none fails its declared type
+    const allFilled = parameters.value.every(p => {
       const value = probeInputs[p.name]
       return value !== undefined && value !== ''
     })
+    return allFilled && Object.keys(parsedInputs.value.errors).length === 0
   })
 
   // Check if current inputs match any previous query (real-time duplicate detection)
   const duplicateEntry = computed(() => {
     if (!hasValidInputs.value) {return null}
 
-    // Parse current inputs
-    const parsedInputs: Record<string, unknown> = {}
-    for (const param of parameters.value) {
-      const rawValue = probeInputs[param.name]
-      parsedInputs[param.name] = parseInputValue(rawValue, param.type)
-    }
-
-    const inputKey = JSON.stringify(parsedInputs)
+    const inputKey = JSON.stringify(parsedInputs.value.values)
     return probeHistory.value.find(
       entry => JSON.stringify(entry.input) === inputKey
     ) || null
@@ -184,27 +294,26 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     if (!canProbe.value || probing.value) {
       return
     }
+    if (Object.keys(parsedInputs.value.errors).length > 0) {
+      return
+    }
 
     probing.value = true
     probeError.value = null
 
     try {
-      // Parse input values
-      const parsedInputs: Record<string, unknown> = {}
-      for (const param of parameters.value) {
-        const rawValue = probeInputs[param.name]
-        parsedInputs[param.name] = parseInputValue(rawValue, param.type)
-      }
+      // Snapshot parsed values so history records exactly what was sent
+      const input = { ...parsedInputs.value.values }
 
       const p = getProblem()
       const response = await axios.post(`/api/problems/${p.slug}/probe/`, {
-        input: parsedInputs
+        input
       })
 
       if (response.data.success) {
         // Add to history (most recent first)
         probeHistory.value.unshift({
-          input: parsedInputs,
+          input,
           output: response.data.result,
           timestamp: new Date().toISOString()
         })
@@ -225,42 +334,6 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     } finally {
       probing.value = false
     }
-  }
-
-  function parseInputValue(rawValue: string, type: string): unknown {
-    const trimmed = rawValue.trim()
-
-    // Try to parse as JSON first (handles arrays, objects, etc.)
-    try {
-      return JSON.parse(trimmed)
-    } catch {
-      // Fall back to type-specific parsing
-    }
-
-    const lowerType = type.toLowerCase()
-
-    if (lowerType === 'int' || lowerType === 'integer') {
-      const num = parseInt(trimmed, 10)
-      return isNaN(num) ? trimmed : num
-    }
-
-    if (lowerType === 'float' || lowerType === 'number') {
-      const num = parseFloat(trimmed)
-      return isNaN(num) ? trimmed : num
-    }
-
-    if (lowerType === 'bool' || lowerType === 'boolean') {
-      if (trimmed.toLowerCase() === 'true') {
-        return true
-      }
-      if (trimmed.toLowerCase() === 'false') {
-        return false
-      }
-      return trimmed
-    }
-
-    // Default: return as string
-    return trimmed
   }
 
   function formatInput(input: Record<string, unknown>): string {
@@ -304,6 +377,7 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     probeStatusText,
     probeStatusClass,
     hasValidInputs,
+    inputErrors,
     isDuplicate,
     cachedResult,
     // Methods

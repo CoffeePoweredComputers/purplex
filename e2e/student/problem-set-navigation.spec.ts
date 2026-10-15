@@ -6,7 +6,7 @@
  *
  * Seeded data:
  *   - e2e-basics: 2 problems (e2e-mcq-1 completed, e2e-eipl-1 not started)
- *   - e2e-code:   2 problems, soft deadline 7 days ago
+ *   - e2e-code:   3 problems, soft deadline 7 days ago
  *   - e2e-mixed:  7 problems, hard deadline 7 days ago (locked)
  */
 

@@ -15,6 +15,9 @@
  *   - e2e-probeable-code-1: mystery(lst) -- actually sorted(lst)
  *     function_signature: "def mystery(lst: list[int]) -> list[int]"
  *     probe_mode: "explore", max_probes: 10
+ *   - e2e-probeable-code-typed: double(n) -- n * 2 (e2e-code, p=2)
+ *     function_signature: "def double(n: int) -> int"
+ *     used to check client-side probe input type validation (#135)
  *   - e2e-refute-1: f(x) = x * 2, claim "always returns positive"
  *     (in e2e-mixed which has hard past deadline -- locked)
  *
@@ -43,6 +46,19 @@ async function goToProbeableProblem(page: Page) {
     '/courses/CS101-2024/problem-set/e2e-code?p=1',
   );
   // Wait for the probeable code input to appear
+  await page.locator('.probeable-code-input, .probe-panel, #codeEditor').first().waitFor({
+    state: 'visible',
+    timeout: 15000,
+  });
+}
+
+/** Navigate to e2e-code and select e2e-probeable-code-typed. */
+async function goToTypedProbeableProblem(page: Page) {
+  await navigateAs(
+    page,
+    'student',
+    '/courses/CS101-2024/problem-set/e2e-code?p=2',
+  );
   await page.locator('.probeable-code-input, .probe-panel, #codeEditor').first().waitFor({
     state: 'visible',
     timeout: 15000,
@@ -177,6 +193,41 @@ test.describe('Probeable Code Submission', () => {
     await historyItem.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {
       // Probe may have failed -- acceptable in test environments
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Probe Input Type Validation (#135)
+// ---------------------------------------------------------------------------
+
+test.describe('Probe Input Type Validation', () => {
+  test('non-integer input for an int parameter shows an error and disables Probe', async ({ page }) => {
+    await goToTypedProbeableProblem(page);
+
+    // e2e-probeable-code-typed has signature: double(n: int) -> int
+    const nInput = page.locator('#probe-n');
+    if (!(await nInput.isVisible().catch(() => false))) {
+      test.skip();
+      return;
+    }
+    if (!(await nInput.isEnabled().catch(() => false))) {
+      // Probing may be unavailable (e.g. exhausted budget) -- skip gracefully
+      test.skip();
+      return;
+    }
+
+    const fieldErrors = page.locator('.probe-field-errors');
+    const probeBtn = page.locator('.probe-btn');
+
+    await nInput.fill('abc');
+    await expect(fieldErrors).toBeVisible();
+    await expect(nInput).toHaveClass(/has-error/);
+    await expect(probeBtn).toBeDisabled();
+
+    await nInput.fill('5');
+    await expect(fieldErrors).toBeHidden();
+    await expect(nInput).not.toHaveClass(/has-error/);
+    await expect(probeBtn).toBeEnabled();
   });
 });
 

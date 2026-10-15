@@ -216,7 +216,13 @@
       "paramAriaLabel": "Ingresa valor para {name} (tipo: {type})",
       "paramAriaLabelNoType": "Ingresa valor para {name}",
       "valuePlaceholder": "valor",
-      "cachedResultAriaLabel": "Resultado en caché: {result}"
+      "cachedResultAriaLabel": "Resultado en caché: {result}",
+      "valuePlaceholderHint": "valor — texto entre comillas: \"abc\"",
+      "invalidType": {
+        "int": "Debe ser un número entero (p. ej. 5)",
+        "float": "Debe ser un número (p. ej. 1.5)",
+        "bool": "Debe ser true o false"
+      }
     },
     "refute": {
       "disprove": "Refutar:",
