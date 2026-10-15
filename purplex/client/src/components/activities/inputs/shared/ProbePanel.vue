@@ -29,7 +29,7 @@
               :aria-describedby="inputErrors[param.name] ? `probe-err-${param.name}` : undefined"
               :disabled="!canProbe || isExecuting"
               @input="$emit('update-input', param.name, ($event.target as HTMLInputElement).value)"
-              @keydown.enter="!isExecuting && canProbe && hasValidInputs && $emit('execute-probe')"
+              @keydown.enter="!isExecuting && canProbe && hasValidInputs && !isDuplicate && $emit('execute-probe')"
             >
           </template>
           <span class="fn-paren">)</span>
@@ -71,13 +71,13 @@
         </li>
       </ul>
 
-      <!-- Probe Button -->
+      <!-- Probe Button: exhausted outranks duplicate, so the "· 0 left" badge stays -->
       <button
         class="probe-btn"
-        :class="{ 'is-duplicate': isDuplicate }"
+        :class="{ 'is-duplicate': isDuplicate && canProbe }"
         :disabled="!canProbe || isExecuting || !hasValidInputs || isDuplicate"
         :aria-busy="isExecuting"
-        :aria-disabled="isDuplicate"
+        :aria-disabled="isDuplicate && canProbe"
         :title="buttonTooltip"
         @click="$emit('execute-probe')"
       >
@@ -85,7 +85,7 @@
           <span class="spinner" />
           <span>{{ $t('problems.probe.probing') }}</span>
         </template>
-        <template v-else-if="isDuplicate">
+        <template v-else-if="isDuplicate && canProbe">
           <span
             class="duplicate-icon"
             aria-hidden="true"
@@ -242,7 +242,7 @@ const displayResult = computed(() => {
 
 // Tooltip for button - changes based on state
 const buttonTooltip = computed(() => {
-  if (props.isDuplicate) {
+  if (props.isDuplicate && props.canProbe) {
     return t('problems.probe.tooltipDuplicate')
   }
   if (props.probeStatusClass === 'status-explore') {

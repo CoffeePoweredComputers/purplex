@@ -157,7 +157,7 @@ const {
   formatFunctionCall,
   formatOutput,
   updateProbeInput,
-} = useProbeState(() => props.problem)
+} = useProbeState(() => props.problem, { isSubmitting: () => props.disabled })
 
 const { t } = useI18n()
 
