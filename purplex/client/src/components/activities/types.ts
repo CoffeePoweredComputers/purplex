@@ -168,6 +168,35 @@ export interface CodeResult {
 }
 
 /**
+ * A single test row as sent by the backend handlers.
+ */
+export interface TestResultRow {
+  isSuccessful?: boolean
+  pass?: boolean
+  function_call: string
+  expected_output: unknown
+  actual_output: unknown
+  error?: string
+}
+
+/**
+ * Per-variation test result entry as sent by the backend handlers.
+ *
+ * testsPassed/totalTests always count every test. For probeable_code the
+ * rows stop at the first failure; lockedCount is the number of hidden rows
+ * and visibleCount the number of rows sent.
+ */
+export interface TestResultEntry {
+  success?: boolean
+  testsPassed?: number
+  totalTests?: number
+  lockedCount?: number
+  visibleCount?: number
+  test_results?: TestResultRow[]
+  results?: TestResultRow[]
+}
+
+/**
  * Test result display data.
  */
 export interface TestResultDisplay {

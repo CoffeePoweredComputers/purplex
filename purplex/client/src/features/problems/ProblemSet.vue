@@ -1146,6 +1146,7 @@ export default {
                         success: variation.passed_all_tests,
                         testsPassed: variation.tests_passed,
                         totalTests: variation.total_tests,
+                        lockedCount: variation.locked_count ?? 0,
                         results: testResultsArray.map(tr => ({
                             pass: tr.passed,
                             isSuccessful: tr.passed,
@@ -1164,6 +1165,7 @@ export default {
                     success: attempt.passed_all_tests,
                     testsPassed: attempt.tests_passed,
                     totalTests: attempt.total_tests,
+                    lockedCount: attempt.locked_count ?? 0,
                     results: data.test_results.map(tr => ({
                         pass: tr.passed,
                         isSuccessful: tr.passed,

@@ -155,6 +155,10 @@
         <div class="summary-counts">
           <span class="count-item passing">✓ {{ $t('feedback.tests.passing', { count: passingTests.length }) }}</span>
           <span class="count-item failing">✗ {{ $t('feedback.tests.failing', { count: failingTests.length }) }}</span>
+          <span
+            v-if="lockedCount > 0"
+            class="count-item locked"
+          >{{ $t('feedback.tests.locked', { count: lockedCount }) }}</span>
         </div>
       </div>
 
@@ -196,6 +200,12 @@
                 <span aria-hidden="true">🔍</span>
               </button>
             </article>
+            <p
+              v-if="lockedCount > 0"
+              class="locked-note"
+            >
+              {{ $t('feedback.tests.lockedNote') }}
+            </p>
           </div>
         </details>
 
@@ -292,6 +302,8 @@ interface Props {
   isNavigating?: boolean
   /** Section title */
   title?: string
+  /** Tests hidden after the first failure (probeable_code only) */
+  lockedCount?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -299,6 +311,7 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   isNavigating: false,
   title: undefined,
+  lockedCount: 0,
 })
 
 const emit = defineEmits<{
@@ -946,6 +959,16 @@ onBeforeUnmount(() => {
 
 .count-item.failing {
   color: var(--color-error);
+}
+
+.count-item.locked {
+  color: var(--color-text-muted);
+}
+
+.locked-note {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 /* Test Results - Aligned with Feedback.vue */

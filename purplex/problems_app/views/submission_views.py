@@ -15,6 +15,7 @@ from purplex.users_app.permissions import IsAuthenticated
 from purplex.utils.error_codes import ErrorCode, error_response
 
 from ..handlers import get_handler, get_registered_types, is_registered
+from ..handlers.result_visibility import truncate_to_first_failure
 from ..repositories import ProblemRepository
 from ..services.course_service import CourseService
 from ..services.progress_service import ProgressService
@@ -235,6 +236,29 @@ class ActivityTypesView(APIView):
             )
 
         return Response({"types": types_data, "default": "eipl"})
+
+
+def _lock_after_first_failure(submission_data: dict) -> None:
+    """Hide probeable_code test rows after the first failure (papers' rule).
+
+    Counts (``tests_passed``/``total_tests``) keep reflecting every test; only
+    the visible rows are truncated and the hidden remainder is reported as
+    ``locked_count`` per variation and per attempt.
+    """
+    data = submission_data["data"]
+    attempt_locked = 0
+    for variation in data["variations"]:
+        visible, locked = truncate_to_first_failure(
+            variation["test_results"], passed_key="passed"
+        )
+        variation["test_results"] = visible
+        variation["locked_count"] = locked
+        attempt_locked += locked
+    visible, locked = truncate_to_first_failure(
+        data["test_results"], passed_key="passed"
+    )
+    data["test_results"] = visible
+    submission_data["locked_count"] = attempt_locked + locked
 
 
 class SubmissionHistoryView(APIView):
@@ -481,6 +505,9 @@ class SubmissionHistoryView(APIView):
                     else {}
                 ),
             }
+
+            if submission.submission_type == "probeable_code":
+                _lock_after_first_failure(submission_data)
 
             submission_history.append(submission_data)
 

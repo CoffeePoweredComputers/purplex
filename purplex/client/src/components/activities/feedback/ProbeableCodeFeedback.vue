@@ -6,6 +6,7 @@
     :is-loading="isLoading"
     :is-navigating="isNavigating"
     :title="effectiveTitle"
+    :locked-count="lockedCount"
     @load-attempt="$emit('load-attempt', $event)"
   />
 </template>
@@ -28,31 +29,9 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CodeSubmissionFeedback from './CodeSubmissionFeedback.vue'
-import type { CodeResult, SubmissionHistoryItem, TestResultDisplay } from '../types'
+import type { CodeResult, SubmissionHistoryItem, TestResultDisplay, TestResultEntry } from '../types'
 
 const { t } = useI18n()
-
-interface TestResultFromBackend {
-  success?: boolean
-  testsPassed?: number
-  totalTests?: number
-  test_results?: Array<{
-    isSuccessful?: boolean
-    pass?: boolean
-    function_call: string
-    expected_output: unknown
-    actual_output: unknown
-    error?: string
-  }>
-  results?: Array<{
-    isSuccessful?: boolean
-    pass?: boolean
-    function_call: string
-    expected_output: unknown
-    actual_output: unknown
-    error?: string
-  }>
-}
 
 interface Props {
   /** Overall correctness score */
@@ -62,7 +41,7 @@ interface Props {
   /** Code variation results (single entry for probeable code) */
   codeResults?: CodeResult[] | string[]
   /** Test execution results */
-  testResults?: TestResultFromBackend[] | TestResultDisplay[]
+  testResults?: TestResultEntry[] | TestResultDisplay[]
   /** User's implementation code */
   userPrompt?: string
   /** Reference solution code (usually hidden) */
@@ -115,7 +94,7 @@ const studentCode = computed(() => {
 const flatTestResults = computed(() => {
   if (props.testResults.length === 0) {return []}
 
-  const first = props.testResults[0] as TestResultFromBackend
+  const first = props.testResults[0] as TestResultEntry
   // Extract test_results or results array
   const tests = first.test_results || first.results || []
 
@@ -126,5 +105,14 @@ const flatTestResults = computed(() => {
     isSuccessful: t.isSuccessful ?? t.pass ?? false,
     error: t.error,
   }))
+})
+
+/**
+ * Tests hidden after the first failure (rows stop there; see backend
+ * result_visibility.truncate_to_first_failure).
+ */
+const lockedCount = computed(() => {
+  if (props.testResults.length === 0) {return 0}
+  return (props.testResults[0] as TestResultEntry).lockedCount ?? 0
 })
 </script>

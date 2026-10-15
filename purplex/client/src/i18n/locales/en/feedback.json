@@ -69,7 +69,9 @@
       "failingGroup": "Failing Tests ({count})",
       "passingGroup": "Passing Tests ({count})",
       "expected": "Expected:",
-      "got": "Got:"
+      "got": "Got:",
+      "locked": "🔒 {count} more tests locked",
+      "lockedNote": "Remaining tests unlock once this test passes. Keep probing to discover more behavior."
     },
     "solution": {
       "title": "Solution {current} of {total}"
