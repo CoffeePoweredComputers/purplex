@@ -76,6 +76,7 @@
       "pipLocked": "Prueba {n} bloqueada",
       "unlockHint": "Se desbloquea cuando la prueba {n} pase",
       "rowPassed": "Prueba {n} aprobada: {call}. Mostrar u ocultar detalles",
+      "gotInline": "obtenido",
       "expectedInline": "esperado",
       "lockedRow": "{count} pruebas más · se desbloquean cuando la prueba {n} pase",
       "lockedRowOne": "1 prueba más · se desbloquea cuando la prueba {n} pase"
