@@ -219,8 +219,7 @@
       "srDuplicate": "These inputs were already probed. Result: {result}",
       "cachedResultAriaLabel": "Cached result: {result}",
       "argsAriaLabel": "Arguments for {name}",
-      "argsHelp": "Enter probes. Tab on an empty line fills in the argument names.",
-      "fillArgs": "Fill in argument names",
+      "argsHelp": "Enter probes.",
       "lineError": {
         "unknownKeyword": "Unknown argument {name}",
         "duplicateArgument": "Argument {name} given twice",

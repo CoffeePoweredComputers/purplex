@@ -255,8 +255,6 @@ export const probe = {
   argsLine: '#probe-args',
   /** Closing parenthesis after the argument list */
   closeParen: '.probe-panel .call-shell .fn-paren:last-of-type',
-  /** 'Fill in argument names' button: inserts `name=, name=` */
-  fillArgsButton: 'button.fill-args-btn',
   /** Result slot ('?' until a result; .has-result / .is-cached) */
   result: '.probe-panel .fn-result',
   /** Probe button ('Probe' | 'Probing' | 'Already probed', .is-duplicate) */

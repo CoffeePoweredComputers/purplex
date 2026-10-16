@@ -126,9 +126,6 @@ export function useProbeState(
     return 'status-exhausted'
   })
 
-  // Template for the call line: every parameter as a keyword with no value yet
-  const argsTemplate = computed(() => parameters.value.map(p => `${p.name}=`).join(', '))
-
   // Parse every current input once; shared by validation, duplicate detection and execution
   const parsedInputs = computed(() => {
     const values: Record<string, unknown> = {}
@@ -344,7 +341,6 @@ export function useProbeState(
     hasValidInputs,
     inputErrors,
     lineError,
-    argsTemplate,
     isDuplicate,
     cachedResult,
     // Methods

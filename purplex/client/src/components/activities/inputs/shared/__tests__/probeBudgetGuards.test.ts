@@ -67,7 +67,6 @@ function mountPanel(overrides: Record<string, unknown>) {
       probeStatusText: '',
       probeParams: [{ name: 'x', type: 'int' }],
       argsLine: '5',
-      argsTemplate: 'x=',
       lineError: null,
       canProbe: true,
       isExecuting: false,

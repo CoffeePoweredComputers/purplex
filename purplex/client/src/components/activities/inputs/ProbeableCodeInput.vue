@@ -20,7 +20,6 @@
       :probe-status-text="probeStatusHint"
       :probe-params="parameters"
       :args-line="argsLine"
-      :args-template="argsTemplate"
       :line-error="lineError"
       :can-probe="canProbe"
       :is-executing="probing"
@@ -152,7 +151,6 @@ const {
   hasValidInputs,
   inputErrors,
   lineError,
-  argsTemplate,
   isDuplicate,
   cachedResult,
   executeProbe,

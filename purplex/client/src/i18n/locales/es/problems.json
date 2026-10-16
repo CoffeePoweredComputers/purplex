@@ -219,8 +219,7 @@
       "srDuplicate": "Estas entradas ya fueron sondeadas. Resultado: {result}",
       "cachedResultAriaLabel": "Resultado en caché: {result}",
       "argsAriaLabel": "Argumentos para {name}",
-      "argsHelp": "Enter sondea. Tab en una línea vacía rellena los nombres de los argumentos.",
-      "fillArgs": "Rellenar nombres de argumentos",
+      "argsHelp": "Enter sondea.",
       "lineError": {
         "unknownKeyword": "Argumento desconocido {name}",
         "duplicateArgument": "El argumento {name} se dio dos veces",

@@ -466,40 +466,13 @@ test.describe('A Probing the oracle', () => {
     expect(probePosts).toEqual([JSON.stringify({ input: { n: 7 } })]);
   });
 
-  test('A14 Tab on an empty line fills in the argument names', async ({ page }) => {
-    await openAsFreshStudent(page, 'a14-tab-template', 7, 'tag');
+  test('A14 Enter probes, Shift+Enter does nothing, and Tab leaves the line', async ({ page }) => {
+    await openAsFreshStudent(page, 'a14-keys', 7, 'tag');
 
     const line = page.locator(probe.argsLine);
-    await expect(line).toHaveJSProperty('textContent', '');
+    await fillProbeArgs(page, 'items=["a", "b"], prefix="x"');
     await line.focus();
-    await page.keyboard.press('Tab');
-
-    await expect(line).toHaveJSProperty('textContent', 'items=, prefix=');
-    await expect(line).toBeFocused();
-    // The caret sits right after the first '=', collapsed
-    const caret = await line.evaluate((el) => {
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0) {
-        return null;
-      }
-      const range = selection.getRangeAt(0);
-      const before = document.createRange();
-      before.selectNodeContents(el);
-      before.setEnd(range.startContainer, range.startOffset);
-      return {
-        inside: el.contains(range.startContainer),
-        collapsed: range.collapsed,
-        offset: before.toString().length,
-      };
-    });
-    expect(caret).toEqual({ inside: true, collapsed: true, offset: 'items='.length });
-
-    // Typing continues from the caret
-    await page.keyboard.type('["a", "b"]');
-    await expect(line).toHaveJSProperty('textContent', 'items=["a", "b"], prefix=');
     await page.keyboard.press('End');
-    await page.keyboard.type('"x"');
-    await expect(line).toHaveJSProperty('textContent', 'items=["a", "b"], prefix="x"');
     // Shift+Enter inserts nothing: the call is one logical line
     await page.keyboard.press('Shift+Enter');
     await expect(line).toHaveJSProperty('textContent', 'items=["a", "b"], prefix="x"');
@@ -519,8 +492,8 @@ test.describe('A Probing the oracle', () => {
     await expect(line).toBeFocused();
     await expect(line).toHaveAttribute('contenteditable', 'plaintext-only');
 
-    // Tab on a non-empty line is ordinary focus navigation: it leaves the line
-    // and changes nothing, so the editable is never a keyboard trap
+    // Tab is ordinary focus navigation: it leaves the line and changes nothing,
+    // so the editable is never a keyboard trap
     await page.keyboard.press('Tab');
     await expect(line).not.toBeFocused();
     await expect(line).toHaveJSProperty('textContent', 'items=["a", "b"], prefix="x"');
