@@ -294,7 +294,7 @@ export const codeFeedback = {
   pipLock: '.test-ladder .pip.lock',
   /** The failing row (.test-call, .expected, .actual, .actual.is-error) */
   failingItem: '.test-ladder .ledger-row.fail',
-  /** Passed rows: closed buttons (.closed/.open) with .test-call and .result */
+  /** Passed rows: one-liners with .test-call and .result */
   passingItem: '.test-ladder .ledger-row.pass',
   /** 'N more tests · unlock when test K passes' (only when locked > 0) */
   lockedRow: '.test-ladder .ledger-row.lock .row-body',
