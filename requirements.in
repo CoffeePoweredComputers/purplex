@@ -1,0 +1,122 @@
+# Purplex direct dependencies (source of truth for `make lock`)
+# ==============================================================
+# Policy: declare direct dependencies here with minimum safe floors (and a
+#         ceiling only when a major version is known to break us). Do NOT
+#         install from this file. `make lock` resolves it into the fully
+#         pinned requirements.txt that Docker, CI and `make install` use, so
+#         an upstream release can never change what a build installs.
+# Regenerate after editing: make lock   (needs `uv`: pip install uv)
+
+# ---------------------------------------------------------------------------
+# Django Framework
+# ---------------------------------------------------------------------------
+# SECURITY: 5.2.12 fixes CVE-2026-25674 (race condition), CVE-2026-25673 (URLField DoS)
+django>=5.2.12,<6.0
+djangorestframework>=3.15.2          # 3.15.2 patches CVE-2024-21520 (XSS)
+django-cors-headers>=4.4.0
+django-redis>=5.4.0
+django-ratelimit>=4.1.0
+django-csp>=3.8                      # Content Security Policy headers
+django-polymorphic>=3.1.0            # Polymorphic model inheritance for Problem types
+django-rest-polymorphic>=0.1.10      # DRF serializer support for polymorphic models
+django-celery-beat>=2.7.0            # Celery periodic task scheduling
+django-extensions>=4.1               # Shell plus, model graphs, etc.
+
+# ---------------------------------------------------------------------------
+# Database
+# ---------------------------------------------------------------------------
+psycopg2-binary>=2.9.9
+psycogreen>=1.0.2                    # Makes psycopg2 greenlet-aware for gevent workers
+dj-database-url>=2.1.0
+
+# ---------------------------------------------------------------------------
+# Redis & Caching
+# ---------------------------------------------------------------------------
+redis>=5.0.0                         # 4.5.4 patched CVE-2023-28858/28859; 7.1.0 is latest
+hiredis>=2.3.2                       # C parser for faster redis protocol parsing
+
+# ---------------------------------------------------------------------------
+# Celery - Async Task Processing
+# ---------------------------------------------------------------------------
+celery[redis]>=5.3.4
+flower>=2.0.1                        # Celery monitoring dashboard (used by start.sh)
+
+# ---------------------------------------------------------------------------
+# External Services
+# ---------------------------------------------------------------------------
+openai>=1.40.6,<3                    # OpenAI SDK (any OpenAI-compatible API). 3.x pulls in truststore, whose SSL handshake breaks under gevent monkey-patching: "SSLSocket.do_handshake() takes 1 positional argument but 2 were given"
+firebase-admin>=6.5.0                # Firebase Auth admin SDK
+sentry-sdk[django]>=2.19.0          # Error tracking; config in settings/production.py
+
+# ---------------------------------------------------------------------------
+# HTTP & Networking
+# ---------------------------------------------------------------------------
+requests>=2.33.0                     # SECURITY: 2.33.0 patches CVE-2026-25645 (temp file race)
+httpx>=0.28.1
+httpcore>=1.0.9
+# SECURITY: 2.6.0 patches CVE-2025-50182, CVE-2025-50181, CVE-2025-66418, CVE-2025-66471
+urllib3>=2.6.0
+
+# ---------------------------------------------------------------------------
+# Data Validation & Serialization
+# ---------------------------------------------------------------------------
+pydantic>=2.8.2
+
+# ---------------------------------------------------------------------------
+# Utilities
+# ---------------------------------------------------------------------------
+python-dotenv>=1.0.0
+python-json-logger>=2.0.7
+# SECURITY: 2.12.0 patches CVE-2026-32597 (crit header bypass)
+PyJWT>=2.12.0
+pillow>=12.1.1                       # SECURITY: 12.1.1 patches CVE-2026-25990 (PSD OOB write)
+whitenoise>=6.6.0                    # Serve static files in production
+
+# ---------------------------------------------------------------------------
+# Docker SDK for code execution
+# ---------------------------------------------------------------------------
+docker>=7.1.0
+
+# ---------------------------------------------------------------------------
+# Production Server
+# ---------------------------------------------------------------------------
+# SECURITY: 23.0.0 patches CVE-2024-6827 (HTTP request smuggling)
+gunicorn>=23.0.0
+gevent>=24.10.1                      # SECURITY: patches CVE-2023-41419 (privilege escalation)
+
+# ---------------------------------------------------------------------------
+# API Authentication
+# ---------------------------------------------------------------------------
+# SECURITY: 5.5.1 patches CVE-2024-22513
+djangorestframework-simplejwt>=5.5.1
+
+# ---------------------------------------------------------------------------
+# Core HTTP & Async (transitive but setting minimum safe floors)
+# ---------------------------------------------------------------------------
+# SECURITY: 0.16.0 patches CVE-2025-43859
+h11>=0.16.0
+
+# ---------------------------------------------------------------------------
+# Build / packaging (transitive but setting minimum safe floors)
+# ---------------------------------------------------------------------------
+# SECURITY: 0.46.2 patches CVE-2026-24049 (privilege escalation via malicious wheel)
+wheel>=0.46.2
+# SECURITY: 6.1.0 patches CVE-2026-23949 (path traversal via malicious tar)
+jaraco.context>=6.1.0
+
+# ---------------------------------------------------------------------------
+# Transitive deps with security floors
+# ---------------------------------------------------------------------------
+# SECURITY: 46.0.5 patches CVE-2026-26007 (SECT curve subgroup validation)
+cryptography>=46.0.5
+# SECURITY: 0.6.3 patches CVE-2026-30922 (recursion DoS in ASN.1 decoder)
+pyasn1>=0.6.3
+# SECURITY: 6.5.5 patches CVE-2026-31958 (multipart DoS), GHSA-78cv (cookie injection)
+tornado>=6.5.5
+
+
+# ---------------------------------------------------------------------------
+# Testing
+# ---------------------------------------------------------------------------
+factory_boy>=3.3.0
+pytest-django>=4.5.2

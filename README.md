@@ -64,7 +64,7 @@ Help translate Purplex into your language! See [CONTRIBUTING_TRANSLATIONS.md](CO
 # Clone and set up
 cp .env.example .env.development    # Edit to add your API keys
 python -m venv env && source env/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt            # pinned lock; direct deps live in requirements.in (make lock)
 
 # Start everything (PostgreSQL, Redis, Django, Celery, Vue, Flower)
 ./start.sh
