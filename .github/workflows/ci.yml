@@ -14,6 +14,7 @@ on:
       - 'purplex/**'
       - 'tests/**'
       - 'requirements.txt'
+      - 'requirements.in'
       - 'Dockerfile*'
       - 'pyproject.toml'
       - '.github/workflows/ci.yml'
@@ -54,6 +55,15 @@ jobs:
           pip install ruff
           ruff check purplex/
           ruff format --check purplex/
+
+      - name: Check requirements lock is current
+        # requirements.txt is generated from requirements.in by `make lock`.
+        # Without --upgrade, uv keeps the existing pins, so a diff here means
+        # requirements.in changed (or requirements.txt was edited by hand).
+        run: |
+          pip install uv
+          uv pip compile requirements.in --python-version 3.11 --universal -o requirements.txt
+          git diff --exit-code requirements.txt || { echo "::error::requirements.txt is out of date: run 'make lock' and commit the result"; exit 1; }
 
       - name: Set up Node
         uses: actions/setup-node@v4

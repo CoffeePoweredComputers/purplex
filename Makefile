@@ -24,7 +24,7 @@ stop: ## Stop development environment
 	./stop.sh
 
 .PHONY: install
-install: ## Install all dependencies
+install: ## Install all dependencies (pinned; edit requirements.in and run make lock to change)
 	pip install -r requirements.txt
 	pip install pre-commit bandit pip-audit
 	cd purplex/client && npm install
@@ -233,3 +233,7 @@ version: ## Show version
 bump-version: ## Bump version number
 	@echo "Current version: $$(cat VERSION)"
 	@read -p "New version: " version; echo $$version > VERSION
+
+.PHONY: lock
+lock: ## Re-resolve requirements.in into the pinned requirements.txt (needs uv)
+	uv pip compile requirements.in --python-version 3.11 --universal -o requirements.txt
