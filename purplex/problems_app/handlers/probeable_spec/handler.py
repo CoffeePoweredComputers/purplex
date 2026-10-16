@@ -375,6 +375,10 @@ class ProbeableSpecHandler(ActivityHandler):
 
     # --- Submission Execution ---
 
+    def requires_ai_consent(self) -> bool:
+        """The student's description goes through the same LLM call as EiPL."""
+        return True
+
     def submit(
         self,
         submission: "Submission",

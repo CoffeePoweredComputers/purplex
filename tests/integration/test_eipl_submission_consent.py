@@ -21,6 +21,7 @@ from tests.factories import (
     CourseProblemSetFactory,
     EiplProblemFactory,
     McqProblemFactory,
+    ProbeableSpecProblemFactory,
     ProblemSetFactory,
     ProblemSetMembershipFactory,
     TestCaseFactory,
@@ -163,3 +164,57 @@ class TestEiPLSubmissionConsentGate:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert Submission.objects.filter(user=user_without_ai_consent).count() == 0
+
+
+class TestProbeableSpecSubmissionConsentGate:
+    """Probeable Spec routes the student's description through the same LLM
+    pipeline as EiPL (issue #161), so the pre-flight gate must apply to it with
+    the same structured 403."""
+
+    SPEC_INPUT = "Returns the square of the input number."
+
+    def _spec_problem(self, problem_set):
+        problem = ProbeableSpecProblemFactory()
+        ProblemSetMembershipFactory(problem_set=problem_set, problem=problem)
+        TestCaseFactory(problem=problem, inputs=[2], expected_output=4)
+        return problem
+
+    def test_without_consent_returns_structured_403(
+        self, api_client, user_without_ai_consent
+    ):
+        from purplex.submissions.models import Submission
+
+        course, problem_set = _enroll(user_without_ai_consent)
+        problem = self._spec_problem(problem_set)
+
+        api_client.force_authenticate(user=user_without_ai_consent)
+        mock_task = MagicMock(id="test-task-id")
+        with patch(
+            f"{EIPL_PIPELINE}.apply_async", return_value=mock_task
+        ) as mock_apply:
+            response = _submit(
+                api_client, problem, problem_set, course, self.SPEC_INPUT
+            )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["code"] == "consent_required"
+        assert response.data["purpose"] == "ai_processing"
+        assert "error" in response.data
+        mock_apply.assert_not_called()
+        assert Submission.objects.filter(user=user_without_ai_consent).count() == 0
+
+    def test_with_consent_returns_202(self, api_client, user):
+        course, problem_set = _enroll(user)
+        UserConsentFactory(user=user, consent_type=ConsentType.AI_PROCESSING)
+        problem = self._spec_problem(problem_set)
+
+        api_client.force_authenticate(user=user)
+
+        mock_task = MagicMock(id="test-task-id")
+        with patch(f"{EIPL_PIPELINE}.apply_async", return_value=mock_task):
+            response = _submit(
+                api_client, problem, problem_set, course, self.SPEC_INPUT
+            )
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.data["status"] == "processing"

@@ -197,7 +197,8 @@ def _build_cached_eipl_result(submission: "Submission") -> dict[str, Any]:
         .get(pk=submission.pk)
     )
 
-    handler = get_handler("eipl")
+    # Spec/prompt submissions share this pipeline; serialize with their own handler.
+    handler = get_handler(submission.submission_type)
 
     # Build legacy fields from code variations
     legacy_fields = {
@@ -551,7 +552,7 @@ def save_submission_helper(
                     user=user,
                     problem=problem,
                     raw_input=user_prompt,
-                    submission_type="eipl",
+                    submission_type=problem.problem_type,
                     problem_set=problem_set,
                     course=course,
                     time_spent=None,  # Could be passed from frontend in future
@@ -1093,11 +1094,12 @@ def execute_eipl_pipeline(
         from purplex.problems_app.handlers import get_handler
         from purplex.submissions.models import Submission
 
-        handler = get_handler("eipl")
         # NOTE: 'problem' excluded from select_related for django-polymorphic to resolve subclass
         submission = Submission.objects.prefetch_related(
             "code_variations", "code_variations__test_executions"
         ).get(submission_id=submission_result["submission_id"])
+        # Spec/prompt submissions share this pipeline; serialize with their own handler.
+        handler = get_handler(submission.submission_type)
 
         # Legacy fields for backward compatibility during migration
         legacy_fields = {
