@@ -134,12 +134,14 @@
         </div>
       </div>
 
-      <!-- What was submitted: the code by default; probeable_spec swaps in the explanation -->
-      <slot name="submission">
-        <section class="code-section">
-          <div class="code-header">
-            <span>{{ $t('feedback.codeSubmission.yourSubmission') }}</span>
-          </div>
+      <!-- Anything that precedes the code (probeable_spec puts the explanation here) -->
+      <slot name="before-submission" />
+
+      <!-- The graded code: the student's own, or the version generated from their explanation -->
+      <section class="code-section">
+        <div class="code-header">
+          <span>{{ codeTitle || $t('feedback.codeSubmission.yourSubmission') }}</span>
+        </div>
           <Editor
             :value="studentCode"
             :read-only="true"
@@ -149,8 +151,7 @@
             mode="python"
             :show-gutter="true"
           />
-        </section>
-      </slot>
+      </section>
 
       <!-- Test results: ordered ladder (probeable) or pass/fail groups -->
       <TestLadder
@@ -300,6 +301,8 @@ interface Props {
   isNavigating?: boolean
   /** Section title */
   title?: string
+  /** Header above the code editor; defaults to "Your Submission" */
+  codeTitle?: string
   /** 'groups' = pass/fail groups; 'ladder' = ordered pips + ledger with locked tests */
   layout?: 'groups' | 'ladder'
   /** Tests hidden after the first failure (ladder only) */
@@ -315,6 +318,7 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   isNavigating: false,
   title: undefined,
+  codeTitle: undefined,
   layout: 'groups',
   lockedCount: 0,
   totalCount: null,

@@ -183,10 +183,12 @@ test.describe('C24 Probeable Spec', () => {
     await expect(page.locator(codeFeedback.ladder)).toBeVisible({ timeout: GRADE_TIMEOUT });
     await expectAttemptBadge(page, '1/1', '100');
 
-    // Top panel quotes the explanation; the generated code is not shown.
+    // Top panel quotes the explanation, then shows the code generated from it.
     const container = page.locator('.feedback-container');
     await expect(container.locator('.explanation-text')).toHaveText(EXPLANATION);
-    await expect(container.locator('.code-section')).toHaveCount(0);
+    // The generated code is shown below the explanation, labelled as generated
+    await expect(container.locator('.code-section')).toHaveCount(1);
+    await expect(container.locator('.code-section .code-header')).toHaveText('Generated Code');
 
     // Every test passes, so nothing is locked: both rows, the hidden one
     // included, appear as passed one-liners.

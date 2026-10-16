@@ -200,11 +200,15 @@ describe('ProbeableFeedback (probeable_code) top panel', () => {
 })
 
 describe('ProbeableFeedback (probeable_spec)', () => {
-  it('quotes the explanation instead of the code editor', () => {
+  it('quotes the explanation and then shows the generated code', () => {
     const wrapper = mountSpec(failingEntry())
 
-    expect(wrapper.find('.code-section').exists()).toBe(false)
     expect(wrapper.find('.explanation-section .explanation-text').text()).toBe(EXPLANATION)
+    expect(wrapper.find('.code-section').exists()).toBe(true)
+    expect(wrapper.find('.code-section .code-header').text()).toBe('Generated Code')
+    // Explanation comes first, then the code
+    const html = wrapper.html()
+    expect(html.indexOf('explanation-section')).toBeLessThan(html.indexOf('code-section'))
   })
 
   it('has no debug button on the failing row', () => {
