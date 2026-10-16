@@ -125,28 +125,10 @@
       </div>
 
       <!-- User Explanation Section -->
-      <div
+      <ExplanationQuote
         v-if="userPrompt"
-        class="explanation-section"
-        role="region"
-        aria-labelledby="explanation-heading"
-      >
-        <div class="section-label">
-          <span
-            class="label-icon"
-            aria-hidden="true"
-          >💭</span>
-          <h3
-            id="explanation-heading"
-            class="label-text"
-          >
-            {{ $t('feedback.yourExplanation') }}
-          </h3>
-        </div>
-        <p class="explanation-text">
-          {{ userPrompt }}
-        </p>
-      </div>
+        :text="userPrompt"
+      />
 
       <!-- Correctness Metric Card -->
       <button
@@ -203,69 +185,13 @@
       </button>
 
       <!-- Abstraction Metric Card -->
-      <button
-        class="metric-card"
-        :class="[abstractionClass, { 'expanded': showSegmentAnalysisModal && !isAbstractionLocked }]"
-        :aria-expanded="showSegmentAnalysisModal"
-        :aria-disabled="isAbstractionLocked"
-        :aria-haspopup="isAbstractionLocked ? undefined : 'dialog'"
-        @click="handleAbstractionClick"
-        @keydown.enter="handleAbstractionClick"
-        @keydown.space.prevent="handleAbstractionClick"
-      >
-        <div class="card-content">
-          <div
-            id="abstraction-label"
-            class="card-label"
-          >
-            {{ $t('feedback.abstraction.label') }}
-          </div>
-
-          <div
-            class="progress-bar-container"
-            role="progressbar"
-            :aria-valuenow="abstractionFill"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            :aria-label="isAbstractionLocked ? ($t('feedback.abstraction.label') + ': ' + $t('feedback.abstraction.status.locked')) : ($t('feedback.abstraction.label') + ': ' + $t('feedback.abstraction.segments', { count: segmentCount }))"
-          >
-            <div
-              class="progress-bar-fill"
-              :style="{ width: abstractionFill + '%' }"
-              :class="abstractionBarClass"
-            />
-          </div>
-
-          <div class="card-status">
-            <span
-              class="status-icon"
-              aria-hidden="true"
-            >{{ abstractionStatus.icon }}</span>
-            <span class="status-label">{{ abstractionStatus.label }}</span>
-            <span
-              v-if="!isAbstractionLocked"
-              class="status-metric"
-            >
-              {{ $t('feedback.abstraction.segments', { count: segmentCount }) }}
-              <span
-                v-if="segmentCount > segmentThreshold"
-                class="metric-hint"
-              >{{ $t('feedback.abstraction.segmentThreshold', { threshold: segmentThreshold }) }}</span>
-            </span>
-          </div>
-          <div class="card-description">
-            {{ abstractionStatus.description }}
-          </div>
-        </div>
-        <div
-          v-if="!isAbstractionLocked"
-          class="card-action"
-          :class="abstractionClass"
-          :title="$t('feedback.nextStep.viewAnalysis')"
-        >
-          <span class="action-icon">→</span>
-        </div>
-      </button>
+      <AbstractionCard
+        ref="abstractionCard"
+        :segmentation="segmentation"
+        :locked="isAbstractionLocked"
+        :reference-code="referenceCode"
+        :user-prompt="userPrompt"
+      />
 
       <!-- Next Step Banner -->
       <div
@@ -323,16 +249,6 @@
       :python-tutor-url="pythonTutorUrl"
       @close="showPyTutorModal = false"
     />
-
-    <!-- Segment Analysis Modal -->
-    <SegmentAnalysisModal
-      v-if="segmentation"
-      :is-visible="showSegmentAnalysisModal"
-      :segmentation="segmentation"
-      :reference-code="referenceCode"
-      :user-prompt="userPrompt"
-      @close="showSegmentAnalysisModal = false"
-    />
   </div>
 </template>
 
@@ -340,7 +256,8 @@
 import { defineComponent, nextTick, PropType } from 'vue'
 import CorrectnessModal from '../modals/CorrectnessModal.vue'
 import PyTutorModal from '../modals/PyTutorModal.vue'
-import SegmentAnalysisModal from './segmentation/SegmentAnalysisModal.vue'
+import AbstractionCard from './activities/feedback/AbstractionCard.vue'
+import ExplanationQuote from './activities/feedback/ExplanationQuote.vue'
 import { PythonTutorService } from '@/services/pythonTutor.service'
 import { formatTestValue } from '@/utils/testValueFormatter'
 
@@ -399,7 +316,6 @@ interface SegmentationProp {
 
 interface ComponentData {
   showCorrectnessModal: boolean
-  showSegmentAnalysisModal: boolean
   showPyTutorModal: boolean
   pythonTutorUrl: string
   selectedVariant: number
@@ -414,9 +330,10 @@ interface ComponentData {
 
 export default defineComponent({
   components: {
+    AbstractionCard,
     CorrectnessModal,
-    PyTutorModal,
-    SegmentAnalysisModal
+    ExplanationQuote,
+    PyTutorModal
   },
   props: {
     progress: {
@@ -488,7 +405,6 @@ export default defineComponent({
   data(): ComponentData {
     return {
       showCorrectnessModal: false,
-      showSegmentAnalysisModal: false,
       showPyTutorModal: false,
       pythonTutorUrl: '',
       selectedVariant: 0,
@@ -564,11 +480,6 @@ export default defineComponent({
       return !this.allVariationsPass || !this.segmentationEnabled
     },
 
-    abstractionFill(): number {
-      if (this.isAbstractionLocked) {return 0}
-      if (this.segmentCount <= this.segmentThreshold) {return 100}
-      return Math.max(0, 100 - (this.segmentCount - this.segmentThreshold) * 20)
-    },
 
     correctnessStatus(): { icon: string; label: string; description: string } {
       if (this.passingVariants === 0) {
@@ -580,15 +491,6 @@ export default defineComponent({
       return { icon: '✓', label: this.$t('feedback.correctness.status.clear'), description: this.$t('feedback.correctness.status.clearDesc') }
     },
 
-    abstractionStatus(): { icon: string; label: string; description: string } {
-      if (this.isAbstractionLocked) {
-        return { icon: '🔒', label: this.$t('feedback.abstraction.status.locked'), description: this.$t('feedback.abstraction.status.lockedDesc') }
-      }
-      if (this.segmentCount <= this.segmentThreshold) {
-        return { icon: '✓', label: this.$t('feedback.abstraction.status.highLevel'), description: this.$t('feedback.abstraction.status.highLevelDesc') }
-      }
-      return { icon: '✗', label: this.$t('feedback.abstraction.status.tooDetailed'), description: this.$t('feedback.abstraction.status.tooDetailedDesc') }
-    },
 
     correctnessClass(): string {
       if (this.passingVariants === 0) {return 'status-error'}
@@ -596,11 +498,6 @@ export default defineComponent({
       return 'status-success'
     },
 
-    abstractionClass(): string {
-      if (this.isAbstractionLocked) {return 'status-locked'}
-      if (this.segmentCount <= this.segmentThreshold) {return 'status-success'}
-      return 'status-error'
-    },
 
     correctnessBarClass(): string {
       if (this.passingVariants === 0) {return 'bar-error'}
@@ -608,11 +505,6 @@ export default defineComponent({
       return 'bar-success'
     },
 
-    abstractionBarClass(): string {
-      if (this.isAbstractionLocked) {return 'bar-locked'}
-      if (this.segmentCount <= this.segmentThreshold) {return 'bar-success'}
-      return 'bar-error'
-    },
 
     nextStepAction(): string | null {
       if (this.passingVariants === 0) {
@@ -785,14 +677,6 @@ export default defineComponent({
       this.announce(this.$t('feedback.announcement.correctnessClosed'))
     },
 
-    handleAbstractionClick(): void {
-      if (this.isAbstractionLocked) {
-        this.announce(this.$t('feedback.announcement.abstractionLocked'))
-        return
-      }
-      this.showSegmentAnalysisModal = true
-      this.announce(this.$t('feedback.announcement.abstractionOpened'))
-    },
 
     handleNextStepAction(): void {
       if (this.passingVariants < this.totalVariants) {
@@ -800,7 +684,7 @@ export default defineComponent({
         this.openCorrectnessModal()
       } else if (!this.isAbstractionLocked && this.segmentCount > this.segmentThreshold) {
         // Open abstraction modal
-        this.showSegmentAnalysisModal = true
+        (this.$refs.abstractionCard as InstanceType<typeof AbstractionCard> | undefined)?.open()
       } else {
         // Navigate to next problem
         this.$emit('next-problem')
@@ -1188,46 +1072,6 @@ export default defineComponent({
   font-size: 10px;
 }
 
-/* Explanation Section */
-.explanation-section {
-  margin: var(--spacing-md) var(--spacing-lg);
-  padding: var(--spacing-md);
-  background: var(--color-bg-section);
-  border-radius: var(--radius-base);
-  border-left: 3px solid var(--color-primary);
-}
-
-.section-label {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
-}
-
-.label-icon {
-  font-size: var(--font-size-base);
-}
-
-.label-text {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: 0;
-}
-
-.explanation-text {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: 1.6;
-  margin: 0;
-  padding: var(--spacing-sm);
-  background: var(--color-bg-panel);
-  border-radius: var(--radius-xs);
-  font-style: italic;
-}
-
 /* Metric Cards */
 .metric-card {
   display: flex;
@@ -1273,16 +1117,6 @@ export default defineComponent({
   border-left-color: var(--color-success);
 }
 
-.metric-card.status-locked {
-  border-left-color: var(--color-bg-disabled);
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.metric-card.status-locked:hover {
-  background: var(--color-bg-section);
-}
-
 .card-label {
   font-size: 11px;
   font-weight: 600;
@@ -1318,10 +1152,6 @@ export default defineComponent({
   background: linear-gradient(90deg, var(--color-success), var(--color-success-dark));
 }
 
-.progress-bar-fill.bar-locked {
-  background: var(--color-bg-border);
-}
-
 /* Card Status */
 .card-status {
   display: flex;
@@ -1344,11 +1174,6 @@ export default defineComponent({
   margin-left: auto;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-}
-
-.metric-hint {
-  color: var(--color-text-muted);
-  opacity: 0.7;
 }
 
 .card-description {

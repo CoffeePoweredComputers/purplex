@@ -30,6 +30,9 @@ export * from './types'
  * 2. Create feedback component in ./feedback/
  * 3. Add entry here with lazy loaders
  */
+// Both probeable types share one feedback component (the ordered test ladder)
+const probeableFeedback = () => import('./feedback/ProbeableFeedback.vue')
+
 const ACTIVITY_COMPONENTS: ActivityComponentRegistry = {
   eipl: {
     input: () => import('./inputs/EiplInput.vue'),
@@ -53,11 +56,11 @@ const ACTIVITY_COMPONENTS: ActivityComponentRegistry = {
   },
   probeable_code: {
     input: () => import('./inputs/ProbeableCodeInput.vue'),
-    feedback: () => import('./feedback/ProbeableCodeFeedback.vue'),
+    feedback: probeableFeedback,
   },
   probeable_spec: {
     input: () => import('./inputs/ProbeableSpecInput.vue'),
-    feedback: () => import('./feedback/ProbeableSpecFeedback.vue'),
+    feedback: probeableFeedback,
   },
 }
 

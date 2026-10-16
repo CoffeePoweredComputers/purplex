@@ -23,7 +23,7 @@ from ..base import (
     SubmissionOutcome,
     ValidationResult,
 )
-from ..result_visibility import truncate_to_first_failure
+from ..ladder import build_test_ladder
 
 if TYPE_CHECKING:
     from purplex.problems_app.models import Problem
@@ -134,49 +134,7 @@ class ProbeableCodeHandler(ActivityHandler):
         the first failure are returned; the rest are reported as
         ``lockedCount`` (see ``truncate_to_first_failure``).
         """
-        results = []
-
-        # Check if we have code variations (reusing EiPL's data structure)
-        if (
-            hasattr(submission, "code_variations")
-            and submission.code_variations.exists()
-        ):
-            variation = submission.code_variations.first()
-            if variation:
-                test_execs = variation.test_executions.all().order_by("execution_order")
-                var_results = []
-
-                if test_execs.exists():
-                    for test_exec in test_execs:
-                        var_results.append(
-                            {
-                                "isSuccessful": test_exec.passed,
-                                "function_call": self._format_function_call(
-                                    problem.function_name, test_exec.input_values
-                                ),
-                                "expected_output": test_exec.expected_output,
-                                "actual_output": test_exec.actual_output,
-                                "error": test_exec.error_message,
-                            }
-                        )
-
-                visible, locked = truncate_to_first_failure(
-                    var_results, passed_key="isSuccessful"
-                )
-                results.append(
-                    {
-                        "success": variation.tests_passed == variation.tests_total
-                        and variation.tests_total > 0,
-                        "testsPassed": variation.tests_passed,
-                        "totalTests": variation.tests_total,
-                        "test_results": visible,
-                        "results": visible,  # Duplicate for frontend compatibility
-                        "lockedCount": locked,
-                        "visibleCount": len(visible),
-                    }
-                )
-
-        return results
+        return build_test_ladder(submission, problem)
 
     def count_variations(self, submission: "Submission") -> int:
         """Count total variations (always 1 for Probeable Code)."""
