@@ -8,9 +8,14 @@
  *   pass is graded 'complete' (ProbeableSpecHandler: segmentation disabled ->
  *   complete) with no abstraction step.
  *
- * Grading in the E2E stack: CELERY_EAGER runs the EiPL pipeline inside
- * POST /api/submit/, and USE_MOCK_OPENAI returns the reference solution as
- * all 5 LLM variations, so every variation passes both tests.
+ * Grading in the E2E stack: CELERY_EAGER runs the spec pipeline inside
+ * POST /api/submit/. The explanation generates ONE code version, and
+ * USE_MOCK_OPENAI returns the reference solution for it, so it passes both
+ * tests.
+ *
+ * Feedback is the same ordered test ladder as probeable_code (see
+ * probeable-feedback.spec.ts): the top panel quotes the explanation instead of
+ * the code, and there is no debug button.
  *
  * Fresh users have no AI processing consent. probeable_spec submissions are
  * not consent-gated yet (#161); submit tests grant consent through the API up
@@ -22,7 +27,7 @@
 
 import { test, expect, Page } from '@playwright/test';
 import { setAceEditorValue } from '../helpers/ace-editor';
-import { probe, feedback, problemSet } from '../helpers/selectors';
+import { codeFeedback, probe, problemSet } from '../helpers/selectors';
 import { fillProbeArgs } from '../helpers/probe';
 import {
   FreshUser,
@@ -76,6 +81,30 @@ async function probeX(page: Page, value: string): Promise<void> {
   await button.click();
   const response = await responsePromise;
   expect(response.status()).toBe(200);
+}
+
+/** Attempts badge: 'n/total' and the score, preceded by its status icon. */
+async function expectAttemptBadge(page: Page, attemptText: string, score: string): Promise<void> {
+  const trigger = page.locator(codeFeedback.attemptTrigger);
+  await expect(trigger.locator('.attempt-text')).toHaveText(attemptText, { timeout: GRADE_TIMEOUT });
+  await expect(trigger.locator('.attempt-score-badge')).toHaveText(new RegExp(`^\\S\\s*${score}%\\s*$`));
+}
+
+/** Both tests pass: two green pips, two passed rows, nothing failing or locked. */
+async function expectAllPassLadder(page: Page): Promise<void> {
+  await expect(page.locator(codeFeedback.pip)).toHaveCount(2);
+  await expect(page.locator(codeFeedback.pipPass)).toHaveCount(2);
+  await expect(page.locator(codeFeedback.pipFail)).toHaveCount(0);
+  await expect(page.locator(codeFeedback.pipLock)).toHaveCount(0);
+  await expect(page.locator(codeFeedback.lockedRow)).toHaveCount(0);
+  await expect(page.locator(codeFeedback.failingItem)).toHaveCount(0);
+
+  const rows = page.locator(codeFeedback.passingItem);
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0).locator('.test-call')).toHaveText('square(3)');
+  await expect(rows.nth(0).locator('.result')).toHaveText('9');
+  await expect(rows.nth(1).locator('.test-call')).toHaveText('square(-2)');
+  await expect(rows.nth(1).locator('.result')).toHaveText('4');
 }
 
 /** Put the explanation in #promptEditor, submit, and require a 2xx. */
@@ -137,51 +166,36 @@ test.describe('C24 Probeable Spec', () => {
     await expect(page.locator(probe.historyModal)).toHaveCount(0);
   });
 
-  test('C24b explanation submit grades 100% with both tests shown', async ({ page }) => {
-    // One mock-LLM grading: 5 variations x 2 tests in the Docker sandbox.
+  test('C24b explanation submit grades 100% on the test ladder', async ({ page }) => {
+    // One mock-LLM grading: 1 generated version x 2 tests in the Docker sandbox.
     test.setTimeout(GRADE_TIMEOUT + 30_000);
     expect(EXPLANATION.length).toBe(60);
     await openSpecProblem(page, 'c24b', { aiConsent: true });
 
     await submitExplanation(page, EXPLANATION);
 
-    // All 5 mock variations are the reference solution and segmentation is
+    // The generated version is the reference solution and segmentation is
     // disabled for this problem, so the grade is complete at 100%.
-    await expect(page.locator('.notification-container .notification.success')).toContainText(
-      'Problem 6: Variations: 5/5 passing',
-      { timeout: GRADE_TIMEOUT },
-    );
+    await expect(
+      page.locator('.notification-container .notification.success .notification-message'),
+    ).toHaveText('Problem 6: 2/2 tests passed', { timeout: GRADE_TIMEOUT });
 
-    const container = page.locator(feedback.container);
-    await expect(container.locator(feedback.header)).toBeVisible({ timeout: GRADE_TIMEOUT });
-    await expect(container.locator('.attempt-text')).toHaveText('1/1');
-    await expect(container.locator(feedback.scoreBadge)).toHaveText('100%');
+    await expect(page.locator(codeFeedback.ladder)).toBeVisible({ timeout: GRADE_TIMEOUT });
+    await expectAttemptBadge(page, '1/1', '100');
+
+    // Top panel quotes the explanation; the generated code is not shown.
+    const container = page.locator('.feedback-container');
     await expect(container.locator('.explanation-text')).toHaveText(EXPLANATION);
+    await expect(container.locator('.code-section')).toHaveCount(0);
 
-    const correctnessCard = container.locator(feedback.metricCard).first();
-    await expect(correctnessCard.locator('.status-metric')).toHaveText('5/5 pass');
-    await expect(correctnessCard.locator('.status-label')).toHaveText('Clear');
+    // Every test passes, so nothing is locked: both rows, the hidden one
+    // included, appear as passed one-liners.
+    await expectAllPassLadder(page);
 
-    // Test rows live in the correctness modal. probeable_spec is outside the
-    // #165 truncation rule, so every variation lists both tests, the hidden
-    // one included.
-    await correctnessCard.click();
-    const modal = page.locator('.modal-content.correctness-modal');
-    await expect(modal).toBeVisible();
-    await expect(modal.locator('.badge-level')).toHaveText('5/5 Versions Pass');
-    await expect(modal.locator('.version-pill')).toHaveCount(5);
-
-    for (let i = 0; i < 5; i++) {
-      await modal.locator(`#version-tab-${i}`).click();
-      const panel = modal.locator(`#version-panel-${i}`);
-      await expect(panel).toBeVisible();
-      await expect(panel.locator('.details-tests .section-meta')).toHaveText('2/2');
-      const tests = panel.locator('.tests-list .test-item');
-      await expect(tests).toHaveCount(2);
-      await expect(panel.locator('.tests-list .test-item.passing')).toHaveCount(2);
-      await expect(tests.nth(0).locator('.test-call')).toHaveText('square(3)');
-      await expect(tests.nth(1).locator('.test-call')).toHaveText('square(-2)');
-    }
+    // The student did not write the code: no debugger.
+    await expect(container.locator(codeFeedback.debugButton)).toHaveCount(0);
+    // Segmentation is disabled: no abstraction card.
+    await expect(container.locator('.metric-card')).toHaveCount(0);
   });
 
   test('C24c description length bounds gate the submit button', async ({ page }) => {
@@ -208,22 +222,21 @@ test.describe('C24 Probeable Spec', () => {
   });
 
   test('C24d resubmitting shows 2 attempts', async ({ page }) => {
-    // Two mock-LLM gradings, each 5 variations x 2 tests in the Docker sandbox.
+    // Two mock-LLM gradings, each 1 generated version x 2 tests in the Docker sandbox.
     test.setTimeout(2 * GRADE_TIMEOUT + 30_000);
     const user = await openSpecProblem(page, 'c24d', { aiConsent: true });
-    const container = page.locator(feedback.container);
 
     await submitExplanation(page, EXPLANATION);
-    await expect(container.locator('.attempt-text')).toHaveText('1/1', { timeout: GRADE_TIMEOUT });
+    await expectAttemptBadge(page, '1/1', '100');
 
     await submitExplanation(page, 'It multiplies the integer argument by itself and returns it.');
-    await expect(container.locator('.attempt-text')).toHaveText('2/2', { timeout: GRADE_TIMEOUT });
-    await expect(container.locator(feedback.scoreBadge)).toHaveText('100%');
+    await expectAttemptBadge(page, '2/2', '100');
+    await expectAllPassLadder(page);
 
-    await container.locator(feedback.attemptSelector).click();
-    const panel = container.locator('.attempt-dropdown-panel[role="menu"]');
+    await page.locator(codeFeedback.attemptTrigger).click();
+    const panel = page.locator(codeFeedback.attemptPanel);
     await expect(panel).toBeVisible();
-    const items = panel.locator('.attempt-item-minimal');
+    const items = panel.locator(codeFeedback.attemptItem);
     await expect(items).toHaveCount(2);
     await expect(items.locator('.attempt-num')).toHaveText(['2', '1']);
     await expect(items.locator('.attempt-score-minimal')).toHaveText(['100%', '100%']);
@@ -239,13 +252,14 @@ test.describe('C24 Probeable Spec', () => {
     for (const submission of data.submissions) {
       expect(submission.score).toBe(100);
       expect(submission.completion_status).toBe('complete');
-      expect(submission.variations_count).toBe(5);
-      // History counts test executions across all 5 variations: 5 x 2 tests.
-      expect(submission.tests_passed).toBe(10);
-      expect(submission.total_tests).toBe(10);
+      // One generated version, graded on both tests; nothing locked.
+      expect(submission.variations_count).toBe(1);
+      expect(submission.tests_passed).toBe(2);
+      expect(submission.total_tests).toBe(2);
+      expect(submission.locked_count).toBe(0);
     }
 
     // The dropdown shows each attempt's tests_passed/total_tests from history.
-    await expect(items.locator('.attempt-tests')).toHaveText(['10/10', '10/10']);
+    await expect(items.locator('.attempt-tests')).toHaveText(['2/2', '2/2']);
   });
 });

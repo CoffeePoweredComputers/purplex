@@ -88,6 +88,7 @@
             :aria-label="$t('feedback.tests.pipFailed', { n: i + 1 })"
           >✗</span>
           <button
+            v-if="canDebug"
             type="button"
             class="debug-btn"
             :aria-label="$t('feedback.codeSubmission.debugTestCase', { call: test.function_call })"
@@ -113,7 +114,7 @@
 
 <script setup lang="ts">
 /**
- * TestLadder - ordered test results for probeable_code feedback.
+ * TestLadder - ordered test results for probeable feedback.
  *
  * Rows arrive already truncated to the first failure (backend
  * result_visibility.truncate_to_first_failure): every passing test up to the
@@ -133,11 +134,14 @@ interface Props {
   lockedCount?: number
   /** Total test count; defaults to rows + locked */
   totalCount?: number | null
+  /** Show the debugger button on the failing row */
+  canDebug?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   lockedCount: 0,
   totalCount: null,
+  canDebug: true,
 })
 
 defineEmits<{

@@ -239,7 +239,7 @@ class ActivityTypesView(APIView):
 
 
 def _lock_after_first_failure(submission_data: dict) -> None:
-    """Hide probeable_code test rows after the first failure (papers' rule).
+    """Hide probeable test rows after the first failure (papers' rule).
 
     Counts (``tests_passed``/``total_tests``) keep reflecting every test; only
     the visible rows are truncated and the hidden remainder is reported as
@@ -407,7 +407,7 @@ class SubmissionHistoryView(APIView):
                 "variations_count": variations.count(),
                 "comprehension_level": (
                     submission.comprehension_level
-                    if submission.submission_type == "eipl"
+                    if submission.submission_type in ("eipl", "probeable_spec")
                     else None
                 ),
                 "segmentation": segmentation_data,  # Include segmentation data
@@ -506,7 +506,7 @@ class SubmissionHistoryView(APIView):
                 ),
             }
 
-            if submission.submission_type == "probeable_code":
+            if submission.submission_type in ("probeable_code", "probeable_spec"):
                 _lock_after_first_failure(submission_data)
 
             submission_history.append(submission_data)

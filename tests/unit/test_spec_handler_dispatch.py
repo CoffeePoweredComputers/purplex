@@ -30,10 +30,21 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 PIPELINE = "purplex.problems_app.tasks.pipeline"
 
-# (problem factory, expected handler type, handler class whose serializer must run)
+# (problem factory, expected handler type, handler class whose serializer must run,
+#  keys that serializer's payload carries)
 PIPELINE_TYPES = [
-    pytest.param(ProbeableSpecProblemFactory, "probeable_spec", ProbeableSpecHandler),
-    pytest.param(EiplProblemFactory, "eipl", EiPLHandler),
+    pytest.param(
+        ProbeableSpecProblemFactory,
+        "probeable_spec",
+        ProbeableSpecHandler,
+        {"student_code", "explanation", "test_results", "segmentation"},
+    ),
+    pytest.param(
+        EiplProblemFactory,
+        "eipl",
+        EiPLHandler,
+        {"variations", "test_results", "segmentation"},
+    ),
 ]
 
 
@@ -99,10 +110,10 @@ class TestPipelineCompletionEnvelopeHandler:
     """The live pipeline must dispatch on the submission's real type."""
 
     @pytest.mark.parametrize(
-        "problem_factory,expected_type,handler_cls", PIPELINE_TYPES
+        "problem_factory,expected_type,handler_cls,result_keys", PIPELINE_TYPES
     )
     def test_envelope_uses_submission_handler(
-        self, problem_factory, expected_type, handler_cls
+        self, problem_factory, expected_type, handler_cls, result_keys
     ):
         user = _make_user()
         problem = _make_problem(problem_factory)
@@ -128,9 +139,7 @@ class TestPipelineCompletionEnvelopeHandler:
         assert result["problem_type"] == expected_type
         assert published["problem_type"] == expected_type
         assert spy.call_count == 1
-        assert {"variations", "test_results", "segmentation"} <= set(
-            result["result"].keys()
-        )
+        assert result_keys <= set(result["result"].keys())
 
     def test_spec_without_submission_id_records_spec_type(self):
         """Legacy path (pipeline creates the row) must not label spec as eipl."""
@@ -150,10 +159,10 @@ class TestCachedResultEnvelopeHandler:
     """The idempotent-retry twin must dispatch the same way as the live path."""
 
     @pytest.mark.parametrize(
-        "problem_factory,expected_type,handler_cls", PIPELINE_TYPES
+        "problem_factory,expected_type,handler_cls,result_keys", PIPELINE_TYPES
     )
     def test_cached_envelope_uses_submission_handler(
-        self, problem_factory, expected_type, handler_cls
+        self, problem_factory, expected_type, handler_cls, result_keys
     ):
         from purplex.problems_app.tasks.pipeline import _build_cached_eipl_result
 
@@ -176,9 +185,7 @@ class TestCachedResultEnvelopeHandler:
 
         assert result["problem_type"] == expected_type
         assert spy.call_count == 1
-        assert {"variations", "test_results", "segmentation"} <= set(
-            result["result"].keys()
-        )
+        assert result_keys <= set(result["result"].keys())
 
 
 class TestRequiresAiConsent:

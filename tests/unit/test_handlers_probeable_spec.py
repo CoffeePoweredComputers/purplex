@@ -246,8 +246,36 @@ class TestProbeableSpecDataExtraction:
         assert handler.count_passing_variations(submission) == 0
 
 
+def _variations_with(test_execs, tests_passed, tests_total):
+    """Mock ``submission.code_variations`` holding one variation."""
+    mock_test_execs = MagicMock()
+    mock_test_execs.order_by.return_value = mock_test_execs
+    mock_test_execs.exists.return_value = bool(test_execs)
+    mock_test_execs.__iter__ = lambda self: iter(test_execs)
+
+    variation = MagicMock()
+    variation.tests_passed = tests_passed
+    variation.tests_total = tests_total
+    variation.test_executions.all.return_value = mock_test_execs
+
+    mock_cv = MagicMock()
+    mock_cv.exists.return_value = True
+    mock_cv.first.return_value = variation
+    return mock_cv
+
+
+def _test_exec(passed, value=1):
+    test_exec = MagicMock()
+    test_exec.passed = passed
+    test_exec.input_values = [value]
+    test_exec.expected_output = str(value)
+    test_exec.actual_output = str(value) if passed else "0"
+    test_exec.error_message = None
+    return test_exec
+
+
 class TestProbeableSpecExtractTestResults:
-    """Tests for Probeable Spec test result extraction."""
+    """Spec shows its one generated version as the probeable_code ladder."""
 
     @pytest.fixture
     def handler(self):
@@ -255,29 +283,8 @@ class TestProbeableSpecExtractTestResults:
 
     def test_extract_test_results_with_test_executions(self, handler):
         """Should format test execution records."""
-        test_exec = MagicMock()
-        test_exec.passed = True
-        test_exec.input_values = [5]
-        test_exec.expected_output = "10"
-        test_exec.actual_output = "10"
-        test_exec.error_message = None
-
-        mock_test_execs = MagicMock()
-        mock_test_execs.order_by.return_value = mock_test_execs
-        mock_test_execs.exists.return_value = True
-        mock_test_execs.__iter__ = lambda self: iter([test_exec])
-
-        variation = MagicMock()
-        variation.variation_index = 0
-        variation.tests_passed = 1
-        variation.tests_total = 1
-        variation.test_executions.all.return_value = mock_test_execs
-
-        mock_qs = MagicMock()
-        mock_qs.order_by.return_value = [variation]
-
         submission = MagicMock()
-        submission.code_variations.all.return_value = mock_qs
+        submission.code_variations = _variations_with([_test_exec(True, 5)], 1, 1)
 
         problem = MagicMock()
         problem.function_name = "double"
@@ -288,44 +295,30 @@ class TestProbeableSpecExtractTestResults:
         assert results[0]["testsPassed"] == 1
         assert results[0]["totalTests"] == 1
         assert results[0]["test_results"][0]["isSuccessful"] is True
+        assert results[0]["test_results"][0]["function_call"] == "double(5)"
+        assert results[0]["lockedCount"] == 0
 
-    def test_extract_test_results_fallback_placeholder(self, handler):
-        """Should create placeholder results when no TestExecution records exist."""
-        mock_test_execs = MagicMock()
-        mock_test_execs.order_by.return_value = mock_test_execs
-        mock_test_execs.exists.return_value = False
-
-        variation = MagicMock()
-        variation.variation_index = 0
-        variation.tests_passed = 2
-        variation.tests_total = 3
-        variation.test_executions.all.return_value = mock_test_execs
-
-        mock_qs = MagicMock()
-        mock_qs.order_by.return_value = [variation]
-
+    def test_extract_test_results_locks_after_first_failure(self, handler):
+        """Rows after the first failure are locked; counts still cover all."""
         submission = MagicMock()
-        submission.code_variations.all.return_value = mock_qs
-
+        submission.code_variations = _variations_with(
+            [_test_exec(True), _test_exec(False), _test_exec(True)], 2, 3
+        )
         problem = MagicMock()
-        problem.function_name = "solve"
+        problem.function_name = "f"
 
-        results = handler.extract_test_results(submission, problem)
-        assert len(results) == 1
-        assert results[0]["success"] is False  # 2/3 != all
-        assert len(results[0]["test_results"]) == 3
-        # First 2 should be passing (tests_passed=2), last should fail
-        assert results[0]["test_results"][0]["isSuccessful"] is True
-        assert results[0]["test_results"][1]["isSuccessful"] is True
-        assert results[0]["test_results"][2]["isSuccessful"] is False
+        entry = handler.extract_test_results(submission, problem)[0]
+        assert [r["isSuccessful"] for r in entry["test_results"]] == [True, False]
+        assert entry["testsPassed"] == 2
+        assert entry["totalTests"] == 3
+        assert entry["success"] is False
+        assert entry["lockedCount"] == 1
+        assert entry["visibleCount"] == 2
 
     def test_extract_test_results_empty(self, handler):
         """Should return empty list when no variations."""
-        mock_qs = MagicMock()
-        mock_qs.order_by.return_value = []
-
         submission = MagicMock()
-        submission.code_variations.all.return_value = mock_qs
+        submission.code_variations.exists.return_value = False
 
         problem = MagicMock()
         results = handler.extract_test_results(submission, problem)
@@ -333,30 +326,8 @@ class TestProbeableSpecExtractTestResults:
 
     def test_extract_test_results_duplicate_keys(self, handler):
         """Should include both 'test_results' and 'results' keys."""
-        test_exec = MagicMock()
-        test_exec.passed = True
-        test_exec.input_values = [1]
-        test_exec.expected_output = "1"
-        test_exec.actual_output = "1"
-        test_exec.error_message = None
-
-        mock_test_execs = MagicMock()
-        mock_test_execs.order_by.return_value = mock_test_execs
-        mock_test_execs.exists.return_value = True
-        mock_test_execs.__iter__ = lambda self: iter([test_exec])
-
-        variation = MagicMock()
-        variation.variation_index = 0
-        variation.tests_passed = 1
-        variation.tests_total = 1
-        variation.test_executions.all.return_value = mock_test_execs
-
-        mock_qs = MagicMock()
-        mock_qs.order_by.return_value = [variation]
-
         submission = MagicMock()
-        submission.code_variations.all.return_value = mock_qs
-
+        submission.code_variations = _variations_with([_test_exec(True)], 1, 1)
         problem = MagicMock()
         problem.function_name = "f"
 
@@ -462,24 +433,9 @@ class TestProbeableSpecSerializeResult:
         submission.problem.get_segmentation_threshold = 2
         submission.problem.function_name = "solve"
 
-        # Mock variations
-        var1 = MagicMock()
-        var1.generated_code = "def solve(x): return x"
-        var1.score = 100
-        var1.tests_passed = 3
-        var1.tests_total = 3
-        var1.is_selected = True
-
-        mock_test_execs = MagicMock()
-        mock_test_execs.order_by.return_value = mock_test_execs
-        mock_test_execs.exists.return_value = False
-        mock_test_execs.__iter__ = lambda self: iter([])
-        var1.test_executions.all.return_value = mock_test_execs
-
-        mock_qs = MagicMock()
-        mock_qs.order_by.return_value = [var1]
-        mock_qs.__iter__ = lambda self: iter([var1])
-        submission.code_variations.all.return_value = mock_qs
+        submission.processed_code = "def solve(x): return x"
+        submission.raw_input = "It returns its argument."
+        submission.code_variations = _variations_with([_test_exec(True)], 1, 1)
 
         # Mock segmentation
         seg = MagicMock()
@@ -497,15 +453,19 @@ class TestProbeableSpecSerializeResult:
 
     def test_serialize_result_structure(self, handler, mock_submission):
         result = handler.serialize_result(mock_submission)
-        assert "variations" in result
-        assert "test_results" in result
-        assert "segmentation" in result
+        assert set(result) == {
+            "student_code",
+            "explanation",
+            "test_results",
+            "segmentation",
+        }
 
-    def test_serialize_result_variations(self, handler, mock_submission):
+    def test_serialize_result_code_and_explanation(self, handler, mock_submission):
         result = handler.serialize_result(mock_submission)
-        assert len(result["variations"]) == 1
-        assert result["variations"][0]["code"] == "def solve(x): return x"
-        assert result["variations"][0]["score"] == 100
+        assert result["student_code"] == "def solve(x): return x"
+        assert result["explanation"] == "It returns its argument."
+        assert len(result["test_results"]) == 1
+        assert result["test_results"][0]["lockedCount"] == 0
 
     def test_serialize_result_segmentation(self, handler, mock_submission):
         result = handler.serialize_result(mock_submission)
@@ -520,10 +480,7 @@ class TestProbeableSpecSerializeResult:
         submission.problem = MagicMock()
         submission.problem.function_name = "f"
 
-        mock_qs = MagicMock()
-        mock_qs.order_by.return_value = []
-        mock_qs.__iter__ = lambda self: iter([])
-        submission.code_variations.all.return_value = mock_qs
+        submission.code_variations.exists.return_value = False
 
         del submission.segmentation
 

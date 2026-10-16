@@ -211,7 +211,7 @@ export const feedback = {
   scoreBadge: '.attempt-score-badge',
   /** Attempt selector dropdown trigger */
   attemptSelector: '.attempt-dropdown-trigger',
-  /** Metric cards (correctness and abstraction) */
+  /** Metric cards: correctness, and abstraction (AbstractionCard.vue, also below the probeable_spec ladder) */
   metricCard: '.metric-card',
   /** Correctness progress bar */
   correctnessBar: '.progress-bar-fill',
@@ -283,11 +283,13 @@ export const probe = {
 
 // ---------------------------------------------------------------------------
 // Code submission feedback (activities/feedback/CodeSubmissionFeedback.vue)
+// Both probeable types use it via ProbeableFeedback.vue (ladder layout);
+// probeable_spec quotes the explanation (.explanation-text) instead of the code.
 // ---------------------------------------------------------------------------
 export const codeFeedback = {
   /** Ordered test ladder (pips + ledger); rendered once grading finishes */
   ladder: '.feedback-container .test-ladder',
-  /** One pip per test, in order: .pass (button) / .fail / .lock */
+  /** One pip per test, in order: .pass / .fail / .lock */
   pip: '.test-ladder .pip',
   pipPass: '.test-ladder .pip.pass',
   pipFail: '.test-ladder .pip.fail',
@@ -304,6 +306,6 @@ export const codeFeedback = {
   attemptPanel: '.attempt-dropdown-panel[role="menu"]',
   /** One attempt in the dropdown (.attempt-tests 'passed/total') */
   attemptItem: '.attempt-item-minimal',
-  /** Debug button on the failing row */
+  /** Debug button on the failing row (not rendered for probeable_spec) */
   debugButton: '.debug-btn',
 } as const;

@@ -7,6 +7,65 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+_NUMBER_WORDS = {
+    1: "one",
+    2: "two",
+    3: "three",
+    4: "four",
+    5: "five",
+    6: "six",
+    7: "seven",
+    8: "eight",
+    9: "nine",
+    10: "ten",
+}
+
+
+def _variation_system_prompt(function_name: str, count: int) -> str:
+    """Build the system prompt asking the LLM for ``count`` implementations.
+
+    The mock LLM (``mock_openai.py``) recognises this prompt by its
+    ``implementation(s) of a function called`` wording and returns one version
+    per ``# implementation`` stub, so keep the two in step. For ``count=5``
+    the text is the original EiPL prompt, unchanged.
+    """
+    if count < 1:
+        raise ValueError(f"count must be at least 1, got {count}")
+    number = _NUMBER_WORDS.get(count, str(count))
+    if count == 1:
+        request = (
+            f"Create exactly one implementation of a function called {function_name}"
+        )
+        guidelines = [
+            "Make the code beginner-friendly and avoid unnecessary built-in functions",
+            f"The function MUST be named exactly: {function_name}. If it is not the grading mechanism will fail.",
+            "Return only the function implementation, no additional text or comments",
+        ]
+    else:
+        request = f"Create {number} different implementations of a function called {function_name}"
+        guidelines = [
+            "Each implementation MUST be different",
+            "Make the code beginner-friendly and avoid unnecessary built-in functions",
+            f"Each function MUST be named exactly: {function_name}. If it is not the grading mechanism will fail.",
+            "Return only the function implementations, no additional text or comments",
+        ]
+    numbered = "\n".join(f"{i}. {g}" for i, g in enumerate(guidelines, start=1))
+    labels = (
+        ["implementation"]
+        if count == 1
+        else [f"implementation {i}" for i in range(1, count + 1)]
+    )
+    stubs = "".join(
+        f"```python\ndef {function_name}(...):\n    # {label}\n```\n"
+        for label in labels
+    )
+    return (
+        f"\n{request} based on the user's description.\n"
+        "The function should match this problem:\n\n"
+        f"Guidelines:\n{numbered}\n\n"
+        f"Format your response as:\n{stubs}"
+    )
+
 
 class AITestGenerationService:
     """
@@ -70,9 +129,11 @@ class AITestGenerationService:
             logger.error(f"❌ AI call failed: {str(e)}")
             raise
 
-    def _generate_eipl_variations(self, problem, user_prompt: str) -> dict[str, Any]:
+    def _generate_eipl_variations(
+        self, problem, user_prompt: str, count: int = 5
+    ) -> dict[str, Any]:
         """
-        Generate code variations for EiPL problems.
+        Generate ``count`` code versions of the user's description.
         Uses synchronous client - gevent handles I/O concurrency automatically.
         """
         if not self.client:
@@ -84,39 +145,7 @@ class AITestGenerationService:
             }
 
         try:
-            # Create a system prompt specific to the problem
-            system_prompt = f"""
-Create five different implementations of a function called {problem.function_name} based on the user's description.
-The function should match this problem:
-
-Guidelines:
-1. Each implementation MUST be different
-2. Make the code beginner-friendly and avoid unnecessary built-in functions
-3. Each function MUST be named exactly: {problem.function_name}. If it is not the grading mechanism will fail.
-4. Return only the function implementations, no additional text or comments
-
-Format your response as:
-```python
-def {problem.function_name}(...):
-    # implementation 1
-```
-```python
-def {problem.function_name}(...):
-    # implementation 2
-```
-```python
-def {problem.function_name}(...):
-    # implementation 3
-```
-```python
-def {problem.function_name}(...):
-    # implementation 4
-```
-```python
-def {problem.function_name}(...):
-    # implementation 5
-```
-"""
+            system_prompt = _variation_system_prompt(problem.function_name, count)
 
             # Build messages for AI API call
             messages = [
@@ -158,17 +187,17 @@ def {problem.function_name}(...):
                 if f"def {problem.function_name}" in code:
                     valid_variations.append(code.strip())
 
-            # Require exactly 5 variations for a successful generation
-            if len(valid_variations) < 5:
+            # Require exactly ``count`` variations for a successful generation
+            if len(valid_variations) < count:
                 logger.warning(
-                    f"Insufficient variations generated: {len(valid_variations)}/5. "
+                    f"Insufficient variations generated: {len(valid_variations)}/{count}. "
                     f"User prompt length: {len(user_prompt)} chars"
                 )
                 return {
                     "success": False,
                     "error": (
                         f"Could not generate enough code variations from your description "
-                        f"({len(valid_variations)}/5 generated). Please try again with a more "
+                        f"({len(valid_variations)}/{count} generated). Please try again with a more "
                         "detailed explanation of the code's behavior."
                     ),
                     "variations": valid_variations,
@@ -177,7 +206,7 @@ def {problem.function_name}(...):
 
             return {
                 "success": True,
-                "variations": valid_variations[:5],
+                "variations": valid_variations[:count],
                 "error": None,
                 "model": self.model_name,
             }
@@ -191,7 +220,9 @@ def {problem.function_name}(...):
                 "model": self.model_name,
             }
 
-    def generate_eipl_variations(self, problem, user_prompt: str) -> dict[str, Any]:
+    def generate_eipl_variations(
+        self, problem, user_prompt: str, count: int = 5
+    ) -> dict[str, Any]:
         """
         Public entry point for EiPL variation generation.
 
@@ -199,4 +230,4 @@ def {problem.function_name}(...):
         Works seamlessly with both gevent (production) and prefork (development) workers.
         Gevent automatically handles I/O concurrency via monkey patching.
         """
-        return self._generate_eipl_variations(problem, user_prompt)
+        return self._generate_eipl_variations(problem, user_prompt, count)

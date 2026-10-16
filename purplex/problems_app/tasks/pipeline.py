@@ -267,9 +267,13 @@ def _build_cached_mcq_result(submission: "Submission") -> dict[str, Any]:
 
 
 def generate_variations_helper(
-    problem_id: int, user_prompt: str, user_id: int | None = None
+    problem_id: int, user_prompt: str, user_id: int | None = None, count: int = 5
 ) -> list[str]:
-    """Helper function to generate code variations using repository layer."""
+    """Generate ``count`` code versions of the user's description.
+
+    ``count`` is the activity handler's ``variation_count`` (five for EiPL and
+    Prompt, one for Probeable Spec).
+    """
     # AI consent gate: block generation if user hasn't consented
     if user_id is not None:
         from django.conf import settings as django_settings
@@ -299,7 +303,7 @@ def generate_variations_helper(
         raise Exception(f"Problem {problem_id} not found or not active")
 
     ai_service = AITestGenerationService()
-    result = ai_service.generate_eipl_variations(problem, user_prompt)
+    result = ai_service.generate_eipl_variations(problem, user_prompt, count=count)
 
     if not result["success"]:
         raise Exception(f"AI generation failed: {result.get('error', 'Unknown error')}")
@@ -823,8 +827,20 @@ def execute_eipl_pipeline(
             span = None
 
         try:
+            # The activity's handler decides how many versions to generate
+            # and how to score them (Probeable Spec: one, scored by tests).
+            from purplex.problems_app.handlers import get_handler
+
+            problem = ProblemRepository.get_by_id(problem_id)
+            if not problem:
+                raise Exception(f"Problem {problem_id} not found")
+            code_handler = get_handler(problem.problem_type)
+
             variations = generate_variations_helper(
-                problem_id, user_prompt, user_id=user_id
+                problem_id,
+                user_prompt,
+                user_id=user_id,
+                count=code_handler.variation_count,
             )
             variation_count = len(variations)
             logger.info(
@@ -974,11 +990,7 @@ def execute_eipl_pipeline(
         # Step 3: Aggregate results (70-80% progress)
         logger.info(f"⏱️  STEP 3: Aggregating results (task {task_id})")
         publish_progress(task_id, 70, "Aggregating test results...")
-        score = int(
-            (successful_variations / variation_count * 100)
-            if variation_count > 0
-            else 0
-        )
+        score = code_handler.score_generated_code(test_results)
         logger.info(
             f"📊 Score calculated: {score}% ({successful_variations}/{variation_count} passed)"
         )

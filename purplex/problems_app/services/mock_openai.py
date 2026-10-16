@@ -20,6 +20,11 @@ import re
 
 logger = logging.getLogger(__name__)
 
+# Matches the variation prompt from ai_generation_service._variation_system_prompt;
+# the prompt lists one "# implementation" stub per requested version.
+_VARIATION_REQUEST = re.compile(r"implementations? of a function called (\w+)")
+_VARIATION_STUB = re.compile(r"^\s*# implementation\b", re.MULTILINE)
+
 
 class _MockMessage:
     """Mimics openai.types.chat.ChatCompletionMessage."""
@@ -59,7 +64,7 @@ class _MockCompletions:
                 system_content = msg.get("content", "")
                 break
 
-        if "Create five different implementations" in system_content:
+        if _VARIATION_REQUEST.search(system_content):
             content = self._variation_response(messages, system_content)
         elif "ONE-TO-ONE MAPPING RULES" in system_content:
             content = self._segmentation_response(messages, system_content)
@@ -70,7 +75,11 @@ class _MockCompletions:
         return _MockCompletion(content)
 
     def _variation_response(self, messages, system_content) -> str:
-        """Return 5 code variations using the reference solution.
+        """Return as many code variations as the prompt asks for.
+
+        The count is the number of ``# implementation`` stubs in the prompt
+        built by ``_variation_system_prompt`` (five for EiPL and Prompt, one
+        for Probeable Spec). Each variation is the reference solution.
 
         The reference solution is injected as a developer/mock_context message
         by _generate_eipl_variations when mock mode is active.
@@ -80,9 +89,9 @@ class _MockCompletions:
             if msg.get("role") == "developer" and msg.get("name") == "mock_context":
                 reference_solution = msg.get("content", "")
 
-        # Extract function name from system prompt
-        match = re.search(r"function called (\w+)", system_content)
+        match = _VARIATION_REQUEST.search(system_content)
         func_name = match.group(1) if match else "unknown"
+        count = len(_VARIATION_STUB.findall(system_content)) or 1
 
         if reference_solution:
             code = reference_solution.strip()
@@ -90,7 +99,7 @@ class _MockCompletions:
             code = f"def {func_name}(*args, **kwargs):\n    pass"
 
         blocks = []
-        for i in range(5):
+        for i in range(count):
             comment = f"# variation {i + 1}\n" if i > 0 else ""
             blocks.append(f"```python\n{comment}{code}\n```")
         return "\n\n".join(blocks)

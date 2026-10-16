@@ -247,6 +247,27 @@ class ActivityHandler(ABC):
         """
         return False
 
+    # ─── Generated-Code Policy (types run by execute_eipl_pipeline) ──
+
+    #: How many code versions the LLM writes from the student's description.
+    variation_count: int = 5
+
+    def score_generated_code(self, test_results: list[dict[str, Any]]) -> int:
+        """
+        Score the LLM-generated versions of a description, 0-100.
+
+        Default: the share of versions that pass every test. Handlers whose
+        single version is graded like student code override this.
+
+        Args:
+            test_results: One dict per version with ``success``,
+                ``testsPassed`` and ``totalTests``.
+        """
+        if not test_results:
+            return 0
+        passing = sum(1 for r in test_results if r.get("success", False))
+        return int(passing / len(test_results) * 100)
+
     # ─── Optional Hooks ─────────────────────────────────────────
 
     def on_submission_created(self, submission: "Submission") -> None:
