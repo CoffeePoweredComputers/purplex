@@ -12,6 +12,9 @@ Flow:
 5. LLM generates code from explanation (reuses EiPL pipeline)
 6. Code tested against test cases
 
+The LLM writes ONE version (``variation_count = 1``), shown as the same ordered
+test ladder as probeable_code and scored by tests passed.
+
 Grading: Test pass + comprehension level (reuses EiPL logic)
 """
 
@@ -24,6 +27,7 @@ from ..base import (
     SubmissionOutcome,
     ValidationResult,
 )
+from ..ladder import build_test_ladder
 
 if TYPE_CHECKING:
     from purplex.problems_app.models import Problem
@@ -56,6 +60,9 @@ class ProbeableSpecHandler(ActivityHandler):
 
     MIN_INPUT_LENGTH = 10
     MAX_INPUT_LENGTH = 1000
+
+    # One version, graded and shown like probeable_code's student code.
+    variation_count = 1
 
     @property
     def type_name(self) -> str:
@@ -174,62 +181,12 @@ class ProbeableSpecHandler(ActivityHandler):
     def extract_test_results(
         self, submission: "Submission", problem: "Problem"
     ) -> list[dict[str, Any]]:
-        """Transform TestExecution objects to frontend format."""
-        results = []
+        """Return the generated version's tests as the probeable ladder.
 
-        # Group test results by code variation
-        variations = submission.code_variations.all().order_by("variation_index")
-        for variation in variations:
-            test_execs = variation.test_executions.all().order_by("execution_order")
-            var_results = []
-
-            # If we have TestExecution records, use them
-            if test_execs.exists():
-                for test_exec in test_execs:
-                    var_results.append(
-                        {
-                            "isSuccessful": test_exec.passed,
-                            "function_call": self._format_function_call(
-                                problem.function_name, test_exec.input_values
-                            ),
-                            "expected_output": test_exec.expected_output,
-                            "actual_output": test_exec.actual_output,
-                            "error": test_exec.error_message,
-                        }
-                    )
-            # Fallback: If no TestExecution records exist but we have summary data
-            elif variation.tests_total > 0:
-                # Create placeholder results based on the summary
-                for i in range(variation.tests_total):
-                    is_passed = i < variation.tests_passed
-                    var_results.append(
-                        {
-                            "isSuccessful": is_passed,
-                            "function_call": f"{problem.function_name}(test_case_{i + 1})",
-                            "expected_output": "Test details not available",
-                            "actual_output": "Passed" if is_passed else "Failed",
-                            "error": (
-                                ""
-                                if is_passed
-                                else "Test failed (details not available)"
-                            ),
-                        }
-                    )
-
-            results.append(
-                {
-                    "success": (
-                        variation.tests_passed == variation.tests_total
-                        and variation.tests_total > 0
-                    ),
-                    "testsPassed": variation.tests_passed,
-                    "totalTests": variation.tests_total,
-                    "test_results": var_results,
-                    "results": var_results,  # Duplicate for frontend compatibility
-                }
-            )
-
-        return results
+        Same shape and locking as ``probeable_code``: pass counts cover every
+        test, rows after the first failure are reported as ``lockedCount``.
+        """
+        return build_test_ladder(submission, problem)
 
     def count_variations(self, submission: "Submission") -> int:
         """Count total variations for submission."""
@@ -303,27 +260,18 @@ class ProbeableSpecHandler(ActivityHandler):
         }
 
     def serialize_result(self, submission: "Submission") -> dict[str, Any]:
-        """Serialize submission result for API response (same as EiPL)."""
+        """Serialize like ``probeable_code``, plus the explanation and segmentation.
+
+        ``student_code`` is the one version the LLM wrote from the student's
+        explanation; ``explanation`` is what the student wrote.
+        """
         result = {
-            "variations": [],
+            "student_code": submission.processed_code or "",
+            "explanation": submission.raw_input or "",
             "test_results": [],
             "segmentation": None,
         }
 
-        # Serialize variations
-        if hasattr(submission, "code_variations"):
-            result["variations"] = [
-                {
-                    "code": v.generated_code,
-                    "score": v.score,
-                    "tests_passed": v.tests_passed,
-                    "tests_total": v.tests_total,
-                    "is_selected": v.is_selected,
-                }
-                for v in submission.code_variations.all()
-            ]
-
-        # Serialize test results using extract_test_results
         if hasattr(submission, "problem") and submission.problem:
             result["test_results"] = self.extract_test_results(
                 submission, submission.problem
@@ -378,6 +326,12 @@ class ProbeableSpecHandler(ActivityHandler):
     def requires_ai_consent(self) -> bool:
         """The student's description goes through the same LLM call as EiPL."""
         return True
+
+    def score_generated_code(self, test_results: list[dict[str, Any]]) -> int:
+        """Share of tests passed, the rule ``probeable_code`` uses."""
+        passed = sum(r.get("testsPassed", 0) for r in test_results)
+        total = sum(r.get("totalTests", 0) for r in test_results)
+        return int(passed / total * 100) if total > 0 else 0
 
     def submit(
         self,

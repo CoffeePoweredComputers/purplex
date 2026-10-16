@@ -397,6 +397,9 @@ import { sseService } from '@/services/sseService'
 import { submissionService } from '@/services/submissionService'
 import { ref } from 'vue'
 
+/** Both probeable types grade one version and share the probeable result shape. */
+const isProbeableType = (type) => type === 'probeable_code' || type === 'probeable_spec'
+
 export default {
     name: 'ProblemSet',
     components: {
@@ -756,8 +759,8 @@ export default {
                     let codeResults = [];
                     let testResults = [];
 
-                    if (problemType === 'probeable_code') {
-                        // Probeable code stores student_code instead of variations
+                    if (isProbeableType(problemType)) {
+                        // Probeable types store the single graded version as student_code
                         if (submissionData.student_code) {
                             codeResults = [{ code: submissionData.student_code }];
                         }
@@ -1364,11 +1367,16 @@ export default {
                             } else {
                                 this.notify.warning(message);
                             }
-                        } else if (problemType === 'probeable_code') {
-                            // Probeable code processing - extracts student_code and test_results
+                        } else if (isProbeableType(problemType)) {
+                            // Probeable code/spec processing - one graded version (student_code)
+                            // and its truncated test ladder; spec also carries segmentation
                             const probeableResult = unifiedResult.result || {};
                             const studentCode = probeableResult.student_code || '';
                             const testResults = probeableResult.test_results || [];
+                            const segmentation = probeableResult.segmentation ?? null;
+                            const submittedProblem = this.problems.find(p => p.slug === currentProblemSlug);
+                            const showSegmentation = submittedProblem?.feedback_config?.show_segmentation === true;
+                            const segmentationPassed = segmentation?.passed ?? null;
 
                             // Calculate test statistics
                             let totalTestsPassed = 0;
@@ -1389,7 +1397,7 @@ export default {
                                     promptCorrectness: unifiedResult.score ?? 0,
                                     userPrompt: unifiedResult.user_input ?? rawInput,
                                     comprehensionResults: '',
-                                    segmentationData: null,
+                                    segmentationData: showSegmentation ? segmentation : null,
                                     mcqResult: null
                                 });
                                 this.promptEditorValue = unifiedResult.user_input ?? rawInput;
@@ -1399,7 +1407,10 @@ export default {
                             const score = totalTestsRun > 0
                                 ? Math.round((totalTestsPassed / totalTestsRun) * 100)
                                 : (unifiedResult.score ?? 0);
-                            const finalStatus = score >= 100 ? 'completed' : 'in_progress';
+                            // With segmentation on (probeable_spec), completion also needs a high-level explanation
+                            const finalStatus = score >= 100 && (!showSegmentation || segmentationPassed === true)
+                                ? 'completed'
+                                : 'in_progress';
 
                             // Update problem status
                             this.problemStatuses = {
@@ -1407,7 +1418,8 @@ export default {
                                 [currentProblemSlug]: {
                                     status: finalStatus,
                                     score: score,
-                                    attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1
+                                    attempts: (this.problemStatuses[currentProblemSlug]?.attempts || 0) + 1,
+                                    segmentationPassed: segmentationPassed
                                 }
                             };
 
@@ -1421,13 +1433,15 @@ export default {
                                 has_submission: true,
                                 student_code: studentCode,
                                 results: testResults,
-                                user_prompt: unifiedResult.user_input
+                                user_prompt: unifiedResult.user_input,
+                                segmentation: segmentation
                             });
 
                             // Show notification
                             const allPassed = totalTestsRun > 0 && totalTestsPassed === totalTestsRun;
                             const message = this.$t('problems.problemSet.notify.testsPassed', { problem: problemIdentifier, passed: totalTestsPassed, total: totalTestsRun });
-                            if (allPassed) {
+                            // A too-detailed explanation (probeable_spec) keeps the problem open: warn
+                            if (allPassed && finalStatus === 'completed') {
                                 this.notify.success(message);
                             } else {
                                 this.notify.warning(message);

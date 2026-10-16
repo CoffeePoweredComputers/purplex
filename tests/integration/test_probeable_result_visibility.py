@@ -1,11 +1,14 @@
-"""Integration tests for student-facing truncation of probeable_code results.
+"""Integration tests for student-facing truncation of probeable results.
 
 Students see test rows only up to and including the first failure; the rest
 are locked (Denny et al. ITiCSE 2025 Section 4.2; Tang et al. ACE 2026
 Section 3.1.5). Instructor/admin views must still see every test.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
+from django.test import override_settings
 from rest_framework import status
 
 from tests.factories import (
@@ -18,6 +21,8 @@ from tests.factories import (
 )
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
+
+PIPELINE = "purplex.problems_app.tasks.pipeline"
 
 
 def _submission_with_three_tests(user, problem, submission_type):
@@ -134,9 +139,30 @@ class TestStudentLastSubmissionTruncation:
         assert entry["totalTests"] == 3
         assert entry["lockedCount"] == 1
 
+    def test_spec_last_submission_locks_tests_after_first_failure(
+        self, authenticated_client, user
+    ):
+        submission = _submission_with_three_tests(
+            user, ProbeableSpecProblemFactory(), "probeable_spec"
+        )
 
-class TestOtherTypesUntruncated:
-    def test_probeable_spec_history_shows_every_test(self, authenticated_client, user):
+        response = authenticated_client.get(
+            f"/api/last-submission/{submission.problem.slug}/"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        entries = response.data["results"]
+        assert len(entries) == 1
+        assert [r["isSuccessful"] for r in entries[0]["test_results"]] == [True, False]
+        assert entries[0]["lockedCount"] == 1
+
+
+class TestProbeableSpecHistory:
+    """Spec submissions get the same ladder rules as probeable_code."""
+
+    def test_probeable_spec_history_locks_tests_after_first_failure(
+        self, authenticated_client, user
+    ):
         submission = _submission_with_three_tests(
             user, ProbeableSpecProblemFactory(), "probeable_spec"
         )
@@ -147,14 +173,94 @@ class TestOtherTypesUntruncated:
         assert response.status_code == status.HTTP_200_OK
 
         attempt = response.data["submissions"][0]
-        assert "locked_count" not in attempt
+        assert attempt["tests_passed"] == 1
+        assert attempt["total_tests"] == 3
+        assert attempt["locked_count"] == 1
         variation = attempt["data"]["variations"][0]
-        assert [r["passed"] for r in variation["test_results"]] == [
-            True,
-            False,
-            False,
-        ]
-        assert "locked_count" not in variation
+        assert [r["passed"] for r in variation["test_results"]] == [True, False]
+        assert variation["locked_count"] == 1
+
+        entry = attempt["type_specific"]["test_results"][0]
+        assert len(entry["test_results"]) == 2
+        assert entry["lockedCount"] == 1
+
+    def test_probeable_spec_history_reports_comprehension_level(
+        self, authenticated_client, user
+    ):
+        problem = ProbeableSpecProblemFactory()
+        SubmissionFactory(
+            user=user,
+            problem=problem,
+            submission_type="probeable_spec",
+            comprehension_level="high-level",
+        )
+
+        response = authenticated_client.get(f"/api/submissions/history/{problem.slug}/")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["submissions"][0]["comprehension_level"] == "high-level"
+
+    def test_spec_pipeline_attempt_counts_one_version(self, authenticated_client, user):
+        """Two tests and one generated version read 2/2, not 10/10 (five versions).
+
+        Runs the real pipeline against the dev mock LLM so the mock's version
+        count is exercised too; Docker and Redis are mocked.
+        """
+        from purplex.problems_app.tasks.pipeline import execute_eipl_pipeline
+
+        problem = ProbeableSpecProblemFactory(
+            is_active=True, requires_highlevel_comprehension=False
+        )
+        for order in range(2):
+            TestCaseFactory(
+                problem=problem, inputs=[order], expected_output=order**2, order=order
+            )
+        submission = SubmissionFactory(
+            user=user,
+            problem=problem,
+            submission_type="probeable_spec",
+            raw_input="It squares its argument.",
+        )
+        docker_result = {
+            "testsPassed": 2,
+            "totalTests": 2,
+            "success": True,
+            "results": [
+                {"pass": True, "inputs": [i], "expected_output": i**2} for i in range(2)
+            ],
+        }
+
+        with (
+            override_settings(
+                USE_MOCK_OPENAI=True, PRIVACY_ENABLE_AI_CONSENT_GATE=False
+            ),
+            patch(f"{PIPELINE}.SharedDockerServiceContext") as mock_ctx,
+            patch(f"{PIPELINE}.publish_progress"),
+            patch(f"{PIPELINE}.publish_completion"),
+            patch("purplex.submissions.services.ProgressService.process_submission"),
+        ):
+            service = MagicMock()
+            service.test_solution.return_value = docker_result
+            mock_ctx.return_value.__enter__.return_value = service
+            execute_eipl_pipeline.apply(
+                args=[
+                    problem.id,
+                    submission.raw_input,
+                    user.id,
+                    submission.problem_set_id,
+                    None,
+                    str(submission.submission_id),
+                ]
+            ).get()
+
+        assert service.test_solution.call_count == 1
+
+        response = authenticated_client.get(f"/api/submissions/history/{problem.slug}/")
+        assert response.status_code == status.HTTP_200_OK
+        attempt = response.data["submissions"][0]
+        assert attempt["tests_passed"] == 2
+        assert attempt["total_tests"] == 2
+        assert attempt["variations_count"] == 1
+        assert attempt["locked_count"] == 0
 
 
 class TestStaffViewUntruncated:

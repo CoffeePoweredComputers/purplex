@@ -134,21 +134,23 @@
         </div>
       </div>
 
-      <!-- Code Section -->
-      <section class="code-section">
-        <div class="code-header">
-          <span>{{ $t('feedback.codeSubmission.yourSubmission') }}</span>
-        </div>
-        <Editor
-          :value="studentCode"
-          :read-only="true"
-          height="250px"
-          width="100%"
-          lang="python"
-          mode="python"
-          :show-gutter="true"
-        />
-      </section>
+      <!-- What was submitted: the code by default; probeable_spec swaps in the explanation -->
+      <slot name="submission">
+        <section class="code-section">
+          <div class="code-header">
+            <span>{{ $t('feedback.codeSubmission.yourSubmission') }}</span>
+          </div>
+          <Editor
+            :value="studentCode"
+            :read-only="true"
+            height="250px"
+            width="100%"
+            lang="python"
+            mode="python"
+            :show-gutter="true"
+          />
+        </section>
+      </slot>
 
       <!-- Test results: ordered ladder (probeable) or pass/fail groups -->
       <TestLadder
@@ -156,6 +158,7 @@
         :tests="testResults"
         :locked-count="lockedCount"
         :total-count="totalCount"
+        :can-debug="canDebug"
         @debug="openDebugger"
       />
       <template v-else>
@@ -196,6 +199,7 @@
                   </div>
                 </div>
                 <button
+                  v-if="canDebug"
                   class="debug-btn"
                   :aria-label="$t('feedback.codeSubmission.debugTestCase', { call: test.function_call })"
                   @click="openDebugger(test)"
@@ -234,6 +238,8 @@
           </details>
         </section>
       </template>
+
+      <slot name="after-results" />
     </template>
 
     <!-- Empty State -->
@@ -300,6 +306,8 @@ interface Props {
   lockedCount?: number
   /** Total test count including locked ones (ladder only) */
   totalCount?: number | null
+  /** Show the debugger button on failing tests */
+  canDebug?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -310,6 +318,7 @@ const props = withDefaults(defineProps<Props>(), {
   layout: 'groups',
   lockedCount: 0,
   totalCount: null,
+  canDebug: true,
 })
 
 const emit = defineEmits<{
