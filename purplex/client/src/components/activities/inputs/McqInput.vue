@@ -97,15 +97,12 @@ interface Props {
   problem: ActivityProblem
   /** Whether input is disabled (during submission) */
   disabled?: boolean
-  /** Editor theme (unused for MCQ but part of interface) */
-  theme?: string
   /** Whether draft has been saved (unused for MCQ) */
   draftSaved?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
-  theme: 'dark',
   draftSaved: false,
 })
 

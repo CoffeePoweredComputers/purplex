@@ -263,7 +263,6 @@
             :markers="subgoalMarkers"
             :read-only="true"
             :show-gutter="showLineNumbers"
-            :theme="currentTheme"
             @update:value="updateSolutionCode"
           />
           <div class="editor-toolbar">
@@ -284,44 +283,6 @@
                 <span aria-hidden="true">{{ showLineNumbers ? '🔢' : '➖' }}</span>
                 <span class="btn-text">{{ showLineNumbers ? $t('problems.editor.lines') : $t('problems.editor.noLines') }}</span>
               </button>
-              <div class="theme-selector">
-                <label
-                  for="editor-theme"
-                  class="visually-hidden"
-                >{{ $t('problems.problemSet.editorThemeLabel') }}</label>
-                <select
-                  id="editor-theme"
-                  v-model="editorTheme"
-                  class="theme-dropdown"
-                  :aria-label="$t('problems.problemSet.selectEditorTheme')"
-                  @change="updateTheme"
-                >
-                  <option value="dark">
-                    {{ $t('problems.problemSet.theme.dark') }}
-                  </option>
-                  <option value="light">
-                    {{ $t('problems.problemSet.theme.light') }}
-                  </option>
-                  <option value="monokai">
-                    {{ $t('problems.problemSet.theme.monokai') }}
-                  </option>
-                  <option value="github">
-                    {{ $t('problems.problemSet.theme.github') }}
-                  </option>
-                  <option value="solarized-dark">
-                    {{ $t('problems.problemSet.theme.solarizedDark') }}
-                  </option>
-                  <option value="solarized-light">
-                    {{ $t('problems.problemSet.theme.solarizedLight') }}
-                  </option>
-                  <option value="dracula">
-                    {{ $t('problems.problemSet.theme.dracula') }}
-                  </option>
-                  <option value="tomorrow-night">
-                    {{ $t('problems.problemSet.theme.tomorrowNight') }}
-                  </option>
-                </select>
-              </div>
             </div>
             <div class="zoom-controls">
               <button
@@ -371,7 +332,6 @@
             :activity-type="getCurrentProblem()?.problem_type || 'eipl'"
             :problem="getCurrentProblem()"
             :disabled="isCurrentProblemSubmitting(getCurrentProblem()?.slug)"
-            :theme="currentTheme"
             :draft-saved="draftSaved"
             @submit="submit"
           />
@@ -430,7 +390,6 @@ import { useEditorHints } from '@/composables/useEditorHints'
 import { useFeedbackState } from '@/composables/useFeedbackState'
 import { useSubmissionCache } from '@/composables/useSubmissionCache'
 import { useSubmissionTracking } from '@/composables/useSubmissionTracking'
-import { useTheme } from '@/composables/useTheme'
 import { parseProblemQueryParam } from './problemNavigation'
 import { reconstructFunctionCall } from './functionCall'
 import { submitErrorNotice } from './submitError'
@@ -459,7 +418,6 @@ export default {
     emits: ['hint-used'],
     setup() {
         const { notify } = useNotification();
-        const { effectiveTheme } = useTheme();
         const logger = useLogger();
         const { updateProgress, getProgress, clearOptimistic } = useOptimisticProgress();
         const { trackHintUsage, getHintsUsed } = useHintTracking();
@@ -495,7 +453,6 @@ export default {
 
         return {
             notify,
-            effectiveTheme,
             logger,
             updateProgress,
             getProgress,
@@ -563,7 +520,6 @@ export default {
             editorFontSize: 14,
             codeCopied: false,
             showLineNumbers: true,
-            editorTheme: document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'tomorrow-night',
 
             /* Draft Management */
             autoSaveInterval: null,
@@ -639,20 +595,6 @@ export default {
             const diffMs = dueDate.getTime() - now.getTime();
             const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
             return diffDays <= 2;
-        },
-
-        currentTheme() {
-            const themeMap = {
-                'dark': 'clouds_midnight',
-                'light': 'chrome',
-                'monokai': 'monokai',
-                'github': 'github',
-                'solarized-dark': 'solarized_dark',
-                'solarized-light': 'solarized_light',
-                'dracula': 'dracula',
-                'tomorrow-night': 'tomorrow_night'
-            };
-            return themeMap[this.editorTheme] || 'clouds_midnight';
         }
     },
 
@@ -668,16 +610,6 @@ export default {
                 this.originalSolutionCode = newCode;
             },
             immediate: true
-        },
-        editorTheme: {
-            handler() {
-                this.$nextTick(() => {
-                    this.updateTheme();
-                });
-            }
-        },
-        effectiveTheme(newTheme) {
-            this.editorTheme = newTheme === 'light' ? 'light' : 'tomorrow-night';
         }
     },
 
@@ -689,10 +621,6 @@ export default {
             this.$nextTick(() => {
                 if (this.$refs.entry && this.$refs.entry.editor) {
                     this.$refs.entry.editor.setFontSize(this.editorFontSize);
-                }
-                // Set theme for prompt editor
-                if (this.$refs.prompt_entry && this.$refs.prompt_entry.editor) {
-                    this.$refs.prompt_entry.editor.setTheme(`ace/theme/${this.currentTheme}`);
                 }
             });
         }
@@ -1262,16 +1190,6 @@ export default {
             this.showLineNumbers = !this.showLineNumbers;
             if (this.$refs.entry && this.$refs.entry.editor) {
                 this.$refs.entry.editor.renderer.setShowGutter(this.showLineNumbers);
-            }
-        },
-
-        updateTheme() {
-            if (this.$refs.entry && this.$refs.entry.editor) {
-                this.$refs.entry.editor.setTheme(`ace/theme/${this.currentTheme}`);
-            }
-            // Also update theme for prompt editor
-            if (this.$refs.prompt_entry && this.$refs.prompt_entry.editor) {
-                this.$refs.prompt_entry.editor.setTheme(`ace/theme/${this.currentTheme}`);
             }
         },
 
@@ -2774,42 +2692,6 @@ export default {
     gap: var(--spacing-sm);
 }
 
-.theme-selector {
-    display: flex;
-    align-items: center;
-}
-
-.theme-dropdown {
-    height: 24px;
-    padding: 0 var(--spacing-sm);
-    background: var(--color-bg-panel);
-    border: 1px solid var(--color-bg-border);
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-sm);
-    border-radius: var(--radius-xs);
-    cursor: pointer;
-    transition: var(--transition-fast);
-    min-width: 120px;
-}
-
-.theme-dropdown:hover {
-    background: var(--color-bg-input);
-    color: var(--color-text-primary);
-    border-color: var(--color-primary-gradient-start);
-}
-
-.theme-dropdown:focus {
-    outline: none;
-    border-color: var(--color-primary-gradient-start);
-    box-shadow: 0 0 0 2px var(--color-primary-overlay);
-}
-
-.theme-dropdown option {
-    background: var(--color-bg-panel);
-    color: var(--color-text-primary);
-    padding: var(--spacing-xs);
-}
-
 /* Submission Section */
 .submission-section {
     background: var(--color-bg-panel);
@@ -2932,11 +2814,6 @@ export default {
     .zoom-controls {
         gap: var(--spacing-sm);
         order: 1;
-    }
-
-    .theme-dropdown {
-        min-width: 90px;
-        font-size: var(--font-size-xs);
     }
 
     .zoom-btn {

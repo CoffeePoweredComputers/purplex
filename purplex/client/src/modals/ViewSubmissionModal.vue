@@ -198,7 +198,6 @@
                         :min-lines="3"
                         :max-lines="30"
                         width="100%"
-                        :theme="editorTheme"
                       />
                     </div>
                   </div>
@@ -386,10 +385,7 @@ import SubmissionDetailContent from '@/modals/submission-detail/SubmissionDetail
 import { formatTestValue, getValueDisplayClass } from '@/utils/testValueFormatter'
 import { log } from '@/utils/logger'
 import { useFocusTrap } from '@/composables/useFocusTrap'
-import { useTheme } from '@/composables/useTheme'
 import { useResizableColumns } from '@/composables/useResizableColumns'
-
-const { editorTheme } = useTheme()
 
 interface TestResult {
   passed?: boolean

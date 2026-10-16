@@ -124,7 +124,6 @@
               :read-only="true"
               height="450px"
               width="100%"
-              :theme="editorTheme"
             />
           </div>
 
@@ -197,9 +196,6 @@ import SubmissionDetailContent from '@/modals/submission-detail/SubmissionDetail
 import { provideContentContext } from '@/composables/useContentContext';
 import { formatTestValue } from '@/utils/testValueFormatter';
 import { log } from '@/utils/logger';
-import { useTheme } from '@/composables/useTheme';
-
-const { editorTheme } = useTheme();
 
 const ctx = provideContentContext();
 const route = useRoute();

@@ -154,13 +154,11 @@ interface Props {
   modelValue: string
   problem: ActivityProblem
   disabled?: boolean
-  theme?: string
   draftSaved?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
-  theme: 'dark',
   draftSaved: false,
 })
 

@@ -683,16 +683,6 @@
         "exampleGoodClaim3": "For all inputs, the output is greater than the input",
         "exampleGoodClaim4": "The function will always terminate in O(n) time"
       },
-      "themes": {
-        "monokai": "Monokai",
-        "github": "GitHub",
-        "cloudsMidnight": "Clouds Midnight",
-        "chrome": "Chrome",
-        "solarizedDark": "Solarized Dark",
-        "solarizedLight": "Solarized Light",
-        "dracula": "Dracula",
-        "tomorrowNight": "Tomorrow Night"
-      },
       "debugFixValidation": {
         "buggyCodeRequired": "Buggy code is required"
       },

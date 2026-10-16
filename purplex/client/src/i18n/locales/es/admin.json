@@ -704,16 +704,6 @@
         "exampleGoodClaim2": "La función nunca retorna None",
         "exampleGoodClaim3": "Para todas las entradas, la salida es mayor que la entrada",
         "exampleGoodClaim4": "La función siempre terminará en tiempo O(n)"
-      },
-      "themes": {
-        "monokai": "Monokai",
-        "github": "GitHub",
-        "cloudsMidnight": "Clouds Midnight",
-        "chrome": "Chrome",
-        "solarizedDark": "Solarized Dark",
-        "solarizedLight": "Solarized Light",
-        "dracula": "Dracula",
-        "tomorrowNight": "Tomorrow Night"
       }
     },
     "courseOverview": {

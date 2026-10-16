@@ -11,7 +11,6 @@
     v-model="inputValue"
     :problem="problem"
     :disabled="disabled"
-    :theme="theme"
     :draft-saved="draftSaved"
     @submit="$emit('submit')"
   />
@@ -43,15 +42,12 @@ interface Props {
   problem: ActivityProblem
   /** Whether input is disabled */
   disabled?: boolean
-  /** Editor theme name */
-  theme?: string
   /** Whether draft has been saved */
   draftSaved?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
-  theme: 'dark',
   draftSaved: false,
 })
 

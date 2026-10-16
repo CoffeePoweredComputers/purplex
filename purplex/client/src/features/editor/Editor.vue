@@ -3,7 +3,7 @@
     v-bind="$attrs"
     ref="vAceRef"
     :lang="lang"
-    :theme="theme"
+    :theme="editorTheme"
     :mode="mode"
     :style="editorStyle"
     :value="value"
@@ -30,15 +30,10 @@ let escapeHintCounter = 0
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { VAceEditor } from 'vue3-ace-editor'
+import { useTheme } from '@/composables/useTheme'
 import ace from 'ace-builds'
 import 'ace-builds/src-noconflict/mode-python'
-import 'ace-builds/src-noconflict/theme-clouds_midnight'
 import 'ace-builds/src-noconflict/theme-chrome'
-import 'ace-builds/src-noconflict/theme-monokai'
-import 'ace-builds/src-noconflict/theme-github'
-import 'ace-builds/src-noconflict/theme-solarized_dark'
-import 'ace-builds/src-noconflict/theme-solarized_light'
-import 'ace-builds/src-noconflict/theme-dracula'
 import 'ace-builds/src-noconflict/theme-tomorrow_night'
 
 // Marker definition for line highlighting
@@ -70,7 +65,6 @@ interface AceEditor {
 
 const props = withDefaults(defineProps<{
   lang?: string
-  theme?: string
   mode?: string
   height?: string
   width?: string
@@ -87,7 +81,6 @@ const props = withDefaults(defineProps<{
   placeholder?: string
 }>(), {
   lang: 'python',
-  theme: 'tomorrow_night',
   mode: 'python',
   height: '300px',
   width: '500px',
@@ -113,6 +106,7 @@ const emit = defineEmits<{
 defineOptions({ inheritAttrs: false })
 
 const { t } = useI18n()
+const { editorTheme } = useTheme()
 const escapeHintId = `editor-escape-hint-${++escapeHintCounter}`
 
 const editor = ref<AceEditor | null>(null)

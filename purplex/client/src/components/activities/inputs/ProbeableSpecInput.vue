@@ -61,7 +61,6 @@
         width="100%"
         :show-gutter="false"
         :wrap="true"
-        :theme="editorTheme"
         :placeholder="placeholder"
       />
     </div>
@@ -119,15 +118,12 @@ interface Props {
   problem: ActivityProblem
   /** Whether input is disabled (during submission) */
   disabled?: boolean
-  /** Editor theme */
-  theme?: string
   /** Whether draft has been saved */
   draftSaved?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
-  theme: 'dark',
   draftSaved: false,
 })
 
@@ -184,21 +180,6 @@ const isValid = computed(() => {
   const maxLength = props.problem?.input_config?.max_length ?? 1000
   const value = props.modelValue?.trim() || ''
   return value.length >= minLength && value.length <= maxLength
-})
-
-const editorTheme = computed(() => {
-  const themeMap: Record<string, string> = {
-    dark: 'tomorrow_night',
-    light: 'chrome',
-    monokai: 'monokai',
-    github: 'github',
-    'solarized-dark': 'solarized_dark',
-    'solarized-light': 'solarized_light',
-    dracula: 'dracula',
-    'tomorrow-night': 'tomorrow_night',
-    'clouds_midnight': 'clouds_midnight',
-  }
-  return themeMap[props.theme] || props.theme || 'tomorrow_night'
 })
 
 function handleSubmit() {

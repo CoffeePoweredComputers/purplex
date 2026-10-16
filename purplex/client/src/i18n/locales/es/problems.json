@@ -64,8 +64,6 @@
       "completedCount": "{count} completados",
       "inProgressCount": "{count} en progreso",
       "remainingCount": "{count} pendientes",
-      "editorThemeLabel": "Tema del editor",
-      "selectEditorTheme": "Seleccionar tema del editor",
       "aria": {
         "previousProblem": "Problema anterior",
         "nextProblem": "Problema siguiente",
@@ -122,16 +120,6 @@
         "segmentationPassedSingular": "✓ Alto nivel (1 segmento)",
         "segmentationFailed": "✗ Alto nivel ({count} segmentos, necesita ≤{threshold})",
         "segmentationFailedNeedOne": "✗ Alto nivel ({count} segmentos, necesita 1)"
-      },
-      "theme": {
-        "dark": "🌙 Oscuro",
-        "light": "☀️ Claro",
-        "monokai": "🎨 Monokai",
-        "github": "🐙 GitHub",
-        "solarizedDark": "🌅 Solarized Oscuro",
-        "solarizedLight": "🌅 Solarized Claro",
-        "dracula": "🧛 Dracula",
-        "tomorrowNight": "🌃 Tomorrow Night"
       }
     },
     "editor": {
@@ -140,10 +128,6 @@
       "lines": "Líneas",
       "noLines": "Sin Líneas",
       "escapeHint": "Presiona Escape para salir del editor",
-      "theme": {
-        "dark": "Oscuro",
-        "light": "Claro"
-      },
       "size": {
         "small": "Pequeño",
         "medium": "Mediano",
