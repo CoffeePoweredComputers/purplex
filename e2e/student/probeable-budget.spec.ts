@@ -17,12 +17,15 @@
  *     keep their values, so the button switches to "Already probed"; the spec
  *     enters new values before it reads the badge.
  *   - A duplicate input is answered from the client-side history: no request.
+ *   - The arguments are typed into one call line (#probe-args) as `a=1, b=2`;
+ *     once probes are exhausted it is contenteditable="false" + aria-disabled.
  */
 
 import { test, expect, Page, Response } from '@playwright/test';
 import { navigateAsFreshStudent, freshStudent, injectUser, enrollUser } from '../helpers/users';
 import { submitCodeAndWait } from '../helpers/submission';
 import { probe } from '../helpers/selectors';
+import { expectArgsEditable, fillProbeArgs } from '../helpers/probe';
 
 const SET_URL = '/courses/CS101-2024/problem-set/e2e-probeable';
 const BLOCK_URL = `${SET_URL}?p=0`;
@@ -37,16 +40,16 @@ function isProbePost(resp: Response, slug: string): boolean {
   );
 }
 
-/** Wait until the probe panel and its add(a, b) inputs are on screen. */
+/** Wait until the probe panel and its add(a, b) call line are on screen. */
 async function waitForProbePanel(page: Page): Promise<void> {
   await expect(page.locator(probe.panel)).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator(probe.paramInput('a'))).toBeVisible();
-  await expect(page.locator(probe.paramInput('b'))).toBeVisible();
+  await expect(page.locator('.probe-panel .fn-name')).toHaveText('add');
+  await expect(page.locator(probe.argsLine)).toBeVisible();
 }
 
+/** Type add(a=<a>, b=<b>) into the call line. */
 async function fillArgs(page: Page, a: string, b: string): Promise<void> {
-  await page.locator(probe.paramInput('a')).fill(a);
-  await page.locator(probe.paramInput('b')).fill(b);
+  await fillProbeArgs(page, `a=${a}, b=${b}`);
 }
 
 /**
@@ -128,7 +131,7 @@ test.describe('Probe budget: block mode', () => {
     await expect(page.locator(probe.result)).toHaveClass(/is-cached/);
 
     // Confirming the duplicate from the keyboard must not probe either.
-    await page.locator(probe.paramInput('b')).press('Enter');
+    await page.locator(probe.argsLine).press('Enter');
 
     // The duplicate was free: one probe is still left.
     await fillArgs(page, '3', '3');
@@ -144,8 +147,7 @@ test.describe('Probe budget: block mode', () => {
     // Exhausted state without a reload.
     await expect(page.locator(probe.hint)).toHaveText('No probes remaining.');
     await expect(page.locator(probe.button)).toBeDisabled();
-    await expect(page.locator(probe.paramInput('a'))).toBeDisabled();
-    await expect(page.locator(probe.paramInput('b'))).toBeDisabled();
+    await expectArgsEditable(page, false);
     await expect(page.locator(probe.historyButton)).toHaveText('History (3)');
 
     // Server-side state survives a fresh load (second tab, same student).
@@ -157,8 +159,7 @@ test.describe('Probe budget: block mode', () => {
       await expectBadge(freshTab, 0, 'status-exhausted');
       await expect(freshTab.locator(probe.hint)).toHaveText('No probes remaining.');
       await expect(freshTab.locator(probe.button)).toBeDisabled();
-      await expect(freshTab.locator(probe.paramInput('a'))).toBeDisabled();
-      await expect(freshTab.locator(probe.paramInput('b'))).toBeDisabled();
+      await expectArgsEditable(freshTab, false);
       await expect(freshTab.locator(probe.result)).toHaveText('6');
 
       // Earlier results stay readable from the history after exhaustion.
@@ -206,9 +207,9 @@ test.describe('Probe budget: block mode', () => {
     await expect(page.locator(probe.result)).toHaveClass(/is-cached/);
     await expect(page.locator(probe.result)).toHaveText('3');
 
-    // Enter in a parameter field is the keyboard path to "Probe". On a
+    // Enter in the call line is the keyboard path to "Probe". On a
     // duplicate it must do nothing, like the disabled button.
-    await page.locator(probe.paramInput('b')).press('Enter');
+    await page.locator(probe.argsLine).press('Enter');
 
     // Budget is server-side: a fresh load shows whether anything was spent.
     await page.reload({ waitUntil: 'networkidle' });
@@ -283,8 +284,7 @@ test.describe('Probe budget: cooldown mode', () => {
 
     await expect(page.locator(probe.hint)).toHaveText(refillHint);
     await expect(page.locator(probe.button)).toBeDisabled();
-    await expect(page.locator(probe.paramInput('a'))).toBeDisabled();
-    await expect(page.locator(probe.paramInput('b'))).toBeDisabled();
+    await expectArgsEditable(page, false);
 
     // One submission earns the refill.
     await submitCodeAndWait(page, ADD_SOLUTION);
@@ -298,8 +298,7 @@ test.describe('Probe budget: cooldown mode', () => {
       await waitForProbePanel(freshTab);
       await expectBadge(freshTab, 2, 'status-available');
       await expect(freshTab.locator(probe.hint)).toHaveCount(0);
-      await expect(freshTab.locator(probe.paramInput('a'))).toBeEnabled();
-      await expect(freshTab.locator(probe.paramInput('b'))).toBeEnabled();
+      await expectArgsEditable(freshTab, true);
     } finally {
       await freshTab.close();
     }
@@ -307,8 +306,7 @@ test.describe('Probe budget: cooldown mode', () => {
     // Without a reload, the page the student submitted from must show the
     // refilled budget too.
     await expect(page.locator(probe.hint)).toHaveCount(0);
-    await expect(page.locator(probe.paramInput('a'))).toBeEnabled();
-    await expect(page.locator(probe.paramInput('b'))).toBeEnabled();
+    await expectArgsEditable(page, true);
     await fillArgs(page, '3', '3');
     await expectBadge(page, 2, 'status-available');
 
@@ -337,21 +335,21 @@ test.describe('Probe budget: cooldown mode', () => {
     await expect(page.locator(probe.hint)).toHaveText(
       'No probes remaining. Submit 2 more times to unlock more probes.',
     );
-    await expect(page.locator(probe.paramInput('a'))).toBeDisabled();
+    await expectArgsEditable(page, false);
 
     // First submission: one more is still needed, and the budget stays empty.
     await submitCodeAndWait(page, ADD_SOLUTION);
     await expect(page.locator(probe.hint)).toHaveText(
       'No probes remaining. Submit 1 more time to unlock more probes.',
     );
-    await expect(page.locator(probe.paramInput('a'))).toBeDisabled();
+    await expectArgsEditable(page, false);
     await expect(page.locator(probe.button)).toBeDisabled();
     await expectBadge(page, 0, 'status-exhausted');
 
     // Second submission earns the refill.
     await submitCodeAndWait(page, ADD_SOLUTION);
     await expect(page.locator(probe.hint)).toHaveCount(0);
-    await expect(page.locator(probe.paramInput('a'))).toBeEnabled();
+    await expectArgsEditable(page, true);
     await fillArgs(page, '2', '2');
     await expectBadge(page, 1, 'status-available');
 

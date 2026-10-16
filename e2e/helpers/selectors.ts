@@ -247,8 +247,16 @@ export const common = {
 export const probe = {
   /** Panel root */
   panel: '.probe-panel',
-  /** Input for one parameter (Enter triggers a probe) */
-  paramInput: (name: string) => `input#probe-${name}.param-input`,
+  /** Row holding the call and the History button (wraps on narrow screens) */
+  row: '.probe-panel .probe-row',
+  /** Box around the call line: `name(` + arguments + `)` (.has-error / .is-disabled) */
+  callShell: '.probe-panel .call-shell',
+  /** Editable argument list between the parentheses (Enter probes, Tab fills names) */
+  argsLine: '#probe-args',
+  /** Closing parenthesis after the argument list */
+  closeParen: '.probe-panel .call-shell .fn-paren:last-of-type',
+  /** 'Fill in argument names' button: inserts `name=, name=` */
+  fillArgsButton: 'button.fill-args-btn',
   /** Result slot ('?' until a result; .has-result / .is-cached) */
   result: '.probe-panel .fn-result',
   /** Probe button ('Probe' | 'Probing' | 'Already probed', .is-duplicate) */
@@ -263,6 +271,8 @@ export const probe = {
   fieldErrors: 'ul.probe-field-errors',
   /** One parameter's field error */
   fieldError: (name: string) => `li#probe-err-${name}`,
+  /** Line-level error (unknown keyword, duplicate/empty argument, too many arguments) */
+  lineError: 'li#probe-err-line',
   /** 'History (N)' button, rendered only when history is non-empty */
   historyButton: '.probe-panel .history-btn',
   /** History modal (teleported to body) */

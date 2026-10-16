@@ -41,6 +41,7 @@ import { apiAs } from '../helpers/api';
 import { apiAsUser, enrollUser, freshStudent, injectUser, navigateAsFreshStudent } from '../helpers/users';
 import { submitCodeAndWait } from '../helpers/submission';
 import { codeFeedback, probe } from '../helpers/selectors';
+import { expectArgError, expectArgsEditable, fillProbeArgs } from '../helpers/probe';
 
 const PROBEABLE_PATH = '/courses/CS101-2024/problem-set/e2e-code?p=1';
 const TYPED_PROBEABLE_PATH = '/courses/CS101-2024/problem-set/e2e-code?p=2';
@@ -160,7 +161,6 @@ test.describe('Probeable Code Submission', () => {
     await expect(page.locator(probe.historyButton)).toHaveCount(0);
 
     // e2e-probeable-code-1 has signature: mystery(lst: list[int]) -> list[int]
-    const lstInput = page.locator(probe.paramInput('lst'));
     const probeBtn = page.locator(probe.button);
     const probes: Array<[string, number[]]> = [
       ['[3, 1, 2]', [1, 2, 3]],
@@ -168,7 +168,7 @@ test.describe('Probeable Code Submission', () => {
     ];
 
     for (const [value, expected] of probes) {
-      await lstInput.fill(value);
+      await fillProbeArgs(page, value);
       await expect(probeBtn).toBeEnabled();
       const responsePromise = page.waitForResponse(
         (resp) =>
@@ -207,22 +207,22 @@ test.describe('Probe Input Type Validation', () => {
     await waitForProbeableInput(page);
 
     // e2e-probeable-code-typed has signature: double(n: int) -> int
-    const nInput = page.locator(probe.paramInput('n'));
-    await expect(nInput).toBeVisible();
-    await expect(nInput).toBeEnabled();
+    await expect(page.locator(probe.argsLine)).toBeVisible();
+    await expectArgsEditable(page, true);
 
     const fieldErrors = page.locator(probe.fieldErrors);
+    const callShell = page.locator(probe.callShell);
     const probeBtn = page.locator(probe.button);
 
-    await nInput.fill('abc');
+    await fillProbeArgs(page, 'abc');
     await expect(fieldErrors).toBeVisible();
-    await expect(page.locator(probe.fieldError('n'))).toHaveText('n: Must be a whole number (e.g. 5)');
-    await expect(nInput).toHaveClass(/has-error/);
+    await expectArgError(page, 'n', 'n: Must be a whole number (e.g. 5)');
+    await expect(callShell).toHaveClass(/has-error/);
     await expect(probeBtn).toBeDisabled();
 
-    await nInput.fill('5');
+    await fillProbeArgs(page, '5');
     await expect(fieldErrors).toBeHidden();
-    await expect(nInput).not.toHaveClass(/has-error/);
+    await expect(callShell).not.toHaveClass(/has-error/);
     await expect(probeBtn).toBeEnabled();
   });
 });

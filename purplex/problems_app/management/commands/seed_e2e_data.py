@@ -755,6 +755,7 @@ class Command(BaseCommand):
         #   p=4  e2e-probeable-hidden     code, explore, hidden signature
         #   p=5  e2e-probeable-spec-open  spec, explore, no segmentation
         #   p=6  e2e-probeable-cooldown-2 code, cooldown 1 probe, +1 per 2 submits
+        #   p=7  e2e-probeable-list       code, explore, tag(items: list[str], prefix)
         #
         # These slugs are separate from the older probeable problems so their
         # defaults can be relied on (get_or_create ignores changed defaults).
@@ -1065,6 +1066,26 @@ class Command(BaseCommand):
                     "cooldown_refill": 1,
                 },
                 [([1, 2], 3, True)],
+            ),
+            (
+                # list[str] parameter: item types are validated on both sides.
+                ProbeableCodeProblem,
+                "e2e-probeable-list",
+                {
+                    "title": "E2E Probeable: List of Strings",
+                    "description": "Probe the function, then write it.",
+                    "function_signature": (
+                        "def tag(items: list[str], prefix: str) -> list[str]"
+                    ),
+                    "function_name": "tag",
+                    "reference_solution": (
+                        "def tag(items, prefix):\n"
+                        "    return [prefix + item for item in items]"
+                    ),
+                    "show_function_signature": True,
+                    "probe_mode": "explore",
+                },
+                [([["a", "b"], "x"], ["xa", "xb"], True)],
             ),
         ]
 
