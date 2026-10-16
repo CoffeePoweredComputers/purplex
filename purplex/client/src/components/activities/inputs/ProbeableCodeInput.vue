@@ -19,7 +19,9 @@
       :probe-count-display="probeCountDisplay"
       :probe-status-text="probeStatusHint"
       :probe-params="parameters"
-      :probe-inputs="probeInputs"
+      :args-line="argsLine"
+      :args-template="argsTemplate"
+      :line-error="lineError"
       :can-probe="canProbe"
       :is-executing="probing"
       :has-valid-inputs="hasValidInputs"
@@ -31,7 +33,7 @@
       :format-function-call="formatFunctionCall"
       :format-output="formatOutput"
       @execute-probe="executeProbe"
-      @update-input="updateProbeInput"
+      @update-args="setArgsLine"
     />
 
     <!-- Divider between probe and editor -->
@@ -140,7 +142,7 @@ const {
   probing,
   probeError,
   probeHistory,
-  probeInputs,
+  argsLine,
   functionName,
   parameters,
   canProbe,
@@ -149,12 +151,14 @@ const {
   probeStatusClass,
   hasValidInputs,
   inputErrors,
+  lineError,
+  argsTemplate,
   isDuplicate,
   cachedResult,
   executeProbe,
   formatFunctionCall,
   formatOutput,
-  updateProbeInput,
+  setArgsLine,
 } = useProbeState(() => props.problem, { isSubmitting: () => props.disabled })
 
 const { t } = useI18n()

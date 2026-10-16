@@ -23,6 +23,7 @@
 import { test, expect, Page } from '@playwright/test';
 import { setAceEditorValue } from '../helpers/ace-editor';
 import { probe, feedback, problemSet } from '../helpers/selectors';
+import { fillProbeArgs } from '../helpers/probe';
 import {
   FreshUser,
   apiAsUser,
@@ -64,9 +65,9 @@ async function openSpecProblem(
   return user;
 }
 
-/** Probe square(x=value) and wait for the oracle response. */
+/** Probe square(value) through the call line and wait for the oracle response. */
 async function probeX(page: Page, value: string): Promise<void> {
-  await page.locator(probe.paramInput('x')).fill(value);
+  await fillProbeArgs(page, value);
   const button = page.locator(probe.button);
   await expect(button).toBeEnabled();
   const responsePromise = page.waitForResponse(
@@ -110,13 +111,13 @@ test.describe('C24 Probeable Spec', () => {
     await probeX(page, '-2');
     await expect(page.locator(probe.result)).toHaveText('4');
     await expect(page.locator(probe.historyButton)).toHaveText('History (2)');
-    // The input still holds the last probed value, so the button reports it
+    // The call line still holds the last probed value, so the button reports it
     // as already probed (no badge while duplicate).
     await expect(page.locator(probe.button)).toHaveText(/Already probed/);
     await expect(page.locator(probe.button)).toHaveClass(/is-duplicate/);
     await expect(page.locator(probe.button)).toBeDisabled();
     // A new value re-enables probing; explore mode keeps the badge unlimited.
-    await page.locator(probe.paramInput('x')).fill('7');
+    await fillProbeArgs(page, 'x=7');
     await expect(page.locator(probe.button)).toBeEnabled();
     await expect(page.locator(probe.badge)).toHaveText('· ∞');
     await expect(page.locator(probe.badge)).toHaveClass(/status-explore/);

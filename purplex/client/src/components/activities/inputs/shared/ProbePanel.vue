@@ -3,36 +3,35 @@
     <div class="probe-input-wrapper">
       <div class="probe-row">
         <div class="probe-call">
-          <span class="fn-name">{{ functionName }}</span>
-          <span class="fn-paren">(</span>
-          <template
-            v-for="(param, i) in probeParams"
-            :key="param.name"
+          <!-- Call line: only the argument list between the parentheses is editable -->
+          <!-- Whitespace between these spans contains newlines, so Vue drops it -->
+          <div
+            class="call-shell"
+            :class="{ 'has-error': hasErrors, 'is-disabled': !editable }"
+            @click="focusArgs"
           >
+            <span class="fn-name">{{ functionName }}</span>
+            <span class="fn-paren">(</span>
             <span
-              v-if="i > 0"
-              class="fn-comma"
-            >, </span>
-            <span class="param-name">{{ param.name }}</span>
-            <span class="param-eq">=</span>
-            <input
-              :id="`probe-${param.name}`"
-              :value="probeInputs[param.name]"
-              type="text"
-              class="param-input"
-              :class="{ 'has-error': !!inputErrors[param.name] }"
-              :placeholder="param.type || $t('problems.probe.valuePlaceholderHint')"
-              :aria-label="param.type
-                ? $t('problems.probe.paramAriaLabel', { name: param.name, type: param.type })
-                : $t('problems.probe.paramAriaLabelNoType', { name: param.name })"
-              :aria-invalid="inputErrors[param.name] ? 'true' : undefined"
-              :aria-describedby="inputErrors[param.name] ? `probe-err-${param.name}` : undefined"
-              :disabled="!canProbe || isExecuting"
-              @input="$emit('update-input', param.name, ($event.target as HTMLInputElement).value)"
-              @keydown.enter="!isExecuting && canProbe && hasValidInputs && !isDuplicate && $emit('execute-probe')"
-            >
-          </template>
-          <span class="fn-paren">)</span>
+              id="probe-args"
+              ref="argsRef"
+              class="call-args"
+              :contenteditable="editable ? EDITABLE_MODE : 'false'"
+              role="textbox"
+              aria-multiline="false"
+              spellcheck="false"
+              :data-placeholder="argsPlaceholder"
+              :aria-placeholder="argsPlaceholder"
+              :aria-label="$t('problems.probe.argsAriaLabel', { name: functionName })"
+              :aria-disabled="editable ? undefined : 'true'"
+              :aria-invalid="hasErrors ? 'true' : undefined"
+              :aria-describedby="hasErrors ? 'probe-field-errors probe-args-help' : 'probe-args-help'"
+              @input="onArgsInput"
+              @keydown="onArgsKeydown"
+              @paste="onArgsPaste"
+            />
+            <span class="fn-paren">)</span>
+          </div>
           <span class="fn-arrow">→</span>
           <span
             class="fn-result"
@@ -57,11 +56,28 @@
         </button>
       </div>
 
-      <!-- Per-field type errors -->
+      <button
+        v-if="argsTemplate"
+        type="button"
+        class="fill-args-btn"
+        :disabled="!editable"
+        @click="fillArgs"
+      >
+        {{ $t('problems.probe.fillArgs') }}
+      </button>
+
+      <!-- Line-level and per-parameter errors -->
       <ul
+        id="probe-field-errors"
         class="probe-field-errors"
         aria-live="polite"
       >
+        <li
+          v-if="lineError"
+          id="probe-err-line"
+        >
+          {{ lineError }}
+        </li>
         <li
           v-for="(message, name) in inputErrors"
           :id="`probe-err-${name}`"
@@ -101,6 +117,14 @@
           >· {{ probeCountDisplay }}</span>
         </template>
       </button>
+
+      <!-- Keyboard instructions for the call line (visually hidden, via aria-describedby) -->
+      <div
+        id="probe-args-help"
+        class="sr-only"
+      >
+        {{ $t('problems.probe.argsHelp') }}
+      </div>
 
       <!-- Screen reader announcement (visually hidden) -->
       <div
@@ -174,10 +198,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ProbeHistoryEntry, ProbeParameter } from '../../types'
 import { useFocusTrap } from '@/composables/useFocusTrap'
+import { stableStringify } from './probeArgs'
 
 const { t } = useI18n()
 
@@ -187,7 +212,9 @@ interface Props {
   probeCountDisplay: string
   probeStatusText?: string
   probeParams: ProbeParameter[]
-  probeInputs: Record<string, string>
+  argsLine: string
+  argsTemplate: string
+  lineError: string | null
   canProbe: boolean
   isExecuting: boolean
   hasValidInputs: boolean
@@ -202,10 +229,174 @@ interface Props {
 
 const props = defineProps<Props>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'execute-probe'): void
-  (e: 'update-input', paramName: string, value: string): void
+  (e: 'update-args', text: string): void
 }>()
+
+/** 'plaintext-only' where supported; older browsers reject it and get plain 'true'. */
+function detectEditableMode(): 'plaintext-only' | 'true' {
+  try {
+    const probe = document.createElement('span')
+    probe.contentEditable = 'plaintext-only'
+    return probe.contentEditable === 'plaintext-only' ? 'plaintext-only' : 'true'
+  } catch {
+    return 'true'
+  }
+}
+
+const EDITABLE_MODE = detectEditableMode()
+
+const argsRef = ref<HTMLElement | null>(null)
+
+const editable = computed(() => props.canProbe && !props.isExecuting)
+const hasErrors = computed(() => !!props.lineError || Object.keys(props.inputErrors).length > 0)
+// Parameter names are not secret, so they show even when the signature is hidden
+// Types show only when the signature is visible: the backend sends '' otherwise
+const argsPlaceholder = computed(() =>
+  props.probeParams.map(p => (p.type ? `${p.name}: ${p.type}` : p.name)).join(', ')
+)
+
+// Keep the DOM in step when the line changes from outside (e.g. reset on a new
+// problem); while typing the two already match, so the caret is left alone.
+watch(
+  () => props.argsLine,
+  (line) => {
+    const el = argsRef.value
+    if (el && (el.textContent ?? '') !== line) {
+      el.textContent = line
+    }
+  },
+)
+
+// The line is not editable while a probe runs, which drops focus; give it back
+// afterwards so a keyboard user can keep probing with Enter. This watcher runs
+// before the DOM update, so focus is still on the line when a probe starts.
+let argsFocusedBeforeProbe = false
+watch(
+  () => props.isExecuting,
+  (executing) => {
+    if (executing) {
+      argsFocusedBeforeProbe = !!argsRef.value && document.activeElement === argsRef.value
+      return
+    }
+    if (!argsFocusedBeforeProbe) {
+      return
+    }
+    argsFocusedBeforeProbe = false
+    nextTick(() => {
+      const el = argsRef.value
+      if (el && editable.value) {
+        el.focus()
+        placeCaret(el, null)
+      }
+    })
+  },
+)
+
+onMounted(() => {
+  if (argsRef.value && props.argsLine) {
+    argsRef.value.textContent = props.argsLine
+  }
+})
+
+function emitArgs() {
+  const el = argsRef.value
+  if (!el) {
+    return
+  }
+  const text = el.textContent ?? ''
+  // A browser may leave a stray <br> once emptied; clear it so :empty shows the placeholder
+  if (text === '' && el.childNodes.length > 0) {
+    el.replaceChildren()
+  }
+  emit('update-args', text)
+}
+
+function onArgsInput() {
+  emitArgs()
+}
+
+function placeCaret(el: HTMLElement, offset: number | null) {
+  const selection = window.getSelection()
+  if (!selection) {
+    return
+  }
+  const range = document.createRange()
+  const textNode = el.firstChild
+  if (offset !== null && textNode?.nodeType === Node.TEXT_NODE) {
+    range.setStart(textNode, Math.min(offset, textNode.textContent?.length ?? 0))
+    range.collapse(true)
+  } else {
+    range.selectNodeContents(el)
+    range.collapse(false)
+  }
+  selection.removeAllRanges()
+  selection.addRange(range)
+}
+
+/** Insert `name=, name=, ...` with the caret after the first `=`. */
+function fillArgs() {
+  const el = argsRef.value
+  if (!el || !editable.value || !props.argsTemplate) {
+    return
+  }
+  el.textContent = props.argsTemplate
+  emitArgs()
+  el.focus()
+  placeCaret(el, props.argsTemplate.indexOf('=') + 1)
+}
+
+function focusArgs(event: MouseEvent) {
+  const el = argsRef.value
+  if (el && editable.value && event.target !== el) {
+    el.focus()
+    placeCaret(el, null)
+  }
+}
+
+function onArgsKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter') {
+    // One logical line: Enter probes, Shift+Enter does nothing
+    event.preventDefault()
+    if (!event.shiftKey && !props.isExecuting && props.canProbe && props.hasValidInputs && !props.isDuplicate) {
+      emit('execute-probe')
+    }
+    return
+  }
+  if (event.key === 'Tab' && !event.shiftKey && (argsRef.value?.textContent ?? '').trim() === '' && props.argsTemplate) {
+    event.preventDefault()
+    fillArgs()
+  }
+}
+
+/** Paste as plain text on one line, for browsers that ignore plaintext-only. */
+function onArgsPaste(event: ClipboardEvent) {
+  event.preventDefault()
+  const text = (event.clipboardData?.getData('text/plain') ?? '').replace(/\r?\n/g, ' ')
+  if (!text) {
+    return
+  }
+  // execCommand keeps the native undo stack; it is deprecated but still the only way to
+  // do that, so fall back to a Selection edit where it is unsupported
+  if (document.execCommand?.('insertText', false, text)) {
+    return
+  }
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0) {
+    return
+  }
+  const range = selection.getRangeAt(0)
+  range.deleteContents()
+  const node = document.createTextNode(text)
+  range.insertNode(node)
+  range.setStartAfter(node)
+  range.collapse(true)
+  selection.removeAllRanges()
+  selection.addRange(range)
+  argsRef.value?.normalize()
+  emitArgs()
+}
 
 const showModal = ref(false)
 const showResultFlash = ref(false)
@@ -217,7 +408,7 @@ const { modalContentRef } = useFocusTrap(showModal)
 const uniqueHistory = computed(() => {
   const seen = new Set<string>()
   return props.probeHistory.filter(entry => {
-    const key = JSON.stringify(entry.input)
+    const key = stableStringify(entry.input)
     if (seen.has(key)) {return false}
     seen.add(key)
     return true
@@ -296,9 +487,11 @@ watch(() => props.probeHistory.length, () => {
   border-color: var(--color-primary-gradient-start);
 }
 
-/* Row containing probe-call and history button */
+/* Row containing probe-call and history button; wraps so a narrow screen
+   gives the call line the full width */
 .probe-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-md);
@@ -312,7 +505,9 @@ watch(() => props.probeHistory.length, () => {
   font-size: var(--font-size-base);
   color: var(--color-text-primary);
   flex-wrap: wrap;
-  flex: 1;
+
+  /* A real basis (not 0) so the history button wraps below on narrow screens */
+  flex: 1 1 16rem;
   min-width: 0;
 }
 
@@ -348,58 +543,99 @@ watch(() => props.probeHistory.length, () => {
   font-weight: 600;
 }
 
-.fn-paren,
-.fn-comma {
+.fn-paren {
   color: var(--color-text-muted);
+  font-weight: 400;
 }
 
-.param-name {
-  color: var(--color-text-secondary);
-}
-
-.param-eq {
-  color: var(--color-text-muted);
-  margin: 0 2px;
-}
-
-.param-input {
-  width: 72px;
-  height: 28px;
-  padding: 0 var(--spacing-sm);
+/* Call line: inline flow, so the closing paren trails the last argument character */
+.call-shell {
+  flex: 1 1 16rem;
+  min-width: 0;
+  min-height: 32px;
+  padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-input);
   border: 1px solid var(--color-bg-border);
   border-radius: var(--radius-sm);
-  color: var(--color-text-primary);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: var(--font-size-sm);
-  text-align: center;
+  line-height: 1.6;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: text;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.param-input::placeholder {
-  color: var(--color-text-muted);
-  opacity: 0.5;
-  font-size: var(--font-size-xs);
+.call-shell .fn-name,
+.call-shell .fn-paren {
+  user-select: none;
 }
 
-.param-input:focus {
-  outline: none;
+.call-shell:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-overlay);
 }
 
-.param-input.has-error {
+/* Forced-colors mode drops box-shadow and recolours borders: keep a visible focus ring */
+@media (forced-colors: active) {
+  .call-shell:focus-within {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+}
+
+.call-shell.has-error {
   border-color: var(--color-error);
 }
 
-.param-input.has-error:focus {
-  border-color: var(--color-error);
+.call-shell.has-error:focus-within {
   box-shadow: 0 0 0 2px var(--color-error-overlay);
 }
 
-.param-input:disabled {
+.call-shell.is-disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.call-args {
+  padding: 0 2px;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  outline: none;
+}
+
+.call-args:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.fill-args-btn {
+  display: block;
+  margin-top: var(--spacing-xs);
+  padding: 2px var(--spacing-sm);
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-bg-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.fill-args-btn:focus-visible {
+  outline: 2px solid var(--color-primary-gradient-start);
+  outline-offset: 2px;
+}
+
+.fill-args-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fill-args-btn:hover:not(:disabled) {
+  border-color: var(--color-primary-gradient-start);
+  color: var(--color-text-primary);
 }
 
 .fn-arrow {

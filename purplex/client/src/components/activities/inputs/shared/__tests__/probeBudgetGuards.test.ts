@@ -25,7 +25,7 @@ describe('useProbeState budget guards', () => {
     const state = withSetup(() => useProbeState(problem))
     await flushPromises()
 
-    state.updateProbeInput('x', '5')
+    state.setArgsLine('5')
     await state.executeProbe()
     expect(axios.post).toHaveBeenCalledTimes(1)
 
@@ -66,7 +66,9 @@ function mountPanel(overrides: Record<string, unknown>) {
       probeCountDisplay: '2 left',
       probeStatusText: '',
       probeParams: [{ name: 'x', type: 'int' }],
-      probeInputs: { x: '5' },
+      argsLine: '5',
+      argsTemplate: 'x=',
+      lineError: null,
       canProbe: true,
       isExecuting: false,
       hasValidInputs: true,
@@ -85,11 +87,11 @@ function mountPanel(overrides: Record<string, unknown>) {
 describe('ProbePanel duplicate and exhausted states', () => {
   it('does not emit a probe when Enter is pressed on a duplicate input', async () => {
     const wrapper = mountPanel({})
-    await wrapper.find('#probe-x').trigger('keydown', { key: 'Enter' })
+    await wrapper.find('#probe-args').trigger('keydown', { key: 'Enter' })
     expect(wrapper.emitted('execute-probe')).toBeUndefined()
 
     await wrapper.setProps({ isDuplicate: false, cachedResult: null })
-    await wrapper.find('#probe-x').trigger('keydown', { key: 'Enter' })
+    await wrapper.find('#probe-args').trigger('keydown', { key: 'Enter' })
     expect(wrapper.emitted('execute-probe')).toHaveLength(1)
   })
 
