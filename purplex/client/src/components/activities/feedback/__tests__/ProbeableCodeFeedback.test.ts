@@ -48,6 +48,8 @@ describe('ProbeableCodeFeedback ladder', () => {
     expect(failing.find('.expected').text()).toBe('1')
     expect(failing.find('.actual').text()).toBe('-1')
     expect(failing.find('.actual').classes()).not.toContain('is-error')
+    // Two-line diff: the "got" line precedes the "expected" line
+    expect(failing.findAll('.diff-label').map((l) => l.text())).toEqual(['got', 'expected'])
   })
 
   it('never reveals how the locked tests fared', () => {

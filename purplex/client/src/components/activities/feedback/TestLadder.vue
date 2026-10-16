@@ -79,15 +79,24 @@
           <span class="row-toggle" />
           <span class="row-body">
             <code class="test-call">{{ test.function_call }}</code>
-            <span
-              class="arrow"
-              aria-hidden="true"
-            >→</span>
-            <code
-              class="actual"
-              :class="{ 'is-error': test.error }"
-            >{{ test.error || formatTestValue(test.actual_output) }}</code>
-            <span class="expected-inline">{{ $t('feedback.tests.expectedInline') }} <code class="expected">{{ formatTestValue(test.expected_output) }}</code></span>
+            <!-- Two-line diff: "− got <actual>" over "+ expected <expected>" -->
+            <span class="diff">
+              <span
+                class="diff-sign got"
+                aria-hidden="true"
+              >−</span>
+              <span class="diff-label">{{ $t('feedback.tests.gotInline') }}</span>
+              <code
+                class="actual"
+                :class="{ 'is-error': test.error }"
+              >{{ test.error || formatTestValue(test.actual_output) }}</code>
+              <span
+                class="diff-sign want"
+                aria-hidden="true"
+              >+</span>
+              <span class="diff-label">{{ $t('feedback.tests.expectedInline') }}</span>
+              <code class="expected">{{ formatTestValue(test.expected_output) }}</code>
+            </span>
           </span>
           <span
             class="row-status"
@@ -322,28 +331,40 @@ button.ledger-row:hover {
   background: var(--color-error-overlay);
 }
 
+/* Failing row: call on its own line, then a two-line diff beneath it.
+   One grid holds both lines so the labels and values align vertically. */
+.ledger-row.fail .row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diff {
+  display: grid;
+  grid-template-columns: 1.5ch max-content minmax(0, 1fr);
+  column-gap: var(--spacing-xs);
+}
+
+.diff-sign {
+  font-weight: 700;
+}
+
+.diff-label {
+  color: var(--color-text-muted);
+}
+
+.diff-sign.got,
 .actual {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
-  padding: 2px 6px;
-  border-radius: 3px;
+  color: var(--color-error);
+}
+
+.diff-sign.want,
+.expected {
+  color: var(--color-success);
 }
 
 .actual.is-error {
   font-style: italic;
-}
-
-.expected-inline {
-  margin-left: var(--spacing-sm);
-  color: var(--color-success);
-  font-size: var(--font-size-xs);
-}
-
-.expected {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-  padding: 2px 6px;
-  border-radius: 3px;
 }
 
 .ledger-row.lock {
