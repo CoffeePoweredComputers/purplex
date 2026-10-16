@@ -42,7 +42,7 @@ flower>=2.0.1                        # Celery monitoring dashboard (used by star
 # ---------------------------------------------------------------------------
 # External Services
 # ---------------------------------------------------------------------------
-openai>=1.40.6                       # OpenAI SDK (works with any OpenAI-compatible API)
+openai>=1.40.6,<3                    # OpenAI SDK (any OpenAI-compatible API). 3.x pulls in truststore, whose SSL handshake breaks under gevent monkey-patching: "SSLSocket.do_handshake() takes 1 positional argument but 2 were given"
 firebase-admin>=6.5.0                # Firebase Auth admin SDK
 sentry-sdk[django]>=2.19.0          # Error tracking; config in settings/production.py
 
