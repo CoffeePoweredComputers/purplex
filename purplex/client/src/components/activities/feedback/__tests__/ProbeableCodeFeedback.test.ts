@@ -103,7 +103,7 @@ describe('ProbeableCodeFeedback ladder', () => {
     expect(wrapper.findAll('.ledger-row.pass')).toHaveLength(2)
   })
 
-  it('passed rows start closed and open from the row or its pip', async () => {
+  it('passed rows always show their result and nothing in the ladder toggles', () => {
     const visible = [row(true, 0), row(true, 1), row(false, 2)]
     const wrapper = mountFeedback({
       success: false,
@@ -115,19 +115,14 @@ describe('ProbeableCodeFeedback ladder', () => {
     })
 
     const rows = wrapper.findAll('.ledger-row.pass')
-    expect(rows[0].classes()).toContain('closed')
-    expect(rows[0].attributes('aria-expanded')).toBe('false')
-
-    await rows[0].trigger('click')
-    expect(wrapper.findAll('.ledger-row.pass')[0].classes()).toContain('open')
-    expect(wrapper.findAll('.ledger-row.pass')[0].find('.result').text()).toBe('0')
-    expect(wrapper.findAll('.pip.pass')[0].attributes('aria-pressed')).toBe('true')
-
-    await wrapper.findAll('.pip.pass')[1].trigger('click')
-    expect(wrapper.findAll('.ledger-row.pass')[1].classes()).toContain('open')
-
-    await wrapper.findAll('.pip.pass')[0].trigger('click')
-    expect(wrapper.findAll('.ledger-row.pass')[0].classes()).toContain('closed')
+    expect(rows).toHaveLength(2)
+    expect(rows[0].find('.test-call').text()).toBe('f(0)')
+    expect(rows[0].find('.result').text()).toBe('0')
+    expect(rows[1].find('.result').text()).toBe('1')
+    // No buttons, no expand/collapse state, no pressed pips
+    expect(wrapper.findAll('.test-ladder button').map((b) => b.classes())).toEqual([['debug-btn']])
+    expect(wrapper.find('[aria-expanded]').exists()).toBe(false)
+    expect(wrapper.find('[aria-pressed]').exists()).toBe(false)
   })
 
   it('marks a runtime error on the failing row', () => {
