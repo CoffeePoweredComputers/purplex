@@ -150,92 +150,90 @@
         />
       </section>
 
-      <!-- Test Summary Bar -->
-      <div class="test-summary-bar">
-        <div class="summary-counts">
-          <span class="count-item passing">✓ {{ $t('feedback.tests.passing', { count: passingCount }) }}</span>
-          <span class="count-item failing">✗ {{ $t('feedback.tests.failing', { count: failingCount }) }}</span>
-          <span
-            v-if="lockedCount > 0"
-            class="count-item locked"
-          >{{ $t(lockedCount === 1 ? 'feedback.tests.lockedOne' : 'feedback.tests.locked', { count: lockedCount }) }}</span>
+      <!-- Test results: ordered ladder (probeable) or pass/fail groups -->
+      <TestLadder
+        v-if="layout === 'ladder'"
+        :tests="testResults"
+        :locked-count="lockedCount"
+        :total-count="totalCount"
+        @debug="openDebugger"
+      />
+      <template v-else>
+        <div class="test-summary-bar">
+          <div class="summary-counts">
+            <span class="count-item passing">✓ {{ $t('feedback.tests.passing', { count: passingTests.length }) }}</span>
+            <span class="count-item failing">✗ {{ $t('feedback.tests.failing', { count: failingTests.length }) }}</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Test Results -->
-      <section class="test-results">
-        <!-- Failing Tests (expanded by default) -->
-        <details
-          v-if="failingTests.length > 0"
-          open
-          class="test-group"
-        >
-          <summary class="test-group-header failing">
-            <span class="group-icon">▶</span>
-            {{ $t('feedback.tests.failingGroup', { count: failingTests.length }) }}
-          </summary>
-          <div class="test-list">
-            <article
-              v-for="(test, i) in failingTests"
-              :key="`fail-${i}`"
-              class="test-item failing"
-            >
-              <div class="test-content">
-                <code class="test-call">{{ test.function_call }}</code>
-                <div class="test-diff">
-                  <div>{{ $t('feedback.tests.expected') }} <code class="expected">{{ formatValue(test.expected_output) }}</code></div>
-                  <div>
-                    {{ $t('feedback.tests.got') }} <code
-                      class="actual"
-                      :class="{ 'is-error': test.error }"
-                    >{{ test.error || formatValue(test.actual_output) }}</code>
+        <section class="test-results">
+          <!-- Failing Tests (expanded by default) -->
+          <details
+            v-if="failingTests.length > 0"
+            open
+            class="test-group"
+          >
+            <summary class="test-group-header failing">
+              <span class="group-icon">▶</span>
+              {{ $t('feedback.tests.failingGroup', { count: failingTests.length }) }}
+            </summary>
+            <div class="test-list">
+              <article
+                v-for="(test, i) in failingTests"
+                :key="`fail-${i}`"
+                class="test-item failing"
+              >
+                <div class="test-content">
+                  <code class="test-call">{{ test.function_call }}</code>
+                  <div class="test-diff">
+                    <div>{{ $t('feedback.tests.expected') }} <code class="expected">{{ formatTestValue(test.expected_output) }}</code></div>
+                    <div>
+                      {{ $t('feedback.tests.got') }} <code
+                        class="actual"
+                        :class="{ 'is-error': test.error }"
+                      >{{ test.error || formatTestValue(test.actual_output) }}</code>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <button
-                class="debug-btn"
-                :aria-label="$t('feedback.codeSubmission.debugTestCase', { call: test.function_call })"
-                @click="openDebugger(test)"
-              >
-                <span aria-hidden="true">🔍</span>
-              </button>
-            </article>
-            <p
-              v-if="lockedCount > 0"
-              class="locked-note"
-            >
-              {{ $t('feedback.tests.lockedNote') }}
-            </p>
-          </div>
-        </details>
+                <button
+                  class="debug-btn"
+                  :aria-label="$t('feedback.codeSubmission.debugTestCase', { call: test.function_call })"
+                  @click="openDebugger(test)"
+                >
+                  <span aria-hidden="true">🔍</span>
+                </button>
+              </article>
+            </div>
+          </details>
 
-        <!-- Passing Tests (collapsed by default) -->
-        <details
-          v-if="passingTests.length > 0"
-          class="test-group"
-        >
-          <summary
-            class="test-group-header passing"
-            tabindex="0"
-            role="button"
-            aria-expanded="false"
+          <!-- Passing Tests (collapsed by default) -->
+          <details
+            v-if="passingTests.length > 0"
+            class="test-group"
           >
-            <span class="group-icon">▶</span>
-            {{ $t('feedback.tests.passingGroup', { count: passingTests.length }) }}
-          </summary>
-          <div class="test-list">
-            <article
-              v-for="(test, i) in passingTests"
-              :key="`pass-${i}`"
-              class="test-item passing"
+            <summary
+              class="test-group-header passing"
+              tabindex="0"
+              role="button"
+              aria-expanded="false"
             >
-              <div class="test-content">
-                <code class="test-call">{{ test.function_call }} → {{ formatValue(test.expected_output) }}</code>
-              </div>
-            </article>
-          </div>
-        </details>
-      </section>
+              <span class="group-icon">▶</span>
+              {{ $t('feedback.tests.passingGroup', { count: passingTests.length }) }}
+            </summary>
+            <div class="test-list">
+              <article
+                v-for="(test, i) in passingTests"
+                :key="`pass-${i}`"
+                class="test-item passing"
+              >
+                <div class="test-content">
+                  <code class="test-call">{{ test.function_call }} → {{ formatTestValue(test.expected_output) }}</code>
+                </div>
+              </article>
+            </div>
+          </details>
+        </section>
+      </template>
     </template>
 
     <!-- Empty State -->
@@ -268,8 +266,8 @@
  *
  * Features:
  * - Read-only code editor showing submitted code
- * - Clear test summary (passing/failing counts)
- * - Failing tests expanded by default
+ * - Test results as pass/fail groups (debug_fix) or as an ordered ladder
+ *   with locked tests (probeable_code, `layout="ladder"`)
  * - PyTutor integration for debugging
  * - Historical attempt navigation
  */
@@ -278,16 +276,10 @@ import Editor from '@/features/editor/Editor.vue'
 import PyTutorModal from '@/modals/PyTutorModal.vue'
 import { PythonTutorService } from '@/services/pythonTutor.service'
 import type { SubmissionHistoryItem } from '@/types'
+import TestLadder from './TestLadder.vue'
+import { type FeedbackTestRow, formatTestValue, isPassingRow } from './feedbackTests'
 
-// Test case structure from backend
-interface TestCase {
-  function_call: string
-  expected_output: unknown
-  actual_output: unknown
-  isSuccessful: boolean
-  error?: string
-  pass?: boolean  // Legacy field
-}
+type TestCase = FeedbackTestRow
 
 interface Props {
   /** The student's submitted code */
@@ -302,11 +294,11 @@ interface Props {
   isNavigating?: boolean
   /** Section title */
   title?: string
-  /** Tests hidden after the first failure (probeable_code only) */
+  /** 'groups' = pass/fail groups; 'ladder' = ordered pips + ledger with locked tests */
+  layout?: 'groups' | 'ladder'
+  /** Tests hidden after the first failure (ladder only) */
   lockedCount?: number
-  /** Passed count over ALL tests, when the rows shown are truncated */
-  passedCount?: number | null
-  /** Total test count, when the rows shown are truncated */
+  /** Total test count including locked ones (ladder only) */
   totalCount?: number | null
 }
 
@@ -315,8 +307,8 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   isNavigating: false,
   title: undefined,
+  layout: 'groups',
   lockedCount: 0,
-  passedCount: null,
   totalCount: null,
 })
 
@@ -342,26 +334,8 @@ const hasResults = computed(() => props.testResults.length > 0 || props.studentC
 
 const totalAttempts = computed(() => props.submissionHistory.length)
 
-const passingTests = computed(() =>
-  props.testResults.filter(t => t.isSuccessful || t.pass)
-)
-
-const failingTests = computed(() =>
-  props.testResults.filter(t => !t.isSuccessful && !t.pass)
-)
-
-// Summary-bar counts cover every test when the caller supplies totals (rows
-// after the first failure are locked and not in testResults); otherwise they
-// fall back to counting the rows shown.
-const hasFullCounts = computed(() => props.passedCount !== null && props.totalCount !== null)
-const passingCount = computed(() =>
-  hasFullCounts.value ? (props.passedCount as number) : passingTests.value.length
-)
-const failingCount = computed(() =>
-  hasFullCounts.value
-    ? (props.totalCount as number) - (props.passedCount as number)
-    : failingTests.value.length
-)
+const passingTests = computed(() => props.testResults.filter(isPassingRow))
+const failingTests = computed(() => props.testResults.filter(t => !isPassingRow(t)))
 
 const scoreClass = computed(() => getScoreClass(currentScore.value))
 
@@ -378,15 +352,6 @@ function getScoreIcon(score: number): string {
   if (score >= 80) {return '✓'}
   if (score >= 60) {return '~'}
   return '✗'
-}
-
-function formatValue(value: unknown): string {
-  if (value === null) {return 'None'}
-  if (value === undefined) {return 'undefined'}
-  if (typeof value === 'string') {return `"${value}"`}
-  if (Array.isArray(value)) {return JSON.stringify(value)}
-  if (typeof value === 'object') {return JSON.stringify(value)}
-  return String(value)
 }
 
 function formatTime(timestamp: string): string {
@@ -978,16 +943,6 @@ onBeforeUnmount(() => {
 
 .count-item.failing {
   color: var(--color-error);
-}
-
-.count-item.locked {
-  color: var(--color-text-muted);
-}
-
-.locked-note {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
 }
 
 /* Test Results - Aligned with Feedback.vue */

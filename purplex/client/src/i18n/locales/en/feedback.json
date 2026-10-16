@@ -70,9 +70,15 @@
       "passingGroup": "Passing Tests ({count})",
       "expected": "Expected:",
       "got": "Got:",
-      "locked": "🔒 {count} more tests locked",
-      "lockedOne": "🔒 1 more test locked",
-      "lockedNote": "Remaining tests unlock once this test passes. Keep probing to discover more behavior."
+      "ladderLabel": "Tests in order",
+      "pipPassed": "Test {n} passed",
+      "pipFailed": "Test {n} failed",
+      "pipLocked": "Test {n} locked",
+      "unlockHint": "Unlocks when test {n} passes",
+      "rowPassed": "Test {n} passed: {call}. Toggle details",
+      "expectedInline": "expected",
+      "lockedRow": "{count} more tests · unlock when test {n} passes",
+      "lockedRowOne": "1 more test · unlock when test {n} passes"
     },
     "solution": {
       "title": "Solution {current} of {total}"

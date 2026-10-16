@@ -7,7 +7,8 @@
  *
  * Truncation rule (#165): the rows shown are the passing tests up to the
  * first failure plus that first failing test; every later test is locked.
- * The summary bar's pass/fail counts still cover all four tests.
+ * The ladder shows one pip per test (pass / fail / locked) and never the
+ * outcome of a locked test.
  *
  * With CELERY_EAGER=true, POST /api/submit/ grades synchronously in the Docker
  * sandbox. Every test uses a fresh student, so attempts never leak between
@@ -51,23 +52,22 @@ async function submitAndGrade(page: Page, code: string): Promise<void> {
   await submitCodeAndWait(page, code, GRADING_TIMEOUT);
 }
 
-async function expectSummary(
+/** Pips in order (pass, fail, locked) and the locked row under the ledger. */
+async function expectLadder(
   page: Page,
-  passing: number,
-  failing: number,
+  pass: number,
+  fail: number,
+  locked: number,
   lockedText: string | null,
 ): Promise<void> {
-  await expect(page.locator(codeFeedback.passing)).toHaveText(`✓ ${passing} Passing`);
-  await expect(page.locator(codeFeedback.failing)).toHaveText(`✗ ${failing} Failing`);
+  await expect(page.locator(codeFeedback.pip)).toHaveCount(pass + fail + locked);
+  await expect(page.locator(codeFeedback.pipPass)).toHaveCount(pass);
+  await expect(page.locator(codeFeedback.pipFail)).toHaveCount(fail);
+  await expect(page.locator(codeFeedback.pipLock)).toHaveCount(locked);
   if (lockedText === null) {
-    await expect(page.locator(codeFeedback.locked)).toHaveCount(0);
-    await expect(page.locator(codeFeedback.lockedNote)).toHaveCount(0);
+    await expect(page.locator(codeFeedback.lockedRow)).toHaveCount(0);
   } else {
-    await expect(page.locator(codeFeedback.locked)).toHaveText(lockedText);
-    await expect(page.locator(codeFeedback.lockedNote)).toBeVisible();
-    await expect(page.locator(codeFeedback.lockedNote)).toHaveText(
-      'Remaining tests unlock once this test passes. Keep probing to discover more behavior.',
-    );
+    await expect(page.locator(codeFeedback.lockedRow)).toHaveText(lockedText);
   }
 }
 
@@ -85,15 +85,19 @@ async function expectSingleFailingRow(
   await expect(failing.locator('.actual')).not.toHaveClass(/is-error/);
 }
 
-/** Expand the collapsed passing group and check its rows, in order. */
-async function expectPassingRows(page: Page, rows: string[]): Promise<void> {
-  const header = page.locator('summary.test-group-header.passing');
-  await expect(header).toContainText(`Passing Tests (${rows.length})`);
+/** Passed rows start closed; open each one and check call and result, in order. */
+async function expectPassingRows(page: Page, rows: Array<[string, string]>): Promise<void> {
   const items = page.locator(codeFeedback.passingItem);
   await expect(items).toHaveCount(rows.length);
-  await header.click();
-  await expect(items.first()).toBeVisible();
-  await expect(items.locator('.test-call')).toHaveText(rows);
+  for (let i = 0; i < rows.length; i++) {
+    const row = items.nth(i);
+    await expect(row).toHaveClass(/closed/);
+    await expect(row.locator('.result')).toBeHidden();
+    await row.click();
+    await expect(row).toHaveClass(/open/);
+    await expect(row.locator('.test-call')).toHaveText(rows[i][0]);
+    await expect(row.locator('.result')).toHaveText(rows[i][1]);
+  }
 }
 
 async function expectAttemptBadge(page: Page, attemptText: string, score: string): Promise<void> {
@@ -138,7 +142,7 @@ test.describe('B14 rejected submissions', () => {
       /Submit your solution to see test results/,
     );
     await expect(page.locator('.feedback-header')).toHaveCount(0);
-    await expect(page.locator(codeFeedback.summaryBar)).toHaveCount(0);
+    await expect(page.locator(codeFeedback.ladder)).toHaveCount(0);
     await expect(page.locator(codeFeedback.attemptTrigger)).toHaveCount(0);
   });
 });
@@ -179,16 +183,16 @@ test.describe('B15 grading in progress', () => {
     await expect(submitButton.locator('.bouncing-dots')).toBeVisible();
     await expect(panel).toBeVisible();
     await expect(panel.locator('.generating-message')).toHaveText('Running tests...');
-    await expect(page.locator(codeFeedback.summaryBar)).toHaveCount(0);
+    await expect(page.locator(codeFeedback.ladder)).toHaveCount(0);
 
     release();
     expect((await responsePromise).status()).toBe(202);
 
-    await expect(page.locator(codeFeedback.summaryBar)).toBeVisible({ timeout: GRADING_TIMEOUT });
+    await expect(page.locator(codeFeedback.ladder)).toBeVisible({ timeout: GRADING_TIMEOUT });
     await expect(panel).toHaveCount(0);
     await expect(submitButton.locator('.bouncing-dots')).toHaveCount(0);
     await expect(submitButton).toBeEnabled();
-    await expectSummary(page, 4, 0, null);
+    await expectLadder(page, 4, 0, 0, null);
   });
 });
 
@@ -206,13 +210,13 @@ test.describe('B16-B19 graded feedback and test locking', () => {
     await expect(
       page.locator('.notification-container .notification.success .notification-message'),
     ).toHaveText('Problem 3: 4/4 tests passed');
-    await expectSummary(page, 4, 0, null);
+    await expectLadder(page, 4, 0, 0, null);
     await expect(page.locator(codeFeedback.failingItem)).toHaveCount(0);
     await expectPassingRows(page, [
-      'clamp(5) → 5',
-      'clamp(0) → 0',
-      'clamp(-3) → 0',
-      'clamp(20) → 10',
+      ['clamp(5)', '5'],
+      ['clamp(0)', '0'],
+      ['clamp(-3)', '0'],
+      ['clamp(20)', '10'],
     ]);
     await expectAttemptBadge(page, '1/1', '100');
   });
@@ -225,9 +229,8 @@ test.describe('B16-B19 graded feedback and test locking', () => {
     await expectSingleFailingRow(page, 'clamp(5)', '5', '0');
     // The first test failed, so no passing rows come before it.
     await expect(page.locator(codeFeedback.passingItem)).toHaveCount(0);
-    await expect(page.locator('summary.test-group-header.passing')).toHaveCount(0);
     // Counts still cover the three locked tests, which pass.
-    await expectSummary(page, 3, 1, '🔒 3 more tests locked');
+    await expectLadder(page, 0, 1, 3, '3 more tests · unlock when test 1 passes');
     await expectAttemptBadge(page, '1/1', '75');
   });
 
@@ -237,8 +240,8 @@ test.describe('B16-B19 graded feedback and test locking', () => {
     await submitAndGrade(page, SOLUTIONS.identity);
 
     await expectSingleFailingRow(page, 'clamp(-3)', '0', '-3');
-    await expectSummary(page, 2, 2, '🔒 1 more test locked');
-    await expectPassingRows(page, ['clamp(5) → 5', 'clamp(0) → 0']);
+    await expectLadder(page, 2, 1, 1, '1 more test · unlock when test 3 passes');
+    await expectPassingRows(page, [['clamp(5)', '5'], ['clamp(0)', '0']]);
   });
 
   test('B17b nothing is locked when only the last test fails', async ({ page }) => {
@@ -247,8 +250,8 @@ test.describe('B16-B19 graded feedback and test locking', () => {
     await submitAndGrade(page, SOLUTIONS.failsLast);
 
     await expectSingleFailingRow(page, 'clamp(20)', '10', '20');
-    await expectSummary(page, 3, 1, null);
-    await expectPassingRows(page, ['clamp(5) → 5', 'clamp(0) → 0', 'clamp(-3) → 0']);
+    await expectLadder(page, 3, 1, 0, null);
+    await expectPassingRows(page, [['clamp(5)', '5'], ['clamp(0)', '0'], ['clamp(-3)', '0']]);
   });
 
   test('B19 a runtime error shows as an error row and locks the rest', async ({ page }) => {
@@ -263,7 +266,7 @@ test.describe('B16-B19 graded feedback and test locking', () => {
     await expect(failing.locator('.actual')).toHaveClass(/is-error/);
     await expect(failing.locator('.actual')).toHaveText('integer division or modulo by zero');
     await expect(page.locator(codeFeedback.passingItem)).toHaveCount(0);
-    await expectSummary(page, 0, 4, '🔒 3 more tests locked');
+    await expectLadder(page, 0, 1, 3, '3 more tests · unlock when test 1 passes');
   });
 });
 
@@ -276,11 +279,11 @@ test.describe('B20-B22 attempts and returning later', () => {
     await openClamp(page, 'b20');
 
     await submitAndGrade(page, SOLUTIONS.identity);
-    await expectSummary(page, 2, 2, '🔒 1 more test locked');
+    await expectLadder(page, 2, 1, 1, '1 more test · unlock when test 3 passes');
     await expectAttemptBadge(page, '1/1', '50');
 
     await submitAndGrade(page, SOLUTIONS.correct);
-    await expectSummary(page, 4, 0, null);
+    await expectLadder(page, 4, 0, 0, null);
     await expect(page.locator(codeFeedback.failingItem)).toHaveCount(0);
     await expectAttemptBadge(page, '2/2', '100');
   });
@@ -308,16 +311,16 @@ test.describe('B20-B22 attempts and returning later', () => {
     await attempt(1).click();
     await expect(panel).toBeHidden();
     await expectAttemptBadge(page, '1/2', '50');
-    await expectSummary(page, 2, 2, '🔒 1 more test locked');
+    await expectLadder(page, 2, 1, 1, '1 more test · unlock when test 3 passes');
     await expectSingleFailingRow(page, 'clamp(-3)', '0', '-3');
-    await expectPassingRows(page, ['clamp(5) → 5', 'clamp(0) → 0']);
+    await expectPassingRows(page, [['clamp(5)', '5'], ['clamp(0)', '0']]);
 
     await trigger.click();
     await expect(panel).toBeVisible();
     await attempt(2).click();
     await expect(panel).toBeHidden();
     await expectAttemptBadge(page, '2/2', '100');
-    await expectSummary(page, 4, 0, null);
+    await expectLadder(page, 4, 0, 0, null);
     await expect(page.locator(codeFeedback.failingItem)).toHaveCount(0);
   });
 
@@ -325,7 +328,7 @@ test.describe('B20-B22 attempts and returning later', () => {
     await openClamp(page, 'b22');
 
     await submitAndGrade(page, SOLUTIONS.identity);
-    await expectSummary(page, 2, 2, '🔒 1 more test locked');
+    await expectLadder(page, 2, 1, 1, '1 more test · unlock when test 3 passes');
 
     const lastSubmission = page.waitForResponse(
       (resp) =>
@@ -335,10 +338,10 @@ test.describe('B20-B22 attempts and returning later', () => {
     await page.reload();
     expect((await lastSubmission).status()).toBe(200);
 
-    await expect(page.locator(codeFeedback.summaryBar)).toBeVisible({ timeout: 15_000 });
-    await expectSummary(page, 2, 2, '🔒 1 more test locked');
+    await expect(page.locator(codeFeedback.ladder)).toBeVisible({ timeout: 15_000 });
+    await expectLadder(page, 2, 1, 1, '1 more test · unlock when test 3 passes');
     await expectSingleFailingRow(page, 'clamp(-3)', '0', '-3');
-    await expectPassingRows(page, ['clamp(5) → 5', 'clamp(0) → 0']);
+    await expectPassingRows(page, [['clamp(5)', '5'], ['clamp(0)', '0']]);
     await expectAttemptBadge(page, '1/1', '50');
   });
 });

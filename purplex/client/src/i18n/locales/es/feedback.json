@@ -70,9 +70,15 @@
       "passingGroup": "Pruebas Aprobadas ({count})",
       "expected": "Esperado:",
       "got": "Obtenido:",
-      "locked": "🔒 {count} pruebas más bloqueadas",
-      "lockedOne": "🔒 1 prueba más bloqueada",
-      "lockedNote": "Las pruebas restantes se desbloquean cuando esta prueba pase. Sigue sondeando para descubrir más comportamiento."
+      "ladderLabel": "Pruebas en orden",
+      "pipPassed": "Prueba {n} aprobada",
+      "pipFailed": "Prueba {n} fallida",
+      "pipLocked": "Prueba {n} bloqueada",
+      "unlockHint": "Se desbloquea cuando la prueba {n} pase",
+      "rowPassed": "Prueba {n} aprobada: {call}. Mostrar u ocultar detalles",
+      "expectedInline": "esperado",
+      "lockedRow": "{count} pruebas más · se desbloquean cuando la prueba {n} pase",
+      "lockedRowOne": "1 prueba más · se desbloquea cuando la prueba {n} pase"
     },
     "solution": {
       "title": "Solución {current} de {total}"
