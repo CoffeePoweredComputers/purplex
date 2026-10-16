@@ -8,105 +8,14 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import type { ActivityProblem, ProbeHistoryEntry, ProbeParameter, ProbeStatus } from '../../types'
-
-/** Canonical primitive parameter types that probe inputs are validated against. */
-export type PrimitiveType = 'int' | 'float' | 'bool' | 'str'
-
-/** Error code for a probe input that does not match its declared primitive type. */
-export type ProbeInputError = 'int' | 'intRange' | 'float' | 'bool'
-
-export interface ParsedProbeInput {
-  value: unknown
-  error: ProbeInputError | null
-}
-
-// Must stay identical to _PRIMITIVE_ALIASES in
-// purplex/problems_app/services/probe_service.py (issue #135).
-const PRIMITIVE_ALIASES = new Map<string, PrimitiveType>([
-  ['int', 'int'],
-  ['integer', 'int'],
-  ['float', 'float'],
-  ['number', 'float'],
-  ['bool', 'bool'],
-  ['boolean', 'bool'],
-  ['str', 'str'],
-  ['string', 'str'],
-])
-
-const INT_PATTERN = /^[+-]?\d+$/
-const BOOL_PATTERN = /^(true|false)$/i
-// Python float literal syntax: no hex/binary/octal, which Number() would otherwise accept
-const FLOAT_PATTERN = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/
-
-/**
- * Map a declared parameter type hint to its canonical primitive type.
- *
- * Strips a trailing ` = default`, trims, lowercases, and resolves aliases.
- * A `= None` default is an implicit Optional and is not checked.
- * Returns null for anything that is not checked (missing hint, Any, list[int],
- * Optional[int], dict, custom classes, ...).
- */
-export function normalizePrimitiveType(type: string | null | undefined): PrimitiveType | null {
-  if (!type) {
-    return null
-  }
-  const [base, ...defaultParts] = type.split('=')
-  if (defaultParts.join('=').trim() === 'None') {
-    return null
-  }
-  return PRIMITIVE_ALIASES.get(base.trim().toLowerCase()) ?? null
-}
-
-/**
- * Parse a raw probe input string according to its declared parameter type.
- *
- * Primitive types (int/float/bool/str) are validated strictly; str never errors.
- * Unknown or missing types fall back to JSON parsing, accepting Python-style
- * bare True/False/None, and fall back to the raw text when that fails.
- */
-export function parseInputValue(rawValue: string, type: string | null | undefined): ParsedProbeInput {
-  const text = rawValue.trim()
-
-  switch (normalizePrimitiveType(type)) {
-    case 'int':
-      if (!INT_PATTERN.test(text)) {
-        return { value: text, error: 'int' }
-      }
-      // JSON cannot carry ints above 2^53 losslessly, so refuse rather than corrupt
-      return Number.isSafeInteger(Number(text))
-        ? { value: Number(text), error: null }
-        : { value: text, error: 'intRange' }
-    case 'float': {
-      const num = Number(text)
-      return FLOAT_PATTERN.test(text) && Number.isFinite(num)
-        ? { value: num, error: null }
-        : { value: text, error: 'float' }
-    }
-    case 'bool':
-      return BOOL_PATTERN.test(text)
-        ? { value: text.toLowerCase() === 'true', error: null }
-        : { value: text, error: 'bool' }
-    case 'str':
-      if (text.length >= 2 && text.startsWith('"') && text.endsWith('"')) {
-        try {
-          return { value: JSON.parse(text), error: null }
-        } catch {
-          // Not a valid JSON string literal - keep the raw text
-        }
-      }
-      return { value: text, error: null }
-    default: {
-      // Untyped / unchecked: JSON first, accepting Python-style literals
-      const pythonLiterals: Record<string, string> = { True: 'true', False: 'false', None: 'null' }
-      const jsonText = pythonLiterals[text] ?? text
-      try {
-        return { value: JSON.parse(jsonText), error: null }
-      } catch {
-        return { value: text, error: null }
-      }
-    }
-  }
-}
+import {
+  type ArgsLineError,
+  parseArgsLine,
+  type ParsedProbeInput,
+  parseInputValue,
+  parseSignatureParams,
+  stableStringify,
+} from './probeArgs'
 
 export interface UseProbeStateOptions {
   /** Whether a submission is in flight; status is re-fetched when it ends (cooldown refills). */
@@ -124,6 +33,9 @@ export function useProbeState(
   const probeHistory = ref<ProbeHistoryEntry[]>([])
   const probeStatus = ref<ProbeStatus | null>(null)
   const probeInputs = reactive<Record<string, string>>({})
+  // The argument list as typed in the call line, and its line-level error
+  const argsLine = ref('')
+  const argsLineError = ref<ArgsLineError | null>(null)
 
   // Support both direct problem object and computed problem
   const getProblem = () => typeof problem === 'function' ? problem() : problem
@@ -163,25 +75,7 @@ export function useProbeState(
       return []
     }
 
-    const match = sig.match(/\(([^)]*)\)/)
-    if (!match) {
-      return []
-    }
-
-    const paramsStr = match[1].trim()
-    if (!paramsStr) {
-      return []
-    }
-
-    return paramsStr.split(',').map((p: string) => {
-      // Keep the default on the type (e.g. "int = None") so normalizePrimitiveType
-      // can see it; strip it from the name for untyped defaults like "x=3"
-      const [namePart, ...typeParts] = p.split(':')
-      return {
-        name: namePart.split('=')[0].trim(),
-        type: typeParts.join(':').trim() || 'Any'
-      }
-    })
+    return parseSignatureParams(sig)
   })
 
   const canProbe = computed(() => {
@@ -232,16 +126,19 @@ export function useProbeState(
     return 'status-exhausted'
   })
 
+  // Template for the call line: every parameter as a keyword with no value yet
+  const argsTemplate = computed(() => parameters.value.map(p => `${p.name}=`).join(', '))
+
   // Parse every current input once; shared by validation, duplicate detection and execution
   const parsedInputs = computed(() => {
     const values: Record<string, unknown> = {}
-    const errors: Record<string, ProbeInputError> = {}
+    const errors: Record<string, Pick<ParsedProbeInput, 'error' | 'errorParams'>> = {}
     for (const param of parameters.value) {
       const rawValue = probeInputs[param.name] ?? ''
-      const { value, error } = parseInputValue(rawValue, param.type)
+      const { value, error, errorParams } = parseInputValue(rawValue, param.type)
       values[param.name] = value
       if (error && rawValue !== '') {
-        errors[param.name] = error
+        errors[param.name] = { error, errorParams }
       }
     }
     return { values, errors }
@@ -250,28 +147,39 @@ export function useProbeState(
   // Translated per-field type errors, keyed by parameter name (non-empty fields only)
   const inputErrors = computed((): Record<string, string> => {
     const messages: Record<string, string> = {}
-    for (const [name, code] of Object.entries(parsedInputs.value.errors)) {
-      messages[name] = t(`problems.probe.invalidType.${code}`)
+    for (const [name, { error, errorParams }] of Object.entries(parsedInputs.value.errors)) {
+      messages[name] = t(`problems.probe.invalidType.${error}`, errorParams ?? {})
     }
     return messages
   })
 
+  // Translated line-level error of the argument list (unknown/duplicate/extra/empty argument)
+  const lineError = computed((): string | null => {
+    const error = argsLineError.value
+    if (!error) {
+      return null
+    }
+    const name = error.code === 'tooManyPositional' ? functionName.value : error.name
+    return t(`problems.probe.lineError.${error.code}`, { name })
+  })
+
   const hasValidInputs = computed(() => {
-    // Every parameter has a value and none fails its declared type
+    // Every parameter has a value, none fails its declared type, and the line maps cleanly
     const allFilled = parameters.value.every(p => {
       const value = probeInputs[p.name]
       return value !== undefined && value !== ''
     })
-    return allFilled && Object.keys(parsedInputs.value.errors).length === 0
+    return allFilled && Object.keys(parsedInputs.value.errors).length === 0 && !argsLineError.value
   })
 
   // Check if current inputs match any previous query (real-time duplicate detection)
   const duplicateEntry = computed(() => {
     if (!hasValidInputs.value) {return null}
 
-    const inputKey = JSON.stringify(parsedInputs.value.values)
+    // Key order is irrelevant: {'a': 1, 'b': 2} and {'b': 2, 'a': 1} are one call
+    const inputKey = stableStringify(parsedInputs.value.values)
     return probeHistory.value.find(
-      entry => JSON.stringify(entry.input) === inputKey
+      entry => stableStringify(entry.input) === inputKey
     ) || null
   })
 
@@ -302,6 +210,8 @@ export function useProbeState(
     Object.keys(probeInputs).forEach(key => {
       probeInputs[key] = ''
     })
+    argsLine.value = ''
+    argsLineError.value = null
   })
 
   // A completed submission can refill a cooldown budget server-side
@@ -341,7 +251,7 @@ export function useProbeState(
     if (!canProbe.value || probing.value || isDuplicate.value) {
       return
     }
-    if (Object.keys(parsedInputs.value.errors).length > 0) {
+    if (!hasValidInputs.value) {
       return
     }
 
@@ -398,8 +308,14 @@ export function useProbeState(
     return JSON.stringify(output)
   }
 
-  function updateProbeInput(paramName: string, value: string) {
-    probeInputs[paramName] = value
+  /** Set the call line's argument list and map it onto the per-parameter inputs. */
+  function setArgsLine(text: string) {
+    argsLine.value = text
+    const { raw, lineError: error } = parseArgsLine(text, parameters.value.map(p => p.name))
+    for (const param of parameters.value) {
+      probeInputs[param.name] = raw[param.name] ?? ''
+    }
+    argsLineError.value = error
   }
 
   function formatFunctionCall(input: Record<string, unknown>): string {
@@ -414,6 +330,7 @@ export function useProbeState(
     probeHistory,
     probeStatus,
     probeInputs,
+    argsLine,
     // Computed
     probeConfig,
     functionSignature,
@@ -426,6 +343,8 @@ export function useProbeState(
     probeStatusClass,
     hasValidInputs,
     inputErrors,
+    lineError,
+    argsTemplate,
     isDuplicate,
     cachedResult,
     // Methods
@@ -436,6 +355,6 @@ export function useProbeState(
     formatInput,
     formatOutput,
     formatFunctionCall,
-    updateProbeInput,
+    setArgsLine,
   }
 }

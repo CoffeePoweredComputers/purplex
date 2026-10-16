@@ -217,15 +217,27 @@
       "tooltipExhausted": "No quedan sondeos",
       "tooltipDefault": "Consultar el oráculo con estas entradas",
       "srDuplicate": "Estas entradas ya fueron sondeadas. Resultado: {result}",
-      "paramAriaLabel": "Ingresa valor para {name} (tipo: {type})",
-      "paramAriaLabelNoType": "Ingresa valor para {name}",
       "cachedResultAriaLabel": "Resultado en caché: {result}",
-      "valuePlaceholderHint": "valor — texto entre comillas: \"abc\"",
+      "argsAriaLabel": "Argumentos para {name}",
+      "argsHelp": "Enter sondea. Tab en una línea vacía rellena los nombres de los argumentos.",
+      "fillArgs": "Rellenar nombres de argumentos",
+      "lineError": {
+        "unknownKeyword": "Argumento desconocido {name}",
+        "duplicateArgument": "El argumento {name} se dio dos veces",
+        "positionalAfterKeyword": "Argumento posicional después de {name}=; pon primero los argumentos posicionales",
+        "tooManyPositional": "Demasiados argumentos para {name}",
+        "emptyArgument": "Argumento vacío entre comas"
+      },
       "invalidType": {
         "int": "Debe ser un número entero (p. ej. 5)",
         "intRange": "El número entero es demasiado grande (máximo 15 dígitos)",
         "float": "Debe ser un número (p. ej. 1.5)",
-        "bool": "Debe ser true o false"
+        "bool": "Debe ser true o false",
+        "list": "Debe ser una lista, p. ej. [1, 2, 3]",
+        "listItems": "Cada elemento debe ser {kind}",
+        "dict": "Debe ser un diccionario, p. ej. {'{'}\"a\": 1{'}'}",
+        "dictItems": "Las claves deben ser {key} y los valores {value}",
+        "literal": "No es un valor de Python válido"
       }
     },
     "refute": {

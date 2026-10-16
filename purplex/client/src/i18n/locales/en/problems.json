@@ -217,15 +217,27 @@
       "tooltipExhausted": "No probes remaining",
       "tooltipDefault": "Query the oracle with these inputs",
       "srDuplicate": "These inputs were already probed. Result: {result}",
-      "paramAriaLabel": "Enter value for {name} (type: {type})",
-      "paramAriaLabelNoType": "Enter value for {name}",
       "cachedResultAriaLabel": "Cached result: {result}",
-      "valuePlaceholderHint": "value — quote text: \"abc\"",
+      "argsAriaLabel": "Arguments for {name}",
+      "argsHelp": "Enter probes. Tab on an empty line fills in the argument names.",
+      "fillArgs": "Fill in argument names",
+      "lineError": {
+        "unknownKeyword": "Unknown argument {name}",
+        "duplicateArgument": "Argument {name} given twice",
+        "positionalAfterKeyword": "Positional argument after {name}=; put positional arguments first",
+        "tooManyPositional": "Too many arguments for {name}",
+        "emptyArgument": "Empty argument between commas"
+      },
       "invalidType": {
         "int": "Must be a whole number (e.g. 5)",
         "intRange": "Whole number is too large (at most 15 digits)",
         "float": "Must be a number (e.g. 1.5)",
-        "bool": "Must be true or false"
+        "bool": "Must be true or false",
+        "list": "Must be a list, e.g. [1, 2, 3]",
+        "listItems": "Every item must be {kind}",
+        "dict": "Must be a dict, e.g. {'{'}\"a\": 1{'}'}",
+        "dictItems": "Keys must be {key} and values {value}",
+        "literal": "Not a valid Python value"
       }
     },
     "refute": {
