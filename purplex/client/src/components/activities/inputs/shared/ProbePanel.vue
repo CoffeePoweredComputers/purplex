@@ -56,16 +56,6 @@
         </button>
       </div>
 
-      <button
-        v-if="argsTemplate"
-        type="button"
-        class="fill-args-btn"
-        :disabled="!editable"
-        @click="fillArgs"
-      >
-        {{ $t('problems.probe.fillArgs') }}
-      </button>
-
       <!-- Line-level and per-parameter errors -->
       <ul
         id="probe-field-errors"
@@ -213,7 +203,6 @@ interface Props {
   probeStatusText?: string
   probeParams: ProbeParameter[]
   argsLine: string
-  argsTemplate: string
   lineError: string | null
   canProbe: boolean
   isExecuting: boolean
@@ -335,18 +324,6 @@ function placeCaret(el: HTMLElement, offset: number | null) {
   selection.addRange(range)
 }
 
-/** Insert `name=, name=, ...` with the caret after the first `=`. */
-function fillArgs() {
-  const el = argsRef.value
-  if (!el || !editable.value || !props.argsTemplate) {
-    return
-  }
-  el.textContent = props.argsTemplate
-  emitArgs()
-  el.focus()
-  placeCaret(el, props.argsTemplate.indexOf('=') + 1)
-}
-
 function focusArgs(event: MouseEvent) {
   const el = argsRef.value
   if (el && editable.value && event.target !== el) {
@@ -363,10 +340,6 @@ function onArgsKeydown(event: KeyboardEvent) {
       emit('execute-probe')
     }
     return
-  }
-  if (event.key === 'Tab' && !event.shiftKey && (argsRef.value?.textContent ?? '').trim() === '' && props.argsTemplate) {
-    event.preventDefault()
-    fillArgs()
   }
 }
 
@@ -608,34 +581,6 @@ watch(() => props.probeHistory.length, () => {
   content: attr(data-placeholder);
   color: var(--color-text-muted);
   pointer-events: none;
-}
-
-.fill-args-btn {
-  display: block;
-  margin-top: var(--spacing-xs);
-  padding: 2px var(--spacing-sm);
-  background: var(--color-bg-hover);
-  border: 1px solid var(--color-bg-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease;
-}
-
-.fill-args-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
-  outline-offset: 2px;
-}
-
-.fill-args-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.fill-args-btn:hover:not(:disabled) {
-  border-color: var(--color-primary-gradient-start);
-  color: var(--color-text-primary);
 }
 
 .fn-arrow {

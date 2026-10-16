@@ -148,11 +148,6 @@ describe('useProbeState call line', () => {
     return withSetup(() => useProbeState(problem))
   }
 
-  it('builds the keyword template from the parameters', () => {
-    const state = setup('def schedule(tasks: list[str], start: int) -> int')
-    expect(state.argsTemplate.value).toBe('tasks=, start=')
-  })
-
   it('posts the parsed values of a valid line', async () => {
     vi.mocked(axios.post).mockResolvedValue({ data: { success: true, result: 3 } })
     const state = setup('def schedule(tasks: list[str], start: int) -> int')
@@ -272,7 +267,6 @@ function mountPanel(overrides: Record<string, unknown> = {}) {
         { name: 'start', type: 'int' },
       ],
       argsLine: '',
-      argsTemplate: 'tasks=, start=',
       lineError: null,
       canProbe: true,
       isExecuting: false,
@@ -297,11 +291,9 @@ describe('ProbePanel call line', () => {
     expect(args.attributes('role')).toBe('textbox')
     // Enter probes rather than breaking the line, so it is single-line to AT
     expect(args.attributes('aria-multiline')).toBe('false')
-    // The keyboard behaviour (Enter probes, Tab fills names) is described to AT
+    // The keyboard behaviour (Enter probes) is described to AT
     expect(args.attributes('aria-describedby')).toBe('probe-args-help')
-    expect(wrapper.find('#probe-args-help').text()).toBe(
-      'Enter probes. Tab on an empty line fills in the argument names.'
-    )
+    expect(wrapper.find('#probe-args-help').text()).toBe('Enter probes.')
     expect(args.attributes('aria-label')).toBe('Arguments for schedule')
     // Signature visible: the placeholder carries each parameter's declared type
     expect(args.attributes('data-placeholder')).toBe('tasks: list[str], start: int')
@@ -324,29 +316,6 @@ describe('ProbePanel call line', () => {
     args.element.textContent = '[1], 2'
     await args.trigger('input')
     expect(wrapper.emitted('update-args')).toEqual([['[1], 2']])
-    wrapper.unmount()
-  })
-
-  it('inserts the template on Tab only when the line is empty', async () => {
-    const wrapper = mountPanel()
-    const args = wrapper.find('#probe-args')
-    await args.trigger('keydown', { key: 'Tab' })
-    expect(args.element.textContent).toBe('tasks=, start=')
-    expect(wrapper.emitted('update-args')).toEqual([['tasks=, start=']])
-    // Caret sits after the first "="
-    const range = window.getSelection()?.getRangeAt(0)
-    expect(range?.startOffset).toBe('tasks='.length)
-
-    await args.trigger('keydown', { key: 'Tab' })
-    expect(wrapper.emitted('update-args')).toHaveLength(1)
-    wrapper.unmount()
-  })
-
-  it('inserts the template from the fill button', async () => {
-    const wrapper = mountPanel()
-    await wrapper.find('button.fill-args-btn').trigger('click')
-    expect(wrapper.find('#probe-args').element.textContent).toBe('tasks=, start=')
-    expect(wrapper.emitted('update-args')).toEqual([['tasks=, start=']])
     wrapper.unmount()
   })
 
@@ -426,12 +395,11 @@ describe('ProbePanel call line', () => {
     wrapper.unmount()
   })
 
-  it('locks the editor and the fill button when probing is not allowed', () => {
+  it('locks the editor when probing is not allowed', () => {
     const wrapper = mountPanel({ canProbe: false })
     const args = wrapper.find('#probe-args')
     expect(args.attributes('contenteditable')).toBe('false')
     expect(args.attributes('aria-disabled')).toBe('true')
-    expect(wrapper.find('button.fill-args-btn').attributes('disabled')).toBeDefined()
     wrapper.unmount()
   })
 
