@@ -22,39 +22,6 @@
           <span class="zoom-icon">+</span>
         </button>
       </div>
-
-      <div class="theme-selector">
-        <select
-          :value="editor.editorSettings.theme.value"
-          class="theme-dropdown"
-          @change="editor.editorSettings.setTheme(($event.target as HTMLSelectElement).value)"
-        >
-          <option value="monokai">
-            {{ $t('admin.editors.themes.monokai') }}
-          </option>
-          <option value="github">
-            {{ $t('admin.editors.themes.github') }}
-          </option>
-          <option value="clouds_midnight">
-            {{ $t('admin.editors.themes.cloudsMidnight') }}
-          </option>
-          <option value="chrome">
-            {{ $t('admin.editors.themes.chrome') }}
-          </option>
-          <option value="solarized_dark">
-            {{ $t('admin.editors.themes.solarizedDark') }}
-          </option>
-          <option value="solarized_light">
-            {{ $t('admin.editors.themes.solarizedLight') }}
-          </option>
-          <option value="dracula">
-            {{ $t('admin.editors.themes.dracula') }}
-          </option>
-          <option value="tomorrow_night">
-            {{ $t('admin.editors.themes.tomorrowNight') }}
-          </option>
-        </select>
-      </div>
     </div>
   </div>
 </template>
@@ -126,14 +93,5 @@ const editor = computed(() => props.editor)
   text-align: center;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-}
-
-.theme-dropdown {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
-  border-radius: var(--radius-xs);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
 }
 </style>

@@ -3,7 +3,8 @@
  *
  * This composable handles editor preferences:
  * - Font size (with increase/decrease controls)
- * - Theme selection
+ *
+ * The editor theme is not managed here; Editor.vue follows the app theme.
  */
 
 import { ref, type Ref } from 'vue';
@@ -13,8 +14,6 @@ import { ref, type Ref } from 'vue';
 export interface UseEditorSettingsReturn {
   /** Current font size */
   fontSize: Ref<number>;
-  /** Current theme */
-  theme: Ref<string>;
 
   /** Increase font size */
   increaseFontSize: () => void;
@@ -22,8 +21,6 @@ export interface UseEditorSettingsReturn {
   decreaseFontSize: () => void;
   /** Set font size directly */
   setFontSize: (size: number) => void;
-  /** Set theme */
-  setTheme: (theme: string) => void;
   /** Reset to defaults */
   reset: () => void;
 }
@@ -33,15 +30,11 @@ export interface UseEditorSettingsReturn {
 const MIN_FONT_SIZE = 10;
 const MAX_FONT_SIZE = 24;
 const DEFAULT_FONT_SIZE = 14;
-const DEFAULT_THEME_DARK = 'monokai';
-const DEFAULT_THEME_LIGHT = 'chrome';
 
 // ===== COMPOSABLE =====
 
 export const useEditorSettings = (): UseEditorSettingsReturn => {
   const fontSize = ref(DEFAULT_FONT_SIZE);
-  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  const theme = ref(isLight ? DEFAULT_THEME_LIGHT : DEFAULT_THEME_DARK);
 
   /**
    * Increase font size (max 24)
@@ -69,28 +62,17 @@ export const useEditorSettings = (): UseEditorSettingsReturn => {
   };
 
   /**
-   * Set editor theme
-   */
-  const setTheme = (newTheme: string): void => {
-    theme.value = newTheme;
-  };
-
-  /**
    * Reset to defaults
    */
   const reset = (): void => {
     fontSize.value = DEFAULT_FONT_SIZE;
-    const currentIsLight = document.documentElement.getAttribute('data-theme') === 'light';
-    theme.value = currentIsLight ? DEFAULT_THEME_LIGHT : DEFAULT_THEME_DARK;
   };
 
   return {
     fontSize,
-    theme,
     increaseFontSize,
     decreaseFontSize,
     setFontSize,
-    setTheme,
     reset,
   };
 };

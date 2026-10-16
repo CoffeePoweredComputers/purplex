@@ -43,8 +43,6 @@ export interface ActivityInputProps {
   activeHints?: HintConfig[]
   /** Whether the input should be disabled (during submission) */
   disabled?: boolean
-  /** Editor theme name */
-  theme?: string
   /** Whether a draft has been saved */
   draftSaved?: boolean
 }

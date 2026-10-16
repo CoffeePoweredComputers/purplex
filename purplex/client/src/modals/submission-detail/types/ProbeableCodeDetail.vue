@@ -21,7 +21,6 @@
         :read-only="true"
         height="350px"
         width="100%"
-        :theme="editorTheme"
       />
     </div>
   </div>
@@ -30,9 +29,6 @@
 <script setup lang="ts">
 import Editor from '@/features/editor/Editor.vue';
 import type { ProbeableTypeData } from '@/types';
-import { useTheme } from '@/composables/useTheme';
-
-const { editorTheme } = useTheme();
 
 defineProps<{
   typeData: ProbeableTypeData;

@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, VueWrapper } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { useTheme } from '@/composables/useTheme'
 
 // Hoisted so vi.mock factories can reference them
 const { mockRange } = vi.hoisted(() => {
@@ -46,13 +47,7 @@ vi.mock('vue3-ace-editor', () => ({
 }))
 
 vi.mock('ace-builds/src-noconflict/mode-python', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-clouds_midnight', () => ({}))
 vi.mock('ace-builds/src-noconflict/theme-chrome', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-monokai', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-github', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-solarized_dark', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-solarized_light', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-dracula', () => ({}))
 vi.mock('ace-builds/src-noconflict/theme-tomorrow_night', () => ({}))
 
 type Fn = ReturnType<typeof vi.fn>
@@ -172,7 +167,6 @@ describe('Editor Component', () => {
       expect(wrapper.exists()).toBe(true)
       expect(wrapper.props()).toEqual({
         lang: 'python',
-        theme: 'tomorrow_night',
         mode: 'python',
         height: '300px',
         width: '500px',
@@ -195,7 +189,6 @@ describe('Editor Component', () => {
       wrapper = mount(Editor, {
         props: {
           lang: 'python',
-          theme: 'dracula',
           value: 'print("Hello")'
         }
       })
@@ -204,7 +197,9 @@ describe('Editor Component', () => {
       expect(aceEditor.exists()).toBe(true)
       expect(aceEditor.props()).toMatchObject({
         lang: 'python',
-        theme: 'dracula',
+        // Comes from useTheme(): happy-dom's matchMedia reports
+        // prefers-color-scheme: light, so 'auto' resolves to light -> 'chrome'
+        theme: 'chrome',
         mode: 'python',
         value: 'print("Hello")',
         style: { height: '300px', width: '500px' },
@@ -587,16 +582,31 @@ describe('Editor Component', () => {
   })
 
   describe('Theme Changes', () => {
-    it('should pass theme changes to VAceEditor', async () => {
+    beforeEach(() => {
+      // Node 25+ ships a non-functional global localStorage that shadows
+      // happy-dom's; setTheme() persists to it, so stub it.
+      vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {} })
+    })
+
+    afterEach(() => {
+      // useTheme is a module-level singleton; don't leak state between tests
+      useTheme().setTheme('auto')
+      vi.unstubAllGlobals()
+    })
+
+    it('should follow the app theme', async () => {
       const Editor = (await import('../Editor.vue')).default
-      wrapper = mount(Editor, {
-        props: { theme: 'monokai' }
-      })
-
-      await wrapper.setProps({ theme: 'dracula' })
-
+      wrapper = mount(Editor)
       const aceEditor = wrapper.findComponent({ name: 'VAceEditor' })
-      expect(aceEditor.props().theme).toBe('dracula')
+
+      // Dark first: in happy-dom the 'auto' default already resolves to light
+      useTheme().setTheme('dark')
+      await nextTick()
+      expect(aceEditor.props().theme).toBe('tomorrow_night')
+
+      useTheme().setTheme('light')
+      await nextTick()
+      expect(aceEditor.props().theme).toBe('chrome')
     })
   })
 })

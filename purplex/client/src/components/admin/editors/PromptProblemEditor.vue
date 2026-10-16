@@ -253,7 +253,6 @@
             :value="String(editor.form.form.reference_solution || '')"
             :height="'300px'"
             :width="'100%'"
-            :theme="editor.editorSettings.theme.value"
             :show-gutter="true"
             :mode="'python'"
             :lang="'python'"

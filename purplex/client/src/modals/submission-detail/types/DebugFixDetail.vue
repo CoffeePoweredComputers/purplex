@@ -11,7 +11,6 @@
           :read-only="true"
           height="350px"
           width="100%"
-          :theme="editorTheme"
         />
       </div>
       <div class="code-panel">
@@ -23,7 +22,6 @@
           :read-only="true"
           height="350px"
           width="100%"
-          :theme="editorTheme"
         />
       </div>
     </div>
@@ -33,9 +31,6 @@
 <script setup lang="ts">
 import Editor from '@/features/editor/Editor.vue';
 import type { DebugFixTypeData } from '@/types';
-import { useTheme } from '@/composables/useTheme';
-
-const { editorTheme } = useTheme();
 
 defineProps<{
   typeData: DebugFixTypeData;

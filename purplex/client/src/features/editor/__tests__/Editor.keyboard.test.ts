@@ -28,13 +28,7 @@ vi.mock('vue3-ace-editor', () => ({
 }))
 
 vi.mock('ace-builds/src-noconflict/mode-python', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-clouds_midnight', () => ({}))
 vi.mock('ace-builds/src-noconflict/theme-chrome', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-monokai', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-github', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-solarized_dark', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-solarized_light', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-dracula', () => ({}))
 vi.mock('ace-builds/src-noconflict/theme-tomorrow_night', () => ({}))
 
 describe('Editor keyboard behaviour (real Ace)', () => {
