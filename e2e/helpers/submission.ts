@@ -40,7 +40,7 @@ export async function submitCodeAndWait(
     );
   }
 
-  await expect(page.locator(codeFeedback.summaryBar)).toBeVisible({ timeout });
+  await expect(page.locator(codeFeedback.ladder)).toBeVisible({ timeout });
 }
 
 /**

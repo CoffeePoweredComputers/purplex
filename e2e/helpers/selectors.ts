@@ -285,26 +285,25 @@ export const probe = {
 // Code submission feedback (activities/feedback/CodeSubmissionFeedback.vue)
 // ---------------------------------------------------------------------------
 export const codeFeedback = {
-  /** Summary bar with pass/fail/locked counts */
-  summaryBar: '.feedback-container .test-summary-bar',
-  /** '✓ N Passing' */
-  passing: '.test-summary-bar .count-item.passing',
-  /** '✗ N Failing' */
-  failing: '.test-summary-bar .count-item.failing',
-  /** '🔒 N more tests locked' (only when locked > 0) */
-  locked: '.test-summary-bar .count-item.locked',
-  /** Failing test rows (.test-call, .expected, .actual, .actual.is-error) */
-  failingItem: 'article.test-item.failing',
-  /** Passing test rows (inside the collapsed passing group) */
-  passingItem: 'article.test-item.passing',
-  /** Note in the failing group explaining locked tests */
-  lockedNote: 'p.locked-note',
+  /** Ordered test ladder (pips + ledger); rendered once grading finishes */
+  ladder: '.feedback-container .test-ladder',
+  /** One pip per test, in order: .pass (button) / .fail / .lock */
+  pip: '.test-ladder .pip',
+  pipPass: '.test-ladder .pip.pass',
+  pipFail: '.test-ladder .pip.fail',
+  pipLock: '.test-ladder .pip.lock',
+  /** The failing row (.test-call, .expected, .actual, .actual.is-error) */
+  failingItem: '.test-ladder .ledger-row.fail',
+  /** Passed rows: closed buttons (.closed/.open) with .test-call and .result */
+  passingItem: '.test-ladder .ledger-row.pass',
+  /** 'N more tests · unlock when test K passes' (only when locked > 0) */
+  lockedRow: '.test-ladder .ledger-row.lock .row-body',
   /** Attempts dropdown trigger (.attempt-text 'n/total', .attempt-score-badge) */
   attemptTrigger: '.attempt-dropdown-trigger',
   /** Attempts dropdown panel */
   attemptPanel: '.attempt-dropdown-panel[role="menu"]',
   /** One attempt in the dropdown (.attempt-tests 'passed/total') */
   attemptItem: '.attempt-item-minimal',
-  /** Debug button on a test row */
+  /** Debug button on the failing row */
   debugButton: '.debug-btn',
 } as const;

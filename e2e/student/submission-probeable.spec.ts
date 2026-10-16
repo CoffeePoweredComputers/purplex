@@ -131,9 +131,9 @@ test.describe('Probeable Code Submission', () => {
     // The mystery function is sorted(); its single test case must pass
     await submitCodeAndWait(page, 'def mystery(lst):\n    return sorted(lst)');
 
-    await expect(page.locator(codeFeedback.passing)).toHaveText('✓ 1 Passing');
-    await expect(page.locator(codeFeedback.failing)).toHaveText('✗ 0 Failing');
-    await expect(page.locator(codeFeedback.locked)).toHaveCount(0);
+    await expect(page.locator(codeFeedback.pip)).toHaveCount(1);
+    await expect(page.locator(codeFeedback.pipPass)).toHaveCount(1);
+    await expect(page.locator(codeFeedback.lockedRow)).toHaveCount(0);
     await expect(page.locator(codeFeedback.failingItem)).toHaveCount(0);
     await expect(page.locator(`${codeFeedback.attemptTrigger} .attempt-text`)).toHaveText('1/1');
     const scoreBadge = page.locator(`${codeFeedback.attemptTrigger} .attempt-score-badge`);

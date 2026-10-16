@@ -6,8 +6,8 @@
     :is-loading="isLoading"
     :is-navigating="isNavigating"
     :title="effectiveTitle"
+    layout="ladder"
     :locked-count="lockedCount"
-    :passed-count="passedCount"
     :total-count="totalCount"
     @load-attempt="$emit('load-attempt', $event)"
   />
@@ -23,7 +23,8 @@
  * Probeable Code students discover function behavior by probing, then
  * write their own implementation. The feedback shows:
  * - Their submitted implementation code
- * - Test results showing which tests pass/fail
+ * - An ordered ladder of tests: passes up to the first failure, that
+ *   failure, and a count of the locked rest (#165)
  *
  * Note: Unlike EiPL/ProbeableSpec, there's no segmentation or AI variations
  * because the student writes actual code, not a natural language description.
@@ -118,11 +119,7 @@ const lockedCount = computed(() => {
   return (props.testResults[0] as TestResultEntry).lockedCount ?? 0
 })
 
-/** Pass/total over every test, including locked ones (backend counts all rows). */
-const passedCount = computed(() => {
-  if (props.testResults.length === 0) {return null}
-  return (props.testResults[0] as TestResultEntry).testsPassed ?? null
-})
+/** Total over every test, including locked ones. */
 const totalCount = computed(() => {
   if (props.testResults.length === 0) {return null}
   return (props.testResults[0] as TestResultEntry).totalTests ?? null
