@@ -432,6 +432,8 @@ import { useSubmissionCache } from '@/composables/useSubmissionCache'
 import { useSubmissionTracking } from '@/composables/useSubmissionTracking'
 import { useTheme } from '@/composables/useTheme'
 import { parseProblemQueryParam } from './problemNavigation'
+import { reconstructFunctionCall } from './functionCall'
+import { submitErrorNotice } from './submitError'
 import { sseService } from '@/services/sseService'
 import { submissionService } from '@/services/submissionService'
 import { ref } from 'vue'
@@ -1204,39 +1206,8 @@ export default {
         },
 
         reconstructFunctionCall(testResult) {
-            // Try to reconstruct function call from test data
-            const currentProblem = this.getCurrentProblem();
-            const functionName = currentProblem?.function_name || 'foo';
-
-            // Format inputs for display
-            if (testResult.inputs !== undefined && testResult.inputs !== null) {
-                // If inputs is already a string representation, use it
-                if (typeof testResult.inputs === 'string') {
-                    return `${functionName}(${testResult.inputs})`;
-                }
-                // Otherwise format the value
-                const formattedInput = this.formatTestValue(testResult.inputs);
-                return `${functionName}(${formattedInput})`;
-            }
-
-            // Fallback to a generic representation
-            return `${functionName}(...)`;
-        },
-
-        formatTestValue(value) {
-            // Handle different types of values
-            if (value === null) {return 'None';}
-            if (value === undefined) {return 'undefined';}
-            if (typeof value === 'string') {return `"${value}"`;}
-            if (typeof value === 'boolean') {return value ? 'True' : 'False';}
-            if (typeof value === 'number') {return value.toString();}
-            if (Array.isArray(value)) {
-                return '[' + value.map(v => this.formatTestValue(v)).join(', ') + ']';
-            }
-            if (typeof value === 'object') {
-                return JSON.stringify(value);
-            }
-            return String(value);
+            const functionName = this.getCurrentProblem()?.function_name || 'foo';
+            return reconstructFunctionCall(functionName, testResult.inputs);
         },
 
         getCurrentProblem() {
@@ -1723,21 +1694,9 @@ export default {
                 this.clearFeedbackData();
 
                 // Handle errors
-                if (error.response) {
-                    if (error.response.status === 500) {
-                        this.notify.error(this.$t('problems.problemSet.notify.serverError'), this.$t('problems.problemSet.notify.aiServiceUnavailable'));
-                    } else if (error.response.status === 401) {
-                        this.notify.error(this.$t('problems.problemSet.notify.authenticationError'), this.$t('problems.problemSet.notify.pleaseLogInAgain'));
-                    } else if (error.response.status === 400) {
-                        this.notify.warning(this.$t('problems.problemSet.notify.invalidRequest'), error.response.data.error || this.$t('problems.problemSet.notify.pleaseCheckInput'));
-                    } else {
-                        this.notify.error(this.$t('common.error'), error.response.data.error || this.$t('problems.problemSet.notify.unknownError'));
-                    }
-                } else if (error.request) {
-                    this.notify.error(this.$t('problems.problemSet.notify.networkError'), this.$t('problems.problemSet.notify.unableToReachServer'));
-                } else {
-                    this.notify.error(this.$t('common.error'), error.message);
-                }
+                const notice = submitErrorNotice(error);
+                const detail = notice.detail ?? (notice.detailKey ? this.$t(notice.detailKey) : undefined);
+                this.notify[notice.type](this.$t(notice.titleKey), detail);
                 // Reset loading state on error during initial submission
                 this.submissionTracking.removeSubmission(currentProblemSlug);
                 this.loading = this.submissionTracking.isSubmitting(this.getCurrentProblem().slug);

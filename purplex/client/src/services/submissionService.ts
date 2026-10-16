@@ -123,7 +123,8 @@ class SubmissionService {
       const axiosError = error as { response?: { data?: { error?: string }; status?: number } };
       throw new ServiceError(
         axiosError.response?.data?.error || 'Failed to submit activity solution',
-        axiosError.response?.status || 500
+        // 0 = no response (network failure), so callers can tell it from a 500.
+        axiosError.response?.status ?? 0
       );
     }
   }

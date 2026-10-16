@@ -12,7 +12,10 @@ from rest_framework import status
 from purplex.problems_app.services.probe_service import ProbeService
 from purplex.utils.error_codes import ErrorCode
 from tests.factories import (
+    EiplProblemFactory,
     ProbeableCodeProblemFactory,
+    ProbeableSpecProblemFactory,
+    ProblemSetMembershipFactory,
     RefuteProblemFactory,
 )
 
@@ -96,6 +99,86 @@ def refute_problem_fixture(db):
         function_signature="def is_positive(n: int) -> bool:",
         is_active=True,
     )
+
+
+# ===========================================================================
+# TestHiddenSignaturePayload
+# ===========================================================================
+class TestHiddenSignaturePayload:
+    """GET /api/problem-sets/{slug}/ must not leak a hidden signature."""
+
+    def _problem_payload(self, client, problem):
+        membership = ProblemSetMembershipFactory(problem=problem)
+        resp = client.get(f"/api/problem-sets/{membership.problem_set.slug}/")
+        assert resp.status_code == status.HTTP_200_OK
+        (payload,) = resp.data["problems"]
+        return payload
+
+    def test_hidden_signature_is_withheld(
+        self, authenticated_client, hidden_signature_problem
+    ):
+        payload = self._problem_payload(authenticated_client, hidden_signature_problem)
+        assert payload["function_signature"] is None
+        assert payload["probe_config"]["function_signature"] is None
+        assert payload["probe_config"]["parameters"] == [
+            {"name": "a", "type": ""},
+            {"name": "b", "type": ""},
+        ]
+
+    def test_visible_signature_is_sent(self, authenticated_client, probeable_problem):
+        payload = self._problem_payload(authenticated_client, probeable_problem)
+        signature = "def add(a: int, b: int) -> int:"
+        assert payload["function_signature"] == signature
+        assert payload["probe_config"]["function_signature"] == signature
+
+
+class TestReferenceSolutionPayload:
+    """GET /api/problem-sets/{slug}/ sends reference code only where shown."""
+
+    def _problem_payload(self, client, problem):
+        membership = ProblemSetMembershipFactory(problem=problem)
+        resp = client.get(f"/api/problem-sets/{membership.problem_set.slug}/")
+        assert resp.status_code == status.HTTP_200_OK
+        (payload,) = resp.data["problems"]
+        return payload
+
+    def test_probeable_code_oracle_is_withheld(
+        self, authenticated_client, probeable_problem
+    ):
+        payload = self._problem_payload(authenticated_client, probeable_problem)
+        assert payload["reference_solution"] is None
+
+    def test_hidden_signature_oracle_is_withheld(
+        self, authenticated_client, hidden_signature_problem
+    ):
+        payload = self._problem_payload(authenticated_client, hidden_signature_problem)
+        assert payload["reference_solution"] is None
+
+    def test_probeable_spec_without_segmentation_oracle_is_withheld(
+        self, authenticated_client
+    ):
+        problem = ProbeableSpecProblemFactory(
+            segmentation_config={"enabled": False}, is_active=True
+        )
+        payload = self._problem_payload(authenticated_client, problem)
+        assert payload["feedback_config"]["show_segmentation"] is False
+        assert payload["reference_solution"] is None
+
+    def test_probeable_spec_with_segmentation_keeps_code_for_mapping(
+        self, authenticated_client
+    ):
+        # Segment analysis maps the student's words onto the reference code.
+        problem = ProbeableSpecProblemFactory(
+            segmentation_config={"enabled": True}, is_active=True
+        )
+        payload = self._problem_payload(authenticated_client, problem)
+        assert payload["feedback_config"]["show_segmentation"] is True
+        assert payload["reference_solution"] == "def discover(x):\n    return x ** 2"
+
+    def test_eipl_code_to_explain_is_sent(self, authenticated_client):
+        problem = EiplProblemFactory(is_active=True)
+        payload = self._problem_payload(authenticated_client, problem)
+        assert payload["reference_solution"] == "def test_func(x):\n    return x * 2"
 
 
 # ===========================================================================

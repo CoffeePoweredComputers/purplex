@@ -108,7 +108,15 @@ export function parseInputValue(rawValue: string, type: string | null | undefine
   }
 }
 
-export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)) {
+export interface UseProbeStateOptions {
+  /** Whether a submission is in flight; status is re-fetched when it ends (cooldown refills). */
+  isSubmitting?: () => boolean
+}
+
+export function useProbeState(
+  problem: ActivityProblem | (() => ActivityProblem),
+  options: UseProbeStateOptions = {},
+) {
   const { t } = useI18n()
   // Probe state
   const probing = ref(false)
@@ -296,6 +304,15 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
     })
   })
 
+  // A completed submission can refill a cooldown budget server-side
+  if (options.isSubmitting) {
+    watch(options.isSubmitting, async (submitting, wasSubmitting) => {
+      if (wasSubmitting && !submitting) {
+        await loadProbeStatus()
+      }
+    })
+  }
+
   async function loadProbeStatus() {
     try {
       const p = getProblem()
@@ -320,7 +337,8 @@ export function useProbeState(problem: ActivityProblem | (() => ActivityProblem)
   }
 
   async function executeProbe() {
-    if (!canProbe.value || probing.value) {
+    // A duplicate already has its cached result; probing again would spend budget
+    if (!canProbe.value || probing.value || isDuplicate.value) {
       return
     }
     if (Object.keys(parsedInputs.value.errors).length > 0) {
