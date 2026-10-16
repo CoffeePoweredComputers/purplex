@@ -114,6 +114,8 @@
         "mcqCorrect": "{problem}: ¡Correcto!",
         "mcqIncorrect": "{problem}: Incorrecto",
         "testsPassed": "{problem}: {passed}/{total} pruebas aprobadas",
+        "ladderFailed": "{problem}: la prueba {n} falló · {locked} más bloqueadas",
+        "ladderFailedLast": "{problem}: la prueba {n} falló",
         "variationsPassing": "{problem}: Variaciones: {passed}/{total} aprobadas",
         "variationsWithSegmentation": "{problem}: Variaciones: {passed}/{total} aprobadas, {segmentation}",
         "segmentationPassed": "✓ Alto nivel ({count} segmentos)",

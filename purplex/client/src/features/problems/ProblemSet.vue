@@ -1437,9 +1437,20 @@ export default {
                                 segmentation: segmentation
                             });
 
-                            // Show notification
+                            // Show notification. The ladder hides every test after the first
+                            // failure, so the toast must not leak the full pass count: name the
+                            // failing test and the locked count instead. Counts are only shown
+                            // when everything passed (nothing is locked then).
                             const allPassed = totalTestsRun > 0 && totalTestsPassed === totalTestsRun;
-                            const message = this.$t('problems.problemSet.notify.testsPassed', { problem: problemIdentifier, passed: totalTestsPassed, total: totalTestsRun });
+                            const ladder = testResults[0] || {};
+                            const lockedCount = ladder.lockedCount ?? 0;
+                            const failedTestNumber = ladder.visibleCount ?? (ladder.test_results || ladder.results || []).length;
+                            const message = allPassed
+                                ? this.$t('problems.problemSet.notify.testsPassed', { problem: problemIdentifier, passed: totalTestsPassed, total: totalTestsRun })
+                                : this.$t(
+                                    lockedCount > 0 ? 'problems.problemSet.notify.ladderFailed' : 'problems.problemSet.notify.ladderFailedLast',
+                                    { problem: problemIdentifier, n: failedTestNumber, locked: lockedCount }
+                                );
                             // A too-detailed explanation (probeable_spec) keeps the problem open: warn
                             if (allPassed && finalStatus === 'completed') {
                                 this.notify.success(message);

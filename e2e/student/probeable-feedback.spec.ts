@@ -223,6 +223,10 @@ test.describe('B16-B19 graded feedback and test locking', () => {
 
     await submitAndGrade(page, SOLUTIONS.failsFirst);
 
+    // The toast must not reveal how the locked tests fared (3 of them pass).
+    await expect(
+      page.locator('.notification-container .notification.warning .notification-message'),
+    ).toHaveText('Problem 3: test 1 failed · 3 more locked');
     await expectSingleFailingRow(page, 'clamp(5)', '5', '0');
     // The first test failed, so no passing rows come before it.
     await expect(page.locator(codeFeedback.passingItem)).toHaveCount(0);
