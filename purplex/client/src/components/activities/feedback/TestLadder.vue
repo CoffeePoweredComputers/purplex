@@ -10,17 +10,12 @@
         v-for="n in totalTests"
         :key="n"
       >
-        <button
+        <span
           v-if="n - 1 < passedRows"
-          type="button"
           class="pip pass"
           role="listitem"
-          :aria-pressed="isOpen(n - 1)"
           :aria-label="$t('feedback.tests.pipPassed', { n })"
-          @click="toggle(n - 1)"
-        >
-          {{ n }}
-        </button>
+        >{{ n }}</span>
         <span
           v-else-if="n - 1 === failIndex"
           class="pip fail"
@@ -38,26 +33,17 @@
       </template>
     </div>
 
-    <!-- Ledger: passed rows closed by default, the failing row open, then the locked rest -->
+    <!-- Ledger: passed rows as one-liners, the failing row with its diff, then the locked rest -->
     <div class="ledger">
       <template
         v-for="(test, i) in tests"
         :key="i"
       >
-        <button
+        <div
           v-if="isPassingRow(test)"
-          type="button"
           class="ledger-row pass"
-          :class="isOpen(i) ? 'open' : 'closed'"
-          :aria-expanded="isOpen(i)"
-          :aria-label="$t('feedback.tests.rowPassed', { n: i + 1, call: test.function_call })"
-          @click="toggle(i)"
         >
           <span class="row-num">{{ i + 1 }}</span>
-          <span
-            class="row-toggle"
-            aria-hidden="true"
-          >{{ isOpen(i) ? '▾' : '▸' }}</span>
           <span class="row-body">
             <code class="test-call">{{ test.function_call }}</code>
             <span
@@ -70,24 +56,32 @@
             class="row-status"
             aria-hidden="true"
           >✓</span>
-        </button>
+        </div>
         <div
           v-else
           class="ledger-row fail"
         >
           <span class="row-num">{{ i + 1 }}</span>
-          <span class="row-toggle" />
           <span class="row-body">
             <code class="test-call">{{ test.function_call }}</code>
-            <span
-              class="arrow"
-              aria-hidden="true"
-            >→</span>
-            <code
-              class="actual"
-              :class="{ 'is-error': test.error }"
-            >{{ test.error || formatTestValue(test.actual_output) }}</code>
-            <span class="expected-inline">{{ $t('feedback.tests.expectedInline') }} <code class="expected">{{ formatTestValue(test.expected_output) }}</code></span>
+            <!-- Two-line diff: "− got <actual>" over "+ expected <expected>" -->
+            <span class="diff">
+              <span
+                class="diff-sign got"
+                aria-hidden="true"
+              >−</span>
+              <span class="diff-label">{{ $t('feedback.tests.gotInline') }}</span>
+              <code
+                class="actual"
+                :class="{ 'is-error': test.error }"
+              >{{ test.error || formatTestValue(test.actual_output) }}</code>
+              <span
+                class="diff-sign want"
+                aria-hidden="true"
+              >+</span>
+              <span class="diff-label">{{ $t('feedback.tests.expectedInline') }}</span>
+              <code class="expected">{{ formatTestValue(test.expected_output) }}</code>
+            </span>
           </span>
           <span
             class="row-status"
@@ -125,10 +119,10 @@
  * result_visibility.truncate_to_first_failure): every passing test up to the
  * first failure, then that failure. This renders them as a ladder of pips
  * (one per test, including the locked ones) over a ledger where passed rows
- * are closed one-liners and the failing row is open. Nothing here reveals
- * how the locked tests fared.
+ * are one-liners and the failing row shows a got/expected diff. Nothing here
+ * reveals how the locked tests fared.
  */
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { type FeedbackTestRow, formatTestValue, isPassingRow } from './feedbackTests'
 
@@ -167,19 +161,6 @@ const lockedText = computed(() =>
     n: failIndex.value + 1,
   })
 )
-
-const openRows = ref<Set<number>>(new Set())
-watch(() => props.tests, () => { openRows.value = new Set() })
-
-function isOpen(i: number): boolean {
-  return openRows.value.has(i)
-}
-
-function toggle(i: number): void {
-  const next = new Set(openRows.value)
-  if (next.has(i)) {next.delete(i)} else {next.add(i)}
-  openRows.value = next
-}
 </script>
 
 <style scoped>
@@ -216,12 +197,6 @@ function toggle(i: number): void {
   background: var(--color-success-bg);
   color: var(--color-success-text);
   border-color: transparent;
-  cursor: pointer;
-}
-
-.pip.pass[aria-pressed='true'] {
-  outline: 2px solid var(--color-success);
-  outline-offset: 1px;
 }
 
 .pip.fail {
@@ -244,7 +219,7 @@ function toggle(i: number): void {
 
 .ledger-row {
   display: grid;
-  grid-template-columns: 2ch 1.2ch minmax(0, 1fr) 2ch auto;
+  grid-template-columns: 2ch minmax(0, 1fr) 2ch auto;
   gap: 0 var(--spacing-sm);
   align-items: start;
   padding: var(--spacing-xs) var(--spacing-sm);
@@ -257,30 +232,10 @@ function toggle(i: number): void {
   border-top: 0;
 }
 
-/* Passed rows are buttons: strip the native look */
-button.ledger-row {
-  width: 100%;
-  background: none;
-  border-left: 0;
-  border-right: 0;
-  border-bottom: 0;
-  font: inherit;
-  cursor: pointer;
-}
-
-button.ledger-row:hover {
-  background: var(--color-bg-section);
-}
-
 .row-num {
   color: var(--color-text-muted);
   text-align: right;
   font-variant-numeric: tabular-nums;
-}
-
-.row-toggle {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
 }
 
 .row-body {
@@ -306,44 +261,44 @@ button.ledger-row:hover {
   color: var(--color-error);
 }
 
-.ledger-row.closed .row-body {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--color-text-muted);
-}
-
-.ledger-row.closed .arrow,
-.ledger-row.closed .result {
-  display: none;
-}
-
 .ledger-row.fail {
   background: var(--color-error-overlay);
 }
 
+/* Failing row: call on its own line, then a two-line diff beneath it.
+   One grid holds both lines so the labels and values align vertically. */
+.ledger-row.fail .row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diff {
+  display: grid;
+  grid-template-columns: 1.5ch max-content minmax(0, 1fr);
+  column-gap: var(--spacing-xs);
+}
+
+.diff-sign {
+  font-weight: 700;
+}
+
+.diff-label {
+  color: var(--color-text-muted);
+}
+
+.diff-sign.got,
 .actual {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
-  padding: 2px 6px;
-  border-radius: 3px;
+  color: var(--color-error);
+}
+
+.diff-sign.want,
+.expected {
+  color: var(--color-success);
 }
 
 .actual.is-error {
   font-style: italic;
-}
-
-.expected-inline {
-  margin-left: var(--spacing-sm);
-  color: var(--color-success);
-  font-size: var(--font-size-xs);
-}
-
-.expected {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-  padding: 2px 6px;
-  border-radius: 3px;
 }
 
 .ledger-row.lock {
@@ -373,8 +328,6 @@ button.ledger-row:hover {
   background: var(--color-info-dark);
 }
 
-.pip:focus-visible,
-button.ledger-row:focus-visible,
 .debug-btn:focus-visible {
   outline: 2px solid var(--color-primary-gradient-start);
   outline-offset: 2px;

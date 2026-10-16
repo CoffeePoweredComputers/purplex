@@ -85,17 +85,14 @@ async function expectSingleFailingRow(
   await expect(failing.locator('.actual')).not.toHaveClass(/is-error/);
 }
 
-/** Passed rows start closed; open each one and check call and result, in order. */
+/** Passed rows show call and result up front; check each one in order. */
 async function expectPassingRows(page: Page, rows: Array<[string, string]>): Promise<void> {
   const items = page.locator(codeFeedback.passingItem);
   await expect(items).toHaveCount(rows.length);
   for (let i = 0; i < rows.length; i++) {
     const row = items.nth(i);
-    await expect(row).toHaveClass(/closed/);
-    await expect(row.locator('.result')).toBeHidden();
-    await row.click();
-    await expect(row).toHaveClass(/open/);
     await expect(row.locator('.test-call')).toHaveText(rows[i][0]);
+    await expect(row.locator('.result')).toBeVisible();
     await expect(row.locator('.result')).toHaveText(rows[i][1]);
   }
 }

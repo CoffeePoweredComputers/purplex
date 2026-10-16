@@ -75,7 +75,7 @@
       "pipFailed": "Test {n} failed",
       "pipLocked": "Test {n} locked",
       "unlockHint": "Unlocks when test {n} passes",
-      "rowPassed": "Test {n} passed: {call}. Toggle details",
+      "gotInline": "got",
       "expectedInline": "expected",
       "lockedRow": "{count} more tests · unlock when test {n} passes",
       "lockedRowOne": "1 more test · unlock when test {n} passes"
