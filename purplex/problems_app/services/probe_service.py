@@ -9,7 +9,6 @@ Handles:
 
 import json
 import logging
-import re
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
@@ -468,9 +467,104 @@ class ProbeService:
             return f"No probes remaining. Submit {submissions_to_next} more times to unlock more probes."
 
 
+_OPENERS = {"(": ")", "[": "]", "{": "}"}
+_CLOSERS = frozenset(_OPENERS.values())
+
+
+def _split_top_level(text: str, sep: str = ",") -> list[str]:
+    """Split ``text`` on ``sep`` where it is not nested or quoted.
+
+    Brackets ``()``, ``[]`` and ``{}`` raise the nesting depth; single- and
+    double-quoted strings (with backslash escapes) are skipped. Unbalanced
+    input is tolerated: depth never drops below zero.
+
+    Args:
+        text: Text to split, such as a parameter list.
+        sep: Single-character separator.
+
+    Returns:
+        The pieces between top-level separators, unstripped.
+    """
+    parts: list[str] = []
+    depth = 0
+    quote: str | None = None
+    current: list[str] = []
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if quote:
+            current.append(ch)
+            if ch == "\\" and i + 1 < len(text):
+                current.append(text[i + 1])
+                i += 1
+            elif ch == quote:
+                quote = None
+        elif ch in ("'", '"'):
+            quote = ch
+            current.append(ch)
+        elif ch in _OPENERS:
+            depth += 1
+            current.append(ch)
+        elif ch in _CLOSERS:
+            depth = max(depth - 1, 0)
+            current.append(ch)
+        elif ch == sep and depth == 0:
+            parts.append("".join(current))
+            current = []
+        else:
+            current.append(ch)
+        i += 1
+    parts.append("".join(current))
+    return parts
+
+
+def _extract_params_str(signature: str) -> str | None:
+    """Return the text between the signature's outermost parentheses.
+
+    Scans from the first ``(`` to its matching ``)``, so parentheses inside
+    defaults (``x: tuple = (1, 2)``) do not end the parameter list early.
+
+    Args:
+        signature: Function signature like ``"f(x: int) -> bool"``.
+
+    Returns:
+        The parameter list text, or None when there is no ``(``.
+    """
+    open_idx = signature.find("(")
+    if open_idx == -1:
+        return None
+    depth = 0
+    quote: str | None = None
+    i = open_idx
+    while i < len(signature):
+        ch = signature[i]
+        if quote:
+            if ch == "\\":
+                i += 1
+            elif ch == quote:
+                quote = None
+        elif ch in ("'", '"'):
+            quote = ch
+        elif ch in _OPENERS:
+            depth += 1
+        elif ch in _CLOSERS:
+            depth -= 1
+            if depth == 0:
+                return signature[open_idx + 1 : i]
+        i += 1
+    # Unterminated: take everything after "(".
+    return signature[open_idx + 1 :]
+
+
 def parse_function_signature(signature: str) -> list[dict[str, str]]:
     """
     Parse function signature to extract parameter names and types.
+
+    Parameters are split on top-level commas only, so bracketed annotations
+    such as ``dict[str, int]`` or ``tuple[int, str]`` and bracketed defaults
+    stay one parameter (issue #160). The type keeps any default text
+    (``"int = 3"``); normalize_primitive_type and normalize_container_type
+    strip it.
 
     Args:
         signature: Function signature like "f(x: int, y: str) -> bool"
@@ -478,23 +572,30 @@ def parse_function_signature(signature: str) -> list[dict[str, str]]:
     Returns:
         List of dicts with 'name' and 'type' keys
     """
-    # Extract the part between parentheses
-    match = re.search(r"\(([^)]*)\)", signature)
-    if not match:
+    params_str = _extract_params_str(signature)
+    if params_str is None:
         return []
 
-    params_str = match.group(1).strip()
+    params_str = params_str.strip()
     if not params_str:
         return []
 
     params = []
-    for param in params_str.split(","):
+    for param in _split_top_level(params_str):
         param = param.strip()
-        if ":" in param:
-            name, type_hint = param.split(":", 1)
+        if not param:
+            continue  # trailing comma
+        # Typed only when the colon comes before any default, so an untyped
+        # default containing a colon (sep="a:b") stays one name (mirrors
+        # parseSignatureParams in probeArgs.ts)
+        colon = param.find(":")
+        equals = param.find("=")
+        if colon != -1 and (equals == -1 or colon < equals):
+            name, type_hint = param[:colon], param[colon + 1 :]
             params.append({"name": name.strip(), "type": type_hint.strip()})
         else:
-            params.append({"name": param, "type": "Any"})
+            name = param.split("=", 1)[0]
+            params.append({"name": name.strip(), "type": "Any"})
 
     return params
 
@@ -545,15 +646,167 @@ def _matches_primitive(value: Any, kind: str) -> bool:
     return True
 
 
+_CONTAINER_ALIASES: dict[str, str] = {
+    "list": "list",
+    "tuple": "tuple",
+    "set": "set",
+    "dict": "dict",
+}
+
+
+def _split_type_hint(type_hint: str | None) -> str | None:
+    """Drop a default from a type hint; None for missing or implicit Optional.
+
+    Args:
+        type_hint: Raw type hint such as ``"list[int] = []"``.
+
+    Returns:
+        The stripped annotation, or None when the hint is empty or the default
+        is ``None`` (an implicit ``Optional``, which is not checked).
+    """
+    if not type_hint:
+        return None
+    # "=" never appears inside an annotation, but may appear in a default
+    # string, so split at the first top-level "=" only.
+    base = _split_top_level(type_hint, "=")[0]
+    default = type_hint[len(base) + 1 :] if len(base) < len(type_hint) else ""
+    if default.strip() == "None":
+        return None
+    base = base.strip()
+    return base or None
+
+
+def normalize_container_type(type_hint: str | None) -> dict[str, Any] | None:
+    """Map a parameter type hint to a one-level container description.
+
+    Recognises ``list``, ``tuple``, ``set`` and ``dict`` (and the ``typing``
+    aliases ``List``, ``Tuple``, ``Set``, ``Dict``; case-insensitive), bare or
+    subscripted. Item, key and value kinds are canonical primitive kinds from
+    the alias table, or None when the argument is not a primitive (nested
+    containers, ``Any``, classes), in which case only the shape is checked.
+
+    ``tuple[T]`` and ``tuple[T, ...]`` are treated as homogeneous tuples of
+    ``T``. A fixed-shape tuple such as ``tuple[int, str]`` is checked as shape
+    only (no per-position checks).
+
+    ``Optional[...]``, ``X | None`` and a ``None`` default are not containers
+    here, so they stay unchecked.
+
+    Args:
+        type_hint: Raw type hint such as ``"list[int]"`` or ``"Dict[str, int]"``.
+
+    Returns:
+        None when the hint is not a checked container, otherwise
+        ``{"kind": "list"|"tuple"|"set", "item": kind|None}`` or
+        ``{"kind": "dict", "key": kind|None, "value": kind|None}``.
+    """
+    base = _split_type_hint(type_hint)
+    if base is None:
+        return None
+    if len(_split_top_level(base, "|")) > 1:
+        return None
+
+    bracket = base.find("[")
+    if bracket == -1:
+        head, args = base, None
+    else:
+        if not base.endswith("]"):
+            return None
+        head, args = base[:bracket], base[bracket + 1 : -1]
+
+    kind = _CONTAINER_ALIASES.get(head.strip().lower())
+    if kind is None:
+        return None
+
+    arg_list = [a.strip() for a in _split_top_level(args)] if args is not None else []
+
+    def _primitive(arg: str) -> str | None:
+        return _PRIMITIVE_ALIASES.get(arg.lower())
+
+    if kind == "dict":
+        if len(arg_list) == 2:
+            return {
+                "kind": "dict",
+                "key": _primitive(arg_list[0]),
+                "value": _primitive(arg_list[1]),
+            }
+        return {"kind": "dict", "key": None, "value": None}
+
+    item = None
+    if len(arg_list) == 1 or (
+        kind == "tuple" and len(arg_list) == 2 and arg_list[1] == "..."
+    ):
+        item = _primitive(arg_list[0])
+    return {"kind": kind, "item": item}
+
+
+def _matches_container(value: Any, spec: dict[str, Any]) -> bool:
+    """Check a JSON-decoded value against a normalize_container_type spec.
+
+    list, tuple and set values arrive as JSON arrays. Dict keys arrive as JSON
+    object keys, which are always strings, so keys are only checked against a
+    ``str`` key kind; other key kinds are not checkable on the wire.
+
+    Args:
+        value: The probe value.
+        spec: Output of normalize_container_type.
+
+    Returns:
+        True if the value has the container shape and every checked item,
+        key and value matches its primitive kind.
+    """
+    if spec["kind"] == "dict":
+        if not isinstance(value, dict):
+            return False
+        key_kind, value_kind = spec["key"], spec["value"]
+        if key_kind == "str" and not all(_matches_primitive(k, "str") for k in value):
+            return False
+        if value_kind and not all(
+            _matches_primitive(v, value_kind) for v in value.values()
+        ):
+            return False
+        return True
+
+    if not isinstance(value, list):
+        return False
+    item_kind = spec["item"]
+    if item_kind and not all(_matches_primitive(v, item_kind) for v in value):
+        return False
+    return True
+
+
+def _container_description(spec: dict[str, Any]) -> str:
+    """Describe a container spec for a revealed-type error message.
+
+    Args:
+        spec: Output of normalize_container_type.
+
+    Returns:
+        Text such as ``"a list of str"``, ``"a dict of str to int"`` or
+        ``"a list"`` when the item kinds are unchecked.
+    """
+    kind = spec["kind"]
+    if kind == "dict":
+        if spec["key"] and spec["value"]:
+            return f"a dict of {spec['key']} to {spec['value']}"
+        return "a dict"
+    if spec["item"]:
+        return f"a {kind} of {spec['item']}"
+    return f"a {kind}"
+
+
 def validate_probe_input(
     signature: str, probe_input: dict[str, Any], *, reveal_types: bool = True
 ) -> tuple[bool, str | None]:
     """
     Validate probe input against function signature.
 
-    Parameter names are checked first (missing, then unknown). Then each
-    parameter with a primitive type hint (int, float, bool, str and their
-    aliases) is checked against its value; other hints are not checked.
+    Parameter names are checked first (missing, then unknown). Then, in
+    signature order, each parameter with a primitive type hint (int, float,
+    bool, str and their aliases) is checked against its value, and each
+    one-level container hint (list/tuple/set/dict, see
+    normalize_container_type) is checked for shape and primitive items.
+    Other hints (Any, Optional, nested item types, classes) are not checked.
 
     Args:
         signature: The function signature
@@ -583,15 +836,22 @@ def validate_probe_input(
     if extra:
         return False, f"Unknown parameters: {', '.join(extra)}"
 
-    # Check primitive types in signature order
+    # Check primitive and container types in signature order
     for param in params:
-        kind = normalize_primitive_type(param["type"])
-        if kind is None:
-            continue
         name = param["name"]
-        if not _matches_primitive(probe_input[name], kind):
+        value = probe_input[name]
+        kind = normalize_primitive_type(param["type"])
+        if kind is not None:
+            if _matches_primitive(value, kind):
+                continue
             if not reveal_types:
                 return False, f"That value is not valid for parameter '{name}'"
             return False, f"Parameter '{name}' must be {_KIND_ARTICLES[kind]} {kind}"
+        spec = normalize_container_type(param["type"])
+        if spec is None or _matches_container(value, spec):
+            continue
+        if not reveal_types:
+            return False, f"That value is not valid for parameter '{name}'"
+        return False, f"Parameter '{name}' must be {_container_description(spec)}"
 
     return True, None

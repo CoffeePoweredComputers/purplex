@@ -15,7 +15,6 @@ Grading: Test pass rate
 """
 
 import logging
-import re
 from typing import TYPE_CHECKING, Any
 
 from .. import register_handler
@@ -34,22 +33,17 @@ logger = logging.getLogger(__name__)
 
 
 def _parse_function_params(signature: str) -> list[dict[str, str]]:
-    """Parse function signature to extract parameter names and types."""
-    match = re.search(r"\(([^)]*)\)", signature)
-    if not match:
-        return []
-    params_str = match.group(1).strip()
-    if not params_str:
-        return []
-    params = []
-    for param in params_str.split(","):
-        param = param.strip()
-        if ":" in param:
-            name, type_hint = param.split(":", 1)
-            params.append({"name": name.strip(), "type": type_hint.strip()})
-        else:
-            params.append({"name": param, "type": "Any"})
-    return params
+    """Parse function signature to extract parameter names and types.
+
+    Delegates to probe_service.parse_function_signature so the probe panel and
+    the probe validator agree on how parameters are split.
+    """
+    # Imported here: the services package imports the handler registry.
+    from purplex.problems_app.services.probe_service import (
+        parse_function_signature,
+    )
+
+    return parse_function_signature(signature)
 
 
 @register_handler("probeable_code")

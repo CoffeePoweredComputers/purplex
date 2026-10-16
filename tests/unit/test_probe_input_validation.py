@@ -129,14 +129,14 @@ class TestUncheckedHints:
         [
             "def f(x)",
             "def f(x: Any)",
-            "def f(x: list[int])",
-            "def f(x: dict)",
             "def f(x: Optional[int])",
             "def f(x: MyClass)",
         ],
     )
     @pytest.mark.parametrize("value", ["abc", 5, None, [1, 2], {"k": 1}])
     def test_non_primitive_hints_skipped(self, signature, value):
+        # Container hints (list[int], dict, ...) are checked since the call
+        # line; see test_probe_input_containers.py.
         assert _valid(signature, {"x": value}) == (True, None)
 
     @pytest.mark.parametrize("hint", [None, "", "Any", "list[int]", "Optional[int]"])
