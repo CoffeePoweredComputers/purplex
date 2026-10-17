@@ -44,15 +44,7 @@ const DYNAMIC_PREFIXES = ['--color-category-'];
  * Problems that exist today and are scheduled to be fixed. Each entry is
  * `<check>:<detail>`. Listed problems print as warnings; anything else fails.
  */
-const KNOWN_OFFENDERS = [
-  // Step 5 moves these component overrides into tokens (nav-sub tokens; the
-  // App.vue footer logo filter needs a token or a both-theme decision).
-  'data-theme:src/App.vue',
-  'data-theme:src/components/AdminNavBar.vue',
-  'data-theme:src/components/NavBar.vue',
-  'data-theme:src/components/instructor/InstructorCourseOverview.vue',
-  'data-theme:src/components/instructor/InstructorNavBar.vue',
-];
+const KNOWN_OFFENDERS = [];
 
 // ---------------------------------------------------------------------------
 // Helpers

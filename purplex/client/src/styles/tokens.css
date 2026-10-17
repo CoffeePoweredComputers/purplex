@@ -77,6 +77,7 @@
   --color-gradient-end: #764ba2;
   --gradient-primary: linear-gradient(135deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 100%);
   --gradient-admin: linear-gradient(135deg, var(--color-admin) 0%, var(--color-gradient-end) 100%);
+  --gradient-admin-hover: var(--gradient-admin);
   --gradient-logo: linear-gradient(135deg, #a78bfa, #c4b5fd, #8b7ec8);
 
   /* Background Colors */
@@ -125,6 +126,19 @@
   --color-admin: #673ab7;
   --color-admin-hover: #5e35b1;
   --color-admin-bg: #673ab7;
+
+  /* Sub-navigation bars (AdminNavBar, InstructorNavBar); --nav-sub-bg may be a gradient */
+  --nav-sub-bg: linear-gradient(135deg, var(--color-admin) 0%, var(--color-admin-hover) 100%);
+  --color-nav-sub-text: var(--color-text-on-filled);
+  --color-nav-sub-active-bg: var(--color-overlay-strong);
+  --color-nav-sub-active-text: var(--color-text-on-filled);
+  --color-nav-sub-hover-border: var(--color-overlay-strong);
+  --color-nav-sub-focus: var(--color-focus-ring);
+
+  /* One-off decorations */
+  --marker-line-bg: linear-gradient(to bottom, var(--color-admin), var(--color-border));
+  --logo-filter: brightness(0) invert(0.7);
+  --logo-filter-hover: brightness(0) invert(0.9);
 
   /* Overlay Colors */
   --color-overlay-subtle: rgb(255 255 255 / 5%);
@@ -219,7 +233,8 @@
   --color-gradient-start: #4f46e5;
   --color-gradient-end: #6d28d9;
   --gradient-primary: linear-gradient(135deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 100%);
-  --gradient-admin: linear-gradient(135deg, var(--color-admin) 0%, var(--color-gradient-end) 100%);
+  --gradient-admin: var(--color-admin);
+  --gradient-admin-hover: var(--color-admin-hover);
   --gradient-logo: linear-gradient(135deg, #7c3aed, #8b5cf6, #6d28d9);
 
   /* Background Colors */
@@ -268,6 +283,19 @@
   --color-admin: #7c3aed;
   --color-admin-hover: #6d28d9;
   --color-admin-bg: #ede9fe;
+
+  /* Sub-navigation bars (inverted: soft admin tint, admin text, solid active tab) */
+  --nav-sub-bg: var(--color-admin-bg);
+  --color-nav-sub-text: var(--color-admin);
+  --color-nav-sub-active-bg: var(--color-admin);
+  --color-nav-sub-active-text: var(--color-text-on-filled);
+  --color-nav-sub-hover-border: var(--color-admin-shadow);
+  --color-nav-sub-focus: var(--color-admin);
+
+  /* One-off decorations */
+  --marker-line-bg: rgb(124 58 237 / 30%);
+  --logo-filter: brightness(0) invert(0.3);
+  --logo-filter-hover: brightness(0) invert(0.1);
 
   /* Overlay Colors (white-alpha → black-alpha) */
   --color-overlay-subtle: rgb(0 0 0 / 3%);

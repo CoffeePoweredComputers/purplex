@@ -414,22 +414,14 @@ export default defineComponent({
 
 .meta-logo {
     vertical-align: middle;
-    filter: brightness(0) invert(0.7);  /* Makes the logo lighter for dark theme */
+    filter: var(--logo-filter);
     opacity: 0.8;
     transition: all 0.2s;
 }
 
 .meta-logo:hover {
     opacity: 1;
-    filter: brightness(0) invert(0.9);  /* Even lighter on hover */
-}
-
-[data-theme="light"] .meta-logo {
-    filter: brightness(0) invert(0.3);  /* Dark gray for light theme */
-}
-
-[data-theme="light"] .meta-logo:hover {
-    filter: brightness(0) invert(0.1);  /* Near-black on hover */
+    filter: var(--logo-filter-hover);
 }
 
 /* Add padding to body to account for fixed footer */

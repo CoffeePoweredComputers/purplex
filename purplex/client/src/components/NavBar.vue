@@ -553,12 +553,3 @@ onUnmounted(() => {
     }
 }
 </style>
-
-<!-- Unscoped: theme overrides must reach [data-theme] on <html> -->
-<style>
-/* Light mode: force white text on dark-filled buttons */
-[data-theme="light"] .instructor-item,
-[data-theme="light"] .admin-item {
-    color: var(--color-text-on-filled);
-}
-</style>

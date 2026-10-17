@@ -12,6 +12,7 @@
     "function-disallowed-list": ["/^rgb/", "/^hsl/"],
     "selector-class-pattern": null,
     "keyframes-name-pattern": null,
+    "selector-disallowed-list": ["/\\[data-theme/"],
     "declaration-property-value-disallowed-list": {
       "/^(?!background)/": ["/--color-(primary-)?gradient-/"],
       "/^background/": ["/^var\\(--color-(primary-)?gradient-(start|end)\\)$/"],
@@ -49,7 +50,8 @@
       "rules": {
         "color-no-hex": null,
         "function-disallowed-list": null,
-        "declaration-property-value-disallowed-list": null
+        "declaration-property-value-disallowed-list": null,
+        "selector-disallowed-list": null
       }
     }
   ]
