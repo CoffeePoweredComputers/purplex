@@ -160,8 +160,8 @@ describe('useTheme', () => {
 
   describe('editorTheme', () => {
     it.each([
-      ['light', 'chrome'],
-      ['dark', 'tomorrow_night'],
+      ['light', 'tomorrow'],
+      ['dark', 'tomorrow_night_eighties'],
     ] as const)('maps %s to the %s Ace theme', async (effective, aceTheme) => {
       const { setTheme, editorTheme } = (await loadUseTheme())()
 

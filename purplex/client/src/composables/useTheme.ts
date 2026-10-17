@@ -77,7 +77,7 @@ export function useTheme() {
   initialize()
 
   const editorTheme = computed(() =>
-    effectiveTheme.value === 'light' ? 'chrome' : 'tomorrow_night'
+    effectiveTheme.value === 'light' ? 'tomorrow' : 'tomorrow_night_eighties'
   )
 
   return {

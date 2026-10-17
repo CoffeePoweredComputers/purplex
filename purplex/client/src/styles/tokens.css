@@ -68,81 +68,83 @@
   --color-focus-ring: var(--color-accent);
 }
 
+/* Dark theme: Dusk (warm violet-grey surfaces, lavender accent) */
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Primary Colors */
-  --color-primary: #800080;
-  --color-primary-hover: #9b009b;
-  --color-accent: #667eea;
-  --color-accent-strong: #764ba2;
+  /* Primary Colors (primary = filled buttons; accent = text, borders, focus) */
+  --color-primary: #7c3aed;
+  --color-primary-hover: #8855f0;
+  --color-accent: #c3a6ff;
+  --color-accent-strong: #d8c6ff;
 
   /* Gradients (stops only inside gradients; prefer the whole-gradient tokens) */
-  --color-gradient-start: #667eea;
-  --color-gradient-end: #764ba2;
+  --color-gradient-start: #8b5cf6;
+  --color-gradient-end: #7c3aed;
   --gradient-primary: linear-gradient(135deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 100%);
-  --gradient-admin: linear-gradient(135deg, var(--color-admin) 0%, var(--color-gradient-end) 100%);
-  --gradient-admin-hover: var(--gradient-admin);
-  --gradient-logo: linear-gradient(135deg, #a78bfa, #c4b5fd, #8b7ec8);
+  --gradient-admin: var(--color-admin);
+  --gradient-admin-hover: var(--color-admin-hover);
+  --gradient-logo: linear-gradient(135deg, #c3a6ff, #e0d3ff, #9d7cf6);
 
   /* Background Colors */
-  --color-bg-main: #242424;
-  --color-bg-sunken: #1a1a1a;
-  --color-bg-panel: #1e1e1e;
-  --color-bg-header: #191919;
-  --color-bg-hover: #2a2a2a;
-  --color-bg-section: #2a2a2a;
-  --color-bg-input: #333;
-  --color-border: #444;
-  --color-bg-disabled: #555;
+  --color-bg-main: #2a2528;
+  --color-bg-sunken: #221f21;
+  --color-bg-panel: #342e32;
+  --color-bg-header: #3e373c;
+  --color-bg-hover: #484045;
+  --color-bg-section: #3e373c;
+  --color-bg-input: #423b40;
+  --color-border: #564e54;
+  --color-bg-disabled: #877d84;
 
   /* Text Colors */
-  --color-text-primary: #fff;
-  --color-text-secondary: #e0e0e0;
-  --color-text-tertiary: #ddd;
-  --color-text-muted: #999;
-  --color-text-default: rgb(255 255 255 / 87%);
+  --color-text-primary: #f5f0f3;
+  --color-text-secondary: #d6cdd3;
+  --color-text-tertiary: #b0a6ad;
+  --color-text-muted: #b0a6ad;
+  --color-text-default: rgb(245 240 243 / 92%);
   --color-text-on-filled: #fff;
 
-  /* Syntax highlighting (token colors — tomorrow_night palette) */
-  --color-syntax-keyword: #B294BB;
-  --color-syntax-string: #B5BD68;
-  --color-syntax-comment: #969896;
-  --color-syntax-number: #DE935F;
-  --color-syntax-builtin: #81A2BE;
-  --color-syntax-variable: #C66;
-  --color-syntax-operator: #8ABEB7;
-  --color-syntax-punctuation: #C5C8C6;
+  /* Syntax highlighting (token colors — tomorrow_night_eighties palette) */
+  --color-syntax-keyword: #c9c;
+  --color-syntax-string: #9c9;
+  --color-syntax-comment: #999;
+  --color-syntax-number: #f99157;
+  --color-syntax-builtin: #69c;
+  --color-syntax-variable: #f2777a;
+  --color-syntax-operator: #6cc;
+  --color-syntax-punctuation: #ccc;
 
   /* Status Colors */
-  --color-success: #4CAF50;
-  --color-success-bg: #2d4d3a;
-  --color-success-text: #a3e9c1;
-  --color-warning: #FFC107;
-  --color-warning-bg: #4d4c2d;
-  --color-warning-text: #e9e4a3;
-  --color-error: #dc3545;
-  --color-error-bg: #4d2d2d;
-  --color-error-text: #e9a3a3;
-  --color-info: #2196F3;
-  --color-info-bg: #2d3a4d;
+  --color-success: #4ade80;
+  --color-success-bg: #1f3a28;
+  --color-success-text: #86efac;
+  --color-warning: #fbbf24;
+  --color-warning-bg: #3b2d16;
+  --color-warning-text: #fcd34d;
+  --color-error: #fb7185;
+  --color-error-bg: #41262e;
+  --color-error-text: #fda4af;
+  --color-info: var(--color-accent);
+  --color-info-bg: #3a2f52;
 
-  /* Admin Colors */
-  --color-admin: #673ab7;
-  --color-admin-hover: #5e35b1;
-  --color-admin-bg: #673ab7;
+  /* Role Colors */
+  --color-admin: var(--color-primary);
+  --color-admin-hover: var(--color-primary-hover);
+  --color-admin-bg: #3a2f52;
+
 
   /* Sub-navigation bars (AdminNavBar, InstructorNavBar); --nav-sub-bg may be a gradient */
-  --nav-sub-bg: linear-gradient(135deg, var(--color-admin) 0%, var(--color-admin-hover) 100%);
-  --color-nav-sub-text: var(--color-text-on-filled);
-  --color-nav-sub-active-bg: var(--color-overlay-strong);
-  --color-nav-sub-active-text: var(--color-text-on-filled);
-  --color-nav-sub-hover-border: var(--color-overlay-strong);
+  --nav-sub-bg: var(--color-bg-panel);
+  --color-nav-sub-text: var(--color-text-secondary);
+  --color-nav-sub-active-bg: var(--color-admin-bg);
+  --color-nav-sub-active-text: var(--color-accent-strong);
+  --color-nav-sub-hover-border: var(--color-border);
   --color-nav-sub-focus: var(--color-focus-ring);
 
   /* One-off decorations */
-  --marker-line-bg: linear-gradient(to bottom, var(--color-admin), var(--color-border));
+  --marker-line-bg: color-mix(in srgb, var(--color-accent) 30%, transparent);
   --logo-filter: brightness(0) invert(0.7);
   --logo-filter-hover: brightness(0) invert(0.9);
 
@@ -162,13 +164,13 @@
   --color-accent-glow: color-mix(in srgb, var(--color-accent) 30%, transparent);
 
   /* Status Gradient Endpoints */
-  --color-success-accent: #34d399;
-  --color-warning-accent: #fbbf24;
-  --color-error-accent: #f87171;
-  --color-error-dark: #c82333;
-  --color-warning-dark: #e0a800;
-  --color-success-dark: #218838;
-  --color-info-dark: #1976d2;
+  --color-success-accent: #86efac;
+  --color-warning-accent: #fcd34d;
+  --color-error-accent: #fda4af;
+  --color-error-dark: #e11d48;
+  --color-warning-dark: #b45309;
+  --color-success-dark: #15803d;
+  --color-info-dark: #7c3aed;
 
   /* Extended Overlays (white on dark, black on light) */
   --color-overlay-border: rgb(255 255 255 / 25%);
@@ -187,7 +189,7 @@
   /* Colored Glows (box-shadows) */
   --color-accent-shadow: color-mix(in srgb, var(--color-accent) 40%, transparent);
   --color-admin-shadow: color-mix(in srgb, var(--color-admin) 30%, transparent);
-  --color-info-shadow: rgb(59 130 246 / 30%); /* drifted from base; retuned in step 7 */
+  --color-info-shadow: color-mix(in srgb, var(--color-primary) 30%, transparent);
   --color-segment-shadow: color-mix(in srgb, var(--color-category-1) 30%, transparent);
   --color-warning-pulse: color-mix(in srgb, var(--color-warning-accent) 70%, transparent);
   --color-warning-pulse-end: transparent;
@@ -204,102 +206,104 @@
   --color-ace-selection: color-mix(in srgb, var(--color-primary) 30%, transparent);
 
   /* Shadows */
-  --shadow-xs: 0 1px 3px rgb(0 0 0 / 10%);
-  --shadow-subtle: 0 2px 4px rgb(0 0 0 / 10%);
-  --shadow-sm: 0 2px 8px rgb(0 0 0 / 20%);
-  --shadow-base: 0 4px 12px rgb(0 0 0 / 30%);
-  --shadow-md: 0 4px 10px rgb(0 0 0 / 30%);
-  --shadow-lg: 0 8px 25px rgb(0 0 0 / 40%);
-  --shadow-accent: 0 4px 15px rgb(102 126 234 / 30%);
+  --shadow-xs: 0 1px 3px rgb(0 0 0 / 30%);
+  --shadow-subtle: 0 1px 3px rgb(0 0 0 / 30%);
+  --shadow-sm: 0 2px 8px rgb(0 0 0 / 30%);
+  --shadow-base: 0 4px 12px rgb(0 0 0 / 35%);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 35%);
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 40%);
+  --shadow-accent: 0 4px 14px color-mix(in srgb, var(--color-primary) 30%, transparent);
 
   /* One-off shadows */
-  --shadow-nav: 0 2px 10px rgb(0 0 0 / 30%);
-  --shadow-dropdown: 0 8px 32px rgb(0 0 0 / 40%);
-  --shadow-modal: 0 4px 20px rgb(0 0 0 / 15%);
-  --shadow-inset: inset 0 1px 3px rgb(0 0 0 / 20%);
+  --shadow-nav: none;
+  --shadow-dropdown: 0 8px 32px rgb(0 0 0 / 45%);
+  --shadow-modal: 0 4px 20px rgb(0 0 0 / 40%);
+  --shadow-inset: inset 0 1px 3px rgb(0 0 0 / 30%);
   --shadow-float: 0 24px 64px rgb(0 0 0 / 50%);
   --shadow-up: 0 -2px 10px rgb(0 0 0 / 30%);
-  --shadow-info-hover: 0 4px 12px rgb(59 130 246 / 50%); /* drifted from base; retuned in step 7 */
-  --shadow-info-active: 0 4px 16px rgb(59 130 246 / 60%); /* drifted from base; retuned in step 7 */
-  --shadow-admin-hover: 0 4px 12px rgb(103 58 183 / 50%);
-  --shadow-admin-active: 0 4px 16px rgb(103 58 183 / 60%);
-  --shadow-segment-hover: 0 4px 16px rgb(159 122 234 / 50%);
+  --shadow-info-hover: 0 4px 12px color-mix(in srgb, var(--color-primary) 30%, transparent);
+  --shadow-info-active: 0 4px 12px color-mix(in srgb, var(--color-primary) 40%, transparent);
+  --shadow-admin-hover: 0 4px 12px color-mix(in srgb, var(--color-admin) 30%, transparent);
+  --shadow-admin-active: 0 4px 12px color-mix(in srgb, var(--color-admin) 40%, transparent);
+  --shadow-segment-hover: 0 4px 16px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
+/* Light theme: Studio (cool greys, one violet accent, flat fills) */
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Primary Colors */
-  --color-primary: #6b006b;
-  --color-primary-hover: #570057;
-  --color-accent: #4f46e5;
-  --color-accent-strong: #6d28d9;
+  /* Primary Colors (primary = filled buttons; accent = text, borders, focus) */
+  --color-primary: #6d28d9;
+  --color-primary-hover: #5b21b6;
+  --color-accent: #6d28d9;
+  --color-accent-strong: #5b21b6;
 
-  /* Gradients (stops only inside gradients; prefer the whole-gradient tokens) */
-  --color-gradient-start: #4f46e5;
-  --color-gradient-end: #6d28d9;
-  --gradient-primary: linear-gradient(135deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 100%);
+  /* Gradients (flat in Studio: a solid colour is valid in `background`) */
+  --color-gradient-start: #6d28d9;
+  --color-gradient-end: #5b21b6;
+  --gradient-primary: var(--color-accent);
   --gradient-admin: var(--color-admin);
   --gradient-admin-hover: var(--color-admin-hover);
   --gradient-logo: linear-gradient(135deg, #7c3aed, #8b5cf6, #6d28d9);
 
-  /* Background Colors */
-  --color-bg-main: #f8f9fa;
-  --color-bg-sunken: #e9ecef;
+  /* Background Colors (header bands merge with the panel in Studio) */
+  --color-bg-main: #f3f4f8;
+  --color-bg-sunken: #e6e8ef;
   --color-bg-panel: #fff;
-  --color-bg-header: #f1f3f5;
-  --color-bg-hover: #dde1e6;
-  --color-bg-section: #f5f5f7;
-  --color-bg-input: #e9ecef;
-  --color-border: #d1d5db;
-  --color-bg-disabled: #9ca3af;
+  --color-bg-header: #fff;
+  --color-bg-hover: #e8eaf1;
+  --color-bg-section: #f7f8fb;
+  --color-bg-input: #eef0f5;
+  --color-border: #e1e4ec;
+  --color-bg-disabled: #a3a8b8;
 
   /* Text Colors */
-  --color-text-primary: #1a1a2e;
-  --color-text-secondary: #1f2937;
-  --color-text-tertiary: #374151;
-  --color-text-muted: #4b5563;
-  --color-text-default: rgb(26 26 46 / 87%);
+  --color-text-primary: #141624;
+  --color-text-secondary: #2b2f41;
+  --color-text-tertiary: #4a5069;
+  --color-text-muted: #636983;
+  --color-text-default: rgb(20 22 36 / 88%);
   --color-text-on-filled: #fff;
 
-  /* Syntax highlighting (token colors — chrome palette) */
-  --color-syntax-keyword: #930f80;
-  --color-syntax-string: #1A1AA6;
-  --color-syntax-comment: #236e24;
-  --color-syntax-number: #0000CD;
-  --color-syntax-builtin: #3c4c72;
-  --color-syntax-variable: #318495;
-  --color-syntax-operator: #687687;
-  --color-syntax-punctuation: #333;
+  /* Syntax highlighting (token colors — tomorrow palette, number darkened for AA) */
+  --color-syntax-keyword: #8959a8;
+  --color-syntax-string: #718c00;
+  --color-syntax-comment: #8e908c;
+  --color-syntax-number: #b45309;
+  --color-syntax-builtin: #4271ae;
+  --color-syntax-variable: #c82829;
+  --color-syntax-operator: #3e999f;
+  --color-syntax-punctuation: #4d4d4c;
 
   /* Status Colors */
   --color-success: #15803d;
-  --color-success-bg: #dcfce7;
+  --color-success-bg: #e8f7ed;
   --color-success-text: #14532d;
   --color-warning: #b45309;
-  --color-warning-bg: #fef3c7;
+  --color-warning-bg: #fdf3df;
   --color-warning-text: #78350f;
-  --color-error: #dc2626;
-  --color-error-bg: #fee2e2;
+  --color-error: #b91c1c;
+  --color-error-bg: #fdecec;
   --color-error-text: #7f1d1d;
-  --color-info: #1d4ed8;
-  --color-info-bg: #dbeafe;
+  --color-info: var(--color-accent);
+  --color-info-bg: #efeafc;
 
-  /* Admin Colors */
-  --color-admin: #7c3aed;
-  --color-admin-hover: #6d28d9;
-  --color-admin-bg: #ede9fe;
+  /* Role Colors */
+  --color-admin: var(--color-accent);
+  --color-admin-hover: var(--color-primary-hover);
+  --color-admin-bg: #efeafc;
 
-  /* Sub-navigation bars (inverted: soft admin tint, admin text, solid active tab) */
-  --nav-sub-bg: var(--color-admin-bg);
-  --color-nav-sub-text: var(--color-admin);
-  --color-nav-sub-active-bg: var(--color-admin);
-  --color-nav-sub-active-text: var(--color-text-on-filled);
-  --color-nav-sub-hover-border: var(--color-admin-shadow);
-  --color-nav-sub-focus: var(--color-admin);
+
+  /* Sub-navigation bars (AdminNavBar, InstructorNavBar); --nav-sub-bg may be a gradient */
+  --nav-sub-bg: var(--color-bg-panel);
+  --color-nav-sub-text: var(--color-text-secondary);
+  --color-nav-sub-active-bg: var(--color-admin-bg);
+  --color-nav-sub-active-text: var(--color-admin);
+  --color-nav-sub-hover-border: var(--color-border);
+  --color-nav-sub-focus: var(--color-focus-ring);
 
   /* One-off decorations */
-  --marker-line-bg: color-mix(in srgb, var(--color-admin) 30%, transparent);
+  --marker-line-bg: color-mix(in srgb, var(--color-accent) 30%, transparent);
   --logo-filter: brightness(0) invert(0.3);
   --logo-filter-hover: brightness(0) invert(0.1);
 
@@ -321,11 +325,11 @@
   /* Status Gradient Endpoints */
   --color-success-accent: #059669;
   --color-warning-accent: #d97706;
-  --color-error-accent: #ef4444;
-  --color-error-dark: #b91c1c;
+  --color-error-accent: #dc2626;
+  --color-error-dark: #991b1b;
   --color-warning-dark: #92400e;
   --color-success-dark: #065f46;
-  --color-info-dark: #1e40af;
+  --color-info-dark: #5b21b6;
 
   /* Extended Overlays */
   --color-overlay-border: rgb(0 0 0 / 12%);
@@ -343,7 +347,7 @@
 
   /* Colored Glows (~50% opacity reduction) */
   --color-accent-shadow: color-mix(in srgb, var(--color-accent) 20%, transparent);
-  --color-admin-shadow: rgb(91 33 182 / 15%); /* drifted from base; retuned in step 7 */
+  --color-admin-shadow: color-mix(in srgb, var(--color-admin) 15%, transparent);
   --color-info-shadow: color-mix(in srgb, var(--color-info) 15%, transparent);
   --color-segment-shadow: color-mix(in srgb, var(--color-category-1) 15%, transparent);
   --color-warning-pulse: color-mix(in srgb, var(--color-warning) 50%, transparent);
@@ -360,25 +364,25 @@
   /* Ace Editor */
   --color-ace-selection: color-mix(in srgb, var(--color-primary) 20%, transparent);
 
-  /* Shadows (same geometry, ~60-70% opacity reduction) */
-  --shadow-xs: 0 1px 3px rgb(0 0 0 / 4%);
-  --shadow-subtle: 0 2px 4px rgb(0 0 0 / 4%);
-  --shadow-sm: 0 2px 8px rgb(0 0 0 / 6%);
-  --shadow-base: 0 4px 12px rgb(0 0 0 / 8%);
-  --shadow-md: 0 4px 10px rgb(0 0 0 / 8%);
-  --shadow-lg: 0 8px 25px rgb(0 0 0 / 10%);
-  --shadow-accent: 0 4px 15px rgb(79 70 229 / 15%);
+  /* Shadows (quiet: hairline borders carry the separation) */
+  --shadow-xs: 0 1px 2px rgb(20 22 36 / 5%);
+  --shadow-subtle: 0 1px 2px rgb(20 22 36 / 5%);
+  --shadow-sm: 0 1px 2px rgb(20 22 36 / 5%);
+  --shadow-base: 0 2px 6px rgb(20 22 36 / 6%);
+  --shadow-md: 0 2px 6px rgb(20 22 36 / 6%);
+  --shadow-lg: 0 8px 24px rgb(20 22 36 / 8%);
+  --shadow-accent: 0 2px 8px color-mix(in srgb, var(--color-accent) 15%, transparent);
 
   /* One-off shadows */
-  --shadow-nav: 0 2px 10px rgb(0 0 0 / 6%);
-  --shadow-dropdown: 0 8px 32px rgb(0 0 0 / 10%);
-  --shadow-modal: 0 4px 20px rgb(0 0 0 / 8%);
-  --shadow-inset: inset 0 1px 3px rgb(0 0 0 / 6%);
-  --shadow-float: 0 24px 64px rgb(0 0 0 / 12%);
-  --shadow-up: 0 -2px 10px rgb(0 0 0 / 6%);
-  --shadow-info-hover: 0 4px 12px rgb(29 78 216 / 20%);
-  --shadow-info-active: 0 4px 16px rgb(29 78 216 / 25%);
-  --shadow-admin-hover: 0 4px 12px rgb(91 33 182 / 20%); /* drifted from base; retuned in step 7 */
-  --shadow-admin-active: 0 4px 16px rgb(91 33 182 / 25%); /* drifted from base; retuned in step 7 */
-  --shadow-segment-hover: 0 4px 16px rgb(124 58 237 / 20%);
+  --shadow-nav: none;
+  --shadow-dropdown: 0 8px 24px rgb(20 22 36 / 10%);
+  --shadow-modal: 0 4px 20px rgb(20 22 36 / 8%);
+  --shadow-inset: inset 0 1px 2px rgb(20 22 36 / 6%);
+  --shadow-float: 0 16px 48px rgb(20 22 36 / 12%);
+  --shadow-up: 0 -1px 4px rgb(20 22 36 / 6%);
+  --shadow-info-hover: 0 2px 8px color-mix(in srgb, var(--color-info) 15%, transparent);
+  --shadow-info-active: 0 2px 8px color-mix(in srgb, var(--color-info) 20%, transparent);
+  --shadow-admin-hover: 0 2px 8px color-mix(in srgb, var(--color-admin) 15%, transparent);
+  --shadow-admin-active: 0 2px 8px color-mix(in srgb, var(--color-admin) 20%, transparent);
+  --shadow-segment-hover: 0 4px 12px color-mix(in srgb, var(--color-category-1) 15%, transparent);
 }

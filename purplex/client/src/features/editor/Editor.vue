@@ -33,8 +33,8 @@ import { VAceEditor } from 'vue3-ace-editor'
 import { useTheme } from '@/composables/useTheme'
 import ace from 'ace-builds'
 import 'ace-builds/src-noconflict/mode-python'
-import 'ace-builds/src-noconflict/theme-chrome'
-import 'ace-builds/src-noconflict/theme-tomorrow_night'
+import 'ace-builds/src-noconflict/theme-tomorrow'
+import 'ace-builds/src-noconflict/theme-tomorrow_night_eighties'
 
 // Marker definition for line highlighting
 interface EditorMarker {

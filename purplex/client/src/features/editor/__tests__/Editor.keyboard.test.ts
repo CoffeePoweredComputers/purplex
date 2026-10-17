@@ -28,8 +28,8 @@ vi.mock('vue3-ace-editor', () => ({
 }))
 
 vi.mock('ace-builds/src-noconflict/mode-python', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-chrome', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-tomorrow_night', () => ({}))
+vi.mock('ace-builds/src-noconflict/theme-tomorrow', () => ({}))
+vi.mock('ace-builds/src-noconflict/theme-tomorrow_night_eighties', () => ({}))
 
 describe('Editor keyboard behaviour (real Ace)', () => {
   type RealAceEditor = import('ace-builds').Ace.Editor
