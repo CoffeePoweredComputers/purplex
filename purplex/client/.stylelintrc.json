@@ -12,6 +12,11 @@
     "function-disallowed-list": ["/^rgb/", "/^hsl/"],
     "selector-class-pattern": null,
     "keyframes-name-pattern": null,
+    "declaration-property-value-disallowed-list": {
+      "/^(?!background)/": ["/--color-(primary-)?gradient-/"],
+      "/^background/": ["/^var\\(--color-(primary-)?gradient-(start|end)\\)$/"],
+      "/^outline/": ["/--color-accent/"]
+    },
     "scale-unlimited/declaration-strict-value": [
       [
         "color",
@@ -43,7 +48,8 @@
       "files": ["src/styles/tokens.css"],
       "rules": {
         "color-no-hex": null,
-        "function-disallowed-list": null
+        "function-disallowed-list": null,
+        "declaration-property-value-disallowed-list": null
       }
     }
   ]

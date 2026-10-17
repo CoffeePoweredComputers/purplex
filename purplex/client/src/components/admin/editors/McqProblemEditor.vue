@@ -197,7 +197,7 @@ defineExpose({
 .form-group textarea:focus,
 .form-group select:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   background: var(--color-bg-panel);
 }
 
@@ -232,7 +232,7 @@ defineExpose({
 .option-letter {
   width: 28px;
   height: 28px;
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
   border-radius: 50%;
   display: flex;
@@ -314,7 +314,7 @@ defineExpose({
 .option-text-input:focus,
 .option-explanation-input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .btn-secondary {
@@ -336,7 +336,7 @@ defineExpose({
 .btn-secondary:hover:not(:disabled) {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .add-option-btn {

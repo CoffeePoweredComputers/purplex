@@ -545,7 +545,7 @@ onMounted(() => {
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   background: var(--color-bg-panel);
 }
 
@@ -698,7 +698,7 @@ onMounted(() => {
 .interaction-text-input:focus,
 .interaction-type-select:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 /* Function Table Editor */
@@ -739,7 +739,7 @@ onMounted(() => {
 
 .call-field input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .call-actions {
@@ -775,8 +775,8 @@ onMounted(() => {
 
 .btn-add:hover,
 .btn-add-small:hover {
-  border-color: var(--color-primary-gradient-start);
-  color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .btn-remove-small {

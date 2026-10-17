@@ -226,8 +226,8 @@ async function updateDirectoryInfo() {
 .consent-toggle__required {
     font-size: var(--font-size-xs);
     padding: 2px var(--spacing-xs);
-    background: var(--color-primary-overlay);
-    color: var(--color-primary-gradient-start);
+    background: var(--color-accent-overlay);
+    color: var(--color-accent);
     border-radius: var(--radius-xs);
     font-weight: 600;
 }
@@ -267,7 +267,7 @@ async function updateDirectoryInfo() {
 }
 
 .consent-toggle__switch input:checked + .consent-toggle__slider {
-    background: var(--color-primary-gradient-start);
+    background: var(--color-accent);
 }
 
 .consent-toggle__switch input:checked + .consent-toggle__slider::before {
@@ -280,7 +280,7 @@ async function updateDirectoryInfo() {
 }
 
 .consent-toggle__switch input:focus-visible + .consent-toggle__slider {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 </style>

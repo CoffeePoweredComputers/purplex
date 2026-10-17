@@ -262,7 +262,7 @@ function getMemberSince(): string {
 .avatar {
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+    background: var(--gradient-primary);
     border-radius: var(--radius-circle);
     display: flex;
     align-items: center;
@@ -270,7 +270,7 @@ function getMemberSince(): string {
     font-size: var(--font-size-xl);
     font-weight: 600;
     color: var(--color-text-on-filled);
-    box-shadow: 0 4px 12px var(--color-primary-glow);
+    box-shadow: 0 4px 12px var(--color-accent-glow);
 }
 
 .user-info {

@@ -188,7 +188,7 @@ function submitConsent() {
 .consent-item input[type="checkbox"] {
     margin-top: 3px;
     flex-shrink: 0;
-    accent-color: var(--color-primary-gradient-start);
+    accent-color: var(--color-accent);
 }
 
 .consent-item__text {
@@ -198,11 +198,11 @@ function submitConsent() {
 }
 
 .consent-item__text a {
-    color: var(--color-primary-gradient-start);
+    color: var(--color-accent);
 }
 
 .consent-item__text a:hover {
-    color: var(--color-primary-gradient-end);
+    color: var(--color-accent-strong);
 }
 
 .consent-item__detail {
@@ -219,7 +219,7 @@ function submitConsent() {
 .consent-form__submit {
     width: 100%;
     padding: var(--spacing-md);
-    background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
+    background: var(--gradient-primary);
     color: var(--color-text-on-filled);
     border: none;
     border-radius: var(--radius-sm);
@@ -230,7 +230,7 @@ function submitConsent() {
 }
 
 .consent-form__submit:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -241,6 +241,6 @@ function submitConsent() {
 
 .consent-form__submit:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-colored);
+    box-shadow: var(--shadow-accent);
 }
 </style>

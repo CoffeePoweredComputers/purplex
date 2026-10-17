@@ -528,15 +528,15 @@ export default defineComponent({
 }
 
 .code-line.highlighted {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
 }
 
 .code-line.highlighted .line-number {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
 }
 
 .code-line.highlighted .line-content {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
 }
 
 .code-line.dimmed {

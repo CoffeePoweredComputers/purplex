@@ -630,12 +630,12 @@ export default {
 }
 
 .hint-button:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .hint-button:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -723,12 +723,12 @@ export default {
 }
 
 .close-btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .close-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -762,8 +762,8 @@ export default {
 }
 
 .hint-item.active .hint-header {
-  background: var(--color-primary-overlay);
-  border-left: 3px solid var(--color-primary-gradient-start);
+  background: var(--color-accent-overlay);
+  border-left: 3px solid var(--color-accent);
 }
 
 .hint-type-icon {
@@ -908,12 +908,12 @@ export default {
 }
 
 .action-btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .action-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -964,7 +964,7 @@ export default {
 }
 
 .hint-checkbox:checked + .toggle-slider {
-  background-color: var(--color-primary-gradient-start);
+  background-color: var(--color-accent);
 }
 
 .hint-checkbox:checked + .toggle-slider::before {
@@ -972,18 +972,18 @@ export default {
 }
 
 .hint-toggle:hover .toggle-slider {
-  box-shadow: 0 0 0 3px var(--color-primary-overlay);
+  box-shadow: 0 0 0 3px var(--color-accent-overlay);
 }
 
 .hint-checkbox:focus + .toggle-slider {
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
-  outline: 2px solid var(--color-primary-gradient-start);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .hint-checkbox:focus-visible + .toggle-slider {
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
-  outline: 2px solid var(--color-primary-gradient-start);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

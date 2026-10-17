@@ -83,9 +83,9 @@ const editor = computed(() => props.editor)
 }
 
 .zoom-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .zoom-display {

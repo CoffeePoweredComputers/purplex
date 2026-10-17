@@ -255,13 +255,13 @@ onMounted(fetchTable);
 
 .search-input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .course-id {
   font-family: monospace;
   font-weight: 500;
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 .actions-cell {
@@ -286,14 +286,14 @@ onMounted(fetchTable);
 }
 
 .add-button {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  box-shadow: var(--shadow-colored);
+  background: var(--gradient-primary);
+  box-shadow: var(--shadow-accent);
   color: var(--color-text-on-filled);
 }
 
 .add-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-shadow);
+  box-shadow: 0 6px 20px var(--color-accent-shadow);
 }
 
 .add-button::before {
@@ -321,7 +321,7 @@ onMounted(fetchTable);
 .icon-button:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   background: var(--color-bg-input);
 }
 

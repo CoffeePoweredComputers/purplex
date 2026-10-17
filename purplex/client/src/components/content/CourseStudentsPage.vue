@@ -281,7 +281,7 @@ watch(
 
 .search-input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .email {
@@ -339,7 +339,7 @@ watch(
 
 .secondary-button:hover {
   background: var(--color-bg-input);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 

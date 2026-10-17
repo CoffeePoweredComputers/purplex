@@ -211,7 +211,7 @@ function handleReset() {
 }
 
 .code-editor-wrapper:hover {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 /* Action Row */
@@ -242,14 +242,14 @@ function handleReset() {
 .reset-button:hover:not(:disabled) {
   background: var(--color-bg-input);
   color: var(--color-text-primary);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 /* Submit Button */
 .submit-button {
   flex: 1;
   padding: var(--spacing-md) var(--spacing-xl);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
@@ -257,7 +257,7 @@ function handleReset() {
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition-base);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -272,7 +272,7 @@ function handleReset() {
 }
 
 .submit-button:hover:not(:disabled) {
-  box-shadow: 0 6px 20px var(--color-primary-glow);
+  box-shadow: 0 6px 20px var(--color-accent-glow);
 }
 
 /* Loading Animation */

@@ -249,8 +249,8 @@ onMounted(() => {
 
 .search-input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 2px var(--color-accent-overlay);
 }
 
 .filter-select {
@@ -305,8 +305,8 @@ onMounted(() => {
 }
 
 .role-dropdown:focus {
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 2px var(--color-accent-overlay);
 }
 
 .role-dropdown:disabled {
@@ -316,7 +316,7 @@ onMounted(() => {
 }
 
 .role-dropdown:hover:not(:disabled) {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   background: var(--color-bg-hover);
 }
 

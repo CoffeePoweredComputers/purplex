@@ -80,9 +80,9 @@ const displayLabel = computed(() => props.label || props.value);
 
 /* Admin - gradient purple (matches AdminUsers badge) */
 .status-admin {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
-  box-shadow: 0 2px 8px var(--color-primary-glow);
+  box-shadow: 0 2px 8px var(--color-accent-glow);
   border: none;
 }
 

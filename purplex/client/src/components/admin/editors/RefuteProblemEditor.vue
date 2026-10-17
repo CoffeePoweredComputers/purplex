@@ -296,7 +296,7 @@ onMounted(() => {
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   background: var(--color-bg-panel);
 }
 
@@ -381,7 +381,7 @@ onMounted(() => {
 .predicate-examples h4 {
   margin: 0 0 var(--spacing-sm) 0;
   font-size: var(--font-size-sm);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 .examples-table {
@@ -412,7 +412,7 @@ onMounted(() => {
   padding: 2px 6px;
   border-radius: var(--radius-xs);
   font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 /* Editor Toolbar */
@@ -459,9 +459,9 @@ onMounted(() => {
 }
 
 .zoom-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .zoom-display {

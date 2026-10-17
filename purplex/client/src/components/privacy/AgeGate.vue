@@ -156,7 +156,7 @@ function submitAge() {
 
 .age-gate__input:focus {
     outline: none;
-    border-color: var(--color-primary-gradient-start);
+    border-color: var(--color-focus-ring);
 }
 
 .age-gate__message {
@@ -180,7 +180,7 @@ function submitAge() {
 
 .age-gate__submit {
     padding: var(--spacing-md);
-    background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
+    background: var(--gradient-primary);
     color: var(--color-text-on-filled);
     border: none;
     border-radius: var(--radius-sm);
@@ -191,7 +191,7 @@ function submitAge() {
 }
 
 .age-gate__submit:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -202,6 +202,6 @@ function submitAge() {
 
 .age-gate__submit:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-colored);
+    box-shadow: var(--shadow-accent);
 }
 </style>

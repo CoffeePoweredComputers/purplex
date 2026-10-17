@@ -497,7 +497,7 @@ onMounted(async () => {
   width: 40px;
   height: 40px;
   border: 3px solid var(--color-bg-border);
-  border-top-color: var(--color-primary-gradient-start);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -506,7 +506,7 @@ onMounted(async () => {
   width: 20px;
   height: 20px;
   border: 2px solid var(--color-bg-border);
-  border-top-color: var(--color-primary-gradient-start);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -588,7 +588,7 @@ onMounted(async () => {
 .form-group input[type="text"]:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   background: var(--color-bg-panel);
 }
 
@@ -605,7 +605,7 @@ onMounted(async () => {
 .checkbox-label input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: var(--color-primary-gradient-start);
+  accent-color: var(--color-accent);
 }
 
 /* Problems Section */
@@ -665,7 +665,7 @@ onMounted(async () => {
 
 .problem-search:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .problem-list {
@@ -707,7 +707,7 @@ onMounted(async () => {
 .problem-order {
   width: 28px;
   height: 28px;
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
   border-radius: 50%;
   display: flex;
@@ -811,20 +811,20 @@ onMounted(async () => {
 }
 
 .btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: var(--shadow-colored);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--color-primary-glow);
+  box-shadow: 0 8px 25px var(--color-accent-glow);
 }
 
 .btn-secondary {

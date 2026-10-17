@@ -206,7 +206,7 @@ const bannerClass = computed(() => {
   width: 32px;
   height: 32px;
   border: 3px solid var(--color-bg-border);
-  border-top-color: var(--color-primary-gradient-start);
+  border-top-color: var(--color-accent);
   border-radius: var(--radius-circle);
   animation: spin 1s linear infinite;
 }

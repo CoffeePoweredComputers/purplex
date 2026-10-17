@@ -135,13 +135,13 @@ async function handleLanguageChange() {
 }
 
 .language-select:hover {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .language-select:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 2px var(--color-accent-overlay);
 }
 
 .language-select:disabled {

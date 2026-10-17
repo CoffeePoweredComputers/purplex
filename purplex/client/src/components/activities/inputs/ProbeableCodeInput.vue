@@ -265,7 +265,7 @@ function handleSubmit() {
 }
 
 .code-editor-wrapper:hover {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 /* Submit Button */
@@ -273,7 +273,7 @@ function handleSubmit() {
   margin: var(--spacing-md) var(--spacing-xl) var(--spacing-sm);
   width: calc(100% - calc(var(--spacing-xl) * 2));
   padding: var(--spacing-md) var(--spacing-xl);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
@@ -281,7 +281,7 @@ function handleSubmit() {
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition-base);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -295,7 +295,7 @@ function handleSubmit() {
 }
 
 .submit-button:hover:not(:disabled) {
-  box-shadow: 0 6px 20px var(--color-primary-glow);
+  box-shadow: 0 6px 20px var(--color-accent-glow);
 }
 
 /* Loading Animation */

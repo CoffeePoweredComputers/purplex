@@ -57,7 +57,7 @@ function openInPyTutor(): void {
 }
 
 .suggested-trace:hover {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   box-shadow: var(--shadow-sm);
 }
 
@@ -93,7 +93,7 @@ function openInPyTutor(): void {
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-md);
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
@@ -113,7 +113,7 @@ function openInPyTutor(): void {
 }
 
 .trace-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-end);
+  background: var(--color-accent-strong);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }

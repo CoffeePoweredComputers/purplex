@@ -457,7 +457,7 @@ watch(() => props.probeHistory.length, () => {
 }
 
 .probe-input-wrapper:focus-within {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 /* Row containing probe-call and history button; wraps so a narrow screen
@@ -502,12 +502,12 @@ watch(() => props.probeHistory.length, () => {
 
 .history-btn:hover {
   background: var(--color-bg-input);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 
 .history-btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -546,7 +546,7 @@ watch(() => props.probeHistory.length, () => {
 
 .call-shell:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
+  box-shadow: 0 0 0 2px var(--color-accent-overlay);
 }
 
 /* Forced-colors mode drops box-shadow and recolours borders: keep a visible focus ring */
@@ -633,7 +633,7 @@ watch(() => props.probeHistory.length, () => {
   width: 100%;
   margin-top: var(--spacing-sm);
   padding: var(--spacing-xs) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
@@ -641,7 +641,7 @@ watch(() => props.probeHistory.length, () => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px var(--color-primary-glow);
+  box-shadow: 0 2px 8px var(--color-accent-glow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -656,7 +656,7 @@ watch(() => props.probeHistory.length, () => {
 
 .probe-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--color-primary-glow);
+  box-shadow: 0 4px 12px var(--color-accent-glow);
 }
 
 .probe-btn:active:not(:disabled) {

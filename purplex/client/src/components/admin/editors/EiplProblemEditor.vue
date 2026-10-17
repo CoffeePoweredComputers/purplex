@@ -530,7 +530,7 @@ defineExpose({
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   background: var(--color-bg-panel);
 }
 
@@ -578,9 +578,9 @@ defineExpose({
 }
 
 .zoom-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .zoom-display {
@@ -638,12 +638,12 @@ defineExpose({
 .btn-secondary:hover:not(:disabled) {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .btn-primary {
   padding: var(--spacing-sm) var(--spacing-md);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
@@ -660,7 +660,7 @@ defineExpose({
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--color-primary-glow);
+  box-shadow: 0 8px 25px var(--color-accent-glow);
 }
 
 .test-cases-list {
@@ -699,7 +699,7 @@ defineExpose({
 }
 
 .test-number {
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
   width: 24px;
   height: 24px;
@@ -741,7 +741,7 @@ defineExpose({
 
 .param-input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .param-input.param-error {
@@ -771,7 +771,7 @@ defineExpose({
 }
 
 .type-boolean {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
   color: var(--color-admin);
 }
 
@@ -902,7 +902,7 @@ defineExpose({
   width: 40px;
   height: 40px;
   border: 3px solid var(--color-bg-border);
-  border-top-color: var(--color-primary-gradient-start);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto var(--spacing-sm);
@@ -945,8 +945,8 @@ defineExpose({
 }
 
 .hint-tab-button.active {
-  color: var(--color-primary-gradient-start);
-  border-bottom-color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
 }
 
 .hint-config-panel {
@@ -1163,9 +1163,9 @@ defineExpose({
 
 .suggested-trace {
   padding: var(--spacing-md);
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
   border-radius: var(--radius-base);
-  border-left: 4px solid var(--color-primary-gradient-start);
+  border-left: 4px solid var(--color-accent);
 }
 
 .trace-content {
@@ -1185,12 +1185,12 @@ defineExpose({
   background: var(--color-bg-input);
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-xs);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 .trace-btn {
   padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-xs);

@@ -251,7 +251,7 @@ const selectedModeDescription = computed(() => {
 }
 
 .segment.selected {
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
 }
 
@@ -310,7 +310,7 @@ const selectedModeDescription = computed(() => {
 
 .limit-field input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   background: var(--color-bg-panel);
 }
 

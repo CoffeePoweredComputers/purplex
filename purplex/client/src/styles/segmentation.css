@@ -291,22 +291,22 @@
 }
 
 .seg-connection.active {
-  stroke: var(--color-primary-gradient-start);
+  stroke: var(--color-accent);
   stroke-width: 3;
   opacity: 1;
-  filter: drop-shadow(0 0 4px var(--color-primary-gradient-start));
+  filter: drop-shadow(0 0 4px var(--color-accent));
 }
 
 .seg-connection.highlighted {
-  stroke: var(--color-primary-gradient-start);
+  stroke: var(--color-accent);
   stroke-width: 4;
   opacity: 1;
 }
 
 /* Segmentation Code Highlighting */
 .seg-code-highlight {
-  background: var(--color-primary-overlay);
-  border-left: 3px solid var(--color-primary-gradient-start);
+  background: var(--color-accent-overlay);
+  border-left: 3px solid var(--color-accent);
   padding-left: calc(var(--spacing-sm) - 3px);
   transition: var(--seg-transition-fast);
 }
@@ -343,7 +343,7 @@
 }
 
 .seg-interactive.selected {
-  box-shadow: 0 0 0 2px var(--color-primary-gradient-start);
+  box-shadow: 0 0 0 2px var(--color-accent);
 }
 
 /* Segmentation Tooltips */
@@ -453,12 +453,12 @@
 
 /* Accessibility Improvements */
 .seg-progress-block:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .seg-interactive:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

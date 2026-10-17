@@ -907,7 +907,7 @@ export default defineComponent({
 }
 
 .attempt-dropdown-trigger:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1002,7 +1002,7 @@ export default defineComponent({
 }
 
 .attempt-item-minimal:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1012,7 +1012,7 @@ export default defineComponent({
 }
 
 .attempt-item-minimal.is-current {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
   color: var(--color-text-primary);
 }
 
@@ -1101,7 +1101,7 @@ export default defineComponent({
 }
 
 .metric-card:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1305,7 +1305,7 @@ export default defineComponent({
 }
 
 .banner-button:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

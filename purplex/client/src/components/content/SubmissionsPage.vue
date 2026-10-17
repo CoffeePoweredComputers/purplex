@@ -510,12 +510,12 @@ onMounted(fetchSubmissions);
 .filter-group input:focus,
 .filter-group select:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .filter-group input:focus-visible,
 .filter-group select:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -542,8 +542,8 @@ onMounted(fetchSubmissions);
 
 .clear-filters-btn:hover {
   background: var(--color-bg-hover);
-  border-color: var(--color-primary-gradient-start);
-  color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 /* Active Filter Chips */
@@ -572,17 +572,17 @@ onMounted(fetchSubmissions);
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--color-primary-overlay);
-  border: 1px solid var(--color-primary-gradient-start);
+  background: var(--color-accent-overlay);
+  border: 1px solid var(--color-accent);
   border-radius: var(--radius-xl);
   font-size: var(--font-size-xs);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
   cursor: pointer;
   transition: var(--transition-base);
 }
 
 .filter-chip:hover {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
 }
 
 .chip-label {
@@ -604,7 +604,7 @@ onMounted(fetchSubmissions);
   height: 16px;
   margin-left: var(--spacing-xs);
   border-radius: 50%;
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
   font-size: 10px;
   font-weight: bold;
@@ -653,7 +653,7 @@ onMounted(fetchSubmissions);
   width: 28px;
   height: 28px;
   border-radius: var(--radius-circle);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -825,9 +825,9 @@ onMounted(fetchSubmissions);
 }
 
 .export-button {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
   padding: var(--spacing-sm) var(--spacing-lg);
   font-size: var(--font-size-sm);
 }
@@ -840,7 +840,7 @@ onMounted(fetchSubmissions);
 
 .export-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
+  box-shadow: 0 6px 20px var(--color-accent-glow);
 }
 
 .view-button {

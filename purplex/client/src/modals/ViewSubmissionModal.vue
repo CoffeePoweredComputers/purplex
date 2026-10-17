@@ -960,8 +960,8 @@ watch(() => props.submission, () => {
 
 .expand-btn:hover {
   background: var(--color-bg-input);
-  border-color: var(--color-primary-gradient-start);
-  color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .type-badge {
@@ -978,7 +978,7 @@ watch(() => props.submission, () => {
 
 .download-btn {
   padding: 6px 12px;
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: 4px;
@@ -994,7 +994,7 @@ watch(() => props.submission, () => {
 }
 
 .download-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-end);
+  background: var(--color-accent-strong);
 }
 
 /* Metrics Bar */
@@ -1429,7 +1429,7 @@ details[open] .group-icon {
   min-width: 28px;
   height: 28px;
   padding: 0 8px;
-  background: linear-gradient(135deg, var(--color-segment-1) 0%, var(--color-primary-gradient-start) 100%);
+  background: linear-gradient(135deg, var(--color-segment-1) 0%, var(--color-gradient-start) 100%);
   color: var(--color-text-on-filled);
   font-size: 16px;
   font-weight: 700;
@@ -1475,8 +1475,8 @@ details[open] .group-icon {
 }
 
 .hint-item:hover {
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 2px 8px var(--color-primary-overlay);
+  border-color: var(--color-accent);
+  box-shadow: 0 2px 8px var(--color-accent-overlay);
 }
 
 .hint-icon {
@@ -1546,7 +1546,7 @@ details[open] .group-icon {
 .resize-handle:hover::before,
 .resize-handle:active::before {
   opacity: 1;
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   width: 3px;
 }
 

@@ -727,12 +727,12 @@ onBeforeUnmount(() => {
 }
 
 .attempt-dropdown-trigger:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .attempt-dropdown-trigger:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -829,12 +829,12 @@ onBeforeUnmount(() => {
 }
 
 .attempt-item-minimal:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .attempt-item-minimal:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -848,7 +848,7 @@ onBeforeUnmount(() => {
 }
 
 .attempt-item-minimal.is-current {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
   color: var(--color-text-primary);
 }
 
@@ -991,12 +991,12 @@ onBeforeUnmount(() => {
 }
 
 .test-group-header:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .test-group-header:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1122,12 +1122,12 @@ details:not([open]) .group-icon {
 }
 
 .debug-btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .debug-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

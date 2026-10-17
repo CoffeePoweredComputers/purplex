@@ -302,7 +302,7 @@ onMounted(fetchSubmission);
 .retry-btn {
   margin-top: 16px;
   padding: 8px 20px;
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: 4px;

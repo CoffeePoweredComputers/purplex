@@ -189,7 +189,7 @@ export default defineComponent({
   position: fixed;
   top: -100%;
   left: 0;
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
   padding: var(--spacing-md) var(--spacing-lg);
   text-decoration: none;
@@ -457,7 +457,7 @@ body {
   width: 48px;
   height: 48px;
   border: 4px solid var(--color-bg-input);
-  border-top-color: var(--color-primary-gradient-start);
+  border-top-color: var(--color-accent);
   border-radius: var(--radius-circle);
   animation: spin 0.8s linear infinite;
 }

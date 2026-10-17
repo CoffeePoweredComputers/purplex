@@ -2078,11 +2078,11 @@ export default {
 .progress-bar-fill {
     height: 100%;
     background: linear-gradient(90deg,
-        var(--color-primary-gradient-start) 0%,
-        var(--color-primary-gradient-end) 100%);
+        var(--color-gradient-start) 0%,
+        var(--color-gradient-end) 100%);
     animation: progressSlide 1.5s ease-in-out infinite;
     transform-origin: left;
-    box-shadow: 0 0 10px var(--color-primary-glow);
+    box-shadow: 0 0 10px var(--color-accent-glow);
 }
 
 @keyframes progressSlide {
@@ -2224,12 +2224,12 @@ export default {
 }
 
 .nav-button:focus {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
 .nav-button:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -2242,9 +2242,9 @@ export default {
 }
 
 .nav-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+    background: var(--gradient-primary);
     color: var(--color-text-on-filled);
-    border-color: var(--color-primary-gradient-start);
+    border-color: var(--color-accent);
     transform: translateY(-1px);
 }
 
@@ -2327,7 +2327,7 @@ export default {
 }
 
 .progress-bar.submitting {
-    background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+    background: var(--gradient-primary);
     position: relative;
     overflow: hidden;
 }
@@ -2387,7 +2387,7 @@ export default {
 
 /* Active state */
 .progress-bar.active {
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-primary-gradient-start);
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-accent);
 }
 
 .progress-bar.active.not_started {
@@ -2406,7 +2406,7 @@ export default {
 }
 
 .progress-bar.active.submitting {
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-primary-gradient-start);
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-accent);
 }
 
 /* Hover effects */
@@ -2657,12 +2657,12 @@ export default {
 }
 
 .zoom-btn:focus {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
 .zoom-btn:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -2673,7 +2673,7 @@ export default {
 .zoom-btn:hover:not(:disabled) {
     background: var(--color-bg-input);
     color: var(--color-text-primary);
-    border-color: var(--color-primary-gradient-start);
+    border-color: var(--color-accent);
 }
 
 .zoom-icon {
@@ -2708,7 +2708,7 @@ export default {
 .toolbar-btn:hover {
     background: var(--color-bg-input);
     color: var(--color-text-primary);
-    border-color: var(--color-primary-gradient-start);
+    border-color: var(--color-accent);
 }
 
 .toolbar-options {
@@ -2855,12 +2855,12 @@ export default {
 
 /* Focus styles for keyboard navigation */
 .progress-bar:focus {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
 .progress-bar:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -2869,12 +2869,12 @@ export default {
 }
 
 .toolbar-btn:focus {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
 .toolbar-btn:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 

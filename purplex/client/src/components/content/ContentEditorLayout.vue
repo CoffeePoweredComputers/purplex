@@ -143,7 +143,7 @@ defineExpose({ ctx });
 }
 
 .breadcrumb-link:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

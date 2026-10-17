@@ -156,10 +156,10 @@ const effectiveDate = new Date().toLocaleDateString(undefined, {
 }
 
 .policy-page a {
-    color: var(--color-primary-gradient-start);
+    color: var(--color-accent);
 }
 
 .policy-page a:hover {
-    color: var(--color-primary-gradient-end);
+    color: var(--color-accent-strong);
 }
 </style>

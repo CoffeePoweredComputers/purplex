@@ -305,8 +305,8 @@ onMounted(fetchTeam);
 }
 
 .role-primary {
-  background: var(--color-primary-overlay);
-  color: var(--color-primary-gradient-start);
+  background: var(--color-accent-overlay);
+  color: var(--color-accent);
 }
 
 .role-ta {
@@ -380,7 +380,7 @@ onMounted(fetchTeam);
 
 .btn-add {
   padding: var(--spacing-sm) var(--spacing-md);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-xs);

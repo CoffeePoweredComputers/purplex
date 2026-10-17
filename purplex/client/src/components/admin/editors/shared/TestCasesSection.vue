@@ -282,7 +282,7 @@ function removeTestCase(index: number) {
 }
 
 .hover-primary:hover {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 /* Form Section */
@@ -400,9 +400,9 @@ function removeTestCase(index: number) {
 }
 
 .param-input:focus {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   outline: none;
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
+  box-shadow: 0 0 0 2px var(--color-accent-overlay);
 }
 
 .param-input.param-error {
@@ -471,7 +471,7 @@ function removeTestCase(index: number) {
 }
 
 .type-collection {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
   color: var(--color-admin);
   border: 1px solid var(--color-admin);
 }
@@ -640,7 +640,7 @@ function removeTestCase(index: number) {
   width: 40px;
   height: 40px;
   border: 3px solid var(--color-bg-border);
-  border-top-color: var(--color-primary-gradient-start);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -656,15 +656,15 @@ function removeTestCase(index: number) {
 
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
-  border: 2px solid var(--color-primary-gradient-start);
+  border: 2px solid var(--color-accent);
   padding: var(--spacing-md) var(--spacing-lg);
   font-weight: 600;
   font-size: var(--font-size-base);
   cursor: pointer;
   transition: var(--transition-base);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
 }
 
 .btn-primary:disabled {
@@ -675,7 +675,7 @@ function removeTestCase(index: number) {
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--color-primary-glow);
+  box-shadow: 0 8px 25px var(--color-accent-glow);
 }
 
 .btn-secondary {
@@ -692,6 +692,6 @@ function removeTestCase(index: number) {
 .btn-secondary:hover:not(:disabled) {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 </style>

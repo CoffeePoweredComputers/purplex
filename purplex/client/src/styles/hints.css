@@ -84,7 +84,7 @@
     var(--color-info-overlay) 95%,
     transparent 100%
   );
-  border-left: 3px solid var(--color-primary-gradient-start);
+  border-left: 3px solid var(--color-accent);
   margin: 0 -var(--spacing-md);
   padding: 0 var(--spacing-md);
 }
@@ -99,7 +99,7 @@
 }
 
 .variable-meaningful {
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
   font-weight: 600;
   background: var(--color-info-overlay);
   padding: 0 var(--spacing-xs);
@@ -150,7 +150,7 @@
   }
 
   50% {
-    background-color: var(--color-primary-glow);
+    background-color: var(--color-accent-glow);
   }
 }
 
@@ -177,7 +177,7 @@
 }
 
 .subgoal-dot.active {
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   width: 24px;
   border-radius: 4px;
 }
@@ -197,8 +197,8 @@
   height: 100%;
   background: linear-gradient(
     to bottom,
-    var(--color-primary-gradient-start),
-    var(--color-primary-gradient-end)
+    var(--color-gradient-start),
+    var(--color-gradient-end)
   );
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -213,14 +213,14 @@
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
   text-decoration: none;
   font-weight: 500;
   transition: var(--transition-base);
 }
 
 .python-tutor-link:hover {
-  color: var(--color-primary-gradient-end);
+  color: var(--color-accent-strong);
   text-decoration: underline;
 }
 
@@ -240,7 +240,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid var(--color-bg-border);
-  border-top-color: var(--color-primary-gradient-start);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -305,7 +305,7 @@
 /* Accessibility improvements */
 .hint-button:focus-visible,
 .hint-navigation button:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

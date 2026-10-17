@@ -510,7 +510,7 @@ onMounted(() => {
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   background: var(--color-bg-panel);
 }
 
@@ -568,7 +568,7 @@ onMounted(() => {
 
 .toggle-btn.active {
   background: var(--color-bg-panel);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
   box-shadow: var(--shadow-base);
 }
 
@@ -708,9 +708,9 @@ onMounted(() => {
 }
 
 .expand-btn:hover {
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .section-content {
@@ -786,7 +786,7 @@ onMounted(() => {
 
 .hint-text-input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .no-hints-message {
@@ -901,7 +901,7 @@ onMounted(() => {
 .btn-secondary:hover:not(:disabled) {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .btn-sm {

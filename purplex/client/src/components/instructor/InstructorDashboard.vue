@@ -506,7 +506,7 @@ onMounted(() => {
 }
 
 .retry-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -534,12 +534,12 @@ onMounted(() => {
 
 .course-card:hover,
 .course-card:focus-visible {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   box-shadow: var(--shadow-lg);
 }
 
 .course-card:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -553,9 +553,9 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   width: 0;
-  background: var(--color-primary-glow);
+  background: var(--color-accent-glow);
   backdrop-filter: blur(8px);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
   overflow: hidden;
   transition: width 0.25s ease;
 }
@@ -655,8 +655,8 @@ onMounted(() => {
 }
 
 .role-primary {
-  background: var(--color-primary-overlay);
-  color: var(--color-primary-gradient-start);
+  background: var(--color-accent-overlay);
+  color: var(--color-accent);
 }
 
 .role-ta {
@@ -673,9 +673,9 @@ onMounted(() => {
 
 .add-course-card:hover,
 .add-course-card:focus-visible {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   border-style: solid;
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
 }
 
 .add-card-content {
@@ -694,7 +694,7 @@ onMounted(() => {
 
 .add-course-card:hover .add-icon,
 .add-course-card:focus-visible .add-icon {
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 .add-text {
@@ -706,13 +706,13 @@ onMounted(() => {
 
 .add-course-card:hover .add-text,
 .add-course-card:focus-visible .add-text {
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 /* Expandable Form Card */
 .add-course-card.form-expanded {
   border-style: solid;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   background: var(--color-bg-panel);
   min-height: auto;
   cursor: default;
@@ -820,8 +820,8 @@ onMounted(() => {
 
 .form-field input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 3px var(--color-primary-overlay);
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 3px var(--color-accent-overlay);
 }
 
 .form-field input:disabled {
@@ -901,14 +901,14 @@ onMounted(() => {
 
 .btn-create {
   padding: var(--spacing-sm) var(--spacing-xl);
-  background: linear-gradient(135deg, var(--color-admin) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-admin);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition-base);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
 }
 
 .btn-create:disabled {
@@ -920,7 +920,7 @@ onMounted(() => {
 
 .btn-create:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
+  box-shadow: 0 6px 20px var(--color-accent-glow);
 }
 
 /* Mobile responsive */

@@ -106,11 +106,11 @@ defineProps<Props>()
 }
 
 .terminal-input {
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 .input-marker {
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
   font-weight: 700;
   user-select: none;
   flex-shrink: 0;

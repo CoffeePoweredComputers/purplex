@@ -120,7 +120,7 @@ function parseParamNames(signature: string): string[] {
 }
 
 .return-cell code {
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
   font-weight: 600;
 }
 

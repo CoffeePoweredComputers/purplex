@@ -438,7 +438,7 @@ function formatOutput(value: unknown): string {
 }
 
 .test-wrapper:focus-within {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .function-call {
@@ -494,7 +494,7 @@ function formatOutput(value: unknown): string {
 .param-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
+  box-shadow: 0 0 0 2px var(--color-accent-overlay);
 }
 
 .param-input:disabled {
@@ -539,7 +539,7 @@ function formatOutput(value: unknown): string {
 .test-btn {
   width: 100%;
   padding: var(--spacing-xs) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
@@ -547,7 +547,7 @@ function formatOutput(value: unknown): string {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px var(--color-primary-glow);
+  box-shadow: 0 2px 8px var(--color-accent-glow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -562,7 +562,7 @@ function formatOutput(value: unknown): string {
 
 .test-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--color-primary-glow);
+  box-shadow: 0 4px 12px var(--color-accent-glow);
 }
 
 .spinner {
@@ -616,7 +616,7 @@ function formatOutput(value: unknown): string {
 
 .attempt-row.is-selected {
   background: var(--color-bg-input);
-  border: 1px solid var(--color-primary-gradient-start);
+  border: 1px solid var(--color-accent);
 }
 
 .attempt-call {

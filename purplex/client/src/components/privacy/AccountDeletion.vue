@@ -203,7 +203,7 @@ function formatDate(isoDate: string): string {
 }
 
 .account-deletion__btn:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -218,13 +218,13 @@ function formatDate(isoDate: string): string {
 }
 
 .account-deletion__btn--cancel {
-    background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
+    background: var(--gradient-primary);
     color: var(--color-text-on-filled);
 }
 
 .account-deletion__btn--cancel:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-colored);
+    box-shadow: var(--shadow-accent);
 }
 
 .account-deletion__pending {

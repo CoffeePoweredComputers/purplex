@@ -184,7 +184,7 @@ const isActiveRoute = (path: string): boolean => {
     position: fixed;
     top: -100%;
     left: 0;
-    background: var(--color-primary-gradient-start);
+    background: var(--color-accent);
     color: var(--color-text-on-filled);
     padding: var(--spacing-md) var(--spacing-lg);
     text-decoration: none;

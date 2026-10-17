@@ -182,17 +182,17 @@ function handlePageSizeChange(event: Event) {
 }
 
 .pagination-btn:hover:not(:disabled) {
-  border-color: var(--color-primary-gradient-start);
-  background: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
 }
 
 .pagination-btn.active {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  border-color: var(--color-primary-gradient-start);
+  background: var(--gradient-primary);
+  border-color: var(--color-accent);
   color: var(--color-text-on-filled);
   font-weight: 600;
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
 }
 
 /* Responsive */

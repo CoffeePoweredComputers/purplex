@@ -355,7 +355,7 @@ defineExpose({
   }
 
   :deep(.ace_editor:hover) {
-    border-color: var(--color-primary-gradient-start);
+    border-color: var(--color-accent);
     box-shadow: var(--shadow-lg);
   }
 
@@ -395,7 +395,7 @@ defineExpose({
   }
 
   :deep(.ace_scrollbar::-webkit-scrollbar-thumb:hover) {
-    background: var(--color-primary-gradient-start);
+    background: var(--color-accent);
   }
 
   /* Selection styling */
@@ -406,26 +406,26 @@ defineExpose({
 
   /* Active line highlighting */
   :deep(.ace_active-line) {
-    background: var(--color-primary-overlay);
+    background: var(--color-accent-overlay);
   }
 
   /* Cursor styling */
   :deep(.ace_cursor) {
-    color: var(--color-primary-gradient-start);
-    border-left: 2px solid var(--color-primary-gradient-start);
+    color: var(--color-accent);
+    border-left: 2px solid var(--color-accent);
   }
 
   /* Bracket matching */
   :deep(.ace_bracket) {
     margin: -1px -1px 0;
-    border: 1px solid var(--color-primary-gradient-start);
-    background: var(--color-primary-overlay);
+    border: 1px solid var(--color-accent);
+    background: var(--color-accent-overlay);
   }
 
   /* Search highlights */
   :deep(.ace_selected-word) {
-    border: 1px solid var(--color-primary-gradient-start);
-    background: var(--color-primary-overlay);
+    border: 1px solid var(--color-accent);
+    background: var(--color-accent-overlay);
   }
 
 
@@ -441,7 +441,7 @@ defineExpose({
   }
 
   :deep(.ace_fold-widget:hover) {
-    color: var(--color-primary-gradient-start);
+    color: var(--color-accent);
   }
 
   /* Indent guides */

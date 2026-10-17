@@ -762,12 +762,12 @@ onMounted(() => {
 }
 
 .version-pill:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .version-pill.active {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   background: var(--color-bg-hover);
 }
 
@@ -864,7 +864,7 @@ h4.section-title {
 }
 
 .code-accessible:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
 }
 
@@ -906,7 +906,7 @@ ul.tests-list {
 }
 
 .test-item:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
   background: var(--color-bg-hover);
 }
