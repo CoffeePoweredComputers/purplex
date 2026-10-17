@@ -10,11 +10,12 @@
     :locked-count="lockedCount"
     :total-count="totalCount"
     :can-debug="!isSpec"
+    :code-title="isSpec ? $t('feedback.codeSubmission.generatedCode') : undefined"
     @load-attempt="$emit('load-attempt', $event)"
   >
     <template
       v-if="isSpec"
-      #submission
+      #before-submission
     >
       <ExplanationQuote :text="userPrompt" />
     </template>

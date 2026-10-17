@@ -106,6 +106,7 @@
     "codeSubmission": {
       "runningTests": "Ejecutando pruebas...",
       "yourSubmission": "Tu Entrega",
+      "generatedCode": "Código Generado",
       "submitToSeeResults": "Envía tu solución para ver los resultados de las pruebas",
       "debugTestCase": "Depurar caso de prueba: {call}",
       "testResults": "Resultados de Pruebas",
