@@ -452,60 +452,6 @@ function removeTestCase(index: number) {
   transform-origin: center;
 }
 
-.type-number {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-  border: 1px solid var(--color-info);
-}
-
-.type-string {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  border: 1px solid var(--color-success);
-}
-
-.type-boolean {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-  border: 1px solid var(--color-warning);
-}
-
-.type-collection {
-  background: var(--color-accent-overlay);
-  color: var(--color-admin);
-  border: 1px solid var(--color-admin);
-}
-
-.type-none {
-  background: var(--color-bg-section);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-}
-
-.type-any {
-  background: var(--color-bg-hover);
-  color: var(--color-text-tertiary);
-  border: 1px solid var(--color-border);
-}
-
-.type-invalid {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-  border: 1px solid var(--color-error);
-}
-
-.type-error {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-  border: 1px solid var(--color-error);
-}
-
-.type-optional {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-  border: 1px solid var(--color-warning);
-}
-
 /* Output Field Container */
 .output-field-container {
   display: flex;

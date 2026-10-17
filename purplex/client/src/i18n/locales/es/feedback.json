@@ -64,6 +64,7 @@
       "abstractionOpened": "Diálogo de Detalles de Abstracción abierto"
     },
     "tests": {
+      "debug": "Depurar",
       "passing": "{count} Aprobadas",
       "failing": "{count} Fallidas",
       "failingGroup": "Pruebas Fallidas ({count})",

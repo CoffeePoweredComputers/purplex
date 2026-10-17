@@ -378,15 +378,15 @@ onUnmounted(() => {
     gap: var(--spacing-sm);
 }
 
-/* Individual nav items (both links and buttons) */
+/* Individual nav items (both links and buttons); the Account button uses this base */
 .nav-item {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
     padding: var(--spacing-sm) var(--spacing-lg);
-    background: var(--color-overlay-subtle);
+    background: var(--color-bg-panel);
     color: var(--color-text-secondary);
-    border: 1px solid var(--color-accent-overlay);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-base);
     font-weight: 600;
     font-size: var(--font-size-base);
@@ -399,9 +399,8 @@ onUnmounted(() => {
 
 .nav-item:hover {
     color: var(--color-text-primary);
-    background: var(--color-accent-overlay);
-    border-color: var(--color-accent-glow);
-    box-shadow: 0 2px 8px var(--color-accent-overlay);
+    background: var(--color-bg-input);
+    border-color: var(--color-accent);
 }
 
 .nav-item:focus-visible {
@@ -414,61 +413,29 @@ onUnmounted(() => {
     display: inline-block;
 }
 
-/* Instructor item styling */
-.instructor-item {
-    background: var(--color-primary);
-    color: var(--color-text-on-filled);
-    border-color: transparent;
-    box-shadow: 0 2px 8px var(--color-info-shadow);
-}
-
-.instructor-item:hover {
-    background: var(--color-primary-hover);
-    border-color: transparent;
-    box-shadow: var(--shadow-info-hover);
-}
-
-.instructor-item.router-link-active {
-    box-shadow: var(--shadow-info-active);
-}
-
-/* Admin item styling */
+/* Role items (Instructor, Admin): one shared style */
+.instructor-item,
 .admin-item {
-    background: var(--color-admin);
-    color: var(--color-text-on-filled);
-    border-color: transparent;
-    box-shadow: 0 2px 8px var(--color-admin-shadow);
+    background: var(--color-nav-item-bg);
+    color: var(--color-nav-item-text);
+    border-color: var(--color-nav-item-border);
 }
 
+.instructor-item:hover,
 .admin-item:hover {
-    background: var(--color-admin-hover);
-    border-color: transparent;
-    box-shadow: var(--shadow-admin-hover);
+    background: var(--color-nav-item-hover-bg);
+    color: var(--color-nav-item-text);
+    border-color: var(--color-nav-item-border);
 }
 
-.admin-item.router-link-active {
-    box-shadow: var(--shadow-admin-active);
+/* Active route (declared after hover, same specificity, so it wins while hovered) */
+.nav-item.router-link-active {
+    background: var(--color-nav-item-hover-bg);
+    color: var(--color-accent);
+    border-color: var(--color-nav-item-border);
 }
 
-/* Account button styling */
-.account-item {
-    background: var(--color-bg-sunken);
-    border-color: var(--color-border);
-}
-
-.account-item:hover {
-    background: var(--color-bg-input);
-    border-color: var(--color-accent);
-}
-
-/* Active route indicator */
-.router-link-active.nav-item:not(.admin-item) {
-    background: var(--color-bg-hover);
-    border-color: var(--color-accent);
-    color: var(--color-text-primary);
-}
-
-.router-link-active.nav-item:not(.admin-item)::after {
+.nav-item.router-link-active::after {
     content: '';
     position: absolute;
     bottom: 4px;
@@ -476,7 +443,7 @@ onUnmounted(() => {
     transform: translateX(-50%);
     width: 60%;
     height: 2px;
-    background: linear-gradient(90deg, var(--color-gradient-start), var(--color-gradient-end));
+    background: var(--color-accent);
     border-radius: var(--radius-xs);
 }
 

@@ -111,7 +111,20 @@ export interface UseDataTableOptions<T, F = Record<string, unknown>> {
 // ===== BADGE TYPES =====
 
 /** Badge variant for StatusBadge component */
-export type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'default' | 'admin' | 'instructor';
+export type BadgeVariant =
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'info'
+  | 'default'
+  | 'admin'
+  | 'instructor'
+  | 'category-1'
+  | 'category-2'
+  | 'category-3'
+  | 'category-4'
+  | 'category-5'
+  | 'category-6';
 
 /**
  * Badge configuration for mapping values to variants.

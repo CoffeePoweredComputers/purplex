@@ -78,19 +78,37 @@ const displayLabel = computed(() => props.label || props.value);
   border: 1px solid var(--color-border);
 }
 
-/* Admin - gradient purple (matches AdminUsers badge) */
+/* Admin and Instructor - solid role colours */
 .status-admin {
-  background: var(--gradient-primary);
+  background: var(--color-admin);
   color: var(--color-text-on-filled);
-  box-shadow: 0 2px 8px var(--color-accent-glow);
-  border: none;
+  border: 1px solid var(--color-admin);
 }
 
-/* Instructor - gradient blue (matches AdminUsers badge) */
 .status-instructor {
-  background: linear-gradient(135deg, var(--color-info) 0%, var(--color-info-dark) 100%);
-  color: var(--color-text-on-filled);
-  box-shadow: 0 2px 8px var(--color-info-overlay);
-  border: none;
+  background: var(--color-bg-panel);
+  color: var(--color-instructor);
+  border: 1px solid var(--color-instructor);
 }
+
+/* Category - outline in a categorical ramp slot (labels, not status). The
+   ramp only clears 3:1, so the slot colours the border and the text stays
+   neutral. */
+.status-category-1,
+.status-category-2,
+.status-category-3,
+.status-category-4,
+.status-category-5,
+.status-category-6 {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid;
+}
+
+.status-category-1 { border-color: var(--color-category-1); }
+.status-category-2 { border-color: var(--color-category-2); }
+.status-category-3 { border-color: var(--color-category-3); }
+.status-category-4 { border-color: var(--color-category-4); }
+.status-category-5 { border-color: var(--color-category-5); }
+.status-category-6 { border-color: var(--color-category-6); }
 </style>

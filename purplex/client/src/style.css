@@ -1,5 +1,6 @@
 @import url('./styles/tokens.css');
 @import url('./styles/segmentation.css');
+@import url('./styles/data-types.css');
 
 * {
   box-sizing: border-box;
@@ -185,7 +186,3 @@ textarea::selection {
 .bg-panel {
   background-color: var(--color-bg-panel);
 }
-
-/* Remove light mode for consistency */
-
-/* All components now use dark theme CSS variables */

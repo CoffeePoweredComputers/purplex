@@ -146,13 +146,20 @@ function getProblemTypeLabel(type: string): string {
   return problemTypeLabels[type] || type || t('common.unknown');
 }
 
+// Problem types are labels, not status: outline badges on the categorical ramp.
+// Both probeable flavours share a slot.
+const problemTypeVariants: Record<string, BadgeVariant> = {
+  eipl: 'category-1',
+  probeable_code: 'category-2',
+  probeable_spec: 'category-2',
+  prompt: 'category-3',
+  debug_fix: 'category-4',
+  mcq: 'category-5',
+  refute: 'category-6',
+};
+
 function getTypeVariant(type: string): BadgeVariant {
-  switch (type) {
-    case 'eipl': return 'info';
-    case 'mcq': return 'success';
-    case 'prompt': return 'warning';
-    default: return 'default';
-  }
+  return problemTypeVariants[type] || 'default';
 }
 
 function getDifficultyVariant(difficulty: string): BadgeVariant {

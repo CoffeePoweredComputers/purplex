@@ -64,6 +64,7 @@
       "abstractionOpened": "Abstraction Details dialog opened"
     },
     "tests": {
+      "debug": "Debug",
       "passing": "{count} Passing",
       "failing": "{count} Failing",
       "failingGroup": "Failing Tests ({count})",

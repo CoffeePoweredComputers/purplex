@@ -512,7 +512,7 @@ watch(() => props.probeHistory.length, () => {
 }
 
 .fn-name {
-  color: var(--color-info);
+  color: var(--color-syntax-builtin);
   font-weight: 600;
 }
 
@@ -633,15 +633,14 @@ watch(() => props.probeHistory.length, () => {
   width: 100%;
   margin-top: var(--spacing-sm);
   padding: var(--spacing-xs) var(--spacing-lg);
-  background: var(--gradient-primary);
-  color: var(--color-text-on-filled);
-  border: none;
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border: 1px solid transparent;
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px var(--color-accent-glow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -655,18 +654,12 @@ watch(() => props.probeHistory.length, () => {
 }
 
 .probe-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--color-accent-glow);
-}
-
-.probe-btn:active:not(:disabled) {
-  transform: translateY(0);
+  background: var(--color-bg-hover);
 }
 
 .probe-btn.is-duplicate {
   background: var(--color-bg-hover);
   color: var(--color-warning);
-  box-shadow: none;
   opacity: 1;
 }
 

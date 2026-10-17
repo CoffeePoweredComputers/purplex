@@ -379,9 +379,15 @@ function getMemberSince(): string {
 }
 
 .role-badge.admin {
-    background: linear-gradient(135deg, var(--color-admin) 0%, var(--color-admin-hover) 100%);
+    background: var(--color-admin);
     color: var(--color-text-on-filled);
-    box-shadow: 0 2px 8px var(--color-admin-shadow);
+    border: 1px solid var(--color-admin);
+}
+
+.role-badge.instructor {
+    background: var(--color-bg-panel);
+    color: var(--color-instructor);
+    border: 1px solid var(--color-instructor);
 }
 
 .role-badge.user {

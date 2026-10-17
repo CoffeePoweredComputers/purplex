@@ -2280,9 +2280,9 @@ export default {
 }
 
 .progress-stat.in_progress {
-    color: var(--color-warning);
-    background: var(--color-warning-bg);
-    border-color: var(--color-warning);
+    color: var(--color-info);
+    background: var(--color-info-bg);
+    border-color: var(--color-info);
 }
 
 .progress-stat.remaining {
@@ -2319,7 +2319,7 @@ export default {
 }
 
 .progress-bar.in_progress {
-    background: var(--color-warning);  /* Yellow for incomplete/partial */
+    background: var(--color-info);  /* Violet for attempted, not yet complete */
 }
 
 .progress-bar.completed {
@@ -2396,8 +2396,8 @@ export default {
 }
 
 .progress-bar.active.in_progress {
-    background: var(--color-warning);  /* Yellow for incomplete/partial */
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-warning);
+    background: var(--color-info);  /* Violet for attempted, not yet complete */
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-info);
 }
 
 .progress-bar.active.completed {

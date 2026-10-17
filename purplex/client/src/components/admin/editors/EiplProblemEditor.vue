@@ -760,51 +760,6 @@ defineExpose({
   text-transform: uppercase;
 }
 
-.type-number {
-  background: var(--color-info-overlay);
-  color: var(--color-info);
-}
-
-.type-string {
-  background: var(--color-success-overlay);
-  color: var(--color-success);
-}
-
-.type-boolean {
-  background: var(--color-accent-overlay);
-  color: var(--color-admin);
-}
-
-.type-list {
-  background: var(--color-warning-overlay);
-  color: var(--color-warning);
-}
-
-.type-tuple {
-  background: var(--color-info-overlay);
-  color: var(--color-info);
-}
-
-.type-dict {
-  background: var(--color-error-overlay);
-  color: var(--color-error-accent);
-}
-
-.type-none {
-  background: var(--color-overlay-medium);
-  color: var(--color-text-muted);
-}
-
-.type-unknown {
-  background: var(--color-overlay-medium);
-  color: var(--color-text-muted);
-}
-
-.type-error {
-  background: var(--color-error-overlay);
-  color: var(--color-error);
-}
-
 .param-label {
   margin-top: var(--spacing-xs);
   font-size: var(--font-size-xs);

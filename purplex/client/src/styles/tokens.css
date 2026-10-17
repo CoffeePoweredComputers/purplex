@@ -128,12 +128,19 @@
   --color-error-text: #fda4af;
   --color-info: var(--color-accent);
   --color-info-bg: #3a2f52;
+  --color-info-text: #d8c6ff;
 
   /* Role Colors */
   --color-admin: var(--color-primary);
   --color-admin-hover: var(--color-primary-hover);
   --color-admin-bg: #3a2f52;
+  --color-instructor: var(--color-accent);
 
+  /* Top navigation role items (Instructor, Admin) */
+  --color-nav-item-bg: var(--color-info-bg);
+  --color-nav-item-text: var(--color-accent-strong);
+  --color-nav-item-hover-bg: #463a60;
+  --color-nav-item-border: transparent;
 
   /* Sub-navigation bars (AdminNavBar, InstructorNavBar); --nav-sub-bg may be a gradient */
   --nav-sub-bg: var(--color-bg-panel);
@@ -188,8 +195,6 @@
 
   /* Colored Glows (box-shadows) */
   --color-accent-shadow: color-mix(in srgb, var(--color-accent) 40%, transparent);
-  --color-admin-shadow: color-mix(in srgb, var(--color-admin) 30%, transparent);
-  --color-info-shadow: color-mix(in srgb, var(--color-primary) 30%, transparent);
   --color-segment-shadow: color-mix(in srgb, var(--color-category-1) 30%, transparent);
   --color-warning-pulse: color-mix(in srgb, var(--color-warning-accent) 70%, transparent);
   --color-warning-pulse-end: transparent;
@@ -221,10 +226,6 @@
   --shadow-inset: inset 0 1px 3px rgb(0 0 0 / 30%);
   --shadow-float: 0 24px 64px rgb(0 0 0 / 50%);
   --shadow-up: 0 -2px 10px rgb(0 0 0 / 30%);
-  --shadow-info-hover: 0 4px 12px color-mix(in srgb, var(--color-primary) 30%, transparent);
-  --shadow-info-active: 0 4px 12px color-mix(in srgb, var(--color-primary) 40%, transparent);
-  --shadow-admin-hover: 0 4px 12px color-mix(in srgb, var(--color-admin) 30%, transparent);
-  --shadow-admin-active: 0 4px 12px color-mix(in srgb, var(--color-admin) 40%, transparent);
   --shadow-segment-hover: 0 4px 16px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
@@ -287,12 +288,19 @@
   --color-error-text: #7f1d1d;
   --color-info: var(--color-accent);
   --color-info-bg: #efeafc;
+  --color-info-text: #3b1a86;
 
   /* Role Colors */
   --color-admin: var(--color-accent);
   --color-admin-hover: var(--color-primary-hover);
   --color-admin-bg: #efeafc;
+  --color-instructor: var(--color-accent);
 
+  /* Top navigation role items (Instructor, Admin) */
+  --color-nav-item-bg: transparent;
+  --color-nav-item-text: var(--color-text-secondary);
+  --color-nav-item-hover-bg: var(--color-bg-input);
+  --color-nav-item-border: transparent;
 
   /* Sub-navigation bars (AdminNavBar, InstructorNavBar); --nav-sub-bg may be a gradient */
   --nav-sub-bg: var(--color-bg-panel);
@@ -347,8 +355,6 @@
 
   /* Colored Glows (~50% opacity reduction) */
   --color-accent-shadow: color-mix(in srgb, var(--color-accent) 20%, transparent);
-  --color-admin-shadow: color-mix(in srgb, var(--color-admin) 15%, transparent);
-  --color-info-shadow: color-mix(in srgb, var(--color-info) 15%, transparent);
   --color-segment-shadow: color-mix(in srgb, var(--color-category-1) 15%, transparent);
   --color-warning-pulse: color-mix(in srgb, var(--color-warning) 50%, transparent);
   --color-warning-pulse-end: transparent;
@@ -380,9 +386,5 @@
   --shadow-inset: inset 0 1px 2px rgb(20 22 36 / 6%);
   --shadow-float: 0 16px 48px rgb(20 22 36 / 12%);
   --shadow-up: 0 -1px 4px rgb(20 22 36 / 6%);
-  --shadow-info-hover: 0 2px 8px color-mix(in srgb, var(--color-info) 15%, transparent);
-  --shadow-info-active: 0 2px 8px color-mix(in srgb, var(--color-info) 20%, transparent);
-  --shadow-admin-hover: 0 2px 8px color-mix(in srgb, var(--color-admin) 15%, transparent);
-  --shadow-admin-active: 0 2px 8px color-mix(in srgb, var(--color-admin) 20%, transparent);
   --shadow-segment-hover: 0 4px 12px color-mix(in srgb, var(--color-category-1) 15%, transparent);
 }

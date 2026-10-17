@@ -664,54 +664,14 @@ Always include relevant context with logs and distinguish between what developer
 
 This section documents the established design system, patterns, and conventions used throughout the Purplex frontend.
 
-### CSS Architecture
+### Theming
 
-The project uses a **CSS Variables-based design system** defined in `App.vue` that provides consistent theming across all components.
+Purplex ships a dark theme (default) and a light theme. Every colour, gradient and shadow is a token in `purplex/client/src/styles/tokens.css`: theme-independent tokens (spacing, radius, type) in `:root`, then one dark block and one light block with the same names in the same order. Components only use `var(--token)`; the theme switch (`useTheme`) sets `data-theme` on `<html>`.
 
-#### Color System
-```css
-/* Primary Brand Colors */
---color-primary: #800080;
---color-primary-hover: #9b009b;
---color-primary-gradient-start: #667eea;
---color-primary-gradient-end: #764ba2;
-
-/* Background Hierarchy */
---color-bg-main: #242424;          /* Main app background */
---color-bg-dark: #1a1a1a;          /* Darker sections */
---color-bg-panel: #1e1e1e;         /* Card/panel backgrounds */
---color-bg-header: #191919;        /* Header backgrounds */
---color-bg-hover: #2a2a2a;         /* Hover states */
-
-/* Text Hierarchy */
---color-text-primary: #ffffff;     /* Main text */
---color-text-secondary: #e0e0e0;   /* Secondary text */
---color-text-muted: #999;          /* Muted/disabled text */
-
-/* Status Colors */
---color-success: #4CAF50;
---color-warning: #FFC107;
---color-error: #dc3545;
---color-info: #2196F3;
-```
-
-#### Spacing System
-```css
---spacing-xs: 4px;
---spacing-sm: 8px;
---spacing-md: 12px;
---spacing-base: 15px;
---spacing-lg: 20px;
---spacing-xl: 30px;
---spacing-xxl: 50px;
-```
-
-### Component Styling Patterns
-
-1. **Scoped Styles**: All Vue components use `<style scoped>` to ensure styles don't leak globally
-2. **Dark Theme Only**: The application exclusively uses a dark theme
-3. **Base Element Styling**: Buttons inherit consistent base styles from `style.css`
-4. **Component Structure**: Follow semantic HTML with TypeScript by default
+- Add a colour token to both theme blocks at the same position; read the rules in the file header.
+- No colour literals and no `[data-theme]` selectors outside `tokens.css` (stylelint enforces both).
+- Run `yarn theme:check` (in `purplex/client`) before committing: it checks block parity, undefined `var()` names and unused tokens.
+- All Vue components use `<style scoped>`; base element styles live in `style.css`.
 
 ### Interactive Elements & Animations
 
@@ -728,7 +688,7 @@ The project uses a **CSS Variables-based design system** defined in `App.vue` th
 ### Best Practices
 
 1. **Always use CSS variables** for colors, spacing, and shadows
-2. **Maintain dark theme consistency** - no light mode variations
+2. **Check both themes** - every visual change must read correctly in dark and light
 3. **Use semantic class names** that describe purpose, not appearance
 4. **Keep animations subtle** - prioritize usability over flashiness
 5. **Test responsive behavior** at all breakpoints

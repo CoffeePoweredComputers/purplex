@@ -527,9 +527,9 @@ onMounted(() => {
 }
 
 .segment-badge-goal {
-  background: var(--color-admin);
-  color: var(--color-text-on-filled);
-  box-shadow: none;
+  background: var(--color-info-bg);
+  color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
 }
 
 .feedback-explanation {
