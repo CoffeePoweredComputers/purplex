@@ -110,7 +110,7 @@ defineExpose({ ctx });
 <style scoped>
 .content-editor-layout {
   min-height: 100vh;
-  background: var(--color-bg-page, var(--color-bg-base));
+  background: var(--color-bg-main);
 }
 
 .content-container {

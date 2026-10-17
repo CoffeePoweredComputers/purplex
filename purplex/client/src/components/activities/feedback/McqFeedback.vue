@@ -173,7 +173,7 @@ const bannerClass = computed(() => {
 
 <style scoped>
 .mcq-feedback {
-  background: var(--color-bg-card);
+  background: var(--color-bg-panel);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }

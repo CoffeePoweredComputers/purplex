@@ -76,9 +76,9 @@ function openInPyTutor(): void {
 }
 
 .trace-function {
-  font-family: var(--font-mono, 'SF Mono', 'Monaco', 'Inconsolata', monospace);
+  font-family: var(--font-mono);
   font-size: var(--font-size-sm);
-  background: var(--color-bg-code);
+  background: var(--color-bg-dark);
   border: 1px solid var(--color-bg-border);
   border-radius: var(--radius-sm);
   padding: var(--spacing-xs) var(--spacing-sm);

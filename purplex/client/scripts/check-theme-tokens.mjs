@@ -45,27 +45,6 @@ const DYNAMIC_PREFIXES = ['--color-segment-'];
  * `<check>:<detail>`. Listed problems print as warnings; anything else fails.
  */
 const KNOWN_OFFENDERS = [
-  // Step 2 maps or deletes these.
-  'undefined:--shadow-xl',
-  'undefined:--color-bg-card',
-  'undefined:--color-danger',
-  'undefined:--font-mono',
-  'undefined:--font-sans',
-  'undefined:--font-family-mono',
-  'undefined:--color-bg-primary',
-  'undefined:--color-bg-muted',
-  'undefined:--color-bg-page',
-  'undefined:--color-bg-base',
-  'undefined:--color-border',
-  'undefined:--color-surface',
-  'undefined:--color-bg-code',
-  'undefined:--color-background',
-  'undefined:--color-text-code',
-  'unused:--color-bg-table',
-  'unused:--color-info-text',
-  'unused:--transition-slow',
-  'unused:--max-width-panel',
-  'data-theme:src/style.css',
   // Step 5 moves these component overrides into tokens (nav-sub tokens; the
   // App.vue footer logo filter needs a token or a both-theme decision).
   'data-theme:src/App.vue',
@@ -93,7 +72,9 @@ function walk(dir, out = []) {
   return out;
 }
 
-const stripComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '');
+/** Blank out block comments, keeping their newlines so line numbers hold. */
+const stripComments = (text) =>
+  text.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ''));
 
 /** Top-level rules of a stylesheet as { selector, body, index }. */
 function topLevelRules(css) {

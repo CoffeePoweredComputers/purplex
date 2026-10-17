@@ -369,7 +369,7 @@ function getRowKey(item: T, index: number): string | number {
   text-align: center;
   padding: var(--spacing-xxl);
   background: var(--color-bg-panel);
-  border: 1px dashed var(--color-border, var(--color-bg-input));
+  border: 1px dashed var(--color-bg-input);
   border-radius: var(--radius-lg);
 }
 

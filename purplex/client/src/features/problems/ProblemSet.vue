@@ -2571,7 +2571,7 @@ export default {
     border-radius: var(--radius-xs);
     font-family: 'Fira Code', Monaco, monospace;
     font-size: 0.9em;
-    color: var(--color-text-code);
+    color: var(--color-text-primary);
 }
 
 .problem-description-markdown :deep(pre) {

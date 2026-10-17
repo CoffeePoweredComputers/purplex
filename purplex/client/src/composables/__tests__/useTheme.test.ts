@@ -51,7 +51,6 @@ beforeEach(() => {
   window.matchMedia = matchMediaStub as unknown as typeof window.matchMedia
   localStorageStub.setItem.mockClear()
   document.documentElement.removeAttribute('data-theme')
-  document.body.style.colorScheme = ''
 })
 
 afterEach(() => {
@@ -103,7 +102,15 @@ describe('useTheme', () => {
       expect(theme.value).toBe('light')
       expect(effectiveTheme.value).toBe('light')
       expect(dataTheme()).toBe('light')
-      expect(document.body.style.colorScheme).toBe('light')
+    })
+
+    it('still applies the theme when localStorage throws', async () => {
+      const { setTheme, effectiveTheme } = (await loadUseTheme())()
+      storageThrows = true
+
+      expect(() => setTheme('light')).not.toThrow()
+      expect(effectiveTheme.value).toBe('light')
+      expect(dataTheme()).toBe('light')
     })
 
     it('resolves auto against the system preference', async () => {

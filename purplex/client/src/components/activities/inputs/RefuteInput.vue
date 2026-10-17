@@ -416,7 +416,7 @@ function formatOutput(value: unknown): string {
 .claim-label {
   font-size: var(--font-size-sm);
   font-weight: 600;
-  color: var(--color-danger);
+  color: var(--color-error);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -445,7 +445,7 @@ function formatOutput(value: unknown): string {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-mono);
   font-size: var(--font-size-base);
   color: var(--color-text-primary);
   flex-wrap: wrap;
@@ -475,11 +475,11 @@ function formatOutput(value: unknown): string {
   width: 80px;
   height: 28px;
   padding: 0 var(--spacing-sm);
-  background: var(--color-bg-primary);
+  background: var(--color-bg-panel);
   border: 1px solid var(--color-bg-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   text-align: center;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -602,7 +602,7 @@ function formatOutput(value: unknown): string {
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-sm);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   margin-bottom: var(--spacing-xs);
   background: var(--color-bg-hover);

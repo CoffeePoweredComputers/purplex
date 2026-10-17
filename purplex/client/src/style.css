@@ -6,10 +6,9 @@
 }
 
 body {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: dark;
   color: var(--color-text-default);
   background-color: var(--color-bg-main);
   font-synthesis: none;
@@ -20,10 +19,6 @@ body {
   min-width: 320px;
   min-height: 100vh;
   position: relative;
-}
-
-html[data-theme="light"] body {
-  color-scheme: light;
 }
 
 a {

@@ -477,7 +477,7 @@ function removeTestCase(index: number) {
 }
 
 .type-none {
-  background: var(--color-bg-muted);
+  background: var(--color-bg-section);
   color: var(--color-text-muted);
   border: 1px solid var(--color-bg-border);
 }

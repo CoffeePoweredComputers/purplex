@@ -206,9 +206,9 @@ onMounted(fetchTable);
 .search-input {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--color-border, var(--color-bg-input));
+  border: 1px solid var(--color-bg-input);
   border-radius: var(--radius-base);
-  background: var(--color-surface, var(--color-bg-hover));
+  background: var(--color-bg-hover);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   transition: var(--transition-base);

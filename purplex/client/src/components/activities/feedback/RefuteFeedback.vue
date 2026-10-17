@@ -204,7 +204,7 @@ const resultInterpretation = computed(() => {
 
 <style scoped>
 .refute-feedback {
-  background: var(--color-bg-card);
+  background: var(--color-bg-panel);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -327,7 +327,7 @@ const resultInterpretation = computed(() => {
 .claim-reminder {
   padding: var(--spacing-md);
   background: var(--color-error-overlay);
-  border-left: 4px solid var(--color-danger);
+  border-left: 4px solid var(--color-error);
   border-radius: var(--radius-base);
 }
 

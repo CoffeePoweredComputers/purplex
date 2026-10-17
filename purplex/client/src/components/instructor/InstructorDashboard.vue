@@ -606,7 +606,7 @@ onMounted(() => {
 }
 
 .course-code {
-  font-family: var(--font-mono, 'Monaco', 'Menlo', monospace);
+  font-family: var(--font-mono);
   background: var(--color-bg-hover);
   padding: 2px var(--spacing-sm);
   border-radius: var(--radius-sm);

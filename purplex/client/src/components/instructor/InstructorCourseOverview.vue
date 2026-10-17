@@ -784,7 +784,7 @@ onMounted(() => {
 
 .instructor-overview {
   min-height: 100vh;
-  background: var(--color-background);
+  background: var(--color-bg-main);
 }
 
 .content-container {

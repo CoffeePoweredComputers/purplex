@@ -116,7 +116,7 @@ function handlePageSizeChange(event: Event) {
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-lg);
-  border-top: 1px solid var(--color-border, var(--color-bg-input));
+  border-top: 1px solid var(--color-bg-input);
 }
 
 .pagination-left {
@@ -151,9 +151,9 @@ function handlePageSizeChange(event: Event) {
 
 .page-size-select {
   padding: var(--spacing-xs) var(--spacing-sm);
-  border: 1px solid var(--color-border, var(--color-bg-input));
+  border: 1px solid var(--color-bg-input);
   border-radius: var(--radius-base);
-  background: var(--color-surface, var(--color-bg-hover));
+  background: var(--color-bg-hover);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   cursor: pointer;

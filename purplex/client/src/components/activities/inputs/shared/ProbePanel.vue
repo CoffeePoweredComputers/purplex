@@ -474,7 +474,7 @@ watch(() => props.probeHistory.length, () => {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-mono);
   font-size: var(--font-size-base);
   color: var(--color-text-primary);
   flex-wrap: wrap;
@@ -530,7 +530,7 @@ watch(() => props.probeHistory.length, () => {
   background: var(--color-bg-input);
   border: 1px solid var(--color-bg-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   line-height: 1.6;
   text-align: left;
@@ -824,7 +824,7 @@ watch(() => props.probeHistory.length, () => {
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-sm);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   margin-bottom: var(--spacing-xs);
   background: var(--color-bg-hover);
