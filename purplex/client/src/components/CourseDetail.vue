@@ -257,7 +257,7 @@ onMounted(async () => {
   width: 40px;
   height: 40px;
   border: 3px solid var(--color-bg-hover);
-  border-top: 3px solid var(--color-primary-gradient-start);
+  border-top: 3px solid var(--color-accent);
   border-radius: var(--radius-circle);
   animation: spin 1s linear infinite;
 }
@@ -275,7 +275,7 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
   text-decoration: none;
   font-weight: 600;
   margin-bottom: var(--spacing-lg);
@@ -283,7 +283,7 @@ onMounted(async () => {
 }
 
 .back-link:hover {
-  color: var(--color-primary-gradient-end);
+  color: var(--color-accent-strong);
   transform: translateX(-2px);
 }
 
@@ -351,7 +351,7 @@ onMounted(async () => {
 
 .problem-set-card {
   background: var(--color-bg-panel);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 0;
   cursor: pointer;
@@ -363,7 +363,7 @@ onMounted(async () => {
 .problem-set-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .card-content {
@@ -474,7 +474,7 @@ onMounted(async () => {
   background-color: var(--color-bg-panel);
   border-radius: var(--radius-lg);
   color: var(--color-text-muted);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Error State */
@@ -497,18 +497,18 @@ onMounted(async () => {
 .home-link {
   display: inline-block;
   padding: var(--spacing-md) var(--spacing-xl);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
   text-decoration: none;
   border-radius: var(--radius-base);
   font-weight: 600;
   transition: var(--transition-base);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
 }
 
 .home-link:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
+  box-shadow: 0 6px 20px var(--color-accent-glow);
 }
 
 /* Responsive Design */

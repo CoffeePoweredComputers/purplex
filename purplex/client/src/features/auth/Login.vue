@@ -388,7 +388,7 @@ export default {
   font-family: 'Exo 2', sans-serif;
   font-size: var(--font-size-title);
   margin: 0;
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 50%, var(--color-admin-hover) 100%);
+  background: linear-gradient(135deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 50%, var(--color-admin-hover) 100%);
   -webkit-text-fill-color: transparent;
   /* stylelint-disable-next-line property-no-vendor-prefix -- Safari requires -webkit- prefix for gradient text */
   -webkit-background-clip: text;
@@ -458,7 +458,7 @@ input {
   width: 100%;
   padding: calc(var(--spacing-md) + 2px) var(--spacing-md);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -467,8 +467,8 @@ input {
 
 input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 3px var(--color-primary-overlay);
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 3px var(--color-accent-overlay);
 }
 
 input::placeholder {
@@ -497,15 +497,15 @@ input::placeholder {
 }
 
 .login-btns button:first-child {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
 }
 
 .login-btns button:nth-child(2) {
   background: var(--color-bg-hover);
   color: var(--color-text-tertiary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .login-btns button:nth-child(2)::before {
@@ -515,7 +515,7 @@ input::placeholder {
 .login-btns button:nth-child(3) {
   background: var(--color-bg-main);
   color: var(--color-text-primary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   position: relative;
   overflow: hidden;
 }
@@ -532,17 +532,17 @@ input::placeholder {
 
 .login-btns button:first-child:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
+  box-shadow: 0 6px 20px var(--color-accent-glow);
 }
 
 .login-btns button:nth-child(2):hover {
   background: var(--color-bg-input);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 
 .login-btns button:nth-child(3):hover {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   transform: translateY(-1px);
 }
 
@@ -554,7 +554,7 @@ input::placeholder {
 .redirect-mode-btn {
   background: var(--color-bg-hover) !important;
   color: var(--color-text-secondary) !important;
-  border: 1px dashed var(--color-bg-border) !important;
+  border: 1px dashed var(--color-border) !important;
   font-size: var(--font-size-sm) !important;
 }
 
@@ -564,7 +564,7 @@ input::placeholder {
 
 .redirect-mode-btn:hover {
   background: var(--color-bg-input) !important;
-  border-color: var(--color-primary-gradient-start) !important;
+  border-color: var(--color-accent) !important;
   color: var(--color-text-primary) !important;
 }
 
@@ -580,13 +580,13 @@ input::placeholder {
 }
 
 .info-message {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
   color: var(--color-text-secondary);
   padding: var(--spacing-md);
   border-radius: var(--radius-base);
   text-align: center;
   font-size: var(--font-size-sm);
-  border: 1px solid var(--color-primary-glow);
+  border: 1px solid var(--color-accent-glow);
   line-height: 1.5;
 }
 

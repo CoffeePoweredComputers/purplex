@@ -630,12 +630,12 @@ export default {
 }
 
 .hint-button:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .hint-button:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -694,7 +694,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .hint-menu-header h4 {
@@ -723,12 +723,12 @@ export default {
 }
 
 .close-btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .close-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -762,8 +762,8 @@ export default {
 }
 
 .hint-item.active .hint-header {
-  background: var(--color-primary-overlay);
-  border-left: 3px solid var(--color-primary-gradient-start);
+  background: var(--color-accent-overlay);
+  border-left: 3px solid var(--color-accent);
 }
 
 .hint-type-icon {
@@ -817,7 +817,7 @@ export default {
 
 .hint-content {
   background: var(--color-bg-section);
-  border-top: 1px solid var(--color-bg-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .hint-content-body {
@@ -845,7 +845,7 @@ export default {
 
 .hint-example pre {
   margin: 0;
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   color: var(--color-text-primary);
   padding: 12px;
   border-radius: 4px;
@@ -856,7 +856,7 @@ export default {
 .hint-footer {
   padding: 12px 16px;
   background: var(--color-bg-section);
-  border-top: 1px solid var(--color-bg-border);
+  border-top: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -890,7 +890,7 @@ export default {
 }
 
 .action-btn.secondary:hover:not(:disabled) {
-  background: var(--color-bg-border);
+  background: var(--color-border);
 }
 
 .action-btn.danger {
@@ -908,12 +908,12 @@ export default {
 }
 
 .action-btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .action-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -945,7 +945,7 @@ export default {
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background-color: var(--color-bg-border);
+  background-color: var(--color-border);
   transition: 0.3s;
   border-radius: 24px;
 }
@@ -964,7 +964,7 @@ export default {
 }
 
 .hint-checkbox:checked + .toggle-slider {
-  background-color: var(--color-primary-gradient-start);
+  background-color: var(--color-accent);
 }
 
 .hint-checkbox:checked + .toggle-slider::before {
@@ -972,18 +972,18 @@ export default {
 }
 
 .hint-toggle:hover .toggle-slider {
-  box-shadow: 0 0 0 3px var(--color-primary-overlay);
+  box-shadow: 0 0 0 3px var(--color-accent-overlay);
 }
 
 .hint-checkbox:focus + .toggle-slider {
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
-  outline: 2px solid var(--color-primary-gradient-start);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .hint-checkbox:focus-visible + .toggle-slider {
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
-  outline: 2px solid var(--color-primary-gradient-start);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

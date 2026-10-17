@@ -206,9 +206,9 @@ onMounted(fetchTable);
 .search-input {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--color-border, var(--color-bg-input));
+  border: 1px solid var(--color-bg-input);
   border-radius: var(--radius-base);
-  background: var(--color-surface, var(--color-bg-hover));
+  background: var(--color-bg-hover);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   transition: var(--transition-base);
@@ -216,7 +216,7 @@ onMounted(fetchTable);
 
 .search-input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .actions-cell {
@@ -240,14 +240,14 @@ onMounted(fetchTable);
 }
 
 .add-button {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  box-shadow: var(--shadow-colored);
+  background: var(--gradient-primary);
+  box-shadow: var(--shadow-accent);
   color: var(--color-text-on-filled);
 }
 
 .add-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-shadow);
+  box-shadow: 0 6px 20px var(--color-accent-shadow);
 }
 
 .add-button::before {
@@ -259,12 +259,12 @@ onMounted(fetchTable);
 .edit-button {
   background: var(--color-bg-hover);
   color: var(--color-text-tertiary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .edit-button:hover {
   background: var(--color-bg-input);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 

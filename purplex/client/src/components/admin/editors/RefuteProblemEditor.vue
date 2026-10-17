@@ -223,7 +223,7 @@ onMounted(() => {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Main Container */
@@ -246,7 +246,7 @@ onMounted(() => {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .section-description {
@@ -279,7 +279,7 @@ onMounted(() => {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -296,7 +296,7 @@ onMounted(() => {
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   background: var(--color-bg-panel);
 }
 
@@ -381,7 +381,7 @@ onMounted(() => {
 .predicate-examples h4 {
   margin: 0 0 var(--spacing-sm) 0;
   font-size: var(--font-size-sm);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 .examples-table {
@@ -394,7 +394,7 @@ onMounted(() => {
 .examples-table td {
   text-align: left;
   padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .examples-table th {
@@ -412,7 +412,7 @@ onMounted(() => {
   padding: 2px 6px;
   border-radius: var(--radius-xs);
   font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 /* Editor Toolbar */
@@ -422,7 +422,7 @@ onMounted(() => {
   align-items: center;
   padding: var(--spacing-sm);
   background: var(--color-bg-hover);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-bottom: none;
   border-radius: var(--radius-base) var(--radius-base) 0 0;
 }
@@ -443,7 +443,7 @@ onMounted(() => {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   background: var(--color-bg-panel);
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -459,9 +459,9 @@ onMounted(() => {
 }
 
 .zoom-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .zoom-display {
@@ -474,14 +474,14 @@ onMounted(() => {
 .theme-dropdown {
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
 }
 
 .code-editor {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-top: none;
   border-radius: 0 0 var(--radius-base) var(--radius-base);
   overflow: hidden;

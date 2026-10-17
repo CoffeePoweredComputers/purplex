@@ -15,6 +15,10 @@ interface RouteEntry {
   auth: AuthRole;
 }
 
+// Seeded routes read the fixtures from `python manage.py seed_e2e_data`
+// (course CS101-2024 and the e2e-* problem sets), which the E2E stack loads.
+const SEEDED_COURSE = 'CS101-2024';
+
 const ROUTES: Record<string, RouteEntry> = {
   // Public (no auth required)
   'login':              { path: '/', auth: null },
@@ -41,19 +45,18 @@ const ROUTES: Record<string, RouteEntry> = {
   'admin-submissions':  { path: '/admin/submissions', auth: 'admin' },
   'admin-courses':      { path: '/admin/courses', auth: 'admin' },
   'admin-course-new':   { path: '/admin/courses/new', auth: 'admin' },
-};
 
-// Data-dependent routes — uncomment after seeding the dev database.
-// These require the backend to be running with test data loaded.
-//
-// 'course-detail':              { path: '/courses/ENGGEN131', auth: 'student' },
-// 'course-problem-set':         { path: '/courses/ENGGEN131/problem-set/demo-problem-set', auth: 'student' },
-// 'instructor-course-overview': { path: '/instructor/courses/ENGGEN131', auth: 'instructor' },
-// 'instructor-course-students': { path: '/instructor/courses/ENGGEN131/students', auth: 'instructor' },
-// 'instructor-course-subs':     { path: '/instructor/courses/ENGGEN131/submissions', auth: 'instructor' },
-// 'instructor-course-ps':       { path: '/instructor/courses/ENGGEN131/problem-sets', auth: 'instructor' },
-// 'admin-course-students':      { path: '/admin/courses/ENGGEN131/students', auth: 'admin' },
-// 'admin-course-ps':            { path: '/admin/courses/ENGGEN131/problem-sets', auth: 'admin' },
+  // Seeded (student, instructor and admin views of CS101-2024)
+  'course-detail':              { path: `/courses/${SEEDED_COURSE}`, auth: 'student' },
+  'course-ps-mcq':              { path: `/courses/${SEEDED_COURSE}/problem-set/e2e-basics?p=0`, auth: 'student' },
+  'course-ps-probeable':        { path: `/courses/${SEEDED_COURSE}/problem-set/e2e-code?p=1`, auth: 'student' },
+  'course-ps-refute':           { path: `/courses/${SEEDED_COURSE}/problem-set/e2e-mixed?p=6`, auth: 'student' },
+  'instructor-course-overview': { path: `/instructor/courses/${SEEDED_COURSE}`, auth: 'instructor' },
+  'instructor-course-subs':     { path: `/instructor/courses/${SEEDED_COURSE}/submissions`, auth: 'instructor' },
+  'instructor-course-ps':       { path: `/instructor/courses/${SEEDED_COURSE}/problem-sets`, auth: 'instructor' },
+  'admin-course-students':      { path: `/admin/courses/${SEEDED_COURSE}/students`, auth: 'admin' },
+  'admin-course-ps':            { path: `/admin/courses/${SEEDED_COURSE}/problem-sets`, auth: 'admin' },
+};
 
 const THEMES = ['dark', 'light'] as const;
 const SCREENSHOT_ROOT = path.resolve(__dirname, '..', 'visual-tests', 'screenshots');

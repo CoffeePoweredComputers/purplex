@@ -47,8 +47,8 @@ vi.mock('vue3-ace-editor', () => ({
 }))
 
 vi.mock('ace-builds/src-noconflict/mode-python', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-chrome', () => ({}))
-vi.mock('ace-builds/src-noconflict/theme-tomorrow_night', () => ({}))
+vi.mock('ace-builds/src-noconflict/theme-tomorrow', () => ({}))
+vi.mock('ace-builds/src-noconflict/theme-tomorrow_night_eighties', () => ({}))
 
 type Fn = ReturnType<typeof vi.fn>
 
@@ -198,8 +198,8 @@ describe('Editor Component', () => {
       expect(aceEditor.props()).toMatchObject({
         lang: 'python',
         // Comes from useTheme(): happy-dom's matchMedia reports
-        // prefers-color-scheme: light, so 'auto' resolves to light -> 'chrome'
-        theme: 'chrome',
+        // prefers-color-scheme: light, so 'auto' resolves to light -> 'tomorrow'
+        theme: 'tomorrow',
         mode: 'python',
         value: 'print("Hello")',
         style: { height: '300px', width: '500px' },
@@ -602,11 +602,11 @@ describe('Editor Component', () => {
       // Dark first: in happy-dom the 'auto' default already resolves to light
       useTheme().setTheme('dark')
       await nextTick()
-      expect(aceEditor.props().theme).toBe('tomorrow_night')
+      expect(aceEditor.props().theme).toBe('tomorrow_night_eighties')
 
       useTheme().setTheme('light')
       await nextTick()
-      expect(aceEditor.props().theme).toBe('chrome')
+      expect(aceEditor.props().theme).toBe('tomorrow')
     })
   })
 })

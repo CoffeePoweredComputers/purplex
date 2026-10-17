@@ -110,7 +110,7 @@ defineExpose({ ctx });
 <style scoped>
 .content-editor-layout {
   min-height: 100vh;
-  background: var(--color-bg-page, var(--color-bg-base));
+  background: var(--color-bg-main);
 }
 
 .content-container {
@@ -123,7 +123,7 @@ defineExpose({ ctx });
 .breadcrumb {
   margin-bottom: var(--spacing-xl);
   padding: var(--spacing-md) 0;
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .breadcrumb-link {
@@ -143,7 +143,7 @@ defineExpose({ ctx });
 }
 
 .breadcrumb-link:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -171,7 +171,7 @@ defineExpose({ ctx });
 
 /* Utility classes */
 .border-default {
-  border-color: var(--color-bg-border);
+  border-color: var(--color-border);
 }
 
 .transition-fast {

@@ -638,7 +638,7 @@ onBeforeUnmount(() => {
   background-size: 200% 100%;
   border-radius: var(--radius-base);
   animation: shimmer 2.5s ease-in-out infinite;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .skeleton-test-item {
@@ -652,7 +652,7 @@ onBeforeUnmount(() => {
   background-size: 200% 100%;
   border-radius: var(--radius-xs);
   animation: shimmer 2.5s ease-in-out infinite;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 @keyframes shimmer {
@@ -727,12 +727,12 @@ onBeforeUnmount(() => {
 }
 
 .attempt-dropdown-trigger:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .attempt-dropdown-trigger:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -829,12 +829,12 @@ onBeforeUnmount(() => {
 }
 
 .attempt-item-minimal:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .attempt-item-minimal:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -848,14 +848,14 @@ onBeforeUnmount(() => {
 }
 
 .attempt-item-minimal.is-current {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
   color: var(--color-text-primary);
 }
 
 .attempt-indicator {
   width: 2px;
   height: 12px;
-  background: var(--color-bg-border);
+  background: var(--color-border);
   border-radius: 1px;
   position: absolute;
   left: 2px;
@@ -991,12 +991,12 @@ onBeforeUnmount(() => {
 }
 
 .test-group-header:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .test-group-header:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1122,12 +1122,12 @@ details:not([open]) .group-icon {
 }
 
 .debug-btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .debug-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

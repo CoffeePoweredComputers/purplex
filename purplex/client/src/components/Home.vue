@@ -320,7 +320,7 @@ main {
 
 .problem-set-card {
   background: var(--color-bg-panel);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 0;
   cursor: pointer;
@@ -335,16 +335,16 @@ main {
 
 .problem-set-card:hover {
   box-shadow: var(--shadow-lg);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .problem-set-card:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .problem-set-card:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -443,9 +443,9 @@ main {
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--color-primary-glow);
+  background: var(--color-accent-glow);
   backdrop-filter: blur(8px);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
   padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
   text-align: center;
   font-weight: 600;
@@ -531,7 +531,7 @@ main {
 
 /* Add Course Button */
 .add-course-btn {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
@@ -543,12 +543,12 @@ main {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
 }
 
 .add-course-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
+  box-shadow: 0 6px 20px var(--color-accent-glow);
 }
 
 .add-course-btn:focus {

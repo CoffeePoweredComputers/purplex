@@ -576,7 +576,7 @@ watch(
   width: 40px;
   height: 40px;
   border: 3px solid var(--color-bg-hover);
-  border-top: 3px solid var(--color-primary-gradient-start);
+  border-top: 3px solid var(--color-accent);
   border-radius: var(--radius-circle);
   animation: spin 1s linear infinite;
 }
@@ -660,7 +660,7 @@ watch(
 .order-btn {
   padding: var(--spacing-xs) var(--spacing-sm);
   background-color: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -674,7 +674,7 @@ watch(
 }
 
 .order-btn:hover:not(:disabled) {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 
@@ -693,7 +693,7 @@ watch(
 
 .due-date-input {
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
   color: var(--color-text-primary);
@@ -702,7 +702,7 @@ watch(
 }
 
 .due-date-input:focus {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   outline: none;
 }
 
@@ -729,7 +729,7 @@ watch(
 
 .deadline-select {
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
   color: var(--color-text-primary);
@@ -739,7 +739,7 @@ watch(
 }
 
 .deadline-select:focus {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   outline: none;
 }
 
@@ -775,7 +775,7 @@ watch(
 }
 
 .available-item:hover {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .item-info {
@@ -825,12 +825,12 @@ watch(
 .secondary-button {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .secondary-button:hover {
   background: var(--color-bg-input);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 
@@ -850,7 +850,7 @@ watch(
 
 .remove-button {
   background-color: transparent;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   padding: var(--spacing-xs) var(--spacing-md);
 }
@@ -911,7 +911,7 @@ watch(
 .btn-secondary {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .btn-danger {

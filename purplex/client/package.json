@@ -32,7 +32,8 @@
     "i18n:check": "node scripts/check-i18n.mjs",
     "i18n:badges": "node scripts/generate-i18n-badges.mjs",
     "stylelint": "stylelint \"src/**/*.{vue,css}\" --fix",
-    "stylelint:check": "stylelint \"src/**/*.{vue,css}\""
+    "stylelint:check": "stylelint \"src/**/*.{vue,css}\"",
+    "theme:check": "node scripts/check-theme-tokens.mjs"
   },
   "dependencies": {
     "ace-builds": "^1.32.5",

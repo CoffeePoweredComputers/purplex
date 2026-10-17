@@ -2078,11 +2078,11 @@ export default {
 .progress-bar-fill {
     height: 100%;
     background: linear-gradient(90deg,
-        var(--color-primary-gradient-start) 0%,
-        var(--color-primary-gradient-end) 100%);
+        var(--color-gradient-start) 0%,
+        var(--color-gradient-end) 100%);
     animation: progressSlide 1.5s ease-in-out infinite;
     transform-origin: left;
-    box-shadow: 0 0 10px var(--color-primary-glow);
+    box-shadow: 0 0 10px var(--color-accent-glow);
 }
 
 @keyframes progressSlide {
@@ -2109,7 +2109,7 @@ export default {
     border-radius: 8px;
     font-size: 0.9rem;
     background: var(--color-bg-section);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
 }
 
 .deadline-banner .deadline-icon {
@@ -2197,7 +2197,7 @@ export default {
 
 .nav-button {
     background: var(--color-bg-hover);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
     width: 32px;
     height: 32px;
@@ -2224,12 +2224,12 @@ export default {
 }
 
 .nav-button:focus {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
 .nav-button:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -2242,9 +2242,9 @@ export default {
 }
 
 .nav-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+    background: var(--gradient-primary);
     color: var(--color-text-on-filled);
-    border-color: var(--color-primary-gradient-start);
+    border-color: var(--color-accent);
     transform: translateY(-1px);
 }
 
@@ -2270,7 +2270,7 @@ export default {
     padding: 2px var(--spacing-sm);
     border-radius: var(--radius-xl);
     background: var(--color-bg-hover);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
 }
 
 .progress-stat.completed {
@@ -2280,9 +2280,9 @@ export default {
 }
 
 .progress-stat.in_progress {
-    color: var(--color-warning);
-    background: var(--color-warning-bg);
-    border-color: var(--color-warning);
+    color: var(--color-info);
+    background: var(--color-info-bg);
+    border-color: var(--color-info);
 }
 
 .progress-stat.remaining {
@@ -2319,7 +2319,7 @@ export default {
 }
 
 .progress-bar.in_progress {
-    background: var(--color-warning);  /* Yellow for incomplete/partial */
+    background: var(--color-info);  /* Violet for attempted, not yet complete */
 }
 
 .progress-bar.completed {
@@ -2327,7 +2327,7 @@ export default {
 }
 
 .progress-bar.submitting {
-    background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+    background: var(--gradient-primary);
     position: relative;
     overflow: hidden;
 }
@@ -2387,7 +2387,7 @@ export default {
 
 /* Active state */
 .progress-bar.active {
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-primary-gradient-start);
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-accent);
 }
 
 .progress-bar.active.not_started {
@@ -2396,8 +2396,8 @@ export default {
 }
 
 .progress-bar.active.in_progress {
-    background: var(--color-warning);  /* Yellow for incomplete/partial */
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-warning);
+    background: var(--color-info);  /* Violet for attempted, not yet complete */
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-info);
 }
 
 .progress-bar.active.completed {
@@ -2406,7 +2406,7 @@ export default {
 }
 
 .progress-bar.active.submitting {
-    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-primary-gradient-start);
+    box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 4px var(--color-accent);
 }
 
 /* Hover effects */
@@ -2571,7 +2571,7 @@ export default {
     border-radius: var(--radius-xs);
     font-family: 'Fira Code', Monaco, monospace;
     font-size: 0.9em;
-    color: var(--color-text-code);
+    color: var(--color-text-primary);
 }
 
 .problem-description-markdown :deep(pre) {
@@ -2639,7 +2639,7 @@ export default {
     height: 24px;
     padding: 0;
     background: var(--color-bg-panel);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
     font-size: 16px;
     font-weight: 600;
@@ -2657,12 +2657,12 @@ export default {
 }
 
 .zoom-btn:focus {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
 .zoom-btn:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -2673,7 +2673,7 @@ export default {
 .zoom-btn:hover:not(:disabled) {
     background: var(--color-bg-input);
     color: var(--color-text-primary);
-    border-color: var(--color-primary-gradient-start);
+    border-color: var(--color-accent);
 }
 
 .zoom-icon {
@@ -2693,7 +2693,7 @@ export default {
     height: 24px;
     padding: 0 var(--spacing-sm);
     background: var(--color-bg-panel);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
     font-size: 14px;
     display: flex;
@@ -2708,7 +2708,7 @@ export default {
 .toolbar-btn:hover {
     background: var(--color-bg-input);
     color: var(--color-text-primary);
-    border-color: var(--color-primary-gradient-start);
+    border-color: var(--color-accent);
 }
 
 .toolbar-options {
@@ -2855,12 +2855,12 @@ export default {
 
 /* Focus styles for keyboard navigation */
 .progress-bar:focus {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
 .progress-bar:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -2869,12 +2869,12 @@ export default {
 }
 
 .toolbar-btn:focus {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
 .toolbar-btn:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 

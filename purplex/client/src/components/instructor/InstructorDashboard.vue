@@ -458,7 +458,7 @@ onMounted(() => {
 .loading-spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid var(--color-bg-border);
+  border: 4px solid var(--color-border);
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -506,7 +506,7 @@ onMounted(() => {
 }
 
 .retry-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -522,7 +522,7 @@ onMounted(() => {
   display: flex;
   align-items: stretch;
   background: var(--color-bg-panel);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
   transition: var(--transition-base);
   overflow: hidden;
@@ -534,12 +534,12 @@ onMounted(() => {
 
 .course-card:hover,
 .course-card:focus-visible {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   box-shadow: var(--shadow-lg);
 }
 
 .course-card:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -553,9 +553,9 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   width: 0;
-  background: var(--color-primary-glow);
+  background: var(--color-accent-glow);
   backdrop-filter: blur(8px);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
   overflow: hidden;
   transition: width 0.25s ease;
 }
@@ -606,7 +606,7 @@ onMounted(() => {
 }
 
 .course-code {
-  font-family: var(--font-mono, 'Monaco', 'Menlo', monospace);
+  font-family: var(--font-mono);
   background: var(--color-bg-hover);
   padding: 2px var(--spacing-sm);
   border-radius: var(--radius-sm);
@@ -655,8 +655,8 @@ onMounted(() => {
 }
 
 .role-primary {
-  background: var(--color-primary-overlay);
-  color: var(--color-primary-gradient-start);
+  background: var(--color-accent-overlay);
+  color: var(--color-accent);
 }
 
 .role-ta {
@@ -666,16 +666,16 @@ onMounted(() => {
 
 /* Add Course Card - Ghost/Shadow style */
 .add-course-card {
-  border: 2px dashed var(--color-bg-border);
+  border: 2px dashed var(--color-border);
   background: transparent;
   min-height: 80px;
 }
 
 .add-course-card:hover,
 .add-course-card:focus-visible {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   border-style: solid;
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
 }
 
 .add-card-content {
@@ -694,7 +694,7 @@ onMounted(() => {
 
 .add-course-card:hover .add-icon,
 .add-course-card:focus-visible .add-icon {
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 .add-text {
@@ -706,13 +706,13 @@ onMounted(() => {
 
 .add-course-card:hover .add-text,
 .add-course-card:focus-visible .add-text {
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 /* Expandable Form Card */
 .add-course-card.form-expanded {
   border-style: solid;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   background: var(--color-bg-panel);
   min-height: auto;
   cursor: default;
@@ -757,7 +757,7 @@ onMounted(() => {
   align-items: center;
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .form-header h3 {
@@ -812,7 +812,7 @@ onMounted(() => {
   padding: var(--spacing-md);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
   transition: var(--transition-fast);
@@ -820,8 +820,8 @@ onMounted(() => {
 
 .form-field input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 3px var(--color-primary-overlay);
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 3px var(--color-accent-overlay);
 }
 
 .form-field input:disabled {
@@ -860,7 +860,7 @@ onMounted(() => {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   padding-left: var(--spacing-sm);
-  border-left: 1px solid var(--color-bg-border);
+  border-left: 1px solid var(--color-border);
 }
 
 /* Form error */
@@ -880,14 +880,14 @@ onMounted(() => {
   justify-content: flex-end;
   margin-top: var(--spacing-lg);
   padding-top: var(--spacing-md);
-  border-top: 1px solid var(--color-bg-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .btn-cancel {
   padding: var(--spacing-sm) var(--spacing-lg);
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   font-weight: 600;
   cursor: pointer;
@@ -901,14 +901,14 @@ onMounted(() => {
 
 .btn-create {
   padding: var(--spacing-sm) var(--spacing-xl);
-  background: linear-gradient(135deg, var(--color-admin) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-admin);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition-base);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
 }
 
 .btn-create:disabled {
@@ -920,7 +920,7 @@ onMounted(() => {
 
 .btn-create:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
+  box-shadow: 0 6px 20px var(--color-accent-glow);
 }
 
 /* Mobile responsive */

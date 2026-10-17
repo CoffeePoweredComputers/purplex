@@ -49,7 +49,7 @@ function openInPyTutor(): void {
 <style scoped>
 .suggested-trace {
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   padding: var(--spacing-md) var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
@@ -57,7 +57,7 @@ function openInPyTutor(): void {
 }
 
 .suggested-trace:hover {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   box-shadow: var(--shadow-sm);
 }
 
@@ -76,10 +76,10 @@ function openInPyTutor(): void {
 }
 
 .trace-function {
-  font-family: var(--font-mono, 'SF Mono', 'Monaco', 'Inconsolata', monospace);
+  font-family: var(--font-mono);
   font-size: var(--font-size-sm);
-  background: var(--color-bg-code);
-  border: 1px solid var(--color-bg-border);
+  background: var(--color-bg-sunken);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
   color: var(--color-text-primary);
@@ -93,7 +93,7 @@ function openInPyTutor(): void {
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-md);
-  background: var(--color-primary-gradient-start);
+  background: var(--color-accent);
   color: var(--color-text-on-filled);
   border: none;
   border-radius: var(--radius-base);
@@ -113,7 +113,7 @@ function openInPyTutor(): void {
 }
 
 .trace-btn:hover:not(:disabled) {
-  background: var(--color-primary-gradient-end);
+  background: var(--color-accent-strong);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }

@@ -784,7 +784,7 @@ onMounted(() => {
 
 .instructor-overview {
   min-height: 100vh;
-  background: var(--color-background);
+  background: var(--color-bg-main);
 }
 
 .content-container {
@@ -806,13 +806,13 @@ onMounted(() => {
 .loading-spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid var(--color-bg-border);
+  border: 4px solid var(--color-border);
   border-top-color: var(--color-admin);
-  border-right-color: var(--color-primary-gradient-end);
+  border-right-color: var(--color-accent-strong);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: var(--spacing-lg);
-  box-shadow: 0 0 15px var(--color-primary-overlay);
+  box-shadow: 0 0 15px var(--color-accent-overlay);
 }
 
 @keyframes spin {
@@ -843,24 +843,25 @@ onMounted(() => {
 .back-btn {
   display: inline-block;
   padding: var(--spacing-md) var(--spacing-xl);
-  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end));
+  background: var(--gradient-admin);
   color: var(--color-text-on-filled);
   text-decoration: none;
   border-radius: var(--radius-base);
   font-weight: 600;
   transition: var(--transition-base);
-  box-shadow: 0 2px 8px var(--color-primary-glow);
+  box-shadow: 0 2px 8px var(--color-accent-glow);
 }
 
 .back-btn:hover {
+  background: var(--gradient-admin-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--color-primary-glow);
+  box-shadow: 0 4px 12px var(--color-accent-glow);
 }
 
 /* Unified Course Card */
 .course-card {
   background: var(--color-bg-panel);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-base);
   padding: var(--spacing-xl);
@@ -873,7 +874,7 @@ onMounted(() => {
 
 .card-divider {
   height: 1px;
-  background: var(--color-bg-border);
+  background: var(--color-border);
   margin: var(--spacing-xl) 0;
 }
 
@@ -897,7 +898,7 @@ onMounted(() => {
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  background: var(--color-bg-border);
+  background: var(--color-border);
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
   margin-top: var(--spacing-sm);
@@ -959,18 +960,18 @@ onMounted(() => {
 
   /* At-rest card appearance - clearly clickable */
   background: var(--color-overlay-subtle);
-  border: 1px solid var(--color-primary-overlay);
+  border: 1px solid var(--color-accent-overlay);
   box-shadow: var(--shadow-xs);
 }
 
 .journey-item:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .journey-item.selected {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
   border-color: var(--color-admin);
   box-shadow: var(--shadow-lg);
 }
@@ -1002,18 +1003,18 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end));
+  background: var(--gradient-admin);
   color: var(--color-text-on-filled);
   font-weight: 600;
   font-size: var(--font-size-sm);
   border-radius: 50%;
-  box-shadow: 0 3px 8px var(--color-primary-glow);
+  box-shadow: 0 3px 8px var(--color-accent-glow);
 }
 
 .marker-line {
   flex: 1;
   width: 2px;
-  background: linear-gradient(to bottom, var(--color-admin), var(--color-bg-border));
+  background: var(--marker-line-bg);
   margin-top: var(--spacing-sm);
   min-height: 40px;
 }
@@ -1133,8 +1134,8 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: var(--color-primary-overlay);
-  border: 1px solid var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
+  border: 1px solid var(--color-accent-overlay);
   border-radius: var(--radius-base);
   color: var(--color-admin);
   cursor: pointer;
@@ -1143,7 +1144,7 @@ onMounted(() => {
 }
 
 .download-btn:hover {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
   border-color: var(--color-admin);
   opacity: 1;
   transform: translateY(-1px);
@@ -1196,10 +1197,10 @@ onMounted(() => {
   transform: translate(-50%, -50%);
   width: 16px;
   height: 16px;
-  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end));
+  background: var(--gradient-admin);
   border: 3px solid var(--color-bg-panel);
   border-radius: 50%;
-  box-shadow: 0 2px 6px var(--color-primary-glow);
+  box-shadow: 0 2px 6px var(--color-accent-glow);
 }
 
 .journey-stats {
@@ -1219,8 +1220,8 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--color-primary-overlay), var(--color-primary-overlay));
-  border: 1px solid var(--color-primary-glow);
+  background: linear-gradient(135deg, var(--color-accent-overlay), var(--color-accent-overlay));
+  border: 1px solid var(--color-accent-glow);
   border-radius: var(--radius-base);
   margin-bottom: var(--spacing-lg);
 }
@@ -1333,7 +1334,7 @@ onMounted(() => {
 }
 
 .chart-line {
-  filter: drop-shadow(0 1px 2px var(--color-primary-glow));
+  filter: drop-shadow(0 1px 2px var(--color-accent-glow));
 }
 
 .chart-bars {
@@ -1359,8 +1360,8 @@ onMounted(() => {
   max-width: 20px;
   background: linear-gradient(
     to top,
-    var(--color-primary-glow),
-    var(--color-primary-overlay)
+    var(--color-accent-glow),
+    var(--color-accent-overlay)
   );
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   min-height: 4px;
@@ -1374,9 +1375,9 @@ onMounted(() => {
   background: linear-gradient(
     to top,
     var(--color-admin),
-    var(--color-primary-gradient-end)
+    var(--color-gradient-end)
   );
-  box-shadow: 0 2px 8px var(--color-primary-glow);
+  box-shadow: 0 2px 8px var(--color-accent-glow);
 }
 
 /* Data point dots at bar tops */
@@ -1397,7 +1398,7 @@ onMounted(() => {
 .chart-bar-container:hover .chart-point {
   transform: translate(-50%, 50%) scale(1.3);
   background: var(--color-admin);
-  box-shadow: 0 0 8px var(--color-primary-glow);
+  box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
 .chart-label {
@@ -1419,7 +1420,7 @@ onMounted(() => {
   justify-content: space-around;
   margin-bottom: var(--spacing-xl);
   padding-bottom: var(--spacing-lg);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .snapshot-item {
@@ -1431,7 +1432,7 @@ onMounted(() => {
 .snapshot-value {
   font-size: var(--font-size-xxl);
   font-weight: 700;
-  background: linear-gradient(135deg, var(--color-admin), var(--color-primary-gradient-end));
+  background: var(--gradient-admin);
   /* stylelint-disable-next-line property-no-vendor-prefix -- needed for Safari */
   -webkit-background-clip: text;
   background-clip: text;
@@ -1525,7 +1526,7 @@ onMounted(() => {
 }
 
 .chart-bar.placeholder-bar {
-  background: var(--color-bg-border);
+  background: var(--color-border);
 }
 
 .muted-text {
@@ -1582,36 +1583,5 @@ onMounted(() => {
     gap: var(--spacing-sm);
     text-align: center;
   }
-}
-</style>
-
-<!-- Unscoped: theme overrides must reach [data-theme] on <html> -->
-<style>
-/* Light mode: flatten gradients on colored fills and decorative elements */
-[data-theme="light"] .instructor-overview .back-btn {
-  background: var(--color-admin);
-}
-
-[data-theme="light"] .instructor-overview .back-btn:hover {
-  background: var(--color-admin-hover);
-}
-
-[data-theme="light"] .marker-number {
-  background: var(--color-admin);
-}
-
-[data-theme="light"] .marker-line {
-  background: var(--color-admin);
-  opacity: 0.3;
-}
-
-[data-theme="light"] .progress-marker {
-  background: var(--color-admin);
-}
-
-[data-theme="light"] .snapshot-value {
-  background: none;
-  -webkit-text-fill-color: var(--color-admin);
-  color: var(--color-admin);
 }
 </style>

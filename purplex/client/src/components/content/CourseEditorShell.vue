@@ -366,7 +366,7 @@ onMounted(loadInstructors);
   width: 40px;
   height: 40px;
   border: 3px solid var(--color-bg-hover);
-  border-top: 3px solid var(--color-primary-gradient-start);
+  border-top: 3px solid var(--color-accent);
   border-radius: var(--radius-circle);
   animation: spin 1s linear infinite;
 }
@@ -407,7 +407,7 @@ onMounted(loadInstructors);
   margin: 0 0 var(--spacing-lg) 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-lg);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
   padding-bottom: var(--spacing-md);
 }
 
@@ -433,7 +433,7 @@ onMounted(loadInstructors);
   padding: var(--spacing-md);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
   transition: var(--transition-fast);
@@ -443,8 +443,8 @@ onMounted(loadInstructors);
 .form-group textarea:focus,
 .form-group select:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 3px var(--color-primary-overlay);
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 3px var(--color-accent-overlay);
 }
 
 .form-group input:disabled {
@@ -507,20 +507,20 @@ onMounted(loadInstructors);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--color-primary-glow);
+  box-shadow: 0 6px 20px var(--color-accent-glow);
 }
 
 .btn-secondary {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .btn-secondary:hover {

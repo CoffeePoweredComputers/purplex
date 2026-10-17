@@ -298,7 +298,7 @@ onMounted(() => {
 
 .instructor-students {
   min-height: 100vh;
-  background: var(--color-background);
+  background: var(--color-bg-main);
 }
 
 .content-container {
@@ -324,7 +324,7 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   border: 4px solid var(--color-bg-input);
-  border-top-color: var(--color-primary-gradient-start);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: var(--spacing-lg);
@@ -375,7 +375,7 @@ onMounted(() => {
 }
 
 .retry-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -405,8 +405,8 @@ onMounted(() => {
 
 .search-input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 3px var(--color-primary-overlay);
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 3px var(--color-accent-overlay);
 }
 
 .search-input::placeholder {

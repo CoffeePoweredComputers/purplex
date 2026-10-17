@@ -221,7 +221,7 @@ defineExpose({ open })
 }
 
 .metric-card:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -253,7 +253,7 @@ defineExpose({ open })
 
 .progress-bar-container {
   height: 8px;
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   border-radius: var(--radius-xs);
   overflow: hidden;
   margin-bottom: var(--spacing-md);
@@ -274,7 +274,7 @@ defineExpose({ open })
 }
 
 .progress-bar-fill.bar-locked {
-  background: var(--color-bg-border);
+  background: var(--color-border);
 }
 
 .card-status {

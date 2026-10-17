@@ -188,12 +188,6 @@ Originally Generated: 2024-11-28
 - **Status**: Still outstanding
 - **Effort**: Medium (2-3 hours)
 
-### 25. Frontend: Dark Mode Inconsistency
-- **Location**: Various components
-- **Issue**: Some components reference light mode despite dark-mode-only app
-- **Status**: Still outstanding
-- **Effort**: Low (2-4 hours)
-
 ### 26. Docker: No Container Image Signature Verification
 - **Location**: `purplex/problems_app/services/docker_execution_service.py`
 - **Issue**: Uses tags instead of digests
@@ -236,13 +230,13 @@ Originally Generated: 2024-11-28
 - P1: 7 of 8 (N+1 queries, prefetch fix, Celery retries, GeventPool cleanup, Docker limits, Console.log, Vue API progress)
 - P2: 5 of 8 (.extra() usage, database indexes, Redis retry logic)
 
-### Outstanding Items: 11
+### Outstanding Items: 10
 | Priority | Outstanding | Items |
 |----------|-------------|-------|
 | P0 | 2 | Component size (ProblemSet/Feedback), Test coverage |
 | P1 | 1 | Frontend logging in services |
 | P2 | 3 | Analytics caching, Docker blacklist, Hardcoded colors, Animations, Modals |
-| P3 | 5 | All P3 items remain |
+| P3 | 4 | All P3 items remain |
 
 ### Revised Effort Estimate
 
@@ -251,7 +245,7 @@ Originally Generated: 2024-11-28
 | P0 Critical | 2 | 30-40 |
 | P1 High | 1 | 4-6 |
 | P2 Medium | 5 | 40-55 |
-| P3 Low | 5 | 15-25 |
-| **Total** | **13** | **89-126** |
+| P3 Low | 4 | 13-21 |
+| **Total** | **12** | **87-122** |
 
 *Note: Original estimate was 175-245 hours for 26 issues. Approximately 86-119 hours of work completed.*

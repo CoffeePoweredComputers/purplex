@@ -271,9 +271,9 @@ watch(
 .search-input {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--color-border, var(--color-bg-input));
+  border: 1px solid var(--color-bg-input);
   border-radius: var(--radius-base);
-  background: var(--color-surface, var(--color-bg-hover));
+  background: var(--color-bg-hover);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   transition: var(--transition-base);
@@ -281,7 +281,7 @@ watch(
 
 .search-input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .email {
@@ -334,18 +334,18 @@ watch(
 .secondary-button {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .secondary-button:hover {
   background: var(--color-bg-input);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 
 .remove-button {
   background-color: transparent;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   padding: var(--spacing-xs) var(--spacing-md);
 }

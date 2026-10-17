@@ -204,7 +204,7 @@ const resultInterpretation = computed(() => {
 
 <style scoped>
 .refute-feedback {
-  background: var(--color-bg-card);
+  background: var(--color-bg-panel);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -236,8 +236,8 @@ const resultInterpretation = computed(() => {
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--color-bg-border);
-  border-top-color: var(--color-primary-gradient-start);
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
   border-radius: var(--radius-circle);
   animation: spin 1s linear infinite;
 }
@@ -327,7 +327,7 @@ const resultInterpretation = computed(() => {
 .claim-reminder {
   padding: var(--spacing-md);
   background: var(--color-error-overlay);
-  border-left: 4px solid var(--color-danger);
+  border-left: 4px solid var(--color-error);
   border-radius: var(--radius-base);
 }
 
@@ -429,7 +429,7 @@ const resultInterpretation = computed(() => {
   padding: 2px 6px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
-  color: var(--color-primary-gradient-start);
+  color: var(--color-accent);
 }
 
 /* No Result */

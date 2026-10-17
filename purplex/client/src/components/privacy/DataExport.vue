@@ -66,7 +66,7 @@ async function exportData() {
     padding: var(--spacing-xl);
     background: var(--color-bg-panel);
     border-radius: var(--radius-base);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     box-shadow: var(--shadow-sm);
 }
 
@@ -84,7 +84,7 @@ async function exportData() {
 
 .data-export__btn {
     padding: var(--spacing-sm) var(--spacing-lg);
-    background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
+    background: var(--gradient-primary);
     color: var(--color-text-on-filled);
     border: none;
     border-radius: var(--radius-sm);
@@ -94,7 +94,7 @@ async function exportData() {
 }
 
 .data-export__btn:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -105,7 +105,7 @@ async function exportData() {
 
 .data-export__btn:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-colored);
+    box-shadow: var(--shadow-accent);
 }
 
 .data-export__error {

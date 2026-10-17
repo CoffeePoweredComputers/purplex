@@ -27,7 +27,6 @@ function resolveTheme(preference: ThemePreference): EffectiveTheme {
 
 function applyTheme(effective: EffectiveTheme): void {
   document.documentElement.setAttribute('data-theme', effective)
-  document.body.style.colorScheme = effective
 }
 
 // Module-level singleton state
@@ -38,7 +37,11 @@ let initialized = false
 
 function setTheme(preference: ThemePreference): void {
   theme.value = preference
-  localStorage.setItem(STORAGE_KEY, preference)
+  try {
+    localStorage.setItem(STORAGE_KEY, preference)
+  } catch {
+    // Storage may be full or blocked; the choice still applies for this session
+  }
 
   effectiveTheme.value = resolveTheme(preference)
   applyTheme(effectiveTheme.value)
@@ -74,7 +77,7 @@ export function useTheme() {
   initialize()
 
   const editorTheme = computed(() =>
-    effectiveTheme.value === 'light' ? 'chrome' : 'tomorrow_night'
+    effectiveTheme.value === 'light' ? 'tomorrow' : 'tomorrow_night_eighties'
   )
 
   return {

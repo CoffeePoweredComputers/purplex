@@ -278,11 +278,11 @@ function removeTestCase(index: number) {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 .hover-primary:hover {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 /* Form Section */
@@ -299,7 +299,7 @@ function removeTestCase(index: number) {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 /* Test Actions */
@@ -324,7 +324,7 @@ function removeTestCase(index: number) {
 
 /* Test Case Cards */
 .test-case {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   background: var(--color-bg-panel);
   transition: var(--transition-fast);
@@ -390,7 +390,7 @@ function removeTestCase(index: number) {
 .param-input {
   flex: 1;
   padding: var(--spacing-md);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
@@ -400,9 +400,9 @@ function removeTestCase(index: number) {
 }
 
 .param-input:focus {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   outline: none;
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
+  box-shadow: 0 0 0 2px var(--color-accent-overlay);
 }
 
 .param-input.param-error {
@@ -450,60 +450,6 @@ function removeTestCase(index: number) {
   pointer-events: none;
   transform: scale(0.9);
   transform-origin: center;
-}
-
-.type-number {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-  border: 1px solid var(--color-info);
-}
-
-.type-string {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  border: 1px solid var(--color-success);
-}
-
-.type-boolean {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-  border: 1px solid var(--color-warning);
-}
-
-.type-collection {
-  background: var(--color-primary-overlay);
-  color: var(--color-admin);
-  border: 1px solid var(--color-admin);
-}
-
-.type-none {
-  background: var(--color-bg-muted);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-bg-border);
-}
-
-.type-any {
-  background: var(--color-bg-hover);
-  color: var(--color-text-tertiary);
-  border: 1px solid var(--color-bg-border);
-}
-
-.type-invalid {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-  border: 1px solid var(--color-error);
-}
-
-.type-error {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-  border: 1px solid var(--color-error);
-}
-
-.type-optional {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-  border: 1px solid var(--color-warning);
 }
 
 /* Output Field Container */
@@ -568,7 +514,7 @@ function removeTestCase(index: number) {
 /* Remove Button */
 .remove-btn {
   background: var(--color-bg-hover);
-  border: 1.5px solid var(--color-bg-border);
+  border: 1.5px solid var(--color-border);
   color: var(--color-text-muted);
   cursor: pointer;
   border-radius: var(--radius-circle);
@@ -639,8 +585,8 @@ function removeTestCase(index: number) {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--color-bg-border);
-  border-top-color: var(--color-primary-gradient-start);
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -656,15 +602,15 @@ function removeTestCase(index: number) {
 
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
-  border: 2px solid var(--color-primary-gradient-start);
+  border: 2px solid var(--color-accent);
   padding: var(--spacing-md) var(--spacing-lg);
   font-weight: 600;
   font-size: var(--font-size-base);
   cursor: pointer;
   transition: var(--transition-base);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
 }
 
 .btn-primary:disabled {
@@ -675,13 +621,13 @@ function removeTestCase(index: number) {
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--color-primary-glow);
+  box-shadow: 0 8px 25px var(--color-accent-glow);
 }
 
 .btn-secondary {
   background: var(--color-bg-panel);
   color: var(--color-text-secondary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   padding: var(--spacing-md) var(--spacing-lg);
   font-weight: 600;
   font-size: var(--font-size-base);
@@ -692,6 +638,6 @@ function removeTestCase(index: number) {
 .btn-secondary:hover:not(:disabled) {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 </style>

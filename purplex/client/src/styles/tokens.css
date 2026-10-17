@@ -1,0 +1,390 @@
+/*
+ * Purplex design tokens. The only file that defines theme values.
+ *
+ * Layout
+ *   :root                       theme-independent tokens (spacing, radius,
+ *                               type, transitions, layout) and aliases that
+ *                               resolve per theme, such as the focus ring.
+ *   :root, [data-theme="dark"]  every colour, gradient and shadow token, dark.
+ *   [data-theme="light"]        the same names in the same order, light.
+ *
+ * Rules
+ *   - Adding a colour token: add it to BOTH theme blocks at the same position,
+ *     then use it as var(--name). A theme-independent token goes in :root.
+ *   - Run `yarn theme:check` (scripts/check-theme-tokens.mjs). It fails on
+ *     names or order that differ between the blocks, on var(--x) with no
+ *     definition, on unused tokens and on [data-theme] outside this file.
+ *   - No [data-theme] selectors anywhere else. If a component needs a
+ *     different treatment per theme, express it as a token here.
+ *   - No colour literals outside this file; stylelint enforces it.
+ *   - Transparency variants derive from their base token with
+ *     color-mix(in srgb, var(--base) P%, transparent). A literal alpha stays
+ *     only where its RGB has drifted from the base (marked inline).
+ *     color-mix() and light-dark() are allowed in this file only.
+ *
+ * Browser floor (color-mix): Chrome 111, Safari 16.2, Firefox 113.
+ */
+
+:root {
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-base: 15px;
+  --spacing-lg: 20px;
+  --spacing-xl: 30px;
+  --spacing-xxl: 50px;
+
+  /* Border Radius */
+  --radius-xs: 4px;
+  --radius-sm: 5px;
+  --radius-base: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+  --radius-round: 30px;
+  --radius-circle: 50%;
+
+  /* Transitions */
+  --transition-fast: all 0.2s ease;
+  --transition-base: all 0.3s ease;
+
+  /* Layout */
+  --max-width-app: 1280px;
+  --max-width-content: 1200px;
+
+  /* Typography */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.85rem;
+  --font-size-base: 1rem;
+  --font-size-md: 1.125rem;
+  --font-size-lg: 1.5rem;
+  --font-size-xl: 1.75rem;
+  --font-size-xxl: 2rem;
+  --font-size-title: 5rem;
+  --font-sans: "Inter", system-ui, "Avenir", "Helvetica", "Arial", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+
+  /* Focus Ring (resolves per theme) */
+  --color-focus-ring: var(--color-accent);
+}
+
+/* Dark theme: Dusk (warm violet-grey surfaces, lavender accent) */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Primary Colors (primary = filled buttons; accent = text, borders, focus) */
+  --color-primary: #7c3aed;
+  --color-primary-hover: #8855f0;
+  --color-accent: #c3a6ff;
+  --color-accent-strong: #d8c6ff;
+
+  /* Gradients (stops only inside gradients; prefer the whole-gradient tokens) */
+  --color-gradient-start: #8b5cf6;
+  --color-gradient-end: #7c3aed;
+  --gradient-primary: linear-gradient(135deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 100%);
+  --gradient-admin: var(--color-admin);
+  --gradient-admin-hover: var(--color-admin-hover);
+  --gradient-logo: linear-gradient(135deg, #c3a6ff, #e0d3ff, #9d7cf6);
+
+  /* Background Colors */
+  --color-bg-main: #2a2528;
+  --color-bg-sunken: #221f21;
+  --color-bg-panel: #342e32;
+  --color-bg-header: #3e373c;
+  --color-bg-hover: #484045;
+  --color-bg-section: #3e373c;
+  --color-bg-input: #423b40;
+  --color-border: #564e54;
+  --color-bg-disabled: #877d84;
+
+  /* Text Colors */
+  --color-text-primary: #f5f0f3;
+  --color-text-secondary: #d6cdd3;
+  --color-text-tertiary: #b0a6ad;
+  --color-text-muted: #b0a6ad;
+  --color-text-default: rgb(245 240 243 / 92%);
+  --color-text-on-filled: #fff;
+
+  /* Syntax highlighting (token colors — tomorrow_night_eighties palette) */
+  --color-syntax-keyword: #c9c;
+  --color-syntax-string: #9c9;
+  --color-syntax-comment: #999;
+  --color-syntax-number: #f99157;
+  --color-syntax-builtin: #69c;
+  --color-syntax-variable: #f2777a;
+  --color-syntax-operator: #6cc;
+  --color-syntax-punctuation: #ccc;
+
+  /* Status Colors */
+  --color-success: #4ade80;
+  --color-success-bg: #1f3a28;
+  --color-success-text: #86efac;
+  --color-warning: #fbbf24;
+  --color-warning-bg: #3b2d16;
+  --color-warning-text: #fcd34d;
+  --color-error: #fb7185;
+  --color-error-bg: #41262e;
+  --color-error-text: #fda4af;
+  --color-info: var(--color-accent);
+  --color-info-bg: #3a2f52;
+  --color-info-text: #d8c6ff;
+
+  /* Role Colors */
+  --color-admin: var(--color-primary);
+  --color-admin-hover: var(--color-primary-hover);
+  --color-admin-bg: #3a2f52;
+  --color-instructor: var(--color-accent);
+
+  /* Top navigation role items (Instructor, Admin) */
+  --color-nav-item-bg: var(--color-info-bg);
+  --color-nav-item-text: var(--color-accent-strong);
+  --color-nav-item-hover-bg: #463a60;
+  --color-nav-item-border: transparent;
+
+  /* Sub-navigation bars (AdminNavBar, InstructorNavBar); --nav-sub-bg may be a gradient */
+  --nav-sub-bg: var(--color-bg-panel);
+  --color-nav-sub-text: var(--color-text-secondary);
+  --color-nav-sub-active-bg: var(--color-admin-bg);
+  --color-nav-sub-active-text: var(--color-accent-strong);
+  --color-nav-sub-hover-border: var(--color-border);
+  --color-nav-sub-focus: var(--color-focus-ring);
+
+  /* One-off decorations */
+  --marker-line-bg: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  --logo-filter: brightness(0) invert(0.7);
+  --logo-filter-hover: brightness(0) invert(0.9);
+
+  /* Overlay Colors */
+  --color-overlay-subtle: rgb(255 255 255 / 5%);
+  --color-overlay-medium: rgb(255 255 255 / 10%);
+  --color-overlay-strong: rgb(255 255 255 / 15%);
+
+  /* Status Overlays (low-alpha backgrounds) */
+  --color-success-overlay: color-mix(in srgb, var(--color-success) 15%, transparent);
+  --color-warning-overlay: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  --color-error-overlay: color-mix(in srgb, var(--color-error) 15%, transparent);
+  --color-info-overlay: color-mix(in srgb, var(--color-info) 15%, transparent);
+
+  /* Accent Overlays */
+  --color-accent-overlay: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 30%, transparent);
+
+  /* Status Gradient Endpoints */
+  --color-success-accent: #86efac;
+  --color-warning-accent: #fcd34d;
+  --color-error-accent: #fda4af;
+  --color-error-dark: #e11d48;
+  --color-warning-dark: #b45309;
+  --color-success-dark: #15803d;
+  --color-info-dark: #7c3aed;
+
+  /* Extended Overlays (white on dark, black on light) */
+  --color-overlay-border: rgb(255 255 255 / 25%);
+  --color-overlay-shimmer: rgb(255 255 255 / 35%);
+
+  /* Status Borders (colored border accents) */
+  --color-success-border: color-mix(in srgb, var(--color-success) 40%, transparent);
+  --color-warning-border: color-mix(in srgb, var(--color-warning) 40%, transparent);
+  --color-error-border: color-mix(in srgb, var(--color-error) 40%, transparent);
+  --color-info-border: color-mix(in srgb, var(--color-info) 40%, transparent);
+
+  /* Modal Backdrops */
+  --color-backdrop: rgb(0 0 0 / 50%);
+  --color-backdrop-heavy: rgb(0 0 0 / 75%);
+
+  /* Colored Glows (box-shadows) */
+  --color-accent-shadow: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  --color-segment-shadow: color-mix(in srgb, var(--color-category-1) 30%, transparent);
+  --color-warning-pulse: color-mix(in srgb, var(--color-warning-accent) 70%, transparent);
+  --color-warning-pulse-end: transparent;
+
+  /* Categorical ramp (segments; read by SegmentMapping and ViewSubmissionModal) */
+  --color-category-1: #9f7aea;
+  --color-category-2: #4299e1;
+  --color-category-3: #4fd1c5;
+  --color-category-4: #68d391;
+  --color-category-5: #f6ad55;
+  --color-category-6: #fc8181;
+
+  /* Ace Editor */
+  --color-ace-selection: color-mix(in srgb, var(--color-primary) 30%, transparent);
+
+  /* Shadows */
+  --shadow-xs: 0 1px 3px rgb(0 0 0 / 30%);
+  --shadow-subtle: 0 1px 3px rgb(0 0 0 / 30%);
+  --shadow-sm: 0 2px 8px rgb(0 0 0 / 30%);
+  --shadow-base: 0 4px 12px rgb(0 0 0 / 35%);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 35%);
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 40%);
+  --shadow-accent: 0 4px 14px color-mix(in srgb, var(--color-primary) 30%, transparent);
+
+  /* One-off shadows */
+  --shadow-nav: none;
+  --shadow-dropdown: 0 8px 32px rgb(0 0 0 / 45%);
+  --shadow-modal: 0 4px 20px rgb(0 0 0 / 40%);
+  --shadow-inset: inset 0 1px 3px rgb(0 0 0 / 30%);
+  --shadow-float: 0 24px 64px rgb(0 0 0 / 50%);
+  --shadow-up: 0 -2px 10px rgb(0 0 0 / 30%);
+  --shadow-segment-hover: 0 4px 16px color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+/* Light theme: Studio (cool greys, one violet accent, flat fills) */
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Primary Colors (primary = filled buttons; accent = text, borders, focus) */
+  --color-primary: #6d28d9;
+  --color-primary-hover: #5b21b6;
+  --color-accent: #6d28d9;
+  --color-accent-strong: #5b21b6;
+
+  /* Gradients (flat in Studio: a solid colour is valid in `background`) */
+  --color-gradient-start: #6d28d9;
+  --color-gradient-end: #5b21b6;
+  --gradient-primary: var(--color-accent);
+  --gradient-admin: var(--color-admin);
+  --gradient-admin-hover: var(--color-admin-hover);
+  --gradient-logo: linear-gradient(135deg, #7c3aed, #8b5cf6, #6d28d9);
+
+  /* Background Colors (header bands merge with the panel in Studio) */
+  --color-bg-main: #f3f4f8;
+  --color-bg-sunken: #e6e8ef;
+  --color-bg-panel: #fff;
+  --color-bg-header: #fff;
+  --color-bg-hover: #e8eaf1;
+  --color-bg-section: #f7f8fb;
+  --color-bg-input: #eef0f5;
+  --color-border: #e1e4ec;
+  --color-bg-disabled: #a3a8b8;
+
+  /* Text Colors */
+  --color-text-primary: #141624;
+  --color-text-secondary: #2b2f41;
+  --color-text-tertiary: #4a5069;
+  --color-text-muted: #636983;
+  --color-text-default: rgb(20 22 36 / 88%);
+  --color-text-on-filled: #fff;
+
+  /* Syntax highlighting (token colors — tomorrow palette, number darkened for AA) */
+  --color-syntax-keyword: #8959a8;
+  --color-syntax-string: #718c00;
+  --color-syntax-comment: #8e908c;
+  --color-syntax-number: #b45309;
+  --color-syntax-builtin: #4271ae;
+  --color-syntax-variable: #c82829;
+  --color-syntax-operator: #3e999f;
+  --color-syntax-punctuation: #4d4d4c;
+
+  /* Status Colors */
+  --color-success: #15803d;
+  --color-success-bg: #e8f7ed;
+  --color-success-text: #14532d;
+  --color-warning: #b45309;
+  --color-warning-bg: #fdf3df;
+  --color-warning-text: #78350f;
+  --color-error: #b91c1c;
+  --color-error-bg: #fdecec;
+  --color-error-text: #7f1d1d;
+  --color-info: var(--color-accent);
+  --color-info-bg: #efeafc;
+  --color-info-text: #3b1a86;
+
+  /* Role Colors */
+  --color-admin: var(--color-accent);
+  --color-admin-hover: var(--color-primary-hover);
+  --color-admin-bg: #efeafc;
+  --color-instructor: var(--color-accent);
+
+  /* Top navigation role items (Instructor, Admin) */
+  --color-nav-item-bg: transparent;
+  --color-nav-item-text: var(--color-text-secondary);
+  --color-nav-item-hover-bg: var(--color-bg-input);
+  --color-nav-item-border: transparent;
+
+  /* Sub-navigation bars (AdminNavBar, InstructorNavBar); --nav-sub-bg may be a gradient */
+  --nav-sub-bg: var(--color-bg-panel);
+  --color-nav-sub-text: var(--color-text-secondary);
+  --color-nav-sub-active-bg: var(--color-admin-bg);
+  --color-nav-sub-active-text: var(--color-admin);
+  --color-nav-sub-hover-border: var(--color-border);
+  --color-nav-sub-focus: var(--color-focus-ring);
+
+  /* One-off decorations */
+  --marker-line-bg: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  --logo-filter: brightness(0) invert(0.3);
+  --logo-filter-hover: brightness(0) invert(0.1);
+
+  /* Overlay Colors (white-alpha → black-alpha) */
+  --color-overlay-subtle: rgb(0 0 0 / 3%);
+  --color-overlay-medium: rgb(0 0 0 / 5%);
+  --color-overlay-strong: rgb(0 0 0 / 8%);
+
+  /* Status Overlays */
+  --color-success-overlay: color-mix(in srgb, var(--color-success) 8%, transparent);
+  --color-warning-overlay: color-mix(in srgb, var(--color-warning) 8%, transparent);
+  --color-error-overlay: color-mix(in srgb, var(--color-error) 8%, transparent);
+  --color-info-overlay: color-mix(in srgb, var(--color-info) 8%, transparent);
+
+  /* Accent Overlays */
+  --color-accent-overlay: color-mix(in srgb, var(--color-accent) 7%, transparent);
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 15%, transparent);
+
+  /* Status Gradient Endpoints */
+  --color-success-accent: #059669;
+  --color-warning-accent: #d97706;
+  --color-error-accent: #dc2626;
+  --color-error-dark: #991b1b;
+  --color-warning-dark: #92400e;
+  --color-success-dark: #065f46;
+  --color-info-dark: #5b21b6;
+
+  /* Extended Overlays */
+  --color-overlay-border: rgb(0 0 0 / 12%);
+  --color-overlay-shimmer: rgb(0 0 0 / 6%);
+
+  /* Status Borders */
+  --color-success-border: color-mix(in srgb, var(--color-success) 30%, transparent);
+  --color-warning-border: color-mix(in srgb, var(--color-warning) 30%, transparent);
+  --color-error-border: color-mix(in srgb, var(--color-error) 30%, transparent);
+  --color-info-border: color-mix(in srgb, var(--color-info) 30%, transparent);
+
+  /* Modal Backdrops (reduced — less darkening over light content) */
+  --color-backdrop: rgb(0 0 0 / 30%);
+  --color-backdrop-heavy: rgb(0 0 0 / 60%);
+
+  /* Colored Glows (~50% opacity reduction) */
+  --color-accent-shadow: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  --color-segment-shadow: color-mix(in srgb, var(--color-category-1) 15%, transparent);
+  --color-warning-pulse: color-mix(in srgb, var(--color-warning) 50%, transparent);
+  --color-warning-pulse-end: transparent;
+
+  /* Categorical ramp (deeper for contrast on light backgrounds) */
+  --color-category-1: #7c3aed;
+  --color-category-2: #2563eb;
+  --color-category-3: #0d9488;
+  --color-category-4: #16a34a;
+  --color-category-5: #ea580c;
+  --color-category-6: #dc2626;
+
+  /* Ace Editor */
+  --color-ace-selection: color-mix(in srgb, var(--color-primary) 20%, transparent);
+
+  /* Shadows (quiet: hairline borders carry the separation) */
+  --shadow-xs: 0 1px 2px rgb(20 22 36 / 5%);
+  --shadow-subtle: 0 1px 2px rgb(20 22 36 / 5%);
+  --shadow-sm: 0 1px 2px rgb(20 22 36 / 5%);
+  --shadow-base: 0 2px 6px rgb(20 22 36 / 6%);
+  --shadow-md: 0 2px 6px rgb(20 22 36 / 6%);
+  --shadow-lg: 0 8px 24px rgb(20 22 36 / 8%);
+  --shadow-accent: 0 2px 8px color-mix(in srgb, var(--color-accent) 15%, transparent);
+
+  /* One-off shadows */
+  --shadow-nav: none;
+  --shadow-dropdown: 0 8px 24px rgb(20 22 36 / 10%);
+  --shadow-modal: 0 4px 20px rgb(20 22 36 / 8%);
+  --shadow-inset: inset 0 1px 2px rgb(20 22 36 / 6%);
+  --shadow-float: 0 16px 48px rgb(20 22 36 / 12%);
+  --shadow-up: 0 -1px 4px rgb(20 22 36 / 6%);
+  --shadow-segment-hover: 0 4px 12px color-mix(in srgb, var(--color-category-1) 15%, transparent);
+}

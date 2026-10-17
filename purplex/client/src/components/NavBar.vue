@@ -143,7 +143,7 @@ onUnmounted(() => {
     width: 100%;
     z-index: 999;
     background: var(--color-bg-header);
-    border-bottom: 1px solid var(--color-primary-overlay);
+    border-bottom: 1px solid var(--color-accent-overlay);
     box-shadow: var(--shadow-nav);
 }
 
@@ -179,7 +179,7 @@ onUnmounted(() => {
     left: 0;
     width: 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--color-primary-gradient-end), var(--color-primary-gradient-start));
+    background: linear-gradient(90deg, var(--color-gradient-end), var(--color-gradient-start));
     transition: var(--transition-base);
 }
 
@@ -188,11 +188,11 @@ onUnmounted(() => {
 }
 
 .logo-link:hover {
-    background: var(--color-primary-overlay);
+    background: var(--color-accent-overlay);
 }
 
 .logo-link:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -208,7 +208,7 @@ onUnmounted(() => {
     font-family: 'Exo 2', sans-serif;
     font-weight: 800;
     font-size: 3rem;
-    background: linear-gradient(135deg, var(--color-logo-start), var(--color-logo-mid), var(--color-logo-end));
+    background: var(--gradient-logo);
     /* stylelint-disable-next-line property-no-vendor-prefix -- needed for Safari */
     -webkit-background-clip: text;
     background-clip: text;
@@ -266,10 +266,10 @@ onUnmounted(() => {
     min-width: 280px;
     max-width: 340px;
     background: var(--color-bg-panel);
-    border: 1px solid var(--color-primary-glow);
+    border: 1px solid var(--color-accent-glow);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-dropdown),
-                0 0 0 1px var(--color-primary-overlay);
+                0 0 0 1px var(--color-accent-overlay);
     z-index: 1000;
     animation: panelFadeIn 0.15s ease-out;
 }
@@ -295,8 +295,8 @@ onUnmounted(() => {
     width: 12px;
     height: 12px;
     background: var(--color-bg-panel);
-    border-left: 1px solid var(--color-primary-glow);
-    border-top: 1px solid var(--color-primary-glow);
+    border-left: 1px solid var(--color-accent-glow);
+    border-top: 1px solid var(--color-accent-glow);
     transform: rotate(45deg);
 }
 
@@ -319,7 +319,7 @@ onUnmounted(() => {
 }
 
 .etymology-close:hover {
-    background: var(--color-primary-overlay);
+    background: var(--color-accent-overlay);
     color: var(--color-text-primary);
 }
 
@@ -356,7 +356,7 @@ onUnmounted(() => {
     top: 8px;
     width: 6px;
     height: 6px;
-    background: linear-gradient(135deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
+    background: var(--gradient-primary);
     border-radius: 50%;
 }
 
@@ -364,7 +364,7 @@ onUnmounted(() => {
 .etymology-note {
     margin: 0;
     padding-top: var(--spacing-md);
-    border-top: 1px solid var(--color-primary-overlay);
+    border-top: 1px solid var(--color-accent-overlay);
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
     line-height: 1.6;
@@ -378,15 +378,15 @@ onUnmounted(() => {
     gap: var(--spacing-sm);
 }
 
-/* Individual nav items (both links and buttons) */
+/* Individual nav items (both links and buttons); the Account button uses this base */
 .nav-item {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
     padding: var(--spacing-sm) var(--spacing-lg);
-    background: var(--color-overlay-subtle);
+    background: var(--color-bg-panel);
     color: var(--color-text-secondary);
-    border: 1px solid var(--color-primary-overlay);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-base);
     font-weight: 600;
     font-size: var(--font-size-base);
@@ -399,13 +399,12 @@ onUnmounted(() => {
 
 .nav-item:hover {
     color: var(--color-text-primary);
-    background: var(--color-primary-overlay);
-    border-color: var(--color-primary-glow);
-    box-shadow: 0 2px 8px var(--color-primary-overlay);
+    background: var(--color-bg-input);
+    border-color: var(--color-accent);
 }
 
 .nav-item:focus-visible {
-    outline: 2px solid var(--color-primary-gradient-start);
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
 }
 
@@ -414,61 +413,29 @@ onUnmounted(() => {
     display: inline-block;
 }
 
-/* Instructor item styling */
-.instructor-item {
-    background: var(--color-primary);
-    color: var(--color-text-on-filled);
-    border-color: transparent;
-    box-shadow: 0 2px 8px var(--color-info-shadow);
-}
-
-.instructor-item:hover {
-    background: var(--color-primary-hover);
-    border-color: transparent;
-    box-shadow: var(--shadow-info-hover);
-}
-
-.instructor-item.router-link-active {
-    box-shadow: var(--shadow-info-active);
-}
-
-/* Admin item styling */
+/* Role items (Instructor, Admin): one shared style */
+.instructor-item,
 .admin-item {
-    background: var(--color-admin);
-    color: var(--color-text-on-filled);
-    border-color: transparent;
-    box-shadow: 0 2px 8px var(--color-admin-shadow);
+    background: var(--color-nav-item-bg);
+    color: var(--color-nav-item-text);
+    border-color: var(--color-nav-item-border);
 }
 
+.instructor-item:hover,
 .admin-item:hover {
-    background: var(--color-admin-hover);
-    border-color: transparent;
-    box-shadow: var(--shadow-admin-hover);
+    background: var(--color-nav-item-hover-bg);
+    color: var(--color-nav-item-text);
+    border-color: var(--color-nav-item-border);
 }
 
-.admin-item.router-link-active {
-    box-shadow: var(--shadow-admin-active);
+/* Active route (declared after hover, same specificity, so it wins while hovered) */
+.nav-item.router-link-active {
+    background: var(--color-nav-item-hover-bg);
+    color: var(--color-accent);
+    border-color: var(--color-nav-item-border);
 }
 
-/* Account button styling */
-.account-item {
-    background: var(--color-bg-dark);
-    border-color: var(--color-bg-border);
-}
-
-.account-item:hover {
-    background: var(--color-bg-input);
-    border-color: var(--color-primary-gradient-start);
-}
-
-/* Active route indicator */
-.router-link-active.nav-item:not(.admin-item) {
-    background: var(--color-bg-hover);
-    border-color: var(--color-primary-gradient-start);
-    color: var(--color-text-primary);
-}
-
-.router-link-active.nav-item:not(.admin-item)::after {
+.nav-item.router-link-active::after {
     content: '';
     position: absolute;
     bottom: 4px;
@@ -476,7 +443,7 @@ onUnmounted(() => {
     transform: translateX(-50%);
     width: 60%;
     height: 2px;
-    background: linear-gradient(90deg, var(--color-primary-gradient-start), var(--color-primary-gradient-end));
+    background: var(--color-accent);
     border-radius: var(--radius-xs);
 }
 
@@ -551,14 +518,5 @@ onUnmounted(() => {
     .nav-item {
         padding: var(--spacing-xs) var(--spacing-sm);
     }
-}
-</style>
-
-<!-- Unscoped: theme overrides must reach [data-theme] on <html> -->
-<style>
-/* Light mode: force white text on dark-filled buttons */
-[data-theme="light"] .instructor-item,
-[data-theme="light"] .admin-item {
-    color: var(--color-text-on-filled);
 }
 </style>

@@ -302,7 +302,7 @@ function getRowKey(item: T, index: number): string | number {
 
 .retry-button {
   padding: var(--spacing-sm) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   border: none;
   border-radius: var(--radius-base);
   color: var(--color-text-on-filled);
@@ -313,7 +313,7 @@ function getRowKey(item: T, index: number): string | number {
 
 .retry-button:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-colored);
+  box-shadow: var(--shadow-accent);
 }
 
 .table-wrapper {
@@ -369,7 +369,7 @@ function getRowKey(item: T, index: number): string | number {
   text-align: center;
   padding: var(--spacing-xxl);
   background: var(--color-bg-panel);
-  border: 1px dashed var(--color-border, var(--color-bg-input));
+  border: 1px dashed var(--color-bg-input);
   border-radius: var(--radius-lg);
 }
 

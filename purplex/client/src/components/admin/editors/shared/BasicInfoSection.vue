@@ -105,7 +105,7 @@ function removeTag(index: number) {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 .form-section {
@@ -120,7 +120,7 @@ function removeTag(index: number) {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .form-group {
@@ -144,7 +144,7 @@ function removeTag(index: number) {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -164,8 +164,8 @@ function removeTag(index: number) {
 .form-group input[type="text"]:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 2px var(--color-accent-overlay);
 }
 
 /* Tags */
@@ -187,7 +187,7 @@ function removeTag(index: number) {
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-hover);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
@@ -212,7 +212,7 @@ function removeTag(index: number) {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -221,8 +221,8 @@ function removeTag(index: number) {
 
 .tag-input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 2px var(--color-accent-overlay);
 }
 
 .tag-input::placeholder {

@@ -53,8 +53,8 @@
 
 <style scoped>
 .admin-nav {
-    background: linear-gradient(135deg, var(--color-admin) 0%, var(--color-admin-hover) 100%);
-    color: var(--color-text-on-filled);
+    background: var(--nav-sub-bg);
+    color: var(--color-nav-sub-text);
     width: 100%;
     padding: var(--spacing-lg) 0;
     margin-bottom: var(--spacing-xl);
@@ -84,7 +84,7 @@
 .admin-link {
     display: flex;
     align-items: center;
-    color: var(--color-text-on-filled);
+    color: var(--color-nav-sub-text);
     text-decoration: none;
     padding: var(--spacing-md) var(--spacing-xl);
     border-radius: var(--radius-base);
@@ -112,17 +112,18 @@
 
 .admin-link:hover {
     transform: translateY(-2px);
-    border-color: var(--color-overlay-strong);
+    border-color: var(--color-nav-sub-hover-border);
 }
 
 .admin-link:focus-visible {
-    outline: 2px solid var(--color-focus-ring);
+    outline: 2px solid var(--color-nav-sub-focus);
     outline-offset: 2px;
 }
 
 .admin-link.router-link-active {
-    background: var(--color-overlay-strong);
-    border-color: var(--color-overlay-strong);
+    background: var(--color-nav-sub-active-bg);
+    border-color: var(--color-nav-sub-active-bg);
+    color: var(--color-nav-sub-active-text);
     box-shadow: var(--shadow-base);
 }
 
@@ -133,7 +134,7 @@
     left: 20%;
     right: 20%;
     height: 3px;
-    background: var(--color-text-primary);
+    background: var(--color-nav-sub-active-text);
     border-radius: var(--radius-xs);
 }
 
@@ -163,36 +164,5 @@
         width: 100%;
         justify-content: center;
     }
-}
-</style>
-
-<!-- Unscoped: theme overrides must reach [data-theme] on <html> -->
-<style>
-/* Light mode: invert bar — soft purple bg, dark purple text, solid active tab */
-[data-theme="light"] .admin-nav {
-    background: var(--color-admin-bg);
-    color: var(--color-admin);
-}
-
-[data-theme="light"] .admin-link {
-    color: var(--color-admin);
-}
-
-[data-theme="light"] .admin-link:hover {
-    border-color: var(--color-admin-shadow);
-}
-
-[data-theme="light"] .admin-link:focus-visible {
-    outline-color: var(--color-admin);
-}
-
-[data-theme="light"] .admin-link.router-link-active {
-    background: var(--color-admin);
-    color: var(--color-text-on-filled);
-    border-color: transparent;
-}
-
-[data-theme="light"] .admin-link.router-link-active::after {
-    background: var(--color-text-on-filled);
 }
 </style>

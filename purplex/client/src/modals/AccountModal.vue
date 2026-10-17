@@ -241,7 +241,7 @@ function getMemberSince(): string {
 }
 
 .close-button:hover {
-    background: var(--color-bg-border);
+    background: var(--color-border);
     color: var(--color-text-primary);
 }
 
@@ -262,7 +262,7 @@ function getMemberSince(): string {
 .avatar {
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+    background: var(--gradient-primary);
     border-radius: var(--radius-circle);
     display: flex;
     align-items: center;
@@ -270,7 +270,7 @@ function getMemberSince(): string {
     font-size: var(--font-size-xl);
     font-weight: 600;
     color: var(--color-text-on-filled);
-    box-shadow: 0 4px 12px var(--color-primary-glow);
+    box-shadow: 0 4px 12px var(--color-accent-glow);
 }
 
 .user-info {
@@ -379,15 +379,21 @@ function getMemberSince(): string {
 }
 
 .role-badge.admin {
-    background: linear-gradient(135deg, var(--color-admin) 0%, var(--color-admin-hover) 100%);
+    background: var(--color-admin);
     color: var(--color-text-on-filled);
-    box-shadow: 0 2px 8px var(--color-admin-shadow);
+    border: 1px solid var(--color-admin);
+}
+
+.role-badge.instructor {
+    background: var(--color-bg-panel);
+    color: var(--color-instructor);
+    border: 1px solid var(--color-instructor);
 }
 
 .role-badge.user {
     background: var(--color-bg-hover);
     color: var(--color-text-tertiary);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
 }
 
 .modal-footer {

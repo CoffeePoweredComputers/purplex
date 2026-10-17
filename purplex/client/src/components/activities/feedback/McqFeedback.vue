@@ -173,7 +173,7 @@ const bannerClass = computed(() => {
 
 <style scoped>
 .mcq-feedback {
-  background: var(--color-bg-card);
+  background: var(--color-bg-panel);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -205,8 +205,8 @@ const bannerClass = computed(() => {
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--color-bg-border);
-  border-top-color: var(--color-primary-gradient-start);
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
   border-radius: var(--radius-circle);
   animation: spin 1s linear infinite;
 }
@@ -317,7 +317,7 @@ const bannerClass = computed(() => {
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
   color: var(--color-text-primary);
-  border-left: 4px solid var(--color-bg-border);
+  border-left: 4px solid var(--color-border);
 }
 
 .answer-value--correct {
@@ -336,7 +336,7 @@ const bannerClass = computed(() => {
 .explanation-section {
   margin-top: var(--spacing-md);
   padding-top: var(--spacing-md);
-  border-top: 1px solid var(--color-bg-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .explanation-text {

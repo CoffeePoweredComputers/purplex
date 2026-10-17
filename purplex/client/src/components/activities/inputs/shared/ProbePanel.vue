@@ -449,7 +449,7 @@ watch(() => props.probeHistory.length, () => {
    =========================================== */
 .probe-input-wrapper {
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   margin: var(--spacing-sm) var(--spacing-lg);
   padding: var(--spacing-sm) var(--spacing-md);
@@ -457,7 +457,7 @@ watch(() => props.probeHistory.length, () => {
 }
 
 .probe-input-wrapper:focus-within {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 /* Row containing probe-call and history button; wraps so a narrow screen
@@ -474,7 +474,7 @@ watch(() => props.probeHistory.length, () => {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-mono);
   font-size: var(--font-size-base);
   color: var(--color-text-primary);
   flex-wrap: wrap;
@@ -491,7 +491,7 @@ watch(() => props.probeHistory.length, () => {
   flex-shrink: 0;
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-hover);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
@@ -502,17 +502,17 @@ watch(() => props.probeHistory.length, () => {
 
 .history-btn:hover {
   background: var(--color-bg-input);
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 
 .history-btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .fn-name {
-  color: var(--color-info);
+  color: var(--color-syntax-builtin);
   font-weight: 600;
 }
 
@@ -528,9 +528,9 @@ watch(() => props.probeHistory.length, () => {
   min-height: 32px;
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   line-height: 1.6;
   text-align: left;
@@ -546,7 +546,7 @@ watch(() => props.probeHistory.length, () => {
 
 .call-shell:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
+  box-shadow: 0 0 0 2px var(--color-accent-overlay);
 }
 
 /* Forced-colors mode drops box-shadow and recolours borders: keep a visible focus ring */
@@ -633,15 +633,14 @@ watch(() => props.probeHistory.length, () => {
   width: 100%;
   margin-top: var(--spacing-sm);
   padding: var(--spacing-xs) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-  color: var(--color-text-on-filled);
-  border: none;
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border: 1px solid transparent;
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px var(--color-primary-glow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -655,18 +654,12 @@ watch(() => props.probeHistory.length, () => {
 }
 
 .probe-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--color-primary-glow);
-}
-
-.probe-btn:active:not(:disabled) {
-  transform: translateY(0);
+  background: var(--color-bg-hover);
 }
 
 .probe-btn.is-duplicate {
   background: var(--color-bg-hover);
   color: var(--color-warning);
-  box-shadow: none;
   opacity: 1;
 }
 
@@ -766,7 +759,7 @@ watch(() => props.probeHistory.length, () => {
 
 .modal-content {
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   width: 90%;
   max-width: 480px;
@@ -781,7 +774,7 @@ watch(() => props.probeHistory.length, () => {
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h4 {
@@ -824,7 +817,7 @@ watch(() => props.probeHistory.length, () => {
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-sm);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   margin-bottom: var(--spacing-xs);
   background: var(--color-bg-hover);

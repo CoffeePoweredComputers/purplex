@@ -33,8 +33,8 @@ import { VAceEditor } from 'vue3-ace-editor'
 import { useTheme } from '@/composables/useTheme'
 import ace from 'ace-builds'
 import 'ace-builds/src-noconflict/mode-python'
-import 'ace-builds/src-noconflict/theme-chrome'
-import 'ace-builds/src-noconflict/theme-tomorrow_night'
+import 'ace-builds/src-noconflict/theme-tomorrow'
+import 'ace-builds/src-noconflict/theme-tomorrow_night_eighties'
 
 // Marker definition for line highlighting
 interface EditorMarker {
@@ -355,7 +355,7 @@ defineExpose({
   }
 
   :deep(.ace_editor:hover) {
-    border-color: var(--color-primary-gradient-start);
+    border-color: var(--color-accent);
     box-shadow: var(--shadow-lg);
   }
 
@@ -389,13 +389,13 @@ defineExpose({
   }
 
   :deep(.ace_scrollbar::-webkit-scrollbar-thumb) {
-    background: var(--color-bg-border);
+    background: var(--color-border);
     border-radius: var(--radius-sm);
     border: 2px solid var(--color-bg-hover);
   }
 
   :deep(.ace_scrollbar::-webkit-scrollbar-thumb:hover) {
-    background: var(--color-primary-gradient-start);
+    background: var(--color-accent);
   }
 
   /* Selection styling */
@@ -406,32 +406,32 @@ defineExpose({
 
   /* Active line highlighting */
   :deep(.ace_active-line) {
-    background: var(--color-primary-overlay);
+    background: var(--color-accent-overlay);
   }
 
   /* Cursor styling */
   :deep(.ace_cursor) {
-    color: var(--color-primary-gradient-start);
-    border-left: 2px solid var(--color-primary-gradient-start);
+    color: var(--color-accent);
+    border-left: 2px solid var(--color-accent);
   }
 
   /* Bracket matching */
   :deep(.ace_bracket) {
     margin: -1px -1px 0;
-    border: 1px solid var(--color-primary-gradient-start);
-    background: var(--color-primary-overlay);
+    border: 1px solid var(--color-accent);
+    background: var(--color-accent-overlay);
   }
 
   /* Search highlights */
   :deep(.ace_selected-word) {
-    border: 1px solid var(--color-primary-gradient-start);
-    background: var(--color-primary-overlay);
+    border: 1px solid var(--color-accent);
+    background: var(--color-accent-overlay);
   }
 
 
   /* Print margin */
   :deep(.ace_print-margin) {
-    background: var(--color-bg-border);
+    background: var(--color-border);
     width: 1px;
   }
 
@@ -441,13 +441,13 @@ defineExpose({
   }
 
   :deep(.ace_fold-widget:hover) {
-    color: var(--color-primary-gradient-start);
+    color: var(--color-accent);
   }
 
   /* Indent guides */
   :deep(.ace_indent-guide) {
     background: none;
-    border-right: 1px solid var(--color-bg-border);
+    border-right: 1px solid var(--color-border);
   }
 
   /* Hint System Styles */

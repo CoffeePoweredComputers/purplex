@@ -471,7 +471,7 @@ onMounted(() => {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Main Container */
@@ -494,7 +494,7 @@ onMounted(() => {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .section-description {
@@ -528,7 +528,7 @@ onMounted(() => {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -545,7 +545,7 @@ onMounted(() => {
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   background: var(--color-bg-panel);
 }
 
@@ -581,7 +581,7 @@ onMounted(() => {
 .preview-container {
   position: relative;
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   overflow: hidden;
   max-height: 400px;
@@ -610,7 +610,7 @@ onMounted(() => {
 /* Image Placeholder */
 .image-placeholder {
   background: var(--color-bg-input);
-  border: 2px dashed var(--color-bg-border);
+  border: 2px dashed var(--color-border);
   border-radius: var(--radius-base);
   padding: var(--spacing-xxl);
 }
@@ -635,7 +635,7 @@ onMounted(() => {
 
 /* Code Editor */
 .code-editor {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   overflow: hidden;
 }
@@ -647,7 +647,7 @@ onMounted(() => {
 
 .terminal-run-editor {
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
@@ -678,7 +678,7 @@ onMounted(() => {
   flex-shrink: 0;
   padding: var(--spacing-sm);
   background: var(--color-bg-panel);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -688,7 +688,7 @@ onMounted(() => {
   flex: 1;
   padding: var(--spacing-sm);
   background: var(--color-bg-panel);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -698,7 +698,7 @@ onMounted(() => {
 .interaction-text-input:focus,
 .interaction-type-select:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 /* Function Table Editor */
@@ -730,7 +730,7 @@ onMounted(() => {
   width: 100%;
   padding: var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -739,7 +739,7 @@ onMounted(() => {
 
 .call-field input:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
 }
 
 .call-actions {
@@ -749,7 +749,7 @@ onMounted(() => {
 /* Shared buttons */
 .btn-add {
   background: none;
-  border: 2px dashed var(--color-bg-border);
+  border: 2px dashed var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-muted);
   padding: var(--spacing-sm) var(--spacing-md);
@@ -762,7 +762,7 @@ onMounted(() => {
 
 .btn-add-small {
   background: none;
-  border: 2px dashed var(--color-bg-border);
+  border: 2px dashed var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-muted);
   cursor: pointer;
@@ -775,8 +775,8 @@ onMounted(() => {
 
 .btn-add:hover,
 .btn-add-small:hover {
-  border-color: var(--color-primary-gradient-start);
-  color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .btn-remove-small {

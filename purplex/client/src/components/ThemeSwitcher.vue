@@ -84,7 +84,7 @@ const options = computed<{ value: ThemePreference; label: string }[]>(() => [
 }
 
 .theme-option:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -95,7 +95,7 @@ const options = computed<{ value: ThemePreference; label: string }[]>(() => [
 .theme-option.active {
   background: var(--color-bg-panel);
   color: var(--color-text-primary);
-  box-shadow: var(--shadow-sm), 0 0 0 1px var(--color-bg-border);
+  box-shadow: var(--shadow-sm), 0 0 0 1px var(--color-border);
 }
 
 @media (width <= 480px) {

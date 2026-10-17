@@ -1,0 +1,37 @@
+/*
+ * Data-type badges on test-case inputs and outputs (TestCasesSection, used by
+ * every problem editor). Classes come from useTestCases().getTypeClass().
+ *
+ * Types are labels, not status: each takes a categorical ramp slot as an
+ * outline. The ramp clears 3:1 but not 4.5:1, so the slot colours the border
+ * and the text stays neutral. Validation failures keep the error colour.
+ */
+.param-type-badge.type-number,
+.param-type-badge.type-string,
+.param-type-badge.type-boolean,
+.param-type-badge.type-collection,
+.param-type-badge.type-optional,
+.param-type-badge.type-none,
+.param-type-badge.type-any {
+  background: var(--color-bg-panel);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.param-type-badge.type-number { border-color: var(--color-category-2); }
+.param-type-badge.type-string { border-color: var(--color-category-4); }
+.param-type-badge.type-boolean { border-color: var(--color-category-1); }
+.param-type-badge.type-collection { border-color: var(--color-category-5); }
+.param-type-badge.type-optional { border-color: var(--color-category-3); }
+
+.param-type-badge.type-none,
+.param-type-badge.type-any {
+  color: var(--color-text-muted);
+}
+
+.param-type-badge.type-invalid,
+.param-type-badge.type-error {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error);
+}

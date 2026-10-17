@@ -282,7 +282,7 @@ async function confirmDelete() {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Header Section */
@@ -325,26 +325,26 @@ async function confirmDelete() {
 }
 
 .btn:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  background: var(--gradient-primary);
   color: var(--color-text-on-filled);
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: var(--shadow-colored);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--color-primary-glow);
+  box-shadow: 0 8px 25px var(--color-accent-glow);
 }
 
 .btn-secondary {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border-color: var(--color-bg-border);
+  border-color: var(--color-border);
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -388,7 +388,7 @@ async function confirmDelete() {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 /* Form Groups */
@@ -412,7 +412,7 @@ async function confirmDelete() {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -421,7 +421,7 @@ async function confirmDelete() {
 
 .form-group select:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-focus-ring);
   background: var(--color-bg-panel);
 }
 
@@ -446,7 +446,7 @@ async function confirmDelete() {
   padding: var(--spacing-xxl);
   background: var(--color-bg-panel);
   border-radius: var(--radius-lg);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 .loading-editor p {
@@ -457,8 +457,8 @@ async function confirmDelete() {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--color-bg-border);
-  border-top-color: var(--color-primary-gradient-start);
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

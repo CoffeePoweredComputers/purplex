@@ -907,7 +907,7 @@ export default defineComponent({
 }
 
 .attempt-dropdown-trigger:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1002,7 +1002,7 @@ export default defineComponent({
 }
 
 .attempt-item-minimal:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1012,14 +1012,14 @@ export default defineComponent({
 }
 
 .attempt-item-minimal.is-current {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
   color: var(--color-text-primary);
 }
 
 .attempt-indicator {
   width: 2px;
   height: 12px;
-  background: var(--color-bg-border);
+  background: var(--color-border);
   border-radius: 1px;
   position: absolute;
   left: 2px;
@@ -1101,7 +1101,7 @@ export default defineComponent({
 }
 
 .metric-card:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1128,7 +1128,7 @@ export default defineComponent({
 /* Progress Bar */
 .progress-bar-container {
   height: 8px;
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   border-radius: var(--radius-xs);
   overflow: hidden;
   margin-bottom: var(--spacing-md);
@@ -1305,7 +1305,7 @@ export default defineComponent({
 }
 
 .banner-button:focus {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

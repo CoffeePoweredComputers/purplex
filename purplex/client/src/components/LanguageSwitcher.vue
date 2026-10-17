@@ -123,7 +123,7 @@ async function handleLanguageChange() {
   font-family: inherit;
   color: var(--color-text-primary);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   cursor: pointer;
   transition: var(--transition-fast);
@@ -135,13 +135,13 @@ async function handleLanguageChange() {
 }
 
 .language-select:hover {
-  border-color: var(--color-primary-gradient-start);
+  border-color: var(--color-accent);
 }
 
 .language-select:focus {
   outline: none;
-  border-color: var(--color-primary-gradient-start);
-  box-shadow: 0 0 0 2px var(--color-primary-overlay);
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 2px var(--color-accent-overlay);
 }
 
 .language-select:disabled {
@@ -150,7 +150,7 @@ async function handleLanguageChange() {
 }
 
 .language-select option {
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   color: var(--color-text-primary);
   padding: var(--spacing-sm);
 }

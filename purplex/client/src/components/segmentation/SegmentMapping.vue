@@ -151,8 +151,7 @@ export default defineComponent({
       activeSegment: null as number | null,
       selectedSegment: null as number | null,
       canvasWidth: 200 as number,
-      canvasHeight: 400 as number,
-      connectionColor: '#667eea' as string
+      canvasHeight: 400 as number
     };
   },
   computed: {
@@ -295,7 +294,7 @@ export default defineComponent({
       // Read segment color from CSS variables (theme-aware)
       const index = ((segmentId - 1) % 6) + 1;
       return getComputedStyle(document.documentElement)
-        .getPropertyValue(`--color-segment-${index}`).trim() || '#9f7aea';
+        .getPropertyValue(`--color-category-${index}`).trim() || `var(--color-category-${index})`;
     },
 
     getSegmentNumber(segmentId: number): number {
@@ -417,7 +416,7 @@ export default defineComponent({
   padding: var(--spacing-md);
   background: var(--color-bg-panel);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   margin-top: var(--spacing-sm);
 }
 
@@ -472,9 +471,9 @@ export default defineComponent({
   font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-sm);
   line-height: 1.4;
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   overflow-x: auto;
 }
 
@@ -498,7 +497,7 @@ export default defineComponent({
   flex-shrink: 0;
   background: var(--color-bg-section);
   padding: 2px 8px 2px 4px;
-  border-right: 1px solid var(--color-bg-border);
+  border-right: 1px solid var(--color-border);
   border-left: 3px solid transparent;
   margin-right: 12px;
   font-weight: normal;
@@ -528,15 +527,15 @@ export default defineComponent({
 }
 
 .code-line.highlighted {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
 }
 
 .code-line.highlighted .line-number {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
 }
 
 .code-line.highlighted .line-content {
-  background: var(--color-primary-overlay);
+  background: var(--color-accent-overlay);
 }
 
 .code-line.dimmed {
@@ -594,7 +593,7 @@ export default defineComponent({
 
 .response-panel::-webkit-scrollbar-thumb,
 .code-panel::-webkit-scrollbar-thumb {
-  background: var(--color-bg-border);
+  background: var(--color-border);
   border-radius: 2px;
 }
 

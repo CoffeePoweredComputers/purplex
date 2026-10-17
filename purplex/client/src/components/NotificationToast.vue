@@ -120,7 +120,7 @@ export default defineComponent({
 
 .notification:hover {
   transform: translateX(-5px);
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--shadow-lg);
 }
 
 .notification.success {

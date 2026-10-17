@@ -95,6 +95,7 @@
             @click="$emit('debug', test)"
           >
             <span aria-hidden="true">🔍</span>
+            <span>{{ $t('feedback.tests.debug') }}</span>
           </button>
         </div>
       </template>
@@ -200,14 +201,14 @@ const lockedText = computed(() =>
 .pip.pass {
   background: var(--color-success-bg);
   color: var(--color-success-text);
-  border-color: transparent;
+  border-color: var(--color-success-border);
 }
 
 .pip.fail {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
-  border-color: var(--color-error);
-  box-shadow: 0 0 0 2px var(--color-bg-panel), 0 0 0 3px var(--color-error);
+  background: var(--color-error-dark);
+  color: var(--color-text-on-filled);
+  border-color: var(--color-error-dark);
+  box-shadow: none;
 }
 
 .pip.lock {
@@ -313,10 +314,10 @@ const lockedText = computed(() =>
 }
 
 .debug-btn {
-  background: var(--color-info);
-  color: var(--color-text-on-filled);
-  border: none;
-  padding: var(--spacing-xs);
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-xs);
   cursor: pointer;
   font-size: var(--font-size-sm);
@@ -325,15 +326,17 @@ const lockedText = computed(() =>
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: var(--spacing-xs);
+  font-weight: 600;
   transition: var(--transition-fast);
 }
 
 .debug-btn:hover {
-  background: var(--color-info-dark);
+  background: var(--color-bg-hover);
 }
 
 .debug-btn:focus-visible {
-  outline: 2px solid var(--color-primary-gradient-start);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
