@@ -82,6 +82,10 @@ jobs:
           yarn lint:check
           yarn stylelint:check
 
+      - name: Check theme tokens
+        working-directory: purplex/client
+        run: yarn theme:check
+
       - name: Run TypeScript type checking
         working-directory: purplex/client
         continue-on-error: true
