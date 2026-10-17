@@ -1019,7 +1019,7 @@ export default defineComponent({
 .attempt-indicator {
   width: 2px;
   height: 12px;
-  background: var(--color-bg-border);
+  background: var(--color-border);
   border-radius: 1px;
   position: absolute;
   left: 2px;
@@ -1128,7 +1128,7 @@ export default defineComponent({
 /* Progress Bar */
 .progress-bar-container {
   height: 8px;
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   border-radius: var(--radius-xs);
   overflow: hidden;
   margin-bottom: var(--spacing-md);

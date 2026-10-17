@@ -49,7 +49,7 @@ function openInPyTutor(): void {
 <style scoped>
 .suggested-trace {
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   padding: var(--spacing-md) var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
@@ -78,8 +78,8 @@ function openInPyTutor(): void {
 .trace-function {
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
-  background: var(--color-bg-dark);
-  border: 1px solid var(--color-bg-border);
+  background: var(--color-bg-sunken);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
   color: var(--color-text-primary);

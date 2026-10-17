@@ -112,7 +112,7 @@ defineEmits<{
 .btn-secondary {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .btn-danger {

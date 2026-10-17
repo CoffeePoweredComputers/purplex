@@ -170,7 +170,7 @@ onMounted(() => {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Main Container */
@@ -193,7 +193,7 @@ onMounted(() => {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .form-section h4 {
@@ -240,7 +240,7 @@ onMounted(() => {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -275,7 +275,7 @@ onMounted(() => {
 
 /* Code Editor */
 .code-editor {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-top: none;
   border-radius: 0 0 var(--radius-base) var(--radius-base);
   overflow: hidden;
@@ -331,7 +331,7 @@ onMounted(() => {
   width: 60px;
   padding: var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -409,7 +409,7 @@ onMounted(() => {
   flex: 1;
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -430,7 +430,7 @@ onMounted(() => {
   width: 100px;
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -440,7 +440,7 @@ onMounted(() => {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   background: var(--color-bg-panel);
   color: var(--color-text-muted);
   cursor: pointer;
@@ -461,7 +461,7 @@ onMounted(() => {
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-panel);
   color: var(--color-text-secondary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   cursor: pointer;
   font-weight: 500;

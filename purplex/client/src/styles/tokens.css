@@ -81,14 +81,13 @@
 
   /* Background Colors */
   --color-bg-main: #242424;
-  --color-bg-dark: #1a1a1a;
+  --color-bg-sunken: #1a1a1a;
   --color-bg-panel: #1e1e1e;
-  --color-bg-panel-light: #1f1f1f;
   --color-bg-header: #191919;
   --color-bg-hover: #2a2a2a;
   --color-bg-section: #2a2a2a;
   --color-bg-input: #333;
-  --color-bg-border: #444;
+  --color-border: #444;
   --color-bg-disabled: #555;
 
   /* Text Colors */
@@ -173,13 +172,13 @@
   --color-warning-pulse: rgb(251 191 36 / 70%);
   --color-warning-pulse-end: rgb(251 191 36 / 0%);
 
-  /* Segment Colors (used by SegmentMapping and ViewSubmissionModal) */
-  --color-segment-1: #9f7aea;
-  --color-segment-2: #4299e1;
-  --color-segment-3: #4fd1c5;
-  --color-segment-4: #68d391;
-  --color-segment-5: #f6ad55;
-  --color-segment-6: #fc8181;
+  /* Categorical ramp (segments; read by SegmentMapping and ViewSubmissionModal) */
+  --color-category-1: #9f7aea;
+  --color-category-2: #4299e1;
+  --color-category-3: #4fd1c5;
+  --color-category-4: #68d391;
+  --color-category-5: #f6ad55;
+  --color-category-6: #fc8181;
 
   /* Ace Editor */
   --color-ace-selection: rgb(128 0 128 / 30%);
@@ -225,14 +224,13 @@
 
   /* Background Colors */
   --color-bg-main: #f8f9fa;
-  --color-bg-dark: #e9ecef;
+  --color-bg-sunken: #e9ecef;
   --color-bg-panel: #fff;
-  --color-bg-panel-light: #fff;
   --color-bg-header: #f1f3f5;
   --color-bg-hover: #dde1e6;
   --color-bg-section: #f5f5f7;
   --color-bg-input: #e9ecef;
-  --color-bg-border: #d1d5db;
+  --color-border: #d1d5db;
   --color-bg-disabled: #9ca3af;
 
   /* Text Colors */
@@ -317,13 +315,13 @@
   --color-warning-pulse: rgb(180 83 9 / 50%);
   --color-warning-pulse-end: rgb(180 83 9 / 0%);
 
-  /* Segment Colors (deeper for contrast on light backgrounds) */
-  --color-segment-1: #7c3aed;
-  --color-segment-2: #2563eb;
-  --color-segment-3: #0d9488;
-  --color-segment-4: #16a34a;
-  --color-segment-5: #ea580c;
-  --color-segment-6: #dc2626;
+  /* Categorical ramp (deeper for contrast on light backgrounds) */
+  --color-category-1: #7c3aed;
+  --color-category-2: #2563eb;
+  --color-category-3: #0d9488;
+  --color-category-4: #16a34a;
+  --color-category-5: #ea580c;
+  --color-category-6: #dc2626;
 
   /* Ace Editor */
   --color-ace-selection: rgb(107 0 107 / 20%);

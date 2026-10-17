@@ -369,7 +369,7 @@ onMounted(() => {
 }
 
 .badge-count {
-  background: var(--color-bg-border);
+  background: var(--color-border);
   color: var(--color-text-muted);
 }
 
@@ -414,7 +414,7 @@ onMounted(() => {
 .size-controls {
   display: flex;
   gap: var(--spacing-xs);
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   padding: var(--spacing-xs);
   border-radius: var(--radius-sm);
 }
@@ -476,7 +476,7 @@ onMounted(() => {
 .analysis-header {
   padding: var(--spacing-lg);
   background: var(--color-bg-hover);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .feedback-content {

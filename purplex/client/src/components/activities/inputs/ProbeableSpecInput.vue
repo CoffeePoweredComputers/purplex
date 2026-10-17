@@ -257,7 +257,7 @@ function handleSubmit() {
 .prompt-editor-wrapper {
   padding: 0;
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   margin: var(--spacing-md) var(--spacing-xl);
   margin-bottom: 0;
   border-radius: var(--radius-base);

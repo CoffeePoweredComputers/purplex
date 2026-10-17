@@ -694,7 +694,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .hint-menu-header h4 {
@@ -817,7 +817,7 @@ export default {
 
 .hint-content {
   background: var(--color-bg-section);
-  border-top: 1px solid var(--color-bg-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .hint-content-body {
@@ -845,7 +845,7 @@ export default {
 
 .hint-example pre {
   margin: 0;
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   color: var(--color-text-primary);
   padding: 12px;
   border-radius: 4px;
@@ -856,7 +856,7 @@ export default {
 .hint-footer {
   padding: 12px 16px;
   background: var(--color-bg-section);
-  border-top: 1px solid var(--color-bg-border);
+  border-top: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -890,7 +890,7 @@ export default {
 }
 
 .action-btn.secondary:hover:not(:disabled) {
-  background: var(--color-bg-border);
+  background: var(--color-border);
 }
 
 .action-btn.danger {
@@ -945,7 +945,7 @@ export default {
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background-color: var(--color-bg-border);
+  background-color: var(--color-border);
   transition: 0.3s;
   border-radius: 24px;
 }

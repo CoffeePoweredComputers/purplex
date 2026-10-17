@@ -74,7 +74,7 @@ function parseParamNames(signature: string): string[] {
 
 <style scoped>
 .function-call-table-wrapper {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   overflow: hidden;
 }
@@ -98,12 +98,12 @@ function parseParamNames(signature: string): string[] {
   font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .function-call-table td {
   padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
   color: var(--color-text-primary);
 }
 

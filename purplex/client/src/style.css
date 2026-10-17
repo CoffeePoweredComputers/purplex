@@ -55,7 +55,7 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: var(--color-bg-dark);
+  background-color: var(--color-bg-sunken);
   color: var(--color-text-primary);
   cursor: pointer;
   transition: var(--transition-base);
@@ -84,7 +84,7 @@ select {
   font-size: inherit;
   color: var(--color-text-primary);
   background-color: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   padding: var(--spacing-sm) var(--spacing-md);
   transition: var(--transition-fast);
@@ -136,11 +136,11 @@ select:-webkit-autofill {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-bg-border);
+  background: var(--color-border);
   border-radius: var(--radius-xs);
 }
 
@@ -180,10 +180,6 @@ textarea::selection {
 
 .text-secondary {
   color: var(--color-text-secondary);
-}
-
-.bg-dark {
-  background-color: var(--color-bg-dark);
 }
 
 .bg-panel {

@@ -136,7 +136,7 @@ defineExpose({
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Form Sections */
@@ -153,7 +153,7 @@ defineExpose({
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .section-description {
@@ -181,7 +181,7 @@ defineExpose({
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -211,7 +211,7 @@ defineExpose({
 
 .mcq-option-item {
   background: var(--color-bg-hover);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   padding: var(--spacing-md);
   transition: all 0.2s ease;
@@ -262,7 +262,7 @@ defineExpose({
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   background: var(--color-bg-panel);
   color: var(--color-text-muted);
   cursor: pointer;
@@ -295,7 +295,7 @@ defineExpose({
   width: 100%;
   padding: var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -321,7 +321,7 @@ defineExpose({
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-panel);
   color: var(--color-text-secondary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   cursor: pointer;
   font-weight: 500;

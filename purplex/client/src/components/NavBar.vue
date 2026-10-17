@@ -452,8 +452,8 @@ onUnmounted(() => {
 
 /* Account button styling */
 .account-item {
-    background: var(--color-bg-dark);
-    border-color: var(--color-bg-border);
+    background: var(--color-bg-sunken);
+    border-color: var(--color-border);
 }
 
 .account-item:hover {

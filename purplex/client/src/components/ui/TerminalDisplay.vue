@@ -52,7 +52,7 @@ defineProps<Props>()
 <style scoped>
 .terminal-display {
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   padding: var(--spacing-md);
   font-family: 'Courier New', Courier, monospace;
@@ -78,7 +78,7 @@ defineProps<Props>()
 .run-divider::after {
   content: '';
   flex: 1;
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .run-label {

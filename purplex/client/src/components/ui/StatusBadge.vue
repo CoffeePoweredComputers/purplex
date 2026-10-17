@@ -75,7 +75,7 @@ const displayLabel = computed(() => props.label || props.value);
 .status-default {
   background: var(--color-bg-hover);
   color: var(--color-text-tertiary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 /* Admin - gradient purple (matches AdminUsers badge) */

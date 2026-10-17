@@ -449,7 +449,7 @@ watch(() => props.probeHistory.length, () => {
    =========================================== */
 .probe-input-wrapper {
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   margin: var(--spacing-sm) var(--spacing-lg);
   padding: var(--spacing-sm) var(--spacing-md);
@@ -491,7 +491,7 @@ watch(() => props.probeHistory.length, () => {
   flex-shrink: 0;
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-hover);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
@@ -528,7 +528,7 @@ watch(() => props.probeHistory.length, () => {
   min-height: 32px;
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
@@ -766,7 +766,7 @@ watch(() => props.probeHistory.length, () => {
 
 .modal-content {
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   width: 90%;
   max-width: 480px;
@@ -781,7 +781,7 @@ watch(() => props.probeHistory.length, () => {
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h4 {

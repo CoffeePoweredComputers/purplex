@@ -407,7 +407,7 @@ onMounted(loadInstructors);
   margin: 0 0 var(--spacing-lg) 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-lg);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
   padding-bottom: var(--spacing-md);
 }
 
@@ -433,7 +433,7 @@ onMounted(loadInstructors);
   padding: var(--spacing-md);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
   transition: var(--transition-fast);
@@ -520,7 +520,7 @@ onMounted(loadInstructors);
 .btn-secondary {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .btn-secondary:hover {

@@ -161,7 +161,7 @@ onMounted(() => {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Main Container */
@@ -184,7 +184,7 @@ onMounted(() => {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .form-section h4 {
@@ -231,7 +231,7 @@ onMounted(() => {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -266,7 +266,7 @@ onMounted(() => {
 
 /* Code Editor */
 .code-editor {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-top: none;
   border-radius: 0 0 var(--radius-base) var(--radius-base);
   overflow: hidden;

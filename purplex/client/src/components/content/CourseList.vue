@@ -310,7 +310,7 @@ onMounted(fetchTable);
   height: 36px;
   padding: 0;
   background: var(--color-bg-hover);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   cursor: pointer;
   transition: var(--transition-base);

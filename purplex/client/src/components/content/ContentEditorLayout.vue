@@ -123,7 +123,7 @@ defineExpose({ ctx });
 .breadcrumb {
   margin-bottom: var(--spacing-xl);
   padding: var(--spacing-md) 0;
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .breadcrumb-link {
@@ -171,7 +171,7 @@ defineExpose({ ctx });
 
 /* Utility classes */
 .border-default {
-  border-color: var(--color-bg-border);
+  border-color: var(--color-border);
 }
 
 .transition-fast {

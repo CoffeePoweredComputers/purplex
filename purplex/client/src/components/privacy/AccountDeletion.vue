@@ -142,7 +142,7 @@ function formatDate(isoDate: string): string {
     padding: var(--spacing-xl);
     background: var(--color-bg-panel);
     border-radius: var(--radius-base);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     box-shadow: var(--shadow-sm);
 }
 

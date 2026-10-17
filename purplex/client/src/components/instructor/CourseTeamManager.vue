@@ -285,7 +285,7 @@ onMounted(fetchTeam);
 .team-table td {
   padding: var(--spacing-sm) var(--spacing-md);
   text-align: left;
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .team-table th {
@@ -316,7 +316,7 @@ onMounted(fetchTeam);
 
 .role-select {
   padding: var(--spacing-xs) var(--spacing-sm);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
@@ -343,7 +343,7 @@ onMounted(fetchTeam);
   margin-top: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-hover);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   cursor: pointer;
   color: var(--color-text-primary);
@@ -353,7 +353,7 @@ onMounted(fetchTeam);
   margin-top: var(--spacing-lg);
   padding: var(--spacing-lg);
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
 }
 
@@ -372,7 +372,7 @@ onMounted(fetchTeam);
 .input-email {
   width: 260px;
   padding: var(--spacing-sm);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   background: var(--color-bg-input);
   color: var(--color-text-primary);

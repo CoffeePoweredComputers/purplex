@@ -299,7 +299,7 @@ onMounted(fetchTable);
 .edit-button {
   background: var(--color-bg-hover);
   color: var(--color-text-tertiary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .edit-button:hover {

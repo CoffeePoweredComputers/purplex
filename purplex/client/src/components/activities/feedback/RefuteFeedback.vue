@@ -236,7 +236,7 @@ const resultInterpretation = computed(() => {
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--color-bg-border);
+  border: 3px solid var(--color-border);
   border-top-color: var(--color-accent);
   border-radius: var(--radius-circle);
   animation: spin 1s linear infinite;

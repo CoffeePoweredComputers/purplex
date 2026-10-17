@@ -479,7 +479,7 @@ defineExpose({
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Form Sections */
@@ -496,7 +496,7 @@ defineExpose({
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 /* Form Groups */
@@ -519,7 +519,7 @@ defineExpose({
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -541,7 +541,7 @@ defineExpose({
   align-items: center;
   padding: var(--spacing-sm);
   background: var(--color-bg-hover);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-bottom: none;
   border-radius: var(--radius-base) var(--radius-base) 0 0;
 }
@@ -562,7 +562,7 @@ defineExpose({
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   background: var(--color-bg-panel);
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -593,14 +593,14 @@ defineExpose({
 .theme-dropdown {
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
 }
 
 .code-editor {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-top: none;
   border-radius: 0 0 var(--radius-base) var(--radius-base);
   overflow: hidden;
@@ -623,7 +623,7 @@ defineExpose({
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-panel);
   color: var(--color-text-secondary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   cursor: pointer;
   font-weight: 500;
@@ -671,7 +671,7 @@ defineExpose({
 
 .test-case {
   background: var(--color-bg-hover);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   padding: var(--spacing-md);
 }
@@ -732,7 +732,7 @@ defineExpose({
   padding: var(--spacing-sm);
   padding-right: 50px;
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -840,7 +840,7 @@ defineExpose({
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   background: var(--color-bg-panel);
   color: var(--color-text-muted);
   cursor: pointer;
@@ -901,7 +901,7 @@ defineExpose({
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--color-bg-border);
+  border: 3px solid var(--color-border);
   border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -924,7 +924,7 @@ defineExpose({
   display: flex;
   gap: var(--spacing-xs);
   margin-bottom: var(--spacing-lg);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
   padding-bottom: var(--spacing-sm);
 }
 
@@ -995,7 +995,7 @@ defineExpose({
   width: 60px;
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -1032,7 +1032,7 @@ defineExpose({
   flex: 1;
   padding: var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -1048,13 +1048,13 @@ defineExpose({
   align-items: center;
   gap: var(--spacing-sm);
   padding-top: var(--spacing-md);
-  border-top: 1px solid var(--color-bg-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .subgoal-item {
   padding: var(--spacing-md);
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   margin-bottom: var(--spacing-sm);
 }
@@ -1070,7 +1070,7 @@ defineExpose({
   flex: 1;
   padding: var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -1092,7 +1092,7 @@ defineExpose({
   width: 60px;
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -1103,7 +1103,7 @@ defineExpose({
   width: 100%;
   padding: var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -1112,7 +1112,7 @@ defineExpose({
 
 .add-subgoal {
   padding-top: var(--spacing-md);
-  border-top: 1px solid var(--color-bg-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .add-subgoal h5 {
@@ -1135,7 +1135,7 @@ defineExpose({
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-family: monospace;
@@ -1244,7 +1244,7 @@ defineExpose({
   width: 60px;
   padding: var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -1319,7 +1319,7 @@ defineExpose({
   flex: 1;
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -1340,7 +1340,7 @@ defineExpose({
   width: 100px;
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -1350,7 +1350,7 @@ defineExpose({
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   background: var(--color-bg-panel);
   color: var(--color-text-muted);
   cursor: pointer;

@@ -238,7 +238,7 @@ async function enrollInCourse(): Promise<void> {
   padding: var(--spacing-md);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-xs);
   font-size: var(--font-size-base);
   transition: var(--transition-fast);

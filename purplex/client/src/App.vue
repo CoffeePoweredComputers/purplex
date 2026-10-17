@@ -291,7 +291,7 @@ export default defineComponent({
 }
 
 .divider {
-    border-top: 3px solid var(--color-bg-dark);
+    border-top: 3px solid var(--color-bg-sunken);
 }
 
 /* Common utility classes */
@@ -365,7 +365,7 @@ export default defineComponent({
     right: 0;
     width: 100%;
     background-color: var(--color-bg-header);
-    border-top: 1px solid var(--color-bg-border);
+    border-top: 1px solid var(--color-border);
     padding: var(--spacing-md) var(--spacing-xl);
     z-index: 1000;
     box-sizing: border-box;

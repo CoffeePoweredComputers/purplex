@@ -46,7 +46,7 @@ const editor = computed(() => props.editor)
   align-items: center;
   padding: var(--spacing-sm);
   background: var(--color-bg-hover);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-bottom: none;
   border-radius: var(--radius-base) var(--radius-base) 0 0;
 }
@@ -67,7 +67,7 @@ const editor = computed(() => props.editor)
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   background: var(--color-bg-panel);
   color: var(--color-text-secondary);
   cursor: pointer;

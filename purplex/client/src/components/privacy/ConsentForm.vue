@@ -145,7 +145,7 @@ function submitConsent() {
     padding: var(--spacing-xl);
     background: var(--color-bg-panel);
     border-radius: var(--radius-base);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     box-shadow: var(--shadow-base);
 }
 
@@ -171,7 +171,7 @@ function submitConsent() {
 .consent-form__optional-header {
     margin-top: var(--spacing-sm);
     padding-top: var(--spacing-md);
-    border-top: 1px solid var(--color-bg-border);
+    border-top: 1px solid var(--color-border);
     font-size: var(--font-size-xs);
     color: var(--color-text-muted);
 }

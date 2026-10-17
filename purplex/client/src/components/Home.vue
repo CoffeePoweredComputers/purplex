@@ -320,7 +320,7 @@ main {
 
 .problem-set-card {
   background: var(--color-bg-panel);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 0;
   cursor: pointer;

@@ -241,7 +241,7 @@ function getMemberSince(): string {
 }
 
 .close-button:hover {
-    background: var(--color-bg-border);
+    background: var(--color-border);
     color: var(--color-text-primary);
 }
 
@@ -387,7 +387,7 @@ function getMemberSince(): string {
 .role-badge.user {
     background: var(--color-bg-hover);
     color: var(--color-text-tertiary);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
 }
 
 .modal-footer {

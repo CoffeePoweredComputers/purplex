@@ -389,7 +389,7 @@ defineExpose({
   }
 
   :deep(.ace_scrollbar::-webkit-scrollbar-thumb) {
-    background: var(--color-bg-border);
+    background: var(--color-border);
     border-radius: var(--radius-sm);
     border: 2px solid var(--color-bg-hover);
   }
@@ -431,7 +431,7 @@ defineExpose({
 
   /* Print margin */
   :deep(.ace_print-margin) {
-    background: var(--color-bg-border);
+    background: var(--color-border);
     width: 1px;
   }
 
@@ -447,7 +447,7 @@ defineExpose({
   /* Indent guides */
   :deep(.ace_indent-guide) {
     background: none;
-    border-right: 1px solid var(--color-bg-border);
+    border-right: 1px solid var(--color-border);
   }
 
   /* Hint System Styles */

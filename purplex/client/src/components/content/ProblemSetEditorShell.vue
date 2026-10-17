@@ -450,7 +450,7 @@ onMounted(async () => {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Header */
@@ -485,7 +485,7 @@ onMounted(async () => {
   padding: var(--spacing-xxl);
   background: var(--color-bg-panel);
   border-radius: var(--radius-lg);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 .loading-container p {
@@ -496,7 +496,7 @@ onMounted(async () => {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--color-bg-border);
+  border: 3px solid var(--color-border);
   border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -505,7 +505,7 @@ onMounted(async () => {
 .spinner-small {
   width: 20px;
   height: 20px;
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -544,7 +544,7 @@ onMounted(async () => {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .form-row {
@@ -578,7 +578,7 @@ onMounted(async () => {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -644,18 +644,18 @@ onMounted(async () => {
   min-height: 100px;
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .available-problems-section {
-  border-top: 1px solid var(--color-bg-border);
+  border-top: 1px solid var(--color-border);
   padding-top: var(--spacing-lg);
 }
 
 .problem-search {
   width: 100%;
   padding: var(--spacing-md);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
@@ -674,7 +674,7 @@ onMounted(async () => {
   background: var(--color-bg-main);
   border-radius: var(--radius-base);
   padding: var(--spacing-md);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .problem-item {
@@ -692,7 +692,7 @@ onMounted(async () => {
 
 .problem-item.selected {
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .problem-item.available {
@@ -830,7 +830,7 @@ onMounted(async () => {
 .btn-secondary {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border-color: var(--color-bg-border);
+  border-color: var(--color-border);
 }
 
 .btn-secondary:hover:not(:disabled) {

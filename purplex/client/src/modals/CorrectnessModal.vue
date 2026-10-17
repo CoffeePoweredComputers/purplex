@@ -592,7 +592,7 @@ onMounted(() => {
 .size-controls {
   display: flex;
   gap: var(--spacing-xs);
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   padding: var(--spacing-xs);
   border-radius: var(--radius-sm);
 }
@@ -650,7 +650,7 @@ onMounted(() => {
   gap: var(--spacing-sm);
   align-items: flex-start;
   padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .analysis-summary.summary-success {
@@ -888,13 +888,13 @@ ul.tests-list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
 }
 
 .test-item {
   padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .test-item:last-child {
@@ -938,7 +938,7 @@ ul.tests-list {
   color: var(--color-text-primary);
   overflow-wrap: break-word;
   line-height: 1.4;
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   padding: 2px 8px;
   border-radius: var(--radius-xs);
 }
@@ -967,7 +967,7 @@ ul.tests-list {
   font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   padding: 2px 8px;
   border-radius: var(--radius-xs);
 }

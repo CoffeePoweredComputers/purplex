@@ -115,7 +115,7 @@ function submitAge() {
     padding: var(--spacing-xl);
     background: var(--color-bg-panel);
     border-radius: var(--radius-base);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     box-shadow: var(--shadow-base);
 }
 
@@ -147,7 +147,7 @@ function submitAge() {
 
 .age-gate__input {
     padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-xs);
     background: var(--color-bg-input);
     color: var(--color-text-primary);

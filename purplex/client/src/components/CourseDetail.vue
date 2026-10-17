@@ -351,7 +351,7 @@ onMounted(async () => {
 
 .problem-set-card {
   background: var(--color-bg-panel);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 0;
   cursor: pointer;
@@ -474,7 +474,7 @@ onMounted(async () => {
   background-color: var(--color-bg-panel);
   border-radius: var(--radius-lg);
   color: var(--color-text-muted);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Error State */

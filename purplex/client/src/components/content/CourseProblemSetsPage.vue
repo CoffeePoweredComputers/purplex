@@ -660,7 +660,7 @@ watch(
 .order-btn {
   padding: var(--spacing-xs) var(--spacing-sm);
   background-color: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -693,7 +693,7 @@ watch(
 
 .due-date-input {
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
   color: var(--color-text-primary);
@@ -729,7 +729,7 @@ watch(
 
 .deadline-select {
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
   color: var(--color-text-primary);
@@ -825,7 +825,7 @@ watch(
 .secondary-button {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .secondary-button:hover {
@@ -850,7 +850,7 @@ watch(
 
 .remove-button {
   background-color: transparent;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   padding: var(--spacing-xs) var(--spacing-md);
 }
@@ -911,7 +911,7 @@ watch(
 .btn-secondary {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .btn-danger {

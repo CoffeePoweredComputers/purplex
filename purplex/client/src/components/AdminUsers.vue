@@ -294,7 +294,7 @@ onMounted(() => {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);

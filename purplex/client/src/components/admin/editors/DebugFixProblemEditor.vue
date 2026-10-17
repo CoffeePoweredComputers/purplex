@@ -442,7 +442,7 @@ onMounted(() => {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Main Container */
@@ -465,7 +465,7 @@ onMounted(() => {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .section-description {
@@ -498,7 +498,7 @@ onMounted(() => {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -529,7 +529,7 @@ onMounted(() => {
 
 /* Code Editor */
 .code-editor {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-top: none;
   border-radius: 0 0 var(--radius-base) var(--radius-base);
   overflow: hidden;
@@ -590,7 +590,7 @@ onMounted(() => {
   align-items: center;
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-base) var(--radius-base) 0 0;
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-bottom: none;
 }
 
@@ -696,7 +696,7 @@ onMounted(() => {
   width: 28px;
   height: 28px;
   background: var(--color-bg-hover);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-secondary);
   font-size: var(--font-size-lg);
@@ -715,7 +715,7 @@ onMounted(() => {
 
 .section-content {
   padding-top: var(--spacing-lg);
-  border-top: 2px solid var(--color-bg-border);
+  border-top: 2px solid var(--color-border);
   margin-top: var(--spacing-lg);
 }
 
@@ -731,7 +731,7 @@ onMounted(() => {
   padding: var(--spacing-md);
   background: var(--color-bg-hover);
   border-radius: var(--radius-base);
-  border-left: 4px solid var(--color-bg-border);
+  border-left: 4px solid var(--color-border);
 }
 
 .hint-item.level-1 {
@@ -767,7 +767,7 @@ onMounted(() => {
 .level-select {
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -777,7 +777,7 @@ onMounted(() => {
   width: 100%;
   padding: var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
@@ -804,7 +804,7 @@ onMounted(() => {
   padding: var(--spacing-lg);
   background: var(--color-bg-hover);
   border-radius: var(--radius-base);
-  border: 2px dashed var(--color-bg-border);
+  border: 2px dashed var(--color-border);
 }
 
 .add-hint-form h4 {
@@ -838,7 +838,7 @@ onMounted(() => {
 .level-guide {
   margin-top: var(--spacing-md);
   padding-top: var(--spacing-md);
-  border-top: 1px solid var(--color-bg-border);
+  border-top: 1px solid var(--color-border);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   line-height: 1.6;
@@ -886,7 +886,7 @@ onMounted(() => {
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-panel);
   color: var(--color-text-secondary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   cursor: pointer;
   font-weight: 500;
@@ -913,7 +913,7 @@ onMounted(() => {
   width: 24px;
   height: 24px;
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   color: var(--color-text-muted);
   cursor: pointer;

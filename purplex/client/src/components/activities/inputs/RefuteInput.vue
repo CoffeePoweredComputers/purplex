@@ -430,7 +430,7 @@ function formatOutput(value: unknown): string {
 /* Test Wrapper */
 .test-wrapper {
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   margin: var(--spacing-md) var(--spacing-lg);
   padding: var(--spacing-sm) var(--spacing-md);
@@ -476,7 +476,7 @@ function formatOutput(value: unknown): string {
   height: 28px;
   padding: 0 var(--spacing-sm);
   background: var(--color-bg-panel);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-family: var(--font-mono);

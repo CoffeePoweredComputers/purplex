@@ -204,7 +204,7 @@ async function updateDirectoryInfo() {
     padding: var(--spacing-md) var(--spacing-base);
     background: var(--color-bg-panel);
     border-radius: var(--radius-sm);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     transition: var(--transition-fast);
 }
 
@@ -249,7 +249,7 @@ async function updateDirectoryInfo() {
 .consent-toggle__slider {
     position: absolute;
     inset: 0;
-    background: var(--color-bg-border);
+    background: var(--color-border);
     border-radius: var(--radius-round);
     transition: var(--transition-fast);
 }

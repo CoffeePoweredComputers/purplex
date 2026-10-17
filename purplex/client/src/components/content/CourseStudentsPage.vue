@@ -334,7 +334,7 @@ watch(
 .secondary-button {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .secondary-button:hover {
@@ -345,7 +345,7 @@ watch(
 
 .remove-button {
   background-color: transparent;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   padding: var(--spacing-xs) var(--spacing-md);
 }

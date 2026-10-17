@@ -253,7 +253,7 @@ defineExpose({ open })
 
 .progress-bar-container {
   height: 8px;
-  background: var(--color-bg-dark);
+  background: var(--color-bg-sunken);
   border-radius: var(--radius-xs);
   overflow: hidden;
   margin-bottom: var(--spacing-md);
@@ -274,7 +274,7 @@ defineExpose({ open })
 }
 
 .progress-bar-fill.bar-locked {
-  background: var(--color-bg-border);
+  background: var(--color-border);
 }
 
 .card-status {

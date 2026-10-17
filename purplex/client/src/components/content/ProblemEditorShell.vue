@@ -282,7 +282,7 @@ async function confirmDelete() {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Header Section */
@@ -344,7 +344,7 @@ async function confirmDelete() {
 .btn-secondary {
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border-color: var(--color-bg-border);
+  border-color: var(--color-border);
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -388,7 +388,7 @@ async function confirmDelete() {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 /* Form Groups */
@@ -412,7 +412,7 @@ async function confirmDelete() {
   width: 100%;
   padding: var(--spacing-md);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -446,7 +446,7 @@ async function confirmDelete() {
   padding: var(--spacing-xxl);
   background: var(--color-bg-panel);
   border-radius: var(--radius-lg);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 .loading-editor p {
@@ -457,7 +457,7 @@ async function confirmDelete() {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--color-bg-border);
+  border: 3px solid var(--color-border);
   border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;

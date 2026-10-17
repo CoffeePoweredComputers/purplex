@@ -458,7 +458,7 @@ onMounted(() => {
 .loading-spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid var(--color-bg-border);
+  border: 4px solid var(--color-border);
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -522,7 +522,7 @@ onMounted(() => {
   display: flex;
   align-items: stretch;
   background: var(--color-bg-panel);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
   transition: var(--transition-base);
   overflow: hidden;
@@ -666,7 +666,7 @@ onMounted(() => {
 
 /* Add Course Card - Ghost/Shadow style */
 .add-course-card {
-  border: 2px dashed var(--color-bg-border);
+  border: 2px dashed var(--color-border);
   background: transparent;
   min-height: 80px;
 }
@@ -757,7 +757,7 @@ onMounted(() => {
   align-items: center;
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-md);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .form-header h3 {
@@ -812,7 +812,7 @@ onMounted(() => {
   padding: var(--spacing-md);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
   transition: var(--transition-fast);
@@ -860,7 +860,7 @@ onMounted(() => {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   padding-left: var(--spacing-sm);
-  border-left: 1px solid var(--color-bg-border);
+  border-left: 1px solid var(--color-border);
 }
 
 /* Form error */
@@ -880,14 +880,14 @@ onMounted(() => {
   justify-content: flex-end;
   margin-top: var(--spacing-lg);
   padding-top: var(--spacing-md);
-  border-top: 1px solid var(--color-bg-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .btn-cancel {
   padding: var(--spacing-sm) var(--spacing-lg);
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   font-weight: 600;
   cursor: pointer;

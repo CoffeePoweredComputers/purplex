@@ -2109,7 +2109,7 @@ export default {
     border-radius: 8px;
     font-size: 0.9rem;
     background: var(--color-bg-section);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
 }
 
 .deadline-banner .deadline-icon {
@@ -2197,7 +2197,7 @@ export default {
 
 .nav-button {
     background: var(--color-bg-hover);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
     width: 32px;
     height: 32px;
@@ -2270,7 +2270,7 @@ export default {
     padding: 2px var(--spacing-sm);
     border-radius: var(--radius-xl);
     background: var(--color-bg-hover);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
 }
 
 .progress-stat.completed {
@@ -2639,7 +2639,7 @@ export default {
     height: 24px;
     padding: 0;
     background: var(--color-bg-panel);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
     font-size: 16px;
     font-weight: 600;
@@ -2693,7 +2693,7 @@ export default {
     height: 24px;
     padding: 0 var(--spacing-sm);
     background: var(--color-bg-panel);
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
     font-size: 14px;
     display: flex;

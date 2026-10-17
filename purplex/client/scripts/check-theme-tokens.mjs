@@ -37,8 +37,8 @@ const NON_COLOUR_PREFIXES = ['--spacing-', '--radius-', '--font-', '--transition
 /** Per-instance variables set from inline `:style` bindings, not from CSS. */
 const INLINE_VARIABLES = [/^--modal-/, /^--param-count$/, /^--segment-bg-color$/];
 
-/** Prefixes read with a computed name, e.g. getPropertyValue(`--color-segment-${n}`). */
-const DYNAMIC_PREFIXES = ['--color-segment-'];
+/** Prefixes read with a computed name, e.g. getPropertyValue(`--color-category-${n}`). */
+const DYNAMIC_PREFIXES = ['--color-category-'];
 
 /**
  * Problems that exist today and are scheduled to be fixed. Each entry is

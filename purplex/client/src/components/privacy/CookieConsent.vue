@@ -75,7 +75,7 @@ function acceptAll() {
     right: 0;
     z-index: 9999;
     background: var(--color-bg-header);
-    border-top: 1px solid var(--color-bg-border);
+    border-top: 1px solid var(--color-border);
     padding: var(--spacing-base) var(--spacing-xl);
     box-shadow: var(--shadow-up);
 }
@@ -118,7 +118,7 @@ function acceptAll() {
     font-size: var(--font-size-sm);
     font-weight: 500;
     cursor: pointer;
-    border: 1px solid var(--color-bg-border);
+    border: 1px solid var(--color-border);
     transition: var(--transition-fast);
 }
 

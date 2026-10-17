@@ -458,7 +458,7 @@ input {
   width: 100%;
   padding: calc(var(--spacing-md) + 2px) var(--spacing-md);
   background: var(--color-bg-input);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
@@ -505,7 +505,7 @@ input::placeholder {
 .login-btns button:nth-child(2) {
   background: var(--color-bg-hover);
   color: var(--color-text-tertiary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .login-btns button:nth-child(2)::before {
@@ -515,7 +515,7 @@ input::placeholder {
 .login-btns button:nth-child(3) {
   background: var(--color-bg-main);
   color: var(--color-text-primary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   position: relative;
   overflow: hidden;
 }
@@ -554,7 +554,7 @@ input::placeholder {
 .redirect-mode-btn {
   background: var(--color-bg-hover) !important;
   color: var(--color-text-secondary) !important;
-  border: 1px dashed var(--color-bg-border) !important;
+  border: 1px dashed var(--color-border) !important;
   font-size: var(--font-size-sm) !important;
 }
 

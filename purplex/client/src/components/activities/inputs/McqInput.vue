@@ -206,7 +206,7 @@ function getButtonAriaLabel(): string {
   font-size: var(--font-size-lg);
   color: var(--color-text-primary);
   line-height: 1.6;
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 /* Section Header */
@@ -240,7 +240,7 @@ function getButtonAriaLabel(): string {
   align-items: center;
   padding: var(--spacing-md) var(--spacing-lg);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   cursor: pointer;
   transition: var(--transition-base);

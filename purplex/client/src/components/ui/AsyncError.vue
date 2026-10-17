@@ -54,7 +54,7 @@ defineProps<{
 .retry-button {
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-bg-hover);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);

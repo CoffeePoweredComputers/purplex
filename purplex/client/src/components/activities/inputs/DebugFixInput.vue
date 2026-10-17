@@ -202,7 +202,7 @@ function handleReset() {
 .code-editor-wrapper {
   padding: 0;
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   margin: var(--spacing-md) var(--spacing-xl);
   margin-bottom: 0;
   border-radius: var(--radius-base);
@@ -226,7 +226,7 @@ function handleReset() {
   padding: var(--spacing-md) var(--spacing-lg);
   background: var(--color-bg-hover);
   color: var(--color-text-secondary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   font-weight: 500;

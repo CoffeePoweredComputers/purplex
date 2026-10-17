@@ -150,7 +150,7 @@ const selectedModeDescription = computed(() => {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 /* Form Section */
@@ -166,7 +166,7 @@ const selectedModeDescription = computed(() => {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .section-description {
@@ -204,7 +204,7 @@ const selectedModeDescription = computed(() => {
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   padding-left: var(--spacing-sm);
-  border-left: 1px solid var(--color-bg-border);
+  border-left: 1px solid var(--color-border);
 }
 
 /* Probe Mode Section */
@@ -226,7 +226,7 @@ const selectedModeDescription = computed(() => {
 .segmented-control {
   display: flex;
   background: var(--color-bg-hover);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   padding: 2px;
   gap: 2px;
@@ -300,7 +300,7 @@ const selectedModeDescription = computed(() => {
   width: 80px;
   padding: var(--spacing-sm);
   background: var(--color-bg-input);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);

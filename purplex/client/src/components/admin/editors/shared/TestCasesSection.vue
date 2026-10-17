@@ -278,7 +278,7 @@ function removeTestCase(index: number) {
 }
 
 .border-default {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
 }
 
 .hover-primary:hover {
@@ -299,7 +299,7 @@ function removeTestCase(index: number) {
   font-size: var(--font-size-lg);
   font-weight: 600;
   padding-bottom: var(--spacing-base);
-  border-bottom: 2px solid var(--color-bg-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 /* Test Actions */
@@ -324,7 +324,7 @@ function removeTestCase(index: number) {
 
 /* Test Case Cards */
 .test-case {
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base);
   background: var(--color-bg-panel);
   transition: var(--transition-fast);
@@ -390,7 +390,7 @@ function removeTestCase(index: number) {
 .param-input {
   flex: 1;
   padding: var(--spacing-md);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
@@ -479,13 +479,13 @@ function removeTestCase(index: number) {
 .type-none {
   background: var(--color-bg-section);
   color: var(--color-text-muted);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .type-any {
   background: var(--color-bg-hover);
   color: var(--color-text-tertiary);
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .type-invalid {
@@ -568,7 +568,7 @@ function removeTestCase(index: number) {
 /* Remove Button */
 .remove-btn {
   background: var(--color-bg-hover);
-  border: 1.5px solid var(--color-bg-border);
+  border: 1.5px solid var(--color-border);
   color: var(--color-text-muted);
   cursor: pointer;
   border-radius: var(--radius-circle);
@@ -639,7 +639,7 @@ function removeTestCase(index: number) {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--color-bg-border);
+  border: 3px solid var(--color-border);
   border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -681,7 +681,7 @@ function removeTestCase(index: number) {
 .btn-secondary {
   background: var(--color-bg-panel);
   color: var(--color-text-secondary);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   padding: var(--spacing-md) var(--spacing-lg);
   font-weight: 600;
   font-size: var(--font-size-base);

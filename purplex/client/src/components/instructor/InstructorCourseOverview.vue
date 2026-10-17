@@ -806,7 +806,7 @@ onMounted(() => {
 .loading-spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid var(--color-bg-border);
+  border: 4px solid var(--color-border);
   border-top-color: var(--color-admin);
   border-right-color: var(--color-accent-strong);
   border-radius: 50%;
@@ -860,7 +860,7 @@ onMounted(() => {
 /* Unified Course Card */
 .course-card {
   background: var(--color-bg-panel);
-  border: 2px solid var(--color-bg-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-base);
   padding: var(--spacing-xl);
@@ -873,7 +873,7 @@ onMounted(() => {
 
 .card-divider {
   height: 1px;
-  background: var(--color-bg-border);
+  background: var(--color-border);
   margin: var(--spacing-xl) 0;
 }
 
@@ -897,7 +897,7 @@ onMounted(() => {
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  background: var(--color-bg-border);
+  background: var(--color-border);
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
   margin-top: var(--spacing-sm);
@@ -1013,7 +1013,7 @@ onMounted(() => {
 .marker-line {
   flex: 1;
   width: 2px;
-  background: linear-gradient(to bottom, var(--color-admin), var(--color-bg-border));
+  background: linear-gradient(to bottom, var(--color-admin), var(--color-border));
   margin-top: var(--spacing-sm);
   min-height: 40px;
 }
@@ -1419,7 +1419,7 @@ onMounted(() => {
   justify-content: space-around;
   margin-bottom: var(--spacing-xl);
   padding-bottom: var(--spacing-lg);
-  border-bottom: 1px solid var(--color-bg-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .snapshot-item {
@@ -1525,7 +1525,7 @@ onMounted(() => {
 }
 
 .chart-bar.placeholder-bar {
-  background: var(--color-bg-border);
+  background: var(--color-border);
 }
 
 .muted-text {

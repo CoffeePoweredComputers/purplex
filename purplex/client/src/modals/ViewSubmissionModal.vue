@@ -830,7 +830,7 @@ function formatHintTime(timestamp: string | undefined): string {
 function getSegmentColor(index: number): string {
   const varIndex = (index % 6) + 1
   return getComputedStyle(document.documentElement)
-    .getPropertyValue(`--color-segment-${varIndex}`).trim() || '#9f7aea'
+    .getPropertyValue(`--color-category-${varIndex}`).trim() || `var(--color-category-${varIndex})`
 }
 
 function formatCodeLines(lines: number[]): string {
@@ -1092,7 +1092,7 @@ watch(() => props.submission, () => {
 
 .nav-btn:hover:not(:disabled) {
   background: var(--color-bg-input);
-  border-color: var(--color-bg-border);
+  border-color: var(--color-border);
 }
 
 /* Modal Body */
@@ -1429,7 +1429,7 @@ details[open] .group-icon {
   min-width: 28px;
   height: 28px;
   padding: 0 8px;
-  background: linear-gradient(135deg, var(--color-segment-1) 0%, var(--color-gradient-start) 100%);
+  background: linear-gradient(135deg, var(--color-category-1) 0%, var(--color-gradient-start) 100%);
   color: var(--color-text-on-filled);
   font-size: 16px;
   font-weight: 700;
@@ -1537,7 +1537,7 @@ details[open] .group-icon {
   left: 50%;
   width: 2px;
   transform: translateX(-50%);
-  background: var(--color-bg-border);
+  background: var(--color-border);
   border-radius: 1px;
   opacity: 0.4;
   transition: opacity 0.2s, background-color 0.2s, width 0.2s;

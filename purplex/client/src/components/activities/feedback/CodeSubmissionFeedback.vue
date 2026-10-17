@@ -638,7 +638,7 @@ onBeforeUnmount(() => {
   background-size: 200% 100%;
   border-radius: var(--radius-base);
   animation: shimmer 2.5s ease-in-out infinite;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 .skeleton-test-item {
@@ -652,7 +652,7 @@ onBeforeUnmount(() => {
   background-size: 200% 100%;
   border-radius: var(--radius-xs);
   animation: shimmer 2.5s ease-in-out infinite;
-  border: 1px solid var(--color-bg-border);
+  border: 1px solid var(--color-border);
 }
 
 @keyframes shimmer {
@@ -855,7 +855,7 @@ onBeforeUnmount(() => {
 .attempt-indicator {
   width: 2px;
   height: 12px;
-  background: var(--color-bg-border);
+  background: var(--color-border);
   border-radius: 1px;
   position: absolute;
   left: 2px;
