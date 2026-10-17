@@ -17,6 +17,12 @@
  *   - No [data-theme] selectors anywhere else. If a component needs a
  *     different treatment per theme, express it as a token here.
  *   - No colour literals outside this file; stylelint enforces it.
+ *   - Transparency variants derive from their base token with
+ *     color-mix(in srgb, var(--base) P%, transparent). A literal alpha stays
+ *     only where its RGB has drifted from the base (marked inline).
+ *     color-mix() and light-dark() are allowed in this file only.
+ *
+ * Browser floor (color-mix): Chrome 111, Safari 16.2, Firefox 113.
  */
 
 :root {
@@ -146,14 +152,14 @@
   --color-overlay-strong: rgb(255 255 255 / 15%);
 
   /* Status Overlays (low-alpha backgrounds) */
-  --color-success-overlay: rgb(76 175 80 / 15%);
-  --color-warning-overlay: rgb(255 193 7 / 15%);
-  --color-error-overlay: rgb(220 53 69 / 15%);
-  --color-info-overlay: rgb(33 150 243 / 15%);
+  --color-success-overlay: color-mix(in srgb, var(--color-success) 15%, transparent);
+  --color-warning-overlay: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  --color-error-overlay: color-mix(in srgb, var(--color-error) 15%, transparent);
+  --color-info-overlay: color-mix(in srgb, var(--color-info) 15%, transparent);
 
   /* Accent Overlays */
-  --color-accent-overlay: rgb(102 126 234 / 10%);
-  --color-accent-glow: rgb(102 126 234 / 30%);
+  --color-accent-overlay: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 30%, transparent);
 
   /* Status Gradient Endpoints */
   --color-success-accent: #34d399;
@@ -169,22 +175,22 @@
   --color-overlay-shimmer: rgb(255 255 255 / 35%);
 
   /* Status Borders (colored border accents) */
-  --color-success-border: rgb(76 175 80 / 40%);
-  --color-warning-border: rgb(255 193 7 / 40%);
-  --color-error-border: rgb(220 53 69 / 40%);
-  --color-info-border: rgb(33 150 243 / 40%);
+  --color-success-border: color-mix(in srgb, var(--color-success) 40%, transparent);
+  --color-warning-border: color-mix(in srgb, var(--color-warning) 40%, transparent);
+  --color-error-border: color-mix(in srgb, var(--color-error) 40%, transparent);
+  --color-info-border: color-mix(in srgb, var(--color-info) 40%, transparent);
 
   /* Modal Backdrops */
   --color-backdrop: rgb(0 0 0 / 50%);
   --color-backdrop-heavy: rgb(0 0 0 / 75%);
 
   /* Colored Glows (box-shadows) */
-  --color-accent-shadow: rgb(102 126 234 / 40%);
-  --color-admin-shadow: rgb(103 58 183 / 30%);
-  --color-info-shadow: rgb(59 130 246 / 30%);
-  --color-segment-shadow: rgb(159 122 234 / 30%);
-  --color-warning-pulse: rgb(251 191 36 / 70%);
-  --color-warning-pulse-end: rgb(251 191 36 / 0%);
+  --color-accent-shadow: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  --color-admin-shadow: color-mix(in srgb, var(--color-admin) 30%, transparent);
+  --color-info-shadow: rgb(59 130 246 / 30%); /* drifted from base; retuned in step 7 */
+  --color-segment-shadow: color-mix(in srgb, var(--color-category-1) 30%, transparent);
+  --color-warning-pulse: color-mix(in srgb, var(--color-warning-accent) 70%, transparent);
+  --color-warning-pulse-end: transparent;
 
   /* Categorical ramp (segments; read by SegmentMapping and ViewSubmissionModal) */
   --color-category-1: #9f7aea;
@@ -195,7 +201,7 @@
   --color-category-6: #fc8181;
 
   /* Ace Editor */
-  --color-ace-selection: rgb(128 0 128 / 30%);
+  --color-ace-selection: color-mix(in srgb, var(--color-primary) 30%, transparent);
 
   /* Shadows */
   --shadow-xs: 0 1px 3px rgb(0 0 0 / 10%);
@@ -213,8 +219,8 @@
   --shadow-inset: inset 0 1px 3px rgb(0 0 0 / 20%);
   --shadow-float: 0 24px 64px rgb(0 0 0 / 50%);
   --shadow-up: 0 -2px 10px rgb(0 0 0 / 30%);
-  --shadow-info-hover: 0 4px 12px rgb(59 130 246 / 50%);
-  --shadow-info-active: 0 4px 16px rgb(59 130 246 / 60%);
+  --shadow-info-hover: 0 4px 12px rgb(59 130 246 / 50%); /* drifted from base; retuned in step 7 */
+  --shadow-info-active: 0 4px 16px rgb(59 130 246 / 60%); /* drifted from base; retuned in step 7 */
   --shadow-admin-hover: 0 4px 12px rgb(103 58 183 / 50%);
   --shadow-admin-active: 0 4px 16px rgb(103 58 183 / 60%);
   --shadow-segment-hover: 0 4px 16px rgb(159 122 234 / 50%);
@@ -293,7 +299,7 @@
   --color-nav-sub-focus: var(--color-admin);
 
   /* One-off decorations */
-  --marker-line-bg: rgb(124 58 237 / 30%);
+  --marker-line-bg: color-mix(in srgb, var(--color-admin) 30%, transparent);
   --logo-filter: brightness(0) invert(0.3);
   --logo-filter-hover: brightness(0) invert(0.1);
 
@@ -303,14 +309,14 @@
   --color-overlay-strong: rgb(0 0 0 / 8%);
 
   /* Status Overlays */
-  --color-success-overlay: rgb(21 128 61 / 8%);
-  --color-warning-overlay: rgb(180 83 9 / 8%);
-  --color-error-overlay: rgb(220 38 38 / 8%);
-  --color-info-overlay: rgb(29 78 216 / 8%);
+  --color-success-overlay: color-mix(in srgb, var(--color-success) 8%, transparent);
+  --color-warning-overlay: color-mix(in srgb, var(--color-warning) 8%, transparent);
+  --color-error-overlay: color-mix(in srgb, var(--color-error) 8%, transparent);
+  --color-info-overlay: color-mix(in srgb, var(--color-info) 8%, transparent);
 
   /* Accent Overlays */
-  --color-accent-overlay: rgb(79 70 229 / 7%);
-  --color-accent-glow: rgb(79 70 229 / 15%);
+  --color-accent-overlay: color-mix(in srgb, var(--color-accent) 7%, transparent);
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 15%, transparent);
 
   /* Status Gradient Endpoints */
   --color-success-accent: #059669;
@@ -326,22 +332,22 @@
   --color-overlay-shimmer: rgb(0 0 0 / 6%);
 
   /* Status Borders */
-  --color-success-border: rgb(21 128 61 / 30%);
-  --color-warning-border: rgb(180 83 9 / 30%);
-  --color-error-border: rgb(220 38 38 / 30%);
-  --color-info-border: rgb(29 78 216 / 30%);
+  --color-success-border: color-mix(in srgb, var(--color-success) 30%, transparent);
+  --color-warning-border: color-mix(in srgb, var(--color-warning) 30%, transparent);
+  --color-error-border: color-mix(in srgb, var(--color-error) 30%, transparent);
+  --color-info-border: color-mix(in srgb, var(--color-info) 30%, transparent);
 
   /* Modal Backdrops (reduced — less darkening over light content) */
   --color-backdrop: rgb(0 0 0 / 30%);
   --color-backdrop-heavy: rgb(0 0 0 / 60%);
 
   /* Colored Glows (~50% opacity reduction) */
-  --color-accent-shadow: rgb(79 70 229 / 20%);
-  --color-admin-shadow: rgb(91 33 182 / 15%);
-  --color-info-shadow: rgb(29 78 216 / 15%);
-  --color-segment-shadow: rgb(124 58 237 / 15%);
-  --color-warning-pulse: rgb(180 83 9 / 50%);
-  --color-warning-pulse-end: rgb(180 83 9 / 0%);
+  --color-accent-shadow: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  --color-admin-shadow: rgb(91 33 182 / 15%); /* drifted from base; retuned in step 7 */
+  --color-info-shadow: color-mix(in srgb, var(--color-info) 15%, transparent);
+  --color-segment-shadow: color-mix(in srgb, var(--color-category-1) 15%, transparent);
+  --color-warning-pulse: color-mix(in srgb, var(--color-warning) 50%, transparent);
+  --color-warning-pulse-end: transparent;
 
   /* Categorical ramp (deeper for contrast on light backgrounds) */
   --color-category-1: #7c3aed;
@@ -352,7 +358,7 @@
   --color-category-6: #dc2626;
 
   /* Ace Editor */
-  --color-ace-selection: rgb(107 0 107 / 20%);
+  --color-ace-selection: color-mix(in srgb, var(--color-primary) 20%, transparent);
 
   /* Shadows (same geometry, ~60-70% opacity reduction) */
   --shadow-xs: 0 1px 3px rgb(0 0 0 / 4%);
@@ -372,7 +378,7 @@
   --shadow-up: 0 -2px 10px rgb(0 0 0 / 6%);
   --shadow-info-hover: 0 4px 12px rgb(29 78 216 / 20%);
   --shadow-info-active: 0 4px 16px rgb(29 78 216 / 25%);
-  --shadow-admin-hover: 0 4px 12px rgb(91 33 182 / 20%);
-  --shadow-admin-active: 0 4px 16px rgb(91 33 182 / 25%);
+  --shadow-admin-hover: 0 4px 12px rgb(91 33 182 / 20%); /* drifted from base; retuned in step 7 */
+  --shadow-admin-active: 0 4px 16px rgb(91 33 182 / 25%); /* drifted from base; retuned in step 7 */
   --shadow-segment-hover: 0 4px 16px rgb(124 58 237 / 20%);
 }
