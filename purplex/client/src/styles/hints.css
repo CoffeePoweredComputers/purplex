@@ -1,12 +1,5 @@
 /* Hints Component Styles */
 
-/* Base hint component styles */
-.hint-container {
-  --hint-spacing: var(--spacing-lg);
-  --hint-border-radius: var(--radius-base);
-  --hint-transition: var(--transition-base);
-}
-
 /* Hint button states */
 .hint-button-wrapper {
   display: inline-block;
@@ -280,10 +273,6 @@
 
 /* Responsive hint layouts */
 @media (width <= 768px) {
-  .hint-container {
-    --hint-spacing: var(--spacing-md);
-  }
-
   .hint-modal-container {
     margin: var(--spacing-md);
     width: calc(100% - var(--spacing-xl));

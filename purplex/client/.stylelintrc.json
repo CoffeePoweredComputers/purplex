@@ -40,7 +40,7 @@
       "customSyntax": "postcss-html"
     },
     {
-      "files": ["src/App.vue", "src/style.css"],
+      "files": ["src/styles/tokens.css"],
       "rules": {
         "color-no-hex": null,
         "function-disallowed-list": null

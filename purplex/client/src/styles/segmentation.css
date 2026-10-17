@@ -2,29 +2,20 @@
 
 /* Global CSS Variables for Segmentation */
 :root {
-  /* Segmentation-specific colors */
-  --seg-color-excellent: var(--color-success);
-  --seg-color-good: var(--color-warning);
-  --seg-color-needs-work: var(--color-error);
-
   /* Segmentation spacing */
-  --seg-spacing-xs: var(--spacing-xs);
   --seg-spacing-sm: var(--spacing-sm);
   --seg-spacing-md: var(--spacing-md);
   --seg-spacing-lg: var(--spacing-lg);
 
   /* Segmentation animations */
   --seg-transition-fast: var(--transition-fast);
-  --seg-transition-base: var(--transition-base);
 
   /* Segmentation component heights */
-  --seg-progress-height: 80px;
   --seg-block-size: 40px;
   --seg-block-size-mobile: 32px;
 
   /* Segmentation z-index levels */
   --seg-z-tooltip: 1000;
-  --seg-z-modal: 1100;
 }
 
 /* Base Segmentation Container */
@@ -87,20 +78,20 @@
 }
 
 .seg-progress-block.excellent {
-  background: var(--seg-color-excellent);
-  border: 2px solid var(--seg-color-excellent);
+  background: var(--color-success);
+  border: 2px solid var(--color-success);
   color: var(--color-text-on-filled);
 }
 
 .seg-progress-block.good {
-  background: var(--seg-color-good);
-  border: 2px solid var(--seg-color-good);
+  background: var(--color-warning);
+  border: 2px solid var(--color-warning);
   color: var(--color-text-on-filled);
 }
 
 .seg-progress-block.needs-work {
-  background: var(--seg-color-needs-work);
-  border: 2px solid var(--seg-color-needs-work);
+  background: var(--color-error);
+  border: 2px solid var(--color-error);
   color: var(--color-text-on-filled);
 }
 
@@ -271,7 +262,7 @@
     var(--color-success-overlay) 0%,
     var(--color-success-overlay) 100%
   );
-  border-left: 4px solid var(--seg-color-excellent);
+  border-left: 4px solid var(--color-success);
 }
 
 .seg-feedback.good {
@@ -279,7 +270,7 @@
     var(--color-warning-overlay) 0%,
     var(--color-warning-overlay) 100%
   );
-  border-left: 4px solid var(--seg-color-good);
+  border-left: 4px solid var(--color-warning);
 }
 
 .seg-feedback.needs-work {
@@ -287,7 +278,7 @@
     var(--color-error-overlay) 0%,
     var(--color-error-overlay) 100%
   );
-  border-left: 4px solid var(--seg-color-needs-work);
+  border-left: 4px solid var(--color-error);
 }
 
 /* Segmentation Connection Lines */

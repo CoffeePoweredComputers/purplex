@@ -26,7 +26,7 @@ import { join, relative, resolve } from 'path';
 // ---------------------------------------------------------------------------
 
 /** The single file allowed to define theme colours, relative to the client root. */
-const TOKENS_FILE = 'src/App.vue';
+const TOKENS_FILE = 'src/styles/tokens.css';
 
 const DARK_SELECTOR = ':root, [data-theme="dark"]';
 const LIGHT_SELECTOR = '[data-theme="light"]';
@@ -45,15 +45,6 @@ const DYNAMIC_PREFIXES = ['--color-segment-'];
  * `<check>:<detail>`. Listed problems print as warnings; anything else fails.
  */
 const KNOWN_OFFENDERS = [
-  // Step 1 moves the tokens to src/styles/tokens.css with a separate base block.
-  'parity:theme-independent tokens in the dark block',
-  'unused:--hint-spacing',
-  'unused:--hint-border-radius',
-  'unused:--hint-transition',
-  'unused:--seg-spacing-xs',
-  'unused:--seg-transition-base',
-  'unused:--seg-progress-height',
-  'unused:--seg-z-modal',
   // Step 2 maps or deletes these.
   'undefined:--shadow-xl',
   'undefined:--color-bg-card',
@@ -75,7 +66,9 @@ const KNOWN_OFFENDERS = [
   'unused:--transition-slow',
   'unused:--max-width-panel',
   'data-theme:src/style.css',
-  // Step 5 replaces these component overrides with nav-sub tokens.
+  // Step 5 moves these component overrides into tokens (nav-sub tokens; the
+  // App.vue footer logo filter needs a token or a both-theme decision).
+  'data-theme:src/App.vue',
   'data-theme:src/components/AdminNavBar.vue',
   'data-theme:src/components/NavBar.vue',
   'data-theme:src/components/instructor/InstructorCourseOverview.vue',
@@ -129,14 +122,6 @@ function topLevelRules(css) {
 const declaredNames = (css) =>
   [...css.matchAll(/(?<![\w-])(--[\w-]+)\s*:/g)].map((m) => m[1]);
 
-function tokensCss() {
-  const text = readFileSync(join(clientRoot, TOKENS_FILE), 'utf-8');
-  if (!TOKENS_FILE.endsWith('.vue')) {
-    return stripComments(text);
-  }
-  const blocks = [...text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]);
-  return stripComments(blocks.join('\n'));
-}
 
 // ---------------------------------------------------------------------------
 // Collect
@@ -178,10 +163,8 @@ for (const file of files) {
 // 1. Parity
 // ---------------------------------------------------------------------------
 
-const rules = topLevelRules(tokensCss());
-// Before the tokens move, App.vue's plain :root doubles as the dark block.
-const dark =
-  rules.find((r) => r.selector === DARK_SELECTOR) ?? rules.find((r) => r.selector === ':root');
+const rules = topLevelRules(stripComments(readFileSync(join(clientRoot, TOKENS_FILE), 'utf-8')));
+const dark = rules.find((r) => r.selector === DARK_SELECTOR);
 const light = rules.find((r) => r.selector === LIGHT_SELECTOR);
 
 if (!dark || !light) {
